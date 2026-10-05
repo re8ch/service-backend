@@ -265,7 +265,7 @@ def test_generated_tools_are_callable_and_match_directory_and_self_service():
     spec.loader.exec_module(module)
     generated = json.loads((root / "operations/cloud-platform/plugin-operation-tools.json").read_text())["tools"]
     names = {item["name"] for item in generated}
-    assert len(names) == len(generated) == 286
+    assert len(names) == len(generated) == 358
     assert sum(item["_meta"]["re8ch"]["method"] == "GET" for item in generated) == 282
     assert all(len(name) <= 64 for name in names)
     admin = Identity("admin", (module.ADMIN_GROUP,))

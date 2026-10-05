@@ -41,7 +41,7 @@ jobs:
       - name: Verify generated contracts and native schema enumeration
         run: |
           python3 operations/plugin-capabilities/generate.py
-          git diff --exit-code -- operations/cloud-platform/plugin-operation-tools.json operations/plugin-capabilities/registry.json operations/plugin-capabilities/registry.runtime.json platform/apps/tenant-mcp/platform-modules.json clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json
+          git diff --exit-code -- operations/cloud-platform/plugin-operation-tools.json operations/cloud-platform/network-planner/operations.json operations/plugin-capabilities/registry.json operations/plugin-capabilities/registry.runtime.json platform/apps/tenant-mcp/platform-modules.json clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json
           python3 operations/plugin-capabilities/verify.py
           python3 operations/plugin-capabilities/audit.py --report operations/plugin-capabilities/declaration-coverage-report.json
           git diff --exit-code -- operations/plugin-capabilities/declaration-coverage-report.json
@@ -59,6 +59,8 @@ jobs:
           assert "anatomy.runtimediff.create" in tools
           assert "anatomy.runtimediff.delete" in tools
           assert {"cilium.cidrgroup.create", "cilium.cidrgroup.delete"} <= tools
+          assert len(server.NETWORK_MUTATIONS) == 72
+          assert set(server.NETWORK_MUTATIONS) <= tools
           viewer = {tool["name"] for tool in server.tool_list(Identity("viewer", ()))}
           assert not (server.PRIVILEGED_TOOLS & viewer)
           print("Packaged tool discovery and privilege filtering passed")
@@ -66,9 +68,7 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    # Hosted-runner layer uploads repeatedly hit the public edge timeout.
-    # Keep validation hosted; publish through the trusted Harbor-near runner.
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     environment: production
     permissions:
@@ -81,7 +81,7 @@ jobs:
           export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-platform-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
-          printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker buildx create --name "cloud-platform-release-${GITHUB_RUN_ID}" --driver docker-container --use
           echo "TENANT_IMAGE_BUILDER=cloud-platform-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"

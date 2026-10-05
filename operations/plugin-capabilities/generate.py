@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT / "operations/cloud-platform"))
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
 from cilium_cidr_operation import TOOL as CILIUM_CIDR_TOOL, DELETE_TOOL as CILIUM_CIDR_DELETE_TOOL
+from network_native_mutations import build_manifest, tool_definitions, MANIFEST as NETWORK_MANIFEST
 from plugin_capabilities import STORAGE_PROJECTION
 from plugin_capabilities import GROUP_PLUGINS, RESOURCE_PLUGINS, ADVFAB_KINDS, CILIUM_POLICY_READS, CILIUM_TOPOLOGY_READS, reviewed_read, operation_contract, operation_disposition
 
@@ -71,6 +72,9 @@ def deployed_tools(tools):
 
 
 def generate():
+    network_rows = build_manifest()
+    NETWORK_MANIFEST.write_text(json.dumps(network_rows, indent=2) + "\n")
+    network_tools = tool_definitions(network_rows)
     matrix = json.loads((ROOT / "operations/plugin-capabilities/native-operation-matrix.json").read_text())
     output = ROOT / "operations/cloud-platform/plugin-operation-tools.json"
     previous_names = {item["name"] for item in json.loads(output.read_text())["tools"]} if output.exists() else set()
@@ -107,7 +111,7 @@ def generate():
                            "_meta": {"re8ch": {"plugin": plugin, "groupVersion": source["groupVersion"],
                                       "operationId": row["operationId"], "method": "GET", "path": row["path"],
                                       "schemaHash": digest, "httpConformance": "not_run", "semanticConformance": "not_run"}}}
-    definitions = sorted([*tools.values(), ANATOMY_DIFF_TOOL, ANATOMY_DIFF_DELETE_TOOL, CILIUM_CIDR_TOOL, CILIUM_CIDR_DELETE_TOOL], key=lambda tool: tool["name"])
+    definitions = sorted([*tools.values(), ANATOMY_DIFF_TOOL, ANATOMY_DIFF_DELETE_TOOL, CILIUM_CIDR_TOOL, CILIUM_CIDR_DELETE_TOOL, *network_tools], key=lambda tool: tool["name"])
     generated = {"version": 1, "cluster": matrix["cluster"], "tools": definitions}
     (ROOT / "operations/cloud-platform/plugin-operation-tools.json").write_text(json.dumps(generated, indent=2) + "\n")
     for relative in ["platform/apps/tenant-mcp/platform-modules.json", "clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json"]:
@@ -117,7 +121,7 @@ def generate():
         # Remove every currently owned entry before inserting in stable order.
         # Otherwise new Mihomos entries move across Kubernetes entries on the
         # second run because dict.update preserves existing key positions.
-        owned_names = previous_names | {tool["name"] for tool in MIHOMOS_TOOLS} | {ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"]}
+        owned_names = previous_names | {tool["name"] for tool in MIHOMOS_TOOLS} | {ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"]} | {tool["name"] for tool in network_tools}
         for name in list(allowed):
             if name in owned_names:
                 del allowed[name]
@@ -127,6 +131,7 @@ def generate():
         allowed[ANATOMY_DIFF_DELETE_TOOL["name"]] = True
         allowed[CILIUM_CIDR_TOOL["name"]] = True
         allowed[CILIUM_CIDR_DELETE_TOOL["name"]] = True
+        allowed.update({tool["name"]: True for tool in network_tools})
         path.write_text(json.dumps(registry, indent=2) + "\n")
     registry = {"servers": [{"name": "com.re8ch/cluster-plugin-operations", "version": "0.1.0",
         "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",

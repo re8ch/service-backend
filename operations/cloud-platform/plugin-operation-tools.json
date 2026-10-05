@@ -3,6 +3,66 @@
   "cluster": "re8ch-k3s",
   "tools": [
     {
+      "name": "advfab-legacy.advancedfabric.delete.61a88efea3fe",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1AdvancedFabric",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab-legacy.advancedfabric.get.98c75b6bc14f",
       "description": "Read AdvancedFabric through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1AdvancedFabric. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab-legacy",
@@ -213,6 +273,258 @@
           "operationId": "listNetworkingRe8chComV1alpha1AdvancedFabric",
           "method": "GET",
           "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.advancedfabric.patch.01a438a66db8",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1AdvancedFabric",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.advancedfabric.post.5b09ae1f8f1a",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics",
+      "operationId": "createNetworkingRe8chComV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/advancedfabrics. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1AdvancedFabric",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.advancedfabric.put.bd134ca6e525",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1AdvancedFabric",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/advancedfabrics/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkintervention.delete.f41c1a3adac8",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1NetworkIntervention",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}",
           "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -437,6 +749,258 @@
       }
     },
     {
+      "name": "advfab-legacy.networkintervention.patch.7f380710e538",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1NetworkIntervention",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkintervention.post.6b24961b5d3a",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions",
+      "operationId": "createNetworkingRe8chComV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/networkinterventions. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1NetworkIntervention",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkintervention.put.8dedeeda154d",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1NetworkIntervention",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkinterventions/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.delete.6757cd743ada",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab-legacy.networkobservationepisode.get.40e65210a244",
       "description": "Read NetworkObservationEpisode through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1NetworkObservationEpisodeStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab-legacy",
@@ -648,6 +1212,318 @@
           "method": "GET",
           "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes",
           "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.patch.acc536745ea5",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.post.d63d83f91dd1",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes",
+      "operationId": "createNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/networkobservationepisodes. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.put.6cd27c41966b",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1NetworkObservationEpisode",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkobservationepisodes/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.delete.4983757e35f3",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1NetworkPathAssessment",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.delete.ba1140040448",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+          "operationId": "deleteNetworkingRe8chComV1alpha2NetworkPathAssessment",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}",
+          "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
         }
@@ -1088,6 +1964,450 @@
       }
     },
     {
+      "name": "advfab-legacy.networkpathassessment.patch.56a1ebdc4593",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+          "operationId": "patchNetworkingRe8chComV1alpha2NetworkPathAssessment",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}",
+          "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.patch.78cdc91bcb3a",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1NetworkPathAssessment",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.post.4e61891c1ebd",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments",
+      "operationId": "createNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha2/networkpathassessments. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+          "operationId": "createNetworkingRe8chComV1alpha2NetworkPathAssessment",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments",
+          "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.post.9471fc00be67",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments",
+      "operationId": "createNetworkingRe8chComV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/networkpathassessments. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1NetworkPathAssessment",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.put.617c0df701aa",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha2",
+          "operationId": "replaceNetworkingRe8chComV1alpha2NetworkPathAssessment",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha2/networkpathassessments/{name}",
+          "schemaHash": "419519b1ee850e271493d10e3a776f7b2504fc9dcb97113950476bf9db37fac7",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.put.eeb99644dde1",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1NetworkPathAssessment",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networkpathassessments/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.delete.9fb6c9b2a3af",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab-legacy.networktradeoffestimate.get.718cc827cef1",
       "description": "Read NetworkTradeoffEstimate through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1NetworkTradeoffEstimate. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab-legacy",
@@ -1236,6 +2556,198 @@
           "operationId": "listNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
           "method": "GET",
           "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.patch.75077ae29281",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.post.e10a04f2d88e",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates",
+      "operationId": "createNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/networktradeoffestimates. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.put.16300027eba4",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1NetworkTradeoffEstimate",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/networktradeoffestimates/{name}",
           "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -1677,6 +3189,66 @@
       }
     },
     {
+      "name": "advfab-legacy.tradeofftriangle.delete.7b5502223676",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1TradeoffTriangle",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab-legacy.tradeofftriangle.get.5a5fd55e6355",
       "description": "Read TradeoffTriangle through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1TradeoffTriangle. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab-legacy",
@@ -1887,6 +3459,263 @@
           "operationId": "listNetworkingRe8chComV1alpha1TradeoffTriangle",
           "method": "GET",
           "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.patch.54c8df1ae271",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1TradeoffTriangle",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.post.c64766ccd1c1",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles",
+      "operationId": "createNetworkingRe8chComV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/tradeofftriangles. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1TradeoffTriangle",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.put.fbc8fdac6ba9",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1TradeoffTriangle",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/tradeofftriangles/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.delete.34c3b6929b67",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
           "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -2223,6 +4052,273 @@
       }
     },
     {
+      "name": "advfab-legacy.trafficpolicy.patch.0d3890796d6c",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.post.c52cc2ef3bd6",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies",
+      "operationId": "createNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.put.64a170ac5c63",
+      "plugin": "advfab-legacy",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab-legacy",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1NamespacedTrafficPolicy",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.advancedfabric.delete.bf7cc8eb9395",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab.advancedfabric.get.d09bee342ee5",
       "description": "Read AdvancedFabric through native apis/networking.advfab.org/v1alpha1: readNetworkingAdvfabOrgV1alpha1AdvancedFabricStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab",
@@ -2433,6 +4529,258 @@
           "operationId": "listNetworkingAdvfabOrgV1alpha1AdvancedFabric",
           "method": "GET",
           "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.advancedfabric.patch.62de7e6473ab",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.advancedfabric.post.15e1ec96e0fa",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/advancedfabrics. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.advancedfabric.put.f378820e80c3",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+      "kind": "AdvancedFabric",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1AdvancedFabric",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/advancedfabrics/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkintervention.delete.4d5c82868a9c",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/networkinterventions/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions/{name}",
           "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -2657,6 +5005,258 @@
       }
     },
     {
+      "name": "advfab.networkintervention.patch.81cf1fc59558",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/networkinterventions/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkintervention.post.c56d940daf83",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/networkinterventions. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkintervention.put.81bb1c4fb459",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+      "kind": "NetworkIntervention",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/networkinterventions/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkIntervention",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkinterventions/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkobservationepisode.delete.a4e0ab7526fa",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab.networkobservationepisode.get.4ad786fce9bd",
       "description": "Read NetworkObservationEpisode through native apis/networking.advfab.org/v1alpha1: readNetworkingAdvfabOrgV1alpha1NetworkObservationEpisodeStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab",
@@ -2868,6 +5468,318 @@
           "method": "GET",
           "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes",
           "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkobservationepisode.patch.c715f0886d81",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkobservationepisode.post.11e41420175c",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/networkobservationepisodes. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkobservationepisode.put.1c00ce57d6de",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+      "kind": "NetworkObservationEpisode",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkObservationEpisode",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkobservationepisodes/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.delete.6c68329892ba",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.delete.a48abb6bbd59",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha2",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}",
+          "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
         }
@@ -3308,6 +6220,450 @@
       }
     },
     {
+      "name": "advfab.networkpathassessment.patch.208dce28c63f",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha2",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}",
+          "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.patch.f79538d8915b",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.post.27f09e50798d",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/networkpathassessments. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.post.d212f59867ab",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments",
+      "operationId": "createNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha2/networkpathassessments. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha2",
+          "operationId": "createNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments",
+          "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.put.25383ae95196",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha2",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha2",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha2NetworkPathAssessment",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha2/networkpathassessments/{name}",
+          "schemaHash": "91de2f21effa41f92293ff7d513feaa935b66ef1e29a526dbe00806e2d07bdff",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networkpathassessment.put.51a615e1f3f0",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+      "kind": "NetworkPathAssessment",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkPathAssessment",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networktradeoffestimate.delete.90cad95f2068",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab.networktradeoffestimate.get.e2122198faf5",
       "description": "Read NetworkTradeoffEstimate through native apis/networking.advfab.org/v1alpha1: readNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab",
@@ -3456,6 +6812,198 @@
           "operationId": "listNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
           "method": "GET",
           "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networktradeoffestimate.patch.433a5bcf82cf",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networktradeoffestimate.post.0f1fa9d9446b",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/networktradeoffestimates. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.networktradeoffestimate.put.5e3da23ab61d",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+      "kind": "NetworkTradeoffEstimate",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1NetworkTradeoffEstimate",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/networktradeoffestimates/{name}",
           "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -3897,6 +7445,66 @@
       }
     },
     {
+      "name": "advfab.tradeofftriangle.delete.c74f3227691e",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "advfab.tradeofftriangle.get.9a6e8b31bf82",
       "description": "Read TradeoffTriangle through native apis/networking.advfab.org/v1alpha1: readNetworkingAdvfabOrgV1alpha1TradeoffTriangleStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "advfab",
@@ -4107,6 +7715,263 @@
           "operationId": "listNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
           "method": "GET",
           "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.tradeofftriangle.patch.aac1ccbf1e24",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.tradeofftriangle.post.f07c66c5d525",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/tradeofftriangles. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.tradeofftriangle.put.615e6a9b28b3",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+      "kind": "TradeoffTriangle",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1TradeoffTriangle",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/tradeofftriangles/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.trafficpolicy.delete.52f7b14a754f",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+      "operationId": "deleteNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "deleteNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+          "method": "DELETE",
+          "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
           "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -4436,6 +8301,213 @@
           "operationId": "listNetworkingAdvfabOrgV1alpha1TrafficPolicyForAllNamespaces",
           "method": "GET",
           "path": "/apis/networking.advfab.org/v1alpha1/trafficpolicies",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.trafficpolicy.patch.ad15dfc5372a",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+      "operationId": "patchNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "patchNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+          "method": "PATCH",
+          "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.trafficpolicy.post.1941de605fc9",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies",
+      "operationId": "createNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "createNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+          "method": "POST",
+          "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies",
+          "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "advfab.trafficpolicy.put.cd92b2feff5f",
+      "plugin": "advfab",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
+      "operationId": "replaceNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+      "kind": "TrafficPolicy",
+      "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "namespace": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "namespace",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "advfab",
+          "groupVersion": "apis/networking.advfab.org/v1alpha1",
+          "operationId": "replaceNetworkingAdvfabOrgV1alpha1NamespacedTrafficPolicy",
+          "method": "PUT",
+          "path": "/apis/networking.advfab.org/v1alpha1/namespaces/{namespace}/trafficpolicies/{name}",
           "schemaHash": "d32ebeecb98cf9cba80cf7bd9a2fc498fc7fe7b2bac23a409d1452c80160f5d1",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -13536,6 +17608,66 @@
       }
     },
     {
+      "name": "mobile-egress.mobileegress.delete.75bfa5f6daac",
+      "plugin": "mobile-egress",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1MobileEgress",
+      "kind": "MobileEgress",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "mobile-egress",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1MobileEgress",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "mobile-egress.mobileegress.get.98aafa994029",
       "description": "Read MobileEgress through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1MobileEgress. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "mobile-egress",
@@ -13746,6 +17878,198 @@
           "operationId": "listNetworkingRe8chComV1alpha1MobileEgress",
           "method": "GET",
           "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "mobile-egress.mobileegress.patch.b8b95ff07998",
+      "plugin": "mobile-egress",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1MobileEgress",
+      "kind": "MobileEgress",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "mobile-egress",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1MobileEgress",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "mobile-egress.mobileegress.post.462d4b4effbe",
+      "plugin": "mobile-egress",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses",
+      "operationId": "createNetworkingRe8chComV1alpha1MobileEgress",
+      "kind": "MobileEgress",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/mobileegresses. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "mobile-egress",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1MobileEgress",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "mobile-egress.mobileegress.put.152109cbc59a",
+      "plugin": "mobile-egress",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1MobileEgress",
+      "kind": "MobileEgress",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "mobile-egress",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1MobileEgress",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/mobileegresses/{name}",
           "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
@@ -14299,6 +18623,66 @@
       }
     },
     {
+      "name": "public-edge.publicedge.delete.c967aef6a0c7",
+      "plugin": "public-edge",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "DELETE",
+      "path": "/apis/networking.re8ch.com/v1alpha1/publicedges/{name}",
+      "operationId": "deleteNetworkingRe8chComV1alpha1PublicEdge",
+      "kind": "PublicEdge",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native DELETE /apis/networking.re8ch.com/v1alpha1/publicedges/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "public-edge",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "deleteNetworkingRe8chComV1alpha1PublicEdge",
+          "method": "DELETE",
+          "path": "/apis/networking.re8ch.com/v1alpha1/publicedges/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
       "name": "public-edge.publicedge.get.1f5a3a3e14aa",
       "description": "Read PublicEdge through native apis/networking.re8ch.com/v1alpha1: readNetworkingRe8chComV1alpha1PublicEdgeStatus. Platform admin only; bounded lists/watch; credentials and historical manifests are omitted.",
       "plugin": "public-edge",
@@ -14509,6 +18893,198 @@
           "operationId": "listNetworkingRe8chComV1alpha1PublicEdge",
           "method": "GET",
           "path": "/apis/networking.re8ch.com/v1alpha1/publicedges",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "public-edge.publicedge.patch.843ed2ca541e",
+      "plugin": "public-edge",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PATCH",
+      "path": "/apis/networking.re8ch.com/v1alpha1/publicedges/{name}",
+      "operationId": "patchNetworkingRe8chComV1alpha1PublicEdge",
+      "kind": "PublicEdge",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PATCH /apis/networking.re8ch.com/v1alpha1/publicedges/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "public-edge",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "patchNetworkingRe8chComV1alpha1PublicEdge",
+          "method": "PATCH",
+          "path": "/apis/networking.re8ch.com/v1alpha1/publicedges/{name}",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "public-edge.publicedge.post.5c7b156c0412",
+      "plugin": "public-edge",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "POST",
+      "path": "/apis/networking.re8ch.com/v1alpha1/publicedges",
+      "operationId": "createNetworkingRe8chComV1alpha1PublicEdge",
+      "kind": "PublicEdge",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native POST /apis/networking.re8ch.com/v1alpha1/publicedges. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "public-edge",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "createNetworkingRe8chComV1alpha1PublicEdge",
+          "method": "POST",
+          "path": "/apis/networking.re8ch.com/v1alpha1/publicedges",
+          "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+          "httpConformance": "not_run",
+          "semanticConformance": "not_run"
+        }
+      }
+    },
+    {
+      "name": "public-edge.publicedge.put.4598f1918b1a",
+      "plugin": "public-edge",
+      "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+      "method": "PUT",
+      "path": "/apis/networking.re8ch.com/v1alpha1/publicedges/{name}",
+      "operationId": "replaceNetworkingRe8chComV1alpha1PublicEdge",
+      "kind": "PublicEdge",
+      "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
+      "description": "Plan, execute, or inspect exact native PUT /apis/networking.re8ch.com/v1alpha1/publicedges/{name}. Administrator only; target UID/resourceVersion and schema are bound. Result is metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "execute",
+              "status"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "planHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "body": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "phase",
+          "name",
+          "idempotencyKey",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true
+      },
+      "_meta": {
+        "re8ch": {
+          "plugin": "public-edge",
+          "groupVersion": "apis/networking.re8ch.com/v1alpha1",
+          "operationId": "replaceNetworkingRe8chComV1alpha1PublicEdge",
+          "method": "PUT",
+          "path": "/apis/networking.re8ch.com/v1alpha1/publicedges/{name}",
           "schemaHash": "a0069badbc0dc929508be12722145bc01cc1da1c74804a2470d7e0dec866b545",
           "httpConformance": "not_run",
           "semanticConformance": "not_run"
