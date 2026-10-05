@@ -998,6 +998,13 @@ class Handler(BaseHTTPRequestHandler):
             tenant = self.headers["X-Tenant-Ref"]
             namespace = runtime_namespace(tenant)
             suffix = path.removeprefix("/v1/claims").strip("/")
+            try:
+                kube().get("namespaces", namespace, api="api/v1")
+            except urllib.error.HTTPError as exc:
+                if exc.code != 404:
+                    raise
+                self.send_json(404 if suffix else 200, {"error": "claim_not_found"} if suffix else {"items": []})
+                return
             if suffix:
                 value = kube().get("tenantresourceclaims", suffix, namespace)
                 if value.get("spec", {}).get("tenantRef") != tenant:

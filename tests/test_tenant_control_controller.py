@@ -192,6 +192,38 @@ def test_service_grants_endpoint_is_tenant_scoped_and_excludes_expired_grants(mo
     assert request.response[0] == 404
 
 
+def test_claim_reads_return_empty_only_when_runtime_namespace_is_absent(monkeypatch):
+    class ClaimsKube:
+        exists = False
+        def get(self, plural, name, namespace=None, api=None):
+            assert (plural, name, namespace, api) == ("namespaces", "openai-review-demo", None, "api/v1")
+            if not self.exists:
+                raise urllib.error.HTTPError("", 404, "missing", {}, None)
+            return {"metadata": {"name": name}}
+        def list(self, plural, namespace=None):
+            assert (plural, namespace) == ("tenantresourceclaims", "openai-review-demo")
+            raise urllib.error.HTTPError("", 403, "forbidden", {}, None)
+    fake = ClaimsKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    monkeypatch.setattr(controller, "runtime_namespace", lambda _tenant: "openai-review-demo")
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
+    class Request:
+        path = "/v1/claims"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "review", "X-Tenant-Service-Token": "test-token"}
+        def send_json(self, status, value):
+            self.response = (status, value)
+    request = Request()
+    controller.Handler.do_GET(request)
+    assert request.response == (200, {"items": []})
+    request.path = "/v1/claims/example"
+    controller.Handler.do_GET(request)
+    assert request.response == (404, {"error": "claim_not_found"})
+    fake.exists = True
+    request.path = "/v1/claims"
+    controller.Handler.do_GET(request)
+    assert request.response == (403, {"error": "cluster_api_error"})
+
+
 def test_identity_resolves_only_one_active_tenant(monkeypatch):
     monkeypatch.setattr(controller, "KUBE", FakeKube([binding("acme")], [tenant("acme")]))
     assert controller.resolve("https://dex.service.re8ch.com/", "sha256:" + "a" * 64) == {"tenantRef": "acme", "role": "viewer", "defaultNamespace": "acme", "runtimeNamespaceRef": "acme"}
