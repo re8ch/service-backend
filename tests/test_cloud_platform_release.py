@@ -14,7 +14,7 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert release['environment'] == 'production'
     assert release['permissions']['id-token'] == 'write'
     assert jobs['validate']['runs-on'] == 'ubuntu-latest'
-    assert release['runs-on'] == ['self-hosted', 'macOS', 'ARM64', 'macmini-a1']
+    assert release['runs-on'] == 'ubuntu-latest'
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker build -f operations/cloud-platform/Dockerfile' in validation
     assert 'docker run --rm --network none' in validation

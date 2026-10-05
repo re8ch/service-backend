@@ -188,9 +188,9 @@ class CloudPlatform:
         from plugin_http_transport import get
         return get(self.kubeconfig, path)
 
-    def _plugin_http_request(self, method: str, path: str, body: bytes | None = None) -> dict[str, Any]:
+    def _plugin_http_request(self, method: str, path: str, body: bytes | None = None, content_type: str = "application/json") -> dict[str, Any]:
         from plugin_http_transport import request
-        return request(self.kubeconfig, method, path, body)
+        return request(self.kubeconfig, method, path, body, content_type)
 
     def _kubectl(self, argv: list[str], stdin: str | None = None) -> dict[str, Any]:
         return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", stdin=stdin)
