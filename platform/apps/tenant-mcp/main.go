@@ -42,7 +42,9 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms)
 	s.registerGrafanaTools(ms)
 	s.registerKubernetesTools(ms)
-	s.registerArtcTools(ms)
+	if !id.Service && id.Tenant == artcTenant() {
+		s.registerArtcTools(ms)
+	}
 	if id.PlatformAdmin && !id.Service {
 		s.registerPlatformTools(ms)
 		s.registerOrganizationTools(ms)

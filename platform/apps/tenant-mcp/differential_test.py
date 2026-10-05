@@ -168,9 +168,12 @@ def main():
                 ("usage_events_list", {}), ("byoc_registration_list", {}),
                 ("byoc_connection_list", {}),
             ]
-            p_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(python_url, "tools/list", {})["tools"]}
+            # The Go publication intentionally scopes Artchais cluster tools to that tenant.
+            # The legacy Python server still lists them for the fixture's acme tenant.
+            p_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(python_url, "tools/list", {})["tools"] if not item["name"].startswith("artc_")}
             g_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(go_url, "tools/list", {})["tools"] if item["name"] in p_tools}
             equivalent("tools/list legacy schemas", p_tools, g_tools)
+            assert not any(item["name"].startswith("artc_") for item in mcp(go_url, "tools/list", {})["tools"]), "Artchais tools leaked into acme catalog"
             for name, args in tool_cases:
                 p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))
                 g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))

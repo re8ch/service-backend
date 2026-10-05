@@ -254,6 +254,12 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 		}
 	}
 	for name := range legacy {
+		if strings.HasPrefix(name, "artc_") {
+			if names[name] {
+				t.Errorf("tenant-specific tool %s leaked into generic catalog", name)
+			}
+			continue
+		}
 		if !names[name] {
 			t.Errorf("missing tenant tool %s", name)
 		}
@@ -263,8 +269,62 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy)+3 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)+3)
+	if len(names) != len(legacy) {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy))
+	}
+}
+
+func TestArtcToolsOnlyPublishedToArtchaisTenant(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var selected struct {
+			Tenant string `json:"tenantRef"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&selected); err != nil {
+			writeJSON(w, 400, map[string]string{"error": "invalid request"})
+			return
+		}
+		writeJSON(w, 200, map[string]string{"tenantRef": selected.Tenant, "role": "viewer", "defaultNamespace": selected.Tenant})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	t.Setenv("ARTCHAIS_TENANT_REF", "artchais")
+	for _, tenant := range []string{"openai-review-demo", "artchais"} {
+		request := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`))
+		request.Header.Set("Authorization", "Bearer "+fixtureToken())
+		request.Header.Set("X-RE8CH-Tenant", tenant)
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, request)
+		if response.Code != 200 {
+			t.Fatalf("%s tools/list status %d: %s", tenant, response.Code, response.Body.String())
+		}
+		var listed struct {
+			Result struct {
+				Tools []struct {
+					Name string `json:"name"`
+				} `json:"tools"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &listed); err != nil {
+			t.Fatal(err)
+		}
+		artcCount := 0
+		for _, tool := range listed.Result.Tools {
+			if strings.HasPrefix(tool.Name, "artc_") {
+				artcCount++
+			}
+		}
+		if want := map[bool]int{true: 3, false: 0}[tenant == "artchais"]; artcCount != want {
+			t.Errorf("%s published %d artc tools, want %d", tenant, artcCount, want)
+		}
 	}
 }
 
