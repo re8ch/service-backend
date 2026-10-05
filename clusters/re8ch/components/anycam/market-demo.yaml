@@ -263,7 +263,7 @@ metadata:
   namespace: anycam
 data:
   seed.py: |
-    from anycam_backend import curated_market, market_worker
+    from anycam_backend import curated_market
 
     revision = "4299e5c7bd07d76ccd546f27ad068d4a94adb385"
     repository = "qualcomm/MobileNet-v2"
@@ -293,7 +293,6 @@ data:
         model_sha256="8bfa78effd1a5036f228d3b25eaf49b09d3dd07d13211d3e98639c7c103aa30c",
         labels_member="mobilenet_v2-tflite-w8a8/labels.txt",
     )
-    market_worker.process(product_id)
 ---
 apiVersion: batch/v1
 kind: Job
