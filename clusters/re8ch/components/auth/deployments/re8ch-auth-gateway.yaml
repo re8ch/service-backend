@@ -87,11 +87,11 @@ spec:
             - name: IDENTITY_AUTH_URL
               value: https://db-rw.re8ch.com/auth/v1
             - name: IDENTITY_USER_URL
-              value: https://db-rw.re8ch.com/auth/v1/user
+              value: http://supabase-identity-auth.supabase-identity.svc.cluster.local:9999/user
             - name: IDENTITY_RO_URL
               value: https://db-ro.re8ch.com/identity/rest/v1
             - name: IDENTITY_RW_URL
-              value: https://db-rw.re8ch.com/identity/rest/v1
+              value: http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000
             - name: IDENTITY_AVATAR_COS_BUCKET
               value: re8ch-avatars-1301339749
             - name: IDENTITY_AVATAR_COS_REGION
