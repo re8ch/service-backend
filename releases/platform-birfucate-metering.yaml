@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: tideway-ruby
+codename: cascade-sapphire
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:57a3d1d803c9c07213ffe70812bb2069f50e7e42d5e78f0614983b226c8704f2
+  digest: sha256:5fbed0cb888a21541ce17462dec2ebae1a4d0ebf1915be0cb7da26f0b8b617ab
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
