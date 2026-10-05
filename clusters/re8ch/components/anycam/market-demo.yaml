@@ -44,7 +44,7 @@ spec:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       containers:
       - name: api
-        image: registry.re8ch.com/anycam/backend:market-89935be
+        image: ghcr.io/woomou/anycam-market-demo@sha256:cf3a28ba2ad9f161eb114c5c8292b6dc7a81084821c805d286ba89bb7022d6b6
         imagePullPolicy: IfNotPresent
         command:
         - python
@@ -96,8 +96,6 @@ spec:
       - name: market-db
         persistentVolumeClaim:
           claimName: anycam-market-db
-      imagePullSecrets:
-      - name: harbor-anycam-pull
       securityContext:
         fsGroup: 10001
 ---
@@ -141,8 +139,6 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: anycam-r640-model-store
-      imagePullSecrets:
-      - name: harbor-anycam-pull
 ---
 apiVersion: v1
 kind: Service
@@ -179,7 +175,7 @@ spec:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       containers:
       - name: worker
-        image: registry.re8ch.com/anycam/backend:market-89935be
+        image: ghcr.io/woomou/anycam-market-demo@sha256:cf3a28ba2ad9f161eb114c5c8292b6dc7a81084821c805d286ba89bb7022d6b6
         imagePullPolicy: IfNotPresent
         command:
         - python
@@ -223,8 +219,6 @@ spec:
       - name: market-db
         persistentVolumeClaim:
           claimName: anycam-market-db
-      imagePullSecrets:
-      - name: harbor-anycam-pull
       securityContext:
         fsGroup: 10001
 ---
@@ -313,13 +307,11 @@ spec:
       restartPolicy: Never
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
-      imagePullSecrets:
-        - name: harbor-anycam-pull
       securityContext:
         fsGroup: 10001
       containers:
         - name: seed
-          image: registry.re8ch.com/anycam/backend:market-89935be
+          image: ghcr.io/woomou/anycam-market-demo@sha256:cf3a28ba2ad9f161eb114c5c8292b6dc7a81084821c805d286ba89bb7022d6b6
           command: [python, /scripts/seed.py]
           env:
             - name: ANYCAM_MARKET_DATA_DIR
