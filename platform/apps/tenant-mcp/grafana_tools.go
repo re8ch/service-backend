@@ -63,13 +63,22 @@ func (s *server) callGrafana(ctx context.Context, tenant, name string, args map[
 		}
 		return nil, errors.New("Grafana capability is unknown")
 	}
-	client, err := tenantGrafana(ctx, tenant, false)
-	if err != nil {
-		return nil, err
-	}
-	datasources, err := grafanaDatasources(ctx, client)
-	if err != nil {
-		return nil, err
+	// Numeric analysis only uses caller-supplied series or tenant result refs.
+	// It must remain available when the tenant has no Grafana organization.
+	localAnalysis := name == "grafana_analyze" || name == "grafana_indicators" ||
+		(name == "grafana_correlate" && asString(args, "datasource_uid") == "")
+	var client *grafanaClient
+	var datasources []map[string]any
+	var err error
+	if !localAnalysis {
+		client, err = tenantGrafana(ctx, tenant, false)
+		if err != nil {
+			return nil, err
+		}
+		datasources, err = grafanaDatasources(ctx, client)
+		if err != nil {
+			return nil, err
+		}
 	}
 	switch name {
 	case "grafana_datasource_list":
