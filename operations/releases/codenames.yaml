@@ -916,6 +916,10 @@ modules:
       digest: sha256:829fc06208c074faa4a7d3c6e5f36900c66555e1bfd6afc2316492219c58e1a6
     - codename: gulfstream-sapphire
       digest: sha256:9f04f1daa365315f74d22ea4ab64eba4f6602c33850dd6a425972377392f6a73
+    - codename: riptide-sapphire
+      digest: sha256:98b769861dc6bb5506ab586b90c79ad0dc6a4fed597a09ae71e9ad10cdcb5f34
+    - codename: springtide-sapphire
+      digest: sha256:1a83eea6c9dafbe70ea67f4a1fd55e0e15c79b7ce2f6964fe858da2ea58accfb
   platform/hyperswitch:
     releases:
     - codename: anchor
