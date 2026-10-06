@@ -1,0 +1,24 @@
+# Commerce uses the authenticated RE8CH tenant's service catalog. These grants
+# allow its operators to request tenant-scoped Harbor and PostgreSQL services;
+# they do not provision an image, database, credential, or public checkout route.
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantGrant
+metadata:
+  name: re8ch-commerce-registry-operator
+spec:
+  tenantRef: re8ch
+  consumableRef: registry.harbor.v1
+  roleRef: operator
+  lifecycle: Active
+  constraints:
+    maxRegistryGiB: 100
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantGrant
+metadata:
+  name: re8ch-commerce-database-operator
+spec:
+  tenantRef: re8ch
+  consumableRef: database.postgresql.shared.v1
+  roleRef: operator
+  lifecycle: Active
