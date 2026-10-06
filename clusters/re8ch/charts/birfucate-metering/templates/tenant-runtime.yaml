@@ -79,7 +79,7 @@ metadata: {name: admin-api, namespace: tenant-infrastructure, labels: {re8ch.com
 spec:
   replicas: 1
   # Both runtimes share one RWO SQLite state volume. Recreate prevents a surge
-  # pod from racing the existing writer while the pair moves between A1/B1.
+  # pod from racing the existing writer while the pair moves between nodes.
   strategy: {type: Recreate}
   selector: {matchLabels: {app: admin-api}}
   template:

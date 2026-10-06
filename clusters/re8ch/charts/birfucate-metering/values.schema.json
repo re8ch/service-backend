@@ -35,7 +35,7 @@
         "tenantReadinessPath": {"enum": ["/readyz", "/livez"]},
         "placement": {
           "type": "object", "additionalProperties": false, "required": ["nodeNames"],
-          "properties": {"nodeNames": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+          "properties": {"nodeNames": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
         },
         "tolerations": {"type": "array", "items": {"type": "object"}},
         "state": {

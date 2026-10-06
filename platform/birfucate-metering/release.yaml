@@ -42,6 +42,10 @@ spec:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
     tenantPlatform:
       enabled: true
+      # Keep the shared RWO state and both MCP backends on the restricted-node-6dc3f140f9 worker so
+      # loss of either WSL control-plane host cannot strand public tool access.
+      placement:
+        nodeNames: [restricted-node-6dc3f140f9]
       tolerations:
         - {operator: Exists}
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:54d0acef65f44a9876f9741f0debd96bee0fd828b740e5848a846ce1b74f9aed
