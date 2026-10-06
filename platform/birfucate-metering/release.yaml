@@ -48,18 +48,18 @@ spec:
         nodeNames: [restricted-node-6dc3f140f9]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:6dac4ed38719587b7daab4f01a57a642ed81ee880f6c13265e71397f285dce1a
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:18d6fff9b5a4dc1fd02a27ad76da2b273664fc8d10fa40c6945c67148105e605
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:201b918f3b08a21a6ea3e523f440e086f6329b44902905f0f4fe2d0cc7c1760d
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:a2efc2125f75d9883d0e87c7ae97d097166ab8db6524bce99fb5a03642686c27
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/v2/platform/session
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:6dac4ed38719587b7daab4f01a57a642ed81ee880f6c13265e71397f285dce1a
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:18d6fff9b5a4dc1fd02a27ad76da2b273664fc8d10fa40c6945c67148105e605
         databaseBindings:
           - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
           - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
