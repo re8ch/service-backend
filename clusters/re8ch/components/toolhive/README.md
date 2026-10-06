@@ -22,13 +22,16 @@ credential-returning tools are not published on a default surface.
 PlacementClasses preserve the intentional split in this heterogeneous cluster.
 Private ToolHive MCP backends use `service-core-ab` (A1/B1 only); ConnecTool's
 generated vMCP and session-router children use `service-core-r640`. The chart
-0.5.2 runtime policy still renders the restricted-node-6dc3f140f9 hostname as a compatibility layer,
+0.5.2 runtime policy still renders the R640 hostname as a compatibility layer,
 but NodeProfile pool membership and PlacementClass are the desired-state
 authority. Health and capacity can remove a member from the usable set; they
 cannot widen either workload onto an unrelated node.
 
+The session router runs two replicas per publication on R640. A Helm post-render
+patch softens the chart's hard per-host anti-affinity so both can run on that
+node. This keeps process redundancy, with R640 as the single host dependency.
 Two-replica private backends keep hard per-host anti-affinity because that is a
-specific service contract, not a cluster-wide balancing rule. Other placement
+specific service contract. Other placement
 skew is observed or preferred without blocking recovery. Memory-backed sessions
 use `ClientIP` affinity; clients reconnect after a node failure instead of
 making a shared Redis instance part of the availability path. The direct
@@ -51,14 +54,14 @@ complete 2026-09-07 recovery and the mandatory prevention gates.
    ToolHive resources, because KSA OIDC and OTLP both depend on stable cluster
    DNS.
 
-   The verifier checks the fixed `192.0.2.42` Service IP, desired replicas and
+   The verifier checks the fixed `10.43.65.40` Service IP, desired replicas and
    actual Pod Ready conditions. It requires three genuinely Ready authoritative
    DNS Pods on distinct eligible nodes.
 2. Ensure the ToolHive CRDs are at the pinned version. Flux adopts and manages
    the existing `toolhive-operator` Helm release from `operator-release.yaml`.
 3. Reconcile ConnecTool and the three private MCPServers through Flux. The
    signed chart supplies vMCP placement, session, PDB and child-runtime policy.
-4. Verify A1/B1 placement and public OAuth initialization before retiring a
+4. Verify R640 placement and public OAuth initialization before retiring a
    previous chart or workload generation.
 5. Create the isolated Registry database/role on the existing MCP Registry
    PostgreSQL instance. Flux manages its NetworkPolicy and Registry Server
@@ -75,8 +78,8 @@ helm upgrade --install toolhive-crds \
 ```
 
 After Flux source, root Kustomization and ConnecTool HelmRelease reconciliation,
-verify that every MCP backend, proxy and vMCP has one Ready replica on A1 and
-one on B1. Any restricted-node-6dc3f140f9 MCP Pod, Pending replica, Redis dependency, downstream 401,
+verify that every ConnecTool vMCP has one Ready replica and every session router
+has two Ready replicas on R640. A Pending replica, Redis dependency, downstream 401,
 or public 503 fails the rollout. Pod readiness alone is insufficient; complete
 OAuth `initialize` and `tools/list` checks for all three public endpoints.
 
