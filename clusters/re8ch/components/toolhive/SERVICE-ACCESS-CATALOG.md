@@ -18,7 +18,7 @@ the native application authorization named below remains authoritative.
 | Pigsty/PostgreSQL/PostgREST | data/routing | fixed route health and tenant metrics | approved migration job later | role/database/Secret plan and reconciliation | PostgreSQL roles, database grants and K8s Secret RBAC | CloudBeaver, Pigsty, Grafana |
 | Supabase | data/control | workload/API health and schema metadata later | reviewed migration/deploy later | project auth/storage policy later | Supabase/PostgreSQL/Kong roles | Supabase Studio, CloudBeaver, Grafana |
 | Neo4j | data | database health and graph metadata later | reviewed Cypher job later | role/database/user policy later | Neo4j native RBAC | Neo4j Browser, Grafana |
-| Nuclio applications | control/data | function/gateway inventory and metrics | named function rollout later | project/gateway policy later | Nuclio CR RBAC and application auth | Nuclio Dashboard, Grafana |
+| Nuclio applications | control/data | function/gateway inventory and metrics | named function rollout later | project/gateway policy later | Nuclio CR RBAC and application auth | Headlamp, Grafana |
 | Fleet/device control | control | device/service health later | approved campaign later | enrollment and policy administration later | Fleet teams/roles | Fleet UI, Grafana |
 | Observability/OpenCost/Robusta | control/data | dashboards, fixed tenant metrics and findings | alert acknowledgement later | datasource/alert/routing policy later | Grafana org/SA, tenant metrics proxy and product RBAC | Grafana, OpenCost, Robusta |
 | Business application namespaces | data | workload, Service, Ingress and bounded metrics | named namespace rollout/restart | application-specific administration only | namespace RBAC plus application roles | Headlamp, Grafana and application GUI |
@@ -68,15 +68,15 @@ in Headlamp and usable by admission/policy selectors. The ToolHive apply flow
 reconciles the labels, and both the live catalog and verifier fail when a label
 drifts from the checked-in domain map.
 
-The live per-resource permission matrix currently contains 335 decisions: 169
-workloads and 166 Services. Nine Deployments map to exact approval-gated admin
-restart/scale targets; declared tenant Deployments map to the tenant operate
+The per-resource permission matrix is generated from live workloads and Services.
+Eight Deployments map to exact approval-gated admin restart/scale targets;
+declared tenant Deployments map to the tenant operate
 boundary. Every other mutation is explicitly unpublished and remains behind its
 native control plane. The shared ToolHive publications expose the reviewed
 observe and operate schemas directly; the retired KAgent bridge is absent.
 
 Workload catalog entries include desired, ready and available replica counts plus
 an explicit `scaledToZero` flag. This is required because a Service without an
-Endpoint may be intentionally stopped (currently Authentik and Nuclio Dashboard),
+Endpoint may be intentionally stopped (currently Authentik),
 whereas a Ready backend blocked from ToolHive (currently OpenSandbox) is an
 authorization/network-path result rather than an application availability result.
