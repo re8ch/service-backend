@@ -944,6 +944,8 @@ modules:
       digest: sha256:b4ccb22284f189c91b22410e3e45e736062d109b6afa91bdfdaf4a4773f1ed21
     - codename: riptide-topaz
       digest: sha256:233437c7248f4f040bb58e1bb19585053b484d9d3222ba9559e949ebd2111e3c
+    - codename: springtide-topaz
+      digest: sha256:f3ea87c6a836fef12645e0d348afb022cb6819b015531902d587227265499162
   platform/hyperswitch:
     releases:
     - codename: anchor
