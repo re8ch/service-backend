@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: reef-amber
+codename: tundra-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:0f3a682962961e267cd8e5787549bad60ad8f399d9f04529631a9c3a96cf9735
+  digest: sha256:58c8227e53a01b9325836c9e5f4135528c12e1b28caa859c45709478245e2864
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
