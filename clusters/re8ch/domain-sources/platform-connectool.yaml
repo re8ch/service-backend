@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: passage-silver
+    delivery.re8ch.com/codename: trailhead-silver
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
   ref:
-    digest: sha256:25e5e00e9f00a744a41d8181190f3454ec0b9918d74ae17910afd222ebc84534
+    digest: sha256:2414b5e884951879a0c7b1acb9fde311902b75cd0f789222127891eae858e963
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/connectool
-    delivery.re8ch.com/codename: passage-silver
+    delivery.re8ch.com/codename: trailhead-silver
 spec:
   interval: 1m
   retryInterval: 1m
