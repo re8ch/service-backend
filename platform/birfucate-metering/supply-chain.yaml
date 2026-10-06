@@ -44,11 +44,12 @@ spec:
     spec:
       serviceAccountName: harbor-supply-chain
       automountServiceAccountToken: false
+      imagePullSecrets: [{name: harbor-registry-pull}]
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, fsGroup: 1000, fsGroupChangePolicy: OnRootMismatch}
       containers:
         - name: worker
-          image: ghcr.io/re8ch/harbor-supply-chain-worker@sha256:73c704456496e5f94a087223544f31b28530d0b7992aabc38081455e96d9ed48
+          image: registry.re8ch.com/image/re8ch-harbor-supply-chain@sha256:73c704456496e5f94a087223544f31b28530d0b7992aabc38081455e96d9ed48
           envFrom:
             - {secretRef: {name: tenant-registry-supply-chain}}
             - {secretRef: {name: harbor-supply-chain-provider}}
