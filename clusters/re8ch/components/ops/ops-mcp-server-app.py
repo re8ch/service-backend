@@ -1718,7 +1718,7 @@ def get_neo4j_platform_status():
 
 def get_identity_platform_status():
     started = time.monotonic()
-    dex = probe_http("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery without identity credentials")
+    dex = probe_http("dex", "identity-control", "https://id.re8ch.com/.well-known/openid-configuration", "Dex OIDC discovery without identity credentials")
     gateway = probe_http("re8ch-auth-gateway", "identity-data", "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/healthz", "Application authentication gateway liveness")
     workloads = []
     endpoint_rows = []
@@ -1796,7 +1796,7 @@ def get_agent_runtime_status():
             phases[phase] = phases.get(phase, 0) + 1
         sandbox_kinds[plural] = {"available": True, "total": len(items), "phases": phases}
     probe_specs = [
-        ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability"),
+        ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/health", "OpenSandbox API reachability"),
         ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session UI/API reachability"),
     ]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(probe_specs)) as pool:
@@ -2171,9 +2171,9 @@ def get_platform_service_health():
         (probe_http, ("headlamp", "kubernetes", HEADLAMP_PUBLIC, "human Kubernetes control GUI")),
         (probe_http, ("cloudbeaver", "database", cloudbeaver, "human tenant SQL GUI")),
         (probe_http, ("toolhive-registry", "tool-control", TOOLHIVE_REGISTRY_URL, "approved MCP catalog")),
-        (probe_http, ("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery")),
+        (probe_http, ("dex", "identity-control", "https://id.re8ch.com/.well-known/openid-configuration", "Dex OIDC discovery")),
         (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
-        (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability")),
+        (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/health", "OpenSandbox API reachability")),
         (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
         (probe_http, ("neo4j", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
         (probe_http, ("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human control GUI reachability")),
