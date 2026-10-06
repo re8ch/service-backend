@@ -3203,9 +3203,20 @@ def paged_harbor(path):
     return items
 
 
-def find_harbor_robot(name):
-    for robot in paged_harbor("/robots"):
-        if robot.get("name") == name or robot.get("name") == "robot$" + name:
+def find_harbor_robot(name, project=None):
+    path = "/robots"
+    names = {name, "robot$" + name}
+    if project:
+        project_info = harbor_get_project(project)
+        if not project_info:
+            return None
+        # Harbor's query keys are case-sensitive. The unfiltered endpoint
+        # lists system robots only, never the project's existing accounts.
+        query = "Level=project,ProjectID=%s" % int(project_info["project_id"])
+        path += "?q=" + harbor_quote(query)
+        names.add("robot$%s+%s" % (project, name))
+    for robot in paged_harbor(path):
+        if robot.get("name") in names:
             return robot
     return None
 
@@ -3241,7 +3252,7 @@ def create_harbor_project_admin_robot(project, robot_name):
 
 def ensure_harbor_project_admin_robot(project, rotate=False):
     robot_name = "%s-admin-20260606" % project
-    existing = find_harbor_robot(robot_name)
+    existing = find_harbor_robot(robot_name, project=project)
     if existing and not rotate:
         return {"action": "exists", "robotName": existing.get("name"), "tokenAvailable": False}
     if existing:
