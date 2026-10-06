@@ -43,7 +43,7 @@ spec:
                   # pg-re8ch-primary:5432 reachability gate.
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    values: [a1-wsl-zt, b1-wsl-zt]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
@@ -136,14 +136,7 @@ spec:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
       backendRefs:
         - {name: observable-postgrest, port: 3000}
-    # Legacy unscoped database API is retired. GET root discovers current routes.
-    - matches:
-        - {path: {type: Exact, value: /}, method: GET}
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path: {type: ReplaceFullPath, replaceFullPath: /.well-known/re8ch-routing/v1}
-            statusCode: 302
+    # Retired unscoped APIs have no fallback; only explicit API paths are served.
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -168,11 +161,4 @@ spec:
             path: {type: ReplacePrefixMatch, replacePrefixMatch: /}
       backendRefs:
         - {name: observable-postgrest, port: 3000}
-    # Legacy unscoped database API is retired. GET root discovers current routes.
-    - matches:
-        - {path: {type: Exact, value: /}, method: GET}
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            path: {type: ReplaceFullPath, replaceFullPath: /.well-known/re8ch-routing/v1}
-            statusCode: 302
+    # Retired unscoped APIs have no fallback; only explicit API paths are served.
