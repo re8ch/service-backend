@@ -33,6 +33,23 @@ class ToolProfileTests(unittest.TestCase):
         self.assertEqual(routes["pigsty-writeService"]["status"], "reachable")
         self.assertEqual(result["summary"]["unreachable"], 2)
 
+    def test_database_credentials_and_plan_use_the_same_live_role_services(self):
+        from urllib.parse import urlsplit
+        module = load_profile("admin")
+        passwords = {role: "test-only-punctuation:@/" for role in ("admin", "migrator", "app_rw", "app_ro", "pgrst")}
+        values = module.build_database_secret_values("example", passwords)
+        for field in ("DATABASE_URL_RW", "DATABASE_URL_MIGRATOR", "PGRST_DB_URI"):
+            url = urlsplit(values[field])
+            self.assertEqual(url.hostname, module.PG_SERVICE_ROUTES["writeService"]["host"])
+            self.assertEqual(url.port, 5432)
+        read = urlsplit(values["DATABASE_URL_RO"])
+        self.assertEqual(read.hostname, module.PG_SERVICE_ROUTES["readService"]["host"])
+        self.assertEqual(read.port, 5432)
+        self.assertEqual(urlsplit(values["DATABASE_URL_POOL_RW"]).port, 6432)
+        plan = module.generate_pg_tenant_database_plan({"database": "example"})
+        self.assertEqual(plan["connectionRoutes"]["recommendedRead"], read.hostname + ":5432")
+        self.assertNotIn("5433", plan["psqlCommand"])
+
     def test_profiles_are_mutually_exclusive(self):
         observe = set(self.tools("observe"))
         operate = set(self.tools("operate"))

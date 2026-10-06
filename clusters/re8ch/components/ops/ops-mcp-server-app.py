@@ -83,7 +83,6 @@ PG_SERVICE_ROUTES = {
     "writeService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL primary service maintained by the Patroni role reconciler."},
     "readService": {"host": "pg-re8ch-replicas.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL replica service maintained by the Patroni role reconciler."},
     "poolRw": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer primary pool maintained by the Patroni role reconciler."},
-    "poolRo": {"host": "pg-re8ch-replicas.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer replica pool maintained by the Patroni role reconciler."},
     "postgrestWrite": {"url": "https://db-rw.re8ch.com/", "purpose": "Public PostgREST write gateway HTTP response; authentication remains required for protected routes."},
     "postgrestRead": {"url": "https://db-ro.re8ch.com/", "purpose": "Public PostgREST read gateway HTTP response; authentication remains required for protected routes."},
 }
@@ -3906,19 +3905,21 @@ def postgres_url(user, password, host, port, database):
 
 
 def build_database_secret_values(database, passwords, read_host=None):
-    read_host = read_host or "pgread-gz.zt.re8ch.com"
+    read_host = read_host or PG_SERVICE_ROUTES["readService"]["host"]
+    write_host = PG_SERVICE_ROUTES["writeService"]["host"]
     prefix = database_env_prefix(database)
     values = {
         "PGDATABASE": database,
         "PGPORT": "5432",
-        "PGWRITE_PORT": "5433",
-        "PGREAD_PORT": "5434",
+        "PGWRITE_PORT": "5432",
+        "PGREAD_PORT": "5432",
         "PGPOOL_PORT": "6432",
-        "PGHOST_WRITE": "pgwrite.zt.re8ch.com",
-        "PGHOST_READ_SH": "pgread-sh.zt.re8ch.com",
-        "PGHOST_READ_GZ": "pgread-gz.zt.re8ch.com",
-        "PGHOST_POOL": "pgwrite.zt.re8ch.com",
-        "PGROUTE_NOTE": "Recommended direct write/admin/migration route is pgwrite.zt.re8ch.com:5433; 5432 is a PostgreSQL instance/JDBC GUI port, not the default HA write route.",
+        "PGHOST_WRITE": write_host,
+        "PGHOST_READ": read_host,
+        "PGHOST_READ_SH": read_host,
+        "PGHOST_READ_GZ": read_host,
+        "PGHOST_POOL": write_host,
+        "PGROUTE_NOTE": "Primary and replica Kubernetes Services on 5432 follow the Patroni role reconciler; the primary pool uses 6432.",
     }
     for suffix, password in passwords.items():
         if not password or str(password).startswith("<"):
@@ -3927,14 +3928,14 @@ def build_database_secret_values(database, passwords, read_host=None):
         values["%s_%s_USER" % (prefix, role_key)] = "%s_%s" % (database, suffix)
         values["%s_%s_PASSWORD" % (prefix, role_key)] = password
     if passwords.get("app_rw") and not str(passwords.get("app_rw")).startswith("<"):
-        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "5433", database)
-        values["DATABASE_URL_POOL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "6432", database)
+        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], write_host, "5432", database)
+        values["DATABASE_URL_POOL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], write_host, "6432", database)
     if passwords.get("app_ro") and not str(passwords.get("app_ro")).startswith("<"):
-        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5434", database)
+        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5432", database)
     if passwords.get("migrator") and not str(passwords.get("migrator")).startswith("<"):
-        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], "pgwrite.zt.re8ch.com", "5433", database)
+        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], write_host, "5432", database)
     if passwords.get("pgrst") and not str(passwords.get("pgrst")).startswith("<"):
-        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], "pgwrite.zt.re8ch.com", "5433", database)
+        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], write_host, "5432", database)
     return values
 
 
@@ -3979,7 +3980,7 @@ def ensure_tenant_database_secrets(args):
     passwords = tenant_pg_passwords(database, generate=generate_passwords, provided=args.get("passwords") or {})
     if not generate_passwords and not args.get("passwords"):
         raise ValueError("provide passwords or set generatePasswords=true")
-    read_host = args.get("readHost") or "pgread-gz.zt.re8ch.com"
+    read_host = args.get("readHost") or PG_SERVICE_ROUTES["readService"]["host"]
     return upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=read_host)
 
 
@@ -4000,7 +4001,7 @@ def ensure_tenant_database_bundle(args):
     })
     secret = None
     if generate_passwords or args.get("passwords"):
-        secret = upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=args.get("readHost") or "pgread-gz.zt.re8ch.com")
+        secret = upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=args.get("readHost") or PG_SERVICE_ROUTES["readService"]["host"])
     return {
         "tenant": tenant,
         "namespace": namespace,
@@ -4041,8 +4042,7 @@ def generate_pg_tenant_database_plan(args):
 
     sql = [
         "-- Run on the Pigsty PostgreSQL write leader as a DBA/superuser.",
-        "-- Preferred HA write/admin entry: pgwrite.zt.re8ch.com:5433.",
-        "-- Avoid using PostgreSQL instance port 5432 as the default write route unless intentionally targeting one instance.",
+        "-- Use the reconciled primary Service: pg-re8ch-primary.pigsty-external.svc.cluster.local:5432.",
         "CREATE ROLE %s NOLOGIN;" % roles["owner"],
         "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["admin"], sql_literal(passwords["admin"])),
         "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["migrator"], sql_literal(passwords["migrator"])),
@@ -4102,11 +4102,11 @@ def generate_pg_tenant_database_plan(args):
             "note": "K3s Secret is the credential source of truth after SQL execution.",
         },
         "connectionRoutes": {
-            "recommendedWrite": "pgwrite.zt.re8ch.com:5433",
-            "recommendedRead": "pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434",
-            "pool": "pgwrite.zt.re8ch.com:6432",
-            "instancePort": "pgwrite.zt.re8ch.com:5432; direct instance/JDBC GUI path, not the default HA write route",
-            "postgrestGateway": "http://192.0.2.172:3080, http://192.0.2.141:3080, http://192.0.2.33:3080",
+            "recommendedWrite": PG_SERVICE_ROUTES["writeService"]["host"] + ":5432",
+            "recommendedRead": PG_SERVICE_ROUTES["readService"]["host"] + ":5432",
+            "pool": PG_SERVICE_ROUTES["poolRw"]["host"] + ":6432",
+            "instancePort": "5432; use the reconciled role Services for both GUI and application connections",
+            "postgrestGateway": "https://db-rw.re8ch.com, https://db-ro.re8ch.com",
             "details": PG_SERVICE_ROUTES,
         },
         "recommendedWebAccess": {
@@ -4114,9 +4114,9 @@ def generate_pg_tenant_database_plan(args):
             "migrationOperator": "%s_migrator" % database,
             "adminOperator": "%s_admin" % database,
             "tools": ["DBeaver desktop", "CloudBeaver if a shared web SQL console is required", "Bytebase if migration review/audit is required", "pgAdmin only as a simple optional GUI"],
-            "note": "CloudBeaver/DBeaver may use PostgreSQL JDBC against 5432 for GUI inspection, but automation and migrations should prefer the HA write service on 5433 or PgBouncer on 6432.",
+            "note": "GUI, automation, and migrations use the reconciled primary or replica Service on 5432. Use the primary PgBouncer pool on 6432 for high-churn clients.",
         },
-        "psqlCommand": "psql -h pgwrite.zt.re8ch.com -p 5433 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
+        "psqlCommand": "psql -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
         "sql": "\n".join(sql) + "\n",
         "safety": [
             "This tool generates a database plan and SQL; it does not execute SQL and does not store PostgreSQL superuser credentials.",
