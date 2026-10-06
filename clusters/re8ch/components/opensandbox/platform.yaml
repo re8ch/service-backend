@@ -170,7 +170,6 @@ data:
           priorityClassName: opensandbox-workload-low
           nodeSelector:
             kubernetes.io/hostname: restricted-node-6dc3f140f9
-            opensandbox.re8ch.com/workload: "true"
           tolerations:
             - key: dedicated
               operator: Equal
@@ -214,7 +213,6 @@ spec:
       priorityClassName: opensandbox-control
       nodeSelector:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
-        opensandbox.re8ch.com/control-plane: "true"
       tolerations:
         - key: dedicated
           operator: Equal
@@ -359,7 +357,6 @@ data:
                 "priorityClassName": "opensandbox-workload-low",
                 "nodeSelector": {
                     "kubernetes.io/hostname": "restricted-node-6dc3f140f9",
-                    "opensandbox.re8ch.com/workload": "true",
                 },
                 "tolerations": [{
                     "key": "dedicated", "operator": "Equal",

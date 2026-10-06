@@ -7,8 +7,7 @@ controller:
     tag: "v0.2.0"
     pullPolicy: IfNotPresent
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
-    opensandbox.re8ch.com/control-plane: "true"
+    kubernetes.io/hostname: r640
   tolerations:
     - key: dedicated
       operator: Equal
