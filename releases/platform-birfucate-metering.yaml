@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: springtide-sapphire
+codename: tideway-sapphire
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:1a83eea6c9dafbe70ea67f4a1fd55e0e15c79b7ce2f6964fe858da2ea58accfb
+  digest: sha256:8cb34e5e97de162dde36934d301ed8b9f5e2c6b1a6425136c0b5d596a1943558
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
