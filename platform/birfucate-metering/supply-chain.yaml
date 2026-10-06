@@ -77,7 +77,8 @@ spec:
             - {name: api-access, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
         - name: buildkit
           image: moby/buildkit@sha256:995077ff90af1afff56ff23018699d7511d122b2b111041f2011bd12afd5c0fe
-          args: ['--addr', 'unix:///run/user/1000/buildkit/buildkitd.sock', '--group', '1000', '--oci-worker-no-process-sandbox', '--oci-worker-snapshotter=native']
+          # Rootless GID 0 maps to the outer GID 1000 shared with the worker.
+          args: ['--addr', 'unix:///run/user/1000/buildkit/buildkitd.sock', '--group', '0', '--oci-worker-no-process-sandbox', '--oci-worker-snapshotter=native']
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
