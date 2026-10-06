@@ -16,14 +16,14 @@ import tempfile
 
 import yaml
 
-MEMBERS = {"restricted-node-6dc3f140f9": ("pg-re8ch-1", "128"),
+MEMBERS = {"r640": ("pg-re8ch-1", "128"),
            "domain-ex": ("pg-re8ch-2", "186"), "zan": ("pg-re8ch-3", "16")}
 
 
 def transform(data, node, inventory):
     member, suffix = MEMBERS[node]
     address = next(n["acceleratedIp"] for n in inventory["nodes"] if n["name"] == node)
-    if ipaddress.ip_address(address) not in ipaddress.ip_network("192.0.2.106/24"):
+    if ipaddress.ip_address(address) not in ipaddress.ip_network("10.250.0.0/24"):
         raise ValueError("address outside declared accelerated domain")
     if data.get("scope") != "pg-re8ch" or data.get("name") != member:
         raise ValueError("Patroni scope/member mismatch")
@@ -34,12 +34,12 @@ def transform(data, node, inventory):
             raise ValueError("unexpected current advertisement")
         section["connect_address"] = f"{address}:{port}"
     # Bind the single AdvFab identity, preserving REST authentication and ACLs.
-    if api.get("listen") not in [f"{old}:8008", f"{address}:8008", "192.0.2.97:8008"]:
+    if api.get("listen") not in [f"{old}:8008", f"{address}:8008", "192.168.88.251:8008"]:
         raise ValueError("unexpected REST listener")
     api["listen"] = f"{address}:8008"
     acl = api.get("allowlist", [])
     replacements = {"10.181.22." + s: "10.250.0." + s for _, s in MEMBERS.values()}
-    replacements.update({"192.0.2.67": "192.0.2.114", "192.0.2.97": "192.0.2.205"})
+    replacements.update({"10.181.22.73": "10.250.0.73", "192.168.88.251": "10.250.0.128"})
     api["allowlist"] = list(dict.fromkeys(replacements.get(item, item) for item in acl))
     return address
 
@@ -50,7 +50,15 @@ def main():
     parser.add_argument("--inventory", required=True)
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
-    path = Path("/etc/patroni/config.yml" if args.node == "zan" else "/etc/patroni/patroni.yml")
+    pid = subprocess.check_output(["systemctl", "show", "patroni", "-p", "MainPID", "--value"], text=True).strip()
+    if not pid.isdigit() or int(pid) <= 1:
+        raise RuntimeError("Patroni is not running")
+    argv = Path(f"/proc/{pid}/cmdline").read_bytes().decode().split("\0")
+    candidates = [Path(value) for value in argv if value in
+                  ("/etc/patroni/config.yml", "/etc/patroni/patroni.yml")]
+    if len(candidates) != 1:
+        raise RuntimeError("cannot identify the active Patroni configuration")
+    path = candidates[0]
     original = path.read_bytes()
     data = yaml.safe_load(original)
     address = transform(data, args.node, json.loads(Path(args.inventory).read_text()))
