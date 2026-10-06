@@ -62,7 +62,7 @@ def test_admin_generic_kubectl_and_inventory_ssh():
     assert calls[0][0] == ["kubectl", "--kubeconfig", "x", "rollout", "status", "deployment/example"]
     assert calls[0][1]["timeout"] == 45
     assert server.dispatch(runtime, "node.ssh.exec", {"name": "restricted-node-6dc3f140f9", "argv": ["hostname"]}, admin)["exitCode"] == 0
-    assert calls[1][0] == ["ssh", "-F", "y", "--", "restricted-node-6dc3f140f9", "--", "hostname"]
+    assert calls[1][0] == ["ssh", "-F", "y", "--", "restricted-node-6dc3f140f9", "hostname"]
 
 
 def test_observer_can_see_workspace_status_but_not_mutating_sync():

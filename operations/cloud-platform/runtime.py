@@ -7,6 +7,7 @@ references to server-side executors and returns an operation/audit envelope.
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 import time
 import uuid
@@ -204,7 +205,13 @@ class CloudPlatform:
         return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", stdin=stdin)
 
     def _ssh_argv(self, target: str, remote_argv: list[str]) -> list[str]:
-        return ["ssh", "-F", self.ssh_config, "--", target, "--", *remote_argv]
+        spec = self.inventory.get(target)["spec"]
+        address = spec.get("address", target)
+        # OpenSSH joins command arguments before the remote shell parses them.
+        # POSIX quoting preserves argv, including scripts and literal metacharacters.
+        # Windows hosts retain their native command-line parsing.
+        command = remote_argv if "windows-host" in spec.get("capabilities", []) else [shlex.join(remote_argv)]
+        return ["ssh", "-F", self.ssh_config, "--", address, *command]
 
     @staticmethod
     def _json_stdout(result: dict[str, Any]) -> Any:
