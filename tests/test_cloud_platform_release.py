@@ -12,9 +12,11 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert "github.event_name != 'pull_request'" in release['if']
     assert "github.ref == 'refs/heads/main'" in release['if']
     assert release['environment'] == 'production'
-    assert release['permissions']['id-token'] == 'write'
+    assert jobs['finalize']['needs'] == 'release'
+    assert jobs['finalize']['permissions']['id-token'] == 'write'
     assert jobs['validate']['runs-on'] == 'ubuntu-latest'
-    assert release['runs-on'] == 'ubuntu-latest'
+    assert release['runs-on'] == ['self-hosted', 'macOS', 'ARM64', 'macmini-a1']
+    assert jobs['finalize']['runs-on'] == 'ubuntu-latest'
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker build -f operations/cloud-platform/Dockerfile' in validation
     assert 'docker run --rm --network none' in validation
@@ -24,8 +26,9 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert publisher['env']['TENANT_IMAGE_REPOSITORY'] == 'registry.re8ch.com/functions-shared/re8ch-cloud-platform'
     assert publisher['env']['TENANT_IMAGE_DOCKERFILE'] == 'operations/cloud-platform/Dockerfile'
     assert publisher['env']['TENANT_IMAGE_INLINE_AUTH'] == '1'
+    assert publisher['env']['TENANT_IMAGE_SKIP_FINALIZE'] == '1'
     assert any('docker buildx create' in step.get('run', '') for step in release['steps'])
-    assert 'cloud-platform-release.yml@' in publisher['env']['SIGSTORE_CERTIFICATE_IDENTITY']
+    assert any('cloud-platform-release.yml@refs/heads/main' in step.get('run', '') and 'cosign verify' in step.get('run', '') for step in jobs['finalize']['steps'])
 
 
 def test_native_upload_attempts_fit_the_release_budget():

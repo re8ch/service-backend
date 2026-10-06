@@ -68,12 +68,11 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-latest
-    timeout-minutes: 70
+    # Publish over the trusted runner's local Harbor path; hosted uploads stall
+    # on large layers at the public edge.
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    timeout-minutes: 45
     environment: production
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Prepare isolated Docker builder
@@ -81,12 +80,19 @@ jobs:
           export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-platform-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
-          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          docker buildx create --name "cloud-platform-release-${GITHUB_RUN_ID}" --driver docker-container --use
+          printf '[dns]\nnameservers = ["1.1.1.1"]\n' > "$RUNNER_TEMP/cloud-platform-release-buildkitd.toml"
+          docker buildx create --name "cloud-platform-release-${GITHUB_RUN_ID}" --driver docker-container \
+            --buildkitd-config "$RUNNER_TEMP/cloud-platform-release-buildkitd.toml" --use
+          docker buildx inspect --bootstrap "cloud-platform-release-${GITHUB_RUN_ID}" >/dev/null
+          builder_container="buildx_buildkit_cloud-platform-release-${GITHUB_RUN_ID}0"
+          docker exec "$builder_container" sh -ec 'printf "nameserver 1.1.1.1\n" > /etc/resolv.conf'
+          registry_ip="$(docker exec "$builder_container" getent hosts registry.re8ch.com | awk 'NR == 1 {print $1}')"
+          case "$registry_ip" in
+            ""|198.18.*|198.19.*) echo "Registry DNS did not resolve to a public authority" >&2; exit 1 ;;
+          esac
           echo "TENANT_IMAGE_BUILDER=cloud-platform-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
-      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
-      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
@@ -95,15 +101,14 @@ jobs:
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/functions-shared/re8ch-cloud-platform
           TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: cloud-platform
-          TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "1800"
+          TENANT_IMAGE_SKIP_FINALIZE: "1"
+          BUILDKIT_NO_CLIENT_TOKEN: "1"
+          TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
           TENANT_IMAGE_PUSH_ATTEMPTS: "2"
-          SIGSTORE_CERTIFICATE_IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/cloud-platform-release.yml@${{ github.ref }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cloud-platform-release-${{ github.sha }}
-          path: |
-            cloud-platform.image
-            cloud-platform.spdx.json
+          path: cloud-platform.image
           if-no-files-found: error
       - name: Remove temporary Docker authorization and builder
         if: always()
@@ -113,3 +118,40 @@ jobs:
             rm -f "$DOCKER_CONFIG/config.json"
             rmdir "$DOCKER_CONFIG" || true
           fi
+  finalize:
+    needs: release
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cloud-platform-release-${{ github.sha }}
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
+      - run: |
+          image="$(cat cloud-platform.image)"
+          if [[ ! "$image" =~ ^registry\.re8ch\.com/functions-shared/re8ch-cloud-platform@sha256:[0-9a-f]{64}$ ]]; then
+            echo "Invalid Cloud Platform image reference" >&2
+            exit 1
+          fi
+          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+          syft "$image" -o spdx-json > cloud-platform.spdx.json
+          cosign sign --yes "$image"
+          cosign verify \
+            --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/cloud-platform-release.yml@refs/heads/main' \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            "$image" >/dev/null
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cloud-platform-finalized-${{ github.sha }}
+          path: |
+            cloud-platform.image
+            cloud-platform.spdx.json
+          if-no-files-found: error
