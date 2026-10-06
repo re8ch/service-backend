@@ -19,7 +19,6 @@
         "get_platform_service_catalog": true,
         "get_platform_permission_coverage": true,
         "get_platform_access_posture": true,
-        "get_managed_platform_operation_status": true,
         "get_ceph_storage_status": true,
         "get_ready_node_storage_inventory": true,
         "get_runtime_storage_analyses": true,
