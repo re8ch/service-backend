@@ -926,6 +926,8 @@ modules:
       digest: sha256:98b769861dc6bb5506ab586b90c79ad0dc6a4fed597a09ae71e9ad10cdcb5f34
     - codename: springtide-sapphire
       digest: sha256:1a83eea6c9dafbe70ea67f4a1fd55e0e15c79b7ce2f6964fe858da2ea58accfb
+    - codename: tideway-sapphire
+      digest: sha256:8cb34e5e97de162dde36934d301ed8b9f5e2c6b1a6425136c0b5d596a1943558
   platform/hyperswitch:
     releases:
     - codename: anchor
