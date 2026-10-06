@@ -11,10 +11,10 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     source = next(item for item in documents if item["kind"] == "OCIRepository")
     release = next(item for item in documents if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/among-clusters/charts/connectool"
-    assert source["spec"]["ref"] == {"tag": "0.6.1"}
+    assert source["spec"]["ref"] == {"tag": "0.6.2"}
     assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
         "issuer": r"^https://token\.actions\.githubusercontent\.com$",
-        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$",
+        "subject": r"^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.2$",
     }]
     assert source["spec"]["verify"]["provider"] == "cosign"
     assert source["spec"]["verify"]["matchOIDCIdentity"]
@@ -110,7 +110,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert toolhive["sessionStorage"] == {"provider": "memory", "sessionAffinity": "ClientIP"}
     assert toolhive["sessionRouting"] == {
         "enabled": True,
-        "replicas": 2,
+        "replicas": 1,
         "image": {
             "repository": "registry.re8ch.com/functions-shared/connectool-session-router",
             "tag": "0.6.0-amd64",

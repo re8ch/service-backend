@@ -155,7 +155,7 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
         "tenant-vmcp-session-router",
     }
     for name, deployment in routers.items():
-        assert deployment["spec"]["replicas"] == 2
+        assert deployment["spec"]["replicas"] == 1
         spec = deployment["spec"]["template"]["spec"]
         assert spec["nodeSelector"] == {
             "scheduling.re8ch.com/pool-service-core-r640": "true",

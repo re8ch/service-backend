@@ -5,12 +5,12 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/among-clusters/charts/connectool
-  ref: {tag: "0.6.1"}
+  ref: {tag: "0.6.2"}
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.1$
+        subject: ^https://github\.com/among-clusters/connectool/\.github/workflows/release\.yaml@refs/tags/v0\.6\.2$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -66,20 +66,6 @@ spec:
               - op: replace
                 path: /spec/incomingAuth/oidcConfigRef/scopes
                 value: [openid, profile, email, offline_access]
-          # Chart 0.6.1 requires two router replicas on different hosts. Keep
-          # both replicas, but permit them to share the restricted-node-6dc3f140f9 service anchor.
-          - target: {group: apps, version: v1, kind: Deployment, name: ".*-session-router"}
-            patch: |-
-              - op: replace
-                path: /spec/template/spec/affinity/podAntiAffinity
-                value:
-                  preferredDuringSchedulingIgnoredDuringExecution:
-                    - weight: 100
-                      podAffinityTerm:
-                        topologyKey: kubernetes.io/hostname
-                        labelSelector:
-                          matchLabels:
-                            app.kubernetes.io/name: connectool-session-router
   values:
     global:
       issuer: https://auth.re8ch.com
@@ -192,7 +178,7 @@ spec:
         sessionAffinity: ClientIP
       sessionRouting:
         enabled: true
-        replicas: 2
+        replicas: 1
         image:
           repository: registry.re8ch.com/functions-shared/connectool-session-router
           tag: "0.6.0-amd64"
