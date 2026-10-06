@@ -1150,6 +1150,8 @@ modules:
       digest: sha256:30efacfc503c9e761b43dde1cf1ae5330fc5b0b47ee5f4632dbacab5fd714d59
     - codename: bora-onyx
       digest: sha256:851c6aa2abbbabdc47db546ee9a575b567f84c1a11f1ec8f588066288c955964
+    - codename: chinook-onyx
+      digest: sha256:990d86f0fb05c7eff6c31e22ede0985ee8174232ee38177cffae21406074039c
   platform/adapter:
     releases:
     - codename: anchor
