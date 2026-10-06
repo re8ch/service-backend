@@ -46,7 +46,7 @@ metadata: {name: re8ch:toolhive-ceph-osd-node-read}
 rules:
   - apiGroups: ['']
     resources: [nodes]
-    resourceNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+    resourceNames: [a1-wsl-zt, b1-wsl-zt, r640]
     verbs: [get]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -99,21 +99,6 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: re8ch:toolhive-platform-restart, namespace: opensandbox-system}
-roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
-subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata: {name: re8ch:toolhive-platform-restart, namespace: fleet}
-rules:
-  - apiGroups: [apps]
-    resources: [deployments]
-    resourceNames: [fleet]
-    verbs: [get, patch]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata: {name: re8ch:toolhive-platform-restart, namespace: fleet}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: re8ch:toolhive-platform-restart}
 subjects: [{kind: ServiceAccount, name: ops-mcp-operate, namespace: toolhive-system}]
 ---
