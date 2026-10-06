@@ -932,6 +932,8 @@ modules:
       digest: sha256:8cb34e5e97de162dde36934d301ed8b9f5e2c6b1a6425136c0b5d596a1943558
     - codename: cascade-topaz
       digest: sha256:c5d21c5f76ef3e1a70e18f05172f9557ae7595069d4e011513900db7f1882732
+    - codename: confluence-topaz
+      digest: sha256:7becd70dbd3fcec69cbbbfc055d5cd8719495aa7fa4fb01319a035c42ba615eb
   platform/hyperswitch:
     releases:
     - codename: anchor
