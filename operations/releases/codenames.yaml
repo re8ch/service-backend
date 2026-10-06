@@ -952,6 +952,8 @@ modules:
       digest: sha256:af3298a4df1cd997978e33f0c1c5827b7542cd33a92d8a0c4b6d2326842c7d7b
     - codename: cascade-opal
       digest: sha256:fd0f41634386064de61b311e0d0103ee947d5b8d28053e1fceec91022fbb9935
+    - codename: confluence-opal
+      digest: sha256:b7d6245881548a008b49aa6079e21d77e3cc16f78dfedab9fa00c80f903be25b
   platform/hyperswitch:
     releases:
     - codename: anchor
