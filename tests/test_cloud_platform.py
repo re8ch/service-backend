@@ -130,3 +130,24 @@ def test_apply_uses_manifest_without_positional_resource():
     assert calls
     assert "networkpolicies" not in calls[0][0]
     assert "-f" in calls[0][0]
+
+
+def test_patch_preserves_version_precondition_without_invalid_cli_flag():
+    calls = []
+    service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]),
+                            OperationRunner(lambda argv, **kwargs: calls.append(argv) or completed()),
+                            kubeconfig="x", ssh_config="y")
+    manifest = {"spec": {"replicas": 1}}
+    service.kube_resource("patch", "deployments", name="test", namespace="default",
+                          manifest=manifest, resource_version="123")
+    argv = calls[0]
+    assert not any(arg.startswith("--resource-version") for arg in argv)
+    assert json.loads(argv[argv.index("-p") + 1]) == {
+        "metadata": {"resourceVersion": "123"}, "spec": {"replicas": 1}}
+    assert "metadata" not in manifest
+    with pytest.raises(OperationError) as caught:
+        service.kube_resource("patch", "deployments", name="test",
+                              manifest={"metadata": {"resourceVersion": "124"}},
+                              resource_version="123")
+    assert caught.value.code == "RESOURCE_VERSION_CONFLICT"
+    assert len(calls) == 1

@@ -152,6 +152,13 @@ class CloudPlatform:
         if namespace:
             argv += ["--namespace", namespace]
         stdin = None
+        if resource_version and verb == "patch":
+            if manifest is None:
+                raise OperationError("MANIFEST_REQUIRED", "patch resourceVersion requires a manifest")
+            metadata = dict(manifest.get("metadata") or {})
+            if metadata.get("resourceVersion", resource_version) != resource_version:
+                raise OperationError("RESOURCE_VERSION_CONFLICT", "manifest and argument resourceVersion differ")
+            manifest = {**manifest, "metadata": {**metadata, "resourceVersion": resource_version}}
         if manifest is not None:
             if any(key in manifest for key in SECRET_KEYS):
                 raise OperationError("SECRET_VALUE_FORBIDDEN", "use a Credential Broker content reference")
@@ -161,7 +168,7 @@ class CloudPlatform:
             elif verb == "patch":
                 argv += ["--type=merge", "-p", stdin]
                 stdin = None
-        if resource_version:
+        if resource_version and verb != "patch":
             argv += [f"--resource-version={resource_version}"]
         if verb in {"get", "list"}:
             argv += ["-o", "json"]
