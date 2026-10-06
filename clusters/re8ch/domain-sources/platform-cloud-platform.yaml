@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: reef-amber
+    delivery.re8ch.com/codename: tundra-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:0f3a682962961e267cd8e5787549bad60ad8f399d9f04529631a9c3a96cf9735
+    digest: sha256:58c8227e53a01b9325836c9e5f4135528c12e1b28caa859c45709478245e2864
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: reef-amber
+    delivery.re8ch.com/codename: tundra-amber
 spec:
   interval: 1m
   retryInterval: 1m
