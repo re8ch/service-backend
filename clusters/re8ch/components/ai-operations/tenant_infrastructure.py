@@ -170,7 +170,7 @@ class ServiceStore:
             CREATE INDEX IF NOT EXISTS received_usage_tenant_resource ON received_usage(tenant_ref, resource_ref);
             CREATE INDEX IF NOT EXISTS received_usage_tenant_received ON received_usage(tenant_ref, received_at);
             CREATE TABLE IF NOT EXISTS tenants(tenant_ref TEXT PRIMARY KEY, display_name TEXT NOT NULL, visibility TEXT NOT NULL, state TEXT NOT NULL, identity_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT);
-            CREATE TABLE IF NOT EXISTS grants(grant_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, consumable_ref TEXT NOT NULL, role_ref TEXT NOT NULL, visibility TEXT NOT NULL, constraints_json TEXT NOT NULL, access_ref TEXT NOT NULL, created_at TEXT NOT NULL, revoked_at TEXT, UNIQUE(tenant_ref,consumable_ref,role_ref));
+            DROP TABLE IF EXISTS grants;
             CREATE TABLE IF NOT EXISTS cluster_registrations(registration_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, cluster_uid TEXT NOT NULL, region_ref TEXT NOT NULL, issuer TEXT NOT NULL, public_key_hash TEXT NOT NULL, capabilities_json TEXT NOT NULL, state TEXT NOT NULL, enrollment_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(tenant_ref,cluster_uid));
             CREATE TABLE IF NOT EXISTS cluster_connections(connection_ref TEXT PRIMARY KEY, registration_ref TEXT NOT NULL UNIQUE, tenant_ref TEXT NOT NULL, state TEXT NOT NULL, identity_ref TEXT NOT NULL, last_heartbeat TEXT, revoked_at TEXT, created_at TEXT NOT NULL);
             """)
@@ -239,32 +239,10 @@ class ServiceStore:
         now = timestamp()
         with self.connect() as db:
             changed = db.execute("UPDATE tenants SET state='Deleting',updated_at=?,deleted_at=? WHERE tenant_ref=? AND state='Active'", (now, now, tenant_ref)).rowcount
-            db.execute("UPDATE grants SET revoked_at=? WHERE tenant_ref=? AND revoked_at IS NULL", (now, tenant_ref))
             db.commit()
         if not changed:
             raise ServiceError("active tenant not found")
-        return {"tenantRef": tenant_ref, "state": "Deleting", "grantsRevoked": True, "deletedAt": now}
-
-    def create_grant(self, tenant_ref: str, consumable_ref: str, role_ref: str, visibility: str, constraints: dict[str, Any]) -> dict[str, Any]:
-        tenant_ref = self.validate_tenant_ref(tenant_ref)
-        if visibility not in VISIBILITIES:
-            raise ServiceError("visibility must be Private, Tenant or Shared")
-        if consumable_ref not in CATALOG or not role_ref.strip():
-            raise ServiceError("published consumableRef and roleRef are required")
-        if any(any(part in key.lower() for part in FORBIDDEN) for key in constraints):
-            raise ServiceError("credential material is forbidden")
-        with self.connect() as db:
-            tenant = db.execute("SELECT state FROM tenants WHERE tenant_ref=?", (tenant_ref,)).fetchone()
-            if not tenant or tenant["state"] != "Active":
-                raise ServiceError("active tenant not found")
-            grant_ref = f"grant://tenant/{tenant_ref}/{uuid.uuid4().hex}"
-            access_ref = f"access://tenant/{tenant_ref}/{uuid.uuid4().hex}"
-            try:
-                db.execute("INSERT INTO grants VALUES(?,?,?,?,?,?,?,?,?)", (grant_ref, tenant_ref, consumable_ref, role_ref.strip(), visibility, json.dumps(constraints, sort_keys=True), access_ref, timestamp(), None))
-                db.commit()
-            except sqlite3.IntegrityError as exc:
-                raise ServiceError("active grant already exists") from exc
-        return {"grantRef": grant_ref, "tenantRef": tenant_ref, "consumableRef": consumable_ref, "roleRef": role_ref.strip(), "visibility": visibility, "accessRef": access_ref, "credentialMaterialReturned": False}
+        return {"tenantRef": tenant_ref, "state": "Deleting", "deletedAt": now}
 
     def register_cluster(self, tenant_ref: str, cluster_uid: str, region_ref: str, issuer: str, public_key: str, capabilities: list[str]) -> dict[str, Any]:
         tenant_ref = self.validate_tenant_ref(tenant_ref)

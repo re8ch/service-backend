@@ -344,7 +344,8 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("activate_device", names)
         admin = load("admin")
         admin_names = {tool["name"] for tool in admin.tools()}
-        self.assertTrue({"tenant_create", "tenant_grant_create", "tenant_delete"}.issubset(admin_names))
+        self.assertTrue({"tenant_create", "tenant_delete"}.issubset(admin_names))
+        self.assertNotIn("tenant_grant_create", admin_names)
         self.assertNotIn("tenant_claim_create", admin_names)
 
     def test_tenant_planes_are_server_side_isolated_and_resources_are_tenant_scoped(self):
@@ -357,17 +358,14 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("tenant_create", names)
         self.assertIn("byoc_cluster_register", names)
         registry.authenticated_tenant = lambda _identity: "acme"
-        registry.tenant_control_request = lambda path, *_args, **_kwargs: {"items": [
-            {"consumableRef": service_class, "roleRef": "operator"}
-            for service_class in ("registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1")
-        ] if path == "/v1/grants" else []}
         registry.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
         identity = {"tenant": "acme", "groups": []}
         listed = registry.resources_list(identity, None)
         self.assertTrue(all("/acme/" in item["uri"] for item in listed["resources"]))
         catalog = registry.resources_read(identity, "re8ch://tenant/acme/catalog")
         body = json.loads(catalog["contents"][0]["text"])
-        self.assertTrue({"registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1"} <= {item["serviceClass"] for item in body["services"]})
+        self.assertTrue({"registry.harbor.v1", "observability.grafana.v1"} <= {item["serviceClass"] for item in body["services"]})
+        self.assertNotIn("network.among-clusters.v1", {item["serviceClass"] for item in body["services"]})
         with self.assertRaises(PermissionError):
             registry.resources_read(identity, "re8ch://tenant/other/instances")
 

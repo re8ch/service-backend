@@ -98,7 +98,7 @@ spec:
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         topologySpreadConstraints: []
         hostAliases:
-          - {ip: "192.0.2.209", hostnames: [id.re8ch.com, auth.re8ch.com]}
+          - {ip: "10.251.0.4", hostnames: [id.re8ch.com, auth.re8ch.com]}
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits: {cpu: 500m, memory: 256Mi}
@@ -107,7 +107,7 @@ spec:
         # service-core-r640 is the desired-state authority; this hostname is
         # retained until the chart can consume the projected pool selector.
         enabled: true
-        nodeNames: [restricted-node-6dc3f140f9]
+        nodeNames: [r640]
         trafficDistribution: PreferSameNode
         backendSessionAffinity: None
         proxyResources:
@@ -300,7 +300,7 @@ spec:
             groupClaim: groups
             policies:
               # The backend resolves the caller to exactly one tenant and
-              # applies TenantGrant authorization before executing any tool.
+              # applies tenant identity and role authorization before executing any tool.
               - 'permit(principal, action, resource);'
     codex:
       marketplace: {name: re8ch-admin-private, displayName: RE8CH Admin Private, source: https://github.com/re8ch-ai/codex-admin-plugins.git}

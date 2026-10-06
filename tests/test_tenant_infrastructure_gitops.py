@@ -316,7 +316,6 @@ def test_tenancy_crds_are_structural_and_status_enabled():
         "tenants.tenancy.re8ch.com",
         "tenantnamespaces.tenancy.re8ch.com",
         "tenantidentitybindings.tenancy.re8ch.com",
-        "tenantgrants.tenancy.re8ch.com",
         "tenantserviceinstances.tenancy.re8ch.com",
         "tenantresourceclaims.tenancy.re8ch.com",
     }
@@ -349,14 +348,12 @@ def test_artchais_github_team_bindings_have_explicit_roles():
         ("Artchais:tenant-operators", "operator"),
         ("Artchais:tenant-viewers", "viewer"),
     }
-    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "artchais"]
-    assert {item["spec"]["consumableRef"] for item in grants} == {"compute.workload.v1", "storage.volume.v1"}
 
 
 def test_tenant_ci_can_request_harbor_from_its_declared_catalog_project():
     docs = tenant_chart_documents()
-    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "tenant-ci"]
-    assert "registry.harbor.v1" in {item["spec"]["consumableRef"] for item in grants}
+    tenant = next(item for item in docs if item["kind"] == "Tenant" and item["metadata"]["name"] == "tenant-ci")
+    assert tenant["spec"]["harborProjectRef"] == "tenant-ci"
     catalogs = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text())
                 if item and item.get("kind") == "ConfigMap" and item.get("metadata", {}).get("name") == "harbor-tenant-catalog"]
     assert len(catalogs) == 2

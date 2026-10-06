@@ -11,46 +11,11 @@ import (
 
 var providerBacked = map[string]bool{"network.among-clusters.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true}
 
-func tenantServiceGrants(ctx context.Context, tenant string) (map[string]string, error) {
-	value, err := controlRequest(ctx, tenant, "/v1/grants")
-	if err != nil {
-		return nil, err
-	}
-	grants := map[string]string{}
-	for _, raw := range slice(value["items"]) {
-		item := object(raw)
-		serviceClass, role := asString(item, "consumableRef"), asString(item, "roleRef")
-		if serviceClass == "" || role != "viewer" && role != "operator" && role != "admin" {
-			continue
-		}
-		if _, exists := grants[serviceClass]; exists {
-			return nil, errors.New("exactly one active TenantGrant is required per service class")
-		}
-		grants[serviceClass] = role
-	}
-	return grants, nil
-}
-
 func slice(value any) []any { result, _ := value.([]any); return result }
-
-func requireServiceGrant(ctx context.Context, tenant, serviceClass string, mutate bool) error {
-	if _, err := catalogEntry(serviceClass); err != nil {
-		return errors.New("service class is not published")
-	}
-	grants, err := tenantServiceGrants(ctx, tenant)
-	if err != nil {
-		return err
-	}
-	role := grants[serviceClass]
-	if role == "" || mutate && role != "operator" && role != "admin" {
-		return errors.New("an active service class TenantGrant is required")
-	}
-	return nil
-}
 
 func requireOperator(id identity) error {
 	if id.Role != "operator" && id.Role != "admin" {
-		return errors.New("an operator TenantGrant role is required")
+		return errors.New("an operator tenant role is required")
 	}
 	return nil
 }
@@ -87,16 +52,19 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 	ref := asString(args, "resource_ref")
 	switch name {
 	case "service_catalog_list":
-		grants, err := tenantServiceGrants(ctx, tenant)
-		if err != nil {
-			return nil, err
-		}
 		catalog, err := serviceCatalog()
 		if err != nil {
 			return nil, err
 		}
-		services := catalogForGrants(catalog, grants)
-		if tenant == "artchais" && grants["network.among-clusters.v1"] != "" {
+		services := catalog
+		if tenant != "artchais" {
+			filtered := []map[string]any{}
+			for _, service := range services {
+				if service["serviceClass"] != "network.among-clusters.v1" { filtered = append(filtered, service) }
+			}
+			services = filtered
+		}
+		if tenant == "artchais" {
 			if _, err = controlRequest(ctx, tenant, "/v1/services/catalog"); err != nil {
 				var denied controlHTTPError
 				if errors.As(err, &denied) && (denied.Status == 401 || denied.Status == 403) {
@@ -128,9 +96,7 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			}
 			return controlRequestBody(ctx, tenant, path, payload)
 		}
-		if err := requireServiceGrant(ctx, tenant, serviceClass, true); err != nil {
-			return nil, err
-		}
+		if _, err := catalogEntry(serviceClass); err != nil { return nil, errors.New("service class is not published") }
 		if err := requireOperator(id); err != nil {
 			return nil, err
 		}
@@ -185,11 +151,6 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if err != nil {
 			return nil, err
 		}
-		if name == "service_instance_update" || name == "service_instance_resume" {
-			if err = requireServiceGrant(ctx, tenant, asString(current, "service_class"), true); err != nil {
-				return nil, err
-			}
-		}
 		spec := object(args["spec"])
 		if len(spec) == 0 {
 			spec = object(current["spec"])
@@ -207,11 +168,8 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		}
 		return s.instanceMutate(tenant, asString(current, "name"), spec, asString(args, "idempotency_key"), strings.TrimPrefix(name, "service_instance_"))
 	case "service_binding_create":
-		current, err := s.instanceGet(tenant, ref)
+		_, err := s.instanceGet(tenant, ref)
 		if err != nil {
-			return nil, err
-		}
-		if err = requireServiceGrant(ctx, tenant, asString(current, "service_class"), true); err != nil {
 			return nil, err
 		}
 		if err = requireOperator(id); err != nil {

@@ -68,15 +68,12 @@ def test_soft_delete_and_binding_revocation(tmp_path):
     assert store.get("qwen", created["resourceRef"])["deleted_at"]
 
 
-def test_admin_manages_generic_tenants_grants_visibility_and_deletion(tmp_path):
+def test_admin_manages_generic_tenants_visibility_and_deletion(tmp_path):
     store = tenant_infrastructure.ServiceStore(tmp_path / "services.db")
     tenant = store.create_tenant("research-a", "Research A", "oidc-group:research-a")
     assert tenant["tenantRef"] == "research-a"
-    grant = store.create_grant("research-a", "observability.grafana.v1", "viewer", "Tenant", {"folderRefs": ["team-a"], "datasourceRefs": ["metrics-a"]})
-    assert grant["accessRef"].startswith("access://tenant/research-a/")
-    assert grant["credentialMaterialReturned"] is False
     assert store.set_visibility("research-a", "Shared")["visibility"] == "Shared"
-    assert store.delete_tenant("research-a")["grantsRevoked"] is True
+    assert store.delete_tenant("research-a")["state"] == "Deleting"
     with pytest.raises(tenant_infrastructure.ServiceError, match="admin"):
         store.create_tenant("admin", "Admin", "oidc:admin")
 

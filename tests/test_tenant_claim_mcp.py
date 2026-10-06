@@ -143,19 +143,19 @@ def test_harbor_and_grafana_service_requests_use_controller_not_local_store(monk
     assert [call[0] for call in calls] == ["/v1/services/plan", "/v1/services", "/v1/services/plan", "/v1/services"]
 
 
-def test_artchais_catalog_hides_amongclusters_when_controller_denies_grant(monkeypatch):
+def test_artchais_catalog_hides_amongclusters_when_controller_denies_product(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
     monkeypatch.setattr(module, "tenant_service_store", lambda: object())
-    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": []})
+    def deny_product(*_args, **_kwargs): raise PermissionError("product unavailable")
+    monkeypatch.setattr(module, "tenant_control_request", deny_product)
     value = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
     assert "network.among-clusters.v1" not in {item["serviceClass"] for item in value["services"]}
 
 
-def test_service_catalog_and_mutations_require_class_grant_and_operator(monkeypatch):
+def test_service_catalog_and_mutations_require_published_class_and_operator(monkeypatch):
     module = load(monkeypatch)
     role = {"value": "operator"}
-    grants = {"items": [{"consumableRef": "storage.volume.v1", "roleRef": "operator"}]}
     calls = []
     class Store:
         def plan(self, *args): calls.append(("plan", args)); return {"decision": "preview"}
@@ -165,30 +165,21 @@ def test_service_catalog_and_mutations_require_class_grant_and_operator(monkeypa
     monkeypatch.setattr(module, "tenant_service_store", Store)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": role["value"]})
-    monkeypatch.setattr(module, "tenant_control_request", lambda path, tenant, *_args, **_kwargs: grants if path == "/v1/grants" else {"items": []})
+    def no_provider_instance(*_args, **_kwargs): raise ValueError("local service")
+    monkeypatch.setattr(module, "tenant_control_request", no_provider_instance)
     import pytest
     spec = {"serviceClass": "storage.volume.v1", "planRef": "shared", "regionRef": "loudi", "parameters": {"sizeGiB": 1}}
     listed = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
-    assert {item["serviceClass"] for item in listed["services"]} == {"storage.volume.v1"}
+    assert "storage.volume.v1" in {item["serviceClass"] for item in listed["services"]}
     assert module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"}) == {"decision": "preview"}
-    grants["items"] = []
-    with pytest.raises(PermissionError, match="active service class TenantGrant"):
-        module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
-    assert [name for name, _ in calls] == ["plan"]
-    grants["items"] = [{"consumableRef": "storage.volume.v1", "roleRef": "viewer"}]
-    with pytest.raises(PermissionError, match="active service class TenantGrant"):
-        module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"})
-    grants["items"] = [{"consumableRef": "storage.volume.v1", "roleRef": "operator"}]
     role["value"] = "viewer"
-    with pytest.raises(PermissionError, match="operator TenantGrant role"):
+    with pytest.raises(PermissionError, match="operator tenant role"):
         module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
     role["value"] = "operator"
     module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
-    grants["items"] = []
-    with pytest.raises(PermissionError, match="active service class TenantGrant"):
-        module.call_tool("service_binding_create", {"resource_ref": "service://acme/disk", "binding_type": "access", "parameters": {}}, {"subject": "agent"})
+    module.call_tool("service_binding_create", {"resource_ref": "service://acme/disk", "binding_type": "access", "parameters": {}}, {"subject": "agent"})
     module.call_tool("service_instance_delete", {"resource_ref": "service://acme/disk", "idempotency_key": "delete-12345"}, {"subject": "agent"})
-    assert [name for name, _ in calls] == ["plan", "mutate", "mutate"]
+    assert [name for name, _ in calls] == ["plan", "mutate", "bind", "mutate"]
 
 
 def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatch):
