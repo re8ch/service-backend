@@ -49,9 +49,9 @@ fi
 : "${TENANT_IMAGE_DOCKERFILE:=clusters/re8ch/components/ai-operations/Dockerfile}"
 : "${TENANT_IMAGE_ARTIFACT_NAME:=tenant-infrastructure}"
 : "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS:=300}"
-if [[ ! "$TENANT_IMAGE_PUSH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]{1,2}$ ]] ||
-   (( TENANT_IMAGE_PUSH_TIMEOUT_SECONDS < 60 || TENANT_IMAGE_PUSH_TIMEOUT_SECONDS > 900 )); then
-  echo "TENANT_IMAGE_PUSH_TIMEOUT_SECONDS must be an integer from 60 through 900" >&2
+if [[ ! "$TENANT_IMAGE_PUSH_TIMEOUT_SECONDS" =~ ^[1-9][0-9]{1,3}$ ]] ||
+   (( TENANT_IMAGE_PUSH_TIMEOUT_SECONDS < 60 || TENANT_IMAGE_PUSH_TIMEOUT_SECONDS > 3600 )); then
+  echo "TENANT_IMAGE_PUSH_TIMEOUT_SECONDS must be an integer from 60 through 3600" >&2
   exit 2
 fi
 dockerfile="$TENANT_IMAGE_DOCKERFILE"
