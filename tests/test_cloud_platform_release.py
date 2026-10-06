@@ -41,3 +41,10 @@ def test_native_upload_attempts_fit_the_release_budget():
     assert 1 <= attempts <= 3 and 60 <= duration <= 3600
     # Includes hard-kill grace and retry delay, with time for signing and SBOM.
     assert release['timeout-minutes'] * 60 - attempts * (duration + 30) - 30 >= 8 * 60
+
+
+def test_network_planner_builds_on_runner_architecture_for_amd64_release():
+    dockerfile = (ROOT / 'operations/cloud-platform/Dockerfile').read_text()
+    assert 'FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS network-planner' in dockerfile
+    assert 'ARG TARGETOS TARGETARCH' in dockerfile
+    assert 'CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build' in dockerfile

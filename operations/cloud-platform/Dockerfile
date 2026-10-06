@@ -1,7 +1,8 @@
-FROM golang:1.24-alpine AS network-planner
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS network-planner
+ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY operations/cloud-platform/network-planner/ ./
-RUN go test ./... && CGO_ENABLED=0 go build -trimpath -o /network-planner .
+RUN go test ./... && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /network-planner .
 
 FROM python:3.12-alpine
 RUN addgroup -S re8ch && adduser -S -G re8ch -u 65532 re8ch && apk add --no-cache kubectl openssh-client
