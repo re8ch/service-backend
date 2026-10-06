@@ -20,6 +20,9 @@ def test_backlog_is_keyed_and_all_evidence_starts_unverified():
     assert all(row["httpEvidence"] is None and row["semanticEvidence"] is None for row in rows)
     assert all(row["tool"] for row in rows if row["registration"] != "not_implemented")
     assert all(row["schemaHash"] for row in rows if row["groupVersion"].startswith("apis/"))
+    assert Counter(row["registration"] for row in rows) == {"deployed": 161, "not_implemented": 522}
+    assert all(row["deploymentDigest"] for row in rows if row["registration"] == "deployed")
+    assert sum(row["sampleEvidence"] is not None for row in rows) == 2
 
 
 def test_ledger_matches_generated_source():
