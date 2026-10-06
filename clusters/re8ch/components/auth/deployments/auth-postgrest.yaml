@@ -26,14 +26,16 @@ spec:
             - name: PGRST_DB_URI
               valueFrom: {secretKeyRef: {name: auth-db-credentials, key: PGRST_DB_URI}}
             - {name: PGRST_DB_SCHEMAS, value: api}
-            - {name: PGRST_DB_ANON_ROLE, value: anon}
+            # No anonymous role: auth RPCs require a signed database role.
+            - {name: PGRST_SERVER_ADMIN_PORT, value: "3001"}
             - name: PGRST_JWT_SECRET
               valueFrom: {secretKeyRef: {name: re8ch-auth-gateway-secrets, key: PGRST_JWT_SECRET}}
             - {name: PGRST_DB_POOL, value: "10"}
           ports:
             - {name: http, containerPort: 3000}
+            - {name: admin, containerPort: 3001}
           readinessProbe:
-            tcpSocket: {port: http}
+            httpGet: {path: /ready, port: admin}
             initialDelaySeconds: 3
             periodSeconds: 5
           livenessProbe:
@@ -54,6 +56,7 @@ spec:
   selector: {app.kubernetes.io/name: auth-postgrest}
   ports:
     - {name: http, port: 3000, targetPort: http}
+    - {name: admin, port: 3001, targetPort: admin}
 ---
 # Keep auth RPCs on the PostgREST instance connected to the auth database.
 # The generic db-rw fallback serves a different schema cache.
@@ -112,3 +115,31 @@ spec:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /}}
       backendRefs: [{name: auth-postgrest, port: 3000}]
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: re8ch-auth-postgrest-readiness
+  namespace: auth
+spec:
+  hostnames: [db-rw.re8ch.com, db-ro.re8ch.com]
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-ro-https}
+  rules:
+    - matches: [{path: {type: Exact, value: /auth/ready}, method: GET}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /ready}}
+      backendRefs: [{name: auth-postgrest, port: 3001}]
