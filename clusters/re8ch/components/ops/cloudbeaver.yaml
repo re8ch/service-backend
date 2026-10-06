@@ -170,6 +170,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: local-path
+  volumeName: pvc-f86e2a39-bb6b-46f7-a9ce-a02b33bdbb27
   resources:
     requests:
       storage: 3Gi
@@ -182,6 +183,7 @@ metadata:
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: rbd-r640
+  volumeName: pvc-93ce23ea-9c1f-4af6-857e-797823f267e7
   resources:
     requests:
       storage: 3Gi
