@@ -450,44 +450,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-def active_grant(tenant_ref, capability):
-    now = utcnow()
-    matches = []
-    for grant in kube().list("tenantgrants"):
-        spec = grant.get("spec", {})
-        if spec.get("tenantRef") != tenant_ref or spec.get("lifecycle") != "Active":
-            continue
-        if spec.get("consumableRef") not in {"tenant", capability}:
-            continue
-        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
-            continue
-        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
-            continue
-        matches.append(grant)
-    if len(matches) != 1:
-        raise PermissionError("exactly one active TenantGrant is required")
-    return matches[0]
-
-
 PROVIDER_SERVICE_CLASSES = {"registry.harbor.v1", "observability.grafana.v1"}
-
-
-def active_provider_grant(tenant_ref, service_class):
-    """Service access needs an explicit class grant, never a broad tenant grant."""
-    now = utcnow()
-    matches = []
-    for grant in kube().list("tenantgrants"):
-        spec = grant.get("spec", {})
-        if spec.get("tenantRef") != tenant_ref or spec.get("consumableRef") != service_class or spec.get("lifecycle") != "Active":
-            continue
-        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
-            continue
-        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
-            continue
-        matches.append(grant)
-    if len(matches) != 1 or matches[0].get("spec", {}).get("roleRef") not in {"operator", "admin"}:
-        raise PermissionError("exactly one active operator TenantGrant is required for the service class")
-    return matches[0]
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -496,7 +459,6 @@ def provider_service_spec(tenant_ref, name, request):
     service_class = request.get("serviceClass")
     if service_class not in PROVIDER_SERVICE_CLASSES:
         raise PermissionError("provider service class is not published")
-    grant = active_provider_grant(tenant_ref, service_class)
     if request.get("desiredState", "Ready") != "Ready":
         raise PermissionError("new provider service instances must request Ready")
     parameters = request.get("parameters") or {}
@@ -516,9 +478,9 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("Harbor project is outside the authenticated tenant")
         quota = parameters.get("quotaGiB")
         duration = parameters.get("robotDurationDays", 90)
-        maximum = int((grant.get("spec", {}).get("constraints") or {}).get("maxRegistryGiB", 1024))
+        maximum = 1024
         if type(quota) is not int or not 1 <= quota <= maximum or type(duration) is not int or not 1 <= duration <= 365:
-            raise PermissionError("Harbor quota or robot duration is outside the TenantGrant")
+            raise PermissionError("Harbor quota or robot duration is outside the published limits")
         return {"project": project, "quotaGiB": quota, "robotDurationDays": duration, "identityUserRef": identity_user}
     if request.get("planRef") not in {"viewer", "editor"}:
         raise PermissionError("Grafana plan is not published")
@@ -539,22 +501,6 @@ def provider_service_spec(tenant_ref, name, request):
             and (set(parameters.get("datasourceRefs", [])) != {"app", "kube"} or parameters.get("folderRefs"))):
         raise PermissionError("Grafana currently publishes app and kube metrics for the tenant runtime namespace")
     return {"datasourceRefs": sorted(set(parameters.get("datasourceRefs", []))), "folderRefs": sorted(set(parameters.get("folderRefs", []))), "humanLogin": login, "identityUserRef": identity_user}
-
-def active_service_grants(tenant_ref):
-    """Return only currently effective, class-specific grants for tenant services."""
-    now = utcnow()
-    grants = []
-    for grant in kube().list("tenantgrants"):
-        spec = grant.get("spec", {})
-        if spec.get("tenantRef") != tenant_ref or spec.get("lifecycle") != "Active":
-            continue
-        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
-            continue
-        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
-            continue
-        grants.append({"consumableRef": spec.get("consumableRef"), "roleRef": spec.get("roleRef")})
-    return grants
-
 
 def among_clusters_spec(tenant_ref, name, spec):
     """Validate the one tenant-safe AmongClusters product we publish today.
@@ -581,7 +527,6 @@ def among_clusters_spec(tenant_ref, name, spec):
         raise PermissionError("service namespace is outside the Artchais boundary")
     if parameters.get("bandwidthClass") not in {None, "standard"}:
         raise PermissionError("bandwidth class is not published")
-    active_grant(tenant_ref, "network.among-clusters.v1")
     peers = {item.get("metadata", {}).get("name"): item for item in kube().list("peers", "artchais", "apis/peering.re8ch.com/v1alpha1")}
     links = {item.get("metadata", {}).get("name"): item for item in kube().list("authenticatedlinks", "artchais", "apis/peering.re8ch.com/v1alpha1")}
     peer = peers.get("re8ch-artc")
@@ -635,21 +580,21 @@ def binary_gib(value):
     raise PermissionError("memory and ephemeral storage quota require binary units")
 
 
-def enforce_quota(tenant_ref, normalized, grant, exclude_name=None):
-    constraints = grant.get("spec", {}).get("constraints", {})
-    limits = constraints.get("capabilities", {}).get(normalized["spec"]["capability"], constraints)
+def enforce_quota(tenant_ref, normalized, exclude_name=None):
+    """Bound managed claims before creating or updating resources."""
+    limits = {}
     claims = [item for item in kube().list("tenantresourceclaims", runtime_namespace(tenant_ref)) if item.get("spec", {}).get("tenantRef") == tenant_ref and item.get("spec", {}).get("desiredState", "Active") == "Active" and item.get("metadata", {}).get("name") != exclude_name]
     capability_claims = [item for item in claims if item.get("spec", {}).get("capability") == normalized["spec"]["capability"]]
     if len(capability_claims) + 1 > int(limits.get("maxActiveClaims", 20)):
-        raise PermissionError("TenantGrant maxActiveClaims quota exceeded")
+        raise PermissionError("Managed claim maxActiveClaims quota exceeded")
     params = normalized["spec"]["parameters"]
     if normalized["spec"]["capability"] == "compute.workload.v1":
         units = params.get("replicas", params.get("parallelism", 1))
         if units > int(limits.get("maxPodsPerClaim", 20)):
-            raise PermissionError("TenantGrant maxPodsPerClaim quota exceeded")
+            raise PermissionError("Managed claim maxPodsPerClaim quota exceeded")
         public_count = sum(1 for item in claims if item.get("spec", {}).get("parameters", {}).get("exposure", {}).get("enabled"))
         if params.get("exposure", {}).get("enabled") and public_count + 1 > int(limits.get("maxPublicEndpoints", 5)):
-            raise PermissionError("TenantGrant maxPublicEndpoints quota exceeded")
+            raise PermissionError("Managed claim maxPublicEndpoints quota exceeded")
         total_cpu, total_memory, total_ephemeral = units * cpu_milli(params["resources"]["cpu"]), units * binary_gib(params["resources"]["memory"]), units * binary_gib(params["resources"]["ephemeralStorage"])
         for item in claims:
             if item.get("spec", {}).get("capability") != "compute.workload.v1":
@@ -660,15 +605,15 @@ def enforce_quota(tenant_ref, normalized, grant, exclude_name=None):
             total_memory += current_units * binary_gib(current["resources"]["memory"])
             total_ephemeral += current_units * binary_gib(current["resources"]["ephemeralStorage"])
         if total_cpu > int(limits.get("maxCpuMilli", 4000)):
-            raise PermissionError("TenantGrant maxCpuMilli quota exceeded")
+            raise PermissionError("Managed claim maxCpuMilli quota exceeded")
         if total_memory > int(limits.get("maxMemoryGiB", 16)):
-            raise PermissionError("TenantGrant maxMemoryGiB quota exceeded")
+            raise PermissionError("Managed claim maxMemoryGiB quota exceeded")
         if total_ephemeral > int(limits.get("maxEphemeralStorageGiB", 40)):
-            raise PermissionError("TenantGrant maxEphemeralStorageGiB quota exceeded")
+            raise PermissionError("Managed claim maxEphemeralStorageGiB quota exceeded")
     else:
         used = sum(int(item.get("spec", {}).get("parameters", {}).get("sizeGiB", 0)) for item in claims if item.get("spec", {}).get("capability") == "storage.volume.v1")
         if used + params["sizeGiB"] > int(limits.get("maxStorageGiB", 100)):
-            raise PermissionError("TenantGrant maxStorageGiB quota exceeded")
+            raise PermissionError("Managed claim maxStorageGiB quota exceeded")
 
 
 def validate_volume_mounts(normalized, namespace):
@@ -803,8 +748,7 @@ def reconcile_claim(claim):
             status["volumeAllocation"] = volume_observation(claim, namespace, released=True)
         kube().patch_status("tenantresourceclaims", meta["name"], status, namespace)
         return
-    grant = active_grant(spec["tenantRef"], spec["capability"])
-    enforce_quota(spec["tenantRef"], normalized, grant, meta["name"])
+    enforce_quota(spec["tenantRef"], normalized, meta["name"])
     validate_volume_mounts(normalized, namespace)
     image_policy = existing.get("imagePolicy", {})
     if spec["capability"] == "compute.workload.v1" and image_policy.get("verifiedImageDigest") != spec["parameters"]["imageDigest"]:
@@ -833,7 +777,7 @@ def reconcile_loop():
             if not kube().claim_lease():
                 time.sleep(5)
                 continue
-            for plural in ("tenantidentitybindings", "tenantgrants"):
+            for plural in ("tenantidentitybindings",):
                 for item in kube().list(plural):
                     meta = item["metadata"]
                     status = {"observedGeneration": meta.get("generation", 1), "operationId": "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24],
@@ -903,7 +847,7 @@ def organization_dependencies(tenant_ref, authorization):
     # retained data. The managed namespace/Tenant must be removed by its normal
     # lifecycle workflow before identity deletion. Do not add cluster-wide claim
     # permissions: claims are scoped to these controller-owned namespaces.
-    for plural in ("tenants", "tenantnamespaces", "tenantidentitybindings", "tenantgrants", "tenantserviceinstances"):
+    for plural in ("tenants", "tenantnamespaces", "tenantidentitybindings", "tenantserviceinstances"):
         count = sum(1 for item in kube().list(plural)
                     if (item.get("metadata", {}).get("name") == tenant_ref if plural == "tenants"
                         else item.get("spec", {}).get("tenantRef") == tenant_ref))
@@ -972,14 +916,6 @@ class Handler(BaseHTTPRequestHandler):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
-        if caller == "tenant" and path == "/v1/grants" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
-            try:
-                tenant = self.headers["X-Tenant-Ref"]
-                runtime_namespace(tenant)
-                self.send_json(200, {"items": active_service_grants(tenant)}); return
-            except Exception as exc:
-                LOG.exception("tenant grant read failed: %s", exc)
-                self.send_json(503, {"error": "tenant grants are unavailable"}); return
         if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             try:
                 tenant = self.headers["X-Tenant-Ref"]
@@ -1156,9 +1092,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(202, {"operationId": "op_" + hashlib.sha256((tenant + name + key).encode()).hexdigest()[:24], "tenantRef": tenant, "resourceRef": f"service://{tenant}/{name}", "state": "Provisioning" if lifecycle == "Requested" else lifecycle, "credentialMaterialReturned": False})
                 return
             if path == "/v1/claims/plan":
-                grant = active_grant(tenant, body["claim"]["spec"]["capability"])
                 result = plan(body["claim"], authenticated_tenant=tenant, harbor_project=harbor_project(tenant))
-                enforce_quota(tenant, result["normalizedClaim"], grant, result["normalizedClaim"]["metadata"]["name"])
+                enforce_quota(tenant, result["normalizedClaim"], result["normalizedClaim"]["metadata"]["name"])
                 validate_volume_mounts(result["normalizedClaim"], namespace)
                 self.send_json(200, result)
                 return
@@ -1167,8 +1102,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not hmac.compare_digest(str(body.get("claimHash", "")), result["claimHash"]):
                     raise PermissionError("claimHash does not match the normalized claim")
                 normalized = result["normalizedClaim"]
-                grant = active_grant(tenant, normalized["spec"]["capability"])
-                enforce_quota(tenant, normalized, grant, normalized["metadata"]["name"])
+                enforce_quota(tenant, normalized, normalized["metadata"]["name"])
                 validate_volume_mounts(normalized, namespace)
                 image_policy = {}
                 if normalized["spec"]["capability"] == "compute.workload.v1":
@@ -1222,8 +1156,7 @@ class Handler(BaseHTTPRequestHandler):
                 result = plan(proposed, authenticated_tenant=tenant, harbor_project=project)
                 if not hmac.compare_digest(str(body.get("claimHash", "")), result["claimHash"]):
                     raise PermissionError("claimHash does not match the normalized claim")
-                grant = active_grant(tenant, proposed["spec"]["capability"])
-                enforce_quota(tenant, proposed, grant, name)
+                enforce_quota(tenant, proposed, name)
                 validate_volume_mounts(proposed, namespace)
                 image_policy = current.get("status", {}).get("imagePolicy", {})
                 if proposed["spec"]["capability"] == "compute.workload.v1" and proposed["spec"]["parameters"]["imageDigest"] != current["spec"]["parameters"]["imageDigest"]:

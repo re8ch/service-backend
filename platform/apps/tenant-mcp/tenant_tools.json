@@ -1020,7 +1020,7 @@
     "name": "tenant_claim_plan"
   },
   {
-    "description": "Create an already planned tenant claim idempotently within the active TenantGrant.",
+    "description": "Create an already planned tenant claim idempotently within the authenticated tenant.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

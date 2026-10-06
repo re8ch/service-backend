@@ -78,8 +78,6 @@ class FakeKube:
     def list(self, plural, namespace=None):
         if plural == "tenants":
             return [{"metadata": {"name": "acme"}, "spec": {"lifecycle": "Active", "harborProjectRef": "acme"}}]
-        if plural == "tenantgrants":
-            return [{"spec": {"tenantRef": "acme", "consumableRef": self.service_class, "roleRef": "operator", "lifecycle": "Active"}}]
         if plural == "tenantserviceinstances":
             return list(self.instances)
         raise AssertionError(plural)

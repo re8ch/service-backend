@@ -495,7 +495,6 @@
       "allowed": {
         "tenant_create": true,
         "tenant_list": true,
-        "tenant_grant_create": true,
         "tenant_visibility_update": true,
         "tenant_delete": true,
         "byoc_registration_list": true,

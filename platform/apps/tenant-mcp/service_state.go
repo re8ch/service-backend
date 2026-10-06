@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -202,15 +201,4 @@ func provisioningIntent(tenant, name string, spec map[string]any) (map[string]an
 		bindings = append(bindings, value)
 	}
 	return map[string]any{"adapter": product["adapter"], "accessUnit": product["accessUnit"], "bindings": bindings, "resourceRef": "service://" + tenant + "/" + name, "tenantRef": tenant, "desiredState": spec["desiredState"], "credentialMaterialReturned": false}, nil
-}
-
-func catalogForGrants(catalog []map[string]any, grants map[string]string) []map[string]any {
-	result := []map[string]any{}
-	for _, item := range catalog {
-		if _, ok := grants[asString(item, "serviceClass")]; ok {
-			result = append(result, item)
-		}
-	}
-	sort.Slice(result, func(i, j int) bool { return asString(result[i], "serviceClass") < asString(result[j], "serviceClass") })
-	return result
 }

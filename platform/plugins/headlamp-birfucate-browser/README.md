@@ -11,7 +11,7 @@ Service Proxy and renders:
 - Capacity ledger: cluster allocatable capacity, tenant ResourceQuota hard/used
   values, approved Consumables, active ConsumptionBindings, explicit remaining
   capacity, and a visible "undeclared" state when a rentable ceiling is absent.
-- Invoke and allocation events: time-ordered TenantGrant,
+- Invoke and allocation events: time-ordered tenant service,
   TenantServiceInstance, ConsumptionBinding, TenantResourceClaim and Kubernetes
   Event facts correlated by trace, task, invoke or idempotency identifiers.
 - Occupancy: current occupied capacity and accumulated resource-time.

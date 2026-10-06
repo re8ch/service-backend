@@ -76,7 +76,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 				return nil, nil, err
 			}
 			if id.Role != "operator" && id.Role != "admin" {
-				return nil, nil, errors.New("an operator TenantGrant role is required")
+				return nil, nil, errors.New("an operator tenant role is required")
 			}
 			value, err := s.submit(request{Tenant: id.Tenant, Subject: id.Subject, Name: input.Name, Description: input.Description, Workflow: input.Workflow, Visibility: input.Visibility}, false)
 			return nil, value, err

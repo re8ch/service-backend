@@ -8,10 +8,10 @@ kind: ClusterRole
 metadata: {name: tenant-control-controller}
 rules:
   - apiGroups: [tenancy.re8ch.com]
-    resources: [tenants, tenantnamespaces, tenantidentitybindings, tenantgrants, tenantserviceinstances]
+    resources: [tenants, tenantnamespaces, tenantidentitybindings, tenantserviceinstances]
     verbs: [get, list, watch, create, update, patch, delete]
   - apiGroups: [tenancy.re8ch.com]
-    resources: [tenants/status, tenantnamespaces/status, tenantidentitybindings/status, tenantgrants/status, tenantserviceinstances/status]
+    resources: [tenants/status, tenantnamespaces/status, tenantidentitybindings/status, tenantserviceinstances/status]
     verbs: [get, update, patch]
   - apiGroups: [coordination.k8s.io]
     resources: [leases]
@@ -146,7 +146,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata: {name: tenant-provider-reconciler}
 rules:
-  - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances, tenants, tenantgrants], verbs: [get, list]}
+  - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances, tenants], verbs: [get, list]}
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances/status], verbs: [get, patch]}
 {{- if .Values.tenantPlatform.provider.databaseBindings }}
   - {apiGroups: [""], resources: [namespaces], resourceNames: [{{- range $i, $binding := .Values.tenantPlatform.provider.databaseBindings }}{{ if $i }}, {{ end }}{{ $binding.namespace }}{{- end }}], verbs: [get]}

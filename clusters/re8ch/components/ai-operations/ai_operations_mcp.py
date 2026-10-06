@@ -756,7 +756,6 @@ HARBOR_TENANT_TOOLS = [
 TENANT_INFRA_TOOLS = [
     {"name": "tenant_create", "description": "Create a named tenant identity boundary. Protected admin identity is never created through this tool.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "display_name": {"type": "string"}, "identity_ref": {"type": "string"}}, ["tenant_ref", "display_name", "identity_ref"])},
     {"name": "tenant_list", "description": "List tenant identity boundaries. Only the protected admin tenant may call this tool.", "inputSchema": schema({})},
-    {"name": "tenant_grant_create", "description": "Map one published Consumable role to an app-native authorization adapter and return only an opaque access reference.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "consumable_ref": {"type": "string"}, "role_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}, "constraints": {"type": "object"}}, ["tenant_ref", "consumable_ref", "role_ref", "visibility"])},
     {"name": "tenant_visibility_update", "description": "Change tenant visibility without exposing an application's native ACL model.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}}, ["tenant_ref", "visibility"])},
     {"name": "tenant_delete", "description": "Start deletion of a non-admin tenant and revoke its grants before adapter cleanup.", "inputSchema": schema({"tenant_ref": {"type": "string"}}, ["tenant_ref"])},
     {"name": "service_catalog_list", "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.", "inputSchema": schema({})},
@@ -803,7 +802,7 @@ GRAFANA_TENANT_TOOLS = [
     {"name": "grafana_exploration_delete", "description": "Explicitly delete a saved AI exploration dashboard owned by the authenticated tenant.", "inputSchema": schema({"dashboard_uid": {"type": "string"}}, ["dashboard_uid"])},
 ]
 
-TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
+TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
 DYNAMIC_SKILL_ADMIN_TOOLS = [
     {"name": "dynamic_skill_pending", "description": "List tenant workflow drafts awaiting platform review.", "inputSchema": schema({})},
     {"name": "dynamic_skill_publish", "description": "Publish a reviewed platform-wide or tenant-specific workflow directly.", "inputSchema": schema({"target_tenant": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}, "workflow": {"type": "string"}}, ["target_tenant", "name", "description", "workflow"])},
@@ -814,7 +813,7 @@ TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "servi
 TENANT_CLAIM_TOOLS = [
     {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
     {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
-    {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the active TenantGrant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
+    {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the authenticated tenant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
     {"name": "tenant_claim_get", "description": "Read one claim and its workload, volume or public endpoint binding.", "inputSchema": schema({"name": {"type": "string"}}, ["name"])},
     {"name": "tenant_claim_list", "description": "List claims owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "tenant_claim_update", "description": "Scale or roll a Deployment, or expand a volume, using a fresh claimHash. Job parameters are immutable.", "inputSchema": schema({"name": {"type": "string"}, "claim": {"type": "object"}, "claim_hash": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}}, ["name", "claim", "claim_hash", "idempotency_key"])},
@@ -987,29 +986,14 @@ def tenant_service_store() -> ServiceStore:
     return _TENANT_SERVICE_STORE
 
 
-def tenant_service_grants(tenant: str) -> dict[str, str]:
-    grants: dict[str, str] = {}
-    for item in tenant_control_request("/v1/grants", tenant).get("items", []):
-        service_class = item.get("consumableRef")
-        role = item.get("roleRef")
-        if service_class and role in {"viewer", "operator", "admin"}:
-            if service_class in grants:
-                raise PermissionError("exactly one active TenantGrant is required per service class")
-            grants[service_class] = role
-    return grants
-
-
-def require_tenant_service_grant(tenant: str, service_class: str, *, mutate: bool = False) -> None:
+def require_tenant_service_class(service_class: str) -> None:
     if service_class not in {item["serviceClass"] for item in service_catalog()}:
         raise PermissionError("service class is not published")
-    role = tenant_service_grants(tenant).get(service_class)
-    if role is None or (mutate and role not in {"operator", "admin"}):
-        raise PermissionError("an active service class TenantGrant is required")
 
 
 def tenant_catalog_for_profile(tenant: str) -> list[dict[str, Any]]:
-    grants = tenant_service_grants(tenant)
-    return [item for item in service_catalog() if item["serviceClass"] in grants]
+    return [item for item in service_catalog()
+            if item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais"]
 
 
 def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1142,7 +1126,7 @@ def authenticated_tenant(identity: dict[str, Any]) -> str:
 def authenticated_tenant_operator(identity: dict[str, Any]) -> str:
     context = authenticated_tenant_context(identity)
     if context["role"] not in {"operator", "admin"}:
-        raise PermissionError("an operator TenantGrant role is required")
+        raise PermissionError("an operator tenant role is required")
     return context["tenantRef"]
 
 
@@ -2201,15 +2185,13 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if PROFILE in tenant_profiles and name in tenant_tool_names:
         tenant = authenticated_tenant(identity)
         store = tenant_service_store()
-        admin_tools = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete"}
+        admin_tools = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete"}
         if name in admin_tools | {"byoc_connection_approve"} and (PROFILE != "admin" or tenant != "admin"):
             raise PermissionError("the protected admin tenant is required")
         if name == "tenant_create":
             return store.create_tenant(args["tenant_ref"], args["display_name"], args["identity_ref"])
         if name == "tenant_list":
             return {"tenantRef": tenant, "tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}
-        if name == "tenant_grant_create":
-            return store.create_grant(args["tenant_ref"], args["consumable_ref"], args["role_ref"], args["visibility"], args.get("constraints") or {})
         if name == "tenant_visibility_update":
             return store.set_visibility(args["tenant_ref"], args["visibility"])
         if name == "tenant_delete":
@@ -2241,7 +2223,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
-            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
+            require_tenant_service_class(args["spec"].get("serviceClass", ""))
             authenticated_tenant_operator(identity)
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
@@ -2249,7 +2231,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
-            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
+            require_tenant_service_class(args["spec"].get("serviceClass", ""))
             authenticated_tenant_operator(identity)
             return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
         if name == "service_instance_get":
@@ -2280,7 +2262,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                     pass
             current = store.get(tenant, args["resource_ref"])
             if name in {"service_instance_update", "service_instance_resume"}:
-                require_tenant_service_grant(tenant, current["service_class"], mutate=True)
+                require_tenant_service_class(current["service_class"])
             spec = dict(args.get("spec") or current["spec"])
             if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
                 raise ServiceError("serviceClass is immutable")
@@ -2290,7 +2272,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
         if name == "service_binding_create":
             current = store.get(tenant, args["resource_ref"])
-            require_tenant_service_grant(tenant, current["service_class"], mutate=True)
+            require_tenant_service_class(current["service_class"])
             authenticated_tenant_operator(identity)
             return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
         if name == "service_binding_list":

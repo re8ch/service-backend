@@ -103,8 +103,7 @@ def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeyp
             self.status = None
         def list(self, plural, namespace=None):
             if plural == "tenantserviceinstances": return []
-            assert plural == "tenantgrants"
-            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
+            raise AssertionError(plural)
         def create(self, plural, value, namespace):
             self.created = (plural, value, namespace)
             return value
@@ -132,26 +131,14 @@ def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeyp
 
 
 def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
-    class Grants:
-        def list(self, plural):
-            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
-    monkeypatch.setattr(controller, "KUBE", Grants())
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     with pytest.raises(PermissionError, match="outside the authenticated tenant"):
         controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"project": "other", "quotaGiB": 10, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
-    with pytest.raises(PermissionError, match="outside the TenantGrant"):
-        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 21, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
-    with pytest.raises(PermissionError, match="operator TenantGrant"):
-        controller.provider_service_spec("acme", "grafana", {"serviceClass": "observability.grafana.v1", "planRef": "viewer"})
+    with pytest.raises(PermissionError, match="outside the published limits"):
+        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 1025, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
 
 
 def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatch):
-    class Grants:
-        def list(self, plural):
-            assert plural == "tenantgrants"
-            return [{"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1",
-                              "roleRef": "operator", "lifecycle": "Active"}}]
-    monkeypatch.setattr(controller, "KUBE", Grants())
     monkeypatch.delenv("GRAFANA_TENANT_BINDINGS_JSON", raising=False)
     request = {"serviceClass": "observability.grafana.v1", "planRef": "viewer", "parameters": {
         "datasourceRefs": ["kube", "app"], "folderRefs": [], "humanLogin": "acme-admin",
@@ -161,36 +148,6 @@ def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatc
     request["parameters"]["datasourceRefs"] = ["platform"]
     with pytest.raises(PermissionError, match="currently publishes"):
         controller.provider_service_spec("acme", "grafana", request)
-
-def test_service_grants_endpoint_is_tenant_scoped_and_excludes_expired_grants(monkeypatch):
-    now = datetime(2026, 9, 29, tzinfo=timezone.utc)
-    values = [
-        {"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}},
-        {"spec": {"tenantRef": "other", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}},
-        {"spec": {"tenantRef": "acme", "consumableRef": "sandbox.runtime.v1", "roleRef": "operator", "lifecycle": "Revoked"}},
-        {"spec": {"tenantRef": "acme", "consumableRef": "network.tenant.v1", "roleRef": "operator", "lifecycle": "Active", "expiresAt": now.isoformat()}},
-        {"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1", "roleRef": "viewer", "lifecycle": "Active", "notBefore": "2026-10-01T00:00:00Z"}},
-    ]
-    class GrantsKube:
-        def list(self, plural):
-            assert plural == "tenantgrants"
-            return values
-    monkeypatch.setattr(controller, "KUBE", GrantsKube())
-    monkeypatch.setattr(controller, "utcnow", lambda: now)
-    monkeypatch.setattr(controller, "runtime_namespace", lambda tenant_ref: "tenant-" + tenant_ref)
-    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
-    class Request:
-        path = "/v1/grants"
-        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "acme", "X-Tenant-Service-Token": "test-token"}
-        def send_json(self, status, value):
-            self.response = (status, value)
-    request = Request()
-    controller.Handler.do_GET(request)
-    assert request.response == (200, {"items": [{"consumableRef": "registry.harbor.v1", "roleRef": "operator"}]})
-    request.headers = {**request.headers, "X-Tenant-Service-Token": "wrong"}
-    controller.Handler.do_GET(request)
-    assert request.response[0] == 404
-
 
 def test_claim_reads_return_empty_only_when_runtime_namespace_is_absent(monkeypatch):
     class ClaimsKube:
@@ -462,8 +419,6 @@ def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
 
 class AmongClustersKube:
     def list(self, plural, namespace=None, api=None):
-        if plural == "tenantgrants":
-            return [{"spec": {"tenantRef": "artchais", "consumableRef": "network.among-clusters.v1", "lifecycle": "Active", "roleRef": "operator"}}]
         if plural == "peers":
             return [{"metadata": {"name": "re8ch-artc"}, "spec": {"remoteIdentityRef": "artc", "suspended": False}}]
         if plural == "authenticatedlinks":
@@ -525,7 +480,6 @@ def test_organization_dependencies_include_retained_runtime_authority(monkeypatc
     for kind, item in (
         ('tenants', {'metadata': {'name': 'personal-user'}, 'spec': {'lifecycle': 'Deleted'}}),
         ('tenantnamespaces', {'spec': {'tenantRef': 'personal-user', 'operation': 'EnsureAbsent'}}),
-        ('tenantgrants', {'spec': {'tenantRef': 'personal-user'}}),
         ('tenantidentitybindings', {'spec': {'tenantRef': 'personal-user'}}),
         ('tenantserviceinstances', {'spec': {'tenantRef': 'personal-user'}, 'status': {'phase': 'Deleted'}}),
         ('namespaces', {'metadata': {'name': 'custom-ns', 'labels': {'tenancy.re8ch.com/tenant': 'personal-user'}}}),
