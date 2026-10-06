@@ -21,6 +21,18 @@ class ToolProfileTests(unittest.TestCase):
     def tools(self, profile):
         return {tool["name"]: tool for tool in load_profile(profile).mcp_tools(include_admin=True)}
 
+    def test_database_health_checks_http_status_instead_of_only_open_port(self):
+        module = load_profile("observe")
+        module.current_catalog = lambda: {}
+        module.probe_tcp = lambda name, domain, *args: {"name": name, "domain": domain, "status": "reachable"}
+        module.probe_http = lambda name, domain, *args: {"name": name, "domain": domain, "status": "unhealthy" if name.startswith("pigsty-") else "healthy"}
+        result = module.get_platform_service_health()
+        routes = {row["name"]: row for row in result["services"] if row["name"].startswith("pigsty-")}
+        self.assertEqual(routes["pigsty-postgrestWrite"]["status"], "unhealthy")
+        self.assertEqual(routes["pigsty-postgrestRead"]["status"], "unhealthy")
+        self.assertEqual(routes["pigsty-writeService"]["status"], "reachable")
+        self.assertEqual(result["summary"]["unreachable"], 2)
+
     def test_profiles_are_mutually_exclusive(self):
         observe = set(self.tools("observe"))
         operate = set(self.tools("operate"))

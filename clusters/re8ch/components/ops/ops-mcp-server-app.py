@@ -80,14 +80,12 @@ ACTIVE_TENANT = contextvars.ContextVar("active_tenant", default=TENANT)
 SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 PG_SERVICE_ROUTES = {
-    "writeService": {"host": "pgwrite.zt.re8ch.com", "port": "5433", "purpose": "HA primary/write service; recommended for migrations, admin SQL, and direct runtime writes."},
-    "readService": {"host": "pgread-sh.zt.re8ch.com", "port": "5434", "purpose": "HA replica/read service in Shanghai when healthy."},
-    "readServiceGz": {"host": "pgread-gz.zt.re8ch.com", "port": "5434", "purpose": "HA replica/read service in Guangzhou when healthy."},
-    "poolRw": {"host": "pgwrite.zt.re8ch.com", "port": "6432", "purpose": "PgBouncer pooled connection entry for high-churn app clients."},
-    "instancePrimaryName": {"host": "pgwrite.zt.re8ch.com", "port": "5432", "purpose": "Direct PostgreSQL instance port. Use only when a GUI/JDBC tool or a DBA intentionally targets an instance; it is not the preferred HA write route."},
-    "postgrestGatewayShanghaiWrite": {"url": "http://192.0.2.89:3080", "purpose": "PostgREST/HA gateway near Shanghai primary path; use for HTTP CRUD from functions."},
-    "postgrestGatewayShanghaiRead": {"url": "http://192.0.2.112:3080", "purpose": "PostgREST/HA gateway near Shanghai read path."},
-    "postgrestGatewayGuangzhouRead": {"url": "http://192.0.2.251:3080", "purpose": "PostgREST/HA gateway near Guangzhou read path and current leader region when applicable."},
+    "writeService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL primary service maintained by the Patroni role reconciler."},
+    "readService": {"host": "pg-re8ch-replicas.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL replica service maintained by the Patroni role reconciler."},
+    "poolRw": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer primary pool maintained by the Patroni role reconciler."},
+    "poolRo": {"host": "pg-re8ch-replicas.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer replica pool maintained by the Patroni role reconciler."},
+    "postgrestWrite": {"url": "https://db-rw.re8ch.com/", "purpose": "Public PostgREST write gateway HTTP response; authentication remains required for protected routes."},
+    "postgrestRead": {"url": "https://db-ro.re8ch.com/", "purpose": "Public PostgREST read gateway HTTP response; authentication remains required for protected routes."},
 }
 KUBE_API = "https://%s:%s" % (
     os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"),
@@ -2180,10 +2178,9 @@ def get_platform_service_health():
     ]
     for route, details in PG_SERVICE_ROUTES.items():
         if details.get("host"):
-            parsed = urllib.parse.urlparse("tcp://%s:%s" % (details["host"], details["port"]))
+            probes.append((probe_tcp, ("pigsty-%s" % route, "database", details["host"], details["port"], details["purpose"])))
         else:
-            parsed = urllib.parse.urlparse("tcp://" + details["url"].split("://", 1)[-1])
-        probes.append((probe_tcp, ("pigsty-%s" % route, "database", parsed.hostname, parsed.port, details["purpose"])))
+            probes.append((probe_http, ("pigsty-%s" % route, "database", details["url"], details["purpose"])))
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(probes))) as pool:
         futures = [pool.submit(fn, *args) for fn, args in probes]
         results = [future.result() for future in futures]
