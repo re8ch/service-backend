@@ -453,6 +453,8 @@ modules:
       digest: sha256:8c23f4811d6657c597bead1a2965bf01ab3278881f53ae9d6408da1db046f011
     - codename: atoll-copper
       digest: sha256:b315959c47eb937597c09da26cbf8bf4eadc8159224ff4fce19691074b968878
+    - codename: canopy-copper
+      digest: sha256:f5c5bb8fe554864235599bdbb3b867c2808bd12aff2dc1edeedeeeef6802b017
   platform/advanced-fabric:
     releases:
     - codename: bora
