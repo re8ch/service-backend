@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: harbor-supply-chain, namespace: tenant-infrastructure}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: harbor-supply-chain-credentials, namespace: credential-broker}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: harbor-supply-chain-credentials, namespace: credential-broker}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: harbor-supply-chain-credentials}
+subjects: [{kind: ServiceAccount, name: harbor-supply-chain, namespace: tenant-infrastructure}]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: harbor-supply-chain-state, namespace: tenant-infrastructure}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: harbor-supply-chain, namespace: tenant-infrastructure}
+spec:
+  selector: {app: harbor-supply-chain}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: harbor-supply-chain, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: harbor-supply-chain}}
+  template:
+    metadata: {labels: {app: harbor-supply-chain, saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: harbor-supply-chain
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, fsGroup: 1000, fsGroupChangePolicy: OnRootMismatch}
+      containers:
+        - name: worker
+          image: ghcr.io/re8ch/harbor-supply-chain-worker@sha256:73c704456496e5f94a087223544f31b28530d0b7992aabc38081455e96d9ed48
+          envFrom:
+            - {secretRef: {name: tenant-registry-supply-chain}}
+            - {secretRef: {name: harbor-supply-chain-provider}}
+          env:
+            - {name: CREDENTIAL_BACKEND, value: kubernetes}
+            - {name: CREDENTIAL_NAMESPACE, value: credential-broker}
+            - {name: BUILDKIT_HOST, value: 'unix:///run/buildkit/buildkitd.sock'}
+            - {name: HARBOR_URL, value: 'http://core.harbor.svc.cluster.local:8080/api/v2.0'}
+            - {name: HARBOR_REGISTRY, value: registry.re8ch.com}
+            - {name: COSIGN_KEY_REF, value: /etc/cosign/cosign.key}
+            - {name: COSIGN_PUBLIC_KEY_REF, value: /etc/cosign/cosign.pub}
+            - {name: COSIGN_PASSWORD, valueFrom: {secretKeyRef: {name: harbor-supply-chain-signing, key: password}}}
+            - {name: HOME, value: /tmp}
+          ports: [{name: http, containerPort: 8080}]
+          startupProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 5, failureThreshold: 60}
+          readinessProbe: {httpGet: {path: /readyz, port: http}, periodSeconds: 15, timeoutSeconds: 12}
+          livenessProbe: {httpGet: {path: /livez, port: http}, periodSeconds: 20, timeoutSeconds: 3}
+          securityContext: {runAsUser: 100, runAsGroup: 101, allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}, seccompProfile: {type: RuntimeDefault}}
+          resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: '2', memory: 1Gi}}
+          volumeMounts:
+            - {name: state, mountPath: /var/lib/re8ch-supply-chain}
+            - {name: tmp, mountPath: /tmp}
+            - {name: socket, mountPath: /run/buildkit}
+            - {name: signing, mountPath: /etc/cosign, readOnly: true}
+            - {name: api-access, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
+        - name: buildkit
+          image: moby/buildkit@sha256:995077ff90af1afff56ff23018699d7511d122b2b111041f2011bd12afd5c0fe
+          args: ['--addr', 'unix:///run/user/1000/buildkit/buildkitd.sock', '--group', '1000', '--oci-worker-no-process-sandbox', '--oci-worker-snapshotter=native']
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile: {type: Unconfined}
+            appArmorProfile: {type: Unconfined}
+          resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: '4', memory: 4Gi}}
+          volumeMounts:
+            - {name: socket, mountPath: /run/user/1000/buildkit}
+            - {name: cache, mountPath: /home/user/.local/share/buildkit}
+      volumes:
+        - {name: state, persistentVolumeClaim: {claimName: harbor-supply-chain-state}}
+        - {name: tmp, emptyDir: {sizeLimit: 4Gi}}
+        - {name: socket, emptyDir: {}}
+        - {name: cache, emptyDir: {sizeLimit: 20Gi}}
+        - {name: signing, secret: {secretName: harbor-supply-chain-signing, defaultMode: 288}}
+        - name: api-access
+          projected:
+            defaultMode: 288
+            sources:
+              - serviceAccountToken: {path: token, expirationSeconds: 3600}
+              - configMap: {name: kube-root-ca.crt, items: [{key: ca.crt, path: ca.crt}]}
