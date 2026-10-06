@@ -41,7 +41,7 @@ TOOLHIVE_REGISTRY_URL = os.getenv(
     "TOOLHIVE_REGISTRY_URL",
     "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080/v1/registries",
 )
-CLOUDBEAVER_PUBLIC = os.getenv("CLOUDBEAVER_PUBLIC", "https://dbgui.re8ch.com")
+CLOUDBEAVER_PUBLIC = os.getenv("CLOUDBEAVER_PUBLIC", "https://dbgui.service.re8ch.com")
 HARBOR_HEALTH_URL = os.getenv(
     "HARBOR_HEALTH_URL",
     "http://core.harbor.svc.cluster.local:8080/api/v2.0/health",
@@ -2596,7 +2596,7 @@ TENANT_RESOURCE_CATALOG = {
             },
         },
         "cloudbeaver": {
-            "url": "https://dbgui.re8ch.com",
+            "url": "https://dbgui.service.re8ch.com",
             "webUsername": "qwen",
             "team": "tenant-qwen",
             "loginSecret": {"namespace": "qwen", "name": "cloudbeaver-login"},
@@ -2642,7 +2642,7 @@ TENANT_RESOURCE_CATALOG = {
             },
         },
         "cloudbeaver": {
-            "url": "https://dbgui.re8ch.com",
+            "url": "https://dbgui.service.re8ch.com",
             "webUsername": "ledger",
             "team": "tenant-ledger",
             "loginSecret": {"namespace": "ledger", "name": "cloudbeaver-login"},
@@ -2683,7 +2683,7 @@ TENANT_RESOURCE_CATALOG = {
             },
         },
         "cloudbeaver": {
-            "url": "https://dbgui.re8ch.com",
+            "url": "https://dbgui.service.re8ch.com",
             "webUsername": "anycam",
             "team": "tenant-anycam",
             "notes": "CloudBeaver tenant login can be reconciled after the web account is created.",
