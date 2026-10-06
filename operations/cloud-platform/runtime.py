@@ -145,8 +145,9 @@ class CloudPlatform:
                       resource_version: str | None = None) -> dict[str, Any]:
         if verb not in {"get", "list", "watch", "apply", "patch", "delete"}:
             raise OperationError("VERB_NOT_ALLOWED", verb)
-        argv = [verb, resource]
-        if name:
+        # kubectl apply takes a manifest file, not a positional resource type.
+        argv = [verb] if verb == "apply" else [verb, resource]
+        if name and verb != "apply":
             argv.append(name)
         if namespace:
             argv += ["--namespace", namespace]
