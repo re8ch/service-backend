@@ -27,7 +27,7 @@ type TenantView = {
   name: string; displayName: string; lifecycle: string; visibility: string;
   hostingMode: string; byocAllowed: boolean; runtimeNamespace: string;
   businessNamespaces: string[]; observedNamespaces: string[];
-  identities: KubeObject[]; grants: KubeObject[]; registrations: KubeObject[];
+  identities: KubeObject[]; registrations: KubeObject[];
 };
 type Row = {
   tenant: string; resource: string; domain: string; meter: string;
@@ -135,14 +135,14 @@ function Dashboard() {
       const metricResults=await Promise.all(METRICS.map(metric=>instantQuery(metric).then(items=>({items,error:''})).catch(caught=>({items:[] as Sample[],error:String(caught)}))));
       const results=metricResults.map(result=>result.items);
       const paths=[
-        '/apis/tenancy.re8ch.com/v1alpha1/tenants','/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings','/apis/tenancy.re8ch.com/v1alpha1/tenantgrants',
+        '/apis/tenancy.re8ch.com/v1alpha1/tenants','/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings',
         '/apis/finops.re8ch.com/v1alpha1/clusterregistrations','/api/v1/namespaces','/apis/apps/v1/deployments','/apis/apps/v1/statefulsets','/apis/apps/v1/daemonsets',
         '/apis/batch/v1/jobs','/apis/batch/v1/cronjobs','/apis/nuclio.io/v1beta1/nucliofunctions','/apis/tenancy.re8ch.com/v1alpha1/tenantserviceinstances',
         '/apis/finops.re8ch.com/v1alpha1/clusterconnections','/apis/finops.re8ch.com/v1alpha1/consumptionbindings','/apis/finops.re8ch.com/v1alpha1/consumables',
         '/apis/tenancy.re8ch.com/v1alpha1/tenantresourceclaims','/api/v1/resourcequotas','/api/v1/nodes','/apis/events.k8s.io/v1/events','/api/v1/pods','/api/v1/persistentvolumeclaims',
       ];
       const kubeResults=await Promise.all(paths.map(optionalApiList));
-      const [tenantObjects, identityObjects, grantObjects, registrations, namespaceObjects, deployments, statefulSets, daemonSets, jobs, cronJobs, nuclioFunctions, instances, clusterConnections, bindings, consumableObjects, claims, quotas, nodeObjects, events, podObjects, pvcObjects]=kubeResults.map(result=>result.items);
+      const [tenantObjects, identityObjects, registrations, namespaceObjects, deployments, statefulSets, daemonSets, jobs, cronJobs, nuclioFunctions, instances, clusterConnections, bindings, consumableObjects, claims, quotas, nodeObjects, events, podObjects, pvcObjects]=kubeResults.map(result=>result.items);
       setSourceErrors([...new Set([...metricResults.map(x=>x.error),...kubeResults.map(x=>x.error)].filter(Boolean))]);
       const typedWorkloads = [
         ...deployments.map(x=>({...x,kind:'Deployment'})), ...statefulSets.map(x=>({...x,kind:'StatefulSet'})),
@@ -165,7 +165,6 @@ function Dashboard() {
           businessNamespaces: spec.businessNamespaces || [],
           observedNamespaces: namespaceObjects.filter(namespace => Object.values(namespace.metadata?.labels || {}).includes(name) && Object.keys(namespace.metadata?.labels || {}).some(key=>key.includes('tenant'))).map(namespace => namespace.metadata?.name || '').filter(Boolean),
           identities: identityObjects.filter(binding => binding.spec?.tenantRef === name),
-          grants: grantObjects.filter(grant => grant.spec?.tenantRef === name),
           registrations: registrations.filter(registration => registration.spec?.tenantRef === name),
         };
       }));
@@ -222,7 +221,6 @@ function Dashboard() {
     'network.tenant.v1':'Tenant network','network.among-clusters.v1':'AmongClusters','observability.grafana.v1':'Grafana',
     'registry.harbor.v1':'Harbor registry','storage.bucket.v1':'Object storage','ai.model-gateway.v1':'Model gateway','sandbox.runtime.v1':'Sandbox',
   };
-  const selectedGrants=visibleTenantViews.flatMap(view=>view.grants);
 
   const tenantNamespaces=new Set(visibleTenantViews.flatMap(view=>[view.runtimeNamespace,...view.businessNamespaces,...view.observedNamespaces]).filter(name=>name && name!=='-'));
   const quotaFacts:CapacityFact[]=resourceQuotas.filter(item=>tenantNamespaces.has(item.metadata?.namespace || '')).flatMap(item=>{
@@ -244,7 +242,6 @@ function Dashboard() {
   const capacityFacts=[...clusterFacts,...consumableFacts,...quotaFacts];
   const globalResourceClasses=[...new Set(['cluster.cpu','cluster.memory','compute.workload.v1','storage.volume.v1','cluster.network-egress',...consumables.map(item=>String(item.spec?.serviceClass || item.metadata?.name || '')).filter(Boolean)])];
   const tenantAllocation=(tenantName:string,selected:string):AllocationLane=>{
-    const grants=tenantViews.find(view=>view.name===tenantName)?.grants.filter(item=>item.spec?.consumableRef===selected).length || 0;
     const bindings=consumptionBindings.filter(item=>item.spec?.tenantRef===tenantName && (item.spec?.consumableRef===selected || item.spec?.serviceClass===selected));
     const claims=resourceClaims.filter(item=>item.spec?.tenantRef===tenantName && (item.spec?.capability===selected || item.spec?.resourceClass===selected));
     const ownedPods=pods.filter(item=>objectOwner(item)===tenantName && String(item.status?.phase || '').toLowerCase()!=='succeeded');
@@ -262,16 +259,15 @@ function Dashboard() {
     const observed=selected==='cluster.cpu'?(livePodsAvailable?podRequest('cpu'):controllerRequest('cpu')):selected==='cluster.memory'?(livePodsAvailable?podRequest('memory'):controllerRequest('memory')):selected==='compute.workload.v1'?(livePodsAvailable?ownedPods.length:ownedControllers.length):selected==='storage.volume.v1'?(livePvcsAvailable?pvcBytes:templateStorage):metered;
     const declared=bindings.length+claims.length;
     const allocated=['cluster.cpu','cluster.memory','storage.volume.v1'].includes(selected)?observed:declared;
-    const evidence=selected==='compute.workload.v1' || selected==='cluster.cpu' || selected==='cluster.memory' ? `${livePodsAvailable?'Pod':'controller template'} · ${ownedControllers.length} controllers` : selected==='storage.volume.v1' ? `${livePvcsAvailable?'PVC':'volumeClaimTemplate'} · ${ownedControllers.length} controllers` : `${grants} grant · ${bindings.length} binding · ${claims.length} claim`;
+    const evidence=selected==='compute.workload.v1' || selected==='cluster.cpu' || selected==='cluster.memory' ? `${livePodsAvailable?'Pod':'controller template'} · ${ownedControllers.length} controllers` : selected==='storage.volume.v1' ? `${livePvcsAvailable?'PVC':'volumeClaimTemplate'} · ${ownedControllers.length} controllers` : `${bindings.length} binding · ${claims.length} claim`;
     return {tenant:tenantName,allocated,observed,evidence};
   };
-  const allocationLanes=tenants.map(name=>tenantAllocation(name,resourceClass)).filter(lane=>lane.allocated>0 || lane.observed>0 || tenantViews.find(view=>view.name===lane.tenant)?.grants.some(grant=>grant.spec?.consumableRef===resourceClass));
+  const allocationLanes=tenants.map(name=>tenantAllocation(name,resourceClass)).filter(lane=>lane.allocated>0 || lane.observed>0);
   const selectedCapacity=(resourceClass==='compute.workload.v1'?(pods.length?clusterFacts.find(item=>item.resourceClass==='cluster.pods')?.capacity:null):capacityFacts.find(item=>item.resourceClass===resourceClass && item.scope==='cluster')?.capacity) ?? consumableFacts.find(item=>item.resourceClass===resourceClass)?.capacity ?? null;
   const globalClassRows=globalResourceClasses.map(name=>{const consumable=consumables.find(item=>item.spec?.serviceClass===name || item.metadata?.name===name);const lanes=tenants.map(value=>tenantAllocation(value,name));return {name,label:classLabels[name]||name,lifecycle:String(consumable?.spec?.lifecycle || 'Undeclared'),access:String(consumable?.spec?.accessContract?.kind || consumable?.spec?.accessContract || '-'),meters:(consumable?.spec?.meters || []).map((meter:any)=>meter.name || meter).join(', ') || '-',ceiling:capacityFacts.find(item=>item.resourceClass===name)?.capacity ?? null,allocated:lanes.reduce((sum,lane)=>sum+lane.allocated,0),observed:lanes.reduce((sum,lane)=>sum+lane.observed,0)};});
-  const selectedToolGroups=tenant ? TENANT_TOOL_GROUPS.filter(group=>group.resourceClass==='all service classes' || selectedGrants.some(grant=>grant.spec?.consumableRef===group.resourceClass)) : [];
+  const selectedToolGroups=tenant ? TENANT_TOOL_GROUPS : [];
   const eventOf=(item:KubeObject, stage:string, transition:string, detail:string, time?:string):FactEvent=>({id:`${stage}:${item.metadata?.uid || item.metadata?.namespace || ''}:${item.metadata?.name || ''}:${time || ''}`,time:time || item.metadata?.creationTimestamp || '',tenant:String(item.spec?.tenantRef || item.metadata?.labels?.['re8ch.com/tenant'] || '-'),trace:objectTrace(item),stage,resource:`${item.kind || stage}/${item.metadata?.namespace ? `${item.metadata.namespace}/` : ''}${item.metadata?.name || '-'}`,transition,detail:compactDetail(detail),source:item.apiVersion || 'kubernetes'});
   const factEvents:FactEvent[]=[
-    ...visibleTenantViews.flatMap(view=>view.grants.map(item=>eventOf({...item,kind:'TenantGrant'},'grant',String(item.spec?.lifecycle || 'Observed'),String(item.spec?.consumableRef || '-')))),
     ...visibleInstances.map(item=>eventOf({...item,kind:'TenantServiceInstance'},'allocation',String(item.status?.phase || item.spec?.lifecycle || 'Observed'),`${item.spec?.serviceClass || '-'} · ${item.spec?.plan || '-'}`)),
     ...visibleBindings.map(item=>eventOf({...item,kind:'ConsumptionBinding'},'binding',String(item.status?.phase || 'Bound'),`${item.spec?.consumableRef || '-'} · quota ${JSON.stringify(item.spec?.quota || {})}`,String(item.spec?.startsAt || item.metadata?.creationTimestamp || ''))),
     ...resourceClaims.filter(item=>!tenant || item.spec?.tenantRef===tenant).map(item=>eventOf({...item,kind:'TenantResourceClaim'},'invoke',String(item.status?.phase || item.spec?.desiredState || 'Pending'),`${item.spec?.capability || '-'} · ttl ${item.spec?.ttlSeconds || '-'}s`)),
@@ -329,7 +325,6 @@ function Dashboard() {
         {header:'Hosting / BYOC',accessorFn:(x:TenantView)=><Box><Chip size="small" label={x.hostingMode === 'platform-managed' ? '平台托管' : x.hostingMode}/><Typography variant="caption" display="block" color="text.secondary">BYOC {x.byocAllowed ? `允许 · ${x.registrations.length} registrations` : '禁用'}</Typography></Box>},
         {header:'Namespaces',accessorFn:(x:TenantView)=><Box><Typography variant="body2">runtime: {x.runtimeNamespace}</Typography><Typography variant="caption" color="text.secondary">声明 {x.businessNamespaces.join(', ') || '-'}<br/>已标记 {x.observedNamespaces.join(', ') || '-'}</Typography></Box>},
         {header:'OIDC identities',accessorFn:(x:TenantView)=><Box>{x.identities.map(binding=><Chip key={binding.metadata?.name} size="small" variant="outlined" label={`${binding.spec?.group} · ${binding.spec?.role}`} sx={{mr:.5,mb:.5}}/>)}<Typography variant="caption" display="block" color="text.secondary">{[...new Set(x.identities.map(binding=>binding.spec?.issuer))].filter(Boolean).join(', ') || '-'}</Typography></Box>},
-        {header:'Granted capabilities',accessorFn:(x:TenantView)=><Box>{x.grants.map(grant=><Chip key={grant.metadata?.name} size="small" label={grant.spec?.consumableRef} sx={{mr:.5,mb:.5}}/>)}</Box>},
       ] as any}/>
     </SectionBox>
     <SectionBox title="Global resource allocation">

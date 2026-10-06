@@ -39,8 +39,6 @@ class FixtureAPI(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/user":
             self.reply(200, {"id": "user-1", "is_anonymous": False})
-        elif self.path == "/v1/grants":
-            self.reply(200, {"items": [{"consumableRef": name, "roleRef": "operator"} for name in ("compute.workload.v1", "database.postgresql.shared.v1")]})
         elif self.path == "/v1/services":
             self.reply(200, {"items": []})
         elif self.path == "/v1/claims":

@@ -163,7 +163,7 @@ def shard_for(workload, resources, config):
 def conditions(ambiguous, autonomous=False):
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     def c(t, ok, reason): return {"type": t, "status": "True" if ok else "False", "reason": reason, "lastTransitionTime": now}
-    return [c("Discovered", True, "WorkloadObserved"), c("Measurable", False, "UsageDimensionsUnverified"), c("Isolated", autonomous, "TenantClaimPolicy" if autonomous else "OwnerApprovalRequired"), c("Consumable", autonomous, "TenantGrant" if autonomous else "DraftOnly"), c("Degraded", bool(ambiguous), "AmbiguousDependency" if ambiguous else "NoKnownDegradation")]
+    return [c("Discovered", True, "WorkloadObserved"), c("Measurable", False, "UsageDimensionsUnverified"), c("Isolated", autonomous, "TenantClaimPolicy" if autonomous else "OwnerApprovalRequired"), c("Consumable", autonomous, "TenantNamespace" if autonomous else "DraftOnly"), c("Degraded", bool(ambiguous), "AmbiguousDependency" if ambiguous else "NoKnownDegradation")]
 
 
 def derived_binding(claim, shard):
