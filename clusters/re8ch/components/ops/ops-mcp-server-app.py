@@ -81,7 +81,7 @@ SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 PG_SERVICE_ROUTES = {
     "writeService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL primary service maintained by the Patroni role reconciler."},
-    "readService": {"host": "pg-re8ch-replicas.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL replica service maintained by the Patroni role reconciler."},
+    "readService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "Single restricted-node-6dc3f140f9 PostgreSQL instance; use the read-only role for read access."},
     "poolRw": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer primary pool maintained by the Patroni role reconciler."},
     "postgrestWrite": {"url": "https://db-rw.re8ch.com/", "purpose": "Public PostgREST write gateway HTTP response; authentication remains required for protected routes."},
     "postgrestRead": {"url": "https://db-ro.re8ch.com/", "purpose": "Public PostgREST read gateway HTTP response; authentication remains required for protected routes."},
@@ -3919,7 +3919,7 @@ def build_database_secret_values(database, passwords, read_host=None):
         "PGHOST_READ_SH": read_host,
         "PGHOST_READ_GZ": read_host,
         "PGHOST_POOL": write_host,
-        "PGROUTE_NOTE": "Primary and replica Kubernetes Services on 5432 follow the Patroni role reconciler; the primary pool uses 6432.",
+        "PGROUTE_NOTE": "Single restricted-node-6dc3f140f9 instance via AdvFab: read and write roles use the primary Service on 5432; the primary pool uses 6432. Read-only access is enforced by role grants.",
     }
     for suffix, password in passwords.items():
         if not password or str(password).startswith("<"):
