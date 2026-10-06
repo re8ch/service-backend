@@ -710,6 +710,8 @@ modules:
       digest: sha256:e575ad8e9815b78f923f107bdc4c2a97559b85182d94443ce34de0b63c22b42b
     - codename: passage-silver
       digest: sha256:25e5e00e9f00a744a41d8181190f3454ec0b9918d74ae17910afd222ebc84534
+    - codename: trailhead-silver
+      digest: sha256:2414b5e884951879a0c7b1acb9fde311902b75cd0f789222127891eae858e963
   platform/birfucate-metering:
     releases:
     - codename: cascade
