@@ -10,7 +10,7 @@ metadata: {name: pg-re8ch-primary, namespace: pigsty-external, labels: {kubernet
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
 # Bootstrap value only. The Patroni role reconciler owns this address at runtime.
-endpoints: [{addresses: [192.0.2.178], conditions: {ready: true}}]
+endpoints: [{addresses: [192.0.2.179], conditions: {ready: true}}]
 ---
 apiVersion: v1
 kind: Service
@@ -24,8 +24,8 @@ metadata: {name: pg-re8ch-replicas, namespace: pigsty-external, labels: {kuberne
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
 endpoints:
-  - {addresses: [192.0.2.138], conditions: {ready: true}}
-  - {addresses: [192.0.2.89], conditions: {ready: true}}
+  - {addresses: [192.0.2.152], conditions: {ready: false}}
+  - {addresses: [192.0.2.46], conditions: {ready: false}}
 ---
 apiVersion: v1
 kind: Service
