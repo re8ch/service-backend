@@ -163,18 +163,28 @@ class Controller:
     def status(self) -> dict[str, Any]:
         rows = []
         lock = self._read_lock()
+        packaged = not (self.root / ".git").exists()
+        indexed = {}
+        if packaged:
+            index_path = self.root / "indexes/projects.json"
+            if not index_path.is_file():
+                raise WorkspaceError("packaged workspace is missing indexes/projects.json")
+            indexed = {item["id"]: item["commit"] for item in json.loads(index_path.read_text())}
         for module in self.registry.modules.values():
             locked = lock.get("modules", {}).get(module.name)
             drift = []
-            commit = self._module_commit(module)
+            commit = indexed.get(module.name) if packaged else self._module_commit(module)
+            if commit is None:
+                raise WorkspaceError(f"{module.name}: missing packaged source index")
             if locked and commit != locked["commit"]:
-                drift.append("gitlink_lock_drift")
+                drift.append("packaged_index_lock_drift" if packaged else "gitlink_lock_drift")
             rows.append({
                 "module": module.name,
                 "source": self._module_source(module),
                 "commit": commit,
                 "locked": locked,
                 "drift": drift,
+                "verification": "packaged-index" if packaged else "gitlink",
             })
         return operation("workspace.status", rows)
 

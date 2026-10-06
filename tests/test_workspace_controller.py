@@ -68,6 +68,16 @@ def test_repository_key_normalizes_ssh_and_https():
     assert workspace.repository_key("git@github.com:re8ch/example.git") == workspace.repository_key("https://github.com/re8ch/example.git")
 
 
+def test_packaged_workspace_status_uses_reviewed_index_without_git(tmp_path):
+    for name in ("catalogs", "workspace", "indexes"):
+        (tmp_path / name).symlink_to(ROOT / name, target_is_directory=True)
+    rows = workspace.Controller(tmp_path).status()["result"]
+    assert len(rows) >= 40
+    assert all(row["verification"] == "packaged-index" for row in rows)
+    assert all(row["commit"] for row in rows)
+    assert all(set(row["drift"]) <= {"packaged_index_lock_drift"} for row in rows)
+
+
 def test_every_module_has_agent_memory_and_context_is_queryable():
     controller = workspace.Controller(ROOT)
     audit = controller.memory_audit()["result"]
