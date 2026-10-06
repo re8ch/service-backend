@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: wetland-amber
+codename: atoll-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:8c23f4811d6657c597bead1a2965bf01ab3278881f53ae9d6408da1db046f011
+  digest: sha256:b315959c47eb937597c09da26cbf8bf4eadc8159224ff4fce19691074b968878
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
