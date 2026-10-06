@@ -32,7 +32,6 @@ spec:
     - diagnose_nuclio_function
     - get_nuclio_capacity_status
     - get_litellm_gateway_status
-    - get_fleet_control_status
     - get_supabase_platform_status
     - get_neo4j_platform_status
     - get_identity_platform_status

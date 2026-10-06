@@ -26,7 +26,6 @@
         "diagnose_nuclio_function": true,
         "get_nuclio_capacity_status": true,
         "get_litellm_gateway_status": true,
-        "get_fleet_control_status": true,
         "get_supabase_platform_status": true,
         "get_neo4j_platform_status": true,
         "get_identity_platform_status": true,
