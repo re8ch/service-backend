@@ -111,3 +111,22 @@ def test_apply_rejects_inline_secret_material():
     with pytest.raises(OperationError) as caught:
         service.kube_resource("apply", "secret", manifest={"data": {"x": "eA=="}})
     assert caught.value.code == "SECRET_VALUE_FORBIDDEN"
+
+
+def test_apply_uses_manifest_without_positional_resource():
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return completed("applied")
+
+    service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    service.kube_resource("apply", "networkpolicies", namespace="opensandbox-system", manifest={
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {"name": "test", "namespace": "opensandbox-system"},
+        "spec": {},
+    })
+    assert calls
+    assert "networkpolicies" not in calls[0][0]
+    assert "-f" in calls[0][0]
