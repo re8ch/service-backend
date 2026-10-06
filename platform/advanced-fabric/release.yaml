@@ -8,12 +8,12 @@ spec:
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   ref:
-    digest: sha256:3e0a8489a00d48f91b1fad26777772b7dfa3c1176d0bbde0012efce08d23361f
+    digest: sha256:cb6076667df48fc769d49f31f2841b10cc3475217155e3135b6620347259ad21
   verify:
     provider: cosign
     matchOIDCIdentity:
       - issuer: ^https://token\.actions\.githubusercontent\.com$
-        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.12$
+        subject: ^https://github\.com/advanced-fabrics/core/\.github/workflows/release-chart\.yaml@refs/tags/v1\.0\.0-rc\.13$
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
