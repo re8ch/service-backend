@@ -1892,7 +1892,7 @@ def get_database_routing_status():
     slice_rows = []
     for item in endpoint_slices:
         meta = item.get("metadata", {})
-        endpoints = item.get("endpoints", [])
+        endpoints = item.get("endpoints") or []
         ready = sum(endpoint.get("conditions", {}).get("ready") is not False for endpoint in endpoints)
         not_ready = len(endpoints) - ready
         slice_rows.append({
@@ -1924,8 +1924,8 @@ def get_database_routing_status():
             "serviceRoutesWithReadyEndpoint": sum(item["readyEndpoints"] > 0 for item in slice_rows),
         },
         "routePolicy": {
-            "write": "pgwrite HA service for migrations/admin/runtime writes; direct instance only by explicit DBA choice",
-            "read": "regional pgread service after readiness verification",
+            "write": "restricted-node-6dc3f140f9 single-instance primary Service through AdvFab",
+            "read": "primary Service with read-only role grants; remote replicas retired",
             "pool": "PgBouncer for high-churn clients after role compatibility verification",
             "http": "PostgREST gateway with database roles/RLS; HTTP reachability does not grant row access",
         },
