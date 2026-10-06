@@ -10,7 +10,7 @@ metadata: {name: pg-re8ch-primary, namespace: pigsty-external, labels: {kubernet
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
 # Bootstrap value only. The Patroni role reconciler owns this address at runtime.
-endpoints: [{addresses: [192.0.2.179], conditions: {ready: true}}]
+endpoints: [{addresses: [10.250.0.128], conditions: {ready: true}}]
 ---
 apiVersion: v1
 kind: Service
@@ -23,9 +23,8 @@ kind: EndpointSlice
 metadata: {name: pg-re8ch-replicas, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-re8ch-replicas, re8ch.com/cluster: pg-re8ch, re8ch.com/data-role: replica}}
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
-endpoints:
-  - {addresses: [192.0.2.152], conditions: {ready: false}}
-  - {addresses: [192.0.2.46], conditions: {ready: false}}
+# Retired by the declared single-instance topology. Never publish stale replicas.
+endpoints: []
 ---
 apiVersion: v1
 kind: Service
@@ -38,7 +37,7 @@ kind: EndpointSlice
 metadata: {name: pg-meta-primary, namespace: pigsty-external, labels: {kubernetes.io/service-name: pg-meta-primary, re8ch.com/cluster: pg-meta, re8ch.com/data-role: primary}}
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
-endpoints: [{addresses: [192.0.2.111], conditions: {ready: true}}]
+endpoints: [{addresses: [10.181.22.217], conditions: {ready: true}}]
 ---
 apiVersion: v1
 kind: Service
@@ -52,5 +51,5 @@ metadata: {name: pg-meta-replicas, namespace: pigsty-external, labels: {kubernet
 addressType: IPv4
 ports: [{name: postgres, port: 5432}, {name: pgbouncer, port: 6432}]
 endpoints:
-  - {addresses: [192.0.2.154], conditions: {ready: true}}
-  - {addresses: [192.0.2.251], conditions: {ready: true}}
+  - {addresses: [10.181.22.24], conditions: {ready: true}}
+  - {addresses: [10.181.22.47], conditions: {ready: true}}
