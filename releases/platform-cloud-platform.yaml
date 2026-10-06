@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: tundra-amber
+codename: wetland-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:58c8227e53a01b9325836c9e5f4135528c12e1b28caa859c45709478245e2864
+  digest: sha256:8c23f4811d6657c597bead1a2965bf01ab3278881f53ae9d6408da1db046f011
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
