@@ -345,6 +345,43 @@ def test_controller_exposes_only_admin_and_tenant_callers():
     assert controller.ALLOWED_CALLERS == {"admin", "tenant"}
 
 
+def test_kubernetes_get_retries_api_rate_limit_without_replaying_writes(monkeypatch):
+    client = controller.Kubernetes.__new__(controller.Kubernetes)
+    client.base = "https://kubernetes.invalid"
+    client.token = "test-token"
+    client.ssl = None
+    calls = []
+    delays = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self, *_):
+            return b'{"items":[]}'
+
+    def urlopen(request, **_):
+        calls.append(request.get_method())
+        if len(calls) == 1 or request.get_method() == "POST":
+            raise urllib.error.HTTPError(request.full_url, 429, "rate limited", {"Retry-After": "2"}, None)
+        return Response()
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(controller.time, "sleep", delays.append)
+    assert client.list("tenantserviceinstances") == []
+    assert calls == ["GET", "GET"]
+    assert delays == [2.0]
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        client.request("POST", "/apis/example", {"name": "test"})
+    assert exc.value.code == 429
+    assert calls == ["GET", "GET", "POST"]
+    assert delays == [2.0]
+
+
 def test_lease_creation_uses_kubernetes_microtime(monkeypatch):
     client = controller.Kubernetes.__new__(controller.Kubernetes)
     requests = []
