@@ -54,7 +54,7 @@ sys.exit(subprocess.call(sys.argv[4:]))
            'TENANT_IMAGE_INLINE_AUTH': '', 'COSIGN_KEY': '',
            'TIMEOUT_RECORD': str(tmp_path / 'timeouts.jsonl')}
     script = str(ROOT / 'operations/mcp-conformance/release-tenant-infrastructure.sh')
-    for setting, duration in [(None, '300s'), ('900', '900s')]:
+    for setting, duration in [(None, '300s'), ('1800', '1800s'), ('3600', '3600s')]:
         env.pop('TENANT_IMAGE_PUSH_TIMEOUT_SECONDS', None)
         if setting:
             env['TENANT_IMAGE_PUSH_TIMEOUT_SECONDS'] = setting
@@ -65,8 +65,8 @@ sys.exit(subprocess.call(sys.argv[4:]))
         upload = [row for row in calls if row[3:6] == ['docker', 'buildx', 'build']]
         assert len(upload) == 1 and upload[0][:3] == ['--signal=TERM', '--kill-after=30s', duration]
         assert (tmp_path / 'tenant-infrastructure.image').read_text().strip().endswith('@sha256:' + 'a' * 64)
-    for invalid in ['0', '59', '901', '0100', 'unbounded']:
+    for invalid in ['0', '59', '3601', '0100', 'unbounded']:
         env['TENANT_IMAGE_PUSH_TIMEOUT_SECONDS'] = invalid
         result = subprocess.run(['bash', script], cwd=tmp_path, env=env, capture_output=True, text=True)
         assert result.returncode == 2
-        assert 'must be an integer from 60 through 900' in result.stderr
+        assert 'must be an integer from 60 through 3600' in result.stderr
