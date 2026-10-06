@@ -114,7 +114,6 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "pigsty-external": ("database-routing", "CloudBeaver, Pigsty, Grafana"),
     "supabase-pg-re8ch": ("database-platform", "Supabase Studio, CloudBeaver, Grafana"),
     "re8ch-neo4j": ("database-platform", "Neo4j Browser, Grafana"),
-    "fleet": ("device-control", "Fleet UI, Grafana"),
     "nuclio": ("application-control", "Headlamp, Grafana"),
     "headlamp": ("human-control", "Headlamp"),
     "agent-collab": ("agent-data", "Headlamp, Grafana"),
@@ -174,7 +173,6 @@ MANAGED_PLATFORM_RESTARTS = {
     ("auth", "authentik-worker"),
     ("llm-gateway", "litellm"),
     ("opensandbox-system", "opensandbox-server"),
-    ("fleet", "fleet"),
     ("supabase-pg-re8ch", "supabase-studio"),
     ("codex-platform", "codex-session-web"),
     ("observability-system", "re8ch-grafana"),
@@ -1589,44 +1587,6 @@ def get_litellm_gateway_status():
         "humanTracking": {"litellmAdmin": "https://litellm.service.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
-def get_fleet_control_status():
-    base = "http://fleet.fleet.svc.cluster.local:8080"
-    health = probe_http("fleet-health", "device-control", base + "/healthz", "Fleet public liveness")
-    version = None
-    version_error = None
-    try:
-        request = urllib.request.Request(base + "/version", headers={"User-Agent": "re8ch-ops-mcp-health/1.0"})
-        with urllib.request.urlopen(request, timeout=5) as response:
-            parsed = parse_maybe_json(response.read(4096).decode("utf-8", "replace"))
-        if isinstance(parsed, dict):
-            version = {key: parsed.get(key) for key in ("version", "branch", "revision", "go_version", "build_date")}
-    except Exception as exc:
-        version_error = "%s: %s" % (type(exc).__name__, str(exc)[:200])
-    deployments = kube_request("GET", "/apis/apps/v1/namespaces/fleet/deployments").get("items", [])
-    statefulsets = kube_request("GET", "/apis/apps/v1/namespaces/fleet/statefulsets").get("items", [])
-    workloads = []
-    for items, kind in ((deployments, "Deployment"), (statefulsets, "StatefulSet")):
-        for item in items:
-            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
-            workloads.append({
-                "kind": kind,
-                "name": meta.get("name"),
-                "desired": spec.get("replicas", 0),
-                "ready": status.get("readyReplicas", 0),
-                "available": status.get("availableReplicas", status.get("currentReplicas", 0)),
-            })
-    workloads.sort(key=lambda item: (item["kind"] or "", item["name"] or ""))
-    return {
-        "health": health,
-        "version": version,
-        "versionError": version_error,
-        "workloads": workloads,
-        "protectedNativeAPIs": ["/api/v1/fleet/config", "/api/v1/fleet/hosts", "/api/v1/fleet/queries", "/api/v1/fleet/activities"],
-        "authorization": "Host inventory, queries, policies, activities and campaigns require Fleet native authorization and are not proxied.",
-        "redaction": "Fleet API tokens, device data, policies, query results and MySQL/Redis credentials are not read.",
-        "humanTracking": {"fleet": "https://fleet.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
-    }
-
 def get_supabase_platform_status():
     namespace = "supabase-pg-re8ch"
     studio = probe_http("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human administration UI")
@@ -2169,7 +2129,6 @@ def get_platform_service_health():
         (probe_http, ("dex", "identity-control", "https://id.re8ch.com/.well-known/openid-configuration", "Dex OIDC discovery")),
         (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
         (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/health", "OpenSandbox API reachability")),
-        (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
         (probe_http, ("neo4j", "database-platform", "http://neo4j.re8ch-neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
         (probe_http, ("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human control GUI reachability")),
         (probe_http, ("opencost", "observability-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost allocation service liveness")),
@@ -4133,7 +4092,7 @@ OBSERVE_TOOL_NAMES = {
     "get_tenant_resource_catalog", "get_grafana_links", "get_tenant_metrics_summary",
     "get_platform_service_health", "get_platform_service_catalog", "get_platform_permission_coverage",
     "get_platform_access_posture", "get_nuclio_function_status", "diagnose_nuclio_function",
-    "get_nuclio_capacity_status", "get_litellm_gateway_status", "get_fleet_control_status",
+    "get_nuclio_capacity_status", "get_litellm_gateway_status",
     "get_supabase_platform_status", "get_neo4j_platform_status", "get_identity_platform_status",
     "get_agent_runtime_status", "get_observability_platform_status", "get_artifact_platform_status",
     "get_database_routing_status", "get_external_publication_readiness",
@@ -4179,7 +4138,6 @@ def mcp_tools(include_admin=False):
         {"name": "diagnose_nuclio_function", "description": "Diagnose one existing Nuclio function from sanitized native state, Deployment readiness, Pod scheduling/container waits and recent Events. Secret, environment and annotation data are omitted.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}}, ["namespace", "name"])},
         {"name": "get_nuclio_capacity_status", "description": "Return Nuclio-labelled node readiness, schedulability, taints, allocatable capacity, placed function Pod counts and unscheduled function Pods as a rollout gate.", "inputSchema": schema()},
         {"name": "get_litellm_gateway_status", "description": "Return LiteLLM public liveness/readiness and Deployment availability without reading or proxying master keys, provider keys, model configuration, teams or budgets.", "inputSchema": schema()},
-        {"name": "get_fleet_control_status", "description": "Return Fleet public health/version and Fleet/egress/Redis/MySQL workload readiness without reading device inventory, policies, queries, activities, campaigns or credentials.", "inputSchema": schema()},
         {"name": "get_supabase_platform_status", "description": "Return Supabase Studio reachability plus component Deployment and endpoint readiness without reading JWT keys, credentials, users, rows, buckets, objects or schema contents.", "inputSchema": schema()},
         {"name": "get_neo4j_platform_status", "description": "Return Neo4j Browser reachability plus StatefulSet and endpoint readiness without reading graph credentials, Cypher, graph data, schema or configuration.", "inputSchema": schema()},
         {"name": "get_identity_platform_status", "description": "Return Authentik and application auth-gateway reachability plus Deployment and endpoint readiness without reading identities, sessions, tokens, secrets, claims or policy contents.", "inputSchema": schema()},
@@ -4317,8 +4275,6 @@ def call_tool(name, args, admin=False):
         return get_nuclio_capacity_status()
     if name == "get_litellm_gateway_status":
         return get_litellm_gateway_status()
-    if name == "get_fleet_control_status":
-        return get_fleet_control_status()
     if name == "get_supabase_platform_status":
         return get_supabase_platform_status()
     if name == "get_neo4j_platform_status":

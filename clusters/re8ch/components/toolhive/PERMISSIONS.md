@@ -162,12 +162,6 @@ budget and full health APIs remain protected by LiteLLM native authorization.
 Master/provider keys, database URL, UI credentials and ConfigMap contents are
 never read. LiteLLM Admin and Grafana provide the human views.
 
-`get_fleet_control_status` uses Fleet's public health/version endpoints and
-Kubernetes workload readiness only. Host inventory, policies, queries,
-activities and campaigns remain protected by Fleet native authorization. Fleet
-API tokens, device data and MySQL/Redis credentials are never read. Fleet UI,
-Headlamp and Grafana provide the human views.
-
 `get_supabase_platform_status` uses Supabase Studio reachability and Kubernetes
 Deployment/endpoint readiness only. Supabase JWT/RLS, PostgreSQL roles and each
 component's native authorization remain authoritative. JWT keys, database URLs,
