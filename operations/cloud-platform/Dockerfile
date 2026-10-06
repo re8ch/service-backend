@@ -20,6 +20,7 @@ COPY operations/workspace-controller/workspace.py ./workspace.py
 COPY inventory/ /etc/re8ch-platform/inventory/
 COPY catalogs/ /srv/service-backend/catalogs/
 COPY workspace/ /srv/service-backend/workspace/
+COPY indexes/projects.json /srv/service-backend/indexes/projects.json
 COPY schemas/ /srv/service-backend/schemas/
 USER 65532:65532
 EXPOSE 19443
