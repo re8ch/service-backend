@@ -449,6 +449,8 @@ modules:
       digest: sha256:0f3a682962961e267cd8e5787549bad60ad8f399d9f04529631a9c3a96cf9735
     - codename: tundra-amber
       digest: sha256:58c8227e53a01b9325836c9e5f4135528c12e1b28caa859c45709478245e2864
+    - codename: wetland-amber
+      digest: sha256:8c23f4811d6657c597bead1a2965bf01ab3278881f53ae9d6408da1db046f011
   platform/advanced-fabric:
     releases:
     - codename: bora
