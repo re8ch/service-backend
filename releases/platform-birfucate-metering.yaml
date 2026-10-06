@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: springtide-topaz
+codename: tideway-topaz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:f3ea87c6a836fef12645e0d348afb022cb6819b015531902d587227265499162
+  digest: sha256:af3298a4df1cd997978e33f0c1c5827b7542cd33a92d8a0c4b6d2326842c7d7b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
