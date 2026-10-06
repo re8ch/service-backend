@@ -21,7 +21,7 @@ Host amdwsl-zt
 Host domain-ex
   HostName 192.0.2.172
   User re8ch-ai
-Host harbor
+Host muaya-ecs harbor
   HostName 192.0.2.203
   User re8ch-ai
 Host ali
@@ -42,7 +42,7 @@ Host qwen-3
 Host artchaisprod
   HostName 192.0.2.208
   User ubuntu
-Host rancher
+Host zan rancher
   HostName 192.0.2.79
   User re8ch-ai
 Host *

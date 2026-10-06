@@ -55,3 +55,26 @@ def test_http_acceptance_has_bounded_private_temporary_storage_with_readonly_roo
     volume = next(item for item in pod['volumes'] if item['name'] == 'http-acceptance-tmp')
     assert volume['emptyDir'] == {'medium': 'Memory', 'sizeLimit': '16Mi'}
     assert {'name': 'http-acceptance-tmp', 'mountPath': '/tmp'} in container['volumeMounts']
+
+
+def test_shared_ssh_configuration_paths_exist_in_readonly_runtime():
+    import shlex
+    from pathlib import PurePosixPath
+    deployment = next(item for item in resources() if item["kind"] == "Deployment")
+    pod = deployment["spec"]["template"]["spec"]
+    mounts = {m["mountPath"]: m for m in pod["containers"][0]["volumeMounts"]}
+    volumes = {v["name"]: v for v in pod["volumes"]}
+    shared = yaml.safe_load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text())
+    config = next(d for d in shared if d and d.get("kind") == "ConfigMap" and d["metadata"]["name"] == "ai-operations-ssh-config")
+    paths = {}
+    for line in config["data"]["ssh-config"].splitlines():
+        parts = shlex.split(line)
+        if parts and parts[0] in {"IdentityFile", "UserKnownHostsFile"}:
+            paths[parts[0]] = PurePosixPath(parts[1])
+    key = paths["IdentityFile"]
+    mount = mounts[str(key.parent)]
+    assert mount["readOnly"] is True
+    assert any(item["path"] == key.name for source in volumes[mount["name"]]["projected"]["sources"] for item in source.get("secret", {}).get("items", []))
+    hosts = mounts[str(paths["UserKnownHostsFile"].parent)]
+    assert not hosts.get("readOnly", False)
+    assert "emptyDir" in volumes[hosts["name"]]
