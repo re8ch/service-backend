@@ -77,6 +77,7 @@ resources:
 - components/observability/retire-legacy-qianwen-grafana.yaml
 - components/observable/postgrest-ha.yaml
 - components/payments/credits-runtime.yaml
+- components/payments/commerce-tenant-grants.yaml
 - components/regional-routing/cert-manager-bootstrap.yaml
 - components/regional-routing/service-http01-issuer.yaml
 - components/mcp-registry/registry.yaml
