@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-onyx
+    delivery.re8ch.com/codename: chinook-onyx
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:851c6aa2abbbabdc47db546ee9a575b567f84c1a11f1ec8f588066288c955964
+    digest: sha256:990d86f0fb05c7eff6c31e22ede0985ee8174232ee38177cffae21406074039c
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-onyx
+    delivery.re8ch.com/codename: chinook-onyx
 spec:
   interval: 1m
   retryInterval: 1m
