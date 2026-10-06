@@ -600,3 +600,17 @@ def test_shared_session_authority_is_opt_in_and_only_on_go_tenant():
     defaults = tenant_chart_documents(tenant_go_enabled=True)
     tenant = next(d for d in defaults if d.get("kind") == "Deployment" and d["metadata"]["name"] == "tenant-api")
     assert all(v["name"] != "PLATFORM_SESSION_URL" for v in tenant["spec"]["template"]["spec"]["containers"][0]["env"])
+
+
+def test_production_controller_rollout_fits_single_r640_worker():
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as values:
+        yaml.safe_dump(release["spec"]["values"], values)
+        values.flush()
+        rendered = subprocess.run(["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name], check=True, capture_output=True, text=True).stdout
+    controller = next(item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-control-controller")
+    assert controller["spec"]["replicas"] == 1
+    assert controller["spec"]["strategy"]["rollingUpdate"] == {"maxUnavailable": 0, "maxSurge": 1}
+    affinity = controller["spec"]["template"]["spec"]["affinity"]
+    assert "podAntiAffinity" not in affinity
+    assert affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
