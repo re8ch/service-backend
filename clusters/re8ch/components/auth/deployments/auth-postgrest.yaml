@@ -27,7 +27,7 @@ spec:
               valueFrom: {secretKeyRef: {name: auth-db-credentials, key: PGRST_DB_URI}}
             - {name: PGRST_DB_SCHEMAS, value: api}
             # No anonymous role: auth RPCs require a signed database role.
-            - {name: PGRST_SERVER_ADMIN_PORT, value: "3001"}
+            - {name: PGRST_ADMIN_SERVER_PORT, value: "3001"}
             - name: PGRST_JWT_SECRET
               valueFrom: {secretKeyRef: {name: re8ch-auth-gateway-secrets, key: PGRST_JWT_SECRET}}
             - {name: PGRST_DB_POOL, value: "10"}
@@ -52,7 +52,7 @@ metadata:
   name: auth-postgrest
   namespace: auth
 spec:
-  clusterIP: 192.0.2.158
+  clusterIP: 10.43.181.184
   selector: {app.kubernetes.io/name: auth-postgrest}
   ports:
     - {name: http, port: 3000, targetPort: http}
