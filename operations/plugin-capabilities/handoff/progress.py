@@ -18,6 +18,9 @@ BASELINE = HANDOFF / "unimplemented-operations-20261004.csv"
 OUTPUT = HANDOFF / "operation-progress.json"
 INVENTORY = ROOT / "operations/plugin-capabilities/registry.json"
 MATRIX = ROOT / "operations/plugin-capabilities/native-operation-matrix.json"
+DEPLOYMENT = HANDOFF / "deployment-evidence-20261006.json"
+CANARY = HANDOFF / "network-canary-acceptance-20261006.json"
+TOOLS = ROOT / "operations/cloud-platform/plugin-operation-tools.json"
 
 
 def key(row: dict) -> tuple[str, str, str]:
@@ -31,6 +34,19 @@ def build() -> dict:
         "io.modelcontextprotocol.registry/publisher-provided"]["io.github.stacklok"][
         "streamable-http"]["re8ch_capabilities"]["operations"]
     sources = json.loads(MATRIX.read_text())["sources"]
+    deployment = json.loads(DEPLOYMENT.read_text())
+    if deployment["cluster"] != "re8ch-k3s" or not deployment["nativeImage"].startswith("registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:"):
+        raise ValueError("Invalid network deployment evidence")
+    definitions = {item["name"]: item for item in json.loads(TOOLS.read_text())["tools"]}
+    deployed = set()
+    for item in deployment["tools"]:
+        tool = definitions.get(item["name"])
+        digest = hashlib.sha256(json.dumps(tool["inputSchema"], sort_keys=True, separators=(",", ":")).encode()).hexdigest() if tool else None
+        if digest != item["inputSchemaSha256"] or item["name"] in deployed:
+            raise ValueError("Deployment evidence does not match a unique current tool contract")
+        deployed.add(item["name"])
+    canary = json.loads(CANARY.read_text())
+    samples = {key(item) for item in canary["operations"]}
     source_hashes = {}
     for source in sources:
         schema = ROOT / "operations/plugin-capabilities" / source["schemaFile"]
@@ -51,6 +67,8 @@ def build() -> dict:
             raise ValueError(f"duplicate baseline operation: {identity}")
         seen.add(identity)
         live = indexed.get(identity)
+        tool = live.get("tool") if live else None
+        observed_deployed = tool in deployed
         schema_hash = source_hashes.get(row["groupVersion"])
         operations.append({
             "plugin": row["plugin"], "groupVersion": identity[0],
@@ -59,11 +77,12 @@ def build() -> dict:
             "disposition": row["disposition"],
             "schemaHash": schema_hash,
             "authorization": "platform_admin_required",
-            "tool": live.get("tool") if live else None,
-            "registration": live.get("registration", "absent_from_current_inventory") if live else "absent_from_current_inventory",
-            "deploymentDigest": None,
+            "tool": tool,
+            "registration": "deployed" if observed_deployed else live.get("registration", "absent_from_current_inventory") if live else "absent_from_current_inventory",
+            "deploymentDigest": deployment["nativeImage"].split("@", 1)[1] if observed_deployed else None,
             "httpEvidence": None, "semanticEvidence": None,
             "cleanupEvidence": None,
+            "sampleEvidence": str(CANARY.relative_to(ROOT)) if identity in samples else None,
         })
     if len(operations) != 683:
         raise ValueError(f"expected 683 baseline operations, got {len(operations)}")
