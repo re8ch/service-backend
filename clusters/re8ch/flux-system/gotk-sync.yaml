@@ -23,8 +23,6 @@ spec:
   # waiting on every descendant makes later signed revisions impossible to apply.
   wait: false
   timeout: 3m
-  healthChecks:
-    - {apiVersion: batch/v1, kind: Job, name: retire-tenantgrant-crd, namespace: flux-system}
   decryption:
     provider: sops
     secretRef: {name: sops-age}
