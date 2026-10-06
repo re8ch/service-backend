@@ -76,8 +76,15 @@ class Kubernetes:
             try:
                 with urllib.request.urlopen(req, context=self.ssl, timeout=10) as response:
                     return json.load(response)
-            except urllib.error.HTTPError:
-                raise
+            except urllib.error.HTTPError as exc:
+                if method != "GET" or exc.code != 429 or attempt == 2:
+                    raise
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                try:
+                    delay = float(retry_after) if retry_after is not None else 0.5 * (2 ** attempt)
+                except ValueError:
+                    delay = 0.5 * (2 ** attempt)
+                time.sleep(min(5.0, max(0.0, delay)))
             except (TimeoutError, urllib.error.URLError, ConnectionError) as exc:
                 last_error = exc
                 if attempt < 2:
