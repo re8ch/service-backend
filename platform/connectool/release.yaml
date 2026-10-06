@@ -66,6 +66,20 @@ spec:
               - op: replace
                 path: /spec/incomingAuth/oidcConfigRef/scopes
                 value: [openid, profile, email, offline_access]
+          # Chart 0.6.1 requires two router replicas on different hosts. Keep
+          # both replicas, but permit them to share the restricted-node-6dc3f140f9 service anchor.
+          - target: {group: apps, version: v1, kind: Deployment, name: ".*-session-router"}
+            patch: |-
+              - op: replace
+                path: /spec/template/spec/affinity/podAntiAffinity
+                value:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - weight: 100
+                      podAffinityTerm:
+                        topologyKey: kubernetes.io/hostname
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/name: connectool-session-router
   values:
     global:
       issuer: https://auth.re8ch.com
@@ -90,7 +104,7 @@ spec:
       namespace: toolhive-system
       placement:
         nodeSelector:
-          scheduling.re8ch.com/pool-service-core-local: "true"
+          scheduling.re8ch.com/pool-service-core-r640: "true"
           scheduling.re8ch.com/network-serving: "true"
         affinity: {}
         tolerations:
