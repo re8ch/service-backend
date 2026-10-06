@@ -83,8 +83,8 @@ PG_SERVICE_ROUTES = {
     "writeService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL primary service maintained by the Patroni role reconciler."},
     "readService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "Single restricted-node-6dc3f140f9 PostgreSQL instance; use the read-only role for read access."},
     "poolRw": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer primary pool maintained by the Patroni role reconciler."},
-    "postgrestWrite": {"url": "https://db-rw.re8ch.com/", "purpose": "Public PostgREST write gateway HTTP response; authentication remains required for protected routes."},
-    "postgrestRead": {"url": "https://db-ro.re8ch.com/", "purpose": "Public PostgREST read gateway HTTP response; authentication remains required for protected routes."},
+    "postgrestWrite": {"url": "https://db-rw.re8ch.com/auth/ready", "purpose": "Auth PostgREST database readiness through the public write gateway."},
+    "postgrestRead": {"url": "https://db-ro.re8ch.com/auth/ready", "purpose": "Auth PostgREST database readiness through the public read gateway."},
 }
 KUBE_API = "https://%s:%s" % (
     os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"),

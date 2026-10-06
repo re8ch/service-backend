@@ -172,8 +172,8 @@ spec:
       # /auth/me exercises the real API gateway path and returns 200 without a session.
       api.re8ch.com.: {service: api, class: api, probePath: /auth/me, acceptedStatuses: [200]}
       auth.re8ch.com.: {service: auth, class: web, probePath: /, acceptedStatuses: [200]}
-      db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/}
-      db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/}
+      db-ro.re8ch.com.: {service: db-ro, class: db-ro, probePath: /auth/ready, acceptedStatuses: [200]}
+      db-rw.re8ch.com.: {service: db-rw, class: db-rw, probePath: /auth/ready, acceptedStatuses: [200]}
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
       headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
       aesthete.service.re8ch.com.: {service: aesthete-native-api, class: service-pilot, probePath: /api/auth/challenge, acceptedStatuses: [200]}
