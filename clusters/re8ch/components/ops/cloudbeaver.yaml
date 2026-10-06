@@ -8,51 +8,6 @@ data:
     {
       "folders": {},
       "connections": {
-        "qianwen-prod-write": {
-          "provider": "postgresql",
-          "driver": "postgres-jdbc",
-          "name": "Qianwen Prod - Write",
-          "show-system-objects": false,
-          "configuration": {
-            "host": "pgwrite.zt.re8ch.com",
-            "port": "5432",
-            "database": "qianwen_prod",
-            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/qianwen_prod",
-            "configurationType": "MANUAL",
-            "type": "prod",
-            "closeIdleConnection": true
-          }
-        },
-        "qianwen-prod-read-sh": {
-          "provider": "postgresql",
-          "driver": "postgres-jdbc",
-          "name": "Qianwen Prod - Read SH",
-          "show-system-objects": false,
-          "configuration": {
-            "host": "pgread-sh.zt.re8ch.com",
-            "port": "5432",
-            "database": "qianwen_prod",
-            "url": "jdbc:postgresql://pgread-sh.zt.re8ch.com:5432/qianwen_prod",
-            "configurationType": "MANUAL",
-            "type": "prod",
-            "closeIdleConnection": true
-          }
-        },
-        "qianwen-test-write": {
-          "provider": "postgresql",
-          "driver": "postgres-jdbc",
-          "name": "Qianwen Test - Write",
-          "show-system-objects": false,
-          "configuration": {
-            "host": "pgwrite.zt.re8ch.com",
-            "port": "5432",
-            "database": "qianwen_test",
-            "url": "jdbc:postgresql://pgwrite.zt.re8ch.com:5432/qianwen_test",
-            "configurationType": "MANUAL",
-            "type": "dev",
-            "closeIdleConnection": true
-          }
-        },
         "cardcat-write": {
           "provider": "postgresql",
           "driver": "postgres-jdbc",
@@ -71,13 +26,13 @@ data:
         "compocv-labor-r640": {
           "provider": "postgresql",
           "driver": "postgres-jdbc",
-          "name": "CompoCV Labor - restricted-node-6dc3f140f9",
+          "name": "CompoCV Labor - R640",
           "show-system-objects": false,
           "configuration": {
-            "host": "192.0.2.192",
+            "host": "10.181.22.73",
             "port": "15432",
             "database": "compocv_labor",
-            "url": "jdbc:postgresql://192.0.2.192:15432/compocv_labor",
+            "url": "jdbc:postgresql://10.181.22.73:15432/compocv_labor",
             "configurationType": "MANUAL",
             "type": "prod",
             "closeIdleConnection": true
