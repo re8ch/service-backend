@@ -98,6 +98,9 @@ data:
     Host restricted-node-6dc3f140f9
       HostName 192.0.2.183
       User re8ch-ai
+    Host restricted-node-abb3f27a69 192.0.2.114
+      HostName 192.0.2.114
+      User re8ch-ai
     Host restricted-node-1eb0570f74
       HostName 192.0.2.18
       User re8ch-ai
