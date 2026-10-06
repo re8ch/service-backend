@@ -118,7 +118,7 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "supabase-pg-re8ch": ("database-platform", "Supabase Studio, CloudBeaver, Grafana"),
     "neo4j": ("database-platform", "Neo4j Browser, Grafana"),
     "fleet": ("device-control", "Fleet UI, Grafana"),
-    "nuclio": ("application-control", "Nuclio Dashboard, Grafana"),
+    "nuclio": ("application-control", "Headlamp, Grafana"),
     "headlamp": ("human-control", "Headlamp"),
     "agent-collab": ("agent-data", "Headlamp, Grafana"),
     "anycam": ("application-data", "Headlamp, Grafana"),
@@ -130,7 +130,7 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "coroot": ("observability-control", "Coroot, Grafana"),
     "ledger": ("application-data", "Headlamp, CloudBeaver, Neo4j Browser, Grafana"),
     "phonaid": ("application-data", "Headlamp, Grafana"),
-    "qwen": ("application-data", "Nuclio Dashboard, Headlamp, Grafana"),
+    "qwen": ("application-data", "Headlamp, Grafana"),
 }
 
 def namespace_config_authority(name, labels):
@@ -179,7 +179,6 @@ MANAGED_PLATFORM_RESTARTS = {
     ("opensandbox-system", "opensandbox-server"),
     ("fleet", "fleet"),
     ("supabase-pg-re8ch", "supabase-studio"),
-    ("nuclio", "nuclio-dashboard"),
     ("codex-platform", "codex-session-web"),
     ("observability-system", "re8ch-grafana"),
 }
@@ -1402,7 +1401,6 @@ def get_nuclio_function_status():
         "functions": functions,
         "redaction": "Environment variables, Secret references, annotations and last-applied configuration are intentionally omitted.",
         "humanTracking": {
-            "nuclioDashboard": "http://nuclio-dashboard.nuclio.svc.cluster.local:8070",
             "headlamp": HEADLAMP_PUBLIC,
             "grafana": GRAFANA_PUBLIC,
         },
@@ -1493,7 +1491,7 @@ def diagnose_nuclio_function(args):
         "pods": pod_rows,
         "recentEvents": event_rows,
         "redaction": "Environment, Secret and annotation data are omitted.",
-        "humanTracking": {"nuclioDashboard": "http://nuclio-dashboard.nuclio.svc.cluster.local:8070", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_nuclio_capacity_status():
@@ -2177,7 +2175,6 @@ def get_platform_service_health():
         (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
         (probe_http, ("neo4j", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
         (probe_http, ("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human control GUI reachability")),
-        (probe_http, ("nuclio-dashboard", "application-control", "http://nuclio-dashboard.nuclio.svc.cluster.local:8070/api/healthz", "Nuclio application-control endpoint reachability")),
         (probe_http, ("opencost", "observability-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost allocation service liveness")),
         (probe_http, ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session runtime liveness")),
     ]
