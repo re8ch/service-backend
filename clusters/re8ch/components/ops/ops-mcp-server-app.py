@@ -113,7 +113,7 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "registry-image": ("artifact-data", "Harbor, Headlamp"),
     "pigsty-external": ("database-routing", "CloudBeaver, Pigsty, Grafana"),
     "supabase-pg-re8ch": ("database-platform", "Supabase Studio, CloudBeaver, Grafana"),
-    "neo4j": ("database-platform", "Neo4j Browser, Grafana"),
+    "re8ch-neo4j": ("database-platform", "Neo4j Browser, Grafana"),
     "fleet": ("device-control", "Fleet UI, Grafana"),
     "nuclio": ("application-control", "Headlamp, Grafana"),
     "headlamp": ("human-control", "Headlamp"),
@@ -1669,8 +1669,8 @@ def get_supabase_platform_status():
     }
 
 def get_neo4j_platform_status():
-    namespace = "neo4j"
-    browser = probe_http("neo4j-browser", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j Browser/API reachability without graph credentials")
+    namespace = "re8ch-neo4j"
+    browser = probe_http("neo4j-browser", "database-platform", "http://neo4j.re8ch-neo4j.svc.cluster.local:7474/", "Neo4j Browser/API reachability without graph credentials")
     statefulsets = kube_request("GET", "/apis/apps/v1/namespaces/%s/statefulsets" % namespace).get("items", [])
     endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
     workloads = []
@@ -2170,7 +2170,7 @@ def get_platform_service_health():
         (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
         (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/health", "OpenSandbox API reachability")),
         (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
-        (probe_http, ("neo4j", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
+        (probe_http, ("neo4j", "database-platform", "http://neo4j.re8ch-neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
         (probe_http, ("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human control GUI reachability")),
         (probe_http, ("opencost", "observability-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost allocation service liveness")),
         (probe_http, ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session runtime liveness")),
