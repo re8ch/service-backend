@@ -91,10 +91,6 @@ metadata: {name: neo4j, labels: {re8ch.com/domain: database-platform, re8ch.com/
 ---
 apiVersion: v1
 kind: Namespace
-metadata: {name: fleet, labels: {re8ch.com/domain: device-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1, re8ch.com/config-authority: gitops}}
----
-apiVersion: v1
-kind: Namespace
 metadata: {name: nuclio, labels: {re8ch.com/domain: application-control, re8ch.com/plane: control, re8ch.com/access-policy: toolhive-v1, re8ch.com/config-authority: gitops}}
 ---
 apiVersion: v1
