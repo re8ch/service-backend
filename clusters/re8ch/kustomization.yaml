@@ -44,6 +44,8 @@ resources:
 - secrets/ontology-microscope-evaluation.sops.yaml
 - secrets/zerotier-planet-env.sops.yaml
 - secrets/cloud-disk-credentials.sops.yaml
+- secrets/commerce-wechat-app-identities.sops.yaml
+- secrets/ledger-wechat-app-identities.sops.yaml
 - components/cilium/gateway-api-canary.yaml
 - components/aesthete/native-api-route.yaml
 - components/cluster-inventory/configmap.yaml
