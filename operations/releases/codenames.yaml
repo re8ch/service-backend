@@ -722,6 +722,8 @@ modules:
       digest: sha256:25e5e00e9f00a744a41d8181190f3454ec0b9918d74ae17910afd222ebc84534
     - codename: trailhead-silver
       digest: sha256:2414b5e884951879a0c7b1acb9fde311902b75cd0f789222127891eae858e963
+    - codename: anchor-umber
+      digest: sha256:2d5cdc5e920c8695df922c68e8597e883544ab0a71c3edf305f6da35bbd9c86c
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -948,6 +950,8 @@ modules:
       digest: sha256:f3ea87c6a836fef12645e0d348afb022cb6819b015531902d587227265499162
     - codename: tideway-topaz
       digest: sha256:af3298a4df1cd997978e33f0c1c5827b7542cd33a92d8a0c4b6d2326842c7d7b
+    - codename: cascade-opal
+      digest: sha256:fd0f41634386064de61b311e0d0103ee947d5b8d28053e1fceec91022fbb9935
   platform/hyperswitch:
     releases:
     - codename: anchor
