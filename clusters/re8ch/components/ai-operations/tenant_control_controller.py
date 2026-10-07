@@ -262,8 +262,8 @@ def resolve_supabase_membership(access_token, requested_tenant):
     """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
     if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
         raise PermissionError("Supabase access token is required")
-    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant in {"admin", PERSONAL_RUNTIME_CLASS}:
-        raise PermissionError("select an ordinary tenant")
+    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant == PERSONAL_RUNTIME_CLASS:
+        raise PermissionError("invalid organization selection")
     request = urllib.request.Request(
         IDENTITY_REST_URL + "/rpc/my_tenant_runtime_contexts",
         data=b"{}", method="POST",
@@ -280,17 +280,16 @@ def resolve_supabase_membership(access_token, requested_tenant):
         raise RuntimeError("Supabase membership lookup failed") from exc
     if not isinstance(memberships, list):
         raise RuntimeError("Supabase membership response is invalid")
-    if not requested_tenant:
-        ordinary = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
-                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref") not in {"admin", PERSONAL_RUNTIME_CLASS}
-                           and row.get("tenant_role") in ROLE_ORDER and row.get("tenant_kind") != "personal"})
-        personal = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
-                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_kind") == "personal"
-                           and row.get("tenant_role") in ROLE_ORDER})
-        choices = ordinary or personal
-        if len(choices) != 1:
-            raise PermissionError("select an active tenant")
-        requested_tenant = choices[0]
+    active = [row for row in memberships if isinstance(row, dict) and row.get("is_active") is True
+              and isinstance(row.get("tenant_ref"), str) and row.get("tenant_role") in ROLE_ORDER]
+    if len(active) != 1:
+        raise PermissionError("active organization selection is unavailable")
+    active_tenant = active[0]["tenant_ref"]
+    # The legacy header is only a consistency assertion. It never selects or
+    # grants an organization independently of the identity database.
+    if requested_tenant and requested_tenant != active_tenant:
+        raise PermissionError("requested organization is not active for this account")
+    requested_tenant = active_tenant
     selected_rows = [row for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
     if len(selected_rows) != 1 or selected_rows[0].get("tenant_role") not in ROLE_ORDER:
         raise PermissionError("identity is not an active member of the selected tenant")

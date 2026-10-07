@@ -13,10 +13,14 @@ MCP discovery only. Tenant tool calls need a tenant member token.
 
 Authentication and tenant authorization have separate outcomes. The identity
 RPC idempotently creates or restores the verified user's Personal organization
-owner membership before resolving a runtime. A verified user that still cannot
-resolve one tenant can initialize MCP and receives only `tenant_access_status`,
-including a machine-readable access state and recovery action; tenant resources
-and operations remain unavailable.
+owner membership before resolving a runtime. The identity database owns one
+account-wide active organization; `tenant_organization_context_list` discovers
+the available contexts and `tenant_organization_context_select` changes it.
+`X-RE8CH-Tenant` is only a compatibility assertion and cannot select or grant a
+tenant. A verified user that still cannot resolve one tenant can initialize MCP
+and receives the status and organization-context tools, including a
+machine-readable access state and recovery action; tenant resources and
+operations remain unavailable.
 An invalid token receives an OAuth challenge, while an unavailable tenant
 authorizer returns 503. Supabase owns the user, Personal organization, and
 membership. Tenant-control requires an active runtime Tenant policy. Ordinary
@@ -66,8 +70,9 @@ version revokes the previous version of the same name and tenant.
 
 The tenant MCP also exposes `platform_tool_catalog` and `platform_tool_call`
 only to a verified user with a current `owner` or `admin` membership in the
-hidden `admin` organization. It reads the Supabase membership projection once
-per verified login session and caches that decision in the tenant process.
+hidden `admin` organization while `admin` is the account's active organization.
+It reads the Supabase membership projection once per verified login session and
+caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
 cache. The service bearer cannot use it. The call
 tool uses a fixed allowlist of published Cloud/Infra/Admin and native Cloud
