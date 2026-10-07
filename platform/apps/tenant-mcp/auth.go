@@ -21,6 +21,8 @@ type identity struct {
 	Subject          string
 	Token            string
 	Tenant           string
+	OrganizationRef  string
+	RuntimeTenantRef string
 	Role             string
 	DefaultNamespace string
 	Service          bool
@@ -39,6 +41,24 @@ func identityFrom(ctx context.Context) (identity, error) {
 		return identity{}, errors.New("an authenticated tenant member is required")
 	}
 	return value, nil
+}
+
+// ownerScopedIdentityFrom is only for tools whose storage is keyed by the
+// verified Supabase organization. Shared runtime classes must never become a
+// data ownership key or reach cluster resource paths through this helper.
+func ownerScopedIdentityFrom(ctx context.Context) (identity, error) {
+	id, ok := ctx.Value(identityKey{}).(identity)
+	if !ok || id.Service || id.Subject == "" {
+		return identity{}, errors.New("an authenticated tenant member is required")
+	}
+	if id.Tenant != "" {
+		return id, nil
+	}
+	if id.RuntimeTenantRef != "personal-standard" || !strings.HasPrefix(id.OrganizationRef, "personal-") {
+		return identity{}, errors.New("an authorized Personal organization is required")
+	}
+	id.Tenant = id.OrganizationRef
+	return id, nil
 }
 
 type jwtClaims struct {
@@ -158,6 +178,7 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	}
 	var membership struct {
 		Tenant           string `json:"tenantRef"`
+		RuntimeTenantRef string `json:"runtimeTenantRef"`
 		Role             string `json:"role"`
 		DefaultNamespace string `json:"defaultNamespace"`
 	}
@@ -166,6 +187,22 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	}
 	if !tenantName.MatchString(membership.Tenant) || membership.Tenant == "admin" || (selected != "" && selected != membership.Tenant) || membership.DefaultNamespace == "" || (membership.Role != "viewer" && membership.Role != "operator" && membership.Role != "admin") {
 		return identity{}, errors.New("tenant authorizer returned an invalid context")
+	}
+	if membership.RuntimeTenantRef == "" {
+		membership.RuntimeTenantRef = membership.Tenant
+	}
+	if !tenantName.MatchString(membership.RuntimeTenantRef) || membership.RuntimeTenantRef == "admin" {
+		return identity{}, errors.New("tenant authorizer returned an invalid runtime class")
+	}
+	id.OrganizationRef, id.RuntimeTenantRef = membership.Tenant, membership.RuntimeTenantRef
+	if membership.RuntimeTenantRef != membership.Tenant {
+		if membership.RuntimeTenantRef != "personal-standard" || !strings.HasPrefix(membership.Tenant, "personal-") {
+			return identity{}, errors.New("tenant authorizer returned an unsupported shared class")
+		}
+		// All existing resource paths use tenantRef as an ownership key. Do not
+		// expose them until the shared class has per-organization gates.
+		id.Role = membership.Role
+		return id, errTenantUnassigned
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
 	// Resolve the privileged membership once per verified login session.

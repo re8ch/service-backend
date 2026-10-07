@@ -19,7 +19,12 @@ authorizer returns 503. Supabase owns the user, Personal organization, and
 membership. Tenant-control still requires a separate active Tenant resource
 for runtime namespace and grant policy. Creating that resource is a distinct
 provisioning workflow and is not inferred from a successful login.
-The proposed shared runtime class mapping and its user isolation gates are
+Personal organizations without their own runtime Tenant can map to the
+`personal-standard` runtime class. Their organization reference remains their
+logical owner. Shared-class sessions can inspect access status and the static
+service catalog, and search, load, or submit reviewed workflows scoped to their
+Personal organization. Resource operations remain closed until per-owner gates
+are deployed. The mapping and remaining gates are
 documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
 
 ## Dynamic skills

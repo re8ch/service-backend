@@ -70,30 +70,62 @@ def test_supabase_membership_controls_tenant_role_and_revocation(monkeypatch):
             return [{"metadata": {"name": "tenant-ci"}, "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "tenant-ci-default"}}}]
 
     monkeypatch.setattr(controller, "KUBE", Kube())
-    rows = [{"tenant_ref": "tenant-ci", "tenant_role": "operator"}]
+    rows = [{"tenant_ref": "tenant-ci", "tenant_role": "operator", "tenant_kind": "organization"}]
 
     def memberships(request, timeout):
-        assert request.full_url.endswith("/rpc/my_tenant_runtime_memberships")
+        assert request.full_url.endswith("/rpc/my_tenant_runtime_contexts")
         assert request.get_header("Authorization") == "Bearer valid-token"
         assert timeout == 5
         return Response(json.dumps(rows).encode())
 
     monkeypatch.setattr(controller.urllib.request, "urlopen", memberships)
     assert controller.resolve_supabase_membership("valid-token", "tenant-ci") == {
-        "tenantRef": "tenant-ci", "role": "operator", "defaultNamespace": "tenant-ci-default", "runtimeNamespaceRef": "tenant-ci-default",
+        "tenantRef": "tenant-ci", "runtimeTenantRef": "tenant-ci", "role": "operator",
+        "defaultNamespace": "tenant-ci-default", "runtimeNamespaceRef": "tenant-ci-default",
     }
-    rows.append({"tenant_ref": "personal-example", "tenant_role": "admin"})
+    rows.append({"tenant_ref": "personal-example", "tenant_role": "admin", "tenant_kind": "personal"})
     assert controller.resolve_supabase_membership("valid-token", "")["tenantRef"] == "tenant-ci"
-    rows.append({"tenant_ref": "another-team", "tenant_role": "viewer"})
+    rows.append({"tenant_ref": "another-team", "tenant_role": "viewer", "tenant_kind": "organization"})
     with pytest.raises(PermissionError, match="select an active tenant"):
         controller.resolve_supabase_membership("valid-token", "")
     rows.clear()
     with pytest.raises(PermissionError, match="not an active member"):
         controller.resolve_supabase_membership("valid-token", "tenant-ci")
-    rows.append({"tenant_ref": "tenant-ci", "tenant_role": "admin"})
+    rows.append({"tenant_ref": "tenant-ci", "tenant_role": "admin", "tenant_kind": "organization"})
     assert controller.resolve_supabase_membership("valid-token", "tenant-ci")["role"] == "admin"
     with pytest.raises(PermissionError, match="ordinary tenant"):
         controller.resolve_supabase_membership("valid-token", "admin")
+
+
+def test_new_personal_organizations_share_runtime_class_without_sharing_owner(monkeypatch):
+    controller = load("tenant_shared_personal", "tenant_control_controller.py")
+
+    class Kube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [{"metadata": {"name": "personal-standard"},
+                     "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "personal-standard-default"}}}]
+
+    monkeypatch.setattr(controller, "KUBE", Kube())
+    owner = {"tenant_ref": "personal-11111111-1111-4111-8111-111111111111",
+             "tenant_role": "admin", "tenant_kind": "personal"}
+    other = {"tenant_ref": "personal-22222222-2222-4222-8222-222222222222",
+             "tenant_role": "admin", "tenant_kind": "personal"}
+    rows = [owner]
+    monkeypatch.setattr(controller.urllib.request, "urlopen", lambda *_args, **_kwargs: Response(json.dumps(rows).encode()))
+    first = controller.resolve_supabase_membership("valid-token", "")
+    assert first["tenantRef"] == owner["tenant_ref"]
+    assert first["runtimeTenantRef"] == "personal-standard"
+    assert first["defaultNamespace"] == "personal-standard-default"
+    with pytest.raises(PermissionError, match="not an active member"):
+        controller.resolve_supabase_membership("valid-token", other["tenant_ref"])
+    rows[:] = [other]
+    second = controller.resolve_supabase_membership("valid-token", "")
+    assert second["tenantRef"] == other["tenant_ref"]
+    assert second["runtimeTenantRef"] == first["runtimeTenantRef"]
+    rows.clear()
+    with pytest.raises(PermissionError, match="select an active tenant"):
+        controller.resolve_supabase_membership("valid-token", "")
 
 
 def test_tenant_runtime_passes_token_only_to_internal_authorizer(monkeypatch):

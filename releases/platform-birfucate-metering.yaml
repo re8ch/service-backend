@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: confluence-opal
+codename: springtide-opal
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:b7d6245881548a008b49aa6079e21d77e3cc16f78dfedab9fa00c80f903be25b
+  digest: sha256:b0dbfa6919076fda3d23aaabd6bbfc0919845dc4faa2116fe4bb172f7366df5d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

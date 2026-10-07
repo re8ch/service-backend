@@ -50,10 +50,16 @@ per-owner quota are different decisions.
    The `tenant_access_status` tool is the only tool for a verified subject
    whose runtime context cannot be resolved. An invalid token gets 401; an
    unavailable authorizer gets 503.
-2. Add the class mapping and one shared Personal Tenant CR only after the
-   resolver returns both the logical owner and runtime class. Do not rewrite
-   `tenantRef` in the backend to the class name: its SQLite stores currently
-   filter primarily by `tenant_ref`.
+2. The Supabase context RPC returns active membership and organization kind.
+   The resolver returns both `tenantRef` (logical owner) and
+   `runtimeTenantRef` (runtime class), and a single `personal-standard` Tenant
+   describes the Personal class. Existing Personal organizations with their
+   own active Tenant CR keep that runtime. The Go backend deliberately leaves
+   its legacy `Tenant` field empty for a shared class. It exposes
+   `tenant_access_status`, the static service catalog, and reviewed dynamic
+   workflows scoped to the verified Personal organization and subject. Cluster
+   resource tools remain closed. It must never rewrite that field to the class name:
+   its SQLite stores currently filter primarily by `tenant_ref`.
 3. Before enabling each tool family for the shared class, enforce ownership
    for its backing objects. TenantResourceClaim currently has no owner field;
    tenant-control claim lists and mutations filter by runtime tenant only.

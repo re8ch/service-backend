@@ -35,19 +35,32 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}, Resources: &mcp.ResourceCapabilities{}}})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report whether this authenticated session has an active runtime tenant."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			caller, ok := ctx.Value(identityKey{}).(identity)
 			if !ok || caller.Service || caller.Subject == "" {
 				return nil, nil, errors.New("an authenticated user is required")
 			}
-			status := map[string]any{"authenticated": true, "tenantAuthorized": caller.Tenant != ""}
+			status := map[string]any{
+				"authenticated":               true,
+				"tenantAuthorized":            caller.Tenant != "" || caller.RuntimeTenantRef != "",
+				"resourceOperationsAvailable": caller.Tenant != "",
+			}
 			if caller.Tenant == "" {
-				status["reason"] = "no single active runtime tenant resolved"
+				if caller.RuntimeTenantRef != "" {
+					status["organizationRef"] = caller.OrganizationRef
+					status["runtimeTenantRef"] = caller.RuntimeTenantRef
+					status["reason"] = "shared runtime class resolved; resource operations are pending owner isolation"
+				} else {
+					status["reason"] = "no single active runtime tenant resolved"
+				}
 			}
 			return nil, status, nil
 		})
 	if !id.Service && id.Subject != "" && id.Tenant == "" {
+		if id.RuntimeTenantRef == "personal-standard" {
+			s.registerSharedPersonalTools(ms)
+		}
 		return ms
 	}
 	s.registerClaimTools(ms)
@@ -66,9 +79,35 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 		s.registerUserTools(ms)
 	}
 	s.registerResources(ms, id)
+	s.registerDynamicSkillTools(ms)
+	return ms
+}
+
+func (s *server) registerSharedPersonalTools(ms *mcp.Server) {
+	definitions, err := legacyDefinitions()
+	if err != nil {
+		panic(err)
+	}
+	definition := definitions["service_catalog_list"]
+	if definition.Name == "" {
+		panic("missing tenant schema: service_catalog_list")
+	}
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("service_catalog_list"), Name: "service_catalog_list", Description: definition.Description, InputSchema: definition.InputSchema},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ map[string]any) (*mcp.CallToolResult, any, error) {
+			id, err := ownerScopedIdentityFrom(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			value, err := s.callService(ctx, id, "service_catalog_list", map[string]any{})
+			return nil, value, err
+		})
+	s.registerDynamicSkillTools(ms)
+}
+
+func (s *server) registerDynamicSkillTools(ms *mcp.Server) {
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_search"), Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input searchInput) (*mcp.CallToolResult, any, error) {
-			id, err := identityFrom(ctx)
+			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -77,7 +116,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_load"), Name: "dynamic_skill_load", Description: "Read a published workflow for a natural-language task. The current Agent interprets it using its existing tools and approvals."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input loadInput) (*mcp.CallToolResult, any, error) {
-			id, err := identityFrom(ctx)
+			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -86,7 +125,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_submit"), Name: "dynamic_skill_submit", Description: "Submit a tenant workflow draft for platform review. Drafts cannot be loaded or executed."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input submitInput) (*mcp.CallToolResult, any, error) {
-			id, err := identityFrom(ctx)
+			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -96,7 +135,6 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			value, err := s.submit(request{Tenant: id.Tenant, Subject: id.Subject, Name: input.Name, Description: input.Description, Workflow: input.Workflow, Visibility: input.Visibility}, false)
 			return nil, value, err
 		})
-	return ms
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
