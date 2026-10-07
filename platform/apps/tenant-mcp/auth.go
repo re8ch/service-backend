@@ -248,11 +248,28 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
 	client := &http.Client{Timeout: 5 * time.Second}
-	response, err := client.Do(req)
-	if err != nil {
-		return identity{}, err
+	var response *http.Response
+	for attempt := 0; attempt < 2; attempt++ {
+		response, err = client.Do(req.Clone(ctx))
+		if err != nil {
+			if attempt == 0 {
+				continue
+			}
+			return identity{}, fmt.Errorf("%w: GoTrue user lookup: %v", errIdentityUnavailable, err)
+		}
+		if response.StatusCode != http.StatusTooManyRequests && response.StatusCode < http.StatusInternalServerError {
+			break
+		}
+		response.Body.Close()
+		response = nil
+	}
+	if response == nil {
+		return identity{}, fmt.Errorf("%w: GoTrue user lookup failed", errIdentityUnavailable)
 	}
 	defer response.Body.Close()
+	if response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= http.StatusInternalServerError {
+		return identity{}, fmt.Errorf("%w: GoTrue returned HTTP %d", errIdentityUnavailable, response.StatusCode)
+	}
 	if response.StatusCode != http.StatusOK {
 		return identity{}, errors.New("GoTrue rejected bearer token")
 	}

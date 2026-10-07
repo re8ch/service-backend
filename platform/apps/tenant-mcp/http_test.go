@@ -9,9 +9,57 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestMCPRetriesTransientGoTrueFailure(t *testing.T) {
+	s := testServer(t)
+	var calls atomic.Int32
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) == 1 {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "database unavailable"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"tenantRef": "acme", "role": "operator", "defaultNamespace": "acme"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`))
+	req.Header.Set("Authorization", "Bearer "+fixtureToken())
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	response := httptest.NewRecorder()
+	s.handler().ServeHTTP(response, req)
+	if response.Code != http.StatusOK || calls.Load() != 2 || !strings.Contains(response.Body.String(), "service_catalog_list") {
+		t.Fatalf("transient GoTrue failure was not retried: status=%d calls=%d body=%s", response.Code, calls.Load(), response.Body.String())
+	}
+}
+
+func TestMCPPersistentGoTrueFailureReturnsServiceUnavailable(t *testing.T) {
+	s := testServer(t)
+	var calls atomic.Int32
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "database unavailable"})
+	}))
+	defer goTrue.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
+	req.Header.Set("Authorization", "Bearer "+fixtureToken())
+	response := httptest.NewRecorder()
+	s.handler().ServeHTTP(response, req)
+	if response.Code != http.StatusServiceUnavailable || calls.Load() != 2 || response.Header().Get("WWW-Authenticate") != "" {
+		t.Fatalf("GoTrue outage was mistaken for an invalid token: status=%d calls=%d challenge=%q body=%s", response.Code, calls.Load(), response.Header().Get("WWW-Authenticate"), response.Body.String())
+	}
+}
 
 func fixtureToken() string {
 	return fixtureTokenFor("user-1")
