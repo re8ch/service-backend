@@ -150,3 +150,10 @@ def test_runtime_contexts_keep_personal_owners_separate(postgres):
     postgres(f"update core.organization_members set status = 'revoked' where user_id = '{ALICE}'")
     assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == f"personal-{ALICE}:admin:personal"
     assert "permission denied" in postgres(f"set role anon; set request.jwt.claim.sub = '{BOB}'; {query}", expect_failure=True)
+
+
+def test_runtime_context_job_mounts_its_own_migration_configmap():
+    config_map, job = list(yaml.safe_load_all(RUNTIME_CONTEXTS.read_text()))
+    mounted_config_map = job["spec"]["template"]["spec"]["volumes"][0]["configMap"]["name"]
+    assert mounted_config_map == config_map["metadata"]["name"]
+    assert job["metadata"]["name"] == config_map["metadata"]["name"]
