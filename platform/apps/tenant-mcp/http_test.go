@@ -217,6 +217,45 @@ func TestMCPUnavailableTenantAuthorizerReturnsServiceUnavailable(t *testing.T) {
 	}
 }
 
+func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{
+			"tenantRef":        "personal-11111111-1111-4111-8111-111111111111",
+			"runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": "personal-standard-default",
+		})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, test := range []struct{ method, params string }{
+		{"initialize", `{}`},
+		{"tools/list", `{}`},
+		{"tools/call", `{"name":"tenant_access_status","arguments":{}}`},
+	} {
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"`+test.method+`","params":`+test.params+`}`))
+		req.Header.Set("Authorization", "Bearer "+fixtureToken())
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, req)
+		if response.Code != http.StatusOK {
+			t.Fatalf("shared personal %s returned %d: %s", test.method, response.Code, response.Body.String())
+		}
+		if test.method == "tools/list" && (strings.Contains(response.Body.String(), "tenant_claim_create") || !strings.Contains(response.Body.String(), "tenant_access_status")) {
+			t.Fatalf("shared class leaked resource tools: %s", response.Body.String())
+		}
+		if test.method == "tools/call" && (!strings.Contains(response.Body.String(), `"organizationRef":"personal-11111111-1111-4111-8111-111111111111"`) || !strings.Contains(response.Body.String(), `"runtimeTenantRef":"personal-standard"`) || !strings.Contains(response.Body.String(), `"tenantAuthorized":false`)) {
+			t.Fatalf("shared class status lost owner or access gate: %s", response.Body.String())
+		}
+	}
+}
+
 func TestTokenExchangePreservesUserJWT(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, 200, map[string]string{"id": "user-1"}) }))

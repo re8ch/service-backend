@@ -12,6 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "operations/supabase-identity/tenant-provider-config.sql"
 RUNTIME_MEMBERSHIPS = ROOT / "operations/supabase-identity/tenant-runtime-memberships.yaml"
+RUNTIME_CONTEXTS = ROOT / "operations/supabase-identity/tenant-runtime-contexts.yaml"
 ALICE = "11111111-1111-4111-8111-111111111111"
 BOB = "22222222-2222-4222-8222-222222222222"
 
@@ -110,3 +111,31 @@ def test_runtime_memberships_follow_live_organization_roles(postgres):
     postgres(f"update core.organization_members set status = 'revoked' where user_id = '{ALICE}' and tenant_ref = 'acme'")
     assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == ""
     assert "permission denied" in postgres(f"set role anon; set request.jwt.claim.sub = '{ALICE}'; {query}", expect_failure=True)
+
+
+def test_runtime_contexts_keep_personal_owners_separate(postgres):
+    postgres(f"""
+        create role supabase_admin superuser;
+        create role service_role; create role authenticated; create role anon;
+        create schema auth; create schema core; create schema api;
+        create table auth.users (id uuid primary key, deleted_at timestamptz);
+        create table core.organizations (tenant_ref text primary key, status text, kind text);
+        create table core.organization_members (tenant_ref text, user_id uuid, status text, role text);
+        create function api.current_user_id() returns uuid language sql stable as
+            $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+        insert into auth.users values ('{ALICE}', null), ('{BOB}', null);
+        insert into core.organizations values
+            ('personal-{ALICE}', 'active', 'personal'),
+            ('personal-{BOB}', 'active', 'personal');
+        insert into core.organization_members values
+            ('personal-{ALICE}', '{ALICE}', 'active', 'owner'),
+            ('personal-{BOB}', '{BOB}', 'active', 'owner');
+    """)
+    manifest = list(yaml.safe_load_all(RUNTIME_CONTEXTS.read_text()))
+    postgres(manifest[0]["data"]["migration.sql"])
+    query = "select tenant_ref || ':' || tenant_role || ':' || tenant_kind from api.my_tenant_runtime_contexts()"
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == f"personal-{ALICE}:admin:personal"
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{BOB}'; {query}") == f"personal-{BOB}:admin:personal"
+    postgres(f"update core.organization_members set status = 'revoked' where user_id = '{ALICE}'")
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == ""
+    assert "permission denied" in postgres(f"set role anon; set request.jwt.claim.sub = '{BOB}'; {query}", expect_failure=True)

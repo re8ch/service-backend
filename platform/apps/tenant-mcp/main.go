@@ -43,7 +43,13 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			}
 			status := map[string]any{"authenticated": true, "tenantAuthorized": caller.Tenant != ""}
 			if caller.Tenant == "" {
-				status["reason"] = "no single active runtime tenant resolved"
+				if caller.RuntimeTenantRef != "" {
+					status["organizationRef"] = caller.OrganizationRef
+					status["runtimeTenantRef"] = caller.RuntimeTenantRef
+					status["reason"] = "shared runtime class resolved; resource operations are pending owner isolation"
+				} else {
+					status["reason"] = "no single active runtime tenant resolved"
+				}
 			}
 			return nil, status, nil
 		})

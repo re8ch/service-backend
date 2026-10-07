@@ -70,6 +70,28 @@ spec:
       supplyChain:
         required: false
       tenants:
+        # Runtime policy class for newly registered Personal organizations.
+        # Resource tools remain closed until every backing store enforces the
+        # separate Supabase organization owner.
+        - name: personal-standard
+          displayName: Personal Standard Runtime
+          lifecycle: Active
+          deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: personal-standard-default
+            allowedPrefixes: [personal-standard-]
+            maxNamespaces: 1
+            allowCreate: false
+            allowDelete: false
+            bootstrapNamespaces: []
+          imagePullSecretRef: harbor-functions-shared-pull
+          harborProjectRef: re8ch
+          visibility: Private
+          hostingMode: platform-managed
+          byocAllowed: false
+          identityBindings: []
+          grants: []
+          nativeAccess: false
         # Normal personal organization used for the OpenAI review login.
         # Keep its tenant capabilities aligned with the ordinary tenant baseline.
         - name: personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38
