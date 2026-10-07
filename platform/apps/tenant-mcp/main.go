@@ -138,19 +138,13 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	_ = r.Body.Close()
 	r.Body = io.NopCloser(bytes.NewReader(body))
 
-	var request map[string]any
-	if json.Unmarshal(body, &request) != nil || request["method"] != "tools/call" {
+	var request any
+	if json.Unmarshal(body, &request) != nil {
 		return nil
 	}
-	params, ok := request["params"].(map[string]any)
-	if !ok {
+	if !rewriteReviewDemoToolNames(request) {
 		return nil
 	}
-	name, ok := params["name"].(string)
-	if !ok || !strings.HasPrefix(name, reviewDemoToolPrefix) {
-		return nil
-	}
-	params["name"] = strings.TrimPrefix(name, reviewDemoToolPrefix)
 	normalized, err := json.Marshal(request)
 	if err != nil {
 		return err
@@ -158,6 +152,33 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	r.Body = io.NopCloser(bytes.NewReader(normalized))
 	r.ContentLength = int64(len(normalized))
 	return nil
+}
+
+func rewriteReviewDemoToolNames(value any) bool {
+	switch request := value.(type) {
+	case []any:
+		changed := false
+		for _, item := range request {
+			changed = rewriteReviewDemoToolNames(item) || changed
+		}
+		return changed
+	case map[string]any:
+		if request["method"] != "tools/call" {
+			return false
+		}
+		params, ok := request["params"].(map[string]any)
+		if !ok {
+			return false
+		}
+		name, ok := params["name"].(string)
+		if !ok || !strings.HasPrefix(name, reviewDemoToolPrefix) {
+			return false
+		}
+		params["name"] = strings.TrimPrefix(name, reviewDemoToolPrefix)
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *server) handler() http.Handler {

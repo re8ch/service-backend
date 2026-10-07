@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -550,6 +551,21 @@ func TestArtcToolsOnlyPublishedToArtchaisTenant(t *testing.T) {
 		if want := map[bool]int{true: 3, false: 0}[tenant == "artchais"]; artcCount != want {
 			t.Errorf("%s published %d artc tools, want %d", tenant, artcCount, want)
 		}
+	}
+}
+
+func TestReviewDemoBatchToolNamesUseCanonicalHandlers(t *testing.T) {
+	body := `[{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"re8ch_review_demo.service_catalog_list","arguments":{}}}]`
+	request := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
+	if err := rewriteReviewDemoToolCall(request); err != nil {
+		t.Fatal(err)
+	}
+	normalized, err := io.ReadAll(request.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(normalized), reviewDemoToolPrefix) || !strings.Contains(string(normalized), `"name":"service_catalog_list"`) {
+		t.Fatalf("namespaced batch tool call was not normalized: %s", normalized)
 	}
 }
 
