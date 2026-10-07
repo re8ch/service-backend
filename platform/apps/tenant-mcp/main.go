@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +18,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+const reviewDemoToolPrefix = "re8ch_review_demo."
 
 type searchInput struct {
 	Query string `json:"query" jsonschema:"Search phrase describing the capability needed"`
@@ -123,6 +127,39 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
+func rewriteReviewDemoToolCall(r *http.Request) error {
+	if r.Method != http.MethodPost || r.Body == nil {
+		return nil
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	_ = r.Body.Close()
+	r.Body = io.NopCloser(bytes.NewReader(body))
+
+	var request map[string]any
+	if json.Unmarshal(body, &request) != nil || request["method"] != "tools/call" {
+		return nil
+	}
+	params, ok := request["params"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	name, ok := params["name"].(string)
+	if !ok || !strings.HasPrefix(name, reviewDemoToolPrefix) {
+		return nil
+	}
+	params["name"] = strings.TrimPrefix(name, reviewDemoToolPrefix)
+	normalized, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+	r.Body = io.NopCloser(bytes.NewReader(normalized))
+	r.ContentLength = int64(len(normalized))
+	return nil
+}
+
 func (s *server) handler() http.Handler {
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
 		id, _ := req.Context().Value(identityKey{}).(identity)
@@ -192,6 +229,11 @@ func (s *server) handler() http.Handler {
 		if !strings.HasPrefix(header, "Bearer ") {
 			challenge()
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		if err := rewriteReviewDemoToolCall(r); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_request"})
 			return
 		}
 		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
