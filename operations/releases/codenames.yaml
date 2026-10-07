@@ -972,6 +972,8 @@ modules:
       digest: sha256:8ff5c504348845fa508c18370aaa3a548343cd2a992f361d9cf549c2b3a04797
     - codename: gulfstream-garnet
       digest: sha256:f7e6ce67acdbc69661d3ac04cc5e4511e31a08f128961e47853ebc2fc371a5f8
+    - codename: riptide-garnet
+      digest: sha256:72d132d95e93416c32f9eaf3465c667871cbd99e6e1797d14939c1c47987594e
   platform/hyperswitch:
     releases:
     - codename: anchor
