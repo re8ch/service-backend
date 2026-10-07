@@ -758,7 +758,7 @@ TENANT_INFRA_TOOLS = [
     {"name": "tenant_list", "description": "List tenant identity boundaries. Only the protected admin tenant may call this tool.", "inputSchema": schema({})},
     {"name": "tenant_visibility_update", "description": "Change tenant visibility without exposing an application's native ACL model.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}}, ["tenant_ref", "visibility"])},
     {"name": "tenant_delete", "description": "Start deletion of a non-admin tenant and revoke its grants before adapter cleanup.", "inputSchema": schema({"tenant_ref": {"type": "string"}}, ["tenant_ref"])},
-    {"name": "service_catalog_list", "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.", "inputSchema": schema({})},
+    {"name": "service_catalog_list", "description": "List published service classes, plans, regions, parameters and meters. This is not the full tenant capability catalog: call tenant_self_service_capabilities for current resource operations and dynamic_skill_search for reviewed internal workflows.", "inputSchema": schema({})},
     {"name": "service_instance_plan", "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}}, ["name", "spec"])},
     {"name": "service_instance_create", "description": "Create a durable tenant service instance request idempotently.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["name", "spec", "idempotency_key"])},
     {"name": "service_instance_get", "description": "Read one service instance owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}}, ["resource_ref"])},
@@ -811,7 +811,7 @@ DYNAMIC_SKILL_ADMIN_TOOLS = [
 ]
 TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "usage_events_list", "operation_get"}
 TENANT_CLAIM_TOOLS = [
-    {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
+    {"name": "tenant_capabilities_list", "description": "List autonomous compute and independent volume claim contracts only. For current Workload, Service, Secret, and Exposure support, call tenant_self_service_capabilities; search dynamic_skill_search for reviewed internal workflows.", "inputSchema": schema({})},
     {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
     {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the authenticated tenant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
     {"name": "tenant_claim_get", "description": "Read one claim and its workload, volume or public endpoint binding.", "inputSchema": schema({"name": {"type": "string"}}, ["name"])},

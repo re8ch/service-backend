@@ -54,4 +54,14 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	if result["tenantRef"] != "re8ch" || !strings.Contains(w.Body.String(), "re8ch-default") || strings.Contains(w.Body.String(), "other-default") || !strings.Contains(w.Body.String(), "exposure") {
 		t.Fatalf("unexpected scope: %s", w.Body.String())
 	}
+	mcpRequest := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"tenant_self_service_capabilities","arguments":{}}}`))
+	mcpRequest.Header.Set("Authorization", "Bearer "+fixtureToken())
+	mcpRequest.Header.Set("X-RE8CH-Tenant", "re8ch")
+	mcpRequest.Header.Set("Content-Type", "application/json")
+	mcpRequest.Header.Set("Accept", "application/json, text/event-stream")
+	mcpResponse := httptest.NewRecorder()
+	s.handler().ServeHTTP(mcpResponse, mcpRequest)
+	if mcpResponse.Code != 200 || !strings.Contains(mcpResponse.Body.String(), `"tenantRef":"re8ch"`) || !strings.Contains(mcpResponse.Body.String(), "re8ch-default") || strings.Contains(mcpResponse.Body.String(), "other-default") {
+		t.Fatalf("MCP and Hub discovery diverged: %d %s", mcpResponse.Code, mcpResponse.Body.String())
+	}
 }

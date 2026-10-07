@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sort"
@@ -34,10 +35,20 @@ func (s *server) selfServiceCapabilitiesHTTP(w http.ResponseWriter, r *http.Requ
 		writeJSON(w, 403, map[string]string{"error": "organization access denied"})
 		return
 	}
-	namespaces, err := controlRequest(r.Context(), id.Tenant, "/v1/namespaces")
+	result, err := selfServiceCapabilities(r.Context(), id)
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": "tenant capability discovery unavailable"})
 		return
+	}
+	writeJSON(w, 200, result)
+}
+
+// Shared by the browser and MCP discovery tool so both surfaces report the
+// same active organization, namespace readiness, and supported operations.
+func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, error) {
+	namespaces, err := controlRequest(ctx, id.Tenant, "/v1/namespaces")
+	if err != nil {
+		return nil, err
 	}
 	ready := []string{}
 	for _, raw := range slice(namespaces["items"]) {
@@ -51,7 +62,7 @@ func (s *server) selfServiceCapabilitiesHTTP(w http.ResponseWriter, r *http.Requ
 	}
 	sort.Strings(ready)
 	canWrite := id.Role == "operator" || id.Role == "admin"
-	writeJSON(w, 200, map[string]any{
+	return map[string]any{
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready,
 		"capabilities": []map[string]any{
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite},
@@ -61,5 +72,5 @@ func (s *server) selfServiceCapabilitiesHTTP(w http.ResponseWriter, r *http.Requ
 			{"id": "secret", "kinds": []string{"Secret"}, "writeOnly": true, "tools": []string{"tenant_secret_upsert", "tenant_secret_metadata_list", "tenant_secret_delete"}, "canWrite": canWrite && len(ready) > 0},
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canWrite && len(ready) > 0},
 		},
-	})
+	}, nil
 }

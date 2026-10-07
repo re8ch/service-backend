@@ -81,6 +81,15 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if !id.Service && id.Subject != "" && id.Tenant == "" {
 		return ms
 	}
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's current self-service resource operations, role, and Ready namespaces. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure. For reviewed internal workflows, also search dynamic_skill_search."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			caller, err := identityFrom(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			value, err := selfServiceCapabilities(ctx, caller)
+			return nil, value, err
+		})
 	s.registerClaimTools(ms)
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
@@ -104,7 +113,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 }
 
 func (s *server) registerDynamicSkillTools(ms *mcp.Server) {
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_search"), Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_search"), Name: "dynamic_skill_search", Description: "Search reviewed internal and tenant-specific workflows visible to the authenticated active organization. Use tenant_self_service_capabilities first for supported resource operations; use this search to find procedures and integrations not represented by static tools."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input searchInput) (*mcp.CallToolResult, any, error) {
 			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
