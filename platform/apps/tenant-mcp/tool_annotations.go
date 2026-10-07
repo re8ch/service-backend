@@ -17,7 +17,9 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate", "tenant_kubernetes_get", "artc_kubernetes_read":
 		readOnly = true
-	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
+	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
+		readOnly = true
+	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create", "tenant_secret_upsert", "tenant_exposure_create":
 		// Additive operations against the configured tenant platform.
 	case "dynamic_skill_submit":
 		// Stores caller-supplied workflow text for an independently reviewed platform process.
@@ -31,7 +33,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
 		"harbor_tag_delete", "harbor_build_cancel", "grafana_exploration_save", "grafana_exploration_delete",
-		"grafana_render", "tenant_kubernetes_delete", "platform_organization", "platform_user":
+		"grafana_render", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "platform_organization", "platform_user":
 		// Includes updates/revocations and render's temporary dashboard cleanup.
 		destructive = true
 	default:
