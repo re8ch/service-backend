@@ -56,7 +56,10 @@ spec:
         image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:fa68993015b73e9e84a0f75c6c82f4ec5604ee890fbff8cf989d23c858a7b3b3
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
-        platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/v2/platform/session
+        # Ordinary tenant calls verify their GoTrue session directly. Keep the
+        # optional platform-admin entitlement hop disabled until its live RPC
+        # latency and failure behavior pass the full authenticated tool matrix.
+        platformSessionURL: ""
       provider:
         enabled: true
         image: registry.re8ch.com/image/re8ch-ai-operations@sha256:a0ce7b678dea621596d7c64945732bada37dcb18092e9491e28144003b6c4fdd
