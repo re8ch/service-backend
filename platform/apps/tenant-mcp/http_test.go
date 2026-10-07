@@ -219,6 +219,13 @@ func TestMCPUnavailableTenantAuthorizerReturnsServiceUnavailable(t *testing.T) {
 
 func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) {
 	s := testServer(t)
+	owner := "personal-11111111-1111-4111-8111-111111111111"
+	other := "personal-22222222-2222-4222-8222-222222222222"
+	for _, item := range []struct{ tenant, name string }{{owner, "own-workflow"}, {other, "other-workflow"}} {
+		if _, err := s.submit(request{Tenant: "admin", TargetTenant: item.tenant, Subject: "reviewer", Name: item.name, Description: "needle workflow", Workflow: "Use approved tools."}, true); err != nil {
+			t.Fatal(err)
+		}
+	}
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"id": "user-1"})
 	}))
@@ -237,6 +244,8 @@ func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) 
 		{"initialize", `{}`},
 		{"tools/list", `{}`},
 		{"tools/call", `{"name":"tenant_access_status","arguments":{}}`},
+		{"tools/call", `{"name":"service_catalog_list","arguments":{}}`},
+		{"tools/call", `{"name":"dynamic_skill_search","arguments":{"query":"needle"}}`},
 	} {
 		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"`+test.method+`","params":`+test.params+`}`))
 		req.Header.Set("Authorization", "Bearer "+fixtureToken())
@@ -247,11 +256,38 @@ func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) 
 		if response.Code != http.StatusOK {
 			t.Fatalf("shared personal %s returned %d: %s", test.method, response.Code, response.Body.String())
 		}
-		if test.method == "tools/list" && (strings.Contains(response.Body.String(), "tenant_claim_create") || !strings.Contains(response.Body.String(), "tenant_access_status")) {
-			t.Fatalf("shared class leaked resource tools: %s", response.Body.String())
+		if test.method == "tools/list" {
+			var listed struct {
+				Result struct {
+					Tools []struct {
+						Name string `json:"name"`
+					} `json:"tools"`
+				} `json:"result"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &listed); err != nil {
+				t.Fatal(err)
+			}
+			names := map[string]bool{}
+			for _, item := range listed.Result.Tools {
+				names[item.Name] = true
+			}
+			for _, name := range []string{"tenant_access_status", "service_catalog_list", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+				if !names[name] {
+					t.Fatalf("shared class omitted safe tool %s: %s", name, response.Body.String())
+				}
+			}
+			if len(names) != 5 {
+				t.Fatalf("shared class published resource tools: %s", response.Body.String())
+			}
 		}
-		if test.method == "tools/call" && (!strings.Contains(response.Body.String(), `"organizationRef":"personal-11111111-1111-4111-8111-111111111111"`) || !strings.Contains(response.Body.String(), `"runtimeTenantRef":"personal-standard"`) || !strings.Contains(response.Body.String(), `"tenantAuthorized":false`)) {
+		if strings.Contains(test.params, "tenant_access_status") && (!strings.Contains(response.Body.String(), `"organizationRef":"personal-11111111-1111-4111-8111-111111111111"`) || !strings.Contains(response.Body.String(), `"runtimeTenantRef":"personal-standard"`) || !strings.Contains(response.Body.String(), `"tenantAuthorized":true`) || !strings.Contains(response.Body.String(), `"resourceOperationsAvailable":false`)) {
 			t.Fatalf("shared class status lost owner or access gate: %s", response.Body.String())
+		}
+		if strings.Contains(test.params, "service_catalog_list") && !strings.Contains(response.Body.String(), `"tenantRef":"`+owner+`"`) {
+			t.Fatalf("shared catalog lost logical owner: %s", response.Body.String())
+		}
+		if strings.Contains(test.params, "dynamic_skill_search") && (!strings.Contains(response.Body.String(), "own-workflow") || strings.Contains(response.Body.String(), "other-workflow")) {
+			t.Fatalf("shared skill search leaked another organization: %s", response.Body.String())
 		}
 	}
 }
