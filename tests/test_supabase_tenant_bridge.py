@@ -70,7 +70,7 @@ def test_supabase_membership_controls_tenant_role_and_revocation(monkeypatch):
             return [{"metadata": {"name": "tenant-ci"}, "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "tenant-ci-default"}}}]
 
     monkeypatch.setattr(controller, "KUBE", Kube())
-    rows = [{"tenant_ref": "tenant-ci", "tenant_role": "operator", "tenant_kind": "organization"}]
+    rows = [{"tenant_ref": "tenant-ci", "tenant_role": "operator", "tenant_kind": "organization", "is_active": True}]
 
     def memberships(request, timeout):
         assert request.full_url.endswith("/rpc/my_tenant_runtime_contexts")
@@ -83,17 +83,16 @@ def test_supabase_membership_controls_tenant_role_and_revocation(monkeypatch):
         "tenantRef": "tenant-ci", "runtimeTenantRef": "tenant-ci", "role": "operator",
         "defaultNamespace": "tenant-ci-default", "runtimeNamespaceRef": "tenant-ci-default",
     }
-    rows.append({"tenant_ref": "personal-example", "tenant_role": "admin", "tenant_kind": "personal"})
+    rows.append({"tenant_ref": "personal-example", "tenant_role": "admin", "tenant_kind": "personal", "is_active": False})
     assert controller.resolve_supabase_membership("valid-token", "")["tenantRef"] == "tenant-ci"
-    rows.append({"tenant_ref": "another-team", "tenant_role": "viewer", "tenant_kind": "organization"})
-    with pytest.raises(PermissionError, match="select an active tenant"):
-        controller.resolve_supabase_membership("valid-token", "")
+    rows.append({"tenant_ref": "another-team", "tenant_role": "viewer", "tenant_kind": "organization", "is_active": False})
+    assert controller.resolve_supabase_membership("valid-token", "")["tenantRef"] == "tenant-ci"
     rows.clear()
-    with pytest.raises(PermissionError, match="not an active member"):
+    with pytest.raises(PermissionError, match="selection is unavailable"):
         controller.resolve_supabase_membership("valid-token", "tenant-ci")
-    rows.append({"tenant_ref": "tenant-ci", "tenant_role": "admin", "tenant_kind": "organization"})
+    rows.append({"tenant_ref": "tenant-ci", "tenant_role": "admin", "tenant_kind": "organization", "is_active": True})
     assert controller.resolve_supabase_membership("valid-token", "tenant-ci")["role"] == "admin"
-    with pytest.raises(PermissionError, match="ordinary tenant"):
+    with pytest.raises(PermissionError, match="not active for this account"):
         controller.resolve_supabase_membership("valid-token", "admin")
 
 
@@ -120,9 +119,9 @@ def test_new_personal_organizations_share_runtime_class_without_sharing_owner(mo
     cluster = Kube()
     monkeypatch.setattr(controller, "KUBE", cluster)
     owner = {"tenant_ref": "personal-11111111-1111-4111-8111-111111111111",
-             "tenant_role": "admin", "tenant_kind": "personal"}
+             "tenant_role": "admin", "tenant_kind": "personal", "is_active": True}
     other = {"tenant_ref": "personal-22222222-2222-4222-8222-222222222222",
-             "tenant_role": "admin", "tenant_kind": "personal"}
+             "tenant_role": "admin", "tenant_kind": "personal", "is_active": True}
     rows = [owner]
     monkeypatch.setattr(controller.urllib.request, "urlopen", lambda *_args, **_kwargs: Response(json.dumps(rows).encode()))
     first = controller.resolve_supabase_membership("valid-token", "")
@@ -140,7 +139,7 @@ def test_new_personal_organizations_share_runtime_class_without_sharing_owner(mo
     assert controller.harbor_project(owner["tenant_ref"]) == owner["tenant_ref"]
     assert controller.runtime_namespace(owner["tenant_ref"]) == first["defaultNamespace"]
     assert controller.tenant_namespace_resources(virtual, first["defaultNamespace"])[0]["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == owner["tenant_ref"]
-    with pytest.raises(PermissionError, match="not an active member"):
+    with pytest.raises(PermissionError, match="not active for this account"):
         controller.resolve_supabase_membership("valid-token", other["tenant_ref"])
     rows[:] = [other]
     second = controller.resolve_supabase_membership("valid-token", "")
@@ -151,7 +150,7 @@ def test_new_personal_organizations_share_runtime_class_without_sharing_owner(mo
     with pytest.raises(PermissionError):
         controller.validate_tenant_namespace(owner["tenant_ref"], second["defaultNamespace"], "EnsurePresent")
     rows.clear()
-    with pytest.raises(PermissionError, match="select an active tenant"):
+    with pytest.raises(PermissionError, match="selection is unavailable"):
         controller.resolve_supabase_membership("valid-token", "")
 
 
@@ -215,7 +214,7 @@ def test_suspended_dedicated_personal_tenant_cannot_fall_back_to_shared_class(mo
                     {"metadata": {"name": "personal-standard"}, "spec": {"lifecycle": "Active"}}]
 
     monkeypatch.setattr(controller, "KUBE", Kube())
-    rows = [{"tenant_ref": owner, "tenant_role": "admin", "tenant_kind": "personal"}]
+    rows = [{"tenant_ref": owner, "tenant_role": "admin", "tenant_kind": "personal", "is_active": True}]
     monkeypatch.setattr(controller.urllib.request, "urlopen", lambda *_args, **_kwargs: Response(json.dumps(rows).encode()))
     with pytest.raises(PermissionError, match="not active"):
         controller.resolve_supabase_membership("valid-token", "")

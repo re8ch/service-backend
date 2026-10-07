@@ -142,7 +142,7 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	if serviceToken(bearer) {
 		return identity{Subject: "service:litellm", Service: true}, nil
 	}
-	if selected == "admin" || (selected != "" && !tenantName.MatchString(selected)) {
+	if selected != "" && !tenantName.MatchString(selected) {
 		return identity{}, errors.New("invalid bearer token or tenant selection")
 	}
 	id, err := s.verifySupabase(ctx, bearer)
@@ -177,12 +177,16 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 				Error string `json:"error"`
 			}
 			_ = json.NewDecoder(io.LimitReader(response2.Body, 65536)).Decode(&denied)
-			id.AccessStatus, id.RecoveryAction = "no_membership", "sign in again to provision or restore the Personal tenant"
+			id.AccessStatus, id.RecoveryAction = "personal_provisioning", "sign in again to provision or restore the Personal organization"
 			switch {
-			case strings.Contains(denied.Error, "select an active tenant"):
-				id.AccessStatus, id.RecoveryAction = "tenant_selection_required", "select one active tenant with X-RE8CH-Tenant"
+			case strings.Contains(denied.Error, "selection is unavailable"):
+				id.AccessStatus, id.RecoveryAction = "selection_required", "select an active organization in User Hub or with tenant_organization_context_select"
+			case strings.Contains(denied.Error, "not active for this account"):
+				id.AccessStatus, id.RecoveryAction = "selection_required", "remove the stale X-RE8CH-Tenant header or select that organization first"
+			case strings.Contains(denied.Error, "tenant is not active"), strings.Contains(denied.Error, "organization is not active"):
+				id.AccessStatus, id.RecoveryAction = "organization_inactive", "ask an organization administrator to reactivate the organization"
 			case strings.Contains(denied.Error, "not active"), strings.Contains(denied.Error, "suspended"):
-				id.AccessStatus, id.RecoveryAction = "tenant_inactive", "select an active tenant or ask its owner to restore membership"
+				id.AccessStatus, id.RecoveryAction = "membership_inactive", "select an active organization or ask its owner to restore membership"
 			}
 			return id, errTenantUnassigned
 		}
@@ -197,13 +201,13 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	if err = json.NewDecoder(io.LimitReader(response2.Body, 65536)).Decode(&membership); err != nil {
 		return identity{}, err
 	}
-	if !tenantName.MatchString(membership.Tenant) || membership.Tenant == "admin" || (selected != "" && selected != membership.Tenant) || membership.DefaultNamespace == "" || (membership.Role != "viewer" && membership.Role != "operator" && membership.Role != "admin") {
+	if !tenantName.MatchString(membership.Tenant) || (selected != "" && selected != membership.Tenant) || membership.DefaultNamespace == "" || (membership.Role != "viewer" && membership.Role != "operator" && membership.Role != "admin") {
 		return identity{}, errors.New("tenant authorizer returned an invalid context")
 	}
 	if membership.RuntimeTenantRef == "" {
 		membership.RuntimeTenantRef = membership.Tenant
 	}
-	if !tenantName.MatchString(membership.RuntimeTenantRef) || membership.RuntimeTenantRef == "admin" {
+	if !tenantName.MatchString(membership.RuntimeTenantRef) {
 		return identity{}, errors.New("tenant authorizer returned an invalid runtime class")
 	}
 	id.OrganizationRef, id.RuntimeTenantRef = membership.Tenant, membership.RuntimeTenantRef
@@ -220,8 +224,11 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
 	id.AccessStatus = "ready"
 	// Resolve the privileged membership once per verified login session.
-	if os.Getenv("PLATFORM_SESSION_URL") == "" {
+	if membership.Tenant == "admin" && os.Getenv("PLATFORM_SESSION_URL") == "" {
 		id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)
+	}
+	if membership.Tenant != "admin" {
+		id.PlatformAdmin = false
 	}
 	return id, nil
 }

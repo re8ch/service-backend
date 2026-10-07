@@ -8,7 +8,7 @@ import "github.com/modelcontextprotocol/go-sdk/mcp"
 func toolAnnotations(name string) *mcp.ToolAnnotations {
 	readOnly, destructive, openWorld := false, false, false
 	switch name {
-	case "tenant_access_status", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
+	case "tenant_access_status", "tenant_organization_context_list", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",
@@ -33,7 +33,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
 		"harbor_tag_delete", "harbor_build_cancel", "grafana_exploration_save", "grafana_exploration_delete",
-		"grafana_render", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "platform_organization", "platform_user":
+		"grafana_render", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "tenant_organization_context_select", "platform_organization", "platform_user":
 		// Includes updates/revocations and render's temporary dashboard cleanup.
 		destructive = true
 	default:

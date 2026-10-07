@@ -239,8 +239,8 @@ func TestMCPVerifiedBearerWithoutTenantCanStartWithNoTenantTools(t *testing.T) {
 			t.Fatalf("unassigned user saw tenant tools: %s", response.Body.String())
 		}
 		if method == "tools/call" && (!strings.Contains(response.Body.String(), `"tenantAuthorized":false`) ||
-			!strings.Contains(response.Body.String(), `"status":"tenant_selection_required"`) ||
-			!strings.Contains(response.Body.String(), `"recoveryAction":"select one active tenant with X-RE8CH-Tenant"`)) {
+			!strings.Contains(response.Body.String(), `"status":"personal_provisioning"`) ||
+			!strings.Contains(response.Body.String(), `"recoveryAction":"sign in again to provision or restore the Personal organization"`)) {
 			t.Fatalf("unassigned status did not report the boundary: %s", response.Body.String())
 		}
 	}
@@ -540,13 +540,13 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"tenant_access_status", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+	for _, name := range []string{"tenant_access_status", "tenant_organization_context_list", "tenant_organization_context_select", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy)+1 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)+1)
+	if len(names) != len(legacy)+3 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)+3)
 	}
 }
 
@@ -614,7 +614,7 @@ func TestReviewDemoBatchToolNamesUseCanonicalHandlers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(normalized), reviewDemoToolPrefix) || !strings.Contains(string(normalized), `"name":"service_catalog_list"`) {
+	if strings.Contains(string(normalized), legacyToolPrefixes[0]) || !strings.Contains(string(normalized), `"name":"service_catalog_list"`) {
 		t.Fatalf("namespaced batch tool call was not normalized: %s", normalized)
 	}
 }

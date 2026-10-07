@@ -19,7 +19,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const reviewDemoToolPrefix = "re8ch_review_demo."
+var legacyToolPrefixes = []string{"re8ch_review_demo.", "re8ch_tenant.", "re8ch."}
 
 type searchInput struct {
 	Query string `json:"query" jsonschema:"Search phrase describing the capability needed"`
@@ -77,6 +77,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			}
 			return nil, status, nil
 		})
+	s.registerOrganizationContextTools(ms)
 	if !id.Service && id.Subject != "" && id.Tenant == "" {
 		return ms
 	}
@@ -92,7 +93,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if !id.Service && id.Tenant == artcTenant() {
 		s.registerArtcTools(ms)
 	}
-	if id.PlatformAdmin && !id.Service {
+	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerPlatformTools(ms)
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
@@ -185,11 +186,16 @@ func rewriteReviewDemoToolNames(value any) bool {
 			return false
 		}
 		name, ok := params["name"].(string)
-		if !ok || !strings.HasPrefix(name, reviewDemoToolPrefix) {
+		if !ok {
 			return false
 		}
-		params["name"] = strings.TrimPrefix(name, reviewDemoToolPrefix)
-		return true
+		for _, prefix := range legacyToolPrefixes {
+			if strings.HasPrefix(name, prefix) {
+				params["name"] = strings.TrimPrefix(name, prefix)
+				return true
+			}
+		}
+		return false
 	default:
 		return false
 	}
