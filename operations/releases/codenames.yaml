@@ -956,6 +956,8 @@ modules:
       digest: sha256:b7d6245881548a008b49aa6079e21d77e3cc16f78dfedab9fa00c80f903be25b
     - codename: eddy-opal
       digest: sha256:13f956ef83d08e4fdce47f50ac37176ef136091643ced89a566b9839f073ea53
+    - codename: gulfstream-opal
+      digest: sha256:3310e124a4913f2305a88293c2a3f91d9bf2365a898434183cd0b86bd1b680a9
   platform/hyperswitch:
     releases:
     - codename: anchor
