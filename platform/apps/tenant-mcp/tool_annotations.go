@@ -8,7 +8,7 @@ import "github.com/modelcontextprotocol/go-sdk/mcp"
 func toolAnnotations(name string) *mcp.ToolAnnotations {
 	readOnly, destructive, openWorld := false, false, false
 	switch name {
-	case "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
+	case "tenant_access_status", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",

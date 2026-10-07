@@ -11,6 +11,17 @@ token; every tenant request checks it with GoTrue and resolves current tenant
 membership through tenant-control. The ToolHive service credential supports
 MCP discovery only. Tenant tool calls need a tenant member token.
 
+Authentication and tenant authorization have separate outcomes. A verified
+Supabase user without an active runtime tenant can initialize MCP and receives
+only `tenant_access_status`; tenant resources and operations remain unavailable.
+An invalid token receives an OAuth challenge, while an unavailable tenant
+authorizer returns 503. Supabase owns the user, Personal organization, and
+membership. Tenant-control still requires a separate active Tenant resource
+for runtime namespace and grant policy. Creating that resource is a distinct
+provisioning workflow and is not inferred from a successful login.
+The proposed shared runtime class mapping and its user isolation gates are
+documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret
