@@ -974,6 +974,8 @@ modules:
       digest: sha256:f7e6ce67acdbc69661d3ac04cc5e4511e31a08f128961e47853ebc2fc371a5f8
     - codename: riptide-garnet
       digest: sha256:72d132d95e93416c32f9eaf3465c667871cbd99e6e1797d14939c1c47987594e
+    - codename: springtide-garnet
+      digest: sha256:c8040fafcb65e41cc4956e06b085364fba2ab21d29788c0a364484bfd5dc2d95
   platform/hyperswitch:
     releases:
     - codename: anchor
