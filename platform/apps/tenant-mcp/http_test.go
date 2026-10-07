@@ -245,6 +245,7 @@ func TestMCPSharedPersonalClassRetainsOwnerAndPublishesResourceTools(t *testing.
 		{"tools/list", `{}`},
 		{"tools/call", `{"name":"tenant_access_status","arguments":{}}`},
 		{"tools/call", `{"name":"service_catalog_list","arguments":{}}`},
+		{"tools/call", `{"name":"re8ch_review_demo.service_catalog_list","arguments":{}}`},
 		{"tools/call", `{"name":"dynamic_skill_search","arguments":{"query":"needle"}}`},
 	} {
 		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"`+test.method+`","params":`+test.params+`}`))
