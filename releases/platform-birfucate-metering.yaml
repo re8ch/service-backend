@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: eddy-garnet
+codename: gulfstream-garnet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:8ff5c504348845fa508c18370aaa3a548343cd2a992f361d9cf549c2b3a04797
+  digest: sha256:f7e6ce67acdbc69661d3ac04cc5e4511e31a08f128961e47853ebc2fc371a5f8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
