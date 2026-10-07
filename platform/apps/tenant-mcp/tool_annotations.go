@@ -17,8 +17,10 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate", "tenant_kubernetes_get", "artc_kubernetes_read":
 		readOnly = true
-	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
+	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get", "agent_list", "agent_task_get":
 		readOnly = true
+	case "agent_register", "agent_heartbeat", "agent_task_send", "agent_task_poll", "agent_task_reply":
+		// Tenant-scoped conversation state. Poll marks the message as received.
 	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create", "tenant_secret_upsert", "tenant_exposure_create":
 		// Additive operations against the configured tenant platform.
 	case "dynamic_skill_submit":

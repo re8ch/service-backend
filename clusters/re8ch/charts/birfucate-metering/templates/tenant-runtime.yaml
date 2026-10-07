@@ -201,6 +201,8 @@ spec:
             - {name: PLATFORM_MODULE_REGISTRY, value: /etc/re8ch/modules/modules.json}
             - {name: DYNAMIC_SKILL_DB, value: /var/lib/tenant-platform/dynamic-skills.db}
             - {name: DYNAMIC_SKILL_ADMIN_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
+            - {name: SECRETARY_OBSERVATION_URL, value: "http://secretary-api.re8ch-secretary.svc.cluster.local/v1/observations"}
+            - {name: SECRETARY_WEBHOOK_SECRET, valueFrom: {secretKeyRef: {name: tenant-a2a-secretary, key: webhook-secret, optional: true}}}
             - {name: ADMIN_LISTEN_PORT, value: "19450"}
             {{- end }}
           ports:

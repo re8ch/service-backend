@@ -50,6 +50,28 @@ privileges. `dynamic_skill_search` returns published matches for the current
 tenant and platform-wide skills; `dynamic_skill_load` returns a selected
 workflow. Tenant operators can submit a draft with `dynamic_skill_submit`.
 Drafts remain invisible until an admin reviews them.
+
+## Agent-to-Agent mailbox
+
+The tenant MCP exposes a small durable mailbox for running agents. A worker
+registers with `agent_register`, renews its lease with `agent_heartbeat`, polls
+with `agent_task_poll`, and submits the actual response with `agent_task_reply`.
+Another member of the same authenticated tenant discovers it through
+`agent_list`, sends a bounded task with `agent_task_send`, and reads the result
+with `agent_task_get`. Agent registration requires an operator role. Polling and
+replying require the same verified subject that registered the worker; task
+results are visible only to the requester. Task sends use a stable idempotency
+key, and all refs are opaque.
+
+The mailbox stores conversation bodies in tenant state. It sends only hashes,
+opaque IDs and state transitions to Secretary. Its outbox distinguishes a
+locally recorded event from an observation accepted by Secretary; neither
+means a human acknowledged the task. To enable delivery, create the
+`tenant-a2a-secretary` Secret in `tenant-infrastructure` with the `webhook-secret`
+key through the authorized admin path. The chart references that Secret
+optionally, so missing credentials leave observations pending and retryable on
+`agent_task_get`. The worker's LiteLLM credential belongs in its own runtime
+Secret reference and never passes through these MCP tools.
 Set `visibility: personal` when submitting a workflow that should follow one
 GoTrue user across computers. The server binds it to the authenticated subject;
 search and load require the same subject and tenant after publication. The

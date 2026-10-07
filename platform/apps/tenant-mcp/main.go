@@ -90,6 +90,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerKubernetesTools(ms)
 	s.registerSecretTools(ms)
 	s.registerExposureTools(ms)
+	s.registerAgentA2ATools(ms)
 	if !id.Service && id.Tenant == artcTenant() {
 		s.registerArtcTools(ms)
 	}

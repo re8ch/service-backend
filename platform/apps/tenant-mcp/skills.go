@@ -72,6 +72,10 @@ func open(path string) (*server, error) {
 		db.Close()
 		return nil, err
 	}
+	if err = migrateAgentA2A(db); err != nil {
+		db.Close()
+		return nil, err
+	}
 	columns, err := db.Query(`PRAGMA table_info(dynamic_skills)`)
 	if err != nil {
 		db.Close()
