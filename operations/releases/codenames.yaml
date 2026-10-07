@@ -962,6 +962,8 @@ modules:
       digest: sha256:9e943e5db776a6b4ddbf617c0bc20a5ad1541389f2bcc02206e2c3dac0784358
     - codename: springtide-opal
       digest: sha256:b0dbfa6919076fda3d23aaabd6bbfc0919845dc4faa2116fe4bb172f7366df5d
+    - codename: tideway-opal
+      digest: sha256:4ecf4748769069389b71275ea63532c5c50126a10ca200a4fd39ed2a16d305e0
   platform/hyperswitch:
     releases:
     - codename: anchor
