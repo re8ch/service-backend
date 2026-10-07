@@ -984,6 +984,8 @@ modules:
       digest: sha256:eceac55bc4ea39ebf2830695d56a68d80cc3a4b031830affedb7a3b0abe98895
     - codename: eddy-beryl
       digest: sha256:11321e1ad55b5f0b27cf269166edfa8ce5092069e8acaf082923b6b039807ff3
+    - codename: gulfstream-beryl
+      digest: sha256:e3973769ec10508bbf2b9b64e9d5ac6b5469beb770e1bcf41a7b3f566f7db5fe
   platform/hyperswitch:
     releases:
     - codename: anchor
