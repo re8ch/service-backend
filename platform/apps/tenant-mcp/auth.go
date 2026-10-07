@@ -27,6 +27,8 @@ type identity struct {
 	DefaultNamespace string
 	Service          bool
 	PlatformAdmin    bool
+	AccessStatus     string
+	RecoveryAction   string
 }
 
 type identityKey struct{}
@@ -171,6 +173,17 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	defer response2.Body.Close()
 	if response2.StatusCode != http.StatusOK {
 		if response2.StatusCode == http.StatusForbidden || response2.StatusCode == http.StatusNotFound {
+			var denied struct {
+				Error string `json:"error"`
+			}
+			_ = json.NewDecoder(io.LimitReader(response2.Body, 65536)).Decode(&denied)
+			id.AccessStatus, id.RecoveryAction = "no_membership", "sign in again to provision or restore the Personal tenant"
+			switch {
+			case strings.Contains(denied.Error, "select an active tenant"):
+				id.AccessStatus, id.RecoveryAction = "tenant_selection_required", "select one active tenant with X-RE8CH-Tenant"
+			case strings.Contains(denied.Error, "not active"), strings.Contains(denied.Error, "suspended"):
+				id.AccessStatus, id.RecoveryAction = "tenant_inactive", "select an active tenant or ask its owner to restore membership"
+			}
 			return id, errTenantUnassigned
 		}
 		return identity{}, fmt.Errorf("%w: tenant authorizer returned HTTP %d", errIdentityUnavailable, response2.StatusCode)
@@ -201,9 +214,11 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 		// The logical Personal organization remains the resource ownership key.
 		// The controller maps it to an owner namespace under the shared class.
 		id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
+		id.AccessStatus = "ready"
 		return id, nil
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
+	id.AccessStatus = "ready"
 	// Resolve the privileged membership once per verified login session.
 	if os.Getenv("PLATFORM_SESSION_URL") == "" {
 		id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)

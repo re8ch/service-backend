@@ -119,15 +119,26 @@ def test_runtime_contexts_keep_personal_owners_separate(postgres):
         create role service_role; create role authenticated; create role anon;
         create schema auth; create schema core; create schema api;
         create table auth.users (id uuid primary key, deleted_at timestamptz);
-        create table core.organizations (tenant_ref text primary key, status text, kind text);
-        create table core.organization_members (tenant_ref text, user_id uuid, status text, role text);
+        create table core.organizations (tenant_ref text primary key, display_name text, identity_ref text,
+            status text default 'active', kind text, personal_owner_id uuid, updated_at timestamptz default now());
+        create table core.organization_members (tenant_ref text, user_id uuid, status text, role text,
+            updated_at timestamptz default now(), primary key (tenant_ref, user_id));
         create function api.current_user_id() returns uuid language sql stable as
             $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+        create function core.ensure_personal_organization(p_user_id uuid) returns void language plpgsql as $$
+        declare v_ref text := 'personal-' || p_user_id::text;
+        begin
+          insert into core.organizations(tenant_ref,display_name,identity_ref,status,kind,personal_owner_id)
+          values(v_ref,'Personal','re8ch:personal:' || p_user_id::text,'active','personal',p_user_id)
+          on conflict do nothing;
+          insert into core.organization_members(tenant_ref,user_id,status,role)
+          values(v_ref,p_user_id,'active','owner') on conflict do nothing;
+        end $$;
         insert into auth.users values ('{ALICE}', null), ('{BOB}', null);
-        insert into core.organizations values
-            ('personal-{ALICE}', 'active', 'personal'),
-            ('personal-{BOB}', 'active', 'personal');
-        insert into core.organization_members values
+        insert into core.organizations(tenant_ref,display_name,identity_ref,status,kind,personal_owner_id) values
+            ('personal-{ALICE}', 'Personal', 'alice', 'active', 'personal', '{ALICE}'),
+            ('personal-{BOB}', 'Personal', 'bob', 'active', 'personal', '{BOB}');
+        insert into core.organization_members(tenant_ref,user_id,status,role) values
             ('personal-{ALICE}', '{ALICE}', 'active', 'owner'),
             ('personal-{BOB}', '{BOB}', 'active', 'owner');
     """)
@@ -137,5 +148,5 @@ def test_runtime_contexts_keep_personal_owners_separate(postgres):
     assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == f"personal-{ALICE}:admin:personal"
     assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{BOB}'; {query}") == f"personal-{BOB}:admin:personal"
     postgres(f"update core.organization_members set status = 'revoked' where user_id = '{ALICE}'")
-    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == ""
+    assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == f"personal-{ALICE}:admin:personal"
     assert "permission denied" in postgres(f"set role anon; set request.jwt.claim.sub = '{BOB}'; {query}", expect_failure=True)

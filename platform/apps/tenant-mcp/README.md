@@ -11,9 +11,12 @@ token; every tenant request checks it with GoTrue and resolves current tenant
 membership through tenant-control. The ToolHive service credential supports
 MCP discovery only. Tenant tool calls need a tenant member token.
 
-Authentication and tenant authorization have separate outcomes. A verified
-Supabase user without an active runtime tenant can initialize MCP and receives
-only `tenant_access_status`; tenant resources and operations remain unavailable.
+Authentication and tenant authorization have separate outcomes. The identity
+RPC idempotently creates or restores the verified user's Personal organization
+owner membership before resolving a runtime. A verified user that still cannot
+resolve one tenant can initialize MCP and receives only `tenant_access_status`,
+including a machine-readable access state and recovery action; tenant resources
+and operations remain unavailable.
 An invalid token receives an OAuth challenge, while an unavailable tenant
 authorizer returns 503. Supabase owns the user, Personal organization, and
 membership. Tenant-control requires an active runtime Tenant policy. Ordinary
@@ -25,6 +28,15 @@ the resource owner. Each owner receives its own namespace and provider identity;
 the shared class supplies policy and capacity. The complete tenant tool surface
 is available to these users, subject to their Supabase role and resource state.
 The mapping is documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
+
+Tenant owners and operators can manage allowlisted ConfigMaps, workloads and
+ClusterIP Services through the native Kubernetes tools. Secret values use the
+separate `tenant_secret_*` broker: values are write-only, while reads expose
+only names, key names and Kubernetes metadata. Public HTTP access uses
+`tenant_exposure_*`, which creates a constrained HTTPRoute to a same-namespace
+ClusterIP Service. Hostnames are allocated below `apps.re8ch.com`; the shared
+Gateway, listener, DNS and TLS policy remain platform-owned. Raw Secret and
+Gateway access are not published.
 
 ## Dynamic skills
 

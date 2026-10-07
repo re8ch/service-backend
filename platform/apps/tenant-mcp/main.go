@@ -50,6 +50,18 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 				"tenantAuthorized":            caller.Tenant != "" || caller.RuntimeTenantRef != "",
 				"resourceOperationsAvailable": caller.Tenant != "",
 			}
+			accessStatus := caller.AccessStatus
+			if accessStatus == "" {
+				if caller.Tenant != "" {
+					accessStatus = "ready"
+				} else {
+					accessStatus = "no_membership"
+				}
+			}
+			status["status"] = accessStatus
+			if caller.RecoveryAction != "" {
+				status["recoveryAction"] = caller.RecoveryAction
+			}
 			if caller.OrganizationRef != "" {
 				status["organizationRef"] = caller.OrganizationRef
 			}
@@ -75,6 +87,8 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms)
 	s.registerGrafanaTools(ms)
 	s.registerKubernetesTools(ms)
+	s.registerSecretTools(ms)
+	s.registerExposureTools(ms)
 	if !id.Service && id.Tenant == artcTenant() {
 		s.registerArtcTools(ms)
 	}
