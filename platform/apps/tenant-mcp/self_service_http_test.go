@@ -54,6 +54,19 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	if result["tenantRef"] != "re8ch" || !strings.Contains(w.Body.String(), "re8ch-default") || strings.Contains(w.Body.String(), "other-default") || !strings.Contains(w.Body.String(), "exposure") {
 		t.Fatalf("unexpected scope: %s", w.Body.String())
 	}
+	// Discovery must not omit a Kubernetes kind that the tenant apply broker accepts.
+	discovered := map[string]bool{}
+	for _, raw := range result["capabilities"].([]any) {
+		for _, kind := range raw.(map[string]any)["kinds"].([]any) {
+			discovered[kind.(string)] = true
+		}
+	}
+	for gvk := range tenantApplyKinds {
+		parts := strings.Split(gvk, "/")
+		if !discovered[parts[len(parts)-1]] {
+			t.Errorf("tenant apply kind %s omitted from self-service discovery", gvk)
+		}
+	}
 	mcpRequest := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"tenant_self_service_capabilities","arguments":{}}}`))
 	mcpRequest.Header.Set("Authorization", "Bearer "+fixtureToken())
 	mcpRequest.Header.Set("X-RE8CH-Tenant", "re8ch")

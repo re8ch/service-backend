@@ -62,13 +62,19 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	}
 	sort.Strings(ready)
 	canWrite := id.Role == "operator" || id.Role == "admin"
+	kubernetesTools := []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
+	namespacedWrite := canWrite && len(ready) > 0
 	return map[string]any{
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready,
 		"capabilities": []map[string]any{
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite},
-			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}, "canWrite": canWrite && len(ready) > 0},
-			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}, "canWrite": canWrite && len(ready) > 0},
-			{"id": "service", "kinds": []string{"Service"}, "serviceTypes": []string{"ClusterIP"}, "tools": []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}, "canWrite": canWrite && len(ready) > 0},
+			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "service", "kinds": []string{"Service"}, "serviceTypes": []string{"ClusterIP"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "storage", "kinds": []string{"PersistentVolumeClaim"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "service-identity", "kinds": []string{"ServiceAccount", "Role", "RoleBinding"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "workload-policy", "kinds": []string{"HorizontalPodAutoscaler", "PodDisruptionBudget"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "runtime-observation", "kinds": []string{"Pod", "Event", "Endpoints", "ReplicaSet"}, "tools": []string{"tenant_kubernetes_get"}, "canWrite": false},
 			{"id": "secret", "kinds": []string{"Secret"}, "writeOnly": true, "tools": []string{"tenant_secret_upsert", "tenant_secret_metadata_list", "tenant_secret_delete"}, "canWrite": canWrite && len(ready) > 0},
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canWrite && len(ready) > 0},
 		},
