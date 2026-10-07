@@ -55,6 +55,7 @@ CLAIM_MUTATION_LOCK = threading.Lock()
 LOG = logging.getLogger("tenant-control-controller")
 RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
 TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
+PERSONAL_RUNTIME_CLASS = "personal-standard"
 
 
 class Kubernetes:
@@ -258,10 +259,10 @@ def resolve_supabase_membership(access_token, requested_tenant):
     """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
     if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
         raise PermissionError("Supabase access token is required")
-    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant == "admin":
+    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant in {"admin", PERSONAL_RUNTIME_CLASS}:
         raise PermissionError("select an ordinary tenant")
     request = urllib.request.Request(
-        IDENTITY_REST_URL + "/rpc/my_tenant_runtime_memberships",
+        IDENTITY_REST_URL + "/rpc/my_tenant_runtime_contexts",
         data=b"{}", method="POST",
         headers={"Authorization": "Bearer " + access_token, "Content-Type": "application/json", "Accept": "application/json"},
     )
@@ -278,22 +279,34 @@ def resolve_supabase_membership(access_token, requested_tenant):
         raise RuntimeError("Supabase membership response is invalid")
     if not requested_tenant:
         ordinary = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
-                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref") != "admin"
-                           and row.get("tenant_role") in ROLE_ORDER and not row.get("tenant_ref").startswith("personal-")})
+                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref") not in {"admin", PERSONAL_RUNTIME_CLASS}
+                           and row.get("tenant_role") in ROLE_ORDER and row.get("tenant_kind") != "personal"})
         personal = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
-                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref").startswith("personal-")
+                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_kind") == "personal"
                            and row.get("tenant_role") in ROLE_ORDER})
         choices = ordinary or personal
         if len(choices) != 1:
             raise PermissionError("select an active tenant")
         requested_tenant = choices[0]
-    roles = [row.get("tenant_role") for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
-    if len(roles) != 1 or roles[0] not in ROLE_ORDER:
+    selected_rows = [row for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
+    if len(selected_rows) != 1 or selected_rows[0].get("tenant_role") not in ROLE_ORDER:
         raise PermissionError("identity is not an active member of the selected tenant")
-    tenant = tenant_definition(requested_tenant)
+    selected = selected_rows[0]
+    runtime_ref = requested_tenant
+    if selected.get("tenant_kind") == "personal":
+        if not requested_tenant.startswith("personal-"):
+            raise PermissionError("personal organization reference is invalid")
+        # Existing Personal runtime Tenants keep their own resources. Newly
+        # registered Personal organizations share a class without inheriting
+        # one another's resource ownership.
+        if not any(item.get("metadata", {}).get("name") == requested_tenant and
+                   item.get("spec", {}).get("lifecycle") == "Active" for item in kube().list("tenants")):
+            runtime_ref = PERSONAL_RUNTIME_CLASS
+    tenant = tenant_definition(runtime_ref)
     policy = tenant.get("spec", {}).get("namespacePolicy", {})
-    namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or requested_tenant
-    return {"tenantRef": requested_tenant, "role": roles[0], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
+    namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or runtime_ref
+    return {"tenantRef": requested_tenant, "runtimeTenantRef": runtime_ref,
+            "role": selected["tenant_role"], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
 
 
 def utcnow():

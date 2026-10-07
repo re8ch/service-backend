@@ -611,3 +611,15 @@ def test_production_controller_rollout_fits_single_r640_worker():
     affinity = controller["spec"]["template"]["spec"]["affinity"]
     assert "podAntiAffinity" not in affinity
     assert affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
+
+
+def test_shared_personal_runtime_class_has_no_resource_grants():
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
+    shared = next(item for item in tenants if item["name"] == "personal-standard")
+    assert shared["identityBindings"] == []
+    assert shared["grants"] == []
+    assert shared["nativeAccess"] is False
+    assert shared["byocAllowed"] is False
+    assert shared["namespacePolicy"]["allowCreate"] is False
+    assert shared["namespacePolicy"]["bootstrapNamespaces"] == []

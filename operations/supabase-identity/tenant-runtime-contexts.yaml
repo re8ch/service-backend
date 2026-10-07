@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-tenant-runtime-contexts-v1
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    begin;
+    create or replace function api.my_tenant_runtime_contexts()
+    returns table(tenant_ref text, tenant_role text, tenant_kind text)
+    language sql stable security definer set search_path = pg_catalog, pg_temp
+    as $$
+      select m.tenant_ref,
+        case m.role
+          when 'owner' then 'admin'
+          when 'admin' then 'admin'
+          when 'member' then 'operator'
+          when 'viewer' then 'viewer'
+        end,
+        o.kind
+      from core.organization_members m
+      join core.organizations o on o.tenant_ref = m.tenant_ref
+      join auth.users u on u.id = m.user_id
+      where m.user_id = api.current_user_id()
+        and m.status = 'active' and o.status = 'active'
+        and u.deleted_at is null
+        and m.role in ('owner', 'admin', 'member', 'viewer')
+    $$;
+    revoke all on function api.my_tenant_runtime_contexts() from public, anon, service_role;
+    grant usage on schema api to authenticated;
+    grant execute on function api.my_tenant_runtime_contexts() to authenticated;
+    alter function api.my_tenant_runtime_contexts() owner to supabase_admin;
+    notify pgrst, 'reload schema';
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-tenant-runtime-contexts-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
+      containers:
+        - name: migrate
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args: ["psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql"]
+          env:
+            - {name: PGHOST, value: pg-re8ch-primary.pigsty-external.svc.cluster.local}
+            - {name: PGDATABASE, value: re8ch_identity}
+            - {name: PGUSER, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_USER_READ_WRITE}}}
+            - {name: PGPASSWORD, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_PASSWORD}}}
+          volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - {name: sql, configMap: {name: supabase-tenant-runtime-contexts-v1}}
