@@ -966,6 +966,8 @@ modules:
       digest: sha256:4ecf4748769069389b71275ea63532c5c50126a10ca200a4fd39ed2a16d305e0
     - codename: cascade-garnet
       digest: sha256:369f0a268c51aa4811ebc0859946c2c6acd23d29e30c40b84b79a85c23f9e6df
+    - codename: confluence-garnet
+      digest: sha256:67bae4693dc5b41b342012b099d2c1fc6b7594bb9da4460faeac7e476dacb98e
   platform/hyperswitch:
     releases:
     - codename: anchor
