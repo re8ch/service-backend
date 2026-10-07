@@ -1,0 +1,8 @@
+[Unit]
+Description=Mount AMD WSL R640 NAS after network recovery
+After=network-online.target re8ch-amd-wsl-lan-routes.service
+Wants=network-online.target re8ch-amd-wsl-lan-routes.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-amd-wsl-nfs-mount
