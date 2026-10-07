@@ -1,6 +1,6 @@
 [
   {
-    "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.",
+    "description": "List published service classes, plans, regions, parameters and meters. This is not the full tenant capability catalog: call tenant_self_service_capabilities for current resource operations and dynamic_skill_search for reviewed internal workflows.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
@@ -995,7 +995,7 @@
     "name": "byoc_connection_revoke"
   },
   {
-    "description": "List autonomous tenant compute and independent volume claim contracts.",
+    "description": "List autonomous compute and independent volume claim contracts only. For current Workload, Service, Secret, and Exposure support, call tenant_self_service_capabilities; search dynamic_skill_search for reviewed internal workflows.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
