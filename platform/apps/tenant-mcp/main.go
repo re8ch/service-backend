@@ -248,6 +248,18 @@ func (s *server) handler() http.Handler {
 		w.WriteHeader(204)
 	})
 	mux.HandleFunc("GET /billing/usage", s.billingHTTP)
+	mux.HandleFunc("OPTIONS /self-service/capabilities", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Origin") != "https://auth.re8ch.com" {
+			writeJSON(w, 403, map[string]string{"error": "forbidden"})
+			return
+		}
+		billingHeaders(w, r)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, X-RE8CH-Tenant")
+		w.Header().Set("Access-Control-Max-Age", "600")
+		w.WriteHeader(204)
+	})
+	mux.HandleFunc("GET /self-service/capabilities", s.selfServiceCapabilitiesHTTP)
 	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
 	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
