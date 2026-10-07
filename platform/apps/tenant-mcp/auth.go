@@ -31,6 +31,7 @@ type identityKey struct{}
 
 var errInvalidToken = errors.New("invalid bearer token")
 var errIdentityUnavailable = errors.New("identity authority unavailable")
+var errTenantUnassigned = errors.New("active runtime tenant unavailable")
 
 func identityFrom(ctx context.Context) (identity, error) {
 	value, ok := ctx.Value(identityKey{}).(identity)
@@ -133,7 +134,7 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	controlURL := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/")
 	secret := os.Getenv("TENANT_CLAIM_SERVICE_TOKEN")
 	if controlURL == "" || secret == "" {
-		return identity{}, errors.New("tenant authorizer is unavailable")
+		return identity{}, errIdentityUnavailable
 	}
 	payload, _ := json.Marshal(map[string]string{"tenantRef": selected, "accessToken": bearer})
 	resolve, err := http.NewRequestWithContext(ctx, http.MethodPost, controlURL+"/v1/resolve-supabase", strings.NewReader(string(payload)))
@@ -146,11 +147,14 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	client := &http.Client{Timeout: 8 * time.Second}
 	response2, err := client.Do(resolve)
 	if err != nil {
-		return identity{}, fmt.Errorf("tenant authorizer unavailable: %w", err)
+		return identity{}, fmt.Errorf("%w: tenant authorizer: %v", errIdentityUnavailable, err)
 	}
 	defer response2.Body.Close()
 	if response2.StatusCode != http.StatusOK {
-		return identity{}, errors.New("identity is not an active member of the selected tenant")
+		if response2.StatusCode == http.StatusForbidden || response2.StatusCode == http.StatusNotFound {
+			return id, errTenantUnassigned
+		}
+		return identity{}, fmt.Errorf("%w: tenant authorizer returned HTTP %d", errIdentityUnavailable, response2.StatusCode)
 	}
 	var membership struct {
 		Tenant           string `json:"tenantRef"`

@@ -127,6 +127,9 @@ func TestMCPIdentityAndDynamicSkill(t *testing.T) {
 	if status, body := call("backend-secret", "", "tools/list", map[string]any{}); status != 200 || body["result"] == nil {
 		t.Fatalf("ToolHive service discovery failed: %d %v", status, body)
 	}
+	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "tenant_access_status", "arguments": map[string]any{}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
+		t.Fatalf("ToolHive service credential called user status: %d %v", status, body)
+	}
 	if status, body := call("backend-secret", "", "resources/list", map[string]any{}); status != 200 || len(body["result"].(map[string]any)["resources"].([]any)) != 0 {
 		t.Fatalf("service credential saw tenant resources: %d %v", status, body)
 	}
@@ -156,7 +159,7 @@ func TestMCPRejectedBearerReturnsOAuthChallenge(t *testing.T) {
 	}
 }
 
-func TestMCPVerifiedBearerWithoutTenantIsForbidden(t *testing.T) {
+func TestMCPVerifiedBearerWithoutTenantCanStartWithNoTenantTools(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"id": "user-1"})
@@ -169,12 +172,48 @@ func TestMCPVerifiedBearerWithoutTenantIsForbidden(t *testing.T) {
 	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
 	t.Setenv("TENANT_CONTROL_URL", control.URL)
 	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, method := range []string{"initialize", "tools/list", "tools/call"} {
+		params := `{}`
+		if method == "tools/call" {
+			params = `{"name":"tenant_access_status","arguments":{}}`
+		}
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"`+method+`","params":`+params+`}`))
+		req.Header.Set("Authorization", "Bearer "+fixtureToken())
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, req)
+		if response.Code != http.StatusOK || response.Header().Get("WWW-Authenticate") != "" {
+			t.Fatalf("verified user without a tenant could not %s: %d %s", method, response.Code, response.Body.String())
+		}
+		if method == "tools/list" && (!strings.Contains(response.Body.String(), "tenant_access_status") || strings.Contains(response.Body.String(), "tenant_claim_create")) {
+			t.Fatalf("unassigned user saw tenant tools: %s", response.Body.String())
+		}
+		if method == "tools/call" && !strings.Contains(response.Body.String(), `"tenantAuthorized":false`) {
+			t.Fatalf("unassigned status did not report the boundary: %s", response.Body.String())
+		}
+	}
+}
+
+func TestMCPUnavailableTenantAuthorizerReturnsServiceUnavailable(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "unavailable"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
 	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
 	req.Header.Set("Authorization", "Bearer "+fixtureToken())
 	response := httptest.NewRecorder()
 	s.handler().ServeHTTP(response, req)
-	if response.Code != http.StatusForbidden || response.Header().Get("WWW-Authenticate") != "" {
-		t.Fatalf("verified user without a tenant must not be asked to log in again: %d %q", response.Code, response.Header().Get("WWW-Authenticate"))
+	if response.Code != http.StatusServiceUnavailable || response.Header().Get("WWW-Authenticate") != "" {
+		t.Fatalf("tenant authorizer outage was mistaken for missing access: %d %s", response.Code, response.Body.String())
 	}
 }
 
@@ -264,13 +303,13 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+	for _, name := range []string{"tenant_access_status", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy) {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy))
+	if len(names) != len(legacy)+1 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)+1)
 	}
 }
 

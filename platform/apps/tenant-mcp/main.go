@@ -35,6 +35,21 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}, Resources: &mcp.ResourceCapabilities{}}})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report whether this authenticated session has an active runtime tenant."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			caller, ok := ctx.Value(identityKey{}).(identity)
+			if !ok || caller.Service || caller.Subject == "" {
+				return nil, nil, errors.New("an authenticated user is required")
+			}
+			status := map[string]any{"authenticated": true, "tenantAuthorized": caller.Tenant != ""}
+			if caller.Tenant == "" {
+				status["reason"] = "no single active runtime tenant resolved"
+			}
+			return nil, status, nil
+		})
+	if !id.Service && id.Subject != "" && id.Tenant == "" {
+		return ms
+	}
 	s.registerClaimTools(ms)
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
@@ -163,6 +178,10 @@ func (s *server) handler() http.Handler {
 		}
 		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
 		if err != nil {
+			if errors.Is(err, errTenantUnassigned) {
+				mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
+				return
+			}
 			if errors.Is(err, errIdentityUnavailable) {
 				writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
 				return
