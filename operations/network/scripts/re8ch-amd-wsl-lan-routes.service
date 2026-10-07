@@ -1,0 +1,8 @@
+[Unit]
+Description=Select AMD WSL direct and host WireGuard LAN routes
+After=network-online.target wg-quick@wg-aesthete.service
+Wants=network-online.target wg-quick@wg-aesthete.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-amd-wsl-lan-routes

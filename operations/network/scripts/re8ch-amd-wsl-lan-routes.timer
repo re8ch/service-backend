@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh AMD WSL LAN WireGuard routes every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=re8ch-amd-wsl-lan-routes.service
+
+[Install]
+WantedBy=timers.target
