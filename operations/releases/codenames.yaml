@@ -964,6 +964,8 @@ modules:
       digest: sha256:b0dbfa6919076fda3d23aaabd6bbfc0919845dc4faa2116fe4bb172f7366df5d
     - codename: tideway-opal
       digest: sha256:4ecf4748769069389b71275ea63532c5c50126a10ca200a4fd39ed2a16d305e0
+    - codename: cascade-garnet
+      digest: sha256:369f0a268c51aa4811ebc0859946c2c6acd23d29e30c40b84b79a85c23f9e6df
   platform/hyperswitch:
     releases:
     - codename: anchor
