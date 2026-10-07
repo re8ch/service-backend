@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: springtide-garnet
+codename: tideway-garnet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:c8040fafcb65e41cc4956e06b085364fba2ab21d29788c0a364484bfd5dc2d95
+  digest: sha256:e57ab625f0a94a6623719dbe5f85d15244adc10da630d6c0a276b9bcb0cc353e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
