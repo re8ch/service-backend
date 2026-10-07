@@ -47,6 +47,11 @@ func (s *server) registerClaimTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
+				if name != "tenant_capabilities_list" && name != "tenant_claim_get" && name != "tenant_claim_list" && name != "tenant_usage_summary_get" {
+					if err := requireOperator(id); err != nil {
+						return nil, nil, err
+					}
+				}
 				value, err := s.callClaim(ctx, id.Tenant, name, args)
 				return nil, value, err
 			})

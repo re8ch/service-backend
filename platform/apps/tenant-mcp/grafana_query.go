@@ -173,7 +173,10 @@ func normalizeFrames(value any) (map[string]any, error) {
 func (s *server) grafanaQuery(ctx context.Context, tenant string, client *grafanaClient, spec map[string]any, datasources []map[string]any) (map[string]any, error) {
 	binding, err := tenantGrafanaBinding(tenant)
 	if err != nil {
-		return nil, err
+		if !strings.HasPrefix(tenant, "personal-") || client == nil || client.orgID <= 1 {
+			return nil, err
+		}
+		binding = grafanaBinding{OrgID: client.orgID, TenantLabel: tenant}
 	}
 	start, end, err := validateGrafanaSpec(spec, binding, datasources)
 	if err != nil {

@@ -16,16 +16,15 @@ Supabase user without an active runtime tenant can initialize MCP and receives
 only `tenant_access_status`; tenant resources and operations remain unavailable.
 An invalid token receives an OAuth challenge, while an unavailable tenant
 authorizer returns 503. Supabase owns the user, Personal organization, and
-membership. Tenant-control still requires a separate active Tenant resource
-for runtime namespace and grant policy. Creating that resource is a distinct
-provisioning workflow and is not inferred from a successful login.
-Personal organizations without their own runtime Tenant can map to the
-`personal-standard` runtime class. Their organization reference remains their
-logical owner. Shared-class sessions can inspect access status and the static
-service catalog, and search, load, or submit reviewed workflows scoped to their
-Personal organization. Resource operations remain closed until per-owner gates
-are deployed. The mapping and remaining gates are
-documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
+membership. Tenant-control requires an active runtime Tenant policy. Ordinary
+Personal organizations use the predeclared `personal-standard` policy, while
+other organizations require their own reviewed runtime declaration.
+Personal organizations without their own runtime Tenant map to the
+`personal-standard` runtime class. Their verified organization reference remains
+the resource owner. Each owner receives its own namespace and provider identity;
+the shared class supplies policy and capacity. The complete tenant tool surface
+is available to these users, subject to their Supabase role and resource state.
+The mapping is documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
 
 ## Dynamic skills
 

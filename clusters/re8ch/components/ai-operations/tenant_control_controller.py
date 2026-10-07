@@ -7,6 +7,7 @@ hash over a cluster-internal authenticated channel.
 """
 
 import calendar
+import copy
 import hashlib
 import hmac
 import importlib.util
@@ -56,6 +57,8 @@ LOG = logging.getLogger("tenant-control-controller")
 RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
 TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 PERSONAL_RUNTIME_CLASS = "personal-standard"
+PERSONAL_OWNER_RE = re.compile(r"^personal-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$")
+PERSONAL_NAMESPACE_DECLARED = set()
 
 
 class Kubernetes:
@@ -299,10 +302,19 @@ def resolve_supabase_membership(access_token, requested_tenant):
         # Existing Personal runtime Tenants keep their own resources. Newly
         # registered Personal organizations share a class without inheriting
         # one another's resource ownership.
-        if not any(item.get("metadata", {}).get("name") == requested_tenant and
-                   item.get("spec", {}).get("lifecycle") == "Active" for item in kube().list("tenants")):
+        dedicated = next((item for item in kube().list("tenants")
+                          if item.get("metadata", {}).get("name") == requested_tenant), None)
+        if dedicated and dedicated.get("spec", {}).get("lifecycle") != "Active":
+            raise PermissionError("the dedicated Personal tenant is not active")
+        if not dedicated:
             runtime_ref = PERSONAL_RUNTIME_CLASS
-    tenant = tenant_definition(runtime_ref)
+    if runtime_ref == PERSONAL_RUNTIME_CLASS:
+        try:
+            ensure_personal_namespace(requested_tenant)
+        except Exception as exc:
+            # Namespace provisioning must not turn a verified login into 403.
+            LOG.warning("Personal namespace declaration pending for %s: %s", requested_tenant, exc)
+    tenant = tenant_definition(requested_tenant)
     policy = tenant.get("spec", {}).get("namespacePolicy", {})
     namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or runtime_ref
     return {"tenantRef": requested_tenant, "runtimeTenantRef": runtime_ref,
@@ -318,10 +330,46 @@ def iso(value):
 
 
 def tenant_definition(tenant_ref):
-    for tenant in kube().list("tenants"):
-        if tenant.get("metadata", {}).get("name") == tenant_ref and tenant.get("spec", {}).get("lifecycle") == "Active":
+    tenants = kube().list("tenants")
+    for tenant in tenants:
+        if tenant.get("metadata", {}).get("name") == tenant_ref:
+            if tenant.get("spec", {}).get("lifecycle") != "Active":
+                raise PermissionError("active tenant definition is unavailable")
             return tenant
+    if PERSONAL_OWNER_RE.fullmatch(tenant_ref):
+        runtime = next((item for item in tenants if item.get("metadata", {}).get("name") == PERSONAL_RUNTIME_CLASS
+                        and item.get("spec", {}).get("lifecycle") == "Active"), None)
+        if runtime:
+            virtual = copy.deepcopy(runtime)
+            virtual["metadata"]["name"] = tenant_ref
+            policy = virtual["spec"]["namespacePolicy"]
+            policy["defaultNamespace"] = tenant_ref + "-default"
+            policy["allowedPrefixes"] = [tenant_ref + "-"]
+            policy["bootstrapNamespaces"] = [tenant_ref + "-default"]
+            virtual["spec"]["harborProjectRef"] = tenant_ref
+            return virtual
     raise PermissionError("active tenant definition is unavailable")
+
+
+def ensure_personal_namespace(owner_ref):
+    if not PERSONAL_OWNER_RE.fullmatch(owner_ref):
+        raise PermissionError("invalid Personal organization reference")
+    if owner_ref in PERSONAL_NAMESPACE_DECLARED:
+        return
+    namespace = owner_ref + "-default"
+    name = tenant_namespace_name(owner_ref, namespace)
+    desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantNamespace",
+               "metadata": {"name": name, "labels": {"tenancy.re8ch.com/tenant": owner_ref}},
+               "spec": {"tenantRef": owner_ref, "namespaceName": namespace, "operation": "EnsurePresent"}}
+    try:
+        kube().create("tenantnamespaces", desired)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 409:
+            raise
+        existing = kube().get("tenantnamespaces", name)
+        if existing.get("spec", {}) != desired["spec"]:
+            raise PermissionError("Personal namespace declaration belongs to another owner") from None
+    PERSONAL_NAMESPACE_DECLARED.add(owner_ref)
 
 
 def runtime_namespace(tenant_ref):
@@ -414,6 +462,8 @@ def reconcile_tenant_namespace(resource, tenants):
     meta, spec = resource["metadata"], resource["spec"]
     tenant_ref, namespace = spec["tenantRef"], spec["namespaceName"]
     tenant = tenants.get(tenant_ref)
+    if not tenant and PERSONAL_OWNER_RE.fullmatch(tenant_ref):
+        tenant = tenant_definition(tenant_ref)
     if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
         raise PermissionError("tenant is not active")
     validate_tenant_namespace(tenant_ref, namespace, spec["operation"])
@@ -830,6 +880,32 @@ def reconcile_loop():
                         except Exception as exc:
                             status = {**instance.get("status", {}), "observedGeneration": instance["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
                             kube().patch_status("tenantserviceinstances", instance["metadata"]["name"], status, namespace)
+            # Personal owners share one runtime policy, but each has its own
+            # namespace and resource reconciliation scope.
+            for item in namespace_items:
+                spec = item.get("spec", {})
+                owner = spec.get("tenantRef", "")
+                if owner in tenants or not PERSONAL_OWNER_RE.fullmatch(owner) or spec.get("operation") != "EnsurePresent":
+                    continue
+                namespace = spec.get("namespaceName")
+                if not isinstance(namespace, str) or item.get("status", {}).get("phase") != "Ready":
+                    continue
+                for claim in kube().list("tenantresourceclaims", namespace):
+                    try:
+                        if claim.get("spec", {}).get("tenantRef") != owner:
+                            raise PermissionError("claim owner does not match its namespace")
+                        reconcile_claim(claim)
+                    except Exception as exc:
+                        status = {**claim.get("status", {}), "observedGeneration": claim["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
+                        kube().patch_status("tenantresourceclaims", claim["metadata"]["name"], status, namespace)
+                for instance in kube().list("tenantserviceinstances", namespace):
+                    try:
+                        if instance.get("spec", {}).get("tenantRef") != owner:
+                            raise PermissionError("service owner does not match its namespace")
+                        reconcile_among_clusters_instance(instance)
+                    except Exception as exc:
+                        status = {**instance.get("status", {}), "observedGeneration": instance["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
+                        kube().patch_status("tenantserviceinstances", instance["metadata"]["name"], status, namespace)
         except Exception as exc:
             LOG.exception("reconcile iteration failed: %s", exc)
         time.sleep(10)

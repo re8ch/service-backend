@@ -46,10 +46,14 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 				"tenantAuthorized":            caller.Tenant != "" || caller.RuntimeTenantRef != "",
 				"resourceOperationsAvailable": caller.Tenant != "",
 			}
+			if caller.OrganizationRef != "" {
+				status["organizationRef"] = caller.OrganizationRef
+			}
+			if caller.RuntimeTenantRef != "" {
+				status["runtimeTenantRef"] = caller.RuntimeTenantRef
+			}
 			if caller.Tenant == "" {
 				if caller.RuntimeTenantRef != "" {
-					status["organizationRef"] = caller.OrganizationRef
-					status["runtimeTenantRef"] = caller.RuntimeTenantRef
 					status["reason"] = "shared runtime class resolved; resource operations are pending owner isolation"
 				} else {
 					status["reason"] = "no single active runtime tenant resolved"
@@ -58,9 +62,6 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 			return nil, status, nil
 		})
 	if !id.Service && id.Subject != "" && id.Tenant == "" {
-		if id.RuntimeTenantRef == "personal-standard" {
-			s.registerSharedPersonalTools(ms)
-		}
 		return ms
 	}
 	s.registerClaimTools(ms)
@@ -81,27 +82,6 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerResources(ms, id)
 	s.registerDynamicSkillTools(ms)
 	return ms
-}
-
-func (s *server) registerSharedPersonalTools(ms *mcp.Server) {
-	definitions, err := legacyDefinitions()
-	if err != nil {
-		panic(err)
-	}
-	definition := definitions["service_catalog_list"]
-	if definition.Name == "" {
-		panic("missing tenant schema: service_catalog_list")
-	}
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("service_catalog_list"), Name: "service_catalog_list", Description: definition.Description, InputSchema: definition.InputSchema},
-		func(ctx context.Context, _ *mcp.CallToolRequest, _ map[string]any) (*mcp.CallToolResult, any, error) {
-			id, err := ownerScopedIdentityFrom(ctx)
-			if err != nil {
-				return nil, nil, err
-			}
-			value, err := s.callService(ctx, id, "service_catalog_list", map[string]any{})
-			return nil, value, err
-		})
-	s.registerDynamicSkillTools(ms)
 }
 
 func (s *server) registerDynamicSkillTools(ms *mcp.Server) {

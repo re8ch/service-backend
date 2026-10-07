@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -131,7 +132,10 @@ func (e grafanaHTTPError) Error() string {
 func tenantGrafana(ctx context.Context, tenant string, admin bool) (*grafanaClient, error) {
 	binding, err := tenantGrafanaBinding(tenant)
 	if err != nil {
-		return nil, err
+		if !strings.HasPrefix(tenant, "personal-") {
+			return nil, err
+		}
+		return personalGrafana(ctx, tenant)
 	}
 	var authorization string
 	if admin {
@@ -165,6 +169,49 @@ func tenantGrafana(ctx context.Context, tenant string, admin bool) (*grafanaClie
 		base = "https://grafana.service.re8ch.com/grafana"
 	}
 	return &grafanaClient{base: base, authorization: authorization, orgID: binding.OrgID}, nil
+}
+
+// Personal organizations use provider-provisioned Grafana organizations and
+// the matching human credential, avoiding a static binding to the shared class.
+func personalGrafana(ctx context.Context, owner string) (*grafanaClient, error) {
+	result, err := controlRequest(ctx, owner, "/v1/services")
+	if err != nil {
+		return nil, err
+	}
+	orgID, reference, err := personalGrafanaAccess(owner, slice(result["items"]))
+	if err != nil {
+		return nil, err
+	}
+	provider, material, err := credentialMaterial(ctx, owner, reference)
+	if err != nil {
+		return nil, err
+	}
+	if provider != "grafana" || material["project"] != strconv.Itoa(orgID) || material["username"] == "" || material["password"] == "" {
+		return nil, errors.New("Personal Grafana credential does not match its organization")
+	}
+	base := strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")
+	if base == "" {
+		base = "https://grafana.service.re8ch.com/grafana"
+	}
+	authorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(material["username"]+":"+material["password"]))
+	return &grafanaClient{base: base, authorization: authorization, orgID: orgID}, nil
+}
+
+func personalGrafanaAccess(owner string, items []any) (int, string, error) {
+	for _, raw := range items {
+		instance := object(raw)
+		spec, status := object(instance["spec"]), object(instance["status"])
+		if spec["tenantRef"] != owner || spec["serviceClass"] != "observability.grafana.v1" || status["phase"] != "Ready" {
+			continue
+		}
+		orgID := intValue(object(status["access"])["organizationId"])
+		reference := asString(status, "humanCredentialRef")
+		if orgID <= 1 || reference == "" {
+			return 0, "", errors.New("Personal Grafana binding is incomplete")
+		}
+		return orgID, reference, nil
+	}
+	return 0, "", errors.New("Personal organization has no ready Grafana service instance")
 }
 
 func (c *grafanaClient) request(ctx context.Context, method, path string, payload any, timeout time.Duration, raw bool) (any, error) {

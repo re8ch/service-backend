@@ -101,12 +101,24 @@ def test_new_personal_organizations_share_runtime_class_without_sharing_owner(mo
     controller = load("tenant_shared_personal", "tenant_control_controller.py")
 
     class Kube:
-        def list(self, plural):
-            assert plural == "tenants"
-            return [{"metadata": {"name": "personal-standard"},
-                     "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "personal-standard-default"}}}]
+        created = []
 
-    monkeypatch.setattr(controller, "KUBE", Kube())
+        def list(self, plural):
+            if plural == "tenantidentitybindings":
+                return []
+            assert plural == "tenants"
+            return [{"metadata": {"name": "personal-standard", "uid": "shared-class-uid"},
+                     "spec": {"lifecycle": "Active", "namespacePolicy": {
+                         "defaultNamespace": "personal-standard-default", "maxNamespaces": 10,
+                         "allowCreate": True, "allowDelete": True}}}]
+
+        def create(self, plural, resource):
+            assert plural == "tenantnamespaces"
+            self.created.append(resource)
+            return resource
+
+    cluster = Kube()
+    monkeypatch.setattr(controller, "KUBE", cluster)
     owner = {"tenant_ref": "personal-11111111-1111-4111-8111-111111111111",
              "tenant_role": "admin", "tenant_kind": "personal"}
     other = {"tenant_ref": "personal-22222222-2222-4222-8222-222222222222",
@@ -116,16 +128,99 @@ def test_new_personal_organizations_share_runtime_class_without_sharing_owner(mo
     first = controller.resolve_supabase_membership("valid-token", "")
     assert first["tenantRef"] == owner["tenant_ref"]
     assert first["runtimeTenantRef"] == "personal-standard"
-    assert first["defaultNamespace"] == "personal-standard-default"
+    assert first["defaultNamespace"] == owner["tenant_ref"] + "-default"
+    assert cluster.created[0]["spec"]["tenantRef"] == owner["tenant_ref"]
+    assert cluster.created[0]["spec"]["namespaceName"] == first["defaultNamespace"]
+    assert controller.resolve_supabase_membership("valid-token", "")["tenantRef"] == owner["tenant_ref"]
+    assert len(cluster.created) == 1
+    virtual = controller.tenant_definition(owner["tenant_ref"])
+    assert virtual["metadata"]["name"] == owner["tenant_ref"]
+    assert virtual["metadata"]["uid"] == "shared-class-uid"
+    assert virtual["spec"]["namespacePolicy"]["allowedPrefixes"] == [owner["tenant_ref"] + "-"]
+    assert controller.harbor_project(owner["tenant_ref"]) == owner["tenant_ref"]
+    assert controller.runtime_namespace(owner["tenant_ref"]) == first["defaultNamespace"]
+    assert controller.tenant_namespace_resources(virtual, first["defaultNamespace"])[0]["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == owner["tenant_ref"]
     with pytest.raises(PermissionError, match="not an active member"):
         controller.resolve_supabase_membership("valid-token", other["tenant_ref"])
     rows[:] = [other]
     second = controller.resolve_supabase_membership("valid-token", "")
     assert second["tenantRef"] == other["tenant_ref"]
     assert second["runtimeTenantRef"] == first["runtimeTenantRef"]
+    assert second["defaultNamespace"] != first["defaultNamespace"]
+    assert cluster.created[1]["spec"]["tenantRef"] == other["tenant_ref"]
+    with pytest.raises(PermissionError):
+        controller.validate_tenant_namespace(owner["tenant_ref"], second["defaultNamespace"], "EnsurePresent")
     rows.clear()
     with pytest.raises(PermissionError, match="select an active tenant"):
         controller.resolve_supabase_membership("valid-token", "")
+
+
+def test_shared_personal_namespace_reconciles_with_its_own_owner(monkeypatch):
+    controller = load("tenant_personal_namespace", "tenant_control_controller.py")
+    owner = "personal-11111111-1111-4111-8111-111111111111"
+    other = "personal-22222222-2222-4222-8222-222222222222"
+    runtime = {"metadata": {"name": "personal-standard", "uid": "class-uid"},
+               "spec": {"lifecycle": "Active", "namespacePolicy": {"defaultNamespace": "personal-standard-default",
+                        "allowedPrefixes": ["personal-standard-"], "allowCreate": True, "allowDelete": True}}}
+
+    class Kube:
+        namespaces = {}
+        status = {}
+
+        def list(self, plural):
+            if plural == "tenants":
+                return [runtime]
+            assert plural == "tenantidentitybindings"
+            return []
+
+        def get(self, plural, name, api=None):
+            assert plural == "namespaces"
+            if name not in self.namespaces:
+                raise controller.urllib.error.HTTPError("", 404, "missing", {}, None)
+            return self.namespaces[name]
+
+        def apply(self, resource):
+            if resource["kind"] == "Namespace":
+                name = resource["metadata"]["name"]
+                self.namespaces[name] = {"metadata": {**resource["metadata"], "uid": name + "-uid"}}
+
+        def patch_status(self, plural, name, status):
+            assert plural == "tenantnamespaces"
+            self.status[name] = status
+
+    cluster = Kube()
+    monkeypatch.setattr(controller, "KUBE", cluster)
+    for personal in (owner, other):
+        namespace = personal + "-default"
+        item = {"metadata": {"name": controller.tenant_namespace_name(personal, namespace), "uid": personal, "generation": 1},
+                "spec": {"tenantRef": personal, "namespaceName": namespace, "operation": "EnsurePresent"}}
+        controller.reconcile_tenant_namespace(item, {"personal-standard": runtime})
+        assert cluster.namespaces[namespace]["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == personal
+        assert cluster.status[item["metadata"]["name"]]["phase"] == "Ready"
+    assert cluster.namespaces[owner + "-default"]["metadata"]["labels"] != cluster.namespaces[other + "-default"]["metadata"]["labels"]
+    with pytest.raises(PermissionError, match="outside the authenticated tenant prefix"):
+        controller.reconcile_tenant_namespace({"metadata": {"name": "invalid", "uid": "invalid"},
+                                               "spec": {"tenantRef": owner, "namespaceName": other + "-default", "operation": "EnsurePresent"}},
+                                              {"personal-standard": runtime})
+
+
+def test_suspended_dedicated_personal_tenant_cannot_fall_back_to_shared_class(monkeypatch):
+    controller = load("tenant_suspended_personal", "tenant_control_controller.py")
+    owner = "personal-11111111-1111-4111-8111-111111111111"
+
+    class Kube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [{"metadata": {"name": owner}, "spec": {"lifecycle": "Suspended"}},
+                    {"metadata": {"name": "personal-standard"}, "spec": {"lifecycle": "Active"}}]
+
+    monkeypatch.setattr(controller, "KUBE", Kube())
+    rows = [{"tenant_ref": owner, "tenant_role": "admin", "tenant_kind": "personal"}]
+    monkeypatch.setattr(controller.urllib.request, "urlopen", lambda *_args, **_kwargs: Response(json.dumps(rows).encode()))
+    with pytest.raises(PermissionError, match="not active"):
+        controller.resolve_supabase_membership("valid-token", "")
+    with pytest.raises(PermissionError, match="active tenant definition"):
+        controller.tenant_definition(owner)
 
 
 def test_tenant_runtime_passes_token_only_to_internal_authorizer(monkeypatch):

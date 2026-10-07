@@ -217,7 +217,7 @@ func TestMCPUnavailableTenantAuthorizerReturnsServiceUnavailable(t *testing.T) {
 	}
 }
 
-func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) {
+func TestMCPSharedPersonalClassRetainsOwnerAndPublishesResourceTools(t *testing.T) {
 	s := testServer(t)
 	owner := "personal-11111111-1111-4111-8111-111111111111"
 	other := "personal-22222222-2222-4222-8222-222222222222"
@@ -233,7 +233,7 @@ func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) 
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{
 			"tenantRef":        "personal-11111111-1111-4111-8111-111111111111",
-			"runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": "personal-standard-default",
+			"runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": owner + "-default",
 		})
 	}))
 	defer control.Close()
@@ -271,16 +271,13 @@ func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) 
 			for _, item := range listed.Result.Tools {
 				names[item.Name] = true
 			}
-			for _, name := range []string{"tenant_access_status", "service_catalog_list", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+			for _, name := range []string{"tenant_access_status", "service_catalog_list", "service_instance_create", "service_binding_list", "usage_summary_get", "tenant_claim_create", "tenant_kubernetes_get", "harbor_project_get", "grafana_capability_list", "byoc_cluster_register", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
 				if !names[name] {
-					t.Fatalf("shared class omitted safe tool %s: %s", name, response.Body.String())
+					t.Fatalf("shared class omitted resource tool %s", name)
 				}
 			}
-			if len(names) != 5 {
-				t.Fatalf("shared class published resource tools: %s", response.Body.String())
-			}
 		}
-		if strings.Contains(test.params, "tenant_access_status") && (!strings.Contains(response.Body.String(), `"organizationRef":"personal-11111111-1111-4111-8111-111111111111"`) || !strings.Contains(response.Body.String(), `"runtimeTenantRef":"personal-standard"`) || !strings.Contains(response.Body.String(), `"tenantAuthorized":true`) || !strings.Contains(response.Body.String(), `"resourceOperationsAvailable":false`)) {
+		if strings.Contains(test.params, "tenant_access_status") && (!strings.Contains(response.Body.String(), `"organizationRef":"personal-11111111-1111-4111-8111-111111111111"`) || !strings.Contains(response.Body.String(), `"runtimeTenantRef":"personal-standard"`) || !strings.Contains(response.Body.String(), `"tenantAuthorized":true`) || !strings.Contains(response.Body.String(), `"resourceOperationsAvailable":true`)) {
 			t.Fatalf("shared class status lost owner or access gate: %s", response.Body.String())
 		}
 		if strings.Contains(test.params, "service_catalog_list") && !strings.Contains(response.Body.String(), `"tenantRef":"`+owner+`"`) {
@@ -288,6 +285,119 @@ func TestMCPSharedPersonalClassRetainsOwnerButClosesResourceTools(t *testing.T) 
 		}
 		if strings.Contains(test.params, "dynamic_skill_search") && (!strings.Contains(response.Body.String(), "own-workflow") || strings.Contains(response.Body.String(), "other-workflow")) {
 			t.Fatalf("shared skill search leaked another organization: %s", response.Body.String())
+		}
+	}
+}
+
+func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
+	s := testServer(t)
+	var err error
+	s.ledger, err = openLedger(t.TempDir() + "/ledger.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.ledger.Close() })
+	first := "personal-11111111-1111-4111-8111-111111111111"
+	second := "personal-22222222-2222-4222-8222-222222222222"
+	spec := map[string]any{"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}
+	firstOperation, firstBinding := "", ""
+	for _, item := range []struct{ owner, name string }{{first, "first-db"}, {second, "second-db"}} {
+		operation, err := s.instanceMutate(item.owner, item.name, spec, "create-"+item.name, "create")
+		if err != nil {
+			t.Fatal(err)
+		}
+		binding, err := s.bindingCreate(item.owner, "service://"+item.owner+"/"+item.name, "endpoint", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.owner == first {
+			firstOperation = operation["operationId"].(string)
+			firstBinding = binding["bindingRef"].(string)
+		}
+	}
+	if _, err := s.instanceGet(second, "service://"+first+"/first-db"); err == nil {
+		t.Fatal("second Personal owner read first owner's instance")
+	}
+	if _, err := s.operationGet(second, firstOperation); err == nil {
+		t.Fatal("second Personal owner replayed first owner's operation")
+	}
+	if _, err := s.bindingRevoke(second, firstBinding); err == nil {
+		t.Fatal("second Personal owner revoked first owner's binding")
+	}
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, err := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		if err != nil {
+			w.WriteHeader(401)
+			return
+		}
+		writeJSON(w, 200, map[string]string{"id": claims.Subject})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/resolve-supabase" {
+			var body map[string]string
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			claims, _ := decodeClaims(body["accessToken"])
+			owner := first
+			if claims.Subject == "user-2" {
+				owner = second
+			}
+			writeJSON(w, 200, map[string]string{"tenantRef": owner, "runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": owner + "-default"})
+			return
+		}
+		if r.URL.Path == "/v1/services" {
+			writeJSON(w, 200, map[string]any{"items": []any{}})
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, item := range []struct{ subject, own, other string }{{"user-1", "first-db", "second-db"}, {"user-2", "second-db", "first-db"}} {
+		for _, tool := range []string{"service_instance_list", "service_binding_list"} {
+			request := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"`+tool+`","arguments":{}}}`))
+			request.Header.Set("Authorization", "Bearer "+fixtureTokenFor(item.subject))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Accept", "application/json, text/event-stream")
+			response := httptest.NewRecorder()
+			s.handler().ServeHTTP(response, request)
+			if response.Code != 200 || !strings.Contains(response.Body.String(), item.own) || strings.Contains(response.Body.String(), item.other) {
+				t.Fatalf("%s crossed owner boundary for %s: %d %s", tool, item.subject, response.Code, response.Body.String())
+			}
+		}
+	}
+}
+
+func TestMCPSharedPersonalViewerCannotMutateResourceFamilies(t *testing.T) {
+	s := testServer(t)
+	owner := "personal-11111111-1111-4111-8111-111111111111"
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"tenantRef": owner, "runtimeTenantRef": "personal-standard", "role": "viewer", "defaultNamespace": owner + "-default"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, item := range []struct{ name, args string }{
+		{"tenant_claim_create", `{"claim":{},"claim_hash":"hash"}`},
+		{"byoc_cluster_register", `{"cluster_uid":"cluster","region_ref":"loudi","issuer":"https://example.com","public_key":"key"}`},
+		{"harbor_tag_delete", `{"credential_ref":"credential://harbor/owner/ref","repository":"repo","reference":"sha256:abc","tag":"tag"}`},
+		{"grafana_exploration_delete", `{"dashboard_uid":"dashboard"}`},
+	} {
+		request := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"`+item.name+`","arguments":`+item.args+`}}`))
+		request.Header.Set("Authorization", "Bearer "+fixtureToken())
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, request)
+		if response.Code != 200 || !strings.Contains(response.Body.String(), "operator tenant role is required") {
+			t.Fatalf("viewer reached %s: %d %s", item.name, response.Code, response.Body.String())
 		}
 	}
 }
