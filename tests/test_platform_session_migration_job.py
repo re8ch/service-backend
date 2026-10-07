@@ -45,3 +45,15 @@ def test_privacy_migration_reloads_the_read_only_schema_cache():
     _, job = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/privacy-requests.yaml').read_text()))
     _, deployment = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/identity-rest-ro.yaml').read_text()))
     assert deployment['spec']['template']['metadata']['annotations']['identity.re8ch.com/privacy-schema-revision'] == job['metadata']['name']
+
+
+def test_identity_rest_ro_uses_verified_cached_image_and_primary_resource_envelope():
+    _, deployment = list(yaml.safe_load_all((ROOT / 'operations/supabase-identity/identity-rest-ro.yaml').read_text()))
+    container = deployment['spec']['template']['spec']['containers'][0]
+
+    assert container['image'] == 'docker.io/postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c'
+    assert container['imagePullPolicy'] == 'Never'
+    assert container['resources'] == {
+        'requests': {'cpu': '40m', 'memory': '128Mi'},
+        'limits': {'cpu': '250m', 'memory': '512Mi'},
+    }
