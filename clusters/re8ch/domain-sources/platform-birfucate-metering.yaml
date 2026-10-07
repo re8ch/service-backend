@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-garnet
+    delivery.re8ch.com/codename: cascade-beryl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:e57ab625f0a94a6623719dbe5f85d15244adc10da630d6c0a276b9bcb0cc353e
+    digest: sha256:14e3b589b5c897a0008cd74582af12b600c57fa0c1a6bb39a0b582193c1a39ca
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-garnet
+    delivery.re8ch.com/codename: cascade-beryl
 spec:
   interval: 1m
   retryInterval: 1m

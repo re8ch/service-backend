@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: tideway-garnet
+codename: cascade-beryl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:e57ab625f0a94a6623719dbe5f85d15244adc10da630d6c0a276b9bcb0cc353e
+  digest: sha256:14e3b589b5c897a0008cd74582af12b600c57fa0c1a6bb39a0b582193c1a39ca
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
