@@ -4,7 +4,7 @@ metadata:
   name: supabase-identity-rest-ro
   namespace: supabase-identity
 spec:
-  clusterIP: 192.0.2.107
+  clusterIP: 10.43.111.83
   selector:
     app.kubernetes.io/component: rest-ro
   ports:
@@ -29,13 +29,16 @@ spec:
         app.kubernetes.io/part-of: supabase-identity
         app.kubernetes.io/component: rest-ro
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       tolerations:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
         - name: rest-ro
-          image: mjhsdd6xkcym4k.xuanyuan.run/postgrest/postgrest:v14.12
-          imagePullPolicy: IfNotPresent
+          # Keep the read replica on the same verified immutable image as the
+          # primary. The previous mutable mirror tag could not be re-pulled
+          # after an OOM restart because the mirror now requires credentials.
+          image: docker.io/postgrest/postgrest@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+          imagePullPolicy: Never
           ports:
             - {name: http, containerPort: 3000}
           env:
@@ -53,5 +56,5 @@ spec:
             tcpSocket: {port: http}
             periodSeconds: 10
           resources:
-            requests: {cpu: 40m, memory: 64Mi}
-            limits: {cpu: 100m, memory: 256Mi}
+            requests: {cpu: 40m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 512Mi}
