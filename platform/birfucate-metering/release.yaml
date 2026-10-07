@@ -71,8 +71,8 @@ spec:
         required: false
       tenants:
         # Runtime policy class for newly registered Personal organizations.
-        # Resource tools remain closed until every backing store enforces the
-        # separate Supabase organization owner.
+        # The controller derives an owner namespace and provider identity from
+        # each verified Supabase Personal organization.
         - name: personal-standard
           displayName: Personal Standard Runtime
           lifecycle: Active
@@ -80,18 +80,22 @@ spec:
           namespacePolicy:
             defaultNamespace: personal-standard-default
             allowedPrefixes: [personal-standard-]
-            maxNamespaces: 1
-            allowCreate: false
-            allowDelete: false
-            bootstrapNamespaces: []
+            maxNamespaces: 10
+            allowCreate: true
+            allowDelete: true
+            bootstrapNamespaces: [personal-standard-default]
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch
           visibility: Private
           hostingMode: platform-managed
-          byocAllowed: false
+          byocAllowed: true
           identityBindings: []
-          grants: []
-          nativeAccess: false
+          grants:
+            - {name: personal-standard-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+            - {name: personal-standard-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+            - {name: personal-standard-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+            - {name: personal-standard-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
+          nativeAccess: true
         # Normal personal organization used for the OpenAI review login.
         # Keep its tenant capabilities aligned with the ordinary tenant baseline.
         - name: personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38

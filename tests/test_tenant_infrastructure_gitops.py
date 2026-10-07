@@ -613,13 +613,15 @@ def test_production_controller_rollout_fits_single_r640_worker():
     assert affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
 
 
-def test_shared_personal_runtime_class_has_no_resource_grants():
+def test_shared_personal_runtime_class_has_owner_resource_policy():
     release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
     tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
     shared = next(item for item in tenants if item["name"] == "personal-standard")
     assert shared["identityBindings"] == []
-    assert shared["grants"] == []
-    assert shared["nativeAccess"] is False
-    assert shared["byocAllowed"] is False
-    assert shared["namespacePolicy"]["allowCreate"] is False
-    assert shared["namespacePolicy"]["bootstrapNamespaces"] == []
+    assert {grant["consumableRef"] for grant in shared["grants"]} == {
+        "compute.workload.v1", "storage.volume.v1", "registry.harbor.v1", "observability.grafana.v1"
+    }
+    assert shared["nativeAccess"] is True
+    assert shared["byocAllowed"] is True
+    assert shared["namespacePolicy"]["allowCreate"] is True
+    assert shared["namespacePolicy"]["bootstrapNamespaces"] == ["personal-standard-default"]

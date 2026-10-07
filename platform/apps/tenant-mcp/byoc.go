@@ -28,6 +28,11 @@ func (s *server) registerBYOCTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
+				if name == "byoc_cluster_register" || name == "byoc_connection_revoke" {
+					if err := requireOperator(id); err != nil {
+						return nil, nil, err
+					}
+				}
 				value, err := s.callBYOC(id, name, args)
 				return nil, value, err
 			})

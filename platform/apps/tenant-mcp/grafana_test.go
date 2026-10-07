@@ -22,6 +22,24 @@ func TestGrafanaLocalAnalysisWithoutTenantBinding(t *testing.T) {
 	}
 }
 
+func TestPersonalGrafanaBindingRejectsOtherOwner(t *testing.T) {
+	owner := "personal-11111111-1111-4111-8111-111111111111"
+	other := "personal-22222222-2222-4222-8222-222222222222"
+	items := []any{
+		map[string]any{"spec": map[string]any{"tenantRef": other, "serviceClass": "observability.grafana.v1"},
+			"status": map[string]any{"phase": "Ready", "access": map[string]any{"organizationId": float64(9)}, "humanCredentialRef": "credential://grafana/" + other + "/other"}},
+		map[string]any{"spec": map[string]any{"tenantRef": owner, "serviceClass": "observability.grafana.v1"},
+			"status": map[string]any{"phase": "Ready", "access": map[string]any{"organizationId": float64(11)}, "humanCredentialRef": "credential://grafana/" + owner + "/own"}},
+	}
+	orgID, reference, err := personalGrafanaAccess(owner, items)
+	if err != nil || orgID != 11 || reference != "credential://grafana/"+owner+"/own" {
+		t.Fatalf("Personal Grafana binding crossed owner boundary: %d %s %v", orgID, reference, err)
+	}
+	if _, _, err := personalGrafanaAccess("personal-33333333-3333-4333-8333-333333333333", items); err == nil {
+		t.Fatal("unprovisioned Personal organization inherited another Grafana binding")
+	}
+}
+
 func TestGrafanaQueryTenantBoundary(t *testing.T) {
 	binding := grafanaBinding{TenantLabel: "acme", OrgID: 9}
 	datasources := []map[string]any{{"uid": "metrics", "type": "prometheus"}}

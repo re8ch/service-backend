@@ -52,25 +52,18 @@ per-owner quota are different decisions.
    unavailable authorizer gets 503.
 2. The Supabase context RPC returns active membership and organization kind.
    The resolver returns both `tenantRef` (logical owner) and
-   `runtimeTenantRef` (runtime class), and a single `personal-standard` Tenant
-   describes the Personal class. Existing Personal organizations with their
-   own active Tenant CR keep that runtime. The Go backend deliberately leaves
-   its legacy `Tenant` field empty for a shared class. It exposes
-   `tenant_access_status`, the static service catalog, and reviewed dynamic
-   workflows scoped to the verified Personal organization and subject. Cluster
-   resource tools remain closed. It must never rewrite that field to the class name:
-   its SQLite stores currently filter primarily by `tenant_ref`.
-3. Before enabling each tool family for the shared class, enforce ownership
-   for its backing objects. TenantResourceClaim currently has no owner field;
-   tenant-control claim lists and mutations filter by runtime tenant only.
-   Generic Kubernetes operations also need a per-owner namespace or an
-   equivalent enforced owner boundary. Harbor and Grafana native permissions
-   need their own per-owner binding checks.
+   `runtimeTenantRef` (runtime class). Existing Personal organizations with
+   their own active Tenant CR retain that runtime. New Personal organizations
+   use `personal-standard` for policy and capacity while retaining their own
+   `tenantRef` for every resource operation and SQLite query.
+3. For a newly resolved Personal organization, tenant-control declares its
+   default TenantNamespace. The namespace controller derives the policy from
+   `personal-standard` but labels and authorizes the namespace with the
+   Personal organization. Claims, provider instances, native Kubernetes
+   resources, credentials and metering stay in that owner namespace or carry
+   the same logical owner reference. The Harbor project is derived from the
+   owner, never from the shared class's project.
 4. Verify two newly registered users map to the same runtime class but cannot
    list, read, mutate, revoke or replay each other's resources or usage. Verify
    membership revocation, admin isolation, authorizer outage, and aggregate
    quota separately.
-
-The shared class is not enabled by the MCP login boundary change. Until the
-ownership gates pass, connecting successfully must not grant shared access to
-cluster objects or tenant data.

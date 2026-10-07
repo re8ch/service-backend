@@ -30,6 +30,11 @@ func (s *server) registerGrafanaTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
+				if name == "grafana_render" || name == "grafana_exploration_save" || name == "grafana_exploration_delete" {
+					if err := requireOperator(id); err != nil {
+						return nil, nil, err
+					}
+				}
 				value, err := s.callGrafana(ctx, id.Tenant, name, args)
 				return nil, value, err
 			})

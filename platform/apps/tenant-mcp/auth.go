@@ -43,9 +43,8 @@ func identityFrom(ctx context.Context) (identity, error) {
 	return value, nil
 }
 
-// ownerScopedIdentityFrom is only for tools whose storage is keyed by the
-// verified Supabase organization. Shared runtime classes must never become a
-// data ownership key or reach cluster resource paths through this helper.
+// ownerScopedIdentityFrom is for tools whose storage is keyed by the verified
+// Supabase organization. A shared runtime class is never a data ownership key.
 func ownerScopedIdentityFrom(ctx context.Context) (identity, error) {
 	id, ok := ctx.Value(identityKey{}).(identity)
 	if !ok || id.Service || id.Subject == "" {
@@ -199,10 +198,10 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 		if membership.RuntimeTenantRef != "personal-standard" || !strings.HasPrefix(membership.Tenant, "personal-") {
 			return identity{}, errors.New("tenant authorizer returned an unsupported shared class")
 		}
-		// All existing resource paths use tenantRef as an ownership key. Do not
-		// expose them until the shared class has per-organization gates.
-		id.Role = membership.Role
-		return id, errTenantUnassigned
+		// The logical Personal organization remains the resource ownership key.
+		// The controller maps it to an owner namespace under the shared class.
+		id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
+		return id, nil
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
 	// Resolve the privileged membership once per verified login session.
