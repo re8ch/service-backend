@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: confluence-garnet
+    delivery.re8ch.com/codename: eddy-garnet
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:67bae4693dc5b41b342012b099d2c1fc6b7594bb9da4460faeac7e476dacb98e
+    digest: sha256:8ff5c504348845fa508c18370aaa3a548343cd2a992f361d9cf549c2b3a04797
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: confluence-garnet
+    delivery.re8ch.com/codename: eddy-garnet
 spec:
   interval: 1m
   retryInterval: 1m
