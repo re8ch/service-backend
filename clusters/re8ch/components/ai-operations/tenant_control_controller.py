@@ -442,6 +442,7 @@ def tenant_namespace_resources(tenant, namespace):
         {"apiGroups": ["autoscaling"], "resources": ["horizontalpodautoscalers"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
         {"apiGroups": ["policy"], "resources": ["poddisruptionbudgets"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
         {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["roles", "rolebindings"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+        {"apiGroups": ["gateway.networking.k8s.io"], "resources": ["httproutes"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
     ]
     subjects = [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     subjects += [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": group} for group in tenant_groups(tenant_ref)]

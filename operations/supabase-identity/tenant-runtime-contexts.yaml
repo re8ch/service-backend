@@ -1,15 +1,33 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: supabase-tenant-runtime-contexts-v1
+  name: supabase-tenant-runtime-contexts-v2
   namespace: supabase-identity
 data:
   migration.sql: |
     begin;
     create or replace function api.my_tenant_runtime_contexts()
     returns table(tenant_ref text, tenant_role text, tenant_kind text)
-    language sql stable security definer set search_path = pg_catalog, pg_temp
+    language plpgsql volatile security definer set search_path = pg_catalog, pg_temp
     as $$
+    declare v_user uuid := api.current_user_id(); v_personal text;
+    begin
+      if v_user is null then
+        raise exception 'authenticated user required' using errcode = '28000';
+      end if;
+      -- Every verified user owns exactly one Personal organization. The helper
+      -- is idempotent and cannot grant platform administration.
+      perform core.ensure_personal_organization(v_user);
+      v_personal := 'personal-' || v_user::text;
+      -- Recover a previously suspended membership only while its Personal
+      -- organization is still active and still belongs to this user.
+      update core.organization_members m set status = 'active', role = 'owner', updated_at = now()
+      from core.organizations o
+      where m.tenant_ref = v_personal and m.user_id = v_user
+        and o.tenant_ref = m.tenant_ref and o.kind = 'personal'
+        and o.personal_owner_id = v_user and o.status = 'active'
+        and (m.status <> 'active' or m.role <> 'owner');
+      return query
       select m.tenant_ref,
         case m.role
           when 'owner' then 'admin'
@@ -24,7 +42,8 @@ data:
       where m.user_id = api.current_user_id()
         and m.status = 'active' and o.status = 'active'
         and u.deleted_at is null
-        and m.role in ('owner', 'admin', 'member', 'viewer')
+        and m.role in ('owner', 'admin', 'member', 'viewer');
+    end
     $$;
     revoke all on function api.my_tenant_runtime_contexts() from public, anon, service_role;
     grant usage on schema api to authenticated;
@@ -36,7 +55,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: supabase-tenant-runtime-contexts-v1
+  name: supabase-tenant-runtime-contexts-v2
   namespace: supabase-identity
 spec:
   backoffLimit: 4

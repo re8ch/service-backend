@@ -190,7 +190,9 @@ func TestMCPVerifiedBearerWithoutTenantCanStartWithNoTenantTools(t *testing.T) {
 		if method == "tools/list" && (!strings.Contains(response.Body.String(), "tenant_access_status") || strings.Contains(response.Body.String(), "tenant_claim_create")) {
 			t.Fatalf("unassigned user saw tenant tools: %s", response.Body.String())
 		}
-		if method == "tools/call" && !strings.Contains(response.Body.String(), `"tenantAuthorized":false`) {
+		if method == "tools/call" && (!strings.Contains(response.Body.String(), `"tenantAuthorized":false`) ||
+			!strings.Contains(response.Body.String(), `"status":"tenant_selection_required"`) ||
+			!strings.Contains(response.Body.String(), `"recoveryAction":"select one active tenant with X-RE8CH-Tenant"`)) {
 			t.Fatalf("unassigned status did not report the boundary: %s", response.Body.String())
 		}
 	}
