@@ -21,8 +21,10 @@ for runtime namespace and grant policy. Creating that resource is a distinct
 provisioning workflow and is not inferred from a successful login.
 Personal organizations without their own runtime Tenant can map to the
 `personal-standard` runtime class. Their organization reference remains their
-logical owner. Shared-class sessions expose only `tenant_access_status` until
-per-owner resource gates are deployed. The mapping and remaining gates are
+logical owner. Shared-class sessions can inspect access status and the static
+service catalog, and search, load, or submit reviewed workflows scoped to their
+Personal organization. Resource operations remain closed until per-owner gates
+are deployed. The mapping and remaining gates are
 documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
 
 ## Dynamic skills
