@@ -97,6 +97,45 @@ def test_supabase_membership_controls_tenant_role_and_revocation(monkeypatch):
         controller.resolve_supabase_membership("valid-token", "admin")
 
 
+def test_supabase_membership_retries_transient_rpc_failure(monkeypatch, caplog):
+    controller = load("tenant_supabase_retry", "tenant_control_controller.py")
+
+    class Kube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [{"metadata": {"name": "tenant-ci"}, "spec": {"lifecycle": "Active",
+                    "namespacePolicy": {"defaultNamespace": "tenant-ci-default"}}}]
+
+    monkeypatch.setattr(controller, "KUBE", Kube())
+    calls = 0
+
+    def memberships(_request, timeout):
+        nonlocal calls
+        calls += 1
+        assert timeout == 5
+        if calls == 1:
+            raise urllib.error.HTTPError("", 503, "unavailable", {}, None)
+        return Response(json.dumps([{"tenant_ref": "tenant-ci", "tenant_role": "operator",
+                                     "tenant_kind": "organization"}]).encode())
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", memberships)
+    with caplog.at_level("INFO"):
+        result = controller.resolve_supabase_membership("valid-token", "")
+    assert calls == 2
+    assert result["tenantRef"] == "tenant-ci"
+    assert "rows=1 personal=0 ordinary=1 requested=False" in caplog.text
+
+
+def test_supabase_membership_reports_empty_rpc_result_without_identifiers(monkeypatch, caplog):
+    controller = load("tenant_supabase_empty", "tenant_control_controller.py")
+    monkeypatch.setattr(controller.urllib.request, "urlopen",
+                        lambda *_args, **_kwargs: Response(b"[]"))
+    with caplog.at_level("INFO"), pytest.raises(PermissionError, match="select an active tenant"):
+        controller.resolve_supabase_membership("valid-token", "")
+    assert "rows=0 personal=0 ordinary=0 requested=False" in caplog.text
+    assert "selection required ordinary=0 personal=0" in caplog.text
+
+
 def test_new_personal_organizations_share_runtime_class_without_sharing_owner(monkeypatch):
     controller = load("tenant_shared_personal", "tenant_control_controller.py")
 

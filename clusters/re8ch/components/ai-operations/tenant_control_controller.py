@@ -269,17 +269,36 @@ def resolve_supabase_membership(access_token, requested_tenant):
         data=b"{}", method="POST",
         headers={"Authorization": "Bearer " + access_token, "Content-Type": "application/json", "Accept": "application/json"},
     )
-    try:
-        with urllib.request.urlopen(request, timeout=5) as response:
-            memberships = json.load(response)
-    except urllib.error.HTTPError as exc:
-        if exc.code in {401, 403}:
-            raise PermissionError("Supabase membership is not authorized") from None
-        raise RuntimeError("Supabase membership lookup failed") from None
-    except (urllib.error.URLError, ValueError) as exc:
-        raise RuntimeError("Supabase membership lookup failed") from exc
+    memberships = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                memberships = json.load(response)
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code in {401, 403}:
+                LOG.warning("Supabase runtime-context RPC denied status=%d", exc.code)
+                raise PermissionError("Supabase membership is not authorized") from None
+            transient = exc.code == 429 or exc.code >= 500
+            LOG.warning("Supabase runtime-context RPC failed status=%d attempt=%d transient=%s",
+                        exc.code, attempt + 1, transient)
+            if not transient or attempt == 1:
+                raise RuntimeError("Supabase membership lookup failed") from None
+        except urllib.error.URLError as exc:
+            LOG.warning("Supabase runtime-context RPC transport failure attempt=%d", attempt + 1)
+            if attempt == 1:
+                raise RuntimeError("Supabase membership lookup failed") from exc
+        except ValueError as exc:
+            LOG.warning("Supabase runtime-context RPC returned invalid JSON")
+            raise RuntimeError("Supabase membership lookup failed") from exc
     if not isinstance(memberships, list):
+        LOG.warning("Supabase runtime-context RPC returned a non-list response")
         raise RuntimeError("Supabase membership response is invalid")
+    valid_rows = [row for row in memberships if isinstance(row, dict)]
+    personal_count = sum(1 for row in valid_rows if row.get("tenant_kind") == "personal")
+    ordinary_count = sum(1 for row in valid_rows if row.get("tenant_kind") != "personal")
+    LOG.info("Supabase runtime-context RPC succeeded rows=%d personal=%d ordinary=%d requested=%s",
+             len(valid_rows), personal_count, ordinary_count, bool(requested_tenant))
     if not requested_tenant:
         ordinary = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
                            and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref") not in {"admin", PERSONAL_RUNTIME_CLASS}
@@ -289,6 +308,8 @@ def resolve_supabase_membership(access_token, requested_tenant):
                            and row.get("tenant_role") in ROLE_ORDER})
         choices = ordinary or personal
         if len(choices) != 1:
+            LOG.warning("Supabase runtime-context selection required ordinary=%d personal=%d",
+                        len(ordinary), len(personal))
             raise PermissionError("select an active tenant")
         requested_tenant = choices[0]
     selected_rows = [row for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
