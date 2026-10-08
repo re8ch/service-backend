@@ -51,8 +51,41 @@ func TestGrafanaQueryTenantBoundary(t *testing.T) {
 	if _, _, err := validateGrafanaSpec(spec, binding, datasources); err != nil {
 		t.Fatal(err)
 	}
+	spec["queries"] = []any{map[string]any{"datasourceUid": "metrics", "refId": "A", "queryKind": "promql", "model": map[string]any{"expr": `http_requests_total{tenant="acme"} or errors_total`}}}
+	if _, _, err := validateGrafanaSpec(spec, binding, datasources); err == nil {
+		t.Fatal("unscoped or branch accepted")
+	}
+	spec["queries"] = []any{map[string]any{"datasourceUid": "metrics", "refId": "A", "queryKind": "sql", "model": map[string]any{"expr": `http_requests_total{tenant="acme"}`}}}
+	if _, _, err := validateGrafanaSpec(spec, binding, datasources); err == nil {
+		t.Fatal("datasource query kind mismatch accepted")
+	}
 	if err := validateSQL("SELECT * FROM usage; DROP TABLE usage"); err == nil {
 		t.Fatal("multiple SQL statements accepted")
+	}
+}
+
+func TestMetricsQLEverySelectorBranchIsTenantScoped(t *testing.T) {
+	for _, query := range []string{
+		`sum(rate(http_requests_total{tenant="acme"}[5m]))`,
+		`http_requests_total{tenant="acme"} or errors_total{tenant="acme"}`,
+		`http_requests_total{tenant="acme",job="api" or tenant="acme",job="worker"}`,
+	} {
+		if err := validateMetricsTenantScope(query, "acme"); err != nil {
+			t.Errorf("scoped query rejected %q: %v", query, err)
+		}
+	}
+	for _, query := range []string{
+		`http_requests_total`,
+		`http_requests_total{tenant="acme"} or errors_total`,
+		`http_requests_total{tenant="acme",job="api" or tenant="other",job="worker"}`,
+		`http_requests_total{tenant=~"acme|other"}`,
+		`http_requests_total{tenant!="other"}`,
+		`http_requests_total{tenant="acme"} + errors_total{job="api"}`,
+		`vector(1)`,
+	} {
+		if err := validateMetricsTenantScope(query, "acme"); err == nil {
+			t.Errorf("unscoped query accepted: %q", query)
+		}
 	}
 }
 
