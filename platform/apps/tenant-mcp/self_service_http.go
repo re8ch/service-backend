@@ -67,6 +67,7 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	sort.Strings(ready)
 	canWrite := id.Role == "operator" || id.Role == "admin"
 	canExpose := canWrite && len(ready) > 0 && hasRequestableGrant(grants, "network.tenant.v1")
+	canReadDatabaseBindings := len(ready) > 0 && hasRequestableGrant(grants, "database.postgresql.shared.v1")
 	kubernetesTools := []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
 	namespacedWrite := canWrite && len(ready) > 0
 	return map[string]any{
@@ -81,6 +82,7 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 			{"id": "workload-policy", "kinds": []string{"HorizontalPodAutoscaler", "PodDisruptionBudget"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "runtime-observation", "kinds": []string{"Pod", "Event", "Endpoints", "ReplicaSet"}, "tools": []string{"tenant_kubernetes_get"}, "canWrite": false},
 			{"id": "secret", "kinds": []string{"Secret"}, "writeOnly": true, "tools": []string{"tenant_secret_upsert", "tenant_secret_metadata_list", "tenant_secret_delete"}, "canWrite": canWrite && len(ready) > 0},
+			{"id": "database-credential", "kinds": []string{"databasecredential"}, "tools": []string{"tenant_kubernetes_get"}, "queryKind": "databasecredential", "metadataOnly": true, "databaseState": "unverified", "requiredConsumable": "database.postgresql.shared.v1", "canRead": canReadDatabaseBindings, "canWrite": false},
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "requiredConsumable": "network.tenant.v1", "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canExpose},
 		},
 	}, nil

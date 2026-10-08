@@ -1207,7 +1207,7 @@
     "name": "tenant_namespace_delete"
   },
   {
-    "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.",
+    "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace. Use kind=databasecredential to list only metadata and key names of operator-provisioned Pigsty credential bindings; this does not prove the database exists or reveal Secret values.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
