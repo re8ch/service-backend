@@ -12,19 +12,6 @@ spec:
       storage: 2Gi
   storageClassName: local-path
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: anycam-market-db
-  namespace: anycam
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: local-path
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -44,7 +31,7 @@ spec:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       containers:
       - name: api
-        image: ghcr.io/woomou/anycam-market-demo@sha256:cf3a28ba2ad9f161eb114c5c8292b6dc7a81084821c805d286ba89bb7022d6b6
+        image: ghcr.io/woomou/anycam-market-demo@sha256:fedbb358d50a59582c1cb847e189f473073a486d02bb218087e4bc2bfce83045
         imagePullPolicy: IfNotPresent
         command:
         - python
@@ -59,32 +46,17 @@ spec:
         env:
         - name: ANYCAM_MARKET_DATA_DIR
           value: /data/anycam-market
-        - name: ANYCAM_MARKET_BUCKET
-          value: models
-        - name: ANYCAM_MARKET_S3_ENDPOINT
-          value: http://anycam-r640-minio:9000
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: anycam-market-demo
-              key: MINIO_ROOT_USER
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: anycam-market-demo
-              key: MINIO_ROOT_PASSWORD
         - name: ANYCAM_R640_WORKER_AVAILABLE
           value: '1'
         - name: ANYCAM_R640_WORKER_ID
           value: r640-anycam-model-downloader
-        envFrom:
-        - secretRef:
-            name: anycam-market-demo
+        - name: ANYCAM_MARKET_OBJECT_DIR
+          value: /data/anycam-market/objects
         ports:
         - name: http
           containerPort: 8099
         volumeMounts:
-        - name: market-db
+        - name: model-store
           mountPath: /data/anycam-market
         readinessProbe:
           httpGet:
@@ -93,68 +65,11 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
       volumes:
-      - name: market-db
-        persistentVolumeClaim:
-          claimName: anycam-market-db
-      securityContext:
-        fsGroup: 10001
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: anycam-r640-minio
-  namespace: anycam
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: anycam-r640-minio
-  template:
-    metadata:
-      labels:
-        app: anycam-r640-minio
-    spec:
-      nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
-      containers:
-      - name: minio
-        image: quay.io/minio/minio:RELEASE.2026-06-13T11-33-47Z
-        args:
-        - server
-        - /data
-        - --console-address
-        - :9001
-        envFrom:
-        - secretRef:
-            name: anycam-market-demo
-        ports:
-        - name: s3
-          containerPort: 9000
-        - name: console
-          containerPort: 9001
-        volumeMounts:
-        - name: data
-          mountPath: /data
-      volumes:
-      - name: data
+      - name: model-store
         persistentVolumeClaim:
           claimName: anycam-r640-model-store
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: anycam-r640-minio
-  namespace: anycam
-spec:
-  selector:
-    app: anycam-r640-minio
-  ports:
-  - name: s3
-    port: 9000
-    targetPort: s3
-  - name: console
-    port: 9001
-    targetPort: console
+      securityContext:
+        fsGroup: 10001
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -175,7 +90,7 @@ spec:
         kubernetes.io/hostname: restricted-node-6dc3f140f9
       containers:
       - name: worker
-        image: ghcr.io/woomou/anycam-market-demo@sha256:cf3a28ba2ad9f161eb114c5c8292b6dc7a81084821c805d286ba89bb7022d6b6
+        image: ghcr.io/woomou/anycam-market-demo@sha256:fedbb358d50a59582c1cb847e189f473073a486d02bb218087e4bc2bfce83045
         imagePullPolicy: IfNotPresent
         command:
         - python
@@ -185,40 +100,17 @@ spec:
         env:
         - name: ANYCAM_MARKET_DATA_DIR
           value: /data/anycam-market
-        - name: ANYCAM_MARKET_BUCKET
-          value: models
-        - name: ANYCAM_MARKET_S3_ENDPOINT
-          value: http://anycam-r640-minio:9000
-        - name: AWS_ACCESS_KEY_ID
-          valueFrom:
-            secretKeyRef:
-              name: anycam-market-demo
-              key: MINIO_ROOT_USER
-        - name: AWS_SECRET_ACCESS_KEY
-          valueFrom:
-            secretKeyRef:
-              name: anycam-market-demo
-              key: MINIO_ROOT_PASSWORD
         - name: ANYCAM_REGISTRY_API_BASE
           value: http://anycam-model-registry:8099
-        - name: ANYCAM_R640_STORAGE_ENDPOINT
-          value: http://anycam-r640-minio:9000
-        - name: ANYCAM_R640_BUCKET_MODELS
-          value: models
-        - name: ANYCAM_R640_BUCKET_REPORTS
-          value: reports
-        - name: ANYCAM_R640_BUCKET_EXPORTS
-          value: exports
-        envFrom:
-        - secretRef:
-            name: anycam-market-demo
+        - name: ANYCAM_MARKET_OBJECT_DIR
+          value: /data/anycam-market/objects
         volumeMounts:
-        - name: market-db
+        - name: model-store
           mountPath: /data/anycam-market
       volumes:
-      - name: market-db
+      - name: model-store
         persistentVolumeClaim:
-          claimName: anycam-market-db
+          claimName: anycam-r640-model-store
       securityContext:
         fsGroup: 10001
 ---
@@ -262,37 +154,25 @@ metadata:
   name: anycam-market-demo-seed
   namespace: anycam
 data:
-  seed.py: |
-    from anycam_backend import curated_market
-
-    revision = "4299e5c7bd07d76ccd546f27ad068d4a94adb385"
-    repository = "qualcomm/MobileNet-v2"
-    candidate = {
-        "name": "MobileNet v2 INT8",
-        "task": "classification",
-        "description": "ImageNet image classification, 224 × 224 RGB input, 1000 scores",
-        "runtime": "TFLITE",
-        "availability": "NEEDS_CONVERSION",
-        "inputSpec": {"description": "224 × 224 RGB image"},
-        "outputSpec": {"description": "1000 class scores"},
-        "files": [],
-        "source": {"kind": "huggingface", "repoId": repository,
-                   "url": "https://huggingface.co/qualcomm/MobileNet-v2",
-                   "revision": revision},
-    }
-    curated_market.discover([candidate], "hf")
-    product_id = curated_market.identity("hf", repository, "main")
-    curated_market.select(
-        product_id, revision=revision, model_license="Apache-2.0",
-        artifact_license="Apache-2.0", example_license="CC0-1.0",
-        example_url="https://commons.wikimedia.org/wiki/Special:Redirect/file/Red_apple_on_white_background.jpg",
-        example_sha256="d4a7d9c025a0606b8ac1b79b3685b82e09990ea6c2a200932b479f95d7c8ff8f",
-        artifact_url="https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/mobilenet_v2/releases/v0.63.0/mobilenet_v2-tflite-w8a8.zip",
-        artifact_sha256="2eeb390160d47519313bc7a47e9895e39724cff62eb0dbe2dad32a5a4bc76b04",
-        artifact_member="mobilenet_v2-tflite-w8a8/mobilenet_v2.tflite",
-        model_sha256="8bfa78effd1a5036f228d3b25eaf49b09d3dd07d13211d3e98639c7c103aa30c",
-        labels_member="mobilenet_v2-tflite-w8a8/labels.txt",
-    )
+  seed.py: "from anycam_backend import curated_market\n\nrevision = \"4299e5c7bd07d76ccd546f27ad068d4a94adb385\"\
+    \nrepository = \"qualcomm/MobileNet-v2\"\ncandidate = {\n    \"name\": \"MobileNet\
+    \ v2 INT8\",\n    \"task\": \"classification\",\n    \"description\": \"ImageNet\
+    \ image classification, 224 \xD7 224 RGB input, 1000 scores\",\n    \"runtime\"\
+    : \"TFLITE\",\n    \"availability\": \"NEEDS_CONVERSION\",\n    \"inputSpec\"\
+    : {\"description\": \"224 \xD7 224 RGB image\"},\n    \"outputSpec\": {\"description\"\
+    : \"1000 class scores\"},\n    \"files\": [],\n    \"source\": {\"kind\": \"huggingface\"\
+    , \"repoId\": repository,\n               \"url\": \"https://huggingface.co/qualcomm/MobileNet-v2\"\
+    ,\n               \"revision\": revision},\n}\ncurated_market.discover([candidate],\
+    \ \"hf\")\nproduct_id = curated_market.identity(\"hf\", repository, \"main\")\n\
+    curated_market.select(\n    product_id, revision=revision, model_license=\"Apache-2.0\"\
+    ,\n    artifact_license=\"Apache-2.0\", example_license=\"CC0-1.0\",\n    example_url=\"\
+    https://commons.wikimedia.org/wiki/Special:Redirect/file/Red_apple_on_white_background.jpg\"\
+    ,\n    example_sha256=\"d4a7d9c025a0606b8ac1b79b3685b82e09990ea6c2a200932b479f95d7c8ff8f\"\
+    ,\n    artifact_url=\"https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/mobilenet_v2/releases/v0.63.0/mobilenet_v2-tflite-w8a8.zip\"\
+    ,\n    artifact_sha256=\"2eeb390160d47519313bc7a47e9895e39724cff62eb0dbe2dad32a5a4bc76b04\"\
+    ,\n    artifact_member=\"mobilenet_v2-tflite-w8a8/mobilenet_v2.tflite\",\n   \
+    \ model_sha256=\"8bfa78effd1a5036f228d3b25eaf49b09d3dd07d13211d3e98639c7c103aa30c\"\
+    ,\n    labels_member=\"mobilenet_v2-tflite-w8a8/labels.txt\",\n)\n"
 ---
 apiVersion: batch/v1
 kind: Job
@@ -309,27 +189,26 @@ spec:
       securityContext:
         fsGroup: 10001
       containers:
+      - name: seed
+        image: ghcr.io/woomou/anycam-market-demo@sha256:fedbb358d50a59582c1cb847e189f473073a486d02bb218087e4bc2bfce83045
+        command:
+        - python
+        - /scripts/seed.py
+        env:
+        - name: ANYCAM_MARKET_DATA_DIR
+          value: /data/anycam-market
+        - name: ANYCAM_MARKET_OBJECT_DIR
+          value: /data/anycam-market/objects
+        volumeMounts:
+        - name: model-store
+          mountPath: /data/anycam-market
         - name: seed
-          image: ghcr.io/woomou/anycam-market-demo@sha256:cf3a28ba2ad9f161eb114c5c8292b6dc7a81084821c805d286ba89bb7022d6b6
-          command: [python, /scripts/seed.py]
-          env:
-            - name: ANYCAM_MARKET_DATA_DIR
-              value: /data/anycam-market
-            - name: ANYCAM_MARKET_BUCKET
-              value: models
-            - name: ANYCAM_MARKET_S3_ENDPOINT
-              value: http://anycam-r640-minio:9000
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef: {name: anycam-market-demo, key: MINIO_ROOT_USER}
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef: {name: anycam-market-demo, key: MINIO_ROOT_PASSWORD}
-          volumeMounts:
-            - {name: market-db, mountPath: /data/anycam-market}
-            - {name: seed, mountPath: /scripts, readOnly: true}
+          mountPath: /scripts
+          readOnly: true
       volumes:
-        - name: market-db
-          persistentVolumeClaim: {claimName: anycam-market-db}
-        - name: seed
-          configMap: {name: anycam-market-demo-seed}
+      - name: model-store
+        persistentVolumeClaim:
+          claimName: anycam-r640-model-store
+      - name: seed
+        configMap:
+          name: anycam-market-demo-seed
