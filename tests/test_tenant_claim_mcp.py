@@ -127,6 +127,31 @@ def test_native_delete_rejects_read_only_kinds_and_foreign_namespace(monkeypatch
     assert calls == []
 
 
+def test_database_credential_discovery_returns_only_tenant_metadata(monkeypatch):
+    import pytest
+
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default"})
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": [
+        {"spec": {"tenantRef": "re8ch", "namespaceName": "re8ch-default", "operation": "EnsurePresent"}, "status": {"phase": "Ready"}}
+    ]})
+    grants = [{"consumableRef": "database.postgresql.shared.v1", "canRequest": True}]
+    monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: grants)
+    calls = []
+    def command(argv, stdin, timeout):
+        calls.append(argv)
+        return {"exit_code": 0, "stdout": "pg-ledger-credentials\tuid-123\tledger\tPGDATABASE,DATABASE_URL_RW,\n", "stderr": ""}
+    monkeypatch.setattr(module, "command_result", command)
+    value = module.call_tool("tenant_kubernetes_get", {"kind": "databasecredential"}, {"subject": "agent"})
+    assert value["items"] == [{"database": "ledger", "secretRef": "re8ch-default/pg-ledger-credentials", "secretUID": "uid-123", "keys": ["DATABASE_URL_RW", "PGDATABASE"], "databaseState": "unverified"}]
+    assert "-l" in calls[0] and "re8ch.com/tenant=re8ch-default" in calls[0][calls[0].index("-l") + 1]
+    assert ".data" in module.DATABASE_BINDING_TEMPLATE and "{{$value}}" not in module.DATABASE_BINDING_TEMPLATE
+    grants.clear()
+    with pytest.raises(PermissionError, match="active tenant grant"):
+        module.call_tool("tenant_kubernetes_get", {"kind": "databasecredential"}, {"subject": "agent"})
+    assert len(calls) == 1
+
+
 def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
@@ -254,7 +279,7 @@ def test_native_workload_security_boundaries(monkeypatch):
     base = {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {"template": {"spec": {"containers": [{"name": "demo", "image": "nginx", "securityContext": {"privileged": True}}]}}}}
     with __import__("pytest").raises(PermissionError, match="privileged"):
         module.validate_tenant_kubernetes_object(base, "re8ch-default")
-    external_ip = {"kind": "Service", "spec": {"type": "ClusterIP", "externalIPs": ["192.0.2.112"]}}
+    external_ip = {"kind": "Service", "spec": {"type": "ClusterIP", "externalIPs": ["203.0.113.10"]}}
     with __import__("pytest").raises(PermissionError, match="externalIPs"):
         module.validate_tenant_kubernetes_object(external_ip, "re8ch-default")
     host_port = {"kind": "Deployment", "spec": {"template": {"spec": {"containers": [{"name": "demo", "ports": [{"containerPort": 8080, "hostPort": 8080}]}]}}}}

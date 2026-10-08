@@ -215,6 +215,9 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 	}
 	if name == "tenant_kubernetes_get" {
 		kind := strings.ToLower(asString(args, "kind"))
+		if kind == "databasecredential" {
+			return s.databaseBindings(ctx, id, namespace, asString(args, "name"))
+		}
 		if !tenantReadKinds[kind] {
 			return nil, errors.New("kind is not in the non-secret tenant read allowlist")
 		}

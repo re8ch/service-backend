@@ -825,7 +825,7 @@ TENANT_KUBERNETES_TOOLS = [
     {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.", "inputSchema": schema({"namespace": {"type": "string"}, "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 604800}}, ["namespace"])},
     {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
-    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
+    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace. Use kind=databasecredential to list only metadata and key names of operator-provisioned Pigsty credential bindings; this does not prove the database exists or reveal Secret values.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
     {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
     {"name": "tenant_kubernetes_delete", "description": "Preview or delete one allowlisted object from an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["kind", "name"])},
 ]
@@ -840,6 +840,21 @@ TENANT_KUBERNETES_KINDS = {
 TENANT_KUBERNETES_READ_KINDS = {kind.lower(): (api_version, kind) for api_version, kind in TENANT_KUBERNETES_KINDS}
 TENANT_KUBERNETES_READ_KINDS.update({kind: ("v1", kind) for kind in ("pod", "pods", "event", "events", "endpoint", "endpoints")})
 TENANT_KUBERNETES_READ_KINDS.update({kind: ("apps/v1", kind) for kind in ("replicaset", "replicasets")})
+DATABASE_BINDING_TEMPLATE = '{{range .items}}{{.metadata.name}}{{"\\t"}}{{.metadata.uid}}{{"\\t"}}{{index .metadata.labels "re8ch.com/database"}}{{"\\t"}}{{range $key, $_ := .data}}{{$key}}{{","}}{{end}}{{"\\n"}}{{end}}'
+
+
+def parse_tenant_database_bindings(output: str, tenant: str, namespace: str) -> dict[str, Any]:
+    items = []
+    for line in output.strip().splitlines():
+        fields = line.split("\t", 3)
+        if (len(fields) != 4 or not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", fields[0])
+                or not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", fields[2]) or not fields[1]):
+            raise PermissionError("invalid database credential metadata response")
+        keys = sorted(key for key in fields[3].rstrip(",").split(",") if key)
+        if any(not re.fullmatch(r"[A-Za-z0-9._-]+", key) for key in keys):
+            raise PermissionError("invalid database credential key metadata")
+        items.append({"database": fields[2], "secretRef": namespace + "/" + fields[0], "secretUID": fields[1], "keys": keys, "databaseState": "unverified"})
+    return {"tenantRef": tenant, "namespace": namespace, "kind": "databasecredential", "items": items}
 TENANT_BYOC_TOOLS = [
     {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},
     {"name": "byoc_registration_list", "description": "List cluster registrations visible to the current plane.", "inputSchema": schema({"tenant_ref": {"type": "string"}})},
@@ -1260,6 +1275,17 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
         raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
         kind = str(args["kind"]).lower()
+        if kind == "databasecredential":
+            require_published_tenant_grant(identity, "database.postgresql.shared.v1")
+            argv = ["kubectl", "--namespace", namespace, "get", "secrets", "-l",
+                    "re8ch.com/secret-purpose=postgres-credentials,re8ch.com/tenant=" + namespace,
+                    "-o", "go-template=" + DATABASE_BINDING_TEMPLATE]
+            if args.get("name"):
+                argv += ["--field-selector", "metadata.name=" + valid_kubernetes_name(str(args["name"]))]
+            result = command_result(argv, None, 120)
+            if result["exit_code"] != 0:
+                raise PermissionError(result.get("stderr") or "database credential metadata is unavailable")
+            return parse_tenant_database_bindings(result.get("stdout") or "", tenant, namespace)
         if kind not in TENANT_KUBERNETES_READ_KINDS:
             raise PermissionError("kind is not in the non-secret tenant read allowlist")
         argv = ["kubectl", "--namespace", namespace, "get", kind]

@@ -71,6 +71,9 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 		if capability["id"] == "exposure" && (capability["canWrite"] != true || capability["requiredConsumable"] != "network.tenant.v1") {
 			t.Fatalf("exposure discovery does not match active network grant: %v", capability)
 		}
+		if capability["id"] == "database-credential" && (capability["canRead"] != false || capability["databaseState"] != "unverified") {
+			t.Fatalf("database credential discovery overstates ungranted availability: %v", capability)
+		}
 	}
 	if err := requireGrantedConsumable(httptest.NewRequest(http.MethodGet, "/", nil).Context(), identity{Tenant: "re8ch", Role: "operator"}, "storage.volume.v1"); err != nil {
 		t.Fatalf("active operator grant rejected: %v", err)
