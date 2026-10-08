@@ -26,6 +26,15 @@ var tenantReadKinds = map[string]bool{
 	"pod": true, "pods": true, "event": true, "events": true, "endpoint": true, "endpoints": true, "replicaset": true, "replicasets": true,
 }
 
+func tenantMutableKind(kind string) bool {
+	for gvk := range tenantApplyKinds {
+		if strings.EqualFold(gvk[strings.LastIndexByte(gvk, '/')+1:], kind) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *server) registerKubernetesTools(ms *mcp.Server) {
 	definitions, err := legacyDefinitions()
 	if err != nil {
@@ -55,7 +64,7 @@ func readyNamespace(ctx context.Context, tenant, namespace string) error {
 	for _, raw := range slice(value["items"]) {
 		item := object(raw)
 		spec, status := object(item["spec"]), object(item["status"])
-		if spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" || spec["namespaceName"] != namespace {
+		if spec["tenantRef"] != tenant || spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" || spec["namespaceName"] != namespace {
 			continue
 		}
 		if expiration := asString(spec, "expiresAt"); expiration != "" {
@@ -240,7 +249,7 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 		return preview, nil
 	}
 	kind := strings.ToLower(asString(args, "kind"))
-	if !tenantReadKinds[kind] {
+	if !tenantMutableKind(kind) {
 		return nil, errors.New("kind is not in the tenant workload allowlist")
 	}
 	target := asString(args, "name")

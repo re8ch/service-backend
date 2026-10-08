@@ -1236,23 +1236,22 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
             return preview
         return {**preview, "deleted": True, "operation": tenant_control_request("/v1/namespaces/" + urllib.parse.quote(namespace, safe=""), tenant, method="DELETE")}
     namespace = valid_kubernetes_name(str(args.get("namespace") or context.get("defaultNamespace") or context["runtimeNamespaceRef"]))
-    if "defaultNamespace" in context:
-        owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
-        ready_namespaces = set()
-        for item in owned:
-            spec = item.get("spec", {})
-            if spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
-                continue
-            expires_at = spec.get("expiresAt")
-            if expires_at:
-                try:
-                    if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
-                        continue
-                except (TypeError, ValueError):
+    owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
+    ready_namespaces = set()
+    for item in owned:
+        spec = item.get("spec", {})
+        if spec.get("tenantRef") != tenant or spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
+            continue
+        expires_at = spec.get("expiresAt")
+        if expires_at:
+            try:
+                if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
                     continue
-            ready_namespaces.add(spec.get("namespaceName"))
-        if namespace not in ready_namespaces:
-            raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
+            except (TypeError, ValueError):
+                continue
+        ready_namespaces.add(spec.get("namespaceName"))
+    if namespace not in ready_namespaces:
+        raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
         kind = str(args["kind"]).lower()
         if kind not in TENANT_KUBERNETES_READ_KINDS:
@@ -1279,7 +1278,7 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
             raise PermissionError(result["stderr"] or "tenant Kubernetes apply was denied")
         return {**preview, "applied": True, "result": result}
     kind = str(args["kind"]).lower()
-    if kind not in TENANT_KUBERNETES_READ_KINDS:
+    if kind not in TENANT_KUBERNETES_READ_KINDS or kind not in {allowed_kind.lower() for _, allowed_kind in TENANT_KUBERNETES_KINDS}:
         raise PermissionError("kind is not in the tenant workload allowlist")
     resource_name = valid_kubernetes_name(str(args["name"]))
     preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "deleted": False, "kind": kind, "name": resource_name}

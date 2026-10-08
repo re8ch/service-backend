@@ -19,6 +19,12 @@ def load(monkeypatch):
         sys.path.pop(0)
 
 
+def allow_ready_namespace(monkeypatch, module, tenant="acme", namespace="tenant-acme"):
+    monkeypatch.setattr(module, "tenant_control_request", lambda *_args, **_kwargs: {"items": [
+        {"spec": {"tenantRef": tenant, "namespaceName": namespace, "operation": "EnsurePresent"}, "status": {"phase": "Ready"}}
+    ]})
+
+
 def test_tenant_profile_includes_claim_api(monkeypatch):
     module = load(monkeypatch)
     assert {
@@ -43,6 +49,7 @@ def test_human_credential_requires_ready_matching_instance(monkeypatch):
 def test_native_apply_forces_resolved_namespace(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    allow_ready_namespace(monkeypatch, module)
     value = module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {}}, "apply": False}, {"subject": "agent"})
     assert value["namespace"] == "tenant-acme"
     assert value["object"]["metadata"]["namespace"] == "tenant-acme"
@@ -55,6 +62,7 @@ def test_native_apply_forces_resolved_namespace(monkeypatch):
 def test_native_pvc_is_metered_without_claim_ownership(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    allow_ready_namespace(monkeypatch, module)
     obj = {"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": {"name": "data"}, "spec": {"resources": {"requests": {"storage": "1Gi"}}}}
     value = module.call_tool("tenant_kubernetes_apply", {"object": obj, "apply": False}, {"subject": "agent"})
     assert value["object"]["metadata"]["labels"]["birfucate.re8ch.com/metered"] == "true"
@@ -85,6 +93,7 @@ def test_claim_usage_summary_reports_accepted_events(monkeypatch, tmp_path):
 def test_native_apply_rejects_cross_tenant_namespace(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    allow_ready_namespace(monkeypatch, module)
     import pytest
     with pytest.raises(PermissionError, match="outside"):
         module.call_tool("tenant_kubernetes_apply", {"object": {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "demo", "namespace": "other"}}, "apply": False}, {"subject": "agent"})
@@ -93,11 +102,29 @@ def test_native_apply_rejects_cross_tenant_namespace(monkeypatch):
 def test_native_delete_uses_supported_name_output(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    allow_ready_namespace(monkeypatch, module)
     calls = []
     monkeypatch.setattr(module, "command_result", lambda argv, stdin, timeout: calls.append(argv) or {"exit_code": 0, "stdout": "deployment.apps/demo", "stderr": ""})
     value = module.call_tool("tenant_kubernetes_delete", {"kind": "deployment", "name": "demo", "apply": True}, {"subject": "agent"})
     assert value["deleted"] is True
     assert calls == [["kubectl", "--namespace", "tenant-acme", "delete", "deployment", "demo", "-o", "name"]]
+
+
+def test_native_delete_rejects_read_only_kinds_and_foreign_namespace(monkeypatch):
+    import pytest
+
+    module = load(monkeypatch)
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator", "runtimeNamespaceRef": "tenant-acme"})
+    calls = []
+    monkeypatch.setattr(module, "command_result", lambda *args: calls.append(args) or {"exit_code": 0})
+    allow_ready_namespace(monkeypatch, module)
+    for kind in ("pod", "event", "endpoint", "replicaset"):
+        with pytest.raises(PermissionError, match="workload allowlist"):
+            module.call_tool("tenant_kubernetes_delete", {"kind": kind, "name": "demo", "apply": True}, {"subject": "agent"})
+    allow_ready_namespace(monkeypatch, module, tenant="other")
+    with pytest.raises(PermissionError, match="Ready namespace"):
+        module.call_tool("tenant_kubernetes_delete", {"kind": "deployment", "name": "demo", "apply": True}, {"subject": "agent"})
+    assert calls == []
 
 
 def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
