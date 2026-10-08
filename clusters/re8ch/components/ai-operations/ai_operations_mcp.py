@@ -334,6 +334,8 @@ def capsule_policy() -> dict[str, Any]:
 def authorize_capsule(identity: dict[str, Any], action: str, node: str, credential_refs: list[str]) -> dict[str, Any]:
     if not identity.get("subject"):
         raise PermissionError("device identity is required")
+    if action in {"shell", "file"} and "node-ssh" not in credential_refs:
+        raise PermissionError("node-ssh credential reference is required")
     target = resolve_node(node)
     policy = capsule_policy()
     groups = set(identity.get("groups") or [])
@@ -380,6 +382,9 @@ class NodeRunner:
         # output (or argv) in MCP responses, operation history, or SQLite.
         if capsule["action"] not in {"shell", "file"}:
             raise ValueError("node runner supports shell and file capsules")
+        ssh_credential = credentials.get("node-ssh")
+        if ssh_credential != {"kind": "file", "paths": [SSH_CONFIG, SSH_IDENTITY_FILE]}:
+            raise PermissionError("node-ssh credential is unavailable or unbound")
         node = resolve_node(capsule["node"])
         for item in capsule.get("files") or []:
             path = item["remote_path"]
@@ -387,10 +392,10 @@ class NodeRunner:
                 raise ValueError("capsule files must target /var/tmp/re8ch-capsules")
             data = base64.b64decode(item["data_base64"], validate=True)
             upload = f"install -d -m 700 {shlex.quote(str(Path(path).parent))} && base64 -d > {shlex.quote(path)}"
-            result = command_result(ssh_argv(node, upload), base64.b64encode(data).decode(), 300, capture_output=False)
+            result = command_result(capsule_ssh_argv(node, upload), base64.b64encode(data).decode(), 300, capture_output=False)
             if result["exit_code"] != 0:
                 return result
-        return command_result(ssh_argv(node, capsule.get("command") or "true"), None, MAX_TIMEOUT, capture_output=False)
+        return command_result(capsule_ssh_argv(node, capsule.get("command") or "true"), None, MAX_TIMEOUT, capture_output=False)
 
 
 def credential_catalog() -> list[dict[str, Any]]:
@@ -1618,6 +1623,11 @@ def helm_app_status(namespace: str, release: str, selectors: list[str]) -> dict[
 
 def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
     return ["ssh", "-F", SSH_CONFIG, "--", node["target"], command]
+
+
+def capsule_ssh_argv(node: dict[str, Any], command: str) -> list[str]:
+    return ["ssh", "-F", SSH_CONFIG, "-i", SSH_IDENTITY_FILE, "-o", "IdentitiesOnly=yes",
+            "-o", "BatchMode=yes", "--", node["target"], command]
 
 
 def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:

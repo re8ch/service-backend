@@ -494,16 +494,31 @@ class RegistryTests(unittest.TestCase):
         m = load("cloud")
         identity = {"subject": "user-1", "groups": [], "device_id": "dev-test", "auth_type": "device"}
         signed = m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]})
-        m.command_result = lambda argv, stdin, timeout, *, capture_output: {"operation_id": "op-test", "exit_code": 0, "output_suppressed": not capture_output}
+        invoked = []
+        def command_result(argv, stdin, timeout, *, capture_output):
+            invoked.append(argv)
+            return {"operation_id": "op-test", "exit_code": 0, "output_suppressed": not capture_output}
+        m.command_result = command_result
         result = m.execute_capsule(identity, signed["capsule"], signed["signature"])
         self.assertEqual(result["exit_code"], 0)
         self.assertFalse(result["credential_material_exposed"])
         self.assertTrue(result["output_suppressed"])
+        self.assertEqual(invoked[0][invoked[0].index("-i") + 1], m.SSH_IDENTITY_FILE)
+        self.assertIn("IdentitiesOnly=yes", invoked[0])
+        self.assertIn("BatchMode=yes", invoked[0])
         self.assertNotIn("stdout", result)
         self.assertNotIn("stderr", result)
         self.assertNotIn("paths", result)
         with self.assertRaises(PermissionError):
             m.execute_capsule(identity, signed["capsule"], signed["signature"])
+
+    def test_capsule_requires_explicit_ssh_credential_reference(self):
+        m = load("cloud")
+        identity = {"subject": "user-1", "groups": [], "device_id": "dev-test", "auth_type": "device"}
+        with self.assertRaisesRegex(PermissionError, "node-ssh credential reference is required"):
+            m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": []})
+        with self.assertRaisesRegex(PermissionError, "node-ssh credential is unavailable or unbound"):
+            m.NodeRunner().run({"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname"}, {})
 
     def test_tampered_capsule_is_rejected(self):
         m = load("cloud")
