@@ -40,7 +40,10 @@ class FixtureAPI(BaseHTTPRequestHandler):
         if self.path == "/user":
             self.reply(200, {"id": "user-1", "is_anonymous": False})
         elif self.path == "/v1/services":
-            self.reply(200, {"items": []})
+            self.reply(200, {"items": [{"metadata": {"name": "registry", "uid": "provider-uid-1", "generation": 2},
+                                        "spec": {"tenantRef": "acme", "serviceClass": "registry.harbor.v1"},
+                                        "status": {"phase": "Ready", "observedGeneration": 2,
+                                                   "humanCredentialRef": "credential://harbor/acme/opaque"}}]})
         elif self.path == "/v1/claims":
             self.reply(200, {"items": []})
         elif self.path == "/v1/capabilities":
@@ -182,6 +185,9 @@ def main():
                 equivalent(name, p, g)
                 if name == "service_catalog_list":
                     equivalent("service catalog only granted provider-backed classes", {item["serviceClass"] for item in p["services"]}, {"registry.harbor.v1"})
+                if name == "service_binding_list":
+                    assert any(item.get("accessRef") == "credential://harbor/acme/opaque" and item.get("revocable") is False
+                               for item in p["bindings"]), "live provider binding was not discovered"
                 if name == "service_instance_get":
                     equivalent("legacy intent is not reported as provisioned", (p["fulfillmentState"], p["provisioned"]), ("legacy-intent-only", False))
                 if name == "service_instance_list":
