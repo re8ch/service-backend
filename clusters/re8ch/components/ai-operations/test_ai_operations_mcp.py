@@ -494,10 +494,13 @@ class RegistryTests(unittest.TestCase):
         m = load("cloud")
         identity = {"subject": "user-1", "groups": [], "device_id": "dev-test", "auth_type": "device"}
         signed = m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]})
-        m.command_result = lambda argv, stdin, timeout: {"operation_id": "op-test", "exit_code": 0, "stdout": "restricted-node-6dc3f140f9\n", "stderr": ""}
+        m.command_result = lambda argv, stdin, timeout, *, capture_output: {"operation_id": "op-test", "exit_code": 0, "output_suppressed": not capture_output}
         result = m.execute_capsule(identity, signed["capsule"], signed["signature"])
         self.assertEqual(result["exit_code"], 0)
         self.assertFalse(result["credential_material_exposed"])
+        self.assertTrue(result["output_suppressed"])
+        self.assertNotIn("stdout", result)
+        self.assertNotIn("stderr", result)
         self.assertNotIn("paths", result)
         with self.assertRaises(PermissionError):
             m.execute_capsule(identity, signed["capsule"], signed["signature"])
@@ -509,6 +512,21 @@ class RegistryTests(unittest.TestCase):
         signed["capsule"]["command"] = "id"
         with self.assertRaises(PermissionError):
             m.execute_capsule(identity, signed["capsule"], signed["signature"])
+
+    def test_capsule_command_discards_output_before_operation_storage(self):
+        m = load("cloud")
+        secret = "sensitive-credential-material"
+        completed = type("Completed", (), {"returncode": 0, "stdout": None, "stderr": None})()
+        with patch.object(m.subprocess, "run", return_value=completed) as run:
+            result = m.command_result(["ssh", "node", "secret-command"], secret, 30, capture_output=False)
+        self.assertEqual(run.call_args.kwargs["stdout"], m.subprocess.DEVNULL)
+        self.assertEqual(run.call_args.kwargs["stderr"], m.subprocess.DEVNULL)
+        self.assertTrue(result["output_suppressed"])
+        for value in (result, m.OPERATIONS[result["operation_id"]]):
+            self.assertNotIn("argv", value)
+            self.assertNotIn("stdout", value)
+            self.assertNotIn("stderr", value)
+            self.assertNotIn(secret, json.dumps(value))
 
 
 if __name__ == "__main__":

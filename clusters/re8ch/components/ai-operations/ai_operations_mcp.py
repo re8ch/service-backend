@@ -376,6 +376,8 @@ class CredentialBroker:
 
 class NodeRunner:
     def run(self, capsule: dict[str, Any], credentials: dict[str, Any]) -> dict[str, Any]:
+        # Capsule commands may use broker-held credentials. Never capture their
+        # output (or argv) in MCP responses, operation history, or SQLite.
         if capsule["action"] not in {"shell", "file"}:
             raise ValueError("node runner supports shell and file capsules")
         node = resolve_node(capsule["node"])
@@ -385,10 +387,10 @@ class NodeRunner:
                 raise ValueError("capsule files must target /var/tmp/re8ch-capsules")
             data = base64.b64decode(item["data_base64"], validate=True)
             upload = f"install -d -m 700 {shlex.quote(str(Path(path).parent))} && base64 -d > {shlex.quote(path)}"
-            result = command_result(ssh_argv(node, upload), base64.b64encode(data).decode(), 300)
+            result = command_result(ssh_argv(node, upload), base64.b64encode(data).decode(), 300, capture_output=False)
             if result["exit_code"] != 0:
                 return result
-        return command_result(ssh_argv(node, capsule.get("command") or "true"), None, MAX_TIMEOUT)
+        return command_result(ssh_argv(node, capsule.get("command") or "true"), None, MAX_TIMEOUT, capture_output=False)
 
 
 def credential_catalog() -> list[dict[str, Any]]:
@@ -605,7 +607,7 @@ def allowed(identity: dict[str, Any]) -> bool:
     return bool(set(identity.get("groups", [])) & PROFILE_GROUPS.get(PROFILE, set()))
 
 
-def command_result(argv: list[str], stdin: str | None, timeout: int) -> dict[str, Any]:
+def command_result(argv: list[str], stdin: str | None, timeout: int, *, capture_output: bool = True) -> dict[str, Any]:
     operation_id = "op_" + uuid.uuid4().hex
     started = now()
     timeout = max(1, min(timeout, MAX_TIMEOUT))
@@ -613,32 +615,35 @@ def command_result(argv: list[str], stdin: str | None, timeout: int) -> dict[str
         proc = subprocess.run(
             argv,
             input=stdin.encode() if stdin is not None else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE if capture_output else subprocess.DEVNULL,
+            stderr=subprocess.PIPE if capture_output else subprocess.DEVNULL,
             timeout=timeout,
             check=False,
         )
         result = {
             "operation_id": operation_id,
-            "argv": argv,
             "exit_code": proc.returncode,
-            "stdout": proc.stdout[:MAX_OUTPUT].decode(errors="replace"),
-            "stderr": proc.stderr[:MAX_OUTPUT].decode(errors="replace"),
-            "truncated": len(proc.stdout) > MAX_OUTPUT or len(proc.stderr) > MAX_OUTPUT,
             "started_at": started,
             "finished_at": now(),
         }
+        if capture_output:
+            result.update({"argv": argv, "stdout": proc.stdout[:MAX_OUTPUT].decode(errors="replace"),
+                           "stderr": proc.stderr[:MAX_OUTPUT].decode(errors="replace"),
+                           "truncated": len(proc.stdout) > MAX_OUTPUT or len(proc.stderr) > MAX_OUTPUT})
+        else:
+            result["output_suppressed"] = True
     except subprocess.TimeoutExpired as exc:
         result = {
             "operation_id": operation_id,
-            "argv": argv,
             "exit_code": 124,
-            "stdout": (exc.stdout or b"")[:MAX_OUTPUT].decode(errors="replace"),
-            "stderr": "command timed out",
-            "truncated": False,
             "started_at": started,
             "finished_at": now(),
         }
+        if capture_output:
+            result.update({"argv": argv, "stdout": (exc.stdout or b"")[:MAX_OUTPUT].decode(errors="replace"),
+                           "stderr": "command timed out", "truncated": False})
+        else:
+            result["output_suppressed"] = True
     OPERATIONS[operation_id] = result
     return result
 
