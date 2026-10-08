@@ -145,6 +145,26 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	if selected != "" && !tenantName.MatchString(selected) {
 		return identity{}, errors.New("invalid bearer token or tenant selection")
 	}
+	// Collapse only in-flight verification for the same token and selector. The
+	// result is never cached: a subsequent request must observe a changed active
+	// organization, membership, or revoked login session immediately.
+	key := fmt.Sprintf("%x", sha256.Sum256([]byte(selected+"\x00"+bearer)))
+	result := s.authFlights.DoChan(key, func() (any, error) {
+		// One disconnected caller must not cancel verification for all callers
+		// waiting on the same login. Keep an independent, bounded deadline.
+		verificationCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+		defer cancel()
+		return s.authenticateUncoalesced(verificationCtx, bearer, selected)
+	})
+	select {
+	case <-ctx.Done():
+		return identity{}, ctx.Err()
+	case completed := <-result:
+		return completed.Val.(identity), completed.Err
+	}
+}
+
+func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected string) (identity, error) {
 	id, err := s.verifySupabase(ctx, bearer)
 	if err != nil {
 		if errors.Is(err, errIdentityUnavailable) {
