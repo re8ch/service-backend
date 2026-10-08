@@ -32,6 +32,7 @@ func openLedger(path string) (*sql.DB, error) {
 		CREATE TABLE IF NOT EXISTS usage_outbox(event_id TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, resource_ref TEXT NOT NULL, event_json TEXT NOT NULL, delivered_at TEXT, created_at TEXT NOT NULL);
 		CREATE INDEX IF NOT EXISTS received_usage_tenant_resource ON received_usage(tenant_ref, resource_ref);
 		CREATE INDEX IF NOT EXISTS received_usage_tenant_received ON received_usage(tenant_ref, received_at);
+		CREATE INDEX IF NOT EXISTS usage_outbox_tenant_resource ON usage_outbox(tenant_ref, resource_ref);
 		CREATE TABLE IF NOT EXISTS cluster_registrations(registration_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, cluster_uid TEXT NOT NULL, region_ref TEXT NOT NULL, issuer TEXT NOT NULL, public_key_hash TEXT NOT NULL, capabilities_json TEXT NOT NULL, state TEXT NOT NULL, enrollment_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(tenant_ref,cluster_uid));
 		CREATE TABLE IF NOT EXISTS cluster_connections(connection_ref TEXT PRIMARY KEY, registration_ref TEXT NOT NULL UNIQUE, tenant_ref TEXT NOT NULL, state TEXT NOT NULL, identity_ref TEXT NOT NULL, last_heartbeat TEXT, revoked_at TEXT, created_at TEXT NOT NULL);`); err != nil {
 		db.Close()
@@ -165,51 +166,55 @@ func (s *server) usageSummary(tenant, resource string) (map[string]any, error) {
 	if s.ledger == nil {
 		return nil, errors.New("usage ledger unavailable")
 	}
-	events := map[string]map[string]any{}
-	for _, table := range []string{"usage_outbox", "received_usage"} {
-		query := `SELECT event_json FROM ` + table + ` WHERE tenant_ref=?`
-		var rows *sql.Rows
-		var err error
-		if resource != "" {
-			rows, err = s.ledger.Query(query+` AND resource_ref=?`, tenant, resource)
-		} else {
-			rows, err = s.ledger.Query(query, tenant)
-		}
-		if err != nil {
-			return nil, err
-		}
-		for rows.Next() {
-			var raw string
-			if err = rows.Scan(&raw); err != nil {
-				rows.Close()
-				return nil, err
-			}
-			var value map[string]any
-			if err = json.Unmarshal([]byte(raw), &value); err != nil {
-				rows.Close()
-				return nil, err
-			}
-			id, _ := value["eventId"].(string)
-			events[id] = value
-		}
-		err = rows.Err()
-		rows.Close()
-		if err != nil {
-			return nil, err
-		}
+	// Received events supersede outbox copies with the same event ID. Aggregate
+	// in SQLite so concurrent readers do not deserialize every event into Go
+	// maps or hold the single ledger connection longer than necessary.
+	query := `WITH events AS (
+		SELECT event_json FROM received_usage WHERE tenant_ref=?`
+	args := []any{tenant}
+	if resource != "" {
+		query += ` AND resource_ref=?`
+		args = append(args, resource)
 	}
+	query += ` UNION ALL SELECT o.event_json FROM usage_outbox o WHERE o.tenant_ref=?`
+	args = append(args, tenant)
+	if resource != "" {
+		query += ` AND o.resource_ref=?`
+		args = append(args, resource)
+	}
+	query += ` AND NOT EXISTS (SELECT 1 FROM received_usage r WHERE r.event_id=o.event_id AND r.tenant_ref=o.tenant_ref`
+	if resource != "" {
+		query += ` AND r.resource_ref=?`
+		args = append(args, resource)
+	}
+	query += `)) SELECT json_extract(event_json, '$.meter'), json_extract(event_json, '$.unit'),
+		SUM(CAST(json_extract(event_json, '$.quantity') AS REAL)), COUNT(*)
+		FROM events GROUP BY 1,2`
+	rows, err := s.ledger.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 	totals := map[string]float64{}
-	for _, event := range events {
-		meter, _ := event["meter"].(string)
-		unit, _ := event["unit"].(string)
-		quantity, _ := event["quantity"].(float64)
-		totals[meter+":"+unit] += quantity
+	eventCount := 0
+	for rows.Next() {
+		var meter, unit string
+		var quantity float64
+		var count int
+		if err = rows.Scan(&meter, &unit, &quantity, &count); err != nil {
+			return nil, err
+		}
+		totals[meter+":"+unit] = quantity
+		eventCount += count
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 	var resourceRef any
 	if resource != "" {
 		resourceRef = resource
 	}
-	return map[string]any{"tenantRef": tenant, "resourceRef": resourceRef, "totals": totals, "eventCount": len(events), "pricingApplied": false, "accountingPosted": false}, nil
+	return map[string]any{"tenantRef": tenant, "resourceRef": resourceRef, "totals": totals, "eventCount": eventCount, "pricingApplied": false, "accountingPosted": false}, nil
 }
 
 func usageCollectorAuthenticated(r *http.Request) (bool, error) {
