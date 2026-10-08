@@ -391,6 +391,13 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 		if err := validateTenantObject(obj, namespace); err != nil {
 			return nil, err
 		}
+		// Native PVCs consume the same storage entitlement as managed volume
+		// claims. Check even on preview so discovery and execution agree.
+		if asString(obj, "kind") == "PersistentVolumeClaim" {
+			if err := requireGrantedConsumable(ctx, id, "storage.volume.v1"); err != nil {
+				return nil, err
+			}
+		}
 		if asString(obj, "kind") == "RoleBinding" {
 			if err := validateTenantRoleBindingTarget(ctx, namespace, obj); err != nil {
 				return nil, err

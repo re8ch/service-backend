@@ -72,7 +72,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "service", "kinds": []string{"Service"}, "serviceTypes": []string{"ClusterIP"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
-			{"id": "storage", "kinds": []string{"PersistentVolumeClaim"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
+			{"id": "storage", "kinds": []string{"PersistentVolumeClaim"}, "tools": kubernetesTools, "requiredConsumable": "storage.volume.v1", "canWrite": namespacedWrite && hasRequestableGrant(grants, "storage.volume.v1")},
 			{"id": "service-identity", "kinds": []string{"ServiceAccount", "Role", "RoleBinding"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "workload-policy", "kinds": []string{"HorizontalPodAutoscaler", "PodDisruptionBudget"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "runtime-observation", "kinds": []string{"Pod", "Event", "Endpoints", "ReplicaSet"}, "tools": []string{"tenant_kubernetes_get"}, "canWrite": false},
