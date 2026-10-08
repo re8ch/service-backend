@@ -1014,6 +1014,8 @@ modules:
       digest: sha256:0ee47e7bb6ddde77f0666a96cd546f40b227c8f52326e3d9f0756057a9263dc2
     - codename: gulfstream-zircon
       digest: sha256:0600d4f4d8842e29d6a3611105b3f37eb0143d8f12728f1948b56aba520592a1
+    - codename: riptide-zircon
+      digest: sha256:7f2a9dd7349436b112e33df51a0555d39d79d9f8594f9755abfae3bb50b90b05
   platform/hyperswitch:
     releases:
     - codename: anchor

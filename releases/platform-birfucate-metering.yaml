@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: gulfstream-zircon
+codename: riptide-zircon
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:0600d4f4d8842e29d6a3611105b3f37eb0143d8f12728f1948b56aba520592a1
+  digest: sha256:7f2a9dd7349436b112e33df51a0555d39d79d9f8594f9755abfae3bb50b90b05
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
