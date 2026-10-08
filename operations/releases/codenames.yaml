@@ -1034,6 +1034,8 @@ modules:
       digest: sha256:ccf2a8e17297a38d512c1e18b090804b2ec47e7e9a3b9d9328b460bc8991b556
     - codename: tideway-jasper
       digest: sha256:dd56a05e66f61de09e59d328beb70f315bc779590a710b6e92af0e8b8de1e23a
+    - codename: cascade-agate
+      digest: sha256:7c8e19c2b5efd4f005f029cba42657013327dffe20f606b086bce8cc044a266e
   platform/hyperswitch:
     releases:
     - codename: anchor
