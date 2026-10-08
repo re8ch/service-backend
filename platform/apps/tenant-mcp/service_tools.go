@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/url"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -55,6 +56,52 @@ func legacyIntentOnly(item map[string]any) map[string]any {
 }
 
 func slice(value any) []any { result, _ := value.([]any); return result }
+
+func providerBindings(instances []any, tenant, ref string) []map[string]any {
+	bindings := []map[string]any{}
+	for _, raw := range instances {
+		instance := object(raw)
+		meta, spec, status := object(instance["metadata"]), object(instance["spec"]), object(instance["status"])
+		name, uid := asString(meta, "name"), asString(meta, "uid")
+		serviceClass := asString(spec, "serviceClass")
+		resourceRef := "service://" + tenant + "/" + name
+		credentialRef := asString(status, "humanCredentialRef")
+		provider := map[string]string{"registry.harbor.v1": "harbor", "observability.grafana.v1": "grafana"}[serviceClass]
+		if asString(spec, "tenantRef") != tenant || provider == "" || name == "" || uid == "" ||
+			status["phase"] != "Ready" || (ref != "" && ref != resourceRef) ||
+			!strings.HasPrefix(credentialRef, "credential://"+provider+"/"+tenant+"/") {
+			continue
+		}
+		if generation, ok := meta["generation"]; ok && status["observedGeneration"] != generation {
+			continue
+		}
+		bindings = append(bindings, map[string]any{
+			"bindingRef":                 "binding://" + tenant + "/provider/" + uid,
+			"resourceRef":                resourceRef,
+			"bindingType":                "access:broker-reference",
+			"accessRef":                  credentialRef,
+			"serviceClass":               serviceClass,
+			"source":                     "provider-status",
+			"state":                      "Ready",
+			"revocable":                  false,
+			"revokeWith":                 "service_instance_suspend",
+			"credentialMaterialReturned": false,
+		})
+	}
+	return bindings
+}
+
+func (s *server) serviceBindings(ctx context.Context, tenant, ref string) ([]map[string]any, error) {
+	items, err := s.bindingList(tenant, ref)
+	if err != nil {
+		return nil, err
+	}
+	controlled, err := controlRequest(ctx, tenant, "/v1/services")
+	if err != nil {
+		return nil, err
+	}
+	return append(items, providerBindings(slice(controlled["items"]), tenant, ref)...), nil
+}
 
 func requireOperator(id identity) error {
 	if id.Role != "operator" && id.Role != "admin" {
@@ -202,8 +249,11 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		}
 		return nil, noLiveServiceProvisioner(asString(current, "service_class"))
 	case "service_binding_list":
-		items, err := s.bindingList(tenant, ref)
-		return map[string]any{"tenantRef": tenant, "bindings": items}, err
+		items, err := s.serviceBindings(ctx, tenant, ref)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"tenantRef": tenant, "bindings": items}, nil
 	case "service_binding_revoke":
 		if err := requireOperator(id); err != nil {
 			return nil, err

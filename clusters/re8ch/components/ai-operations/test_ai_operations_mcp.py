@@ -30,6 +30,23 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_provider_binding_projection_excludes_cross_tenant_and_stale_access(self):
+        m = load("tenant")
+        def instance(tenant, phase, credential, observed):
+            return {"metadata": {"name": "registry", "uid": "uid-1", "generation": 2},
+                    "spec": {"tenantRef": tenant, "serviceClass": "registry.harbor.v1"},
+                    "status": {"phase": phase, "observedGeneration": observed, "humanCredentialRef": credential}}
+        items = [instance("acme", "Ready", "credential://harbor/acme/opaque", 2),
+                 instance("other", "Ready", "credential://harbor/other/opaque", 2),
+                 instance("acme", "Suspended", "credential://harbor/acme/stale", 2),
+                 instance("acme", "Ready", "credential://harbor/acme/unreconciled", 1),
+                 instance("acme", "Ready", "credential://harbor/other/cross-tenant", 2)]
+        bindings = m.provider_bindings(items, "acme", "service://acme/registry")
+        self.assertEqual(len(bindings), 1)
+        self.assertEqual(bindings[0]["accessRef"], "credential://harbor/acme/opaque")
+        self.assertFalse(bindings[0]["revocable"])
+        self.assertEqual(m.provider_bindings(items, "acme", "service://acme/unrelated"), [])
+
     def test_admin_dynamic_skill_tools_forward_review_with_subject(self):
         with patch.dict(os.environ, {"DYNAMIC_SKILL_ADMIN_URL": "http://tenant-api.test/internal/dynamic-skills", "SERVICE_API_TOKEN": "test-secret"}):
             admin = load("admin")

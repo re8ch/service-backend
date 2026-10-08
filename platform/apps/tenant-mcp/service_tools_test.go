@@ -42,3 +42,27 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 		t.Fatalf("catalog ignored tenant grants or provider backing: %v", granted)
 	}
 }
+
+func TestProviderBindingsOnlyExposeCurrentOwnedOpaqueAccess(t *testing.T) {
+	instance := func(tenant, phase, credential string, observed float64) any {
+		return map[string]any{
+			"metadata": map[string]any{"name": "registry", "uid": "uid-1", "generation": float64(2)},
+			"spec":     map[string]any{"tenantRef": tenant, "serviceClass": "registry.harbor.v1"},
+			"status":   map[string]any{"phase": phase, "observedGeneration": observed, "humanCredentialRef": credential},
+		}
+	}
+	items := []any{
+		instance("acme", "Ready", "credential://harbor/acme/opaque", 2),
+		instance("other", "Ready", "credential://harbor/other/opaque", 2),
+		instance("acme", "Suspended", "credential://harbor/acme/stale", 2),
+		instance("acme", "Ready", "credential://harbor/acme/unreconciled", 1),
+		instance("acme", "Ready", "credential://harbor/other/cross-tenant", 2),
+	}
+	bindings := providerBindings(items, "acme", "service://acme/registry")
+	if len(bindings) != 1 || bindings[0]["accessRef"] != "credential://harbor/acme/opaque" || bindings[0]["revocable"] != false {
+		t.Fatalf("provider binding projection was unsafe: %v", bindings)
+	}
+	if len(providerBindings(items, "acme", "service://acme/unrelated")) != 0 {
+		t.Fatal("resource filter was ignored")
+	}
+}

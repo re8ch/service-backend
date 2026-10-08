@@ -1029,6 +1029,36 @@ def legacy_intent_only(item: dict[str, Any]) -> dict[str, Any]:
     return {**item, "fulfillmentState": "legacy-intent-only", "provisioned": False}
 
 
+def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref: str | None = None) -> list[dict[str, Any]]:
+    bindings = []
+    providers = {"registry.harbor.v1": "harbor", "observability.grafana.v1": "grafana"}
+    for instance in instances:
+        meta, spec, status = (instance.get(key) or {} for key in ("metadata", "spec", "status"))
+        name, uid = meta.get("name"), meta.get("uid")
+        service_class = spec.get("serviceClass")
+        provider = providers.get(service_class)
+        ref = f"service://{tenant}/{name}"
+        credential_ref = status.get("humanCredentialRef")
+        if (spec.get("tenantRef") != tenant or not provider or not name or not uid
+                or status.get("phase") != "Ready" or resource_ref and resource_ref != ref
+                or not isinstance(credential_ref, str)
+                or not credential_ref.startswith(f"credential://{provider}/{tenant}/")
+                or "generation" in meta and status.get("observedGeneration") != meta["generation"]):
+            continue
+        bindings.append({"bindingRef": f"binding://{tenant}/provider/{uid}", "resourceRef": ref,
+                         "bindingType": "access:broker-reference", "accessRef": credential_ref,
+                         "serviceClass": service_class, "source": "provider-status", "state": "Ready",
+                         "revocable": False, "revokeWith": "service_instance_suspend",
+                         "credentialMaterialReturned": False})
+    return bindings
+
+
+def service_bindings(tenant: str, resource_ref: str | None = None) -> list[dict[str, Any]]:
+    legacy = tenant_service_store().bindings(tenant, resource_ref)
+    controlled = tenant_control_request("/v1/services", tenant).get("items", [])
+    return legacy + provider_bindings(controlled, tenant, resource_ref)
+
+
 def tenant_catalog_for_profile(tenant: str, grants: list[dict[str, Any]]) -> list[dict[str, Any]]:
     active = {grant.get("consumableRef") for grant in grants if grant.get("lifecycle") == "Active"}
     return [item for item in service_catalog()
@@ -1051,8 +1081,8 @@ def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
         ])
     else:
         records.extend([
-            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": [legacy_intent_only(item) for item in tenant_service_store().list(tenant)]}),
-            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": tenant_service_store().bindings(tenant)}),
+            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": [legacy_intent_only(item) for item in tenant_service_store().list(tenant)] + tenant_control_request("/v1/services", tenant).get("items", [])}),
+            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": service_bindings(tenant)}),
             (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", lambda: tenant_service_store().usage_summary(tenant, None)),
             (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", lambda: tenant_control_request("/v1/claims", tenant)),
             (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", lambda: tenant_claim_usage_summary(tenant)),
@@ -2349,7 +2379,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             current = store.get(tenant, args["resource_ref"])
             no_live_service_provisioner(current["service_class"])
         if name == "service_binding_list":
-            return {"tenantRef": tenant, "bindings": store.bindings(tenant, args.get("resource_ref"))}
+            return {"tenantRef": tenant, "bindings": service_bindings(tenant, args.get("resource_ref"))}
         if name == "service_binding_revoke":
             authenticated_tenant_operator(identity)
             return store.revoke_binding(tenant, args["binding_ref"])
