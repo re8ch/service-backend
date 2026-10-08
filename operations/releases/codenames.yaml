@@ -1002,6 +1002,8 @@ modules:
       digest: sha256:be5a935b58dbb693ff12eb8048ad74a8da50ba54087dba309a2c1d97287dbed1
     - codename: riptide-emerald
       digest: sha256:5f6b526b647c3724291baf4f68bcd3e16a20297247bc3934022f4c3a69b69b49
+    - codename: springtide-emerald
+      digest: sha256:8447550c005252727084d3bde615b64bfb2ba5d7de76530507e37aaae37dadfe
   platform/hyperswitch:
     releases:
     - codename: anchor
