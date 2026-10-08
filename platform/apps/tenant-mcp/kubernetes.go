@@ -101,17 +101,23 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 		return errors.New("object namespace is outside the authenticated tenant")
 	}
 	if kind == "RoleBinding" {
-		for _, raw := range slice(obj["subjects"]) {
+		subjects := slice(obj["subjects"])
+		if len(subjects) == 0 {
+			return errors.New("tenant RoleBinding requires a ServiceAccount subject")
+		}
+		for _, raw := range subjects {
 			subject := object(raw)
-			if subject["kind"] == "ServiceAccount" {
-				selected := asString(subject, "namespace")
-				if selected != "" && selected != namespace {
-					return errors.New("cross-namespace service account binding is denied")
-				}
+			if subject["kind"] != "ServiceAccount" || !validKubernetesName(asString(subject, "name")) || asString(subject, "apiGroup") != "" {
+				return errors.New("tenant RoleBinding subjects must be local ServiceAccounts")
+			}
+			selected := asString(subject, "namespace")
+			if selected != "" && selected != namespace {
+				return errors.New("cross-namespace service account binding is denied")
 			}
 		}
-		if object(obj["roleRef"])["kind"] != "Role" {
-			return errors.New("binding ClusterRoles through the tenant publication is denied")
+		roleRef := object(obj["roleRef"])
+		if roleRef["kind"] != "Role" || !validKubernetesName(asString(roleRef, "name")) || roleRef["apiGroup"] != "rbac.authorization.k8s.io" {
+			return errors.New("tenant RoleBinding must reference a local Role")
 		}
 	}
 	if kind == "Service" {

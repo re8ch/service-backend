@@ -93,6 +93,41 @@ func TestTenantKubernetesObjectGuard(t *testing.T) {
 	}
 }
 
+func TestTenantRoleBindingOnlyTargetsLocalServiceAccounts(t *testing.T) {
+	roleRef := map[string]any{"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "reader"}
+	for _, subject := range []map[string]any{
+		{"kind": "User", "name": "admin@example.com", "apiGroup": "rbac.authorization.k8s.io"},
+		{"kind": "Group", "name": "system:masters", "apiGroup": "rbac.authorization.k8s.io"},
+		{"kind": "ServiceAccount", "name": "worker", "namespace": "other"},
+		{"kind": "ServiceAccount", "name": "worker", "apiGroup": "rbac.authorization.k8s.io"},
+		{"kind": "ServiceAccount", "name": "bad/name"},
+	} {
+		obj := map[string]any{"kind": "RoleBinding", "subjects": []any{subject}, "roleRef": roleRef}
+		if err := validateTenantObject(obj, "acme"); err == nil {
+			t.Fatalf("unsafe RoleBinding subject accepted: %v", subject)
+		}
+	}
+	for _, subject := range []map[string]any{
+		{"kind": "ServiceAccount", "name": "worker"},
+		{"kind": "ServiceAccount", "name": "worker", "namespace": "acme"},
+	} {
+		obj := map[string]any{"kind": "RoleBinding", "subjects": []any{subject}, "roleRef": roleRef}
+		if err := validateTenantObject(obj, "acme"); err != nil {
+			t.Fatalf("local ServiceAccount binding rejected: %v", err)
+		}
+	}
+	for _, ref := range []map[string]any{
+		{"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "admin"},
+		{"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "bad/name"},
+		{"kind": "Role", "name": "reader"},
+	} {
+		obj := map[string]any{"kind": "RoleBinding", "subjects": []any{map[string]any{"kind": "ServiceAccount", "name": "worker"}}, "roleRef": ref}
+		if err := validateTenantObject(obj, "acme"); err == nil {
+			t.Fatalf("unsafe RoleBinding role reference accepted: %v", ref)
+		}
+	}
+}
+
 func TestTenantServiceAndWorkloadCannotBypassPublicEdge(t *testing.T) {
 	for _, spec := range []map[string]any{
 		{"type": "ClusterIP", "externalIPs": []any{"192.0.2.112"}},
