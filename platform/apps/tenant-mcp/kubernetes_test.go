@@ -230,9 +230,43 @@ func TestTenantPVCRequiresDynamicSameNamespaceStorage(t *testing.T) {
 	}
 }
 
+func TestNativePVCApplyRequiresStorageGrantEvenForPreview(t *testing.T) {
+	granted := false
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/namespaces":
+			writeJSON(w, 200, map[string]any{"items": []any{map[string]any{"spec": map[string]any{"tenantRef": "acme", "namespaceName": "acme-default", "operation": "EnsurePresent"}, "status": map[string]any{"phase": "Ready"}}}})
+		case "/v1/capabilities":
+			grants := []any{}
+			if granted {
+				grants = append(grants, map[string]any{"consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"})
+			}
+			writeJSON(w, 200, map[string]any{"tenantRef": "acme", "grants": grants})
+		default:
+			t.Fatalf("unexpected control path: %s", r.URL.Path)
+		}
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	id := identity{Tenant: "acme", Role: "operator", DefaultNamespace: "acme-default"}
+	obj := map[string]any{"apiVersion": "v1", "kind": "PersistentVolumeClaim", "metadata": map[string]any{"name": "data"}, "spec": map[string]any{"storageClassName": "cephfs-re8ch", "accessModes": []any{"ReadWriteOnce"}, "resources": map[string]any{"requests": map[string]any{"storage": "1Gi"}}}}
+	if _, err := (&server{}).callKubernetes(context.Background(), id, "tenant_kubernetes_apply", map[string]any{"object": obj}); err == nil || !strings.Contains(err.Error(), "active tenant grant") {
+		t.Fatalf("PVC preview without grant was accepted: %v", err)
+	}
+	granted = true
+	if _, err := (&server{}).callKubernetes(context.Background(), id, "tenant_kubernetes_apply", map[string]any{"object": obj}); err != nil {
+		t.Fatalf("PVC preview with grant was rejected: %v", err)
+	}
+	granted = false
+	if _, err := (&server{}).callKubernetes(context.Background(), id, "tenant_kubernetes_apply", map[string]any{"object": obj}); err == nil {
+		t.Fatal("PVC preview still allowed after grant revocation")
+	}
+}
+
 func TestTenantServiceAndWorkloadCannotBypassPublicEdge(t *testing.T) {
 	for _, spec := range []map[string]any{
-		{"type": "ClusterIP", "externalIPs": []any{"192.0.2.218"}},
+		{"type": "ClusterIP", "externalIPs": []any{"203.0.113.10"}},
 		{"type": "NodePort"},
 		{"type": "ExternalName"},
 	} {
