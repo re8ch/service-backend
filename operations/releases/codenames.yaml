@@ -998,6 +998,8 @@ modules:
       digest: sha256:2cd6b040d40742a4100b731de9af54d1431301cffdfc43426c419b0b8e2233dd
     - codename: eddy-emerald
       digest: sha256:ffb5e80a9409415de465cc8cb9159516a91f88e101ead1749303b16695e914f4
+    - codename: gulfstream-emerald
+      digest: sha256:be5a935b58dbb693ff12eb8048ad74a8da50ba54087dba309a2c1d97287dbed1
   platform/hyperswitch:
     releases:
     - codename: anchor
