@@ -73,11 +73,21 @@ func (s *server) callClaim(ctx context.Context, id identity, name string, args m
 			return nil, err
 		}
 		_, checks := s.readiness(ctx)
-		return map[string]any{"tenantRef": tenant, "capabilities": []map[string]any{
+		result := map[string]any{"tenantRef": tenant, "capabilities": []map[string]any{
 			{"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": false, "imagePolicy": "tenant-selected", "interfaces": []string{"Kubernetes API", "Helm", "GitOps"}},
 			{"name": "compute.workload.v1", "access": "optional-managed-claim", "kinds": []string{"Job", "Deployment"}, "resources": []string{"cpu", "memory", "ephemeralStorage"}, "publicExposure": "shared-service-opt-in", "imagePolicy": "managed claims use the optional supply-chain policy", "ttl": map[string]any{"required": true, "renewable": true, "minimumSeconds": 300, "maximumSeconds": 2592000}},
 			{"name": "storage.volume.v1", "plans": []string{"rbd", "cephfs"}, "lifecycle": "independent-retained", "ttl": map[string]any{"required": true, "renewable": true, "minimumSeconds": 300, "maximumSeconds": 2592000}},
-		}, "grantedConsumables": grants, "requiresApproval": false, "operationalReadiness": checks, "pricingIncluded": false}, nil
+		}, "grantedConsumables": grants, "requiresApproval": false, "operationalReadiness": checks, "pricingIncluded": false}
+		// Keep the long-standing discovery tool useful for clients whose MCP tool
+		// snapshot predates tenant_self_service_capabilities. A namespace lookup
+		// failure must not hide the already-known grant and claim information.
+		if namespaces, err := controlRequest(ctx, tenant, "/v1/namespaces"); err == nil {
+			result["selfService"] = selfServiceCapabilitiesFromState(id, namespaces, grants)
+			result["selfServiceStatus"] = "ready"
+		} else {
+			result["selfServiceStatus"] = "unavailable"
+		}
+		return result, nil
 	}
 	if name == "tenant_usage_summary_get" {
 		return s.claimUsageSummary(ctx, tenant, value("claim_name"))

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +23,7 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 		if r.URL.Path == "/v1/namespaces" {
 			writeJSON(w, 200, map[string]any{"items": []any{
 				map[string]any{"spec": map[string]any{"tenantRef": "re8ch", "operation": "EnsurePresent", "namespaceName": "re8ch-default"}, "status": map[string]any{"phase": "Ready"}},
+				map[string]any{"spec": map[string]any{"tenantRef": "re8ch", "operation": "EnsurePresent", "namespaceName": "re8ch-expired", "expiresAt": "2020-01-01T00:00:00Z"}, "status": map[string]any{"phase": "Ready"}},
 				map[string]any{"spec": map[string]any{"tenantRef": "other", "operation": "EnsurePresent", "namespaceName": "other-default"}, "status": map[string]any{"phase": "Ready"}},
 			}})
 			return
@@ -59,8 +61,17 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result["tenantRef"] != "re8ch" || !strings.Contains(w.Body.String(), "re8ch-default") || strings.Contains(w.Body.String(), "other-default") || !strings.Contains(w.Body.String(), "exposure") {
+	if result["tenantRef"] != "re8ch" || !strings.Contains(w.Body.String(), "re8ch-default") || strings.Contains(w.Body.String(), "re8ch-expired") || strings.Contains(w.Body.String(), "other-default") || !strings.Contains(w.Body.String(), "exposure") {
 		t.Fatalf("unexpected scope: %s", w.Body.String())
+	}
+	legacy, err := s.callClaim(context.Background(), identity{Tenant: "re8ch", Role: "operator"}, "tenant_capabilities_list", map[string]any{})
+	if err != nil {
+		t.Fatalf("legacy discovery failed: %v", err)
+	}
+	legacyResult := legacy.(map[string]any)
+	legacySelfService := legacyResult["selfService"].(map[string]any)
+	if legacyResult["selfServiceStatus"] != "ready" || len(legacySelfService["readyNamespaces"].([]string)) != 1 || legacySelfService["readyNamespaces"].([]string)[0] != "re8ch-default" {
+		t.Fatalf("legacy discovery diverged from executable namespace scope: %v", legacyResult)
 	}
 	grants := result["grantedConsumables"].([]any)
 	if len(grants) != 3 || grants[0].(map[string]any)["canRequest"] != true || grants[1].(map[string]any)["canRequest"] != false || grants[2].(map[string]any)["canRequest"] != true {
