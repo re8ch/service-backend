@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: gulfstream-jasper
+codename: riptide-jasper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:3abf21ab7aa4f9dac0960064b3d36412e33266215eb556d55da58b68c0309bae
+  digest: sha256:7ffecff9324300183b7b9e6743531ee1d55be809b3a21a3e0bcdbf55abeac2fe
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
