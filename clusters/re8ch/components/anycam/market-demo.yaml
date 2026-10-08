@@ -28,7 +28,7 @@ spec:
         app: anycam-model-registry
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       containers:
       - name: api
         image: ghcr.io/woomou/anycam-market-demo@sha256:fedbb358d50a59582c1cb847e189f473073a486d02bb218087e4bc2bfce83045
@@ -87,7 +87,7 @@ spec:
         app: anycam-model-downloader
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       containers:
       - name: worker
         image: ghcr.io/woomou/anycam-market-demo@sha256:fedbb358d50a59582c1cb847e189f473073a486d02bb218087e4bc2bfce83045
@@ -177,7 +177,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: anycam-market-demo-seed-v1
+  name: anycam-market-demo-seed-v2
   namespace: anycam
 spec:
   backoffLimit: 3
@@ -185,7 +185,7 @@ spec:
     spec:
       restartPolicy: Never
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 10001
       containers:
