@@ -134,6 +134,18 @@ func TestSecretBrokerValidationNeverReturnsValues(t *testing.T) {
 }
 
 func TestManagedExposureContract(t *testing.T) {
+	if err := validateExposureServiceSpec(map[string]any{"type": "ClusterIP", "selector": map[string]any{"app": "web"}, "ports": []any{map[string]any{"port": float64(80), "protocol": "TCP"}}}, 80); err != nil {
+		t.Fatalf("selector-backed TCP Service was rejected: %v", err)
+	}
+	for _, spec := range []map[string]any{
+		{"type": "ClusterIP", "ports": []any{map[string]any{"port": float64(80)}}},
+		{"type": "ClusterIP", "selector": map[string]any{"app": "web"}, "ports": []any{map[string]any{"port": float64(80), "protocol": "UDP"}}},
+		{"type": "NodePort", "selector": map[string]any{"app": "web"}, "ports": []any{map[string]any{"port": float64(80)}}},
+	} {
+		if err := validateExposureServiceSpec(spec, 80); err == nil {
+			t.Fatalf("unroutable or unsafe Service was accepted: %v", spec)
+		}
+	}
 	tenant := "personal-11111111-1111-4111-8111-111111111111"
 	hostname := exposureHostname(tenant, "demo")
 	if len(hostname) > 80 || hostname[len(hostname)-len(".apps.re8ch.com"):] != ".apps.re8ch.com" {

@@ -140,6 +140,7 @@ class Kubernetes:
             ("apps/v1", "Deployment"): ("apis/apps/v1", "deployments"),
             ("batch/v1", "Job"): ("apis/batch/v1", "jobs"),
             ("networking.k8s.io/v1", "NetworkPolicy"): ("apis/networking.k8s.io/v1", "networkpolicies"),
+            ("cilium.io/v2", "CiliumNetworkPolicy"): ("apis/cilium.io/v2", "ciliumnetworkpolicies"),
             ("gateway.networking.k8s.io/v1", "HTTPRoute"): ("apis/gateway.networking.k8s.io/v1", "httproutes"),
             ("peering.re8ch.com/v1alpha1", "PeerPolicy"): ("apis/peering.re8ch.com/v1alpha1", "peerpolicies"),
         }
@@ -457,7 +458,6 @@ def tenant_namespace_resources(tenant, namespace):
         {"apiGroups": ["autoscaling"], "resources": ["horizontalpodautoscalers"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
         {"apiGroups": ["policy"], "resources": ["poddisruptionbudgets"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
         {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["roles", "rolebindings"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
-        {"apiGroups": ["gateway.networking.k8s.io"], "resources": ["httproutes"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
     ]
     subjects = [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     subjects += [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": group} for group in tenant_groups(tenant_ref)]
@@ -469,9 +469,98 @@ def tenant_namespace_resources(tenant, namespace):
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "rules": owner_rules},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "subjects": subjects, "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-native-owner"}},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-resource-provisioner", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-control-controller", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "tenant-resource-provisioner"}},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-publicedge-route-manager", "namespace": namespace, "labels": labels}, "rules": [{"apiGroups": ["gateway.networking.k8s.io"], "resources": ["httproutes"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}]},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-publicedge-route-manager", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-publicedge-route-manager"}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-default-deny-cross-tenant", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"tenancy.re8ch.com/tenant": tenant_ref}}}]}]}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-metrics-scrape", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {"matchLabels": {"observability.re8ch.com/scrape": "true"}}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]}},
     ]
+
+
+def exposure_hostname(tenant_ref, name):
+    label = tenant_ref + "-" + name
+    if len(label) > 63:
+        label = label[:54].rstrip("-") + "-" + hashlib.sha256(label.encode()).hexdigest()[:8]
+    return label + ".apps.re8ch.com"
+
+
+def tenant_exposure_policy(route, tenant_ref, namespace):
+    metadata = route.get("metadata") or {}
+    labels = metadata.get("labels") or {}
+    if labels.get("tenancy.re8ch.com/managed-by") != "tenant-exposure-controller" or labels.get("tenancy.re8ch.com/tenant") != tenant_ref:
+        return None
+    name = metadata.get("name", "")
+    spec = route.get("spec") or {}
+    if (not isinstance(name, str) or not TENANT_NAME_RE.fullmatch(name) or len(name) > 63
+            or metadata.get("namespace") != namespace
+            or spec.get("parentRefs") != [{"name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "apps-wildcard-https"}]
+            or spec.get("hostnames") != [exposure_hostname(tenant_ref, name)]):
+        raise PermissionError("managed Exposure route authority is invalid")
+    rules = spec.get("rules") or []
+    if len(rules) != 1 or len(rules[0].get("backendRefs") or []) != 1:
+        raise PermissionError("managed Exposure must have one same-namespace Service backend")
+    backend = rules[0]["backendRefs"][0]
+    service_name, service_port = backend.get("name"), backend.get("port")
+    if (not isinstance(service_name, str) or not TENANT_NAME_RE.fullmatch(service_name)
+            or backend.get("namespace") not in (None, namespace)
+            or backend.get("group") not in (None, "") or backend.get("kind") not in (None, "Service")
+            or type(service_port) is not int or not 1 <= service_port <= 65535):
+        raise PermissionError("managed Exposure backend is invalid")
+    try:
+        service = kube().get("services", service_name, namespace, "api/v1")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        raise PermissionError("managed Exposure Service is absent") from exc
+    service_spec = service.get("spec") or {}
+    selector = service_spec.get("selector") or {}
+    if service_spec.get("type", "ClusterIP") != "ClusterIP" or not isinstance(selector, dict) or not selector:
+        raise PermissionError("managed Exposure requires a selector-backed ClusterIP Service")
+    ports = [item for item in service_spec.get("ports") or [] if item.get("port") == service_port and item.get("protocol", "TCP") == "TCP"]
+    if len(ports) != 1:
+        raise PermissionError("managed Exposure requires one TCP Service port")
+    target_port = ports[0].get("targetPort", service_port)
+    if (type(target_port) is int and 1 <= target_port <= 65535):
+        target_port = str(target_port)
+    elif not isinstance(target_port, str) or not re.fullmatch(r"[a-z]([-a-z0-9]*[a-z0-9])?", target_port) or len(target_port) > 15:
+        raise PermissionError("managed Exposure target port is invalid")
+    return {"apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy",
+            "metadata": {"name": "tenant-exposure-" + name, "namespace": namespace,
+                         "labels": {"tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}},
+            "spec": {"endpointSelector": {"matchLabels": selector}, "ingress": [{"fromEntities": ["ingress"], "toPorts": [{"ports": [{"port": target_port, "protocol": "TCP"}]}]}]}}
+
+
+def reconcile_exposure_policies(tenant_ref, namespace, granted):
+    expected = set()
+    routes = kube().list("httproutes", namespace, "apis/gateway.networking.k8s.io/v1") if granted else []
+    for route in routes:
+        try:
+            policy = tenant_exposure_policy(route, tenant_ref, namespace)
+        except PermissionError as exc:
+            LOG.warning("Exposure policy rejected in %s: %s", namespace, exc)
+            continue
+        if policy is not None:
+            name = policy["metadata"]["name"]
+            try:
+                existing = kube().get("ciliumnetworkpolicies", name, namespace, "apis/cilium.io/v2")
+            except urllib.error.HTTPError as exc:
+                if exc.code != 404:
+                    raise
+            else:
+                labels = (existing.get("metadata") or {}).get("labels") or {}
+                if (labels.get("tenancy.re8ch.com/tenant") != tenant_ref
+                        or labels.get("tenancy.re8ch.com/managed-by") != "tenant-exposure-controller"):
+                    LOG.error("Refusing to replace unmanaged Exposure policy %s/%s", namespace, name)
+                    continue
+            kube().apply(policy)
+            expected.add(name)
+    for policy in kube().list("ciliumnetworkpolicies", namespace, "apis/cilium.io/v2"):
+        metadata = policy.get("metadata") or {}
+        labels = metadata.get("labels") or {}
+        name = metadata.get("name", "")
+        if (labels.get("tenancy.re8ch.com/tenant") == tenant_ref
+                and labels.get("tenancy.re8ch.com/managed-by") == "tenant-exposure-controller"
+                and name.startswith("tenant-exposure-") and name not in expected):
+            kube().delete("ciliumnetworkpolicies", name, namespace, "apis/cilium.io/v2")
 
 
 def reconcile_tenant_namespace(resource, tenants):
@@ -516,6 +605,13 @@ def reconcile_tenant_namespace(resource, tenants):
         live = kube().get("namespaces", namespace, api="api/v1")
         status = {"observedGeneration": meta.get("generation", 1), "operationId": operation_id, "phase": "Ready", "namespaceUID": live["metadata"]["uid"], "reason": "NamespaceReady", "conditions": [condition("Ready", True, "NamespaceReady")]}
     kube().patch_status("tenantnamespaces", meta["name"], status)
+    if spec["operation"] == "EnsurePresent":
+        try:
+            granted = any(grant.get("consumableRef") == "network.tenant.v1" and grant.get("lifecycle", "Active") == "Active"
+                          for grant in tenant.get("spec", {}).get("grants", []) if isinstance(grant, dict))
+            reconcile_exposure_policies(tenant_ref, namespace, granted=granted)
+        except Exception:
+            LOG.exception("Exposure backend policy reconciliation failed for %s", namespace)
 
 
 def image_pull_secret(tenant_ref):

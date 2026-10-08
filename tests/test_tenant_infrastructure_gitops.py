@@ -514,12 +514,15 @@ def test_native_tenant_owner_is_reconciled_and_does_not_own_platform_boundaries(
     assert all(resource in serialized for resource in ("deployments", "statefulsets", "daemonsets"))
     cluster_role = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-control-controller")
     delegated = {(tuple(rule.get("resources", [])), tuple(rule.get("resourceNames", []))): set(rule["verbs"]) for rule in cluster_role["rules"]}
-    assert delegated[(("roles",), ("tenant-native-owner",))] == {"escalate", "bind"}
+    assert delegated[(("roles",), ("tenant-native-owner", "tenant-publicedge-route-manager"))] == {"escalate", "bind"}
     assert delegated[(("clusterroles",), ("tenant-resource-provisioner",))] == {"bind"}
     assert all(
         rule.get("resourceNames") == ["tenant-resource-provisioner"] and rule["verbs"] == ["bind"]
         for rule in cluster_role["rules"] if "clusterroles" in rule.get("resources", [])
     )
+    provisioner = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-resource-provisioner")
+    assert any(rule.get("apiGroups") == ["cilium.io"] and rule.get("resources") == ["ciliumnetworkpolicies"] for rule in provisioner["rules"])
+    assert not any(rule.get("apiGroups") == ["cilium.io"] for rule in cluster_role["rules"])
 
 
 def test_grafana_org_sync_can_reach_grafana_and_metrics_auth_selects_only_tenant_users():
