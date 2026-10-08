@@ -1036,6 +1036,8 @@ modules:
       digest: sha256:dd56a05e66f61de09e59d328beb70f315bc779590a710b6e92af0e8b8de1e23a
     - codename: cascade-agate
       digest: sha256:7c8e19c2b5efd4f005f029cba42657013327dffe20f606b086bce8cc044a266e
+    - codename: confluence-agate
+      digest: sha256:b8520bd84652ed6e690a48fbcfcafd97a59c25c7375d1d3161308a7f244b52ac
   platform/hyperswitch:
     releases:
     - codename: anchor
