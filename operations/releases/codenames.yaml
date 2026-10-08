@@ -990,6 +990,8 @@ modules:
       digest: sha256:727e1129f97f24672f8bbed38a6540957caa0a7c23ad4198bed2483aa5688651
     - codename: springtide-beryl
       digest: sha256:7c9b859af33230271e473b179810937e05089081e63fb0c8d3463efbc5ef2606
+    - codename: tideway-beryl
+      digest: sha256:19b2d06081ebea63672860def52bae90995ff3feecb5ee762ec17308e08f4a6d
   platform/hyperswitch:
     releases:
     - codename: anchor
