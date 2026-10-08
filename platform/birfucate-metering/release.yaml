@@ -48,7 +48,7 @@ spec:
         nodeNames: [restricted-node-6dc3f140f9]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:d98c826835c9685389375d1b43209be5d403cdfb9e6c199b35aea20ff4a23c6b
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:2e461db2cb60001dd060031ce8a07ed30bae33b86b16da9696539276052a136d
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
@@ -62,7 +62,7 @@ spec:
         platformSessionURL: ""
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:d98c826835c9685389375d1b43209be5d403cdfb9e6c199b35aea20ff4a23c6b
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:2e461db2cb60001dd060031ce8a07ed30bae33b86b16da9696539276052a136d
         databaseBindings:
           - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
           - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
