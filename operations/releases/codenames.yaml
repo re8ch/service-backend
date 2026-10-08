@@ -1022,6 +1022,8 @@ modules:
       digest: sha256:012f6683e84c4563d06c560203290f4802086c4b0e27e41f921c526ec95cee3e
     - codename: cascade-jasper
       digest: sha256:0a98e5fcf4a74913838a006e95696ffc437258c924395842ddfb3d410c3eb9b9
+    - codename: confluence-jasper
+      digest: sha256:e785d2e7223c20e1a5f9146ae4b2936bfc53917b9fb3e45ca2dc58281218bf72
   platform/hyperswitch:
     releases:
     - codename: anchor
