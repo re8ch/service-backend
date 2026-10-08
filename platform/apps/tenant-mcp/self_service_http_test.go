@@ -30,6 +30,7 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 			writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "grants": []any{
 				map[string]any{"name": "re8ch-storage", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"},
 				map[string]any{"name": "re8ch-sandbox", "consumableRef": "sandbox.runtime.v1", "roleRef": "admin", "lifecycle": "Suspended"},
+				map[string]any{"name": "re8ch-network", "consumableRef": "network.tenant.v1", "roleRef": "operator", "lifecycle": "Active"},
 			}})
 			return
 		}
@@ -62,8 +63,14 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 		t.Fatalf("unexpected scope: %s", w.Body.String())
 	}
 	grants := result["grantedConsumables"].([]any)
-	if len(grants) != 2 || grants[0].(map[string]any)["canRequest"] != true || grants[1].(map[string]any)["canRequest"] != false {
+	if len(grants) != 3 || grants[0].(map[string]any)["canRequest"] != true || grants[1].(map[string]any)["canRequest"] != false || grants[2].(map[string]any)["canRequest"] != true {
 		t.Fatalf("unexpected grant projection: %v", grants)
+	}
+	for _, raw := range result["capabilities"].([]any) {
+		capability := raw.(map[string]any)
+		if capability["id"] == "exposure" && (capability["canWrite"] != true || capability["requiredConsumable"] != "network.tenant.v1") {
+			t.Fatalf("exposure discovery does not match active network grant: %v", capability)
+		}
 	}
 	if err := requireGrantedConsumable(httptest.NewRequest(http.MethodGet, "/", nil).Context(), identity{Tenant: "re8ch", Role: "operator"}, "storage.volume.v1"); err != nil {
 		t.Fatalf("active operator grant rejected: %v", err)
@@ -96,5 +103,25 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	s.handler().ServeHTTP(mcpResponse, mcpRequest)
 	if mcpResponse.Code != 200 || !strings.Contains(mcpResponse.Body.String(), `"tenantRef":"re8ch"`) || !strings.Contains(mcpResponse.Body.String(), "re8ch-default") || strings.Contains(mcpResponse.Body.String(), "other-default") || !strings.Contains(mcpResponse.Body.String(), "storage.volume.v1") {
 		t.Fatalf("MCP and Hub discovery diverged: %d %s", mcpResponse.Code, mcpResponse.Body.String())
+	}
+}
+
+func TestExposureGrantCannotBeBypassedByOperatorRole(t *testing.T) {
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/capabilities" {
+			writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "grants": []any{}})
+			return
+		}
+		t.Fatalf("unexpected control request after denied grant: %s", r.URL.Path)
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	_, err := (&server{}).createExposure(httptest.NewRequest(http.MethodGet, "/", nil).Context(), identity{Tenant: "re8ch", Role: "operator"}, exposureCreateInput{Namespace: "re8ch-default", Name: "web", Service: "web", Port: 80, Apply: true})
+	if err == nil || !strings.Contains(err.Error(), "active tenant grant") {
+		t.Fatalf("operator without network grant was not denied before Kubernetes access: %v", err)
+	}
+	if hasRequestableGrant([]map[string]any{{"consumableRef": "network.tenant.v1", "canRequest": false}}, "network.tenant.v1") {
+		t.Fatal("non-requestable network grant accepted")
 	}
 }

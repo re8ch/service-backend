@@ -66,6 +66,7 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	}
 	sort.Strings(ready)
 	canWrite := id.Role == "operator" || id.Role == "admin"
+	canExpose := canWrite && len(ready) > 0 && hasRequestableGrant(grants, "network.tenant.v1")
 	kubernetesTools := []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
 	namespacedWrite := canWrite && len(ready) > 0
 	return map[string]any{
@@ -80,7 +81,7 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 			{"id": "workload-policy", "kinds": []string{"HorizontalPodAutoscaler", "PodDisruptionBudget"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "runtime-observation", "kinds": []string{"Pod", "Event", "Endpoints", "ReplicaSet"}, "tools": []string{"tenant_kubernetes_get"}, "canWrite": false},
 			{"id": "secret", "kinds": []string{"Secret"}, "writeOnly": true, "tools": []string{"tenant_secret_upsert", "tenant_secret_metadata_list", "tenant_secret_delete"}, "canWrite": canWrite && len(ready) > 0},
-			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canWrite && len(ready) > 0},
+			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "requiredConsumable": "network.tenant.v1", "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canExpose},
 		},
 	}, nil
 }
@@ -115,10 +116,17 @@ func requireGrantedConsumable(ctx context.Context, id identity, capability strin
 	if err != nil {
 		return err
 	}
-	for _, grant := range grants {
-		if grant["consumableRef"] == capability && grant["canRequest"] == true {
-			return nil
-		}
+	if hasRequestableGrant(grants, capability) {
+		return nil
 	}
 	return errors.New("active tenant grant and role are required for this capability")
+}
+
+func hasRequestableGrant(grants []map[string]any, capability string) bool {
+	for _, grant := range grants {
+		if grant["consumableRef"] == capability && grant["canRequest"] == true {
+			return true
+		}
+	}
+	return false
 }
