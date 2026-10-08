@@ -1008,6 +1008,8 @@ modules:
       digest: sha256:843a27b042b47ee404bf3f8422b233eeb25fbb7e17e233fe58a6f9c17128d4ec
     - codename: cascade-zircon
       digest: sha256:a443a1627cffd011327c13fa90ebabdc1a409636a21a835740b447b22b5faca8
+    - codename: confluence-zircon
+      digest: sha256:a3c7730d887f46059e815ee6fc4f855ea7f75ea1e8bf0773e17aa023d1d0f603
   platform/hyperswitch:
     releases:
     - codename: anchor
