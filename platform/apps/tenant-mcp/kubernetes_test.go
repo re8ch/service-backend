@@ -128,6 +128,39 @@ func TestTenantRoleBindingOnlyTargetsLocalServiceAccounts(t *testing.T) {
 	}
 }
 
+func TestTenantRoleCannotBypassSecretOrWorkloadBoundaries(t *testing.T) {
+	for _, test := range []struct {
+		group, resource, verb string
+		allowed               bool
+	}{
+		{"", "configmaps", "get", true},
+		{"", "pods/log", "get", true},
+		{"apps", "deployments", "watch", true},
+		{"", "secrets", "get", false},
+		{"", "serviceaccounts/token", "create", false},
+		{"", "pods/exec", "create", false},
+		{"", "pods", "create", false},
+		{"apps", "deployments", "patch", false},
+		{"rbac.authorization.k8s.io", "roles", "get", false},
+		{"", "*", "get", false},
+		{"", "pods", "*", false},
+	} {
+		role := map[string]any{"kind": "Role", "rules": []any{map[string]any{
+			"apiGroups": []any{test.group}, "resources": []any{test.resource}, "verbs": []any{test.verb},
+		}}}
+		err := validateTenantObject(role, "acme")
+		if (err == nil) != test.allowed {
+			t.Errorf("Role rule %s/%s %s allowed=%t: %v", test.group, test.resource, test.verb, test.allowed, err)
+		}
+	}
+	role := map[string]any{"kind": "Role", "rules": []any{map[string]any{
+		"apiGroups": []any{""}, "resources": []any{"pods"}, "verbs": []any{"get"}, "nonResourceURLs": []any{"/metrics"},
+	}}}
+	if err := validateTenantObject(role, "acme"); err == nil {
+		t.Fatal("Role non-resource URL accepted")
+	}
+}
+
 func TestTenantPVCRequiresDynamicSameNamespaceStorage(t *testing.T) {
 	for _, class := range []string{"rbd-r640", "cephfs-re8ch", "rclone-s3"} {
 		obj := map[string]any{"kind": "PersistentVolumeClaim", "spec": map[string]any{"storageClassName": class, "accessModes": []any{"ReadWriteOnce"}, "resources": map[string]any{"requests": map[string]any{"storage": "1Gi"}}}}

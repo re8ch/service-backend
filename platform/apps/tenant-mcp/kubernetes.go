@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -100,6 +102,11 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 	if selected := asString(metadata, "namespace"); selected != "" && selected != namespace {
 		return errors.New("object namespace is outside the authenticated tenant")
 	}
+	if kind == "Role" {
+		if err := validateTenantRoleRules(obj); err != nil {
+			return err
+		}
+	}
 	if kind == "RoleBinding" {
 		subjects := slice(obj["subjects"])
 		if len(subjects) == 0 {
@@ -176,6 +183,61 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 		}
 	}
 	return nil
+}
+
+func validateTenantRoleRules(role map[string]any) error {
+	allowed := map[string]map[string]bool{
+		"": {"pods": true, "pods/log": true, "events": true, "configmaps": true, "services": true,
+			"endpoints": true, "persistentvolumeclaims": true, "serviceaccounts": true},
+		"apps":        {"deployments": true, "statefulsets": true, "daemonsets": true, "replicasets": true},
+		"batch":       {"jobs": true, "cronjobs": true},
+		"autoscaling": {"horizontalpodautoscalers": true},
+		"policy":      {"poddisruptionbudgets": true},
+	}
+	// Workloads must use the validated MCP path for mutations. Granting a pod
+	// create/patch permissions would bypass its hostPath and privilege checks.
+	verbs := map[string]bool{"get": true, "list": true, "watch": true}
+	rules := slice(role["rules"])
+	if len(rules) == 0 || len(rules) > 32 {
+		return errors.New("tenant Role requires between 1 and 32 bounded rules")
+	}
+	for _, raw := range rules {
+		rule := object(raw)
+		if len(rule) == 0 || rule["nonResourceURLs"] != nil {
+			return errors.New("tenant Role cannot grant non-resource access")
+		}
+		groups, resources, actions := slice(rule["apiGroups"]), slice(rule["resources"]), slice(rule["verbs"])
+		if len(groups) != 1 || len(resources) == 0 || len(resources) > 32 || len(actions) == 0 || len(actions) > 3 {
+			return errors.New("tenant Role requires explicit API group, resources, and verbs")
+		}
+		group, ok := groups[0].(string)
+		if !ok || allowed[group] == nil {
+			return errors.New("tenant Role API group is not allowed")
+		}
+		for _, resource := range resources {
+			name, ok := resource.(string)
+			if !ok || !allowed[group][name] {
+				return errors.New("tenant Role resource is not allowed")
+			}
+		}
+		for _, action := range actions {
+			name, ok := action.(string)
+			if !ok || !verbs[name] {
+				return errors.New("tenant Role verb is not allowed")
+			}
+		}
+	}
+	return nil
+}
+
+func validateTenantRoleBindingTarget(ctx context.Context, namespace string, binding map[string]any) error {
+	name := asString(object(binding["roleRef"]), "name")
+	path := "/apis/rbac.authorization.k8s.io/v1/namespaces/" + url.PathEscape(namespace) + "/roles/" + url.PathEscape(name)
+	role, err := kubeRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return errors.New("tenant RoleBinding target Role is unavailable or cannot be verified")
+	}
+	return validateTenantRoleRules(role)
 }
 
 func labelTenantObject(obj map[string]any, tenant, namespace string) (map[string]any, error) {
@@ -279,6 +341,11 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 		}
 		if err := validateTenantObject(obj, namespace); err != nil {
 			return nil, err
+		}
+		if asString(obj, "kind") == "RoleBinding" {
+			if err := validateTenantRoleBindingTarget(ctx, namespace, obj); err != nil {
+				return nil, err
+			}
 		}
 		metadata := object(obj["metadata"])
 		metadata["namespace"] = namespace
