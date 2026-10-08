@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: tideway-emerald
+codename: cascade-zircon
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:843a27b042b47ee404bf3f8422b233eeb25fbb7e17e233fe58a6f9c17128d4ec
+  digest: sha256:a443a1627cffd011327c13fa90ebabdc1a409636a21a835740b447b22b5faca8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
