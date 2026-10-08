@@ -350,6 +350,20 @@ def tenant_definition(tenant_ref):
     raise PermissionError("active tenant definition is unavailable")
 
 
+def tenant_grant_projection(tenant_ref):
+    """Expose only non-sensitive grant metadata for the authenticated tenant."""
+    grants = tenant_definition(tenant_ref).get("spec", {}).get("grants", [])
+    return [{"name": grant.get("name"), "consumableRef": grant.get("consumableRef"),
+             "roleRef": grant.get("roleRef"), "lifecycle": grant.get("lifecycle", "Active")}
+            for grant in grants if isinstance(grant, dict) and grant.get("consumableRef")]
+
+
+def require_tenant_grant(tenant_ref, consumable_ref):
+    if not any(grant["consumableRef"] == consumable_ref and grant["lifecycle"] == "Active"
+               for grant in tenant_grant_projection(tenant_ref)):
+        raise PermissionError("active tenant grant is required for " + str(consumable_ref))
+
+
 def ensure_personal_namespace(owner_ref):
     if not PERSONAL_OWNER_RE.fullmatch(owner_ref):
         raise PermissionError("invalid Personal organization reference")
@@ -1005,6 +1019,12 @@ class Handler(BaseHTTPRequestHandler):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
+        if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            tenant = self.headers.get("X-Tenant-Ref", "")
+            try:
+                self.send_json(200, {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}); return
+            except PermissionError as exc:
+                self.send_json(403, {"error": str(exc)}); return
         if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             try:
                 tenant = self.headers["X-Tenant-Ref"]
@@ -1121,6 +1141,7 @@ class Handler(BaseHTTPRequestHandler):
                 request = body.get("spec") or {}
                 name = str(body.get("name") or "")
                 service_class = request.get("serviceClass")
+                require_tenant_grant(tenant, service_class)
                 if service_class in PROVIDER_SERVICE_CLASSES:
                     parameters = provider_service_spec(tenant, name, request)
                     adapter, access_unit = ("harbor-project-rbac", "ProjectMembershipRobot") if service_class == "registry.harbor.v1" else ("grafana-access", "OrganizationFolderDatasourceGrant")
@@ -1172,6 +1193,8 @@ class Handler(BaseHTTPRequestHandler):
                 if current.get("spec", {}).get("tenantRef") != tenant or current.get("spec", {}).get("serviceClass") not in PROVIDER_SERVICE_CLASSES | {"network.among-clusters.v1"}:
                     raise PermissionError("service instance is outside the authenticated tenant")
                 request = {"serviceClass": current["spec"]["serviceClass"], "planRef": current["spec"]["plan"], "parameters": current["spec"].get("parameters") or {}}
+                if lifecycle == "Requested":
+                    require_tenant_grant(tenant, request["serviceClass"])
                 if request["serviceClass"] in PROVIDER_SERVICE_CLASSES:
                     if lifecycle == "Requested":
                         provider_service_spec(tenant, name, request)
@@ -1182,12 +1205,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/v1/claims/plan":
                 result = plan(body["claim"], authenticated_tenant=tenant, harbor_project=harbor_project(tenant))
+                require_tenant_grant(tenant, result["normalizedClaim"]["spec"]["capability"])
                 enforce_quota(tenant, result["normalizedClaim"], result["normalizedClaim"]["metadata"]["name"])
                 validate_volume_mounts(result["normalizedClaim"], namespace)
                 self.send_json(200, result)
                 return
             if path == "/v1/claims":
                 result = plan(body["claim"], authenticated_tenant=tenant, harbor_project=harbor_project(tenant))
+                require_tenant_grant(tenant, result["normalizedClaim"]["spec"]["capability"])
                 if not hmac.compare_digest(str(body.get("claimHash", "")), result["claimHash"]):
                     raise PermissionError("claimHash does not match the normalized claim")
                 normalized = result["normalizedClaim"]
@@ -1234,6 +1259,7 @@ class Handler(BaseHTTPRequestHandler):
             if action == "cancel":
                 value = kube().patch("tenantresourceclaims", name, {"metadata": {"annotations": annotations}, "spec": {"desiredState": "Released"}}, namespace)
             elif action == "renew":
+                require_tenant_grant(tenant, current["spec"]["capability"])
                 ttl = int(body.get("ttlSeconds", current["spec"]["ttlSeconds"]))
                 if not 300 <= ttl <= 2_592_000:
                     raise ContractError("ttlSeconds is outside the renewable range")
@@ -1242,6 +1268,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 project = harbor_project(tenant)
                 proposed = validate_update(current, body["claim"], authenticated_tenant=tenant, harbor_project=project)
+                require_tenant_grant(tenant, proposed["spec"]["capability"])
                 result = plan(proposed, authenticated_tenant=tenant, harbor_project=project)
                 if not hmac.compare_digest(str(body.get("claimHash", "")), result["claimHash"]):
                     raise PermissionError("claimHash does not match the normalized claim")

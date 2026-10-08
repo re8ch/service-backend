@@ -50,6 +50,10 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
+	grants, err := tenantGrantedConsumables(ctx, id.Tenant, id.Role)
+	if err != nil {
+		return nil, err
+	}
 	ready := []string{}
 	for _, raw := range slice(namespaces["items"]) {
 		item := object(raw)
@@ -65,7 +69,7 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	kubernetesTools := []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
 	namespacedWrite := canWrite && len(ready) > 0
 	return map[string]any{
-		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready,
+		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready, "grantedConsumables": grants,
 		"capabilities": []map[string]any{
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite},
 			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
@@ -79,4 +83,42 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canWrite && len(ready) > 0},
 		},
 	}, nil
+}
+
+func tenantGrantedConsumables(ctx context.Context, tenant, role string) ([]map[string]any, error) {
+	response, err := controlRequest(ctx, tenant, "/v1/capabilities")
+	if err != nil {
+		return nil, err
+	}
+	items, ok := response["grants"].([]any)
+	if !ok || asString(response, "tenantRef") != tenant {
+		return nil, errors.New("tenant grant discovery returned an invalid scope")
+	}
+	grants := make([]map[string]any, 0, len(items))
+	for _, raw := range items {
+		grant := object(raw)
+		ref := asString(grant, "consumableRef")
+		if ref == "" {
+			continue
+		}
+		lifecycle := asString(grant, "lifecycle")
+		requiredRole := asString(grant, "roleRef")
+		canRequest := lifecycle == "Active" && (role == "admin" || role == "operator" && requiredRole != "admin")
+		grants = append(grants, map[string]any{"name": asString(grant, "name"), "consumableRef": ref,
+			"roleRef": requiredRole, "lifecycle": lifecycle, "canRequest": canRequest})
+	}
+	return grants, nil
+}
+
+func requireGrantedConsumable(ctx context.Context, id identity, capability string) error {
+	grants, err := tenantGrantedConsumables(ctx, id.Tenant, id.Role)
+	if err != nil {
+		return err
+	}
+	for _, grant := range grants {
+		if grant["consumableRef"] == capability && grant["canRequest"] == true {
+			return nil
+		}
+	}
+	return errors.New("active tenant grant and role are required for this capability")
 }

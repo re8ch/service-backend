@@ -60,7 +60,9 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if tenant != "artchais" {
 			filtered := []map[string]any{}
 			for _, service := range services {
-				if service["serviceClass"] != "network.among-clusters.v1" { filtered = append(filtered, service) }
+				if service["serviceClass"] != "network.among-clusters.v1" {
+					filtered = append(filtered, service)
+				}
 			}
 			services = filtered
 		}
@@ -84,6 +86,9 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 	case "service_instance_plan", "service_instance_create":
 		spec := object(args["spec"])
 		serviceClass := asString(spec, "serviceClass")
+		if err := requireGrantedConsumable(ctx, id, serviceClass); err != nil {
+			return nil, err
+		}
 		if providerBacked[serviceClass] {
 			if err := requireOperator(id); err != nil {
 				return nil, err
@@ -96,7 +101,9 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			}
 			return controlRequestBody(ctx, tenant, path, payload)
 		}
-		if _, err := catalogEntry(serviceClass); err != nil { return nil, errors.New("service class is not published") }
+		if _, err := catalogEntry(serviceClass); err != nil {
+			return nil, errors.New("service class is not published")
+		}
 		if err := requireOperator(id); err != nil {
 			return nil, err
 		}

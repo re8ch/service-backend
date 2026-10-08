@@ -103,6 +103,7 @@ def test_native_delete_uses_supported_name_output(monkeypatch):
 def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
+    monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: [])
     value = module.call_tool("tenant_capabilities_list", {}, {"subject": "agent"})
     assert {item["name"] for item in value["capabilities"]} == {"kubernetes.namespace.v1", "compute.workload.v1", "storage.volume.v1"}
     native = next(item for item in value["capabilities"] if item["name"] == "kubernetes.namespace.v1")
@@ -115,6 +116,7 @@ def test_amongclusters_service_requests_use_grant_enforcing_controller(monkeypat
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "artchais", "role": "operator"})
+    monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: [{"consumableRef": "network.among-clusters.v1", "canRequest": True}])
     monkeypatch.setattr(module, "tenant_service_store", lambda: object())
     calls = []
     monkeypatch.setattr(module, "tenant_control_request", lambda *args, **kwargs: calls.append((args, kwargs)) or {"decision": "preview"})
@@ -130,6 +132,7 @@ def test_harbor_and_grafana_service_requests_use_controller_not_local_store(monk
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator"})
+    monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: [{"consumableRef": ref, "canRequest": True} for ref in ("registry.harbor.v1", "observability.grafana.v1")])
     class NoLocalStore:
         def plan(self, *_args): raise AssertionError("local intent store must not plan provider services")
         def mutate(self, *_args): raise AssertionError("local intent store must not create provider services")
@@ -165,6 +168,7 @@ def test_service_catalog_and_mutations_require_published_class_and_operator(monk
     monkeypatch.setattr(module, "tenant_service_store", Store)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
     monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": role["value"]})
+    monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: [{"consumableRef": "storage.volume.v1", "canRequest": True}])
     def no_provider_instance(*_args, **_kwargs): raise ValueError("local service")
     monkeypatch.setattr(module, "tenant_control_request", no_provider_instance)
     import pytest

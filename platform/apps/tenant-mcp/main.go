@@ -81,7 +81,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if !id.Service && id.Subject != "" && id.Tenant == "" {
 		return ms
 	}
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's current self-service resource operations, role, and Ready namespaces. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure. For reviewed internal workflows, also search dynamic_skill_search."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's resource operations, Ready namespaces, and current grant entitlements. A grant does not prove provider readiness. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure; search dynamic_skill_search for reviewed internal workflows."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			caller, err := identityFrom(ctx)
 			if err != nil {

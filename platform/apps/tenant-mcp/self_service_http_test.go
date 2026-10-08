@@ -26,6 +26,13 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 			}})
 			return
 		}
+		if r.URL.Path == "/v1/capabilities" {
+			writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "grants": []any{
+				map[string]any{"name": "re8ch-storage", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"},
+				map[string]any{"name": "re8ch-sandbox", "consumableRef": "sandbox.runtime.v1", "roleRef": "admin", "lifecycle": "Suspended"},
+			}})
+			return
+		}
 		writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default"})
 	}))
 	defer control.Close()
@@ -54,6 +61,19 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	if result["tenantRef"] != "re8ch" || !strings.Contains(w.Body.String(), "re8ch-default") || strings.Contains(w.Body.String(), "other-default") || !strings.Contains(w.Body.String(), "exposure") {
 		t.Fatalf("unexpected scope: %s", w.Body.String())
 	}
+	grants := result["grantedConsumables"].([]any)
+	if len(grants) != 2 || grants[0].(map[string]any)["canRequest"] != true || grants[1].(map[string]any)["canRequest"] != false {
+		t.Fatalf("unexpected grant projection: %v", grants)
+	}
+	if err := requireGrantedConsumable(httptest.NewRequest(http.MethodGet, "/", nil).Context(), identity{Tenant: "re8ch", Role: "operator"}, "storage.volume.v1"); err != nil {
+		t.Fatalf("active operator grant rejected: %v", err)
+	}
+	if err := requireGrantedConsumable(httptest.NewRequest(http.MethodGet, "/", nil).Context(), identity{Tenant: "re8ch", Role: "viewer"}, "storage.volume.v1"); err == nil {
+		t.Fatal("viewer was allowed to request an operator grant")
+	}
+	if err := requireGrantedConsumable(httptest.NewRequest(http.MethodGet, "/", nil).Context(), identity{Tenant: "re8ch", Role: "admin"}, "sandbox.runtime.v1"); err == nil {
+		t.Fatal("suspended grant was allowed")
+	}
 	// Discovery must not omit a Kubernetes kind that the tenant apply broker accepts.
 	discovered := map[string]bool{}
 	for _, raw := range result["capabilities"].([]any) {
@@ -74,7 +94,7 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	mcpRequest.Header.Set("Accept", "application/json, text/event-stream")
 	mcpResponse := httptest.NewRecorder()
 	s.handler().ServeHTTP(mcpResponse, mcpRequest)
-	if mcpResponse.Code != 200 || !strings.Contains(mcpResponse.Body.String(), `"tenantRef":"re8ch"`) || !strings.Contains(mcpResponse.Body.String(), "re8ch-default") || strings.Contains(mcpResponse.Body.String(), "other-default") {
+	if mcpResponse.Code != 200 || !strings.Contains(mcpResponse.Body.String(), `"tenantRef":"re8ch"`) || !strings.Contains(mcpResponse.Body.String(), "re8ch-default") || strings.Contains(mcpResponse.Body.String(), "other-default") || !strings.Contains(mcpResponse.Body.String(), "storage.volume.v1") {
 		t.Fatalf("MCP and Hub discovery diverged: %d %s", mcpResponse.Code, mcpResponse.Body.String())
 	}
 }

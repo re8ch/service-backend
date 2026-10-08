@@ -811,7 +811,7 @@ DYNAMIC_SKILL_ADMIN_TOOLS = [
 ]
 TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "usage_events_list", "operation_get"}
 TENANT_CLAIM_TOOLS = [
-    {"name": "tenant_capabilities_list", "description": "List autonomous compute and independent volume claim contracts only. For current Workload, Service, Secret, and Exposure support, call tenant_self_service_capabilities; search dynamic_skill_search for reviewed internal workflows.", "inputSchema": schema({})},
+    {"name": "tenant_capabilities_list", "description": "List the active organization's current grant entitlements alongside compute and volume claim contracts. A grant is permission, not proof that a provider is healthy or an instance is Ready. For resource operations and Ready namespaces call tenant_self_service_capabilities; search dynamic_skill_search for reviewed workflows.", "inputSchema": schema({})},
     {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
     {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the authenticated tenant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
     {"name": "tenant_claim_get", "description": "Read one claim and its workload, volume or public endpoint binding.", "inputSchema": schema({"name": {"type": "string"}}, ["name"])},
@@ -1128,6 +1128,25 @@ def authenticated_tenant_operator(identity: dict[str, Any]) -> str:
     if context["role"] not in {"operator", "admin"}:
         raise PermissionError("an operator tenant role is required")
     return context["tenantRef"]
+
+
+def authenticated_tenant_grants(identity: dict[str, Any]) -> list[dict[str, Any]]:
+    context = authenticated_tenant_context(identity)
+    tenant, role = context["tenantRef"], context["role"]
+    response = tenant_control_request("/v1/capabilities", tenant)
+    if response.get("tenantRef") != tenant or not isinstance(response.get("grants"), list):
+        raise RuntimeError("tenant grant discovery returned an invalid scope")
+    return [{"name": grant.get("name"), "consumableRef": grant.get("consumableRef"),
+             "roleRef": grant.get("roleRef"), "lifecycle": grant.get("lifecycle"),
+             "canRequest": grant.get("lifecycle") == "Active" and
+                           (role == "admin" or role == "operator" and grant.get("roleRef") != "admin")}
+            for grant in response["grants"] if isinstance(grant, dict) and grant.get("consumableRef")]
+
+
+def require_published_tenant_grant(identity: dict[str, Any], capability: str) -> None:
+    if not any(grant["consumableRef"] == capability and grant["canRequest"]
+               for grant in authenticated_tenant_grants(identity)):
+        raise PermissionError("active tenant grant and role are required for this capability")
 
 
 def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> None:
@@ -1696,10 +1715,12 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 {"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": False, "imagePolicy": "tenant-selected", "interfaces": ["Kubernetes API", "Helm", "GitOps"]},
                 {"name": "compute.workload.v1", "access": "optional-managed-claim", "kinds": ["Job", "Deployment"], "resources": ["cpu", "memory", "ephemeralStorage"], "publicExposure": "shared-service-opt-in", "imagePolicy": "managed claims use the optional supply-chain policy", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
                 {"name": "storage.volume.v1", "plans": ["rbd", "cephfs"], "lifecycle": "independent-retained", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
-            ], "requiresApproval": False, "operationalReadiness": readiness()[1], "pricingIncluded": False}
+            ], "grantedConsumables": authenticated_tenant_grants(identity), "requiresApproval": False, "operationalReadiness": readiness()[1], "pricingIncluded": False}
         if name == "tenant_claim_plan":
+            require_published_tenant_grant(identity, (args["claim"].get("spec") or {}).get("capability", ""))
             return tenant_control_request("/v1/claims/plan", tenant, {"claim": args["claim"]})
         if name == "tenant_claim_create":
+            require_published_tenant_grant(identity, (args["claim"].get("spec") or {}).get("capability", ""))
             return tenant_control_request("/v1/claims", tenant, {"claim": args["claim"], "claimHash": args["claim_hash"]})
         if name == "tenant_claim_get":
             return tenant_control_request("/v1/claims/" + urllib.parse.quote(args["name"], safe=""), tenant)
@@ -2219,6 +2240,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                     services = [item for item in services if item["serviceClass"] != "network.among-clusters.v1"]
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
+            require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
             if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
@@ -2227,6 +2249,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             authenticated_tenant_operator(identity)
             return store.plan(tenant, args["name"], args["spec"])
         if name == "service_instance_create":
+            require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
             if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
