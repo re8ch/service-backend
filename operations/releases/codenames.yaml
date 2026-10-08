@@ -1028,6 +1028,8 @@ modules:
       digest: sha256:7722a568a1ef8285a8a1d8b276a01a7d3a68d3d7acbc24f4c2627e2f9b3ce992
     - codename: gulfstream-jasper
       digest: sha256:3abf21ab7aa4f9dac0960064b3d36412e33266215eb556d55da58b68c0309bae
+    - codename: riptide-jasper
+      digest: sha256:7ffecff9324300183b7b9e6743531ee1d55be809b3a21a3e0bcdbf55abeac2fe
   platform/hyperswitch:
     releases:
     - codename: anchor
