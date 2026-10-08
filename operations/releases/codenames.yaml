@@ -1026,6 +1026,8 @@ modules:
       digest: sha256:e785d2e7223c20e1a5f9146ae4b2936bfc53917b9fb3e45ca2dc58281218bf72
     - codename: eddy-jasper
       digest: sha256:7722a568a1ef8285a8a1d8b276a01a7d3a68d3d7acbc24f4c2627e2f9b3ce992
+    - codename: gulfstream-jasper
+      digest: sha256:3abf21ab7aa4f9dac0960064b3d36412e33266215eb556d55da58b68c0309bae
   platform/hyperswitch:
     releases:
     - codename: anchor
