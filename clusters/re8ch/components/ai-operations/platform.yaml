@@ -161,13 +161,13 @@ metadata: {name: ops-capsule-policy, namespace: ai-operations}
 data:
   policy.json: |
     {
-      "revision": 1,
+      "revision": 2,
       "rules": [
         {
           "name": "authenticated-node-operations",
           "actions": ["shell", "file"],
           "nodes": ["*"],
-          "groups": [],
+          "groups": ["re8ch:k8s-admins"],
           "credential_refs": ["node-ssh"]
         }
       ]
