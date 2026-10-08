@@ -447,7 +447,9 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
 def test_claim_public_edge_uses_declared_r640_authority():
     gateway = documents(ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml")
     listener = next(item for item in gateway if item["kind"] == "Gateway")["spec"]["listeners"]
-    assert any(item["name"] == "apps-wildcard-https" and item["hostname"] == "*.apps.re8ch.com" for item in listener)
+    apps = next(item for item in listener if item["name"] == "apps-wildcard-https")
+    assert apps["hostname"] == "*.apps.re8ch.com"
+    assert {"key": "saas.re8ch.com/tenant", "operator": "Exists"} in apps["allowedRoutes"]["namespaces"]["selector"]["matchExpressions"]
     dns = documents(ROOT / "clusters/re8ch/components/public-exposure/external-dns-cloudflare.yaml")
     authority = next(item for item in dns if item.get("metadata", {}).get("name") == "tenant-apps-wildcard-dns-authority")
     assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.79"
