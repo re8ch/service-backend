@@ -79,6 +79,9 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	}
 	for _, raw := range result["capabilities"].([]any) {
 		capability := raw.(map[string]any)
+		if capability["id"] == "storage" && (capability["canWrite"] != true || capability["requiredConsumable"] != "storage.volume.v1") {
+			t.Fatalf("PVC discovery does not match active storage grant: %v", capability)
+		}
 		if capability["id"] == "exposure" && (capability["canWrite"] != true || capability["requiredConsumable"] != "network.tenant.v1") {
 			t.Fatalf("exposure discovery does not match active network grant: %v", capability)
 		}
