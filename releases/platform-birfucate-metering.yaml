@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: springtide-jasper
+codename: tideway-jasper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:ccf2a8e17297a38d512c1e18b090804b2ec47e7e9a3b9d9328b460bc8991b556
+  digest: sha256:dd56a05e66f61de09e59d328beb70f315bc779590a710b6e92af0e8b8de1e23a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
