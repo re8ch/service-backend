@@ -42,7 +42,6 @@ resources:
 - secrets/incidentrelay-alertmanager-tokens.sops.yaml
 - secrets/ontology-microscope-db.sops.yaml
 - secrets/ontology-microscope-evaluation.sops.yaml
-- secrets/anycam-market-demo.sops.yaml
 - secrets/zerotier-planet-env.sops.yaml
 - secrets/cloud-disk-credentials.sops.yaml
 - secrets/commerce-wechat-app-identities.sops.yaml
