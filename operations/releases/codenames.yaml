@@ -1020,6 +1020,8 @@ modules:
       digest: sha256:95640556de06a2b179bdde504f9914e9c410ed8eaf31493b3061c4300bba73a7
     - codename: tideway-zircon
       digest: sha256:012f6683e84c4563d06c560203290f4802086c4b0e27e41f921c526ec95cee3e
+    - codename: cascade-jasper
+      digest: sha256:0a98e5fcf4a74913838a006e95696ffc437258c924395842ddfb3d410c3eb9b9
   platform/hyperswitch:
     releases:
     - codename: anchor
