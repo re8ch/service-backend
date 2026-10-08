@@ -128,6 +128,30 @@ func TestTenantRoleBindingOnlyTargetsLocalServiceAccounts(t *testing.T) {
 	}
 }
 
+func TestTenantPVCRequiresDynamicSameNamespaceStorage(t *testing.T) {
+	for _, class := range []string{"rbd-r640", "cephfs-re8ch", "rclone-s3"} {
+		obj := map[string]any{"kind": "PersistentVolumeClaim", "spec": map[string]any{"storageClassName": class, "accessModes": []any{"ReadWriteOnce"}, "resources": map[string]any{"requests": map[string]any{"storage": "1Gi"}}}}
+		if err := validateTenantObject(obj, "acme"); err != nil {
+			t.Fatalf("dynamic PVC with class %s rejected: %v", class, err)
+		}
+	}
+	for _, spec := range []map[string]any{
+		{"storageClassName": ""},
+		{"storageClassName": "rbd-r640", "volumeName": "foreign-pv"},
+		{"storageClassName": "cephfs-re8ch", "selector": map[string]any{"matchLabels": map[string]any{"tenant": "other"}}},
+		{"storageClassName": "rbd-r640", "dataSourceRef": map[string]any{"kind": "PersistentVolumeClaim", "name": "copy", "namespace": "other"}},
+		{"storageClassName": "rbd-r640", "dataSource": map[string]any{"kind": "PersistentVolumeClaim", "name": "copy", "namespace": "other"}},
+	} {
+		if err := validateTenantObject(map[string]any{"kind": "PersistentVolumeClaim", "spec": spec}, "acme"); err == nil {
+			t.Fatalf("unsafe PVC accepted: %v", spec)
+		}
+	}
+	localClone := map[string]any{"kind": "PersistentVolumeClaim", "spec": map[string]any{"storageClassName": "rbd-r640", "dataSourceRef": map[string]any{"kind": "PersistentVolumeClaim", "name": "source", "namespace": "acme"}}}
+	if err := validateTenantObject(localClone, "acme"); err != nil {
+		t.Fatalf("same-namespace clone rejected: %v", err)
+	}
+}
+
 func TestTenantServiceAndWorkloadCannotBypassPublicEdge(t *testing.T) {
 	for _, spec := range []map[string]any{
 		{"type": "ClusterIP", "externalIPs": []any{"192.0.2.218"}},
