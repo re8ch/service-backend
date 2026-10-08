@@ -129,6 +129,23 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 			return errors.New("Service externalIPs bypass the shared PublicEdge service")
 		}
 	}
+	if kind == "PersistentVolumeClaim" {
+		spec := object(obj["spec"])
+		if !validKubernetesName(asString(spec, "storageClassName")) {
+			return errors.New("tenant PVC requires an explicit storage class")
+		}
+		if asString(spec, "volumeName") != "" || spec["selector"] != nil {
+			return errors.New("tenant PVC cannot select or bind an existing persistent volume")
+		}
+		for _, field := range []string{"dataSource", "dataSourceRef"} {
+			if source := object(spec[field]); len(source) > 0 {
+				selected := asString(source, "namespace")
+				if selected != "" && selected != namespace {
+					return errors.New("cross-namespace PVC data sources are denied")
+				}
+			}
+		}
+	}
 	podSpec := object(obj["spec"])
 	if kind == "CronJob" {
 		podSpec = object(object(object(object(podSpec["jobTemplate"])["spec"])["template"])["spec"])
