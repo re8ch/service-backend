@@ -1016,6 +1016,8 @@ modules:
       digest: sha256:0600d4f4d8842e29d6a3611105b3f37eb0143d8f12728f1948b56aba520592a1
     - codename: riptide-zircon
       digest: sha256:7f2a9dd7349436b112e33df51a0555d39d79d9f8594f9755abfae3bb50b90b05
+    - codename: springtide-zircon
+      digest: sha256:95640556de06a2b179bdde504f9914e9c410ed8eaf31493b3061c4300bba73a7
   platform/hyperswitch:
     releases:
     - codename: anchor
