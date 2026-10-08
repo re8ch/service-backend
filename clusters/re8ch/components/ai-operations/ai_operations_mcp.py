@@ -332,8 +332,10 @@ def capsule_policy() -> dict[str, Any]:
 
 
 def authorize_capsule(identity: dict[str, Any], action: str, node: str, credential_refs: list[str]) -> dict[str, Any]:
-    if not identity.get("subject"):
-        raise PermissionError("device identity is required")
+    if identity.get("auth_type") != "device" or not identity.get("subject") or not identity.get("device_id"):
+        raise PermissionError("registered device identity is required")
+    if ADMIN_GROUP not in set(identity.get("groups") or []):
+        raise PermissionError("node operations require the platform administrator group")
     if action in {"shell", "file"} and "node-ssh" not in credential_refs:
         raise PermissionError("node-ssh credential reference is required")
     target = resolve_node(node)
@@ -442,9 +444,13 @@ def create_capsule(identity: dict[str, Any], args: dict[str, Any]) -> dict[str, 
 def execute_capsule(identity: dict[str, Any], capsule: dict[str, Any], signature: str) -> dict[str, Any]:
     if capsule.get("subject") != identity.get("subject"):
         raise PermissionError("capsule identity mismatch")
+    if not identity.get("device_id") or capsule.get("device_id") != identity.get("device_id"):
+        raise PermissionError("capsule device identity mismatch")
     if not hmac.compare_digest(signature, capsule_signature(capsule)):
         raise PermissionError("capsule signature is invalid")
     decision = authorize_capsule(identity, capsule["action"], capsule["node"], capsule.get("credential_refs") or [])
+    if capsule.get("policy_revision") != decision["policy_revision"]:
+        raise PermissionError("capsule policy revision is no longer current")
     credentials = CredentialBroker().resolve(capsule.get("credential_refs") or [], capsule["action"])
     saved = registry().consume_capsule(capsule["capsule_id"], identity["subject"])
     if not saved:
