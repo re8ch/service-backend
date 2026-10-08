@@ -165,8 +165,8 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 		}
 	}
 	for _, raw := range slice(podSpec["volumes"]) {
-		if _, ok := object(raw)["hostPath"]; ok {
-			return errors.New("hostPath volumes are denied")
+		if err := validateTenantVolume(object(raw)); err != nil {
+			return err
 		}
 	}
 	containers := append(slice(podSpec["containers"]), slice(podSpec["initContainers"])...)
@@ -179,6 +179,55 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 		for _, entry := range slice(container["ports"]) {
 			if port := object(entry)["hostPort"]; port != nil && port != float64(0) && port != 0 {
 				return errors.New("hostPort bypasses the shared PublicEdge service")
+			}
+		}
+	}
+	return nil
+}
+
+func validateTenantVolume(volume map[string]any) error {
+	if !validKubernetesName(asString(volume, "name")) {
+		return errors.New("workload volume requires a valid name")
+	}
+	allowed := map[string]bool{"emptyDir": true, "configMap": true, "secret": true, "persistentVolumeClaim": true, "downwardAPI": true, "projected": true}
+	source := ""
+	for key := range volume {
+		if key == "name" {
+			continue
+		}
+		if !allowed[key] || source != "" {
+			return errors.New("workload volumes must use one tenant-local source: emptyDir, ConfigMap, Secret, PVC, downwardAPI, or projected")
+		}
+		source = key
+	}
+	if source == "" {
+		return errors.New("workload volume source is required")
+	}
+	if source == "persistentVolumeClaim" && !validKubernetesName(asString(object(volume[source]), "claimName")) {
+		return errors.New("workload PVC volume requires a tenant-local claim name")
+	}
+	if source == "configMap" && !validKubernetesName(asString(object(volume[source]), "name")) {
+		return errors.New("workload ConfigMap or Secret volume requires a tenant-local name")
+	}
+	if source == "secret" && !validKubernetesName(asString(object(volume[source]), "secretName")) {
+		return errors.New("workload ConfigMap or Secret volume requires a tenant-local name")
+	}
+	if source == "projected" {
+		for _, raw := range slice(object(volume[source])["sources"]) {
+			item := object(raw)
+			if len(item) != 1 {
+				return errors.New("projected volume sources must be explicit")
+			}
+			for key, value := range item {
+				switch key {
+				case "configMap", "secret":
+					if !validKubernetesName(asString(object(value), "name")) {
+						return errors.New("projected volume source requires a tenant-local name")
+					}
+				case "downwardAPI", "serviceAccountToken":
+				default:
+					return errors.New("projected volume source is not allowed")
+				}
 			}
 		}
 	}

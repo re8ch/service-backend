@@ -93,6 +93,51 @@ func TestTenantKubernetesObjectGuard(t *testing.T) {
 	}
 }
 
+func TestTenantWorkloadVolumesRequireTenantLocalSources(t *testing.T) {
+	for _, source := range []map[string]any{
+		{"emptyDir": map[string]any{}},
+		{"configMap": map[string]any{"name": "app-config"}},
+		{"secret": map[string]any{"secretName": "app-secret"}},
+		{"persistentVolumeClaim": map[string]any{"claimName": "app-data"}},
+		{"projected": map[string]any{"sources": []any{map[string]any{"secret": map[string]any{"name": "app-secret"}}}}},
+	} {
+		volume := map[string]any{"name": "data"}
+		for key, value := range source {
+			volume[key] = value
+		}
+		if err := validateTenantVolume(volume); err != nil {
+			t.Errorf("tenant-local volume rejected: %v: %v", source, err)
+		}
+	}
+	for _, source := range []map[string]any{
+		{"hostPath": map[string]any{"path": "/"}},
+		{"nfs": map[string]any{"server": "other", "path": "/"}},
+		{"csi": map[string]any{"driver": "rclone.csi.re8ch.com", "volumeAttributes": map[string]any{"remote": "other"}}},
+		{"rbd": map[string]any{"pool": "other"}},
+		{"persistentVolumeClaim": map[string]any{"claimName": "bad/name"}},
+		{"projected": map[string]any{"sources": []any{map[string]any{"clusterTrustBundle": map[string]any{"name": "system"}}}}},
+	} {
+		volume := map[string]any{"name": "data"}
+		for key, value := range source {
+			volume[key] = value
+		}
+		if err := validateTenantVolume(volume); err == nil {
+			t.Errorf("unmanaged workload volume accepted: %v", source)
+		}
+	}
+	for _, kind := range []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"} {
+		pod := map[string]any{"volumes": []any{map[string]any{"name": "data", "nfs": map[string]any{"server": "other", "path": "/"}}}}
+		spec := map[string]any{"template": map[string]any{"spec": pod}}
+		if kind == "CronJob" {
+			spec = map[string]any{"jobTemplate": map[string]any{"spec": spec}}
+		}
+		obj := map[string]any{"kind": kind, "spec": spec}
+		if err := validateTenantObject(obj, "acme"); err == nil {
+			t.Errorf("%s accepted unmanaged NFS volume", kind)
+		}
+	}
+}
+
 func TestTenantRoleBindingOnlyTargetsLocalServiceAccounts(t *testing.T) {
 	roleRef := map[string]any{"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "reader"}
 	for _, subject := range []map[string]any{
