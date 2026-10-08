@@ -43,6 +43,8 @@ class FixtureAPI(BaseHTTPRequestHandler):
             self.reply(200, {"items": []})
         elif self.path == "/v1/claims":
             self.reply(200, {"items": []})
+        elif self.path == "/v1/capabilities":
+            self.reply(200, {"tenantRef": "acme", "grants": [{"name": "acme-database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active"}]})
         elif self.path in ("/readyz", "/healthz", "/.well-known/openid-configuration"):
             self.reply(200, {"status": "ready"})
         else:
@@ -176,6 +178,9 @@ def main():
                 p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))
                 g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))
                 equivalent(name, p, g)
+            p_grants = content(mcp(python_url, "tools/call", {"name": "tenant_capabilities_list", "arguments": {}}))["grantedConsumables"]
+            g_grants = content(mcp(go_url, "tools/call", {"name": "tenant_capabilities_list", "arguments": {}}))["grantedConsumables"]
+            equivalent("tenant_capabilities_list granted consumables", p_grants, g_grants)
             p = mcp(python_url, "resources/list", {})
             g = mcp(go_url, "resources/list", {})
             equivalent("resources/list", sorted(p["resources"], key=lambda item: item["uri"]), sorted(g["resources"], key=lambda item: item["uri"]))

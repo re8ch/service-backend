@@ -52,21 +52,32 @@ func (s *server) registerClaimTools(ms *mcp.Server) {
 						return nil, nil, err
 					}
 				}
-				value, err := s.callClaim(ctx, id.Tenant, name, args)
+				value, err := s.callClaim(ctx, id, name, args)
 				return nil, value, err
 			})
 	}
 }
 
-func (s *server) callClaim(ctx context.Context, tenant, name string, args map[string]any) (any, error) {
+func (s *server) callClaim(ctx context.Context, id identity, name string, args map[string]any) (any, error) {
+	tenant := id.Tenant
 	value := func(key string) string { result, _ := args[key].(string); return result }
+	if name == "tenant_claim_plan" || name == "tenant_claim_create" {
+		capability := asString(object(object(args["claim"])["spec"]), "capability")
+		if err := requireGrantedConsumable(ctx, id, capability); err != nil {
+			return nil, err
+		}
+	}
 	if name == "tenant_capabilities_list" {
+		grants, err := tenantGrantedConsumables(ctx, tenant, id.Role)
+		if err != nil {
+			return nil, err
+		}
 		_, checks := s.readiness(ctx)
 		return map[string]any{"tenantRef": tenant, "capabilities": []map[string]any{
 			{"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": false, "imagePolicy": "tenant-selected", "interfaces": []string{"Kubernetes API", "Helm", "GitOps"}},
 			{"name": "compute.workload.v1", "access": "optional-managed-claim", "kinds": []string{"Job", "Deployment"}, "resources": []string{"cpu", "memory", "ephemeralStorage"}, "publicExposure": "shared-service-opt-in", "imagePolicy": "managed claims use the optional supply-chain policy", "ttl": map[string]any{"required": true, "renewable": true, "minimumSeconds": 300, "maximumSeconds": 2592000}},
 			{"name": "storage.volume.v1", "plans": []string{"rbd", "cephfs"}, "lifecycle": "independent-retained", "ttl": map[string]any{"required": true, "renewable": true, "minimumSeconds": 300, "maximumSeconds": 2592000}},
-		}, "requiresApproval": false, "operationalReadiness": checks, "pricingIncluded": false}, nil
+		}, "grantedConsumables": grants, "requiresApproval": false, "operationalReadiness": checks, "pricingIncluded": false}, nil
 	}
 	if name == "tenant_usage_summary_get" {
 		return s.claimUsageSummary(ctx, tenant, value("claim_name"))

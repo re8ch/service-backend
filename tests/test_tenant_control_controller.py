@@ -96,6 +96,59 @@ def tenant(name, lifecycle="Active"):
     return {"metadata": {"name": name}, "spec": {"lifecycle": lifecycle}}
 
 
+def test_tenant_grant_projection_is_scoped_and_omits_extra_fields(monkeypatch):
+    class GrantKube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [
+                {"metadata": {"name": "re8ch"}, "spec": {"lifecycle": "Active", "grants": [
+                    {"name": "database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active", "internalNote": "do-not-publish"},
+                    {"name": "paused", "consumableRef": "sandbox.runtime.v1", "roleRef": "admin", "lifecycle": "Suspended"},
+                ]}},
+                {"metadata": {"name": "other"}, "spec": {"lifecycle": "Active", "grants": [{"name": "other-only", "consumableRef": "network.tenant.v1"}]}},
+            ]
+    monkeypatch.setattr(controller, "KUBE", GrantKube())
+    assert controller.tenant_grant_projection("re8ch") == [
+        {"name": "database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active"},
+        {"name": "paused", "consumableRef": "sandbox.runtime.v1", "roleRef": "admin", "lifecycle": "Suspended"},
+    ]
+    controller.require_tenant_grant("re8ch", "database.postgresql.shared.v1")
+    with pytest.raises(PermissionError, match="active tenant grant"):
+        controller.require_tenant_grant("re8ch", "sandbox.runtime.v1")
+    with pytest.raises(PermissionError, match="active tenant grant"):
+        controller.require_tenant_grant("re8ch", "network.tenant.v1")
+    with pytest.raises(PermissionError, match="active tenant definition"):
+        controller.tenant_grant_projection("missing")
+
+
+def test_tenant_capability_route_requires_service_identity_and_active_tenant(monkeypatch):
+    class GrantKube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [{"metadata": {"name": "re8ch"}, "spec": {"lifecycle": "Active", "grants": [
+                {"name": "storage", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}]}}]
+    monkeypatch.setattr(controller, "KUBE", GrantKube())
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "service-only")
+
+    class Request:
+        path = "/v1/capabilities"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Service-Token": "wrong", "X-Tenant-Ref": "re8ch"}
+
+        def send_json(self, status, value):
+            self.response = (status, value)
+
+    request = Request()
+    controller.Handler.do_GET(request)
+    assert request.response[0] == 404
+    request.headers = {**request.headers, "X-Tenant-Service-Token": "service-only"}
+    controller.Handler.do_GET(request)
+    assert request.response == (200, {"tenantRef": "re8ch", "grants": [
+        {"name": "storage", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}]})
+    request.headers = {**request.headers, "X-Tenant-Ref": "other"}
+    controller.Handler.do_GET(request)
+    assert request.response[0] == 403
+
+
 def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeypatch):
     class ProviderKube:
         def __init__(self):
@@ -103,6 +156,8 @@ def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeyp
             self.status = None
         def list(self, plural, namespace=None):
             if plural == "tenantserviceinstances": return []
+            if plural == "tenants": return [{"metadata": {"name": "acme"}, "spec": {"lifecycle": "Active", "grants": [
+                {"name": "registry", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}]}}]
             raise AssertionError(plural)
         def create(self, plural, value, namespace):
             self.created = (plural, value, namespace)

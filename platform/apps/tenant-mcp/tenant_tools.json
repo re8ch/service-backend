@@ -995,7 +995,7 @@
     "name": "byoc_connection_revoke"
   },
   {
-    "description": "List autonomous compute and independent volume claim contracts only. For current Workload, Service, Secret, and Exposure support, call tenant_self_service_capabilities; search dynamic_skill_search for reviewed internal workflows.",
+    "description": "List the active organization's current grant entitlements alongside compute and volume claim contracts. A grant is permission, not proof that a provider is healthy or an instance is Ready. For resource operations and Ready namespaces call tenant_self_service_capabilities; search dynamic_skill_search for reviewed workflows.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
