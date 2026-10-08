@@ -994,6 +994,8 @@ modules:
       digest: sha256:19b2d06081ebea63672860def52bae90995ff3feecb5ee762ec17308e08f4a6d
     - codename: cascade-emerald
       digest: sha256:963040b546cd57e419575eacdf46ea6f28e7d06b229f10be5cd6e1f65ffa741c
+    - codename: confluence-emerald
+      digest: sha256:2cd6b040d40742a4100b731de9af54d1431301cffdfc43426c419b0b8e2233dd
   platform/hyperswitch:
     releases:
     - codename: anchor
