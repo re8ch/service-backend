@@ -309,6 +309,11 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     role = next(item for item in resources if item["kind"] == "Role")
     assert "namespaces" not in str(role["rules"])
     assert "clusterroles" not in str(role["rules"])
+    assert "httproutes" not in str(role["rules"])
+    route_role = next(item for item in resources if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-publicedge-route-manager")
+    route_binding = next(item for item in resources if item["kind"] == "RoleBinding" and item["metadata"]["name"] == "tenant-publicedge-route-manager")
+    assert route_role["rules"][0]["resources"] == ["httproutes"]
+    assert route_binding["subjects"] == [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     metrics = next(item for item in resources if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "tenant-metrics-scrape")
     assert metrics["spec"]["podSelector"] == {"matchLabels": {"observability.re8ch.com/scrape": "true"}}
     assert metrics["spec"]["ingress"] == [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]
@@ -323,6 +328,115 @@ def test_personal_namespace_qualifies_for_shared_publicedge_listener(monkeypatch
     labels = namespace["metadata"]["labels"]
     assert labels["saas.re8ch.com/tenant"] == personal_ref
     assert labels["tenancy.re8ch.com/tenant"] == personal_ref
+
+
+def test_managed_exposure_allows_gateway_identity_only_to_service_backend(monkeypatch):
+    tenant_ref, namespace = "re8ch", "re8ch-demo"
+    route = {"metadata": {"name": "web", "namespace": namespace, "labels": {
+        "tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}},
+        "spec": {"parentRefs": [{"name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "apps-wildcard-https"}],
+                 "hostnames": ["re8ch-web.apps.re8ch.com"],
+                 "rules": [{"backendRefs": [{"name": "web-service", "port": 80}]}]}}
+
+    class ExposureKube:
+        def get(self, plural, name, scope, api):
+            assert (plural, name, scope, api) == ("services", "web-service", namespace, "api/v1")
+            return {"spec": {"type": "ClusterIP", "selector": {"app": "web"},
+                             "ports": [{"port": 80, "targetPort": "http", "protocol": "TCP"}]}}
+
+    monkeypatch.setattr(controller, "KUBE", ExposureKube())
+    policy = controller.tenant_exposure_policy(route, tenant_ref, namespace)
+    assert policy["metadata"]["name"] == "tenant-exposure-web"
+    assert policy["spec"] == {"endpointSelector": {"matchLabels": {"app": "web"}},
+                              "ingress": [{"fromEntities": ["ingress"], "toPorts": [{"ports": [{"port": "http", "protocol": "TCP"}]}]}]}
+    for field, replacement in (("parentRefs", [{"name": "foreign"}]),
+                               ("hostnames", ["other.apps.re8ch.com"]),
+                               ("rules", [{"backendRefs": [{"name": "web-service", "namespace": "other", "port": 80}]}])):
+        altered = json.loads(json.dumps(route))
+        altered["spec"][field] = replacement
+        with pytest.raises(PermissionError):
+            controller.tenant_exposure_policy(altered, tenant_ref, namespace)
+    foreign = json.loads(json.dumps(route))
+    foreign["metadata"]["labels"]["tenancy.re8ch.com/tenant"] = "other"
+    assert controller.tenant_exposure_policy(foreign, tenant_ref, namespace) is None
+
+    class SelectorlessService:
+        def get(self, *_args):
+            return {"spec": {"type": "ClusterIP", "ports": [{"port": 80, "protocol": "TCP"}]}}
+
+    monkeypatch.setattr(controller, "KUBE", SelectorlessService())
+    with pytest.raises(PermissionError, match="selector-backed"):
+        controller.tenant_exposure_policy(route, tenant_ref, namespace)
+
+
+def test_exposure_policy_reconciliation_removes_deleted_routes(monkeypatch):
+    tenant_ref, namespace = "re8ch", "re8ch-demo"
+
+    class ExposureKube:
+        def __init__(self):
+            self.deleted = []
+
+        def list(self, plural, scope, api):
+            assert scope == namespace
+            if plural == "httproutes":
+                return []
+            assert (plural, api) == ("ciliumnetworkpolicies", "apis/cilium.io/v2")
+            return [{"metadata": {"name": "tenant-exposure-old", "labels": {
+                "tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}}},
+                {"metadata": {"name": "tenant-exposure-other", "labels": {
+                    "tenancy.re8ch.com/tenant": "other", "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}}}]
+
+        def delete(self, plural, name, scope, api):
+            self.deleted.append((plural, name, scope, api))
+
+    fake = ExposureKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    controller.reconcile_exposure_policies(tenant_ref, namespace, granted=True)
+    assert fake.deleted == [("ciliumnetworkpolicies", "tenant-exposure-old", namespace, "apis/cilium.io/v2")]
+
+    fake.deleted.clear()
+    fake.list = lambda plural, scope, api: ([{"metadata": {"name": "tenant-exposure-old", "labels": {
+        "tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}}}]
+        if plural == "ciliumnetworkpolicies" else pytest.fail("revoked Exposure queried HTTPRoutes"))
+    controller.reconcile_exposure_policies(tenant_ref, namespace, granted=False)
+    assert fake.deleted == [("ciliumnetworkpolicies", "tenant-exposure-old", namespace, "apis/cilium.io/v2")]
+
+
+def test_exposure_policy_does_not_replace_unmanaged_policy(monkeypatch):
+    route = {"metadata": {"name": "web", "namespace": "re8ch-demo", "labels": {
+        "tenancy.re8ch.com/tenant": "re8ch", "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}},
+        "spec": {"parentRefs": [{"name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "apps-wildcard-https"}],
+                 "hostnames": ["re8ch-web.apps.re8ch.com"], "rules": [{"backendRefs": [{"name": "web", "port": 80}]}]}}
+
+    class ExposureKube:
+        def __init__(self):
+            self.applied = []
+
+        def list(self, plural, _namespace, _api):
+            return [route] if plural == "httproutes" else []
+
+        def get(self, plural, _name, _namespace, _api):
+            if plural == "services":
+                return {"spec": {"type": "ClusterIP", "selector": {"app": "web"}, "ports": [{"port": 80}]}}
+            return {"metadata": {"labels": {"tenancy.re8ch.com/tenant": "other"}}}
+
+        def apply(self, value):
+            self.applied.append(value)
+
+    fake = ExposureKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    controller.reconcile_exposure_policies("re8ch", "re8ch-demo", granted=True)
+    assert fake.applied == []
+
+    def missing_policy(plural, _name, _namespace, _api):
+        if plural == "services":
+            return {"spec": {"type": "ClusterIP", "selector": {"app": "web"}, "ports": [{"port": 80}]}}
+        raise urllib.error.HTTPError("", 404, "missing", {}, None)
+
+    fake.get = missing_policy
+    controller.reconcile_exposure_policies("re8ch", "re8ch-demo", granted=True)
+    assert len(fake.applied) == 1
+    assert fake.applied[0]["spec"]["ingress"][0]["fromEntities"] == ["ingress"]
 
 
 def test_namespace_rejects_tenant_ref_too_long_for_publicedge_label(monkeypatch):

@@ -108,14 +108,23 @@ func validateExposureService(ctx context.Context, namespace, service string, por
 	if err != nil {
 		return err
 	}
-	spec := object(value["spec"])
+	return validateExposureServiceSpec(object(value["spec"]), port)
+}
+
+func validateExposureServiceSpec(spec map[string]any, port int) error {
 	serviceType := asString(spec, "type")
 	if serviceType != "" && serviceType != "ClusterIP" {
 		return errors.New("managed exposure requires a ClusterIP Service")
 	}
+	if len(object(spec["selector"])) == 0 {
+		return errors.New("managed exposure requires a selector-backed Service")
+	}
 	for _, raw := range slice(spec["ports"]) {
 		candidate := object(raw)
 		if exposureIntValue(candidate["port"]) == port {
+			if protocol := asString(candidate, "protocol"); protocol != "" && protocol != "TCP" {
+				return errors.New("managed exposure requires a TCP Service port")
+			}
 			return nil
 		}
 	}

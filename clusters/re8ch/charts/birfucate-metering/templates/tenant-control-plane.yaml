@@ -32,7 +32,7 @@ rules:
   # escalate/bind the exact roles it owns. Keep both exceptions name-scoped.
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [roles]
-    resourceNames: [tenant-native-owner]
+    resourceNames: [tenant-native-owner, tenant-publicedge-route-manager]
     verbs: [escalate, bind]
   - apiGroups: [rbac.authorization.k8s.io]
     resources: [clusterroles]
@@ -76,6 +76,9 @@ rules:
     verbs: [get, list, watch, create, update, patch, delete]
   - apiGroups: [gateway.networking.k8s.io]
     resources: [httproutes]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [cilium.io]
+    resources: [ciliumnetworkpolicies]
     verbs: [get, list, watch, create, update, patch, delete]
 ---
 apiVersion: apps/v1
