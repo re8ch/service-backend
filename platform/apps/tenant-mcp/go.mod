@@ -6,6 +6,7 @@ require (
 	github.com/VictoriaMetrics/metricsql v0.87.4
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
+	golang.org/x/sync v0.20.0
 	modernc.org/sqlite v1.39.1
 )
 
@@ -23,7 +24,6 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	modernc.org/libc v1.66.10 // indirect

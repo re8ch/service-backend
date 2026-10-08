@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
 	_ "modernc.org/sqlite"
 )
 
@@ -43,6 +44,7 @@ type skill struct {
 }
 
 type server struct {
+	authFlights           singleflight.Group
 	modulesOnce           sync.Once
 	modules               *platformRegistry
 	db                    *sql.DB
