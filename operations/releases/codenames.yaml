@@ -992,6 +992,8 @@ modules:
       digest: sha256:7c9b859af33230271e473b179810937e05089081e63fb0c8d3463efbc5ef2606
     - codename: tideway-beryl
       digest: sha256:19b2d06081ebea63672860def52bae90995ff3feecb5ee762ec17308e08f4a6d
+    - codename: cascade-emerald
+      digest: sha256:963040b546cd57e419575eacdf46ea6f28e7d06b229f10be5cd6e1f65ffa741c
   platform/hyperswitch:
     releases:
     - codename: anchor
