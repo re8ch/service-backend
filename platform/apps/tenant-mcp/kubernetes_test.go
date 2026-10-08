@@ -69,6 +69,32 @@ func TestTenantKubernetesObjectGuard(t *testing.T) {
 	}
 }
 
+func TestTenantServiceAndWorkloadCannotBypassPublicEdge(t *testing.T) {
+	for _, spec := range []map[string]any{
+		{"type": "ClusterIP", "externalIPs": []any{"192.0.2.218"}},
+		{"type": "NodePort"},
+		{"type": "ExternalName"},
+	} {
+		if err := validateTenantObject(map[string]any{"kind": "Service", "spec": spec}, "acme"); err == nil {
+			t.Fatalf("public Service bypass accepted: %v", spec)
+		}
+	}
+	if err := validateTenantObject(map[string]any{"kind": "Service", "spec": map[string]any{"type": "ClusterIP", "ports": []any{map[string]any{"port": 80}}}}, "acme"); err != nil {
+		t.Fatalf("ClusterIP Service rejected: %v", err)
+	}
+	for _, kind := range []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"} {
+		container := map[string]any{"name": "web", "image": "example", "ports": []any{map[string]any{"containerPort": 8080, "hostPort": 8080}}}
+		podSpec := map[string]any{"containers": []any{container}}
+		spec := map[string]any{"template": map[string]any{"spec": podSpec}}
+		if kind == "CronJob" {
+			spec = map[string]any{"jobTemplate": map[string]any{"spec": spec}}
+		}
+		if err := validateTenantObject(map[string]any{"kind": kind, "spec": spec}, "acme"); err == nil {
+			t.Fatalf("%s hostPort accepted", kind)
+		}
+	}
+}
+
 func TestSecretBrokerValidationNeverReturnsValues(t *testing.T) {
 	values := map[string]string{"PASSWORD": "never-return-this", "api.key": "also-secret"}
 	keys, err := secretKeys(values)

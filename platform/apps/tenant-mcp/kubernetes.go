@@ -99,9 +99,12 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 		}
 	}
 	if kind == "Service" {
-		switch object(obj["spec"])["type"] {
-		case "NodePort", "LoadBalancer", "ExternalName":
+		service := object(obj["spec"])
+		if service["type"] != nil && service["type"] != "" && service["type"] != "ClusterIP" {
 			return errors.New("public or external service types require the shared PublicEdge service")
+		}
+		if len(slice(service["externalIPs"])) > 0 {
+			return errors.New("Service externalIPs bypass the shared PublicEdge service")
 		}
 	}
 	podSpec := object(obj["spec"])
@@ -122,9 +125,15 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 	}
 	containers := append(slice(podSpec["containers"]), slice(podSpec["initContainers"])...)
 	for _, raw := range containers {
-		security := object(object(raw)["securityContext"])
+		container := object(raw)
+		security := object(container["securityContext"])
 		if security["privileged"] == true || security["allowPrivilegeEscalation"] == true {
 			return errors.New("privileged containers are denied")
+		}
+		for _, entry := range slice(container["ports"]) {
+			if port := object(entry)["hostPort"]; port != nil && port != float64(0) && port != 0 {
+				return errors.New("hostPort bypasses the shared PublicEdge service")
+			}
 		}
 	}
 	return nil

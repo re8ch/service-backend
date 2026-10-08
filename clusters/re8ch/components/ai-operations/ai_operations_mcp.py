@@ -1176,8 +1176,12 @@ def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> No
                 raise PermissionError("cross-namespace service account binding is denied")
         if (obj.get("roleRef") or {}).get("kind") != "Role":
             raise PermissionError("binding ClusterRoles through the tenant publication is denied")
-    if kind == "Service" and (obj.get("spec") or {}).get("type") in {"NodePort", "LoadBalancer", "ExternalName"}:
-        raise PermissionError("public or external service types require the shared PublicEdge service")
+    if kind == "Service":
+        service = obj.get("spec") or {}
+        if service.get("type") not in (None, "", "ClusterIP"):
+            raise PermissionError("public or external service types require the shared PublicEdge service")
+        if service.get("externalIPs"):
+            raise PermissionError("Service externalIPs bypass the shared PublicEdge service")
     pod_spec = obj.get("spec") or {}
     if kind == "CronJob":
         pod_spec = pod_spec.get("jobTemplate", {}).get("spec", {}).get("template", {}).get("spec", {})
@@ -1191,6 +1195,8 @@ def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> No
         security = container.get("securityContext") or {}
         if security.get("privileged") or security.get("allowPrivilegeEscalation") is True:
             raise PermissionError("privileged containers are denied")
+        if any(port.get("hostPort") not in (None, 0) for port in container.get("ports", [])):
+            raise PermissionError("hostPort bypasses the shared PublicEdge service")
 
 
 def label_native_metered_object(obj: dict[str, Any], tenant: str, namespace: str) -> dict[str, Any]:

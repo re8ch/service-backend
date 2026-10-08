@@ -254,6 +254,12 @@ def test_native_workload_security_boundaries(monkeypatch):
     base = {"apiVersion": "apps/v1", "kind": "Deployment", "metadata": {"name": "demo"}, "spec": {"template": {"spec": {"containers": [{"name": "demo", "image": "nginx", "securityContext": {"privileged": True}}]}}}}
     with __import__("pytest").raises(PermissionError, match="privileged"):
         module.validate_tenant_kubernetes_object(base, "re8ch-default")
+    external_ip = {"kind": "Service", "spec": {"type": "ClusterIP", "externalIPs": ["192.0.2.218"]}}
+    with __import__("pytest").raises(PermissionError, match="externalIPs"):
+        module.validate_tenant_kubernetes_object(external_ip, "re8ch-default")
+    host_port = {"kind": "Deployment", "spec": {"template": {"spec": {"containers": [{"name": "demo", "ports": [{"containerPort": 8080, "hostPort": 8080}]}]}}}}
+    with __import__("pytest").raises(PermissionError, match="hostPort"):
+        module.validate_tenant_kubernetes_object(host_port, "re8ch-default")
     service = {"apiVersion": "v1", "kind": "Service", "metadata": {"name": "public"}, "spec": {"type": "NodePort"}}
     with __import__("pytest").raises(PermissionError, match="PublicEdge"):
         module.validate_tenant_kubernetes_object(service, "re8ch-default")
