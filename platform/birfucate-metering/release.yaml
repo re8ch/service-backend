@@ -48,12 +48,12 @@ spec:
         nodeNames: [restricted-node-6dc3f140f9]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:b67053ab76a94e33ff56a87e66c4b5299773ed03710bb0f65b7d9cf9bef8d89e
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:9d6bdd8ac3236616ae04c96c7c9eb2b0c50cbfd78b27f6b1268b6fb22328cc42
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:5245a026eca96690cad8e15e51d64d2589a4493810715b6a55dacdf5bffe8378
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:bea9a5d81c27567184e77badd5c4c44683fe383445584e1bf8a2cf2310e2f4e4
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
         # Ordinary tenant calls verify their GoTrue session directly. Keep the
@@ -62,7 +62,7 @@ spec:
         platformSessionURL: ""
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:b67053ab76a94e33ff56a87e66c4b5299773ed03710bb0f65b7d9cf9bef8d89e
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:9d6bdd8ac3236616ae04c96c7c9eb2b0c50cbfd78b27f6b1268b6fb22328cc42
         databaseBindings:
           - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
           - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
