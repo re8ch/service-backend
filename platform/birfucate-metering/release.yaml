@@ -53,7 +53,7 @@ spec:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:9b4164080cb8ac59f167e6eb0f258780182cad5b388fbaddf99a6497d707acb4
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:d548a38b29d7b8bf5e9417113218856f050bad625c79c06de29739afde45d67f
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
         # Ordinary tenant calls verify their GoTrue session directly. Keep the
