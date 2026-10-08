@@ -1,9 +1,54 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
+
+func TestTenantKubernetesDeleteOnlyAllowsMutableKinds(t *testing.T) {
+	for _, kind := range []string{"deployment", "statefulset", "daemonset", "job", "cronjob", "configmap", "service"} {
+		if !tenantMutableKind(kind) {
+			t.Fatalf("mutable kind %s rejected", kind)
+		}
+	}
+	for _, kind := range []string{"pod", "event", "endpoint", "replicaset", "secret", "httproute"} {
+		if tenantMutableKind(kind) {
+			t.Fatalf("read-only or forbidden kind %s accepted for deletion", kind)
+		}
+	}
+}
+
+func TestReadyNamespaceRequiresMatchingTenantRef(t *testing.T) {
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/namespaces" {
+			t.Fatalf("unexpected control path: %s", r.URL.Path)
+		}
+		writeJSON(w, 200, map[string]any{"items": []any{map[string]any{"spec": map[string]any{"tenantRef": "other", "namespaceName": "acme-default", "operation": "EnsurePresent"}, "status": map[string]any{"phase": "Ready"}}}})
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	if err := readyNamespace(context.Background(), "acme", "acme-default"); err == nil || !strings.Contains(err.Error(), "owned by the authenticated tenant") {
+		t.Fatalf("foreign namespace was accepted: %v", err)
+	}
+}
+
+func TestTenantKubernetesDeleteRejectsReadOnlyKindBeforeKubectl(t *testing.T) {
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]any{"items": []any{map[string]any{"spec": map[string]any{"tenantRef": "acme", "namespaceName": "acme-default", "operation": "EnsurePresent"}, "status": map[string]any{"phase": "Ready"}}}})
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	_, err := (&server{}).callKubernetes(context.Background(), identity{Tenant: "acme", Role: "operator", DefaultNamespace: "acme-default"}, "tenant_kubernetes_delete", map[string]any{"kind": "pod", "name": "web", "apply": true})
+	if err == nil || !strings.Contains(err.Error(), "workload allowlist") {
+		t.Fatalf("read-only Pod delete was not rejected: %v", err)
+	}
+}
 
 func TestTenantKubernetesObjectGuard(t *testing.T) {
 	bad := map[string]any{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": map[string]any{"name": "app"}, "spec": map[string]any{"template": map[string]any{"spec": map[string]any{"volumes": []any{map[string]any{"name": "host", "hostPath": map[string]any{"path": "/"}}}}}}}
