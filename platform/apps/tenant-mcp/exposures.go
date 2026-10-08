@@ -227,6 +227,9 @@ func (s *server) createExposure(ctx context.Context, id identity, input exposure
 	if err := requireOperator(id); err != nil {
 		return nil, err
 	}
+	if err := requireGrantedConsumable(ctx, id, "network.tenant.v1"); err != nil {
+		return nil, err
+	}
 	namespace, err := tenantNamespace(ctx, id, input.Namespace)
 	if err != nil {
 		return nil, err
