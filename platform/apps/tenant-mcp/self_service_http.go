@@ -54,16 +54,11 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
-	ready := []string{}
-	for _, raw := range slice(namespaces["items"]) {
-		item := object(raw)
-		spec, status := object(item["spec"]), object(item["status"])
-		if spec["tenantRef"] == id.Tenant && spec["operation"] == "EnsurePresent" && status["phase"] == "Ready" {
-			if namespace := asString(spec, "namespaceName"); namespace != "" {
-				ready = append(ready, namespace)
-			}
-		}
-	}
+	return selfServiceCapabilitiesFromState(id, namespaces, grants), nil
+}
+
+func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, grants []map[string]any) map[string]any {
+	ready := readyTenantNamespaces(namespaces, id.Tenant)
 	sort.Strings(ready)
 	canWrite := id.Role == "operator" || id.Role == "admin"
 	canExpose := canWrite && len(ready) > 0 && hasRequestableGrant(grants, "network.tenant.v1")
@@ -85,7 +80,7 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 			{"id": "database-credential", "kinds": []string{"databasecredential"}, "tools": []string{"tenant_kubernetes_get"}, "queryKind": "databasecredential", "metadataOnly": true, "databaseState": "unverified", "requiredConsumable": "database.postgresql.shared.v1", "canRead": canReadDatabaseBindings, "canWrite": false},
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "requiredConsumable": "network.tenant.v1", "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canExpose},
 		},
-	}, nil
+	}
 }
 
 func tenantGrantedConsumables(ctx context.Context, tenant, role string) ([]map[string]any, error) {
