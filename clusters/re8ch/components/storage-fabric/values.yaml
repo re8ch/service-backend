@@ -106,7 +106,7 @@ r640Allocations:
     rbdPool: {name: r640-rbd, replicas: 1}
     cephfsDataPool: {name: re8ch-files-r640, replicas: 1}
     hostImages:
-      - {name: pigsty-r640, capacity: 100Gi, mount: /data/pigsty, fallback: /srv/nas/fallback/pigsty}
+      - {name: pigsty-r640, capacity: 256Gi, mount: /data/pigsty, fallback: /srv/nas/fallback/pigsty}
 
 # restricted-node-6dc3f140f9 remains the active local working set. Each dataset receives a
 # cluster-visible CephFS managed copy. Synchronization is additive: source

@@ -316,7 +316,6 @@ def test_tenancy_crds_are_structural_and_status_enabled():
         "tenants.tenancy.re8ch.com",
         "tenantnamespaces.tenancy.re8ch.com",
         "tenantidentitybindings.tenancy.re8ch.com",
-        "tenantgrants.tenancy.re8ch.com",
         "tenantserviceinstances.tenancy.re8ch.com",
         "tenantresourceclaims.tenancy.re8ch.com",
     }
@@ -349,14 +348,12 @@ def test_artchais_github_team_bindings_have_explicit_roles():
         ("Artchais:tenant-operators", "operator"),
         ("Artchais:tenant-viewers", "viewer"),
     }
-    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "artchais"]
-    assert {item["spec"]["consumableRef"] for item in grants} == {"compute.workload.v1", "storage.volume.v1"}
 
 
 def test_tenant_ci_can_request_harbor_from_its_declared_catalog_project():
     docs = tenant_chart_documents()
-    grants = [item for item in docs if item["kind"] == "TenantGrant" and item["spec"]["tenantRef"] == "tenant-ci"]
-    assert "registry.harbor.v1" in {item["spec"]["consumableRef"] for item in grants}
+    tenant = next(item for item in docs if item["kind"] == "Tenant" and item["metadata"]["name"] == "tenant-ci")
+    assert tenant["spec"]["harborProjectRef"] == "tenant-ci"
     catalogs = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text())
                 if item and item.get("kind") == "ConfigMap" and item.get("metadata", {}).get("name") == "harbor-tenant-catalog"]
     assert len(catalogs) == 2
@@ -450,7 +447,9 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
 def test_claim_public_edge_uses_declared_r640_authority():
     gateway = documents(ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml")
     listener = next(item for item in gateway if item["kind"] == "Gateway")["spec"]["listeners"]
-    assert any(item["name"] == "apps-wildcard-https" and item["hostname"] == "*.apps.re8ch.com" for item in listener)
+    apps = next(item for item in listener if item["name"] == "apps-wildcard-https")
+    assert apps["hostname"] == "*.apps.re8ch.com"
+    assert {"key": "saas.re8ch.com/tenant", "operator": "Exists"} in apps["allowedRoutes"]["namespaces"]["selector"]["matchExpressions"]
     dns = documents(ROOT / "clusters/re8ch/components/public-exposure/external-dns-cloudflare.yaml")
     authority = next(item for item in dns if item.get("metadata", {}).get("name") == "tenant-apps-wildcard-dns-authority")
     assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
@@ -515,12 +514,15 @@ def test_native_tenant_owner_is_reconciled_and_does_not_own_platform_boundaries(
     assert all(resource in serialized for resource in ("deployments", "statefulsets", "daemonsets"))
     cluster_role = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-control-controller")
     delegated = {(tuple(rule.get("resources", [])), tuple(rule.get("resourceNames", []))): set(rule["verbs"]) for rule in cluster_role["rules"]}
-    assert delegated[(("roles",), ("tenant-native-owner",))] == {"escalate", "bind"}
+    assert delegated[(("roles",), ("tenant-native-owner", "tenant-publicedge-route-manager"))] == {"escalate", "bind"}
     assert delegated[(("clusterroles",), ("tenant-resource-provisioner",))] == {"bind"}
     assert all(
         rule.get("resourceNames") == ["tenant-resource-provisioner"] and rule["verbs"] == ["bind"]
         for rule in cluster_role["rules"] if "clusterroles" in rule.get("resources", [])
     )
+    provisioner = next(item for item in docs if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "tenant-resource-provisioner")
+    assert any(rule.get("apiGroups") == ["cilium.io"] and rule.get("resources") == ["ciliumnetworkpolicies"] for rule in provisioner["rules"])
+    assert not any(rule.get("apiGroups") == ["cilium.io"] for rule in cluster_role["rules"])
 
 
 def test_grafana_org_sync_can_reach_grafana_and_metrics_auth_selects_only_tenant_users():
@@ -600,3 +602,31 @@ def test_shared_session_authority_is_opt_in_and_only_on_go_tenant():
     defaults = tenant_chart_documents(tenant_go_enabled=True)
     tenant = next(d for d in defaults if d.get("kind") == "Deployment" and d["metadata"]["name"] == "tenant-api")
     assert all(v["name"] != "PLATFORM_SESSION_URL" for v in tenant["spec"]["template"]["spec"]["containers"][0]["env"])
+
+
+def test_production_controller_rollout_fits_single_r640_worker():
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as values:
+        yaml.safe_dump(release["spec"]["values"], values)
+        values.flush()
+        rendered = subprocess.run(["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name], check=True, capture_output=True, text=True).stdout
+    controller = next(item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-control-controller")
+    assert controller["spec"]["replicas"] == 1
+    assert controller["spec"]["strategy"]["rollingUpdate"] == {"maxUnavailable": 0, "maxSurge": 1}
+    affinity = controller["spec"]["template"]["spec"]["affinity"]
+    assert "podAntiAffinity" not in affinity
+    assert affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
+
+
+def test_shared_personal_runtime_class_has_owner_resource_policy():
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
+    shared = next(item for item in tenants if item["name"] == "personal-standard")
+    assert shared["identityBindings"] == []
+    assert {grant["consumableRef"] for grant in shared["grants"]} == {
+        "compute.workload.v1", "storage.volume.v1", "registry.harbor.v1", "observability.grafana.v1"
+    }
+    assert shared["nativeAccess"] is True
+    assert shared["byocAllowed"] is True
+    assert shared["namespacePolicy"]["allowCreate"] is True
+    assert shared["namespacePolicy"]["bootstrapNamespaces"] == ["personal-standard-default"]

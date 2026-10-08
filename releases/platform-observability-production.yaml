@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/production
-codename: focus-pearl
+codename: prism-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
-  digest: sha256:54131b4106518c8761591bd642f1c55c9dce22018e50979b067f0daa42182fa9
+  digest: sha256:1aa4faa5ee9e811bb9250eb15849fc7da5f65caaf74c5b7077778a9651782134
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

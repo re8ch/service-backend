@@ -271,7 +271,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "98f03cc9e7c5cb12c57bc423f29f3e44e8ff4fed",
+    "commit": "e201dc4a340c849cb5574fbc54ce90c473af4e2e",
     "id": "advanced-fabric",
     "ownership": "owned",
     "projectType": "network-controller",
@@ -325,7 +325,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "6aa723de93296602861a646c2ad9b7ef2e7a6a5b",
+    "commit": "3be8546eeee8fe2c66bafb2f47f5b55f5da8fda2",
     "id": "connectool",
     "ownership": "owned",
     "projectType": "ai-tool-distribution",
@@ -433,7 +433,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "6e67758c0acdd226495a05b02441516a0a2dbdb3",
+    "commit": "aa1be379c4cb1c022c0e94856d2ba16586311f15",
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",

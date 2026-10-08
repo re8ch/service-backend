@@ -4,13 +4,62 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func TestMCPRetriesTransientGoTrueFailure(t *testing.T) {
+	s := testServer(t)
+	var calls atomic.Int32
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) == 1 {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "database unavailable"})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]string{"tenantRef": "acme", "role": "operator", "defaultNamespace": "acme"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}`))
+	req.Header.Set("Authorization", "Bearer "+fixtureToken())
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	response := httptest.NewRecorder()
+	s.handler().ServeHTTP(response, req)
+	if response.Code != http.StatusOK || calls.Load() != 2 || !strings.Contains(response.Body.String(), "service_catalog_list") {
+		t.Fatalf("transient GoTrue failure was not retried: status=%d calls=%d body=%s", response.Code, calls.Load(), response.Body.String())
+	}
+}
+
+func TestMCPPersistentGoTrueFailureReturnsServiceUnavailable(t *testing.T) {
+	s := testServer(t)
+	var calls atomic.Int32
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		calls.Add(1)
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "database unavailable"})
+	}))
+	defer goTrue.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
+	req.Header.Set("Authorization", "Bearer "+fixtureToken())
+	response := httptest.NewRecorder()
+	s.handler().ServeHTTP(response, req)
+	if response.Code != http.StatusServiceUnavailable || calls.Load() != 2 || response.Header().Get("WWW-Authenticate") != "" {
+		t.Fatalf("GoTrue outage was mistaken for an invalid token: status=%d calls=%d challenge=%q body=%s", response.Code, calls.Load(), response.Header().Get("WWW-Authenticate"), response.Body.String())
+	}
+}
 
 func fixtureToken() string {
 	return fixtureTokenFor("user-1")
@@ -127,6 +176,9 @@ func TestMCPIdentityAndDynamicSkill(t *testing.T) {
 	if status, body := call("backend-secret", "", "tools/list", map[string]any{}); status != 200 || body["result"] == nil {
 		t.Fatalf("ToolHive service discovery failed: %d %v", status, body)
 	}
+	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "tenant_access_status", "arguments": map[string]any{}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
+		t.Fatalf("ToolHive service credential called user status: %d %v", status, body)
+	}
 	if status, body := call("backend-secret", "", "resources/list", map[string]any{}); status != 200 || len(body["result"].(map[string]any)["resources"].([]any)) != 0 {
 		t.Fatalf("service credential saw tenant resources: %d %v", status, body)
 	}
@@ -156,7 +208,7 @@ func TestMCPRejectedBearerReturnsOAuthChallenge(t *testing.T) {
 	}
 }
 
-func TestMCPVerifiedBearerWithoutTenantIsForbidden(t *testing.T) {
+func TestMCPVerifiedBearerWithoutTenantCanStartWithNoTenantTools(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"id": "user-1"})
@@ -169,12 +221,240 @@ func TestMCPVerifiedBearerWithoutTenantIsForbidden(t *testing.T) {
 	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
 	t.Setenv("TENANT_CONTROL_URL", control.URL)
 	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, method := range []string{"initialize", "tools/list", "tools/call"} {
+		params := `{}`
+		if method == "tools/call" {
+			params = `{"name":"tenant_access_status","arguments":{}}`
+		}
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"`+method+`","params":`+params+`}`))
+		req.Header.Set("Authorization", "Bearer "+fixtureToken())
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, req)
+		if response.Code != http.StatusOK || response.Header().Get("WWW-Authenticate") != "" {
+			t.Fatalf("verified user without a tenant could not %s: %d %s", method, response.Code, response.Body.String())
+		}
+		if method == "tools/list" && (!strings.Contains(response.Body.String(), "tenant_access_status") || strings.Contains(response.Body.String(), "tenant_claim_create")) {
+			t.Fatalf("unassigned user saw tenant tools: %s", response.Body.String())
+		}
+		if method == "tools/call" && (!strings.Contains(response.Body.String(), `"tenantAuthorized":false`) ||
+			!strings.Contains(response.Body.String(), `"status":"personal_provisioning"`) ||
+			!strings.Contains(response.Body.String(), `"recoveryAction":"sign in again to provision or restore the Personal organization"`)) {
+			t.Fatalf("unassigned status did not report the boundary: %s", response.Body.String())
+		}
+	}
+}
+
+func TestMCPUnavailableTenantAuthorizerReturnsServiceUnavailable(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "unavailable"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
 	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`))
 	req.Header.Set("Authorization", "Bearer "+fixtureToken())
 	response := httptest.NewRecorder()
 	s.handler().ServeHTTP(response, req)
-	if response.Code != http.StatusForbidden || response.Header().Get("WWW-Authenticate") != "" {
-		t.Fatalf("verified user without a tenant must not be asked to log in again: %d %q", response.Code, response.Header().Get("WWW-Authenticate"))
+	if response.Code != http.StatusServiceUnavailable || response.Header().Get("WWW-Authenticate") != "" {
+		t.Fatalf("tenant authorizer outage was mistaken for missing access: %d %s", response.Code, response.Body.String())
+	}
+}
+
+func TestMCPSharedPersonalClassRetainsOwnerAndPublishesResourceTools(t *testing.T) {
+	s := testServer(t)
+	owner := "personal-11111111-1111-4111-8111-111111111111"
+	other := "personal-22222222-2222-4222-8222-222222222222"
+	for _, item := range []struct{ tenant, name string }{{owner, "own-workflow"}, {other, "other-workflow"}} {
+		if _, err := s.submit(request{Tenant: "admin", TargetTenant: item.tenant, Subject: "reviewer", Name: item.name, Description: "needle workflow", Workflow: "Use approved tools."}, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/capabilities" {
+			writeJSON(w, 200, map[string]any{"tenantRef": owner, "grants": []any{map[string]any{"name": "personal-harbor", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}}})
+			return
+		}
+		writeJSON(w, 200, map[string]string{
+			"tenantRef":        "personal-11111111-1111-4111-8111-111111111111",
+			"runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": owner + "-default",
+		})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, test := range []struct{ method, params string }{
+		{"initialize", `{}`},
+		{"tools/list", `{}`},
+		{"tools/call", `{"name":"tenant_access_status","arguments":{}}`},
+		{"tools/call", `{"name":"service_catalog_list","arguments":{}}`},
+		{"tools/call", `{"name":"re8ch_review_demo.service_catalog_list","arguments":{}}`},
+		{"tools/call", `{"name":"dynamic_skill_search","arguments":{"query":"needle"}}`},
+	} {
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"`+test.method+`","params":`+test.params+`}`))
+		req.Header.Set("Authorization", "Bearer "+fixtureToken())
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, req)
+		if response.Code != http.StatusOK {
+			t.Fatalf("shared personal %s returned %d: %s", test.method, response.Code, response.Body.String())
+		}
+		if test.method == "tools/list" {
+			var listed struct {
+				Result struct {
+					Tools []struct {
+						Name string `json:"name"`
+					} `json:"tools"`
+				} `json:"result"`
+			}
+			if err := json.Unmarshal(response.Body.Bytes(), &listed); err != nil {
+				t.Fatal(err)
+			}
+			names := map[string]bool{}
+			for _, item := range listed.Result.Tools {
+				names[item.Name] = true
+			}
+			for _, name := range []string{"tenant_access_status", "service_catalog_list", "service_instance_create", "service_binding_list", "usage_summary_get", "tenant_claim_create", "tenant_kubernetes_get", "harbor_project_get", "grafana_capability_list", "byoc_cluster_register", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+				if !names[name] {
+					t.Fatalf("shared class omitted resource tool %s", name)
+				}
+			}
+		}
+		if strings.Contains(test.params, "tenant_access_status") && (!strings.Contains(response.Body.String(), `"organizationRef":"personal-11111111-1111-4111-8111-111111111111"`) || !strings.Contains(response.Body.String(), `"runtimeTenantRef":"personal-standard"`) || !strings.Contains(response.Body.String(), `"tenantAuthorized":true`) || !strings.Contains(response.Body.String(), `"resourceOperationsAvailable":true`)) {
+			t.Fatalf("shared class status lost owner or access gate: %s", response.Body.String())
+		}
+		if strings.Contains(test.params, "service_catalog_list") && !strings.Contains(response.Body.String(), `"tenantRef":"`+owner+`"`) {
+			t.Fatalf("shared catalog lost logical owner: %s", response.Body.String())
+		}
+		if strings.Contains(test.params, "dynamic_skill_search") && (!strings.Contains(response.Body.String(), "own-workflow") || strings.Contains(response.Body.String(), "other-workflow")) {
+			t.Fatalf("shared skill search leaked another organization: %s", response.Body.String())
+		}
+	}
+}
+
+func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
+	s := testServer(t)
+	var err error
+	s.ledger, err = openLedger(t.TempDir() + "/ledger.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.ledger.Close() })
+	first := "personal-11111111-1111-4111-8111-111111111111"
+	second := "personal-22222222-2222-4222-8222-222222222222"
+	spec := map[string]any{"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}
+	firstOperation, firstBinding := "", ""
+	for _, item := range []struct{ owner, name string }{{first, "first-db"}, {second, "second-db"}} {
+		operation, err := s.instanceMutate(item.owner, item.name, spec, "create-"+item.name, "create")
+		if err != nil {
+			t.Fatal(err)
+		}
+		binding, err := s.bindingCreate(item.owner, "service://"+item.owner+"/"+item.name, "endpoint", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if item.owner == first {
+			firstOperation = operation["operationId"].(string)
+			firstBinding = binding["bindingRef"].(string)
+		}
+	}
+	if _, err := s.instanceGet(second, "service://"+first+"/first-db"); err == nil {
+		t.Fatal("second Personal owner read first owner's instance")
+	}
+	if _, err := s.operationGet(second, firstOperation); err == nil {
+		t.Fatal("second Personal owner replayed first owner's operation")
+	}
+	if _, err := s.bindingRevoke(second, firstBinding); err == nil {
+		t.Fatal("second Personal owner revoked first owner's binding")
+	}
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, err := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		if err != nil {
+			w.WriteHeader(401)
+			return
+		}
+		writeJSON(w, 200, map[string]string{"id": claims.Subject})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/resolve-supabase" {
+			var body map[string]string
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			claims, _ := decodeClaims(body["accessToken"])
+			owner := first
+			if claims.Subject == "user-2" {
+				owner = second
+			}
+			writeJSON(w, 200, map[string]string{"tenantRef": owner, "runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": owner + "-default"})
+			return
+		}
+		if r.URL.Path == "/v1/services" {
+			writeJSON(w, 200, map[string]any{"items": []any{}})
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, item := range []struct{ subject, own, other string }{{"user-1", "first-db", "second-db"}, {"user-2", "second-db", "first-db"}} {
+		for _, tool := range []string{"service_instance_list", "service_binding_list"} {
+			request := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"`+tool+`","arguments":{}}}`))
+			request.Header.Set("Authorization", "Bearer "+fixtureTokenFor(item.subject))
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("Accept", "application/json, text/event-stream")
+			response := httptest.NewRecorder()
+			s.handler().ServeHTTP(response, request)
+			if response.Code != 200 || !strings.Contains(response.Body.String(), item.own) || strings.Contains(response.Body.String(), item.other) {
+				t.Fatalf("%s crossed owner boundary for %s: %d %s", tool, item.subject, response.Code, response.Body.String())
+			}
+		}
+	}
+}
+
+func TestMCPSharedPersonalViewerCannotMutateResourceFamilies(t *testing.T) {
+	s := testServer(t)
+	owner := "personal-11111111-1111-4111-8111-111111111111"
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"tenantRef": owner, "runtimeTenantRef": "personal-standard", "role": "viewer", "defaultNamespace": owner + "-default"})
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	for _, item := range []struct{ name, args string }{
+		{"tenant_claim_create", `{"claim":{},"claim_hash":"hash"}`},
+		{"byoc_cluster_register", `{"cluster_uid":"cluster","region_ref":"loudi","issuer":"https://example.com","public_key":"key"}`},
+		{"harbor_tag_delete", `{"credential_ref":"credential://harbor/owner/ref","repository":"repo","reference":"sha256:abc","tag":"tag"}`},
+		{"grafana_exploration_delete", `{"dashboard_uid":"dashboard"}`},
+	} {
+		request := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"`+item.name+`","arguments":`+item.args+`}}`))
+		request.Header.Set("Authorization", "Bearer "+fixtureToken())
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Accept", "application/json, text/event-stream")
+		response := httptest.NewRecorder()
+		s.handler().ServeHTTP(response, request)
+		if response.Code != 200 || !strings.Contains(response.Body.String(), "operator tenant role is required") {
+			t.Fatalf("viewer reached %s: %d %s", item.name, response.Code, response.Body.String())
+		}
 	}
 }
 
@@ -264,13 +544,13 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+	for _, name := range []string{"tenant_access_status", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy) {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy))
+	if len(names) != len(legacy)+4 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)+4)
 	}
 }
 
@@ -325,6 +605,21 @@ func TestArtcToolsOnlyPublishedToArtchaisTenant(t *testing.T) {
 		if want := map[bool]int{true: 3, false: 0}[tenant == "artchais"]; artcCount != want {
 			t.Errorf("%s published %d artc tools, want %d", tenant, artcCount, want)
 		}
+	}
+}
+
+func TestReviewDemoBatchToolNamesUseCanonicalHandlers(t *testing.T) {
+	body := `[{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"re8ch_review_demo.service_catalog_list","arguments":{}}}]`
+	request := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
+	if err := rewriteReviewDemoToolCall(request); err != nil {
+		t.Fatal(err)
+	}
+	normalized, err := io.ReadAll(request.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(normalized), legacyToolPrefixes[0]) || !strings.Contains(string(normalized), `"name":"service_catalog_list"`) {
+		t.Fatalf("namespaced batch tool call was not normalized: %s", normalized)
 	}
 }
 

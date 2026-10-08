@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/connectool
-codename: meridian-silver
+codename: anchor-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-connectool
-  digest: sha256:e575ad8e9815b78f923f107bdc4c2a97559b85182d94443ce34de0b63c22b42b
+  digest: sha256:2d5cdc5e920c8695df922c68e8597e883544ab0a71c3edf305f6da35bbd9c86c
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

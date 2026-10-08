@@ -1,0 +1,202 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-tenant-runtime-contexts-v4
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    begin;
+    update core.organizations set display_name = 'Re8CH Admin', updated_at = now() where tenant_ref = 'admin';
+    update core.organizations set display_name = 'Re8ch', parent_ref = 'admin', updated_at = now() where tenant_ref = 're8ch';
+
+    create table if not exists core.organization_context_audit (
+      id bigint generated always as identity primary key,
+      actor_user_id uuid references auth.users(id) on delete set null,
+      source_tenant_ref text,
+      target_tenant_ref text,
+      action text not null,
+      before_state jsonb not null default '{}'::jsonb,
+      after_state jsonb not null default '{}'::jsonb,
+      request_id text,
+      created_at timestamptz not null default now()
+    );
+    alter table core.organization_context_audit owner to supabase_admin;
+    alter table core.organization_context_audit enable row level security;
+    revoke all on core.organization_context_audit from public, anon, authenticated, service_role;
+
+    -- Preserve conflicting historical memberships as suspended audit evidence.
+    with ranked as (
+      select m.tenant_ref, m.user_id, m.status,
+        row_number() over (partition by m.user_id order by
+          case m.tenant_ref when 'admin' then 0 when 're8ch' then 1 else 2 end,
+          m.created_at, m.tenant_ref) as position
+      from core.organization_members m
+      join core.organizations o on o.tenant_ref = m.tenant_ref
+      where m.status = 'active' and o.kind <> 'personal'
+    ), audited as (
+      insert into core.organization_context_audit(
+        actor_user_id, source_tenant_ref, target_tenant_ref, action, before_state, after_state, request_id)
+      select user_id, tenant_ref, null, 'membership_conflict_suspended',
+        jsonb_build_object('userId', user_id, 'status', status), jsonb_build_object('userId', user_id, 'status', 'suspended'),
+        'migration:supabase-tenant-runtime-contexts-v4'
+      from ranked where position > 1
+    )
+    update core.organization_members m set status = 'suspended', updated_at = now()
+      from ranked r where r.position > 1 and m.tenant_ref = r.tenant_ref and m.user_id = r.user_id;
+
+    create or replace function core.enforce_single_active_non_personal_membership()
+    returns trigger language plpgsql security definer set search_path = pg_catalog, pg_temp as $$
+    begin
+      if new.status = 'active' and exists (
+        select 1 from core.organizations o where o.tenant_ref = new.tenant_ref and o.kind <> 'personal'
+      ) and exists (
+        select 1 from core.organization_members m
+        join core.organizations o on o.tenant_ref = m.tenant_ref
+        where m.user_id = new.user_id and m.status = 'active' and o.kind <> 'personal'
+          and m.tenant_ref <> new.tenant_ref
+      ) then
+        raise exception 'user already has an active non-personal organization' using errcode = '23505';
+      end if;
+      return new;
+    end $$;
+    alter function core.enforce_single_active_non_personal_membership() owner to supabase_admin;
+    drop trigger if exists enforce_single_active_non_personal_membership on core.organization_members;
+    create trigger enforce_single_active_non_personal_membership
+      before insert or update of tenant_ref, user_id, status on core.organization_members
+      for each row execute function core.enforce_single_active_non_personal_membership();
+
+    create table if not exists core.user_active_organizations (
+      user_id uuid primary key references auth.users(id) on delete cascade,
+      tenant_ref text not null references core.organizations(tenant_ref),
+      updated_at timestamptz not null default now()
+    );
+    alter table core.user_active_organizations owner to supabase_admin;
+    alter table core.user_active_organizations enable row level security;
+    revoke all on core.user_active_organizations from public, anon, authenticated, service_role;
+
+    insert into core.user_active_organizations(user_id, tenant_ref)
+    select u.id, choice.tenant_ref from auth.users u
+    cross join lateral (
+      select m.tenant_ref from core.organization_members m
+      join core.organizations o on o.tenant_ref = m.tenant_ref
+      where m.user_id = u.id and m.status = 'active' and o.status = 'active'
+      order by case when o.kind <> 'personal' then 0 else 1 end,
+        case m.tenant_ref when 'admin' then 0 when 're8ch' then 1 else 2 end, m.tenant_ref
+      limit 1
+    ) choice
+    where u.deleted_at is null on conflict (user_id) do nothing;
+
+    create or replace function core.can_access_tenant_resources(p_user_id uuid, p_tenant_ref text)
+    returns boolean language sql stable security definer set search_path = pg_catalog, pg_temp as $$
+      select p_user_id = api.current_user_id() and exists (
+        select 1 from core.organization_members m
+        join core.organizations o on o.tenant_ref = m.tenant_ref
+        join core.user_active_organizations a on a.user_id = m.user_id and a.tenant_ref = m.tenant_ref
+        where m.user_id = p_user_id and m.tenant_ref = p_tenant_ref
+          and m.status = 'active' and o.status = 'active')
+    $$;
+    alter function core.can_access_tenant_resources(uuid, text) owner to supabase_admin;
+    revoke all on function core.can_access_tenant_resources(uuid, text) from public, anon, authenticated, service_role;
+
+    drop function if exists api.my_tenant_runtime_contexts();
+    create function api.my_tenant_runtime_contexts()
+    returns table(tenant_ref text, tenant_role text, tenant_kind text, display_name text, parent_ref text, is_active boolean)
+    language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
+    declare v_user uuid := api.current_user_id(); v_personal text; v_active text;
+    begin
+      if v_user is null then raise exception 'authenticated user required' using errcode = '28000'; end if;
+      perform core.ensure_personal_organization(v_user);
+      update core.organization_members m set status = 'active', role = 'owner', updated_at = now()
+      from core.organizations o
+      where m.user_id = v_user and m.tenant_ref = o.tenant_ref
+        and o.kind = 'personal' and o.personal_owner_id = v_user and o.status = 'active'
+        and (m.status <> 'active' or m.role <> 'owner');
+      select o.tenant_ref into v_personal from core.organizations o
+      join core.organization_members m on m.tenant_ref = o.tenant_ref and m.user_id = v_user
+      where o.kind = 'personal' and o.personal_owner_id = v_user
+        and o.status = 'active' and m.status = 'active' order by o.created_at limit 1;
+      select a.tenant_ref into v_active from core.user_active_organizations a
+      join core.organization_members m on m.user_id = a.user_id and m.tenant_ref = a.tenant_ref
+      join core.organizations o on o.tenant_ref = a.tenant_ref
+      where a.user_id = v_user and m.status = 'active' and o.status = 'active';
+      if v_active is null and v_personal is not null then
+        insert into core.user_active_organizations(user_id, tenant_ref, updated_at)
+        values(v_user, v_personal, now()) on conflict (user_id) do update
+          set tenant_ref = excluded.tenant_ref, updated_at = excluded.updated_at;
+        v_active := v_personal;
+      end if;
+      return query select m.tenant_ref,
+        case m.role when 'owner' then 'admin' when 'admin' then 'admin'
+          when 'member' then 'operator' when 'viewer' then 'viewer' end,
+        o.kind, o.display_name, o.parent_ref, m.tenant_ref = v_active
+      from core.organization_members m join core.organizations o on o.tenant_ref = m.tenant_ref
+      join auth.users u on u.id = m.user_id
+      where m.user_id = v_user and m.status = 'active' and o.status = 'active'
+        and u.deleted_at is null and m.role in ('owner', 'admin', 'member', 'viewer')
+      order by (m.tenant_ref = v_active) desc, (o.kind = 'personal') desc, m.tenant_ref;
+    end $$;
+    alter function api.my_tenant_runtime_contexts() owner to supabase_admin;
+    revoke all on function api.my_tenant_runtime_contexts() from public, anon, service_role;
+    grant usage on schema api to authenticated;
+    grant execute on function api.my_tenant_runtime_contexts() to authenticated;
+
+    create or replace function api.select_active_organization(p_tenant_ref text)
+    returns jsonb language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
+    declare v_user uuid := api.current_user_id(); v_before text; v_request_id text;
+    begin
+      if v_user is null then raise exception 'authenticated user required' using errcode = '28000'; end if;
+      if not exists (select 1 from core.organization_members m
+        join core.organizations o on o.tenant_ref = m.tenant_ref
+        where m.user_id = v_user and m.tenant_ref = p_tenant_ref
+          and m.status = 'active' and o.status = 'active') then
+        raise exception 'active organization membership required' using errcode = '42501';
+      end if;
+      perform pg_advisory_xact_lock(hashtextextended('active-organization:' || v_user::text, 0));
+      select tenant_ref into v_before from core.user_active_organizations where user_id = v_user;
+      insert into core.user_active_organizations(user_id, tenant_ref, updated_at)
+      values(v_user, p_tenant_ref, now()) on conflict (user_id) do update
+        set tenant_ref = excluded.tenant_ref, updated_at = excluded.updated_at;
+      v_request_id := coalesce(nullif(current_setting('request.headers', true), '')::jsonb ->> 'x-request-id', gen_random_uuid()::text);
+      insert into core.organization_context_audit(
+        actor_user_id, source_tenant_ref, target_tenant_ref, action, before_state, after_state, request_id)
+      values(v_user, v_before, p_tenant_ref, 'active_organization_selected',
+        jsonb_build_object('tenantRef', v_before), jsonb_build_object('tenantRef', p_tenant_ref), v_request_id);
+      return jsonb_build_object('tenantRef', p_tenant_ref, 'active', true, 'requestId', v_request_id);
+    end $$;
+    alter function api.select_active_organization(text) owner to supabase_admin;
+    revoke all on function api.select_active_organization(text) from public, anon, service_role;
+    grant execute on function api.select_active_organization(text) to authenticated;
+    notify pgrst, 'reload schema';
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-tenant-runtime-contexts-v4
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
+      containers:
+        - name: migrate
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args: ["psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql"]
+          env:
+            - {name: PGHOST, value: pg-re8ch-primary.pigsty-external.svc.cluster.local}
+            - {name: PGDATABASE, value: re8ch_identity}
+            - {name: PGUSER, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_USER_READ_WRITE}}}
+            - {name: PGPASSWORD, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_PASSWORD}}}
+          volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - {name: sql, configMap: {name: supabase-tenant-runtime-contexts-v4}}

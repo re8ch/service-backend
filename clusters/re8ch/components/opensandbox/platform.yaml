@@ -21,7 +21,7 @@ metadata:
 value: -1000
 globalDefault: false
 preemptionPolicy: Never
-description: Untrusted sandbox workloads on the shared restricted-node-6dc3f140f9 bootstrap node.
+description: Untrusted sandbox workloads on the shared R640 bootstrap node.
 ---
 apiVersion: v1
 kind: PersistentVolume
@@ -40,7 +40,7 @@ spec:
         - matchExpressions:
             - key: kubernetes.io/hostname
               operator: In
-              values: [restricted-node-6dc3f140f9]
+              values: [r640]
   hostPath:
     path: /var/lib/re8ch/opensandbox-server
     type: DirectoryOrCreate
@@ -169,8 +169,7 @@ data:
           terminationGracePeriodSeconds: 10
           priorityClassName: opensandbox-workload-low
           nodeSelector:
-            kubernetes.io/hostname: restricted-node-6dc3f140f9
-            opensandbox.re8ch.com/workload: "true"
+            kubernetes.io/hostname: r640
           tolerations:
             - key: dedicated
               operator: Equal
@@ -213,8 +212,7 @@ spec:
       serviceAccountName: opensandbox-server
       priorityClassName: opensandbox-control
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
-        opensandbox.re8ch.com/control-plane: "true"
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -279,7 +277,7 @@ metadata:
 spec:
   type: NodePort
   # Keep the legacy NodePort during migration, but allow Cilium Gateway
-  # instances on other nodes to select the restricted-node-6dc3f140f9 endpoint.
+  # instances on other nodes to select the R640 endpoint.
   externalTrafficPolicy: Cluster
   selector:
     app.kubernetes.io/name: opensandbox-server
@@ -358,8 +356,7 @@ data:
                 "restartPolicy": "Never",
                 "priorityClassName": "opensandbox-workload-low",
                 "nodeSelector": {
-                    "kubernetes.io/hostname": "restricted-node-6dc3f140f9",
-                    "opensandbox.re8ch.com/workload": "true",
+                    "kubernetes.io/hostname": "r640",
                 },
                 "tolerations": [{
                     "key": "dedicated", "operator": "Equal",
@@ -596,7 +593,7 @@ spec:
       serviceAccountName: opensandbox-server
       priorityClassName: opensandbox-control
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -670,22 +667,35 @@ spec:
   policyTypes: [Ingress]
   ingress:
     - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ai-operations
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: toolhive-system
+          podSelector:
+            matchLabels:
+              app: ops-observe-vmcp-internal
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
         - podSelector:
             matchLabels:
               app.kubernetes.io/name: teable-infra-compat
         # Hubble observes ICP NodePort traffic after underlay routing as this
         # exact source. Do not broaden this to the surrounding cloud CIDR.
         - ipBlock:
-            cidr: 192.0.2.124/32
+            cidr: 172.31.92.73/32
         # Public edge Traefik instances reach this Service through Cilium using
         # their truthful node transport identities. Keep the list explicit: the
         # OpenSandbox lifecycle API must never become generally public.
         - ipBlock:
-            cidr: 192.0.2.182/32
+            cidr: 10.181.22.77/32
         - ipBlock:
-            cidr: 192.0.2.89/32
+            cidr: 10.181.22.186/32
         - ipBlock:
-            cidr: 192.0.2.138/32
+            cidr: 10.181.22.16/32
       ports:
         - protocol: TCP
           port: 8080
@@ -700,6 +710,16 @@ spec:
     matchLabels:
       app.kubernetes.io/name: opensandbox-server
   ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: ai-operations
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: toolhive-system
+            app: ops-observe-vmcp-internal
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
     - fromEntities:
         - ingress
       toPorts:

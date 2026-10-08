@@ -111,3 +111,66 @@ def test_apply_rejects_inline_secret_material():
     with pytest.raises(OperationError) as caught:
         service.kube_resource("apply", "secret", manifest={"data": {"x": "eA=="}})
     assert caught.value.code == "SECRET_VALUE_FORBIDDEN"
+
+
+def test_apply_uses_manifest_without_positional_resource():
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return completed("applied")
+
+    service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    service.kube_resource("apply", "networkpolicies", namespace="opensandbox-system", manifest={
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "NetworkPolicy",
+        "metadata": {"name": "test", "namespace": "opensandbox-system"},
+        "spec": {},
+    })
+    assert calls
+    assert "networkpolicies" not in calls[0][0]
+    assert "-f" in calls[0][0]
+
+
+def test_patch_preserves_version_precondition_without_invalid_cli_flag():
+    calls = []
+    service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]),
+                            OperationRunner(lambda argv, **kwargs: calls.append(argv) or completed()),
+                            kubeconfig="x", ssh_config="y")
+    manifest = {"spec": {"replicas": 1}}
+    service.kube_resource("patch", "deployments", name="test", namespace="default",
+                          manifest=manifest, resource_version="123")
+    argv = calls[0]
+    assert not any(arg.startswith("--resource-version") for arg in argv)
+    assert json.loads(argv[argv.index("-p") + 1]) == {
+        "metadata": {"resourceVersion": "123"}, "spec": {"replicas": 1}}
+    assert "metadata" not in manifest
+    with pytest.raises(OperationError) as caught:
+        service.kube_resource("patch", "deployments", name="test",
+                              manifest={"metadata": {"resourceVersion": "124"}},
+                              resource_version="123")
+    assert caught.value.code == "RESOURCE_VERSION_CONFLICT"
+    assert len(calls) == 1
+
+
+def test_ssh_preserves_posix_arguments_through_remote_shell():
+    calls = []
+    def remote_shell(argv, **kwargs):
+        calls.append(argv)
+        assert argv[:5] == ["ssh", "-F", "y", "--", "restricted-node-6dc3f140f9"]
+        return subprocess.run(["sh", "-c", " ".join(argv[5:])], **kwargs)
+    service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]),
+                            OperationRunner(remote_shell), kubeconfig="x", ssh_config="y")
+    arguments = ["a b", "$(false)", "semi;colon", "quote'and\"", ""]
+    result = service.node_ssh_exec("restricted-node-6dc3f140f9", ["printf", "%s\\n", *arguments])
+    assert result["exitCode"] == 0
+    assert result["stdout"].splitlines() == arguments
+
+
+def test_ssh_uses_inventory_address_for_reachability():
+    calls = []
+    service = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]),
+                            OperationRunner(lambda argv, **kwargs: calls.append(argv) or completed()),
+                            kubeconfig="x", ssh_config="y")
+    service.node_reachability("vm-20-12-ubuntu")
+    assert calls == [["ssh", "-F", "y", "--", "ICP", "hostname"]]

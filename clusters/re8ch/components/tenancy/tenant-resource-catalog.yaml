@@ -59,9 +59,9 @@ data:
             instancePort: pgwrite.zt.re8ch.com:5432
             instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
             postgrestGateway:
-              shanghaiWrite: http://192.0.2.89:3080
-              shanghaiRead: http://192.0.2.112:3080
-              guangzhouRead: http://192.0.2.251:3080
+              shanghaiWrite: http://10.181.22.186:3080
+              shanghaiRead: http://10.181.22.79:3080
+              guangzhouRead: http://10.181.22.47:3080
           credentialSecrets:
             qianwen_prod:
               namespace: qwen
@@ -78,7 +78,7 @@ data:
               status: complete
               compatibilityCopyOf: cardcat/cardcat-db-credentials
         cloudbeaver:
-          url: https://dbgui.re8ch.com
+          url: https://dbgui.service.re8ch.com
           webUsername: qwen
           team: tenant-qwen
           loginSecret:
@@ -134,16 +134,16 @@ data:
             instancePort: pgwrite.zt.re8ch.com:5432
             instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
             postgrestGateway:
-              shanghaiWrite: http://192.0.2.89:3080
-              shanghaiRead: http://192.0.2.112:3080
-              guangzhouRead: http://192.0.2.251:3080
+              shanghaiWrite: http://10.181.22.186:3080
+              shanghaiRead: http://10.181.22.79:3080
+              guangzhouRead: http://10.181.22.47:3080
           credentialSecrets:
             ledger:
               namespace: ledger
               name: ledger-db-credentials
               status: complete
         cloudbeaver:
-          url: https://dbgui.re8ch.com
+          url: https://dbgui.service.re8ch.com
           webUsername: ledger
           team: tenant-ledger
           loginSecret:
@@ -186,9 +186,9 @@ data:
             instancePort: pgwrite.zt.re8ch.com:5432
             instancePortNote: 5432 is for GUI/JDBC or intentional instance access, not the default HA write route.
             postgrestGateway:
-              shanghaiWrite: http://192.0.2.89:3080
-              shanghaiRead: http://192.0.2.112:3080
-              guangzhouRead: http://192.0.2.251:3080
+              shanghaiWrite: http://10.181.22.186:3080
+              shanghaiRead: http://10.181.22.79:3080
+              guangzhouRead: http://10.181.22.47:3080
           credentialSecrets:
             anycam_prod:
               namespace: anycam
@@ -199,7 +199,7 @@ data:
               name: anycam-test-db-credentials
               status: complete
         cloudbeaver:
-          url: https://dbgui.re8ch.com
+          url: https://dbgui.service.re8ch.com
           webUsername: anycam
           team: tenant-anycam
           loginSecret:

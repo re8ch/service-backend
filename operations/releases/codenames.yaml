@@ -445,6 +445,16 @@ modules:
       digest: sha256:8cdea89897b78fdf14480052f847eddb7c0067dbd9b9826e42587da83f02e0d3
     - codename: grove-amber
       digest: sha256:2bff8ccf68f42bd88df936abec63ef4a317dcdb0c4a8ad71dc73c75ac6e1d915
+    - codename: reef-amber
+      digest: sha256:0f3a682962961e267cd8e5787549bad60ad8f399d9f04529631a9c3a96cf9735
+    - codename: tundra-amber
+      digest: sha256:58c8227e53a01b9325836c9e5f4135528c12e1b28caa859c45709478245e2864
+    - codename: wetland-amber
+      digest: sha256:8c23f4811d6657c597bead1a2965bf01ab3278881f53ae9d6408da1db046f011
+    - codename: atoll-copper
+      digest: sha256:b315959c47eb937597c09da26cbf8bf4eadc8159224ff4fce19691074b968878
+    - codename: canopy-copper
+      digest: sha256:f5c5bb8fe554864235599bdbb3b867c2808bd12aff2dc1edeedeeeef6802b017
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -517,6 +527,8 @@ modules:
       digest: sha256:2fb4faef0c1c8f13d6831823f0c9523f63611f285a962520c746be1efb87d05b
     - codename: tramontane-jade
       digest: sha256:8abec5edc00fea8a5402e81ab3e3a32810d21c0506d87702a4c61cf2a5f05164
+    - codename: zephyr-jade
+      digest: sha256:0b70a232ec5425ef6807b5935e74178f4082b5d66cc78131de5e8dfe16af7b7f
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -706,6 +718,12 @@ modules:
       digest: sha256:f3d1b198b3216df879582204a9c8d284f4700f920110287885e08765e743a1e3
     - codename: meridian-silver
       digest: sha256:e575ad8e9815b78f923f107bdc4c2a97559b85182d94443ce34de0b63c22b42b
+    - codename: passage-silver
+      digest: sha256:25e5e00e9f00a744a41d8181190f3454ec0b9918d74ae17910afd222ebc84534
+    - codename: trailhead-silver
+      digest: sha256:2414b5e884951879a0c7b1acb9fde311902b75cd0f789222127891eae858e963
+    - codename: anchor-umber
+      digest: sha256:2d5cdc5e920c8695df922c68e8597e883544ab0a71c3edf305f6da35bbd9c86c
   platform/birfucate-metering:
     releases:
     - codename: cascade
@@ -910,6 +928,114 @@ modules:
       digest: sha256:7e1a8532f74d1e6a9cd9bf9572c5eb1ef43f5a82979d51f3da0d0e05e9cab140
     - codename: eddy-sapphire
       digest: sha256:829fc06208c074faa4a7d3c6e5f36900c66555e1bfd6afc2316492219c58e1a6
+    - codename: gulfstream-sapphire
+      digest: sha256:9f04f1daa365315f74d22ea4ab64eba4f6602c33850dd6a425972377392f6a73
+    - codename: riptide-sapphire
+      digest: sha256:98b769861dc6bb5506ab586b90c79ad0dc6a4fed597a09ae71e9ad10cdcb5f34
+    - codename: springtide-sapphire
+      digest: sha256:1a83eea6c9dafbe70ea67f4a1fd55e0e15c79b7ce2f6964fe858da2ea58accfb
+    - codename: tideway-sapphire
+      digest: sha256:8cb34e5e97de162dde36934d301ed8b9f5e2c6b1a6425136c0b5d596a1943558
+    - codename: cascade-topaz
+      digest: sha256:c5d21c5f76ef3e1a70e18f05172f9557ae7595069d4e011513900db7f1882732
+    - codename: confluence-topaz
+      digest: sha256:7becd70dbd3fcec69cbbbfc055d5cd8719495aa7fa4fb01319a035c42ba615eb
+    - codename: eddy-topaz
+      digest: sha256:275853434760503f48651a2edef0af205286de0574b63e58068f72039ba31bdf
+    - codename: gulfstream-topaz
+      digest: sha256:b4ccb22284f189c91b22410e3e45e736062d109b6afa91bdfdaf4a4773f1ed21
+    - codename: riptide-topaz
+      digest: sha256:233437c7248f4f040bb58e1bb19585053b484d9d3222ba9559e949ebd2111e3c
+    - codename: springtide-topaz
+      digest: sha256:f3ea87c6a836fef12645e0d348afb022cb6819b015531902d587227265499162
+    - codename: tideway-topaz
+      digest: sha256:af3298a4df1cd997978e33f0c1c5827b7542cd33a92d8a0c4b6d2326842c7d7b
+    - codename: cascade-opal
+      digest: sha256:fd0f41634386064de61b311e0d0103ee947d5b8d28053e1fceec91022fbb9935
+    - codename: confluence-opal
+      digest: sha256:b7d6245881548a008b49aa6079e21d77e3cc16f78dfedab9fa00c80f903be25b
+    - codename: eddy-opal
+      digest: sha256:13f956ef83d08e4fdce47f50ac37176ef136091643ced89a566b9839f073ea53
+    - codename: gulfstream-opal
+      digest: sha256:3310e124a4913f2305a88293c2a3f91d9bf2365a898434183cd0b86bd1b680a9
+    - codename: riptide-opal
+      digest: sha256:9e943e5db776a6b4ddbf617c0bc20a5ad1541389f2bcc02206e2c3dac0784358
+    - codename: springtide-opal
+      digest: sha256:b0dbfa6919076fda3d23aaabd6bbfc0919845dc4faa2116fe4bb172f7366df5d
+    - codename: tideway-opal
+      digest: sha256:4ecf4748769069389b71275ea63532c5c50126a10ca200a4fd39ed2a16d305e0
+    - codename: cascade-garnet
+      digest: sha256:369f0a268c51aa4811ebc0859946c2c6acd23d29e30c40b84b79a85c23f9e6df
+    - codename: confluence-garnet
+      digest: sha256:67bae4693dc5b41b342012b099d2c1fc6b7594bb9da4460faeac7e476dacb98e
+    - codename: eddy-garnet
+      digest: sha256:8ff5c504348845fa508c18370aaa3a548343cd2a992f361d9cf549c2b3a04797
+    - codename: gulfstream-garnet
+      digest: sha256:f7e6ce67acdbc69661d3ac04cc5e4511e31a08f128961e47853ebc2fc371a5f8
+    - codename: riptide-garnet
+      digest: sha256:72d132d95e93416c32f9eaf3465c667871cbd99e6e1797d14939c1c47987594e
+    - codename: springtide-garnet
+      digest: sha256:c8040fafcb65e41cc4956e06b085364fba2ab21d29788c0a364484bfd5dc2d95
+    - codename: tideway-garnet
+      digest: sha256:e57ab625f0a94a6623719dbe5f85d15244adc10da630d6c0a276b9bcb0cc353e
+    - codename: cascade-beryl
+      digest: sha256:14e3b589b5c897a0008cd74582af12b600c57fa0c1a6bb39a0b582193c1a39ca
+    - codename: confluence-beryl
+      digest: sha256:eceac55bc4ea39ebf2830695d56a68d80cc3a4b031830affedb7a3b0abe98895
+    - codename: eddy-beryl
+      digest: sha256:11321e1ad55b5f0b27cf269166edfa8ce5092069e8acaf082923b6b039807ff3
+    - codename: gulfstream-beryl
+      digest: sha256:e3973769ec10508bbf2b9b64e9d5ac6b5469beb770e1bcf41a7b3f566f7db5fe
+    - codename: riptide-beryl
+      digest: sha256:727e1129f97f24672f8bbed38a6540957caa0a7c23ad4198bed2483aa5688651
+    - codename: springtide-beryl
+      digest: sha256:7c9b859af33230271e473b179810937e05089081e63fb0c8d3463efbc5ef2606
+    - codename: tideway-beryl
+      digest: sha256:19b2d06081ebea63672860def52bae90995ff3feecb5ee762ec17308e08f4a6d
+    - codename: cascade-emerald
+      digest: sha256:963040b546cd57e419575eacdf46ea6f28e7d06b229f10be5cd6e1f65ffa741c
+    - codename: confluence-emerald
+      digest: sha256:2cd6b040d40742a4100b731de9af54d1431301cffdfc43426c419b0b8e2233dd
+    - codename: eddy-emerald
+      digest: sha256:ffb5e80a9409415de465cc8cb9159516a91f88e101ead1749303b16695e914f4
+    - codename: gulfstream-emerald
+      digest: sha256:be5a935b58dbb693ff12eb8048ad74a8da50ba54087dba309a2c1d97287dbed1
+    - codename: riptide-emerald
+      digest: sha256:5f6b526b647c3724291baf4f68bcd3e16a20297247bc3934022f4c3a69b69b49
+    - codename: springtide-emerald
+      digest: sha256:8447550c005252727084d3bde615b64bfb2ba5d7de76530507e37aaae37dadfe
+    - codename: tideway-emerald
+      digest: sha256:843a27b042b47ee404bf3f8422b233eeb25fbb7e17e233fe58a6f9c17128d4ec
+    - codename: cascade-zircon
+      digest: sha256:a443a1627cffd011327c13fa90ebabdc1a409636a21a835740b447b22b5faca8
+    - codename: confluence-zircon
+      digest: sha256:a3c7730d887f46059e815ee6fc4f855ea7f75ea1e8bf0773e17aa023d1d0f603
+    - codename: eddy-zircon
+      digest: sha256:0ee47e7bb6ddde77f0666a96cd546f40b227c8f52326e3d9f0756057a9263dc2
+    - codename: gulfstream-zircon
+      digest: sha256:0600d4f4d8842e29d6a3611105b3f37eb0143d8f12728f1948b56aba520592a1
+    - codename: riptide-zircon
+      digest: sha256:7f2a9dd7349436b112e33df51a0555d39d79d9f8594f9755abfae3bb50b90b05
+    - codename: springtide-zircon
+      digest: sha256:95640556de06a2b179bdde504f9914e9c410ed8eaf31493b3061c4300bba73a7
+    - codename: tideway-zircon
+      digest: sha256:012f6683e84c4563d06c560203290f4802086c4b0e27e41f921c526ec95cee3e
+    - codename: cascade-jasper
+      digest: sha256:0a98e5fcf4a74913838a006e95696ffc437258c924395842ddfb3d410c3eb9b9
+    - codename: confluence-jasper
+      digest: sha256:e785d2e7223c20e1a5f9146ae4b2936bfc53917b9fb3e45ca2dc58281218bf72
+    - codename: eddy-jasper
+      digest: sha256:7722a568a1ef8285a8a1d8b276a01a7d3a68d3d7acbc24f4c2627e2f9b3ce992
+    - codename: gulfstream-jasper
+      digest: sha256:3abf21ab7aa4f9dac0960064b3d36412e33266215eb556d55da58b68c0309bae
+    - codename: riptide-jasper
+      digest: sha256:7ffecff9324300183b7b9e6743531ee1d55be809b3a21a3e0bcdbf55abeac2fe
+    - codename: springtide-jasper
+      digest: sha256:ccf2a8e17297a38d512c1e18b090804b2ec47e7e9a3b9d9328b460bc8991b556
+    - codename: tideway-jasper
+      digest: sha256:dd56a05e66f61de09e59d328beb70f315bc779590a710b6e92af0e8b8de1e23a
+    - codename: cascade-agate
+      digest: sha256:7c8e19c2b5efd4f005f029cba42657013327dffe20f606b086bce8cc044a266e
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -1112,6 +1238,8 @@ modules:
       digest: sha256:30efacfc503c9e761b43dde1cf1ae5330fc5b0b47ee5f4632dbacab5fd714d59
     - codename: bora-onyx
       digest: sha256:851c6aa2abbbabdc47db546ee9a575b567f84c1a11f1ec8f588066288c955964
+    - codename: chinook-onyx
+      digest: sha256:990d86f0fb05c7eff6c31e22ede0985ee8174232ee38177cffae21406074039c
   platform/adapter:
     releases:
     - codename: anchor
@@ -1292,3 +1420,5 @@ modules:
       digest: sha256:859a6eabebbd15eac7697663596f915e1de1040262b533f4e58995d931679fdb
     - codename: focus-pearl
       digest: sha256:54131b4106518c8761591bd642f1c55c9dce22018e50979b067f0daa42182fa9
+    - codename: prism-pearl
+      digest: sha256:1aa4faa5ee9e811bb9250eb15849fc7da5f65caaf74c5b7077778a9651782134

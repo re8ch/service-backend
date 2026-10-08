@@ -63,7 +63,10 @@ spec:
   interval: 1m
   path: ./
   prune: false
-  wait: true
+  # A node outage leaves the node-storage DaemonSet unavailable on that node.
+  # Apply recovery manifests without waiting for every observability workload;
+  # workload readiness is monitored separately from GitOps reconciliation.
+  wait: false
   timeout: 15m
   dependsOn:
   - name: observability-bootstrap

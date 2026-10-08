@@ -7,6 +7,7 @@ hash over a cluster-internal authenticated channel.
 """
 
 import calendar
+import copy
 import hashlib
 import hmac
 import importlib.util
@@ -55,6 +56,9 @@ CLAIM_MUTATION_LOCK = threading.Lock()
 LOG = logging.getLogger("tenant-control-controller")
 RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
 TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
+PERSONAL_RUNTIME_CLASS = "personal-standard"
+PERSONAL_OWNER_RE = re.compile(r"^personal-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$")
+PERSONAL_NAMESPACE_DECLARED = set()
 
 
 class Kubernetes:
@@ -76,8 +80,15 @@ class Kubernetes:
             try:
                 with urllib.request.urlopen(req, context=self.ssl, timeout=10) as response:
                     return json.load(response)
-            except urllib.error.HTTPError:
-                raise
+            except urllib.error.HTTPError as exc:
+                if method != "GET" or exc.code != 429 or attempt == 2:
+                    raise
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                try:
+                    delay = float(retry_after) if retry_after is not None else 0.5 * (2 ** attempt)
+                except ValueError:
+                    delay = 0.5 * (2 ** attempt)
+                time.sleep(min(5.0, max(0.0, delay)))
             except (TimeoutError, urllib.error.URLError, ConnectionError) as exc:
                 last_error = exc
                 if attempt < 2:
@@ -129,6 +140,7 @@ class Kubernetes:
             ("apps/v1", "Deployment"): ("apis/apps/v1", "deployments"),
             ("batch/v1", "Job"): ("apis/batch/v1", "jobs"),
             ("networking.k8s.io/v1", "NetworkPolicy"): ("apis/networking.k8s.io/v1", "networkpolicies"),
+            ("cilium.io/v2", "CiliumNetworkPolicy"): ("apis/cilium.io/v2", "ciliumnetworkpolicies"),
             ("gateway.networking.k8s.io/v1", "HTTPRoute"): ("apis/gateway.networking.k8s.io/v1", "httproutes"),
             ("peering.re8ch.com/v1alpha1", "PeerPolicy"): ("apis/peering.re8ch.com/v1alpha1", "peerpolicies"),
         }
@@ -251,10 +263,10 @@ def resolve_supabase_membership(access_token, requested_tenant):
     """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
     if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
         raise PermissionError("Supabase access token is required")
-    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant == "admin":
-        raise PermissionError("select an ordinary tenant")
+    if not isinstance(requested_tenant, str) or (requested_tenant and not TENANT_NAME_RE.fullmatch(requested_tenant)) or requested_tenant == PERSONAL_RUNTIME_CLASS:
+        raise PermissionError("invalid organization selection")
     request = urllib.request.Request(
-        IDENTITY_REST_URL + "/rpc/my_tenant_runtime_memberships",
+        IDENTITY_REST_URL + "/rpc/my_tenant_runtime_contexts",
         data=b"{}", method="POST",
         headers={"Authorization": "Bearer " + access_token, "Content-Type": "application/json", "Accept": "application/json"},
     )
@@ -269,24 +281,44 @@ def resolve_supabase_membership(access_token, requested_tenant):
         raise RuntimeError("Supabase membership lookup failed") from exc
     if not isinstance(memberships, list):
         raise RuntimeError("Supabase membership response is invalid")
-    if not requested_tenant:
-        ordinary = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
-                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref") != "admin"
-                           and row.get("tenant_role") in ROLE_ORDER and not row.get("tenant_ref").startswith("personal-")})
-        personal = sorted({row.get("tenant_ref") for row in memberships if isinstance(row, dict)
-                           and isinstance(row.get("tenant_ref"), str) and row.get("tenant_ref").startswith("personal-")
-                           and row.get("tenant_role") in ROLE_ORDER})
-        choices = ordinary or personal
-        if len(choices) != 1:
-            raise PermissionError("select an active tenant")
-        requested_tenant = choices[0]
-    roles = [row.get("tenant_role") for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
-    if len(roles) != 1 or roles[0] not in ROLE_ORDER:
+    active = [row for row in memberships if isinstance(row, dict) and row.get("is_active") is True
+              and isinstance(row.get("tenant_ref"), str) and row.get("tenant_role") in ROLE_ORDER]
+    if len(active) != 1:
+        raise PermissionError("active organization selection is unavailable")
+    active_tenant = active[0]["tenant_ref"]
+    # The legacy header is only a consistency assertion. It never selects or
+    # grants an organization independently of the identity database.
+    if requested_tenant and requested_tenant != active_tenant:
+        raise PermissionError("requested organization is not active for this account")
+    requested_tenant = active_tenant
+    selected_rows = [row for row in memberships if isinstance(row, dict) and row.get("tenant_ref") == requested_tenant]
+    if len(selected_rows) != 1 or selected_rows[0].get("tenant_role") not in ROLE_ORDER:
         raise PermissionError("identity is not an active member of the selected tenant")
+    selected = selected_rows[0]
+    runtime_ref = requested_tenant
+    if selected.get("tenant_kind") == "personal":
+        if not requested_tenant.startswith("personal-"):
+            raise PermissionError("personal organization reference is invalid")
+        # Existing Personal runtime Tenants keep their own resources. Newly
+        # registered Personal organizations share a class without inheriting
+        # one another's resource ownership.
+        dedicated = next((item for item in kube().list("tenants")
+                          if item.get("metadata", {}).get("name") == requested_tenant), None)
+        if dedicated and dedicated.get("spec", {}).get("lifecycle") != "Active":
+            raise PermissionError("the dedicated Personal tenant is not active")
+        if not dedicated:
+            runtime_ref = PERSONAL_RUNTIME_CLASS
+    if runtime_ref == PERSONAL_RUNTIME_CLASS:
+        try:
+            ensure_personal_namespace(requested_tenant)
+        except Exception as exc:
+            # Namespace provisioning must not turn a verified login into 403.
+            LOG.warning("Personal namespace declaration pending for %s: %s", requested_tenant, exc)
     tenant = tenant_definition(requested_tenant)
     policy = tenant.get("spec", {}).get("namespacePolicy", {})
-    namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or requested_tenant
-    return {"tenantRef": requested_tenant, "role": roles[0], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
+    namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or runtime_ref
+    return {"tenantRef": requested_tenant, "runtimeTenantRef": runtime_ref,
+            "role": selected["tenant_role"], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
 
 
 def utcnow():
@@ -298,10 +330,60 @@ def iso(value):
 
 
 def tenant_definition(tenant_ref):
-    for tenant in kube().list("tenants"):
-        if tenant.get("metadata", {}).get("name") == tenant_ref and tenant.get("spec", {}).get("lifecycle") == "Active":
+    tenants = kube().list("tenants")
+    for tenant in tenants:
+        if tenant.get("metadata", {}).get("name") == tenant_ref:
+            if tenant.get("spec", {}).get("lifecycle") != "Active":
+                raise PermissionError("active tenant definition is unavailable")
             return tenant
+    if PERSONAL_OWNER_RE.fullmatch(tenant_ref):
+        runtime = next((item for item in tenants if item.get("metadata", {}).get("name") == PERSONAL_RUNTIME_CLASS
+                        and item.get("spec", {}).get("lifecycle") == "Active"), None)
+        if runtime:
+            virtual = copy.deepcopy(runtime)
+            virtual["metadata"]["name"] = tenant_ref
+            policy = virtual["spec"]["namespacePolicy"]
+            policy["defaultNamespace"] = tenant_ref + "-default"
+            policy["allowedPrefixes"] = [tenant_ref + "-"]
+            policy["bootstrapNamespaces"] = [tenant_ref + "-default"]
+            virtual["spec"]["harborProjectRef"] = tenant_ref
+            return virtual
     raise PermissionError("active tenant definition is unavailable")
+
+
+def tenant_grant_projection(tenant_ref):
+    """Expose only non-sensitive grant metadata for the authenticated tenant."""
+    grants = tenant_definition(tenant_ref).get("spec", {}).get("grants", [])
+    return [{"name": grant.get("name"), "consumableRef": grant.get("consumableRef"),
+             "roleRef": grant.get("roleRef"), "lifecycle": grant.get("lifecycle", "Active")}
+            for grant in grants if isinstance(grant, dict) and grant.get("consumableRef")]
+
+
+def require_tenant_grant(tenant_ref, consumable_ref):
+    if not any(grant["consumableRef"] == consumable_ref and grant["lifecycle"] == "Active"
+               for grant in tenant_grant_projection(tenant_ref)):
+        raise PermissionError("active tenant grant is required for " + str(consumable_ref))
+
+
+def ensure_personal_namespace(owner_ref):
+    if not PERSONAL_OWNER_RE.fullmatch(owner_ref):
+        raise PermissionError("invalid Personal organization reference")
+    if owner_ref in PERSONAL_NAMESPACE_DECLARED:
+        return
+    namespace = owner_ref + "-default"
+    name = tenant_namespace_name(owner_ref, namespace)
+    desired = {"apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantNamespace",
+               "metadata": {"name": name, "labels": {"tenancy.re8ch.com/tenant": owner_ref}},
+               "spec": {"tenantRef": owner_ref, "namespaceName": namespace, "operation": "EnsurePresent"}}
+    try:
+        kube().create("tenantnamespaces", desired)
+    except urllib.error.HTTPError as exc:
+        if exc.code != 409:
+            raise
+        existing = kube().get("tenantnamespaces", name)
+        if existing.get("spec", {}) != desired["spec"]:
+            raise PermissionError("Personal namespace declaration belongs to another owner") from None
+    PERSONAL_NAMESPACE_DECLARED.add(owner_ref)
 
 
 def runtime_namespace(tenant_ref):
@@ -361,6 +443,8 @@ def tenant_groups(tenant_ref):
 def tenant_namespace_resources(tenant, namespace):
     tenant_ref = tenant["metadata"]["name"]
     tenant_uid = tenant["metadata"]["uid"]
+    if len(tenant_ref) > 63:
+        raise ValueError("tenant reference exceeds the Kubernetes label value limit")
     labels = {
         "tenancy.re8ch.com/tenant": tenant_ref,
         "tenancy.re8ch.com/managed": "true",
@@ -378,22 +462,113 @@ def tenant_namespace_resources(tenant, namespace):
     subjects = [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     subjects += [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": group} for group in tenant_groups(tenant_ref)]
     return [
-        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": labels, "annotations": annotation}},
+        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": {**labels, "saas.re8ch.com/tenant": tenant_ref}, "annotations": annotation}},
         {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "tenant-boundary", "namespace": namespace, "labels": labels}, "spec": {"hard": {"pods": "100", "requests.cpu": "20", "requests.memory": "64Gi", "requests.storage": "1Ti"}}},
         {"apiVersion": "v1", "kind": "LimitRange", "metadata": {"name": "tenant-defaults", "namespace": namespace, "labels": labels}, "spec": {"limits": [{"type": "Container", "defaultRequest": {"cpu": "25m", "memory": "64Mi"}, "default": {"cpu": "2", "memory": "4Gi"}}]}},
         {"apiVersion": "v1", "kind": "ServiceAccount", "metadata": {"name": "tenant-native-operator", "namespace": namespace, "labels": labels}, "automountServiceAccountToken": False},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "rules": owner_rules},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "subjects": subjects, "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-native-owner"}},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-resource-provisioner", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-control-controller", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "tenant-resource-provisioner"}},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-publicedge-route-manager", "namespace": namespace, "labels": labels}, "rules": [{"apiGroups": ["gateway.networking.k8s.io"], "resources": ["httproutes"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}]},
+        {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-publicedge-route-manager", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-publicedge-route-manager"}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-default-deny-cross-tenant", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"tenancy.re8ch.com/tenant": tenant_ref}}}]}]}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-metrics-scrape", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {"matchLabels": {"observability.re8ch.com/scrape": "true"}}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]}},
     ]
+
+
+def exposure_hostname(tenant_ref, name):
+    label = tenant_ref + "-" + name
+    if len(label) > 63:
+        label = label[:54].rstrip("-") + "-" + hashlib.sha256(label.encode()).hexdigest()[:8]
+    return label + ".apps.re8ch.com"
+
+
+def tenant_exposure_policy(route, tenant_ref, namespace):
+    metadata = route.get("metadata") or {}
+    labels = metadata.get("labels") or {}
+    if labels.get("tenancy.re8ch.com/managed-by") != "tenant-exposure-controller" or labels.get("tenancy.re8ch.com/tenant") != tenant_ref:
+        return None
+    name = metadata.get("name", "")
+    spec = route.get("spec") or {}
+    if (not isinstance(name, str) or not TENANT_NAME_RE.fullmatch(name) or len(name) > 63
+            or metadata.get("namespace") != namespace
+            or spec.get("parentRefs") != [{"name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "apps-wildcard-https"}]
+            or spec.get("hostnames") != [exposure_hostname(tenant_ref, name)]):
+        raise PermissionError("managed Exposure route authority is invalid")
+    rules = spec.get("rules") or []
+    if len(rules) != 1 or len(rules[0].get("backendRefs") or []) != 1:
+        raise PermissionError("managed Exposure must have one same-namespace Service backend")
+    backend = rules[0]["backendRefs"][0]
+    service_name, service_port = backend.get("name"), backend.get("port")
+    if (not isinstance(service_name, str) or not TENANT_NAME_RE.fullmatch(service_name)
+            or backend.get("namespace") not in (None, namespace)
+            or backend.get("group") not in (None, "") or backend.get("kind") not in (None, "Service")
+            or type(service_port) is not int or not 1 <= service_port <= 65535):
+        raise PermissionError("managed Exposure backend is invalid")
+    try:
+        service = kube().get("services", service_name, namespace, "api/v1")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        raise PermissionError("managed Exposure Service is absent") from exc
+    service_spec = service.get("spec") or {}
+    selector = service_spec.get("selector") or {}
+    if service_spec.get("type", "ClusterIP") != "ClusterIP" or not isinstance(selector, dict) or not selector:
+        raise PermissionError("managed Exposure requires a selector-backed ClusterIP Service")
+    ports = [item for item in service_spec.get("ports") or [] if item.get("port") == service_port and item.get("protocol", "TCP") == "TCP"]
+    if len(ports) != 1:
+        raise PermissionError("managed Exposure requires one TCP Service port")
+    target_port = ports[0].get("targetPort", service_port)
+    if (type(target_port) is int and 1 <= target_port <= 65535):
+        target_port = str(target_port)
+    elif not isinstance(target_port, str) or not re.fullmatch(r"[a-z]([-a-z0-9]*[a-z0-9])?", target_port) or len(target_port) > 15:
+        raise PermissionError("managed Exposure target port is invalid")
+    return {"apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy",
+            "metadata": {"name": "tenant-exposure-" + name, "namespace": namespace,
+                         "labels": {"tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}},
+            "spec": {"endpointSelector": {"matchLabels": selector}, "ingress": [{"fromEntities": ["ingress"], "toPorts": [{"ports": [{"port": target_port, "protocol": "TCP"}]}]}]}}
+
+
+def reconcile_exposure_policies(tenant_ref, namespace, granted):
+    expected = set()
+    routes = kube().list("httproutes", namespace, "apis/gateway.networking.k8s.io/v1") if granted else []
+    for route in routes:
+        try:
+            policy = tenant_exposure_policy(route, tenant_ref, namespace)
+        except PermissionError as exc:
+            LOG.warning("Exposure policy rejected in %s: %s", namespace, exc)
+            continue
+        if policy is not None:
+            name = policy["metadata"]["name"]
+            try:
+                existing = kube().get("ciliumnetworkpolicies", name, namespace, "apis/cilium.io/v2")
+            except urllib.error.HTTPError as exc:
+                if exc.code != 404:
+                    raise
+            else:
+                labels = (existing.get("metadata") or {}).get("labels") or {}
+                if (labels.get("tenancy.re8ch.com/tenant") != tenant_ref
+                        or labels.get("tenancy.re8ch.com/managed-by") != "tenant-exposure-controller"):
+                    LOG.error("Refusing to replace unmanaged Exposure policy %s/%s", namespace, name)
+                    continue
+            kube().apply(policy)
+            expected.add(name)
+    for policy in kube().list("ciliumnetworkpolicies", namespace, "apis/cilium.io/v2"):
+        metadata = policy.get("metadata") or {}
+        labels = metadata.get("labels") or {}
+        name = metadata.get("name", "")
+        if (labels.get("tenancy.re8ch.com/tenant") == tenant_ref
+                and labels.get("tenancy.re8ch.com/managed-by") == "tenant-exposure-controller"
+                and name.startswith("tenant-exposure-") and name not in expected):
+            kube().delete("ciliumnetworkpolicies", name, namespace, "apis/cilium.io/v2")
 
 
 def reconcile_tenant_namespace(resource, tenants):
     meta, spec = resource["metadata"], resource["spec"]
     tenant_ref, namespace = spec["tenantRef"], spec["namespaceName"]
     tenant = tenants.get(tenant_ref)
+    if not tenant and PERSONAL_OWNER_RE.fullmatch(tenant_ref):
+        tenant = tenant_definition(tenant_ref)
     if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
         raise PermissionError("tenant is not active")
     validate_tenant_namespace(tenant_ref, namespace, spec["operation"])
@@ -430,6 +605,13 @@ def reconcile_tenant_namespace(resource, tenants):
         live = kube().get("namespaces", namespace, api="api/v1")
         status = {"observedGeneration": meta.get("generation", 1), "operationId": operation_id, "phase": "Ready", "namespaceUID": live["metadata"]["uid"], "reason": "NamespaceReady", "conditions": [condition("Ready", True, "NamespaceReady")]}
     kube().patch_status("tenantnamespaces", meta["name"], status)
+    if spec["operation"] == "EnsurePresent":
+        try:
+            granted = any(grant.get("consumableRef") == "network.tenant.v1" and grant.get("lifecycle", "Active") == "Active"
+                          for grant in tenant.get("spec", {}).get("grants", []) if isinstance(grant, dict))
+            reconcile_exposure_policies(tenant_ref, namespace, granted=granted)
+        except Exception:
+            LOG.exception("Exposure backend policy reconciliation failed for %s", namespace)
 
 
 def image_pull_secret(tenant_ref):
@@ -443,44 +625,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-def active_grant(tenant_ref, capability):
-    now = utcnow()
-    matches = []
-    for grant in kube().list("tenantgrants"):
-        spec = grant.get("spec", {})
-        if spec.get("tenantRef") != tenant_ref or spec.get("lifecycle") != "Active":
-            continue
-        if spec.get("consumableRef") not in {"tenant", capability}:
-            continue
-        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
-            continue
-        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
-            continue
-        matches.append(grant)
-    if len(matches) != 1:
-        raise PermissionError("exactly one active TenantGrant is required")
-    return matches[0]
-
-
 PROVIDER_SERVICE_CLASSES = {"registry.harbor.v1", "observability.grafana.v1"}
-
-
-def active_provider_grant(tenant_ref, service_class):
-    """Service access needs an explicit class grant, never a broad tenant grant."""
-    now = utcnow()
-    matches = []
-    for grant in kube().list("tenantgrants"):
-        spec = grant.get("spec", {})
-        if spec.get("tenantRef") != tenant_ref or spec.get("consumableRef") != service_class or spec.get("lifecycle") != "Active":
-            continue
-        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
-            continue
-        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
-            continue
-        matches.append(grant)
-    if len(matches) != 1 or matches[0].get("spec", {}).get("roleRef") not in {"operator", "admin"}:
-        raise PermissionError("exactly one active operator TenantGrant is required for the service class")
-    return matches[0]
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -489,7 +634,6 @@ def provider_service_spec(tenant_ref, name, request):
     service_class = request.get("serviceClass")
     if service_class not in PROVIDER_SERVICE_CLASSES:
         raise PermissionError("provider service class is not published")
-    grant = active_provider_grant(tenant_ref, service_class)
     if request.get("desiredState", "Ready") != "Ready":
         raise PermissionError("new provider service instances must request Ready")
     parameters = request.get("parameters") or {}
@@ -509,9 +653,9 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("Harbor project is outside the authenticated tenant")
         quota = parameters.get("quotaGiB")
         duration = parameters.get("robotDurationDays", 90)
-        maximum = int((grant.get("spec", {}).get("constraints") or {}).get("maxRegistryGiB", 1024))
+        maximum = 1024
         if type(quota) is not int or not 1 <= quota <= maximum or type(duration) is not int or not 1 <= duration <= 365:
-            raise PermissionError("Harbor quota or robot duration is outside the TenantGrant")
+            raise PermissionError("Harbor quota or robot duration is outside the published limits")
         return {"project": project, "quotaGiB": quota, "robotDurationDays": duration, "identityUserRef": identity_user}
     if request.get("planRef") not in {"viewer", "editor"}:
         raise PermissionError("Grafana plan is not published")
@@ -532,22 +676,6 @@ def provider_service_spec(tenant_ref, name, request):
             and (set(parameters.get("datasourceRefs", [])) != {"app", "kube"} or parameters.get("folderRefs"))):
         raise PermissionError("Grafana currently publishes app and kube metrics for the tenant runtime namespace")
     return {"datasourceRefs": sorted(set(parameters.get("datasourceRefs", []))), "folderRefs": sorted(set(parameters.get("folderRefs", []))), "humanLogin": login, "identityUserRef": identity_user}
-
-def active_service_grants(tenant_ref):
-    """Return only currently effective, class-specific grants for tenant services."""
-    now = utcnow()
-    grants = []
-    for grant in kube().list("tenantgrants"):
-        spec = grant.get("spec", {})
-        if spec.get("tenantRef") != tenant_ref or spec.get("lifecycle") != "Active":
-            continue
-        if spec.get("notBefore") and datetime.fromisoformat(spec["notBefore"].replace("Z", "+00:00")) > now:
-            continue
-        if spec.get("expiresAt") and datetime.fromisoformat(spec["expiresAt"].replace("Z", "+00:00")) <= now:
-            continue
-        grants.append({"consumableRef": spec.get("consumableRef"), "roleRef": spec.get("roleRef")})
-    return grants
-
 
 def among_clusters_spec(tenant_ref, name, spec):
     """Validate the one tenant-safe AmongClusters product we publish today.
@@ -574,7 +702,6 @@ def among_clusters_spec(tenant_ref, name, spec):
         raise PermissionError("service namespace is outside the Artchais boundary")
     if parameters.get("bandwidthClass") not in {None, "standard"}:
         raise PermissionError("bandwidth class is not published")
-    active_grant(tenant_ref, "network.among-clusters.v1")
     peers = {item.get("metadata", {}).get("name"): item for item in kube().list("peers", "artchais", "apis/peering.re8ch.com/v1alpha1")}
     links = {item.get("metadata", {}).get("name"): item for item in kube().list("authenticatedlinks", "artchais", "apis/peering.re8ch.com/v1alpha1")}
     peer = peers.get("re8ch-artc")
@@ -628,21 +755,21 @@ def binary_gib(value):
     raise PermissionError("memory and ephemeral storage quota require binary units")
 
 
-def enforce_quota(tenant_ref, normalized, grant, exclude_name=None):
-    constraints = grant.get("spec", {}).get("constraints", {})
-    limits = constraints.get("capabilities", {}).get(normalized["spec"]["capability"], constraints)
+def enforce_quota(tenant_ref, normalized, exclude_name=None):
+    """Bound managed claims before creating or updating resources."""
+    limits = {}
     claims = [item for item in kube().list("tenantresourceclaims", runtime_namespace(tenant_ref)) if item.get("spec", {}).get("tenantRef") == tenant_ref and item.get("spec", {}).get("desiredState", "Active") == "Active" and item.get("metadata", {}).get("name") != exclude_name]
     capability_claims = [item for item in claims if item.get("spec", {}).get("capability") == normalized["spec"]["capability"]]
     if len(capability_claims) + 1 > int(limits.get("maxActiveClaims", 20)):
-        raise PermissionError("TenantGrant maxActiveClaims quota exceeded")
+        raise PermissionError("Managed claim maxActiveClaims quota exceeded")
     params = normalized["spec"]["parameters"]
     if normalized["spec"]["capability"] == "compute.workload.v1":
         units = params.get("replicas", params.get("parallelism", 1))
         if units > int(limits.get("maxPodsPerClaim", 20)):
-            raise PermissionError("TenantGrant maxPodsPerClaim quota exceeded")
+            raise PermissionError("Managed claim maxPodsPerClaim quota exceeded")
         public_count = sum(1 for item in claims if item.get("spec", {}).get("parameters", {}).get("exposure", {}).get("enabled"))
         if params.get("exposure", {}).get("enabled") and public_count + 1 > int(limits.get("maxPublicEndpoints", 5)):
-            raise PermissionError("TenantGrant maxPublicEndpoints quota exceeded")
+            raise PermissionError("Managed claim maxPublicEndpoints quota exceeded")
         total_cpu, total_memory, total_ephemeral = units * cpu_milli(params["resources"]["cpu"]), units * binary_gib(params["resources"]["memory"]), units * binary_gib(params["resources"]["ephemeralStorage"])
         for item in claims:
             if item.get("spec", {}).get("capability") != "compute.workload.v1":
@@ -653,15 +780,15 @@ def enforce_quota(tenant_ref, normalized, grant, exclude_name=None):
             total_memory += current_units * binary_gib(current["resources"]["memory"])
             total_ephemeral += current_units * binary_gib(current["resources"]["ephemeralStorage"])
         if total_cpu > int(limits.get("maxCpuMilli", 4000)):
-            raise PermissionError("TenantGrant maxCpuMilli quota exceeded")
+            raise PermissionError("Managed claim maxCpuMilli quota exceeded")
         if total_memory > int(limits.get("maxMemoryGiB", 16)):
-            raise PermissionError("TenantGrant maxMemoryGiB quota exceeded")
+            raise PermissionError("Managed claim maxMemoryGiB quota exceeded")
         if total_ephemeral > int(limits.get("maxEphemeralStorageGiB", 40)):
-            raise PermissionError("TenantGrant maxEphemeralStorageGiB quota exceeded")
+            raise PermissionError("Managed claim maxEphemeralStorageGiB quota exceeded")
     else:
         used = sum(int(item.get("spec", {}).get("parameters", {}).get("sizeGiB", 0)) for item in claims if item.get("spec", {}).get("capability") == "storage.volume.v1")
         if used + params["sizeGiB"] > int(limits.get("maxStorageGiB", 100)):
-            raise PermissionError("TenantGrant maxStorageGiB quota exceeded")
+            raise PermissionError("Managed claim maxStorageGiB quota exceeded")
 
 
 def validate_volume_mounts(normalized, namespace):
@@ -796,8 +923,7 @@ def reconcile_claim(claim):
             status["volumeAllocation"] = volume_observation(claim, namespace, released=True)
         kube().patch_status("tenantresourceclaims", meta["name"], status, namespace)
         return
-    grant = active_grant(spec["tenantRef"], spec["capability"])
-    enforce_quota(spec["tenantRef"], normalized, grant, meta["name"])
+    enforce_quota(spec["tenantRef"], normalized, meta["name"])
     validate_volume_mounts(normalized, namespace)
     image_policy = existing.get("imagePolicy", {})
     if spec["capability"] == "compute.workload.v1" and image_policy.get("verifiedImageDigest") != spec["parameters"]["imageDigest"]:
@@ -826,7 +952,7 @@ def reconcile_loop():
             if not kube().claim_lease():
                 time.sleep(5)
                 continue
-            for plural in ("tenantidentitybindings", "tenantgrants"):
+            for plural in ("tenantidentitybindings",):
                 for item in kube().list(plural):
                     meta = item["metadata"]
                     status = {"observedGeneration": meta.get("generation", 1), "operationId": "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24],
@@ -866,6 +992,32 @@ def reconcile_loop():
                         except Exception as exc:
                             status = {**instance.get("status", {}), "observedGeneration": instance["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
                             kube().patch_status("tenantserviceinstances", instance["metadata"]["name"], status, namespace)
+            # Personal owners share one runtime policy, but each has its own
+            # namespace and resource reconciliation scope.
+            for item in namespace_items:
+                spec = item.get("spec", {})
+                owner = spec.get("tenantRef", "")
+                if owner in tenants or not PERSONAL_OWNER_RE.fullmatch(owner) or spec.get("operation") != "EnsurePresent":
+                    continue
+                namespace = spec.get("namespaceName")
+                if not isinstance(namespace, str) or item.get("status", {}).get("phase") != "Ready":
+                    continue
+                for claim in kube().list("tenantresourceclaims", namespace):
+                    try:
+                        if claim.get("spec", {}).get("tenantRef") != owner:
+                            raise PermissionError("claim owner does not match its namespace")
+                        reconcile_claim(claim)
+                    except Exception as exc:
+                        status = {**claim.get("status", {}), "observedGeneration": claim["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
+                        kube().patch_status("tenantresourceclaims", claim["metadata"]["name"], status, namespace)
+                for instance in kube().list("tenantserviceinstances", namespace):
+                    try:
+                        if instance.get("spec", {}).get("tenantRef") != owner:
+                            raise PermissionError("service owner does not match its namespace")
+                        reconcile_among_clusters_instance(instance)
+                    except Exception as exc:
+                        status = {**instance.get("status", {}), "observedGeneration": instance["metadata"].get("generation", 1), "phase": "Failed", "conditions": [condition("Ready", False, "ReconcileFailed", str(exc))]}
+                        kube().patch_status("tenantserviceinstances", instance["metadata"]["name"], status, namespace)
         except Exception as exc:
             LOG.exception("reconcile iteration failed: %s", exc)
         time.sleep(10)
@@ -896,7 +1048,7 @@ def organization_dependencies(tenant_ref, authorization):
     # retained data. The managed namespace/Tenant must be removed by its normal
     # lifecycle workflow before identity deletion. Do not add cluster-wide claim
     # permissions: claims are scoped to these controller-owned namespaces.
-    for plural in ("tenants", "tenantnamespaces", "tenantidentitybindings", "tenantgrants", "tenantserviceinstances"):
+    for plural in ("tenants", "tenantnamespaces", "tenantidentitybindings", "tenantserviceinstances"):
         count = sum(1 for item in kube().list(plural)
                     if (item.get("metadata", {}).get("name") == tenant_ref if plural == "tenants"
                         else item.get("spec", {}).get("tenantRef") == tenant_ref))
@@ -965,14 +1117,12 @@ class Handler(BaseHTTPRequestHandler):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
-        if caller == "tenant" and path == "/v1/grants" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            tenant = self.headers.get("X-Tenant-Ref", "")
             try:
-                tenant = self.headers["X-Tenant-Ref"]
-                runtime_namespace(tenant)
-                self.send_json(200, {"items": active_service_grants(tenant)}); return
-            except Exception as exc:
-                LOG.exception("tenant grant read failed: %s", exc)
-                self.send_json(503, {"error": "tenant grants are unavailable"}); return
+                self.send_json(200, {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}); return
+            except PermissionError as exc:
+                self.send_json(403, {"error": str(exc)}); return
         if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             try:
                 tenant = self.headers["X-Tenant-Ref"]
@@ -1089,6 +1239,7 @@ class Handler(BaseHTTPRequestHandler):
                 request = body.get("spec") or {}
                 name = str(body.get("name") or "")
                 service_class = request.get("serviceClass")
+                require_tenant_grant(tenant, service_class)
                 if service_class in PROVIDER_SERVICE_CLASSES:
                     parameters = provider_service_spec(tenant, name, request)
                     adapter, access_unit = ("harbor-project-rbac", "ProjectMembershipRobot") if service_class == "registry.harbor.v1" else ("grafana-access", "OrganizationFolderDatasourceGrant")
@@ -1140,6 +1291,8 @@ class Handler(BaseHTTPRequestHandler):
                 if current.get("spec", {}).get("tenantRef") != tenant or current.get("spec", {}).get("serviceClass") not in PROVIDER_SERVICE_CLASSES | {"network.among-clusters.v1"}:
                     raise PermissionError("service instance is outside the authenticated tenant")
                 request = {"serviceClass": current["spec"]["serviceClass"], "planRef": current["spec"]["plan"], "parameters": current["spec"].get("parameters") or {}}
+                if lifecycle == "Requested":
+                    require_tenant_grant(tenant, request["serviceClass"])
                 if request["serviceClass"] in PROVIDER_SERVICE_CLASSES:
                     if lifecycle == "Requested":
                         provider_service_spec(tenant, name, request)
@@ -1149,19 +1302,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(202, {"operationId": "op_" + hashlib.sha256((tenant + name + key).encode()).hexdigest()[:24], "tenantRef": tenant, "resourceRef": f"service://{tenant}/{name}", "state": "Provisioning" if lifecycle == "Requested" else lifecycle, "credentialMaterialReturned": False})
                 return
             if path == "/v1/claims/plan":
-                grant = active_grant(tenant, body["claim"]["spec"]["capability"])
                 result = plan(body["claim"], authenticated_tenant=tenant, harbor_project=harbor_project(tenant))
-                enforce_quota(tenant, result["normalizedClaim"], grant, result["normalizedClaim"]["metadata"]["name"])
+                require_tenant_grant(tenant, result["normalizedClaim"]["spec"]["capability"])
+                enforce_quota(tenant, result["normalizedClaim"], result["normalizedClaim"]["metadata"]["name"])
                 validate_volume_mounts(result["normalizedClaim"], namespace)
                 self.send_json(200, result)
                 return
             if path == "/v1/claims":
                 result = plan(body["claim"], authenticated_tenant=tenant, harbor_project=harbor_project(tenant))
+                require_tenant_grant(tenant, result["normalizedClaim"]["spec"]["capability"])
                 if not hmac.compare_digest(str(body.get("claimHash", "")), result["claimHash"]):
                     raise PermissionError("claimHash does not match the normalized claim")
                 normalized = result["normalizedClaim"]
-                grant = active_grant(tenant, normalized["spec"]["capability"])
-                enforce_quota(tenant, normalized, grant, normalized["metadata"]["name"])
+                enforce_quota(tenant, normalized, normalized["metadata"]["name"])
                 validate_volume_mounts(normalized, namespace)
                 image_policy = {}
                 if normalized["spec"]["capability"] == "compute.workload.v1":
@@ -1204,6 +1357,7 @@ class Handler(BaseHTTPRequestHandler):
             if action == "cancel":
                 value = kube().patch("tenantresourceclaims", name, {"metadata": {"annotations": annotations}, "spec": {"desiredState": "Released"}}, namespace)
             elif action == "renew":
+                require_tenant_grant(tenant, current["spec"]["capability"])
                 ttl = int(body.get("ttlSeconds", current["spec"]["ttlSeconds"]))
                 if not 300 <= ttl <= 2_592_000:
                     raise ContractError("ttlSeconds is outside the renewable range")
@@ -1212,11 +1366,11 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 project = harbor_project(tenant)
                 proposed = validate_update(current, body["claim"], authenticated_tenant=tenant, harbor_project=project)
+                require_tenant_grant(tenant, proposed["spec"]["capability"])
                 result = plan(proposed, authenticated_tenant=tenant, harbor_project=project)
                 if not hmac.compare_digest(str(body.get("claimHash", "")), result["claimHash"]):
                     raise PermissionError("claimHash does not match the normalized claim")
-                grant = active_grant(tenant, proposed["spec"]["capability"])
-                enforce_quota(tenant, proposed, grant, name)
+                enforce_quota(tenant, proposed, name)
                 validate_volume_mounts(proposed, namespace)
                 image_policy = current.get("status", {}).get("imagePolicy", {})
                 if proposed["spec"]["capability"] == "compute.workload.v1" and proposed["spec"]["parameters"]["imageDigest"] != current["spec"]["parameters"]["imageDigest"]:

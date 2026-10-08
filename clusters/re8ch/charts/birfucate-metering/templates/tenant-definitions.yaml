@@ -1,5 +1,6 @@
 {{- if .Values.tenantPlatform.enabled }}
 {{- range $tenant := .Values.tenantPlatform.tenants }}
+---
 apiVersion: tenancy.re8ch.com/v1alpha1
 kind: Tenant
 metadata:
@@ -27,6 +28,7 @@ spec:
   visibility: {{ default "Private" $tenant.visibility }}
   hostingMode: {{ default "platform-managed" $tenant.hostingMode }}
   byocAllowed: {{ default false $tenant.byocAllowed }}
+  grants: {{ $tenant.grants | default (list) | toJson }}
 {{- range $namespace := $tenant.namespacePolicy.bootstrapNamespaces }}
 ---
 apiVersion: tenancy.re8ch.com/v1alpha1
@@ -74,18 +76,5 @@ spec:
   role: {{ $binding.role }}
   revoked: {{ default false $binding.revoked }}
 {{- end }}
----
-{{- range $grant := $tenant.grants }}
-apiVersion: tenancy.re8ch.com/v1alpha1
-kind: TenantGrant
-metadata: {name: {{ $grant.name }}}
-spec:
-  tenantRef: {{ $tenant.name }}
-  consumableRef: {{ $grant.consumableRef }}
-  roleRef: {{ $grant.roleRef }}
-  lifecycle: {{ $grant.lifecycle }}
----
-{{- end }}
----
 {{- end }}
 {{- end }}

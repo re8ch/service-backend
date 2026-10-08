@@ -11,6 +11,37 @@ token; every tenant request checks it with GoTrue and resolves current tenant
 membership through tenant-control. The ToolHive service credential supports
 MCP discovery only. Tenant tool calls need a tenant member token.
 
+Authentication and tenant authorization have separate outcomes. The identity
+RPC idempotently creates or restores the verified user's Personal organization
+owner membership before resolving a runtime. The identity database owns one
+account-wide active organization; `tenant_organization_context_list` discovers
+the available contexts and `tenant_organization_context_select` changes it.
+`X-RE8CH-Tenant` is only a compatibility assertion and cannot select or grant a
+tenant. A verified user that still cannot resolve one tenant can initialize MCP
+and receives the status and organization-context tools, including a
+machine-readable access state and recovery action; tenant resources and
+operations remain unavailable.
+An invalid token receives an OAuth challenge, while an unavailable tenant
+authorizer returns 503. Supabase owns the user, Personal organization, and
+membership. Tenant-control requires an active runtime Tenant policy. Ordinary
+Personal organizations use the predeclared `personal-standard` policy, while
+other organizations require their own reviewed runtime declaration.
+Personal organizations without their own runtime Tenant map to the
+`personal-standard` runtime class. Their verified organization reference remains
+the resource owner. Each owner receives its own namespace and provider identity;
+the shared class supplies policy and capacity. The complete tenant tool surface
+is available to these users, subject to their Supabase role and resource state.
+The mapping is documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
+
+Tenant owners and operators can manage allowlisted ConfigMaps, workloads and
+ClusterIP Services through the native Kubernetes tools. Secret values use the
+separate `tenant_secret_*` broker: values are write-only, while reads expose
+only names, key names and Kubernetes metadata. Public HTTP access uses
+`tenant_exposure_*`, which creates a constrained HTTPRoute to a same-namespace
+ClusterIP Service. Hostnames are allocated below `apps.re8ch.com`; the shared
+Gateway, listener, DNS and TLS policy remain platform-owned. Raw Secret and
+Gateway access are not published.
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret
@@ -39,8 +70,9 @@ version revokes the previous version of the same name and tenant.
 
 The tenant MCP also exposes `platform_tool_catalog` and `platform_tool_call`
 only to a verified user with a current `owner` or `admin` membership in the
-hidden `admin` organization. It reads the Supabase membership projection once
-per verified login session and caches that decision in the tenant process.
+hidden `admin` organization while `admin` is the account's active organization.
+It reads the Supabase membership projection once per verified login session and
+caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
 cache. The service bearer cannot use it. The call
 tool uses a fixed allowlist of published Cloud/Infra/Admin and native Cloud

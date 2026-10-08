@@ -159,7 +159,8 @@ def test_harbor_catalog_covers_every_product_catalog_with_qwen_canonical_name():
     catalogs = {path.name for path in (root / "catalogs").iterdir() if path.is_dir() and path.name != "_shared"}
     catalogs.remove("qianwen")
     catalogs.add("qwen")
-    assert set(configured) == catalogs
+    assert set(configured) == catalogs | {"re8ch"}
+    assert configured["re8ch"]["harbor"] == {"project": "re8ch", "webUsername": "harry", "accountEmail": "harry@re8ch.com"}
     assert configured["qwen"]["harbor"]["webUsername"] == "tianruoyou2022"
 
 
@@ -174,7 +175,7 @@ def test_broker_manifest_is_digest_pinned_and_admin_secret_is_runtime_only():
     assert (broker_security["runAsUser"], broker_security["runAsGroup"]) == (100, 101)
     assert (broker_security["fsGroup"], broker_security["fsGroupChangePolicy"]) == (101, "OnRootMismatch")
     assert broker["spec"]["strategy"] == {"type": "Recreate"}
-    assert broker["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert broker["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
     infra_env = deployments["cluster-infra-tool"]["spec"]["template"]["spec"]["containers"][0]["env"]
     password = next(item for item in infra_env if item["name"] == "HARBOR_ADMIN_PASSWORD")
     assert password["valueFrom"]["secretKeyRef"] == {"name": "cluster-infra-harbor", "key": "password", "optional": True}

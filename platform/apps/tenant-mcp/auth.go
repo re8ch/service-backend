@@ -21,16 +21,21 @@ type identity struct {
 	Subject          string
 	Token            string
 	Tenant           string
+	OrganizationRef  string
+	RuntimeTenantRef string
 	Role             string
 	DefaultNamespace string
 	Service          bool
 	PlatformAdmin    bool
+	AccessStatus     string
+	RecoveryAction   string
 }
 
 type identityKey struct{}
 
 var errInvalidToken = errors.New("invalid bearer token")
 var errIdentityUnavailable = errors.New("identity authority unavailable")
+var errTenantUnassigned = errors.New("active runtime tenant unavailable")
 
 func identityFrom(ctx context.Context) (identity, error) {
 	value, ok := ctx.Value(identityKey{}).(identity)
@@ -38,6 +43,23 @@ func identityFrom(ctx context.Context) (identity, error) {
 		return identity{}, errors.New("an authenticated tenant member is required")
 	}
 	return value, nil
+}
+
+// ownerScopedIdentityFrom is for tools whose storage is keyed by the verified
+// Supabase organization. A shared runtime class is never a data ownership key.
+func ownerScopedIdentityFrom(ctx context.Context) (identity, error) {
+	id, ok := ctx.Value(identityKey{}).(identity)
+	if !ok || id.Service || id.Subject == "" {
+		return identity{}, errors.New("an authenticated tenant member is required")
+	}
+	if id.Tenant != "" {
+		return id, nil
+	}
+	if id.RuntimeTenantRef != "personal-standard" || !strings.HasPrefix(id.OrganizationRef, "personal-") {
+		return identity{}, errors.New("an authorized Personal organization is required")
+	}
+	id.Tenant = id.OrganizationRef
+	return id, nil
 }
 
 type jwtClaims struct {
@@ -120,7 +142,7 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	if serviceToken(bearer) {
 		return identity{Subject: "service:litellm", Service: true}, nil
 	}
-	if selected == "admin" || (selected != "" && !tenantName.MatchString(selected)) {
+	if selected != "" && !tenantName.MatchString(selected) {
 		return identity{}, errors.New("invalid bearer token or tenant selection")
 	}
 	id, err := s.verifySupabase(ctx, bearer)
@@ -133,7 +155,7 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	controlURL := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/")
 	secret := os.Getenv("TENANT_CLAIM_SERVICE_TOKEN")
 	if controlURL == "" || secret == "" {
-		return identity{}, errors.New("tenant authorizer is unavailable")
+		return identity{}, errIdentityUnavailable
 	}
 	payload, _ := json.Marshal(map[string]string{"tenantRef": selected, "accessToken": bearer})
 	resolve, err := http.NewRequestWithContext(ctx, http.MethodPost, controlURL+"/v1/resolve-supabase", strings.NewReader(string(payload)))
@@ -146,27 +168,67 @@ func (s *server) authenticate(ctx context.Context, bearer, selected string) (ide
 	client := &http.Client{Timeout: 8 * time.Second}
 	response2, err := client.Do(resolve)
 	if err != nil {
-		return identity{}, fmt.Errorf("tenant authorizer unavailable: %w", err)
+		return identity{}, fmt.Errorf("%w: tenant authorizer: %v", errIdentityUnavailable, err)
 	}
 	defer response2.Body.Close()
 	if response2.StatusCode != http.StatusOK {
-		return identity{}, errors.New("identity is not an active member of the selected tenant")
+		if response2.StatusCode == http.StatusForbidden || response2.StatusCode == http.StatusNotFound {
+			var denied struct {
+				Error string `json:"error"`
+			}
+			_ = json.NewDecoder(io.LimitReader(response2.Body, 65536)).Decode(&denied)
+			id.AccessStatus, id.RecoveryAction = "personal_provisioning", "sign in again to provision or restore the Personal organization"
+			switch {
+			case strings.Contains(denied.Error, "selection is unavailable"):
+				id.AccessStatus, id.RecoveryAction = "selection_required", "select an active organization in User Hub or with tenant_organization_context_select"
+			case strings.Contains(denied.Error, "not active for this account"):
+				id.AccessStatus, id.RecoveryAction = "selection_required", "remove the stale X-RE8CH-Tenant header or select that organization first"
+			case strings.Contains(denied.Error, "tenant is not active"), strings.Contains(denied.Error, "organization is not active"):
+				id.AccessStatus, id.RecoveryAction = "organization_inactive", "ask an organization administrator to reactivate the organization"
+			case strings.Contains(denied.Error, "not active"), strings.Contains(denied.Error, "suspended"):
+				id.AccessStatus, id.RecoveryAction = "membership_inactive", "select an active organization or ask its owner to restore membership"
+			}
+			return id, errTenantUnassigned
+		}
+		return identity{}, fmt.Errorf("%w: tenant authorizer returned HTTP %d", errIdentityUnavailable, response2.StatusCode)
 	}
 	var membership struct {
 		Tenant           string `json:"tenantRef"`
+		RuntimeTenantRef string `json:"runtimeTenantRef"`
 		Role             string `json:"role"`
 		DefaultNamespace string `json:"defaultNamespace"`
 	}
 	if err = json.NewDecoder(io.LimitReader(response2.Body, 65536)).Decode(&membership); err != nil {
 		return identity{}, err
 	}
-	if !tenantName.MatchString(membership.Tenant) || membership.Tenant == "admin" || (selected != "" && selected != membership.Tenant) || membership.DefaultNamespace == "" || (membership.Role != "viewer" && membership.Role != "operator" && membership.Role != "admin") {
+	if !tenantName.MatchString(membership.Tenant) || (selected != "" && selected != membership.Tenant) || membership.DefaultNamespace == "" || (membership.Role != "viewer" && membership.Role != "operator" && membership.Role != "admin") {
 		return identity{}, errors.New("tenant authorizer returned an invalid context")
 	}
+	if membership.RuntimeTenantRef == "" {
+		membership.RuntimeTenantRef = membership.Tenant
+	}
+	if !tenantName.MatchString(membership.RuntimeTenantRef) {
+		return identity{}, errors.New("tenant authorizer returned an invalid runtime class")
+	}
+	id.OrganizationRef, id.RuntimeTenantRef = membership.Tenant, membership.RuntimeTenantRef
+	if membership.RuntimeTenantRef != membership.Tenant {
+		if membership.RuntimeTenantRef != "personal-standard" || !strings.HasPrefix(membership.Tenant, "personal-") {
+			return identity{}, errors.New("tenant authorizer returned an unsupported shared class")
+		}
+		// The logical Personal organization remains the resource ownership key.
+		// The controller maps it to an owner namespace under the shared class.
+		id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
+		id.AccessStatus = "ready"
+		return id, nil
+	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
+	id.AccessStatus = "ready"
 	// Resolve the privileged membership once per verified login session.
-	if os.Getenv("PLATFORM_SESSION_URL") == "" {
+	if membership.Tenant == "admin" && os.Getenv("PLATFORM_SESSION_URL") == "" {
 		id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)
+	}
+	if membership.Tenant != "admin" {
+		id.PlatformAdmin = false
 	}
 	return id, nil
 }
@@ -193,11 +255,28 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
 	client := &http.Client{Timeout: 5 * time.Second}
-	response, err := client.Do(req)
-	if err != nil {
-		return identity{}, err
+	var response *http.Response
+	for attempt := 0; attempt < 2; attempt++ {
+		response, err = client.Do(req.Clone(ctx))
+		if err != nil {
+			if attempt == 0 {
+				continue
+			}
+			return identity{}, fmt.Errorf("%w: GoTrue user lookup: %v", errIdentityUnavailable, err)
+		}
+		if response.StatusCode != http.StatusTooManyRequests && response.StatusCode < http.StatusInternalServerError {
+			break
+		}
+		response.Body.Close()
+		response = nil
+	}
+	if response == nil {
+		return identity{}, fmt.Errorf("%w: GoTrue user lookup failed", errIdentityUnavailable)
 	}
 	defer response.Body.Close()
+	if response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= http.StatusInternalServerError {
+		return identity{}, fmt.Errorf("%w: GoTrue returned HTTP %d", errIdentityUnavailable, response.StatusCode)
+	}
 	if response.StatusCode != http.StatusOK {
 		return identity{}, errors.New("GoTrue rejected bearer token")
 	}

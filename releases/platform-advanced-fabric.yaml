@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/advanced-fabric
-codename: tramontane-jade
+codename: zephyr-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
-  digest: sha256:8abec5edc00fea8a5402e81ab3e3a32810d21c0506d87702a4c61cf2a5f05164
+  digest: sha256:0b70a232ec5425ef6807b5935e74178f4082b5d66cc78131de5e8dfe16af7b7f
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

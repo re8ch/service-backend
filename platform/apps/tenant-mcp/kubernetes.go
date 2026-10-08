@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -24,6 +26,15 @@ var tenantReadKinds = map[string]bool{
 	"deployment": true, "statefulset": true, "daemonset": true, "job": true, "cronjob": true,
 	"horizontalpodautoscaler": true, "poddisruptionbudget": true, "role": true, "rolebinding": true,
 	"pod": true, "pods": true, "event": true, "events": true, "endpoint": true, "endpoints": true, "replicaset": true, "replicasets": true,
+}
+
+func tenantMutableKind(kind string) bool {
+	for gvk := range tenantApplyKinds {
+		if strings.EqualFold(gvk[strings.LastIndexByte(gvk, '/')+1:], kind) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *server) registerKubernetesTools(ms *mcp.Server) {
@@ -52,10 +63,25 @@ func readyNamespace(ctx context.Context, tenant, namespace string) error {
 	if err != nil {
 		return err
 	}
+	for _, owned := range readyTenantNamespaces(value, tenant) {
+		if owned == namespace {
+			return nil
+		}
+	}
+	return errors.New("namespace is not a Ready namespace owned by the authenticated tenant")
+}
+
+func readyTenantNamespaces(value map[string]any, tenant string) []string {
+	namespaces := []string{}
+	seen := map[string]bool{}
 	for _, raw := range slice(value["items"]) {
 		item := object(raw)
 		spec, status := object(item["spec"]), object(item["status"])
-		if spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" || spec["namespaceName"] != namespace {
+		if spec["tenantRef"] != tenant || spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" {
+			continue
+		}
+		namespace := asString(spec, "namespaceName")
+		if !validKubernetesName(namespace) || seen[namespace] {
 			continue
 		}
 		if expiration := asString(spec, "expiresAt"); expiration != "" {
@@ -64,9 +90,10 @@ func readyNamespace(ctx context.Context, tenant, namespace string) error {
 				continue
 			}
 		}
-		return nil
+		seen[namespace] = true
+		namespaces = append(namespaces, namespace)
 	}
-	return errors.New("namespace is not a Ready namespace owned by the authenticated tenant")
+	return namespaces
 }
 
 func validateTenantObject(obj map[string]any, namespace string) error {
@@ -75,24 +102,55 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 	if selected := asString(metadata, "namespace"); selected != "" && selected != namespace {
 		return errors.New("object namespace is outside the authenticated tenant")
 	}
+	if kind == "Role" {
+		if err := validateTenantRoleRules(obj); err != nil {
+			return err
+		}
+	}
 	if kind == "RoleBinding" {
-		for _, raw := range slice(obj["subjects"]) {
+		subjects := slice(obj["subjects"])
+		if len(subjects) == 0 {
+			return errors.New("tenant RoleBinding requires a ServiceAccount subject")
+		}
+		for _, raw := range subjects {
 			subject := object(raw)
-			if subject["kind"] == "ServiceAccount" {
-				selected := asString(subject, "namespace")
-				if selected != "" && selected != namespace {
-					return errors.New("cross-namespace service account binding is denied")
-				}
+			if subject["kind"] != "ServiceAccount" || !validKubernetesName(asString(subject, "name")) || asString(subject, "apiGroup") != "" {
+				return errors.New("tenant RoleBinding subjects must be local ServiceAccounts")
+			}
+			selected := asString(subject, "namespace")
+			if selected != "" && selected != namespace {
+				return errors.New("cross-namespace service account binding is denied")
 			}
 		}
-		if object(obj["roleRef"])["kind"] != "Role" {
-			return errors.New("binding ClusterRoles through the tenant publication is denied")
+		roleRef := object(obj["roleRef"])
+		if roleRef["kind"] != "Role" || !validKubernetesName(asString(roleRef, "name")) || roleRef["apiGroup"] != "rbac.authorization.k8s.io" {
+			return errors.New("tenant RoleBinding must reference a local Role")
 		}
 	}
 	if kind == "Service" {
-		switch object(obj["spec"])["type"] {
-		case "NodePort", "LoadBalancer", "ExternalName":
+		service := object(obj["spec"])
+		if service["type"] != nil && service["type"] != "" && service["type"] != "ClusterIP" {
 			return errors.New("public or external service types require the shared PublicEdge service")
+		}
+		if len(slice(service["externalIPs"])) > 0 {
+			return errors.New("Service externalIPs bypass the shared PublicEdge service")
+		}
+	}
+	if kind == "PersistentVolumeClaim" {
+		spec := object(obj["spec"])
+		if !validKubernetesName(asString(spec, "storageClassName")) {
+			return errors.New("tenant PVC requires an explicit storage class")
+		}
+		if asString(spec, "volumeName") != "" || spec["selector"] != nil {
+			return errors.New("tenant PVC cannot select or bind an existing persistent volume")
+		}
+		for _, field := range []string{"dataSource", "dataSourceRef"} {
+			if source := object(spec[field]); len(source) > 0 {
+				selected := asString(source, "namespace")
+				if selected != "" && selected != namespace {
+					return errors.New("cross-namespace PVC data sources are denied")
+				}
+			}
 		}
 	}
 	podSpec := object(obj["spec"])
@@ -107,18 +165,128 @@ func validateTenantObject(obj map[string]any, namespace string) error {
 		}
 	}
 	for _, raw := range slice(podSpec["volumes"]) {
-		if _, ok := object(raw)["hostPath"]; ok {
-			return errors.New("hostPath volumes are denied")
+		if err := validateTenantVolume(object(raw)); err != nil {
+			return err
 		}
 	}
 	containers := append(slice(podSpec["containers"]), slice(podSpec["initContainers"])...)
 	for _, raw := range containers {
-		security := object(object(raw)["securityContext"])
+		container := object(raw)
+		security := object(container["securityContext"])
 		if security["privileged"] == true || security["allowPrivilegeEscalation"] == true {
 			return errors.New("privileged containers are denied")
 		}
+		for _, entry := range slice(container["ports"]) {
+			if port := object(entry)["hostPort"]; port != nil && port != float64(0) && port != 0 {
+				return errors.New("hostPort bypasses the shared PublicEdge service")
+			}
+		}
 	}
 	return nil
+}
+
+func validateTenantVolume(volume map[string]any) error {
+	if !validKubernetesName(asString(volume, "name")) {
+		return errors.New("workload volume requires a valid name")
+	}
+	allowed := map[string]bool{"emptyDir": true, "configMap": true, "secret": true, "persistentVolumeClaim": true, "downwardAPI": true, "projected": true}
+	source := ""
+	for key := range volume {
+		if key == "name" {
+			continue
+		}
+		if !allowed[key] || source != "" {
+			return errors.New("workload volumes must use one tenant-local source: emptyDir, ConfigMap, Secret, PVC, downwardAPI, or projected")
+		}
+		source = key
+	}
+	if source == "" {
+		return errors.New("workload volume source is required")
+	}
+	if source == "persistentVolumeClaim" && !validKubernetesName(asString(object(volume[source]), "claimName")) {
+		return errors.New("workload PVC volume requires a tenant-local claim name")
+	}
+	if source == "configMap" && !validKubernetesName(asString(object(volume[source]), "name")) {
+		return errors.New("workload ConfigMap or Secret volume requires a tenant-local name")
+	}
+	if source == "secret" && !validKubernetesName(asString(object(volume[source]), "secretName")) {
+		return errors.New("workload ConfigMap or Secret volume requires a tenant-local name")
+	}
+	if source == "projected" {
+		for _, raw := range slice(object(volume[source])["sources"]) {
+			item := object(raw)
+			if len(item) != 1 {
+				return errors.New("projected volume sources must be explicit")
+			}
+			for key, value := range item {
+				switch key {
+				case "configMap", "secret":
+					if !validKubernetesName(asString(object(value), "name")) {
+						return errors.New("projected volume source requires a tenant-local name")
+					}
+				case "downwardAPI", "serviceAccountToken":
+				default:
+					return errors.New("projected volume source is not allowed")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func validateTenantRoleRules(role map[string]any) error {
+	allowed := map[string]map[string]bool{
+		"": {"pods": true, "pods/log": true, "events": true, "configmaps": true, "services": true,
+			"endpoints": true, "persistentvolumeclaims": true, "serviceaccounts": true},
+		"apps":        {"deployments": true, "statefulsets": true, "daemonsets": true, "replicasets": true},
+		"batch":       {"jobs": true, "cronjobs": true},
+		"autoscaling": {"horizontalpodautoscalers": true},
+		"policy":      {"poddisruptionbudgets": true},
+	}
+	// Workloads must use the validated MCP path for mutations. Granting a pod
+	// create/patch permissions would bypass its hostPath and privilege checks.
+	verbs := map[string]bool{"get": true, "list": true, "watch": true}
+	rules := slice(role["rules"])
+	if len(rules) == 0 || len(rules) > 32 {
+		return errors.New("tenant Role requires between 1 and 32 bounded rules")
+	}
+	for _, raw := range rules {
+		rule := object(raw)
+		if len(rule) == 0 || rule["nonResourceURLs"] != nil {
+			return errors.New("tenant Role cannot grant non-resource access")
+		}
+		groups, resources, actions := slice(rule["apiGroups"]), slice(rule["resources"]), slice(rule["verbs"])
+		if len(groups) != 1 || len(resources) == 0 || len(resources) > 32 || len(actions) == 0 || len(actions) > 3 {
+			return errors.New("tenant Role requires explicit API group, resources, and verbs")
+		}
+		group, ok := groups[0].(string)
+		if !ok || allowed[group] == nil {
+			return errors.New("tenant Role API group is not allowed")
+		}
+		for _, resource := range resources {
+			name, ok := resource.(string)
+			if !ok || !allowed[group][name] {
+				return errors.New("tenant Role resource is not allowed")
+			}
+		}
+		for _, action := range actions {
+			name, ok := action.(string)
+			if !ok || !verbs[name] {
+				return errors.New("tenant Role verb is not allowed")
+			}
+		}
+	}
+	return nil
+}
+
+func validateTenantRoleBindingTarget(ctx context.Context, namespace string, binding map[string]any) error {
+	name := asString(object(binding["roleRef"]), "name")
+	path := "/apis/rbac.authorization.k8s.io/v1/namespaces/" + url.PathEscape(namespace) + "/roles/" + url.PathEscape(name)
+	role, err := kubeRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return errors.New("tenant RoleBinding target Role is unavailable or cannot be verified")
+	}
+	return validateTenantRoleRules(role)
 }
 
 func labelTenantObject(obj map[string]any, tenant, namespace string) (map[string]any, error) {
@@ -197,6 +365,9 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 	}
 	if name == "tenant_kubernetes_get" {
 		kind := strings.ToLower(asString(args, "kind"))
+		if kind == "databasecredential" {
+			return s.databaseBindings(ctx, id, namespace, asString(args, "name"))
+		}
 		if !tenantReadKinds[kind] {
 			return nil, errors.New("kind is not in the non-secret tenant read allowlist")
 		}
@@ -220,6 +391,18 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 		if err := validateTenantObject(obj, namespace); err != nil {
 			return nil, err
 		}
+		// Native PVCs consume the same storage entitlement as managed volume
+		// claims. Check even on preview so discovery and execution agree.
+		if asString(obj, "kind") == "PersistentVolumeClaim" {
+			if err := requireGrantedConsumable(ctx, id, "storage.volume.v1"); err != nil {
+				return nil, err
+			}
+		}
+		if asString(obj, "kind") == "RoleBinding" {
+			if err := validateTenantRoleBindingTarget(ctx, namespace, obj); err != nil {
+				return nil, err
+			}
+		}
 		metadata := object(obj["metadata"])
 		metadata["namespace"] = namespace
 		obj["metadata"] = metadata
@@ -240,7 +423,7 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 		return preview, nil
 	}
 	kind := strings.ToLower(asString(args, "kind"))
-	if !tenantReadKinds[kind] {
+	if !tenantMutableKind(kind) {
 		return nil, errors.New("kind is not in the tenant workload allowlist")
 	}
 	target := asString(args, "name")

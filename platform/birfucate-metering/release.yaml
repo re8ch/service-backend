@@ -42,20 +42,27 @@ spec:
       kubernetes.io/hostname: restricted-node-6dc3f140f9
     tenantPlatform:
       enabled: true
+      # Keep the shared RWO state and both MCP backends on the restricted-node-6dc3f140f9 worker so
+      # loss of either WSL control-plane host cannot strand public tool access.
+      placement:
+        nodeNames: [restricted-node-6dc3f140f9]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:54d0acef65f44a9876f9741f0debd96bee0fd828b740e5848a846ce1b74f9aed
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:d2038c875c8aac6ecf38124ed85bf7d4f58f526930ba232a75c924e38f443634
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:201b918f3b08a21a6ea3e523f440e086f6329b44902905f0f4fe2d0cc7c1760d
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:5126876ac836c34eb0bcda56f36dce2c132ddf95d352b35dfd0b8666e34c6be0
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
-        platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/v2/platform/session
+        # Ordinary tenant calls verify their GoTrue session directly. Keep the
+        # optional platform-admin entitlement hop disabled until its live RPC
+        # latency and failure behavior pass the full authenticated tool matrix.
+        platformSessionURL: ""
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:54d0acef65f44a9876f9741f0debd96bee0fd828b740e5848a846ce1b74f9aed
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:d2038c875c8aac6ecf38124ed85bf7d4f58f526930ba232a75c924e38f443634
         databaseBindings:
           - {tenantRef: re8ch, database: anysite, namespace: re8ch-anysite, secretName: anysite-db-credentials, secretUID: ecb4edf3-eb40-4b0e-ab28-7bf3dab490c4}
           - {tenantRef: re8ch, database: secretary, namespace: re8ch-secretary, secretName: secretary-db-credentials, secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c}
@@ -66,6 +73,32 @@ spec:
       supplyChain:
         required: false
       tenants:
+        # Runtime policy class for newly registered Personal organizations.
+        # The controller derives an owner namespace and provider identity from
+        # each verified Supabase Personal organization.
+        - name: personal-standard
+          displayName: Personal Standard Runtime
+          lifecycle: Active
+          deletionPolicy: Retain
+          namespacePolicy:
+            defaultNamespace: personal-standard-default
+            allowedPrefixes: [personal-standard-]
+            maxNamespaces: 10
+            allowCreate: true
+            allowDelete: true
+            bootstrapNamespaces: [personal-standard-default]
+          imagePullSecretRef: harbor-functions-shared-pull
+          harborProjectRef: re8ch
+          visibility: Private
+          hostingMode: platform-managed
+          byocAllowed: true
+          identityBindings: []
+          grants:
+            - {name: personal-standard-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
+            - {name: personal-standard-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
+            - {name: personal-standard-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+            - {name: personal-standard-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
+          nativeAccess: true
         # Normal personal organization used for the OpenAI review login.
         # Keep its tenant capabilities aligned with the ordinary tenant baseline.
         - name: personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38
@@ -138,7 +171,7 @@ spec:
           grants:
             - {name: artchais-compute, consumableRef: compute.workload.v1, roleRef: operator, lifecycle: Active}
             - {name: artchais-storage, consumableRef: storage.volume.v1, roleRef: operator, lifecycle: Active}
-            # Long-lived access remains revocable through the TenantGrant. The
+            # Long-lived access remains revocable through the tenant identity binding. The
             # controller limits this grant to Artchais' approved artc -> RE8CH
             # Mihomos egress path; it never grants platform administration.
             - {name: artchais-among-clusters-mihomos, consumableRef: network.among-clusters.v1, roleRef: operator, lifecycle: Active}

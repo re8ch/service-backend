@@ -88,7 +88,7 @@ func TestUserRoutes(t *testing.T) {
 
 func TestUserToolOnlyAdvertisedToHumanAdmin(t *testing.T) {
 	t.Setenv("PLATFORM_USERS_URL", "https://identity.invalid/v2/users")
-	for _, id := range []identity{{PlatformAdmin: true}, {PlatformAdmin: true, Service: true}, {PlatformAdmin: false}} {
+	for _, id := range []identity{{Tenant: "admin", PlatformAdmin: true}, {Tenant: "admin", PlatformAdmin: true, Service: true}, {Tenant: "re8ch", PlatformAdmin: true}, {Tenant: "admin", PlatformAdmin: false}} {
 		ctx := context.Background()
 		s := &server{}
 		left, right := mcp.NewInMemoryTransports()
@@ -111,7 +111,7 @@ func TestUserToolOnlyAdvertisedToHumanAdmin(t *testing.T) {
 				found = true
 			}
 		}
-		if found != (id.PlatformAdmin && !id.Service) {
+		if found != (id.PlatformAdmin && id.Tenant == "admin" && !id.Service) {
 			t.Fatalf("incorrect user tool exposure: %+v", id)
 		}
 		session.Close()

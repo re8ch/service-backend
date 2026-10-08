@@ -58,6 +58,7 @@ def test_production_reconciliation_is_enabled_from_verified_oci_source():
     production = next(doc for doc in resources if doc["metadata"]["name"] == "observability-production")
 
     assert production["spec"]["suspend"] is False
+    assert production["spec"]["wait"] is False
     source = yaml_documents(ROOT / "clusters/re8ch/domain-sources/platform-observability-production.yaml")[0]
     assert production["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
     assert production["spec"]["path"] == "./"
@@ -75,6 +76,28 @@ def test_retention_and_r640_storage_placement_are_explicit():
     assert analytics["spec"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
     assert traces["spec"]["storage"]["retentionPeriod"] == "30d"
     assert traces["spec"]["storage"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
+
+
+def test_stateless_metrics_and_traces_can_fail_over_when_b1_is_down():
+    resources = yaml_documents(OBSERVABILITY / "production" / "storage.yaml")
+    metrics = next(doc for doc in resources if doc["kind"] == "VMCluster")
+    traces = next(doc for doc in resources if doc["kind"] == "VTCluster")
+
+    for component in (
+        metrics["spec"]["vmselect"],
+        metrics["spec"]["vminsert"],
+        traces["spec"]["select"],
+        traces["spec"]["insert"],
+    ):
+        expression = component["affinity"]["nodeAffinity"][
+            "requiredDuringSchedulingIgnoredDuringExecution"
+        ]["nodeSelectorTerms"][0]["matchExpressions"][0]
+        assert {"restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"}.issubset(expression["values"])
+        assert component["affinity"]["podAntiAffinity"].get(
+            "preferredDuringSchedulingIgnoredDuringExecution"
+        )
+        assert "requiredDuringSchedulingIgnoredDuringExecution" not in component["affinity"]["podAntiAffinity"]
+        assert {"key": "node-role.kubernetes.io/control-plane", "operator": "Exists", "effect": "NoSchedule"} in component["tolerations"]
 
 
 def test_vmalert_uses_ha_alertmanager_notifier():

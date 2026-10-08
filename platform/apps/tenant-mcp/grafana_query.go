@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/VictoriaMetrics/metricsql"
 )
 
 var durationPattern = regexp.MustCompile(`^(\d+)(ms|s|m|h|d|w)$`)
@@ -74,6 +76,42 @@ func validateSQL(sql string) error {
 	return nil
 }
 
+// MetricsQL supports both binary `or` and or-delimited filter groups inside a
+// selector. Every selector branch must carry the tenant equality, not merely
+// one matching substring somewhere in the query.
+func validateMetricsTenantScope(query, tenant string) error {
+	expr, err := metricsql.Parse(query)
+	if err != nil {
+		return errors.New("invalid metrics query")
+	}
+	selectors, scoped := 0, true
+	metricsql.VisitAll(expr, func(node metricsql.Expr) {
+		selector, ok := node.(*metricsql.MetricExpr)
+		if !ok {
+			return
+		}
+		selectors++
+		if len(selector.LabelFilterss) == 0 {
+			scoped = false
+		}
+		for _, group := range selector.LabelFilterss {
+			matched := false
+			for _, filter := range group {
+				if filter.Label == "tenant" && filter.Value == tenant && !filter.IsNegative && !filter.IsRegexp {
+					matched = true
+				}
+			}
+			if !matched {
+				scoped = false
+			}
+		}
+	})
+	if selectors == 0 || !scoped {
+		return errors.New("every metrics selector branch requires an exact authenticated tenant matcher")
+	}
+	return nil
+}
+
 func validateGrafanaSpec(spec map[string]any, binding grafanaBinding, datasources []map[string]any) (int64, int64, error) {
 	if _, exists := spec["orgId"]; exists {
 		return 0, 0, errors.New("organization identifiers are derived from the authenticated tenant")
@@ -107,8 +145,13 @@ func validateGrafanaSpec(spec map[string]any, binding grafanaBinding, datasource
 		return 0, 0, errors.New("time range must be positive and no longer than 31 days")
 	}
 	types := map[string]string{}
+	kinds := map[string]string{}
 	for _, item := range datasources {
-		types[asString(item, "uid")] = asString(item, "type")
+		uid := asString(item, "uid")
+		types[uid] = asString(item, "type")
+		if supported := datasourceCapability(item)["queryKinds"].([]string); len(supported) == 1 {
+			kinds[uid] = supported[0]
+		}
 	}
 	seen := map[string]bool{}
 	tenantMatcher := regexp.MustCompile(`tenant\s*=~?\s*["']` + regexp.QuoteMeta(binding.TenantLabel) + `["']`)
@@ -131,13 +174,25 @@ func validateGrafanaSpec(spec map[string]any, binding grafanaBinding, datasource
 			return 0, 0, errors.New("maxDataPoints must be between 1 and 5000")
 		}
 		kind, text := strings.ToLower(asString(query, "queryKind")), queryText(query)
+		if kinds[uid] == "" || kind != "" && kind != kinds[uid] {
+			return 0, 0, errors.New("query kind is not supported by the selected datasource")
+		}
 		dsType = strings.ToLower(dsType)
-		if kind == "promql" || kind == "logsql" || strings.Contains(dsType, "prometheus") || strings.Contains(dsType, "victoriametrics") {
-			if !tenantMatcher.MatchString(text) {
-				return 0, 0, errors.New("tenant matcher is required in metrics and logs queries")
+		if kinds[uid] == "promql" {
+			model := object(query["model"])
+			if asString(model, "expr") == "" || model["query"] != nil || model["rawSql"] != nil {
+				return 0, 0, errors.New("metrics queries require a single expr field")
+			}
+			if err := validateMetricsTenantScope(text, binding.TenantLabel); err != nil {
+				return 0, 0, err
 			}
 		}
-		if kind == "sql" || dsType == "postgres" || dsType == "mysql" || dsType == "mssql" {
+		if kinds[uid] == "logsql" {
+			if !tenantMatcher.MatchString(text) {
+				return 0, 0, errors.New("tenant matcher is required in logs queries")
+			}
+		}
+		if kinds[uid] == "sql" || dsType == "postgres" || dsType == "mysql" || dsType == "mssql" {
 			if err := validateSQL(text); err != nil {
 				return 0, 0, err
 			}
@@ -173,7 +228,10 @@ func normalizeFrames(value any) (map[string]any, error) {
 func (s *server) grafanaQuery(ctx context.Context, tenant string, client *grafanaClient, spec map[string]any, datasources []map[string]any) (map[string]any, error) {
 	binding, err := tenantGrafanaBinding(tenant)
 	if err != nil {
-		return nil, err
+		if !strings.HasPrefix(tenant, "personal-") || client == nil || client.orgID <= 1 {
+			return nil, err
+		}
+		binding = grafanaBinding{OrgID: client.orgID, TenantLabel: tenant}
 	}
 	start, end, err := validateGrafanaSpec(spec, binding, datasources)
 	if err != nil {

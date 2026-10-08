@@ -51,7 +51,6 @@ def test_plugin_renders_the_managed_tenant_contract():
     for endpoint in (
         "/apis/tenancy.re8ch.com/v1alpha1/tenants",
         "/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings",
-        "/apis/tenancy.re8ch.com/v1alpha1/tenantgrants",
         "/apis/finops.re8ch.com/v1alpha1/clusterregistrations",
         "/apis/finops.re8ch.com/v1alpha1/clusterconnections",
         "/apis/finops.re8ch.com/v1alpha1/consumptionbindings",

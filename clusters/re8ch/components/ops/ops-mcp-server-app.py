@@ -41,7 +41,7 @@ TOOLHIVE_REGISTRY_URL = os.getenv(
     "TOOLHIVE_REGISTRY_URL",
     "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080/v1/registries",
 )
-CLOUDBEAVER_PUBLIC = os.getenv("CLOUDBEAVER_PUBLIC", "https://dbgui.re8ch.com")
+CLOUDBEAVER_PUBLIC = os.getenv("CLOUDBEAVER_PUBLIC", "https://dbgui.service.re8ch.com")
 HARBOR_HEALTH_URL = os.getenv(
     "HARBOR_HEALTH_URL",
     "http://core.harbor.svc.cluster.local:8080/api/v2.0/health",
@@ -80,14 +80,11 @@ ACTIVE_TENANT = contextvars.ContextVar("active_tenant", default=TENANT)
 SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 PG_SERVICE_ROUTES = {
-    "writeService": {"host": "pgwrite.zt.re8ch.com", "port": "5433", "purpose": "HA primary/write service; recommended for migrations, admin SQL, and direct runtime writes."},
-    "readService": {"host": "pgread-sh.zt.re8ch.com", "port": "5434", "purpose": "HA replica/read service in Shanghai when healthy."},
-    "readServiceGz": {"host": "pgread-gz.zt.re8ch.com", "port": "5434", "purpose": "HA replica/read service in Guangzhou when healthy."},
-    "poolRw": {"host": "pgwrite.zt.re8ch.com", "port": "6432", "purpose": "PgBouncer pooled connection entry for high-churn app clients."},
-    "instancePrimaryName": {"host": "pgwrite.zt.re8ch.com", "port": "5432", "purpose": "Direct PostgreSQL instance port. Use only when a GUI/JDBC tool or a DBA intentionally targets an instance; it is not the preferred HA write route."},
-    "postgrestGatewayShanghaiWrite": {"url": "http://192.0.2.89:3080", "purpose": "PostgREST/HA gateway near Shanghai primary path; use for HTTP CRUD from functions."},
-    "postgrestGatewayShanghaiRead": {"url": "http://192.0.2.112:3080", "purpose": "PostgREST/HA gateway near Shanghai read path."},
-    "postgrestGatewayGuangzhouRead": {"url": "http://192.0.2.251:3080", "purpose": "PostgREST/HA gateway near Guangzhou read path and current leader region when applicable."},
+    "writeService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL primary service maintained by the Patroni role reconciler."},
+    "readService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "Single restricted-node-6dc3f140f9 PostgreSQL instance; use the read-only role for read access."},
+    "poolRw": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer primary pool maintained by the Patroni role reconciler."},
+    "postgrestWrite": {"url": "https://db-rw.re8ch.com/auth/ready", "purpose": "Auth PostgREST database readiness through the public write gateway."},
+    "postgrestRead": {"url": "https://db-ro.re8ch.com/auth/ready", "purpose": "Auth PostgREST database readiness through the public read gateway."},
 }
 KUBE_API = "https://%s:%s" % (
     os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"),
@@ -116,9 +113,8 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "registry-image": ("artifact-data", "Harbor, Headlamp"),
     "pigsty-external": ("database-routing", "CloudBeaver, Pigsty, Grafana"),
     "supabase-pg-re8ch": ("database-platform", "Supabase Studio, CloudBeaver, Grafana"),
-    "neo4j": ("database-platform", "Neo4j Browser, Grafana"),
-    "fleet": ("device-control", "Fleet UI, Grafana"),
-    "nuclio": ("application-control", "Nuclio Dashboard, Grafana"),
+    "re8ch-neo4j": ("database-platform", "Neo4j Browser, Grafana"),
+    "nuclio": ("application-control", "Headlamp, Grafana"),
     "headlamp": ("human-control", "Headlamp"),
     "agent-collab": ("agent-data", "Headlamp, Grafana"),
     "anycam": ("application-data", "Headlamp, Grafana"),
@@ -130,7 +126,7 @@ PLATFORM_NAMESPACE_DOMAINS = {
     "coroot": ("observability-control", "Coroot, Grafana"),
     "ledger": ("application-data", "Headlamp, CloudBeaver, Neo4j Browser, Grafana"),
     "phonaid": ("application-data", "Headlamp, Grafana"),
-    "qwen": ("application-data", "Nuclio Dashboard, Headlamp, Grafana"),
+    "qwen": ("application-data", "Headlamp, Grafana"),
 }
 
 def namespace_config_authority(name, labels):
@@ -177,9 +173,7 @@ MANAGED_PLATFORM_RESTARTS = {
     ("auth", "authentik-worker"),
     ("llm-gateway", "litellm"),
     ("opensandbox-system", "opensandbox-server"),
-    ("fleet", "fleet"),
     ("supabase-pg-re8ch", "supabase-studio"),
-    ("nuclio", "nuclio-dashboard"),
     ("codex-platform", "codex-session-web"),
     ("observability-system", "re8ch-grafana"),
 }
@@ -313,14 +307,14 @@ Grafana for AI agents:
 - Do not use human Grafana web passwords for AI agents.
 
 Recommended PostgreSQL routing:
-- Prefer tenant Secrets and the get_tenant_database_credentials tool instead of hardcoding database hosts.
+- Prefer tenant Secret references and metadata from get_tenant_database_credentials instead of hardcoding database hosts. Credential values are never returned.
 - Direct write/admin/migration SQL: pgwrite.zt.re8ch.com:5433.
 - Pooled app read/write direct PG: pgwrite.zt.re8ch.com:6432 when PgBouncer semantics fit the app.
 - Direct normal reads: pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434, chosen by region and health.
 - CloudBeaver/DBeaver JDBC templates may use pgwrite.zt.re8ch.com:5432 for intentional instance-level GUI access, but do not treat 5432 as the HA write route.
 - Cloud functions should prefer the PostgREST HA gateway on :3080 for simple CRUD: Shanghai write/strong read http://192.0.2.89:3080, Shanghai read http://192.0.2.112:3080, Guangzhou read http://192.0.2.251:3080.
 - PostgreSQL 5432 is the instance port. It is useful for DBA inspection and some GUI clients, but the tenant default write route is 5433 or PgBouncer 6432.
-- For Ops MCP postgres_sql_proxy specifically, the default route is instancePrimaryName / pgwrite.zt.re8ch.com:5432 because it is a network reachability helper for external agents and current tenant roles authenticate reliably on that direct instance entry. Use explicit route only when you intentionally need to test 5433/5434/6432.
+- Ops MCP postgres_sql_proxy defaults to the current readService for read-only calls and writeService for writes. Both routes are selected from the server-side Pigsty service inventory.
 
 Safety boundary:
 - Tenant namespace: qwen
@@ -328,7 +322,7 @@ Safety boundary:
 - Node access is read-only for topology and metrics.
 - Admin token can reconcile Dex static users and tenant RBAC.
 - k8s_api_proxy only forwards Kubernetes API paths. The caller-provided kubeToken controls Kubernetes RBAC; Ops MCP only solves public-to-ZT/K3s API reachability.
-- postgres_sql_proxy executes lightweight SQL from the Ops MCP network position. PostgreSQL username/password or tenant DB Secret role still controls database permissions; normal Ops tokens are limited to cataloged tenant databases.
+- postgres_sql_proxy executes bounded SQL from the Ops MCP network position using server-held tenant DB credentials; direct username/password inputs are rejected and normal Ops tokens are limited to cataloged tenant databases and app roles.
 """
 
 if OPS_TOOL_PROFILE != "legacy":
@@ -657,7 +651,7 @@ def tenant_db_secret_role(secret_data, database, role):
 
 
 def pg_route_from_args(args, read_only=True):
-    route = args.get("route") or "instancePrimaryName"
+    route = args.get("route") or ("readService" if read_only else "writeService")
     if route not in PG_SERVICE_ROUTES or "host" not in PG_SERVICE_ROUTES[route]:
         raise ValueError("route must be one of: %s" % ", ".join(sorted(k for k, v in PG_SERVICE_ROUTES.items() if "host" in v)))
     return PG_SERVICE_ROUTES[route]["host"], int(PG_SERVICE_ROUTES[route]["port"]), route
@@ -677,16 +671,16 @@ def postgres_sql_proxy(args=None, admin=False):
         raise PermissionError("readOnly SQL proxy only allows SELECT/WITH/SHOW/EXPLAIN/VALUES")
     max_rows = min(max(int(args.get("maxRows") or 100), 1), 500)
     timeout = min(max(int(args.get("timeoutSeconds") or 10), 1), 30)
+    if any(key in args for key in ("user", "username", "password")):
+        raise ValueError("direct database credentials are not accepted by the SQL proxy")
     role = args.get("role") or ("app_ro" if read_only else "app_rw")
-    user = args.get("user") or args.get("username")
-    password = args.get("password")
-    secret_ref = None
-    if not (user and password):
-        creds = get_tenant_database_credentials({"namespace": namespace, "database": database}, admin=admin)
-        if creds.get("status") != "complete":
-            raise RuntimeError("database credential secret is not complete: %s" % creds)
-        user, password = tenant_db_secret_role(creds.get("data", {}), database, role)
-        secret_ref = creds.get("secret")
+    if not admin and role not in {"app_ro", "app_rw"}:
+        raise PermissionError("database role is not published to tenant users")
+    creds = _tenant_database_credential({"namespace": namespace, "database": database}, admin=admin)
+    if creds.get("status") != "complete":
+        raise RuntimeError("database credential secret is not complete")
+    user, password = tenant_db_secret_role(creds.get("data", {}), database, role)
+    secret_ref = creds.get("secret")
     if not user or not password:
         raise ValueError("database user/password not available for role: %s" % role)
     host, port, route = pg_route_from_args(args, read_only=read_only)
@@ -702,13 +696,10 @@ def postgres_sql_proxy(args=None, admin=False):
             "namespace": namespace,
             "database": database,
             "route": route,
-            "host": host,
-            "port": port,
-            "user": user,
             "role": role,
             "readOnly": read_only,
             "credentialSecret": secret_ref,
-            "note": "Ops MCP only proxies network reachability. PostgreSQL authentication and role permissions are still enforced by the supplied database credentials.",
+            "note": "Ops MCP resolves the tenant database credential server-side; PostgreSQL role permissions still apply.",
         })
         return result
     finally:
@@ -940,7 +931,7 @@ def read_allowed_tenant_secret(namespace, name, expected_purpose=None):
     return doc
 
 
-def get_tenant_database_credentials(args=None, admin=False):
+def _tenant_database_credential(args=None, admin=False):
     args = args or {}
     namespace = namespace_for_secret_args(args, admin=admin)
     database = args.get("database") or args.get("db") or ""
@@ -976,6 +967,12 @@ def get_tenant_database_credentials(args=None, admin=False):
         "metadata": secret_summary(doc),
         "data": decode_secret_data(doc),
     }
+
+
+def get_tenant_database_credentials(args=None, admin=False):
+    """Expose only credential metadata; SQL proxy resolves material server-side."""
+    resolved = _tenant_database_credential(args, admin=admin)
+    return {key: value for key, value in resolved.items() if key not in {"data", "recommendedRoutes", "usageNotes"}} | {"credentialMaterialReturned": False}
 
 
 def decode_dockerconfig_secret(doc):
@@ -1402,7 +1399,6 @@ def get_nuclio_function_status():
         "functions": functions,
         "redaction": "Environment variables, Secret references, annotations and last-applied configuration are intentionally omitted.",
         "humanTracking": {
-            "nuclioDashboard": "http://nuclio-dashboard.nuclio.svc.cluster.local:8070",
             "headlamp": HEADLAMP_PUBLIC,
             "grafana": GRAFANA_PUBLIC,
         },
@@ -1493,7 +1489,7 @@ def diagnose_nuclio_function(args):
         "pods": pod_rows,
         "recentEvents": event_rows,
         "redaction": "Environment, Secret and annotation data are omitted.",
-        "humanTracking": {"nuclioDashboard": "http://nuclio-dashboard.nuclio.svc.cluster.local:8070", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
+        "humanTracking": {"headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
 def get_nuclio_capacity_status():
@@ -1594,44 +1590,6 @@ def get_litellm_gateway_status():
         "humanTracking": {"litellmAdmin": "https://litellm.service.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
     }
 
-def get_fleet_control_status():
-    base = "http://fleet.fleet.svc.cluster.local:8080"
-    health = probe_http("fleet-health", "device-control", base + "/healthz", "Fleet public liveness")
-    version = None
-    version_error = None
-    try:
-        request = urllib.request.Request(base + "/version", headers={"User-Agent": "re8ch-ops-mcp-health/1.0"})
-        with urllib.request.urlopen(request, timeout=5) as response:
-            parsed = parse_maybe_json(response.read(4096).decode("utf-8", "replace"))
-        if isinstance(parsed, dict):
-            version = {key: parsed.get(key) for key in ("version", "branch", "revision", "go_version", "build_date")}
-    except Exception as exc:
-        version_error = "%s: %s" % (type(exc).__name__, str(exc)[:200])
-    deployments = kube_request("GET", "/apis/apps/v1/namespaces/fleet/deployments").get("items", [])
-    statefulsets = kube_request("GET", "/apis/apps/v1/namespaces/fleet/statefulsets").get("items", [])
-    workloads = []
-    for items, kind in ((deployments, "Deployment"), (statefulsets, "StatefulSet")):
-        for item in items:
-            meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
-            workloads.append({
-                "kind": kind,
-                "name": meta.get("name"),
-                "desired": spec.get("replicas", 0),
-                "ready": status.get("readyReplicas", 0),
-                "available": status.get("availableReplicas", status.get("currentReplicas", 0)),
-            })
-    workloads.sort(key=lambda item: (item["kind"] or "", item["name"] or ""))
-    return {
-        "health": health,
-        "version": version,
-        "versionError": version_error,
-        "workloads": workloads,
-        "protectedNativeAPIs": ["/api/v1/fleet/config", "/api/v1/fleet/hosts", "/api/v1/fleet/queries", "/api/v1/fleet/activities"],
-        "authorization": "Host inventory, queries, policies, activities and campaigns require Fleet native authorization and are not proxied.",
-        "redaction": "Fleet API tokens, device data, policies, query results and MySQL/Redis credentials are not read.",
-        "humanTracking": {"fleet": "https://fleet.re8ch.com", "headlamp": HEADLAMP_PUBLIC, "grafana": GRAFANA_PUBLIC},
-    }
-
 def get_supabase_platform_status():
     namespace = "supabase-pg-re8ch"
     studio = probe_http("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human administration UI")
@@ -1674,8 +1632,8 @@ def get_supabase_platform_status():
     }
 
 def get_neo4j_platform_status():
-    namespace = "neo4j"
-    browser = probe_http("neo4j-browser", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j Browser/API reachability without graph credentials")
+    namespace = "re8ch-neo4j"
+    browser = probe_http("neo4j-browser", "database-platform", "http://neo4j.re8ch-neo4j.svc.cluster.local:7474/", "Neo4j Browser/API reachability without graph credentials")
     statefulsets = kube_request("GET", "/apis/apps/v1/namespaces/%s/statefulsets" % namespace).get("items", [])
     endpoints = kube_request("GET", "/api/v1/namespaces/%s/endpoints" % namespace).get("items", [])
     workloads = []
@@ -1718,7 +1676,7 @@ def get_neo4j_platform_status():
 
 def get_identity_platform_status():
     started = time.monotonic()
-    dex = probe_http("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery without identity credentials")
+    dex = probe_http("dex", "identity-control", "https://id.re8ch.com/.well-known/openid-configuration", "Dex OIDC discovery without identity credentials")
     gateway = probe_http("re8ch-auth-gateway", "identity-data", "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/healthz", "Application authentication gateway liveness")
     workloads = []
     endpoint_rows = []
@@ -1796,7 +1754,7 @@ def get_agent_runtime_status():
             phases[phase] = phases.get(phase, 0) + 1
         sandbox_kinds[plural] = {"available": True, "total": len(items), "phases": phases}
     probe_specs = [
-        ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability"),
+        ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/health", "OpenSandbox API reachability"),
         ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session UI/API reachability"),
     ]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(probe_specs)) as pool:
@@ -1937,7 +1895,7 @@ def get_database_routing_status():
     slice_rows = []
     for item in endpoint_slices:
         meta = item.get("metadata", {})
-        endpoints = item.get("endpoints", [])
+        endpoints = item.get("endpoints") or []
         ready = sum(endpoint.get("conditions", {}).get("ready") is not False for endpoint in endpoints)
         not_ready = len(endpoints) - ready
         slice_rows.append({
@@ -1969,8 +1927,8 @@ def get_database_routing_status():
             "serviceRoutesWithReadyEndpoint": sum(item["readyEndpoints"] > 0 for item in slice_rows),
         },
         "routePolicy": {
-            "write": "pgwrite HA service for migrations/admin/runtime writes; direct instance only by explicit DBA choice",
-            "read": "regional pgread service after readiness verification",
+            "write": "restricted-node-6dc3f140f9 single-instance primary Service through AdvFab",
+            "read": "primary Service with read-only role grants; remote replicas retired",
             "pool": "PgBouncer for high-churn clients after role compatibility verification",
             "http": "PostgREST gateway with database roles/RLS; HTTP reachability does not grant row access",
         },
@@ -2171,22 +2129,19 @@ def get_platform_service_health():
         (probe_http, ("headlamp", "kubernetes", HEADLAMP_PUBLIC, "human Kubernetes control GUI")),
         (probe_http, ("cloudbeaver", "database", cloudbeaver, "human tenant SQL GUI")),
         (probe_http, ("toolhive-registry", "tool-control", TOOLHIVE_REGISTRY_URL, "approved MCP catalog")),
-        (probe_http, ("dex", "identity-control", "http://dex.dex.svc.cluster.local/.well-known/openid-configuration", "Dex OIDC discovery")),
+        (probe_http, ("dex", "identity-control", "https://id.re8ch.com/.well-known/openid-configuration", "Dex OIDC discovery")),
         (probe_http, ("litellm", "model-control", "http://litellm.llm-gateway.svc.cluster.local:4000/health/liveliness", "LiteLLM model gateway liveness; no provider credentials")),
-        (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/healthz", "OpenSandbox API reachability")),
-        (probe_http, ("fleet", "device-control", "http://fleet.fleet.svc.cluster.local:8080/healthz", "Fleet device-control liveness")),
-        (probe_http, ("neo4j", "database-platform", "http://neo4j.neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
+        (probe_http, ("opensandbox", "agent-runtime", "http://opensandbox-server.opensandbox-system.svc.cluster.local:80/health", "OpenSandbox API reachability")),
+        (probe_http, ("neo4j", "database-platform", "http://neo4j.re8ch-neo4j.svc.cluster.local:7474/", "Neo4j HTTP endpoint reachability; no graph credentials")),
         (probe_http, ("supabase-studio", "database-platform", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/", "Supabase human control GUI reachability")),
-        (probe_http, ("nuclio-dashboard", "application-control", "http://nuclio-dashboard.nuclio.svc.cluster.local:8070/api/healthz", "Nuclio application-control endpoint reachability")),
         (probe_http, ("opencost", "observability-data", "http://opencost.opencost.svc.cluster.local:9003/healthz", "OpenCost allocation service liveness")),
         (probe_http, ("codex-session", "agent-runtime", "http://codex-session-web.codex-platform.svc.cluster.local:8080/healthz", "Codex session runtime liveness")),
     ]
     for route, details in PG_SERVICE_ROUTES.items():
         if details.get("host"):
-            parsed = urllib.parse.urlparse("tcp://%s:%s" % (details["host"], details["port"]))
+            probes.append((probe_tcp, ("pigsty-%s" % route, "database", details["host"], details["port"], details["purpose"])))
         else:
-            parsed = urllib.parse.urlparse("tcp://" + details["url"].split("://", 1)[-1])
-        probes.append((probe_tcp, ("pigsty-%s" % route, "database", parsed.hostname, parsed.port, details["purpose"])))
+            probes.append((probe_http, ("pigsty-%s" % route, "database", details["url"], details["purpose"])))
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(probes))) as pool:
         futures = [pool.submit(fn, *args) for fn, args in probes]
         results = [future.result() for future in futures]
@@ -2603,7 +2558,7 @@ TENANT_RESOURCE_CATALOG = {
             },
         },
         "cloudbeaver": {
-            "url": "https://dbgui.re8ch.com",
+            "url": "https://dbgui.service.re8ch.com",
             "webUsername": "qwen",
             "team": "tenant-qwen",
             "loginSecret": {"namespace": "qwen", "name": "cloudbeaver-login"},
@@ -2649,7 +2604,7 @@ TENANT_RESOURCE_CATALOG = {
             },
         },
         "cloudbeaver": {
-            "url": "https://dbgui.re8ch.com",
+            "url": "https://dbgui.service.re8ch.com",
             "webUsername": "ledger",
             "team": "tenant-ledger",
             "loginSecret": {"namespace": "ledger", "name": "cloudbeaver-login"},
@@ -2690,7 +2645,7 @@ TENANT_RESOURCE_CATALOG = {
             },
         },
         "cloudbeaver": {
-            "url": "https://dbgui.re8ch.com",
+            "url": "https://dbgui.service.re8ch.com",
             "webUsername": "anycam",
             "team": "tenant-anycam",
             "notes": "CloudBeaver tenant login can be reconciled after the web account is created.",
@@ -3206,9 +3161,20 @@ def paged_harbor(path):
     return items
 
 
-def find_harbor_robot(name):
-    for robot in paged_harbor("/robots"):
-        if robot.get("name") == name or robot.get("name") == "robot$" + name:
+def find_harbor_robot(name, project=None):
+    path = "/robots"
+    names = {name, "robot$" + name}
+    if project:
+        project_info = harbor_get_project(project)
+        if not project_info:
+            return None
+        # Harbor's query keys are case-sensitive. The unfiltered endpoint
+        # lists system robots only, never the project's existing accounts.
+        query = "Level=project,ProjectID=%s" % int(project_info["project_id"])
+        path += "?q=" + harbor_quote(query)
+        names.add("robot$%s+%s" % (project, name))
+    for robot in paged_harbor(path):
+        if robot.get("name") in names:
             return robot
     return None
 
@@ -3244,7 +3210,7 @@ def create_harbor_project_admin_robot(project, robot_name):
 
 def ensure_harbor_project_admin_robot(project, rotate=False):
     robot_name = "%s-admin-20260606" % project
-    existing = find_harbor_robot(robot_name)
+    existing = find_harbor_robot(robot_name, project=project)
     if existing and not rotate:
         return {"action": "exists", "robotName": existing.get("name"), "tokenAvailable": False}
     if existing:
@@ -3901,19 +3867,21 @@ def postgres_url(user, password, host, port, database):
 
 
 def build_database_secret_values(database, passwords, read_host=None):
-    read_host = read_host or "pgread-gz.zt.re8ch.com"
+    read_host = read_host or PG_SERVICE_ROUTES["readService"]["host"]
+    write_host = PG_SERVICE_ROUTES["writeService"]["host"]
     prefix = database_env_prefix(database)
     values = {
         "PGDATABASE": database,
         "PGPORT": "5432",
-        "PGWRITE_PORT": "5433",
-        "PGREAD_PORT": "5434",
+        "PGWRITE_PORT": "5432",
+        "PGREAD_PORT": "5432",
         "PGPOOL_PORT": "6432",
-        "PGHOST_WRITE": "pgwrite.zt.re8ch.com",
-        "PGHOST_READ_SH": "pgread-sh.zt.re8ch.com",
-        "PGHOST_READ_GZ": "pgread-gz.zt.re8ch.com",
-        "PGHOST_POOL": "pgwrite.zt.re8ch.com",
-        "PGROUTE_NOTE": "Recommended direct write/admin/migration route is pgwrite.zt.re8ch.com:5433; 5432 is a PostgreSQL instance/JDBC GUI port, not the default HA write route.",
+        "PGHOST_WRITE": write_host,
+        "PGHOST_READ": read_host,
+        "PGHOST_READ_SH": read_host,
+        "PGHOST_READ_GZ": read_host,
+        "PGHOST_POOL": write_host,
+        "PGROUTE_NOTE": "Single restricted-node-6dc3f140f9 instance via AdvFab: read and write roles use the primary Service on 5432; the primary pool uses 6432. Read-only access is enforced by role grants.",
     }
     for suffix, password in passwords.items():
         if not password or str(password).startswith("<"):
@@ -3922,14 +3890,14 @@ def build_database_secret_values(database, passwords, read_host=None):
         values["%s_%s_USER" % (prefix, role_key)] = "%s_%s" % (database, suffix)
         values["%s_%s_PASSWORD" % (prefix, role_key)] = password
     if passwords.get("app_rw") and not str(passwords.get("app_rw")).startswith("<"):
-        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "5433", database)
-        values["DATABASE_URL_POOL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], "pgwrite.zt.re8ch.com", "6432", database)
+        values["DATABASE_URL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], write_host, "5432", database)
+        values["DATABASE_URL_POOL_RW"] = postgres_url("%s_app_rw" % database, passwords["app_rw"], write_host, "6432", database)
     if passwords.get("app_ro") and not str(passwords.get("app_ro")).startswith("<"):
-        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5434", database)
+        values["DATABASE_URL_RO"] = postgres_url("%s_app_ro" % database, passwords["app_ro"], read_host, "5432", database)
     if passwords.get("migrator") and not str(passwords.get("migrator")).startswith("<"):
-        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], "pgwrite.zt.re8ch.com", "5433", database)
+        values["DATABASE_URL_MIGRATOR"] = postgres_url("%s_migrator" % database, passwords["migrator"], write_host, "5432", database)
     if passwords.get("pgrst") and not str(passwords.get("pgrst")).startswith("<"):
-        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], "pgwrite.zt.re8ch.com", "5433", database)
+        values["PGRST_DB_URI"] = postgres_url("%s_pgrst" % database, passwords["pgrst"], write_host, "5432", database)
     return values
 
 
@@ -3974,7 +3942,7 @@ def ensure_tenant_database_secrets(args):
     passwords = tenant_pg_passwords(database, generate=generate_passwords, provided=args.get("passwords") or {})
     if not generate_passwords and not args.get("passwords"):
         raise ValueError("provide passwords or set generatePasswords=true")
-    read_host = args.get("readHost") or "pgread-gz.zt.re8ch.com"
+    read_host = args.get("readHost") or PG_SERVICE_ROUTES["readService"]["host"]
     return upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=read_host)
 
 
@@ -3995,7 +3963,7 @@ def ensure_tenant_database_bundle(args):
     })
     secret = None
     if generate_passwords or args.get("passwords"):
-        secret = upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=args.get("readHost") or "pgread-gz.zt.re8ch.com")
+        secret = upsert_database_credentials_secret(namespace, database, passwords, tenant=tenant, read_host=args.get("readHost") or PG_SERVICE_ROUTES["readService"]["host"])
     return {
         "tenant": tenant,
         "namespace": namespace,
@@ -4036,8 +4004,7 @@ def generate_pg_tenant_database_plan(args):
 
     sql = [
         "-- Run on the Pigsty PostgreSQL write leader as a DBA/superuser.",
-        "-- Preferred HA write/admin entry: pgwrite.zt.re8ch.com:5433.",
-        "-- Avoid using PostgreSQL instance port 5432 as the default write route unless intentionally targeting one instance.",
+        "-- Use the reconciled primary Service: pg-re8ch-primary.pigsty-external.svc.cluster.local:5432.",
         "CREATE ROLE %s NOLOGIN;" % roles["owner"],
         "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["admin"], sql_literal(passwords["admin"])),
         "CREATE ROLE %s LOGIN PASSWORD %s;" % (roles["migrator"], sql_literal(passwords["migrator"])),
@@ -4097,11 +4064,11 @@ def generate_pg_tenant_database_plan(args):
             "note": "K3s Secret is the credential source of truth after SQL execution.",
         },
         "connectionRoutes": {
-            "recommendedWrite": "pgwrite.zt.re8ch.com:5433",
-            "recommendedRead": "pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434",
-            "pool": "pgwrite.zt.re8ch.com:6432",
-            "instancePort": "pgwrite.zt.re8ch.com:5432; direct instance/JDBC GUI path, not the default HA write route",
-            "postgrestGateway": "http://192.0.2.89:3080, http://192.0.2.112:3080, http://192.0.2.251:3080",
+            "recommendedWrite": PG_SERVICE_ROUTES["writeService"]["host"] + ":5432",
+            "recommendedRead": PG_SERVICE_ROUTES["readService"]["host"] + ":5432",
+            "pool": PG_SERVICE_ROUTES["poolRw"]["host"] + ":6432",
+            "instancePort": "5432; use the reconciled role Services for both GUI and application connections",
+            "postgrestGateway": "https://db-rw.re8ch.com, https://db-ro.re8ch.com",
             "details": PG_SERVICE_ROUTES,
         },
         "recommendedWebAccess": {
@@ -4109,9 +4076,9 @@ def generate_pg_tenant_database_plan(args):
             "migrationOperator": "%s_migrator" % database,
             "adminOperator": "%s_admin" % database,
             "tools": ["DBeaver desktop", "CloudBeaver if a shared web SQL console is required", "Bytebase if migration review/audit is required", "pgAdmin only as a simple optional GUI"],
-            "note": "CloudBeaver/DBeaver may use PostgreSQL JDBC against 5432 for GUI inspection, but automation and migrations should prefer the HA write service on 5433 or PgBouncer on 6432.",
+            "note": "GUI, automation, and migrations use the reconciled primary or replica Service on 5432. Use the primary PgBouncer pool on 6432 for high-churn clients.",
         },
-        "psqlCommand": "psql -h pgwrite.zt.re8ch.com -p 5433 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
+        "psqlCommand": "psql -h pg-re8ch-primary.pigsty-external.svc.cluster.local -p 5432 -U <pigsty_dba_or_postgres> -d postgres -v ON_ERROR_STOP=1 -f <generated-sql-file>",
         "sql": "\n".join(sql) + "\n",
         "safety": [
             "This tool generates a database plan and SQL; it does not execute SQL and does not store PostgreSQL superuser credentials.",
@@ -4128,7 +4095,7 @@ OBSERVE_TOOL_NAMES = {
     "get_tenant_resource_catalog", "get_grafana_links", "get_tenant_metrics_summary",
     "get_platform_service_health", "get_platform_service_catalog", "get_platform_permission_coverage",
     "get_platform_access_posture", "get_nuclio_function_status", "diagnose_nuclio_function",
-    "get_nuclio_capacity_status", "get_litellm_gateway_status", "get_fleet_control_status",
+    "get_nuclio_capacity_status", "get_litellm_gateway_status",
     "get_supabase_platform_status", "get_neo4j_platform_status", "get_identity_platform_status",
     "get_agent_runtime_status", "get_observability_platform_status", "get_artifact_platform_status",
     "get_database_routing_status", "get_external_publication_readiness",
@@ -4174,7 +4141,6 @@ def mcp_tools(include_admin=False):
         {"name": "diagnose_nuclio_function", "description": "Diagnose one existing Nuclio function from sanitized native state, Deployment readiness, Pod scheduling/container waits and recent Events. Secret, environment and annotation data are omitted.", "inputSchema": schema({"namespace": {"type": "string"}, "name": {"type": "string"}}, ["namespace", "name"])},
         {"name": "get_nuclio_capacity_status", "description": "Return Nuclio-labelled node readiness, schedulability, taints, allocatable capacity, placed function Pod counts and unscheduled function Pods as a rollout gate.", "inputSchema": schema()},
         {"name": "get_litellm_gateway_status", "description": "Return LiteLLM public liveness/readiness and Deployment availability without reading or proxying master keys, provider keys, model configuration, teams or budgets.", "inputSchema": schema()},
-        {"name": "get_fleet_control_status", "description": "Return Fleet public health/version and Fleet/egress/Redis/MySQL workload readiness without reading device inventory, policies, queries, activities, campaigns or credentials.", "inputSchema": schema()},
         {"name": "get_supabase_platform_status", "description": "Return Supabase Studio reachability plus component Deployment and endpoint readiness without reading JWT keys, credentials, users, rows, buckets, objects or schema contents.", "inputSchema": schema()},
         {"name": "get_neo4j_platform_status", "description": "Return Neo4j Browser reachability plus StatefulSet and endpoint readiness without reading graph credentials, Cypher, graph data, schema or configuration.", "inputSchema": schema()},
         {"name": "get_identity_platform_status", "description": "Return Authentik and application auth-gateway reachability plus Deployment and endpoint readiness without reading identities, sessions, tokens, secrets, claims or policy contents.", "inputSchema": schema()},
@@ -4184,10 +4150,10 @@ def mcp_tools(include_admin=False):
         {"name": "get_database_routing_status", "description": "Return Pigsty PostgreSQL/PgBouncer/PostgREST route reachability, sanitized EndpointSlice readiness and CloudBeaver reachability without SQL, schema, row, credential or connection data.", "inputSchema": schema()},
         {"name": "get_external_publication_readiness", "description": "Return fixed tools/auth DNS, trusted TLS, OAuth metadata, MCP challenge without reading OAuth secrets, tokens, certificate bodies, DNS credentials or user claims.", "inputSchema": schema()},
         {"name": "get_tenant_secret_refs", "description": "Return tenant-readable Kubernetes Secret references. Normal token is limited to this tenant namespace; admin can pass allTenants=true.", "inputSchema": schema({"namespace": {"type": "string"}, "allTenants": {"type": "boolean", "default": False}})},
-        {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
+        {"name": "get_tenant_database_credentials", "description": "Return only PostgreSQL credential Secret metadata and key names for a cataloged tenant database. Credential values remain server-side for the SQL proxy and are never returned.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
         {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
         {"name": "k8s_api_proxy", "description": "Forward one request to the internal Kubernetes API server using the caller-provided kubeToken. Ops MCP only solves reachability; Kubernetes RBAC is enforced by kubeToken. Path must be a Kubernetes API path such as /api/v1/namespaces/anycam/pods.", "inputSchema": schema({"method": {"type": "string", "default": "GET"}, "path": {"type": "string"}, "kubeToken": {"type": "string"}, "body": {}, "contentType": {"type": "string", "default": "application/json"}, "timeoutSeconds": {"type": "integer", "default": 20}}, ["path", "kubeToken"])},
-        {"name": "postgres_sql_proxy", "description": "Execute lightweight PostgreSQL SQL from the Ops MCP network position, useful when external agents cannot resolve or reach pgwrite.zt.re8ch.com. Default route is instancePrimaryName, currently pgwrite.zt.re8ch.com:5432, because tenant roles authenticate there reliably. Default is readOnly=true and only allows SELECT/WITH/SHOW/EXPLAIN/VALUES. PostgreSQL credentials and tenant catalog still enforce access.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}, "sql": {"type": "string"}, "role": {"type": "string", "default": "app_ro"}, "route": {"type": "string", "default": "instancePrimaryName"}, "readOnly": {"type": "boolean", "default": True}, "user": {"type": "string"}, "password": {"type": "string"}, "maxRows": {"type": "integer", "default": 100}, "timeoutSeconds": {"type": "integer", "default": 10}}, ["database", "sql"])},
+        {"name": "postgres_sql_proxy", "description": "Execute bounded tenant PostgreSQL SQL using a server-held app_ro or app_rw credential; direct credential inputs and privileged roles are not accepted for tenant users. Defaults to readOnly=true and the readService route; writes default to writeService. Results do not return credential material or internal connection addresses.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}, "sql": {"type": "string"}, "role": {"type": "string", "default": "app_ro"}, "route": {"type": "string"}, "readOnly": {"type": "boolean", "default": True}, "maxRows": {"type": "integer", "default": 100}, "timeoutSeconds": {"type": "integer", "default": 10}}, ["database", "sql"])},
     ]
     if include_admin:
         tools.extend([
@@ -4312,8 +4278,6 @@ def call_tool(name, args, admin=False):
         return get_nuclio_capacity_status()
     if name == "get_litellm_gateway_status":
         return get_litellm_gateway_status()
-    if name == "get_fleet_control_status":
-        return get_fleet_control_status()
     if name == "get_supabase_platform_status":
         return get_supabase_platform_status()
     if name == "get_neo4j_platform_status":

@@ -1,0 +1,8 @@
+[Unit]
+Description=Allow AMD WSL WireGuard management to MikroTik through R640
+After=network-online.target ufw.service wg-quick@wg-aesthete.service
+Wants=network-online.target wg-quick@wg-aesthete.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/re8ch-amd-wsl-management-forward apply

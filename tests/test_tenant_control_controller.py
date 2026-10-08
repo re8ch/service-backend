@@ -96,6 +96,59 @@ def tenant(name, lifecycle="Active"):
     return {"metadata": {"name": name}, "spec": {"lifecycle": lifecycle}}
 
 
+def test_tenant_grant_projection_is_scoped_and_omits_extra_fields(monkeypatch):
+    class GrantKube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [
+                {"metadata": {"name": "re8ch"}, "spec": {"lifecycle": "Active", "grants": [
+                    {"name": "database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active", "internalNote": "do-not-publish"},
+                    {"name": "paused", "consumableRef": "sandbox.runtime.v1", "roleRef": "admin", "lifecycle": "Suspended"},
+                ]}},
+                {"metadata": {"name": "other"}, "spec": {"lifecycle": "Active", "grants": [{"name": "other-only", "consumableRef": "network.tenant.v1"}]}},
+            ]
+    monkeypatch.setattr(controller, "KUBE", GrantKube())
+    assert controller.tenant_grant_projection("re8ch") == [
+        {"name": "database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active"},
+        {"name": "paused", "consumableRef": "sandbox.runtime.v1", "roleRef": "admin", "lifecycle": "Suspended"},
+    ]
+    controller.require_tenant_grant("re8ch", "database.postgresql.shared.v1")
+    with pytest.raises(PermissionError, match="active tenant grant"):
+        controller.require_tenant_grant("re8ch", "sandbox.runtime.v1")
+    with pytest.raises(PermissionError, match="active tenant grant"):
+        controller.require_tenant_grant("re8ch", "network.tenant.v1")
+    with pytest.raises(PermissionError, match="active tenant definition"):
+        controller.tenant_grant_projection("missing")
+
+
+def test_tenant_capability_route_requires_service_identity_and_active_tenant(monkeypatch):
+    class GrantKube:
+        def list(self, plural):
+            assert plural == "tenants"
+            return [{"metadata": {"name": "re8ch"}, "spec": {"lifecycle": "Active", "grants": [
+                {"name": "storage", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}]}}]
+    monkeypatch.setattr(controller, "KUBE", GrantKube())
+    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "service-only")
+
+    class Request:
+        path = "/v1/capabilities"
+        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Service-Token": "wrong", "X-Tenant-Ref": "re8ch"}
+
+        def send_json(self, status, value):
+            self.response = (status, value)
+
+    request = Request()
+    controller.Handler.do_GET(request)
+    assert request.response[0] == 404
+    request.headers = {**request.headers, "X-Tenant-Service-Token": "service-only"}
+    controller.Handler.do_GET(request)
+    assert request.response == (200, {"tenantRef": "re8ch", "grants": [
+        {"name": "storage", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}]})
+    request.headers = {**request.headers, "X-Tenant-Ref": "other"}
+    controller.Handler.do_GET(request)
+    assert request.response[0] == 403
+
+
 def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeypatch):
     class ProviderKube:
         def __init__(self):
@@ -103,8 +156,9 @@ def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeyp
             self.status = None
         def list(self, plural, namespace=None):
             if plural == "tenantserviceinstances": return []
-            assert plural == "tenantgrants"
-            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
+            if plural == "tenants": return [{"metadata": {"name": "acme"}, "spec": {"lifecycle": "Active", "grants": [
+                {"name": "registry", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}]}}]
+            raise AssertionError(plural)
         def create(self, plural, value, namespace):
             self.created = (plural, value, namespace)
             return value
@@ -132,26 +186,14 @@ def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeyp
 
 
 def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
-    class Grants:
-        def list(self, plural):
-            return [{"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active", "constraints": {"maxRegistryGiB": 20}}}]
-    monkeypatch.setattr(controller, "KUBE", Grants())
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     with pytest.raises(PermissionError, match="outside the authenticated tenant"):
         controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"project": "other", "quotaGiB": 10, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
-    with pytest.raises(PermissionError, match="outside the TenantGrant"):
-        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 21, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
-    with pytest.raises(PermissionError, match="operator TenantGrant"):
-        controller.provider_service_spec("acme", "grafana", {"serviceClass": "observability.grafana.v1", "planRef": "viewer"})
+    with pytest.raises(PermissionError, match="outside the published limits"):
+        controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 1025, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
 
 
 def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatch):
-    class Grants:
-        def list(self, plural):
-            assert plural == "tenantgrants"
-            return [{"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1",
-                              "roleRef": "operator", "lifecycle": "Active"}}]
-    monkeypatch.setattr(controller, "KUBE", Grants())
     monkeypatch.delenv("GRAFANA_TENANT_BINDINGS_JSON", raising=False)
     request = {"serviceClass": "observability.grafana.v1", "planRef": "viewer", "parameters": {
         "datasourceRefs": ["kube", "app"], "folderRefs": [], "humanLogin": "acme-admin",
@@ -161,36 +203,6 @@ def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatc
     request["parameters"]["datasourceRefs"] = ["platform"]
     with pytest.raises(PermissionError, match="currently publishes"):
         controller.provider_service_spec("acme", "grafana", request)
-
-def test_service_grants_endpoint_is_tenant_scoped_and_excludes_expired_grants(monkeypatch):
-    now = datetime(2026, 9, 29, tzinfo=timezone.utc)
-    values = [
-        {"spec": {"tenantRef": "acme", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}},
-        {"spec": {"tenantRef": "other", "consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active"}},
-        {"spec": {"tenantRef": "acme", "consumableRef": "sandbox.runtime.v1", "roleRef": "operator", "lifecycle": "Revoked"}},
-        {"spec": {"tenantRef": "acme", "consumableRef": "network.tenant.v1", "roleRef": "operator", "lifecycle": "Active", "expiresAt": now.isoformat()}},
-        {"spec": {"tenantRef": "acme", "consumableRef": "observability.grafana.v1", "roleRef": "viewer", "lifecycle": "Active", "notBefore": "2026-10-01T00:00:00Z"}},
-    ]
-    class GrantsKube:
-        def list(self, plural):
-            assert plural == "tenantgrants"
-            return values
-    monkeypatch.setattr(controller, "KUBE", GrantsKube())
-    monkeypatch.setattr(controller, "utcnow", lambda: now)
-    monkeypatch.setattr(controller, "runtime_namespace", lambda tenant_ref: "tenant-" + tenant_ref)
-    monkeypatch.setattr(controller, "CLAIM_SERVICE_TOKEN", "test-token")
-    class Request:
-        path = "/v1/grants"
-        headers = {"X-Tenant-Caller": "tenant", "X-Tenant-Ref": "acme", "X-Tenant-Service-Token": "test-token"}
-        def send_json(self, status, value):
-            self.response = (status, value)
-    request = Request()
-    controller.Handler.do_GET(request)
-    assert request.response == (200, {"items": [{"consumableRef": "registry.harbor.v1", "roleRef": "operator"}]})
-    request.headers = {**request.headers, "X-Tenant-Service-Token": "wrong"}
-    controller.Handler.do_GET(request)
-    assert request.response[0] == 404
-
 
 def test_claim_reads_return_empty_only_when_runtime_namespace_is_absent(monkeypatch):
     class ClaimsKube:
@@ -292,13 +304,147 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     namespace = resources[0]
     assert namespace["metadata"]["annotations"]["tenancy.re8ch.com/tenant-uid"] == "tenant-uid"
     assert namespace["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == "re8ch"
+    assert namespace["metadata"]["labels"]["saas.re8ch.com/tenant"] == "re8ch"
     assert namespace["metadata"]["labels"]["tenancy.re8ch.com/managed"] == "true"
     role = next(item for item in resources if item["kind"] == "Role")
     assert "namespaces" not in str(role["rules"])
     assert "clusterroles" not in str(role["rules"])
+    assert "httproutes" not in str(role["rules"])
+    route_role = next(item for item in resources if item["kind"] == "Role" and item["metadata"]["name"] == "tenant-publicedge-route-manager")
+    route_binding = next(item for item in resources if item["kind"] == "RoleBinding" and item["metadata"]["name"] == "tenant-publicedge-route-manager")
+    assert route_role["rules"][0]["resources"] == ["httproutes"]
+    assert route_binding["subjects"] == [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     metrics = next(item for item in resources if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "tenant-metrics-scrape")
     assert metrics["spec"]["podSelector"] == {"matchLabels": {"observability.re8ch.com/scrape": "true"}}
     assert metrics["spec"]["ingress"] == [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]
+
+
+def test_personal_namespace_qualifies_for_shared_publicedge_listener(monkeypatch):
+    personal_ref = "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38"
+    value = tenant(personal_ref)
+    value["metadata"]["uid"] = "personal-uid"
+    monkeypatch.setattr(controller, "KUBE", FakeKube([], [value]))
+    namespace = controller.tenant_namespace_resources(value, personal_ref + "-default")[0]
+    labels = namespace["metadata"]["labels"]
+    assert labels["saas.re8ch.com/tenant"] == personal_ref
+    assert labels["tenancy.re8ch.com/tenant"] == personal_ref
+
+
+def test_managed_exposure_allows_gateway_identity_only_to_service_backend(monkeypatch):
+    tenant_ref, namespace = "re8ch", "re8ch-demo"
+    route = {"metadata": {"name": "web", "namespace": namespace, "labels": {
+        "tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}},
+        "spec": {"parentRefs": [{"name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "apps-wildcard-https"}],
+                 "hostnames": ["re8ch-web.apps.re8ch.com"],
+                 "rules": [{"backendRefs": [{"name": "web-service", "port": 80}]}]}}
+
+    class ExposureKube:
+        def get(self, plural, name, scope, api):
+            assert (plural, name, scope, api) == ("services", "web-service", namespace, "api/v1")
+            return {"spec": {"type": "ClusterIP", "selector": {"app": "web"},
+                             "ports": [{"port": 80, "targetPort": "http", "protocol": "TCP"}]}}
+
+    monkeypatch.setattr(controller, "KUBE", ExposureKube())
+    policy = controller.tenant_exposure_policy(route, tenant_ref, namespace)
+    assert policy["metadata"]["name"] == "tenant-exposure-web"
+    assert policy["spec"] == {"endpointSelector": {"matchLabels": {"app": "web"}},
+                              "ingress": [{"fromEntities": ["ingress"], "toPorts": [{"ports": [{"port": "http", "protocol": "TCP"}]}]}]}
+    for field, replacement in (("parentRefs", [{"name": "foreign"}]),
+                               ("hostnames", ["other.apps.re8ch.com"]),
+                               ("rules", [{"backendRefs": [{"name": "web-service", "namespace": "other", "port": 80}]}])):
+        altered = json.loads(json.dumps(route))
+        altered["spec"][field] = replacement
+        with pytest.raises(PermissionError):
+            controller.tenant_exposure_policy(altered, tenant_ref, namespace)
+    foreign = json.loads(json.dumps(route))
+    foreign["metadata"]["labels"]["tenancy.re8ch.com/tenant"] = "other"
+    assert controller.tenant_exposure_policy(foreign, tenant_ref, namespace) is None
+
+    class SelectorlessService:
+        def get(self, *_args):
+            return {"spec": {"type": "ClusterIP", "ports": [{"port": 80, "protocol": "TCP"}]}}
+
+    monkeypatch.setattr(controller, "KUBE", SelectorlessService())
+    with pytest.raises(PermissionError, match="selector-backed"):
+        controller.tenant_exposure_policy(route, tenant_ref, namespace)
+
+
+def test_exposure_policy_reconciliation_removes_deleted_routes(monkeypatch):
+    tenant_ref, namespace = "re8ch", "re8ch-demo"
+
+    class ExposureKube:
+        def __init__(self):
+            self.deleted = []
+
+        def list(self, plural, scope, api):
+            assert scope == namespace
+            if plural == "httproutes":
+                return []
+            assert (plural, api) == ("ciliumnetworkpolicies", "apis/cilium.io/v2")
+            return [{"metadata": {"name": "tenant-exposure-old", "labels": {
+                "tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}}},
+                {"metadata": {"name": "tenant-exposure-other", "labels": {
+                    "tenancy.re8ch.com/tenant": "other", "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}}}]
+
+        def delete(self, plural, name, scope, api):
+            self.deleted.append((plural, name, scope, api))
+
+    fake = ExposureKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    controller.reconcile_exposure_policies(tenant_ref, namespace, granted=True)
+    assert fake.deleted == [("ciliumnetworkpolicies", "tenant-exposure-old", namespace, "apis/cilium.io/v2")]
+
+    fake.deleted.clear()
+    fake.list = lambda plural, scope, api: ([{"metadata": {"name": "tenant-exposure-old", "labels": {
+        "tenancy.re8ch.com/tenant": tenant_ref, "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}}}]
+        if plural == "ciliumnetworkpolicies" else pytest.fail("revoked Exposure queried HTTPRoutes"))
+    controller.reconcile_exposure_policies(tenant_ref, namespace, granted=False)
+    assert fake.deleted == [("ciliumnetworkpolicies", "tenant-exposure-old", namespace, "apis/cilium.io/v2")]
+
+
+def test_exposure_policy_does_not_replace_unmanaged_policy(monkeypatch):
+    route = {"metadata": {"name": "web", "namespace": "re8ch-demo", "labels": {
+        "tenancy.re8ch.com/tenant": "re8ch", "tenancy.re8ch.com/managed-by": "tenant-exposure-controller"}},
+        "spec": {"parentRefs": [{"name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "apps-wildcard-https"}],
+                 "hostnames": ["re8ch-web.apps.re8ch.com"], "rules": [{"backendRefs": [{"name": "web", "port": 80}]}]}}
+
+    class ExposureKube:
+        def __init__(self):
+            self.applied = []
+
+        def list(self, plural, _namespace, _api):
+            return [route] if plural == "httproutes" else []
+
+        def get(self, plural, _name, _namespace, _api):
+            if plural == "services":
+                return {"spec": {"type": "ClusterIP", "selector": {"app": "web"}, "ports": [{"port": 80}]}}
+            return {"metadata": {"labels": {"tenancy.re8ch.com/tenant": "other"}}}
+
+        def apply(self, value):
+            self.applied.append(value)
+
+    fake = ExposureKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    controller.reconcile_exposure_policies("re8ch", "re8ch-demo", granted=True)
+    assert fake.applied == []
+
+    def missing_policy(plural, _name, _namespace, _api):
+        if plural == "services":
+            return {"spec": {"type": "ClusterIP", "selector": {"app": "web"}, "ports": [{"port": 80}]}}
+        raise urllib.error.HTTPError("", 404, "missing", {}, None)
+
+    fake.get = missing_policy
+    controller.reconcile_exposure_policies("re8ch", "re8ch-demo", granted=True)
+    assert len(fake.applied) == 1
+    assert fake.applied[0]["spec"]["ingress"][0]["fromEntities"] == ["ingress"]
+
+
+def test_namespace_rejects_tenant_ref_too_long_for_publicedge_label(monkeypatch):
+    value = tenant("tenant-" + "x" * 58)
+    value["metadata"]["uid"] = "too-long-uid"
+    monkeypatch.setattr(controller, "KUBE", FakeKube([], [value]))
+    with pytest.raises(ValueError, match="label value limit"):
+        controller.tenant_namespace_resources(value, "tenant-demo")
 
 
 def test_groups_spanning_tenants_are_denied(monkeypatch):
@@ -343,6 +489,43 @@ def test_subject_and_group_roles_union_inside_selected_tenant(monkeypatch):
 
 def test_controller_exposes_only_admin_and_tenant_callers():
     assert controller.ALLOWED_CALLERS == {"admin", "tenant"}
+
+
+def test_kubernetes_get_retries_api_rate_limit_without_replaying_writes(monkeypatch):
+    client = controller.Kubernetes.__new__(controller.Kubernetes)
+    client.base = "https://kubernetes.invalid"
+    client.token = "test-token"
+    client.ssl = None
+    calls = []
+    delays = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self, *_):
+            return b'{"items":[]}'
+
+    def urlopen(request, **_):
+        calls.append(request.get_method())
+        if len(calls) == 1 or request.get_method() == "POST":
+            raise urllib.error.HTTPError(request.full_url, 429, "rate limited", {"Retry-After": "2"}, None)
+        return Response()
+
+    monkeypatch.setattr(controller.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(controller.time, "sleep", delays.append)
+    assert client.list("tenantserviceinstances") == []
+    assert calls == ["GET", "GET"]
+    assert delays == [2.0]
+
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        client.request("POST", "/apis/example", {"name": "test"})
+    assert exc.value.code == 429
+    assert calls == ["GET", "GET", "POST"]
+    assert delays == [2.0]
 
 
 def test_lease_creation_uses_kubernetes_microtime(monkeypatch):
@@ -425,8 +608,6 @@ def test_bare_artchais_organization_enrolls_without_a_role_team(monkeypatch):
 
 class AmongClustersKube:
     def list(self, plural, namespace=None, api=None):
-        if plural == "tenantgrants":
-            return [{"spec": {"tenantRef": "artchais", "consumableRef": "network.among-clusters.v1", "lifecycle": "Active", "roleRef": "operator"}}]
         if plural == "peers":
             return [{"metadata": {"name": "re8ch-artc"}, "spec": {"remoteIdentityRef": "artc", "suspended": False}}]
         if plural == "authenticatedlinks":
@@ -488,7 +669,6 @@ def test_organization_dependencies_include_retained_runtime_authority(monkeypatc
     for kind, item in (
         ('tenants', {'metadata': {'name': 'personal-user'}, 'spec': {'lifecycle': 'Deleted'}}),
         ('tenantnamespaces', {'spec': {'tenantRef': 'personal-user', 'operation': 'EnsureAbsent'}}),
-        ('tenantgrants', {'spec': {'tenantRef': 'personal-user'}}),
         ('tenantidentitybindings', {'spec': {'tenantRef': 'personal-user'}}),
         ('tenantserviceinstances', {'spec': {'tenantRef': 'personal-user'}, 'status': {'phase': 'Deleted'}}),
         ('namespaces', {'metadata': {'name': 'custom-ns', 'labels': {'tenancy.re8ch.com/tenant': 'personal-user'}}}),

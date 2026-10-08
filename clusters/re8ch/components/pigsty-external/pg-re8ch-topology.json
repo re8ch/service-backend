@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "cluster": "pg-re8ch",
+  "mode": "single-instance",
+  "activeMembers": [
+    {
+      "node": "r640",
+      "member": "pg-re8ch-1",
+      "address": "10.250.0.128",
+      "port": 5432
+    }
+  ],
+  "retiredMembers": [
+    {
+      "node": "domain-ex",
+      "member": "pg-re8ch-2",
+      "preserveData": true,
+      "patroniEnabled": false
+    },
+    {
+      "node": "zan",
+      "member": "pg-re8ch-3",
+      "preserveData": true,
+      "patroniEnabled": false
+    }
+  ],
+  "transport": "advfab",
+  "automaticFailover": false,
+  "patroniDynamicConfig": {
+    "synchronous_mode": false,
+    "postgresql": {
+      "use_slots": false
+    }
+  },
+  "readRouting": "primary-with-read-only-role",
+  "replicaEndpoints": []
+}

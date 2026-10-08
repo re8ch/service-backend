@@ -1,6 +1,6 @@
 [
   {
-    "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.",
+    "description": "List service classes backed by a service-instance controller, plans, regions, parameters and meters; listing does not prove provider health. For Kubernetes, volumes, readiness and other tenant operations call tenant_self_service_capabilities; use dynamic_skill_search for reviewed internal workflows.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
@@ -9,7 +9,7 @@
     "name": "service_catalog_list"
   },
   {
-    "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.",
+    "description": "Validate and preview a tenant-scoped instance for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_plan instead.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -29,7 +29,7 @@
     "name": "service_instance_plan"
   },
   {
-    "description": "Create a durable tenant service instance request idempotently.",
+    "description": "Create a tenant instance only for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_create; intent-only classes are rejected.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -995,7 +995,7 @@
     "name": "byoc_connection_revoke"
   },
   {
-    "description": "List autonomous tenant compute and independent volume claim contracts.",
+    "description": "List the active organization's current grant entitlements alongside compute and volume claim contracts. A grant is permission, not proof that a provider is healthy or an instance is Ready. For resource operations and Ready namespaces call tenant_self_service_capabilities; search dynamic_skill_search for reviewed workflows.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
@@ -1020,7 +1020,7 @@
     "name": "tenant_claim_plan"
   },
   {
-    "description": "Create an already planned tenant claim idempotently within the active TenantGrant.",
+    "description": "Create an already planned tenant claim idempotently within the authenticated tenant.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1207,7 +1207,7 @@
     "name": "tenant_namespace_delete"
   },
   {
-    "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.",
+    "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace. Use kind=databasecredential to list only metadata and key names of operator-provisioned Pigsty credential bindings; this does not prove the database exists or reveal Secret values.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1275,6 +1275,68 @@
       "type": "object"
     },
     "name": "tenant_kubernetes_delete"
+  },
+  {
+    "description": "Preview or write a tenant-owned Kubernetes Secret. Secret values are accepted write-only and never returned. Operator or admin role and apply=true are required.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {"type": "string"},
+        "name": {"type": "string"},
+        "values": {"type": "object", "additionalProperties": {"type": "string"}},
+        "apply": {"type": "boolean"}
+      },
+      "required": ["name", "values"],
+      "type": "object"
+    },
+    "name": "tenant_secret_upsert"
+  },
+  {
+    "description": "List metadata and key names for Secrets written through the tenant Secret broker. Secret values are never read or returned.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {"namespace": {"type": "string"}, "name": {"type": "string"}},
+      "type": "object"
+    },
+    "name": "tenant_secret_metadata_list"
+  },
+  {
+    "description": "Preview or delete a Secret written through the tenant Secret broker. Operator or admin role and apply=true are required.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {"namespace": {"type": "string"}, "name": {"type": "string"}, "apply": {"type": "boolean"}},
+      "required": ["name"],
+      "type": "object"
+    },
+    "name": "tenant_secret_delete"
+  },
+  {
+    "description": "Preview or create a managed HTTPS exposure for a same-namespace ClusterIP Service through the platform PublicEdge. The Gateway, hostname and TLS policy remain platform-owned.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {"type": "string"}, "name": {"type": "string"}, "service": {"type": "string"},
+        "port": {"type": "integer"}, "path": {"type": "string"}, "healthPath": {"type": "string"}, "apply": {"type": "boolean"}
+      },
+      "required": ["name", "service", "port"],
+      "type": "object"
+    },
+    "name": "tenant_exposure_create"
+  },
+  {
+    "description": "List managed PublicEdge exposures in a tenant-owned namespace.",
+    "inputSchema": {"additionalProperties": false, "properties": {"namespace": {"type": "string"}}, "type": "object"},
+    "name": "tenant_exposure_list"
+  },
+  {
+    "description": "Read one managed PublicEdge exposure and its non-secret Gateway status.",
+    "inputSchema": {"additionalProperties": false, "properties": {"namespace": {"type": "string"}, "name": {"type": "string"}}, "required": ["name"], "type": "object"},
+    "name": "tenant_exposure_get"
+  },
+  {
+    "description": "Preview or delete a tenant-managed PublicEdge exposure. Operator or admin role and apply=true are required.",
+    "inputSchema": {"additionalProperties": false, "properties": {"namespace": {"type": "string"}, "name": {"type": "string"}, "apply": {"type": "boolean"}}, "required": ["name"], "type": "object"},
+    "name": "tenant_exposure_delete"
   },
   {
     "description": "Read an allowlisted, non-secret Kubernetes resource from the Artchais artc cluster using the caller's tenant role.",

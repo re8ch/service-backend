@@ -82,7 +82,7 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	}))
 	defer goTrue.Close()
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, 200, map[string]string{"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch"})
+		writeJSON(w, 200, map[string]string{"tenantRef": "admin", "role": "admin", "defaultNamespace": "admin"})
 	}))
 	defer control.Close()
 	active := true

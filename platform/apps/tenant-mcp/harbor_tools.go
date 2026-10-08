@@ -27,6 +27,11 @@ func (s *server) registerHarborTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
+				if name == "harbor_artifact_scan_start" || name == "harbor_tag_create" || name == "harbor_tag_delete" || name == "harbor_build_start" || name == "harbor_build_cancel" {
+					if err := requireOperator(id); err != nil {
+						return nil, nil, err
+					}
+				}
 				value, err := s.callHarbor(ctx, id, name, args)
 				return nil, value, err
 			})

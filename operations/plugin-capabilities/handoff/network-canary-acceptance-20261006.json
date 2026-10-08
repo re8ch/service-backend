@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "cluster": "re8ch-k3s",
+  "recordedAt": "2026-10-06T00:11:44Z",
+  "scope": "One reversible, unreferenced NetworkPathAssessment canary; sample evidence only, not blanket acceptance of the 72 mutation routes.",
+  "nativeImage": "registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:6f8f791ebe2b04be2a814d00bd43340fa1a1505adae8d60db6f435d11b8a7b07",
+  "target": {
+    "groupVersion": "apis/networking.advfab.org/v1alpha1",
+    "kind": "NetworkPathAssessment",
+    "name": "tool-npa-canary-20261006-1",
+    "uid": "e4b82aed-b509-425e-a607-9fb1a4d8ff59",
+    "controllerManagedLabel": false,
+    "subjectRef": "absent Service default/tool-npa-canary-absent"
+  },
+  "operations": [
+    {
+      "method": "POST",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments",
+      "tool": "advfab.networkpathassessment.post.27f09e50798d",
+      "plan": "ready",
+      "httpStatus": 201,
+      "result": "observed",
+      "duplicateResult": "already_created",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/apis/networking.advfab.org/v1alpha1/networkpathassessments/{name}",
+      "tool": "advfab.networkpathassessment.delete.6c68329892ba",
+      "plan": "ready_with_uid_and_resourceVersion",
+      "httpStatus": 200,
+      "result": "deleted",
+      "cleanupStatus": "absent",
+      "groupVersion": "apis/networking.advfab.org/v1alpha1"
+    }
+  ],
+  "limits": [
+    "No independent HTTP header capture or durable per-call audit reference was returned by the self-service tool",
+    "Other operations and conflict paths have not been exercised online"
+  ]
+}

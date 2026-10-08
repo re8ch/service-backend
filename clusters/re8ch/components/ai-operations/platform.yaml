@@ -15,14 +15,14 @@ kind: ConfigMap
 metadata: {name: harbor-tenant-catalog, namespace: ai-operations}
 data:
   harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"tenant-ci":{},"thiking-machine":{}}}
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"tenant-ci":{},"thiking-machine":{},"re8ch":{"harbor":{"project":"re8ch","webUsername":"harry","accountEmail":"harry@re8ch.com"}}}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata: {name: harbor-tenant-catalog, namespace: credential-broker}
 data:
   harbor-tenants.json: |
-    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"tenant-ci":{},"thiking-machine":{}}}
+    {"tenants":{"2woodblog":{},"aesthete":{},"anycam":{"harbor":{"project":"anycam","webUsername":"anycam"}},"anysiteonearth":{},"artchais":{},"baozou-ppt-studio":{},"career-ops":{},"compocv":{},"farseer":{"harbor":{"project":"farseer","webUsername":"farseer"}},"garageband":{},"jjklive":{},"ledger":{"harbor":{"project":"ledger","webUsername":"ledger"}},"motor-muscle-sim":{},"network-decomplexer":{},"phonaid":{},"platform":{},"qwen":{"harbor":{"project":"qianwen","webUsername":"tianruoyou2022","accountEmail":"85153954@qq.com"}},"space-mining-stage":{},"tenant-ci":{},"thiking-machine":{},"re8ch":{"harbor":{"project":"re8ch","webUsername":"harry","accountEmail":"harry@re8ch.com"}}}}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -98,6 +98,9 @@ data:
     Host restricted-node-6dc3f140f9
       HostName 192.0.2.178
       User re8ch-ai
+    Host restricted-node-abb3f27a69 192.0.2.223
+      HostName 192.0.2.223
+      User re8ch-ai
     Host restricted-node-1eb0570f74
       HostName 192.0.2.176
       User re8ch-ai
@@ -118,7 +121,7 @@ data:
     Host domain-ex
       HostName 192.0.2.89
       User re8ch-ai
-    Host harbor
+    Host muaya-ecs harbor
       HostName 192.0.2.74
       User re8ch-ai
     Host ali
@@ -139,7 +142,7 @@ data:
     Host artchaisprod
       HostName 192.0.2.44
       User ubuntu
-    Host rancher
+    Host zan rancher
       HostName 192.0.2.138
       User re8ch-ai
     Host *
@@ -158,13 +161,13 @@ metadata: {name: ops-capsule-policy, namespace: ai-operations}
 data:
   policy.json: |
     {
-      "revision": 1,
+      "revision": 2,
       "rules": [
         {
           "name": "authenticated-node-operations",
           "actions": ["shell", "file"],
           "nodes": ["*"],
-          "groups": [],
+          "groups": ["re8ch:k8s-admins"],
           "credential_refs": ["node-ssh"]
         }
       ]

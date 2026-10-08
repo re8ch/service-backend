@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh scoped AMD WSL management forwarding on R640
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=re8ch-amd-wsl-management-forward.service
+
+[Install]
+WantedBy=timers.target

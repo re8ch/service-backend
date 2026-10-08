@@ -22,7 +22,7 @@ def test_auth_v1_routes_to_isolated_supabase_without_replacing_static_root():
     assert static_route["spec"]["rules"][-1]["backendRefs"][0]["name"] == "re8ch-user-center"
 
 
-def test_db_rw_auth_path_is_more_specific_than_existing_postgrest_fallback():
+def test_db_rw_auth_path_preserved_without_retired_postgrest_fallback():
     route = yaml.safe_load((ROOT / "operations/supabase-identity/db-rw-auth-route.yaml").read_text())
     assert route["metadata"]["namespace"] == "supabase-identity"
     assert route["spec"]["hostnames"] == ["db-rw.re8ch.com"]
@@ -33,7 +33,7 @@ def test_db_rw_auth_path_is_more_specific_than_existing_postgrest_fallback():
     assert route["spec"]["rules"][0]["filters"][0]["urlRewrite"]["path"]["replacePrefixMatch"] == "/"
     postgrest = list(yaml.safe_load_all((ROOT / "clusters/re8ch/components/observable/postgrest-ha.yaml").read_text()))
     fallback = next(item for item in postgrest if item and item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "observable-postgrest-rw")
-    assert fallback["spec"]["rules"][-1]["matches"][0]["path"] == {"type": "PathPrefix", "value": "/"}
+    assert all(match["path"]["value"] != "/" for rule in fallback["spec"]["rules"] for match in rule["matches"])
 
 
 def test_identity_data_routes_keep_ro_and_rw_separate():

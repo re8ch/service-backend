@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +18,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+var legacyToolPrefixes = []string{"re8ch_review_demo.", "re8ch_tenant.", "re8ch."}
 
 type searchInput struct {
 	Query string `json:"query" jsonschema:"Search phrase describing the capability needed"`
@@ -35,6 +39,57 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}, Resources: &mcp.ResourceCapabilities{}}})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			caller, ok := ctx.Value(identityKey{}).(identity)
+			if !ok || caller.Service || caller.Subject == "" {
+				return nil, nil, errors.New("an authenticated user is required")
+			}
+			status := map[string]any{
+				"authenticated":               true,
+				"tenantAuthorized":            caller.Tenant != "" || caller.RuntimeTenantRef != "",
+				"resourceOperationsAvailable": caller.Tenant != "",
+			}
+			accessStatus := caller.AccessStatus
+			if accessStatus == "" {
+				if caller.Tenant != "" {
+					accessStatus = "ready"
+				} else {
+					accessStatus = "no_membership"
+				}
+			}
+			status["status"] = accessStatus
+			if caller.RecoveryAction != "" {
+				status["recoveryAction"] = caller.RecoveryAction
+			}
+			if caller.OrganizationRef != "" {
+				status["organizationRef"] = caller.OrganizationRef
+			}
+			if caller.RuntimeTenantRef != "" {
+				status["runtimeTenantRef"] = caller.RuntimeTenantRef
+			}
+			if caller.Tenant == "" {
+				if caller.RuntimeTenantRef != "" {
+					status["reason"] = "shared runtime class resolved; resource operations are pending owner isolation"
+				} else {
+					status["reason"] = "no single active runtime tenant resolved"
+				}
+			}
+			return nil, status, nil
+		})
+	s.registerOrganizationContextTools(ms)
+	if !id.Service && id.Subject != "" && id.Tenant == "" {
+		return ms
+	}
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's resource operations, Ready namespaces, and current grant entitlements. A grant does not prove provider readiness. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure; search dynamic_skill_search for reviewed internal workflows."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			caller, err := identityFrom(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			value, err := selfServiceCapabilities(ctx, caller)
+			return nil, value, err
+		})
 	s.registerClaimTools(ms)
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
@@ -42,18 +97,25 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms)
 	s.registerGrafanaTools(ms)
 	s.registerKubernetesTools(ms)
+	s.registerSecretTools(ms)
+	s.registerExposureTools(ms)
 	if !id.Service && id.Tenant == artcTenant() {
 		s.registerArtcTools(ms)
 	}
-	if id.PlatformAdmin && !id.Service {
+	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerPlatformTools(ms)
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
 	}
 	s.registerResources(ms, id)
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_search"), Name: "dynamic_skill_search", Description: "Search published platform and tenant-specific workflows visible to the authenticated tenant."},
+	s.registerDynamicSkillTools(ms)
+	return ms
+}
+
+func (s *server) registerDynamicSkillTools(ms *mcp.Server) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_search"), Name: "dynamic_skill_search", Description: "Search reviewed internal and tenant-specific workflows visible to the authenticated active organization. Use tenant_self_service_capabilities first for supported resource operations; use this search to find procedures and integrations not represented by static tools."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input searchInput) (*mcp.CallToolResult, any, error) {
-			id, err := identityFrom(ctx)
+			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -62,7 +124,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_load"), Name: "dynamic_skill_load", Description: "Read a published workflow for a natural-language task. The current Agent interprets it using its existing tools and approvals."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input loadInput) (*mcp.CallToolResult, any, error) {
-			id, err := identityFrom(ctx)
+			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -71,23 +133,81 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("dynamic_skill_submit"), Name: "dynamic_skill_submit", Description: "Submit a tenant workflow draft for platform review. Drafts cannot be loaded or executed."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input submitInput) (*mcp.CallToolResult, any, error) {
-			id, err := identityFrom(ctx)
+			id, err := ownerScopedIdentityFrom(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
 			if id.Role != "operator" && id.Role != "admin" {
-				return nil, nil, errors.New("an operator TenantGrant role is required")
+				return nil, nil, errors.New("an operator tenant role is required")
 			}
 			value, err := s.submit(request{Tenant: id.Tenant, Subject: id.Subject, Name: input.Name, Description: input.Description, Workflow: input.Workflow, Visibility: input.Visibility}, false)
 			return nil, value, err
 		})
-	return ms
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func rewriteReviewDemoToolCall(r *http.Request) error {
+	if r.Method != http.MethodPost || r.Body == nil {
+		return nil
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	_ = r.Body.Close()
+	r.Body = io.NopCloser(bytes.NewReader(body))
+
+	var request any
+	if json.Unmarshal(body, &request) != nil {
+		return nil
+	}
+	if !rewriteReviewDemoToolNames(request) {
+		return nil
+	}
+	normalized, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+	r.Body = io.NopCloser(bytes.NewReader(normalized))
+	r.ContentLength = int64(len(normalized))
+	return nil
+}
+
+func rewriteReviewDemoToolNames(value any) bool {
+	switch request := value.(type) {
+	case []any:
+		changed := false
+		for _, item := range request {
+			changed = rewriteReviewDemoToolNames(item) || changed
+		}
+		return changed
+	case map[string]any:
+		if request["method"] != "tools/call" {
+			return false
+		}
+		params, ok := request["params"].(map[string]any)
+		if !ok {
+			return false
+		}
+		name, ok := params["name"].(string)
+		if !ok {
+			return false
+		}
+		for _, prefix := range legacyToolPrefixes {
+			if strings.HasPrefix(name, prefix) {
+				params["name"] = strings.TrimPrefix(name, prefix)
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 func (s *server) handler() http.Handler {
@@ -137,6 +257,18 @@ func (s *server) handler() http.Handler {
 		w.WriteHeader(204)
 	})
 	mux.HandleFunc("GET /billing/usage", s.billingHTTP)
+	mux.HandleFunc("OPTIONS /self-service/capabilities", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Origin") != "https://auth.re8ch.com" {
+			writeJSON(w, 403, map[string]string{"error": "forbidden"})
+			return
+		}
+		billingHeaders(w, r)
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, X-RE8CH-Tenant")
+		w.Header().Set("Access-Control-Max-Age", "600")
+		w.WriteHeader(204)
+	})
+	mux.HandleFunc("GET /self-service/capabilities", s.selfServiceCapabilitiesHTTP)
 	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
 	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
@@ -161,8 +293,17 @@ func (s *server) handler() http.Handler {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_token"})
 			return
 		}
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+		if err := rewriteReviewDemoToolCall(r); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_request"})
+			return
+		}
 		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
 		if err != nil {
+			if errors.Is(err, errTenantUnassigned) {
+				mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
+				return
+			}
 			if errors.Is(err, errIdentityUnavailable) {
 				writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
 				return

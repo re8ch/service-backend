@@ -1,0 +1,660 @@
+{
+  "version": 1,
+  "observedAt": "2026-10-06T00:11:44.097199+00:00",
+  "cluster": "re8ch-k3s",
+  "scope": "Live Deployment digest, 2/2 updated and Ready; authenticated self-service catalog exposes all 161 newly registered tools. Per-operation HTTP and semantic conformance remain unverified except documented canary sample.",
+  "nativeImage": "registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:6f8f791ebe2b04be2a814d00bd43340fa1a1505adae8d60db6f435d11b8a7b07",
+  "deploymentAuditRef": "audit://operations/op_c2f9f1f91a624b6f97ae8f699766ecab",
+  "rolloutAuditRef": "audit://operations/op_62a3faceec76401ea9f19e450cc57ad0",
+  "catalog": {
+    "nativeTools": 408,
+    "missingNativeTools": 0,
+    "newToolsMatched": 161
+  },
+  "tools": [
+    {
+      "name": "advfab-legacy.advancedfabric.delete.61a88efea3fe",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.advancedfabric.patch.01a438a66db8",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.advancedfabric.post.5b09ae1f8f1a",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.advancedfabric.put.bd134ca6e525",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkintervention.delete.f41c1a3adac8",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.networkintervention.patch.7f380710e538",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkintervention.post.6b24961b5d3a",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkintervention.put.8dedeeda154d",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.delete.6757cd743ada",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.patch.acc536745ea5",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.post.d63d83f91dd1",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkobservationepisode.put.6cd27c41966b",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.delete.4983757e35f3",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.delete.ba1140040448",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.patch.56a1ebdc4593",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.patch.78cdc91bcb3a",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.post.4e61891c1ebd",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.post.9471fc00be67",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.put.617c0df701aa",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networkpathassessment.put.eeb99644dde1",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.delete.9fb6c9b2a3af",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.patch.75077ae29281",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.post.e10a04f2d88e",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.networktradeoffestimate.put.16300027eba4",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.delete.7b5502223676",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.patch.54c8df1ae271",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.post.c64766ccd1c1",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.tradeofftriangle.put.fbc8fdac6ba9",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.delete.34c3b6929b67",
+      "inputSchemaSha256": "432e752fc73bbb45a88ef66c28c789ea7137cd1540c102aea47e67efab17cedb"
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.patch.0d3890796d6c",
+      "inputSchemaSha256": "4368b104e6cda15058c6e17834cbcb829848321a871b31f89e98b447ee2e3387"
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.post.c52cc2ef3bd6",
+      "inputSchemaSha256": "4368b104e6cda15058c6e17834cbcb829848321a871b31f89e98b447ee2e3387"
+    },
+    {
+      "name": "advfab-legacy.trafficpolicy.put.64a170ac5c63",
+      "inputSchemaSha256": "4368b104e6cda15058c6e17834cbcb829848321a871b31f89e98b447ee2e3387"
+    },
+    {
+      "name": "advfab.advancedfabric.delete.bf7cc8eb9395",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.advancedfabric.patch.62de7e6473ab",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.advancedfabric.post.15e1ec96e0fa",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.advancedfabric.put.f378820e80c3",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkintervention.delete.4d5c82868a9c",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.networkintervention.patch.81cf1fc59558",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkintervention.post.c56d940daf83",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkintervention.put.81bb1c4fb459",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkobservationepisode.delete.a4e0ab7526fa",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.networkobservationepisode.patch.c715f0886d81",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkobservationepisode.post.11e41420175c",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkobservationepisode.put.1c00ce57d6de",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkpathassessment.delete.6c68329892ba",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.networkpathassessment.delete.a48abb6bbd59",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.networkpathassessment.patch.208dce28c63f",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkpathassessment.patch.f79538d8915b",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkpathassessment.post.27f09e50798d",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkpathassessment.post.d212f59867ab",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkpathassessment.put.25383ae95196",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networkpathassessment.put.51a615e1f3f0",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networktradeoffestimate.delete.90cad95f2068",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.networktradeoffestimate.patch.433a5bcf82cf",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networktradeoffestimate.post.0f1fa9d9446b",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.networktradeoffestimate.put.5e3da23ab61d",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.tradeofftriangle.delete.c74f3227691e",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "advfab.tradeofftriangle.patch.aac1ccbf1e24",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.tradeofftriangle.post.f07c66c5d525",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.tradeofftriangle.put.615e6a9b28b3",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "advfab.trafficpolicy.delete.52f7b14a754f",
+      "inputSchemaSha256": "432e752fc73bbb45a88ef66c28c789ea7137cd1540c102aea47e67efab17cedb"
+    },
+    {
+      "name": "advfab.trafficpolicy.patch.ad15dfc5372a",
+      "inputSchemaSha256": "4368b104e6cda15058c6e17834cbcb829848321a871b31f89e98b447ee2e3387"
+    },
+    {
+      "name": "advfab.trafficpolicy.post.1941de605fc9",
+      "inputSchemaSha256": "4368b104e6cda15058c6e17834cbcb829848321a871b31f89e98b447ee2e3387"
+    },
+    {
+      "name": "advfab.trafficpolicy.put.cd92b2feff5f",
+      "inputSchemaSha256": "4368b104e6cda15058c6e17834cbcb829848321a871b31f89e98b447ee2e3387"
+    },
+    {
+      "name": "anatomy.runtimediff.create",
+      "inputSchemaSha256": "cba882afc17bfb7961aefd8ff4739590ccc41e48fc8c6b42bee9f678c8573bec"
+    },
+    {
+      "name": "anatomy.runtimediff.delete",
+      "inputSchemaSha256": "51137ece1ece38183abf141d8aa9029f3fb67109b54a9ee713d583bc66876f34"
+    },
+    {
+      "name": "cilium.cidrgroup.create",
+      "inputSchemaSha256": "eaaeba107e17230e4696cf78e579c472ad6c5d78fb2501f87ac40c3562bd1a6e"
+    },
+    {
+      "name": "cilium.cidrgroup.delete",
+      "inputSchemaSha256": "eaaeba107e17230e4696cf78e579c472ad6c5d78fb2501f87ac40c3562bd1a6e"
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.get.0f66f44058ee",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.get.6050ff99f93d",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.list.8ce4de5d7c3f",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpadvertisement.list.d829993dea2f",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.4134d9f9609b",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.598bb080df43",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.873d7eb7aa8a",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.get.d01cdf6e326e",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.list.7f864027628f",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpclusterconfig.list.87db6a1d50b3",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.03b1dbbdf36b",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.211c6ac4411f",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.96a9ee5012eb",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.get.df59a3a94155",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.list.8f2829242771",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfig.list.d64f5557c209",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.get.79b49268d1c6",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.get.e832a0fb6bc4",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.list.0719f79cc205",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgpnodeconfigoverride.list.60b2edcd2b77",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.04b4b78218d1",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.4e1d7f8b6f5a",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.87e0f371a6dd",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.get.9adc58cdb536",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.list.0c40b9f1941b",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumbgppeerconfig.list.6eb4f1d5f773",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumcidrgroup.get.8aa4fa516c65",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumcidrgroup.get.cbd633f75ad0",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumcidrgroup.list.c336a1596982",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumcidrgroup.list.eed06e652791",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumclusterwideenvoyconfig.get.bf92f1dd85e5",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumclusterwideenvoyconfig.list.a2bc5d373b89",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumclusterwidenetworkpolicy.get.94cdf1bb87d8",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumclusterwidenetworkpolicy.get.9c82e682b284",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumclusterwidenetworkpolicy.list.e07159805124",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumdatapathplugin.get.99b93e35fa1f",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumdatapathplugin.list.7458759b734c",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumegressgatewaypolicy.get.b7b9494ebd74",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumegressgatewaypolicy.list.0471602c34e1",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumendpoint.get.f33630adacdd",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumendpoint.list.09d0b00c01fb",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumendpoint.list.80f7e442dcbd",
+      "inputSchemaSha256": "a20264870f21ce10903b1f6b15dbbc6285b353b63b02a88784ef8ec592f9a241"
+    },
+    {
+      "name": "cilium.ciliumendpointslice.get.da3822f12e80",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumendpointslice.list.2c422a9500dc",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumenvoyconfig.get.6de323051d6c",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumenvoyconfig.list.51eb73b43443",
+      "inputSchemaSha256": "a20264870f21ce10903b1f6b15dbbc6285b353b63b02a88784ef8ec592f9a241"
+    },
+    {
+      "name": "cilium.ciliumenvoyconfig.list.6ce832791f13",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.get.8873d9ed0f85",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.get.f744c0dbb9d7",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.list.a981932e3abc",
+      "inputSchemaSha256": "a20264870f21ce10903b1f6b15dbbc6285b353b63b02a88784ef8ec592f9a241"
+    },
+    {
+      "name": "cilium.ciliumgatewayclassconfig.list.ea3fb181b4ec",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumidentity.get.29e8adf82d70",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumidentity.get.75a0cbf0333d",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumidentity.list.51a4a850ec5b",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliuml2announcementpolicy.get.330abda0af58",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliuml2announcementpolicy.get.eabcdb75a3a3",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliuml2announcementpolicy.list.a50b1ef31f1c",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumloadbalancerippool.get.52162b823f05",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumloadbalancerippool.get.9b0694dddffb",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumloadbalancerippool.get.f76a1601e76b",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumloadbalancerippool.get.f7b820be2e93",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumloadbalancerippool.list.4f8b5288fce9",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumloadbalancerippool.list.7fae5c685303",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumlocalredirectpolicy.get.148e9c015379",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumlocalredirectpolicy.list.0d3a9bb04d4e",
+      "inputSchemaSha256": "a20264870f21ce10903b1f6b15dbbc6285b353b63b02a88784ef8ec592f9a241"
+    },
+    {
+      "name": "cilium.ciliumlocalredirectpolicy.list.857be2f2a3b3",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumnetworkdriverclusterconfig.get.41e430864804",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumnetworkdriverclusterconfig.get.4f7ceb883b23",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumnetworkdriverclusterconfig.list.b2fe2c384a28",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumnetworkdrivernodeconfig.get.7fa3a46201d4",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumnetworkdrivernodeconfig.list.5a4fd66c4665",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumnetworkpolicy.get.319209ef562a",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumnetworkpolicy.get.5460ce5a52e6",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumnetworkpolicy.list.3d99bab9fdbf",
+      "inputSchemaSha256": "a20264870f21ce10903b1f6b15dbbc6285b353b63b02a88784ef8ec592f9a241"
+    },
+    {
+      "name": "cilium.ciliumnetworkpolicy.list.a81ba013c822",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumnode.get.d12cb0d70089",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumnode.get.ed15dedd3b4c",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumnode.list.6f8a91cdcdd8",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumnodeconfig.get.5daa79e1bfe7",
+      "inputSchemaSha256": "2eb9b879253d01c572fc27134ecc171350f879037e90fd5b38950075763ceefc"
+    },
+    {
+      "name": "cilium.ciliumnodeconfig.list.7ddff6288047",
+      "inputSchemaSha256": "a20264870f21ce10903b1f6b15dbbc6285b353b63b02a88784ef8ec592f9a241"
+    },
+    {
+      "name": "cilium.ciliumnodeconfig.list.c3fda608220d",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumpodippool.get.ab54966d4656",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumpodippool.list.54fa976c82c0",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "cilium.ciliumresourceippool.get.ee82d5641f1d",
+      "inputSchemaSha256": "4f41f4ddf2fbe4dc66aae542df71548baf9d3737952ab1b6e12df078fa7d40c1"
+    },
+    {
+      "name": "cilium.ciliumresourceippool.list.d4395c419132",
+      "inputSchemaSha256": "e1190718b1743546ea153290d52363929f706b0a4fb958132f8ae69d1007f207"
+    },
+    {
+      "name": "mobile-egress.mobileegress.delete.75bfa5f6daac",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "mobile-egress.mobileegress.patch.b8b95ff07998",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "mobile-egress.mobileegress.post.462d4b4effbe",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "mobile-egress.mobileegress.put.152109cbc59a",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "public-edge.publicedge.delete.c967aef6a0c7",
+      "inputSchemaSha256": "673fe2825a2d961360c7d06cbafe883d0ebb698cd03052d539056765844a5d37"
+    },
+    {
+      "name": "public-edge.publicedge.patch.843ed2ca541e",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "public-edge.publicedge.post.5c7b156c0412",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    },
+    {
+      "name": "public-edge.publicedge.put.4598f1918b1a",
+      "inputSchemaSha256": "0ace046ddee2a4f9515160f43fce0fe0b255e5c8f052f17068d66393f1415c31"
+    }
+  ]
+}

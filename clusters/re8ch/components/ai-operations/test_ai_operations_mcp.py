@@ -22,7 +22,7 @@ def load(profile="cloud"):
     Path(tmp, "nodes.json").write_text(json.dumps([{"id": "restricted-node-6dc3f140f9", "target": "restricted-node-6dc3f140f9", "enabled": True}]))
     Path(tmp, "ssh_config").write_text("Host restricted-node-6dc3f140f9\n  HostName 127.0.0.1\n")
     Path(tmp, "id_ed25519").write_text("test-only")
-    Path(tmp, "policy.json").write_text(json.dumps({"revision": 7, "rules": [{"name": "test-node-ops", "actions": ["shell", "file"], "nodes": ["*"], "groups": [], "credential_refs": ["node-ssh"]}]}))
+    Path(tmp, "policy.json").write_text(json.dumps({"revision": 7, "rules": [{"name": "test-node-ops", "actions": ["shell", "file"], "nodes": ["*"], "groups": ["re8ch:k8s-admins"], "credential_refs": ["node-ssh"]}]}))
     os.environ.update({"RE8CH_TOOL_PROFILE": profile, "RE8CH_TOOL_AUDIENCE": f"aud-{profile}", "DEVICE_REGISTRY_PATH": f"{tmp}/devices.db", "NODE_INVENTORY_PATH": f"{tmp}/nodes.json", "SSH_CONFIG": f"{tmp}/ssh_config", "SSH_IDENTITY_FILE": f"{tmp}/id_ed25519", "CAPSULE_POLICY_PATH": f"{tmp}/policy.json", "CAPSULE_SIGNING_KEY": "unit-test-signing-key"})
     spec = importlib.util.spec_from_file_location(f"mcp_{profile}", root / "ai_operations_mcp.py")
     module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
@@ -30,6 +30,23 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_provider_binding_projection_excludes_cross_tenant_and_stale_access(self):
+        m = load("tenant")
+        def instance(tenant, phase, credential, observed):
+            return {"metadata": {"name": "registry", "uid": "uid-1", "generation": 2},
+                    "spec": {"tenantRef": tenant, "serviceClass": "registry.harbor.v1"},
+                    "status": {"phase": phase, "observedGeneration": observed, "humanCredentialRef": credential}}
+        items = [instance("acme", "Ready", "credential://harbor/acme/opaque", 2),
+                 instance("other", "Ready", "credential://harbor/other/opaque", 2),
+                 instance("acme", "Suspended", "credential://harbor/acme/stale", 2),
+                 instance("acme", "Ready", "credential://harbor/acme/unreconciled", 1),
+                 instance("acme", "Ready", "credential://harbor/other/cross-tenant", 2)]
+        bindings = m.provider_bindings(items, "acme", "service://acme/registry")
+        self.assertEqual(len(bindings), 1)
+        self.assertEqual(bindings[0]["accessRef"], "credential://harbor/acme/opaque")
+        self.assertFalse(bindings[0]["revocable"])
+        self.assertEqual(m.provider_bindings(items, "acme", "service://acme/unrelated"), [])
+
     def test_admin_dynamic_skill_tools_forward_review_with_subject(self):
         with patch.dict(os.environ, {"DYNAMIC_SKILL_ADMIN_URL": "http://tenant-api.test/internal/dynamic-skills", "SERVICE_API_TOKEN": "test-secret"}):
             admin = load("admin")
@@ -344,7 +361,8 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("activate_device", names)
         admin = load("admin")
         admin_names = {tool["name"] for tool in admin.tools()}
-        self.assertTrue({"tenant_create", "tenant_grant_create", "tenant_delete"}.issubset(admin_names))
+        self.assertTrue({"tenant_create", "tenant_delete"}.issubset(admin_names))
+        self.assertNotIn("tenant_grant_create", admin_names)
         self.assertNotIn("tenant_claim_create", admin_names)
 
     def test_tenant_planes_are_server_side_isolated_and_resources_are_tenant_scoped(self):
@@ -357,17 +375,18 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("tenant_create", names)
         self.assertIn("byoc_cluster_register", names)
         registry.authenticated_tenant = lambda _identity: "acme"
-        registry.tenant_control_request = lambda path, *_args, **_kwargs: {"items": [
-            {"consumableRef": service_class, "roleRef": "operator"}
-            for service_class in ("registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1")
-        ] if path == "/v1/grants" else []}
+        registry.authenticated_tenant_grants = lambda _identity: [
+            {"consumableRef": "registry.harbor.v1", "lifecycle": "Active"},
+            {"consumableRef": "observability.grafana.v1", "lifecycle": "Active"},
+        ]
         registry.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
         identity = {"tenant": "acme", "groups": []}
         listed = registry.resources_list(identity, None)
         self.assertTrue(all("/acme/" in item["uri"] for item in listed["resources"]))
         catalog = registry.resources_read(identity, "re8ch://tenant/acme/catalog")
         body = json.loads(catalog["contents"][0]["text"])
-        self.assertTrue({"registry.harbor.v1", "observability.grafana.v1", "network.among-clusters.v1"} <= {item["serviceClass"] for item in body["services"]})
+        self.assertTrue({"registry.harbor.v1", "observability.grafana.v1"} <= {item["serviceClass"] for item in body["services"]})
+        self.assertNotIn("network.among-clusters.v1", {item["serviceClass"] for item in body["services"]})
         with self.assertRaises(PermissionError):
             registry.resources_read(identity, "re8ch://tenant/other/instances")
 
@@ -490,23 +509,77 @@ class RegistryTests(unittest.TestCase):
 
     def test_capsule_is_signed_one_time_and_broker_hides_material(self):
         m = load("cloud")
-        identity = {"subject": "user-1", "groups": [], "device_id": "dev-test", "auth_type": "device"}
+        identity = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-test", "auth_type": "device"}
         signed = m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]})
-        m.command_result = lambda argv, stdin, timeout: {"operation_id": "op-test", "exit_code": 0, "stdout": "restricted-node-6dc3f140f9\n", "stderr": ""}
+        invoked = []
+        def command_result(argv, stdin, timeout, *, capture_output):
+            invoked.append(argv)
+            return {"operation_id": "op-test", "exit_code": 0, "output_suppressed": not capture_output}
+        m.command_result = command_result
         result = m.execute_capsule(identity, signed["capsule"], signed["signature"])
         self.assertEqual(result["exit_code"], 0)
         self.assertFalse(result["credential_material_exposed"])
+        self.assertTrue(result["output_suppressed"])
+        self.assertEqual(invoked[0][invoked[0].index("-i") + 1], m.SSH_IDENTITY_FILE)
+        self.assertIn("IdentitiesOnly=yes", invoked[0])
+        self.assertIn("BatchMode=yes", invoked[0])
+        self.assertNotIn("stdout", result)
+        self.assertNotIn("stderr", result)
         self.assertNotIn("paths", result)
         with self.assertRaises(PermissionError):
             m.execute_capsule(identity, signed["capsule"], signed["signature"])
 
+    def test_capsule_requires_explicit_ssh_credential_reference(self):
+        m = load("cloud")
+        identity = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-test", "auth_type": "device"}
+        with self.assertRaisesRegex(PermissionError, "node-ssh credential reference is required"):
+            m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": []})
+        with self.assertRaisesRegex(PermissionError, "node-ssh credential is unavailable or unbound"):
+            m.NodeRunner().run({"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname"}, {})
+
     def test_tampered_capsule_is_rejected(self):
         m = load("cloud")
-        identity = {"subject": "user-1", "groups": [], "device_id": "dev-test", "auth_type": "device"}
+        identity = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-test", "auth_type": "device"}
         signed = m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]})
         signed["capsule"]["command"] = "id"
         with self.assertRaises(PermissionError):
             m.execute_capsule(identity, signed["capsule"], signed["signature"])
+
+    def test_capsule_requires_admin_registered_device_and_same_device_execution(self):
+        m = load("cloud")
+        request = {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]}
+        admin = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-one", "auth_type": "device"}
+        for identity in (
+            {**admin, "groups": []},
+            {**admin, "auth_type": "dex"},
+            {**admin, "device_id": None},
+        ):
+            with self.assertRaises(PermissionError):
+                m.create_capsule(identity, request)
+        signed = m.create_capsule(admin, request)
+        with self.assertRaisesRegex(PermissionError, "device identity mismatch"):
+            m.execute_capsule({**admin, "device_id": "dev-two"}, signed["capsule"], signed["signature"])
+        self.assertEqual(m.registry().capsule_status(signed["capsule"]["capsule_id"], admin["subject"])["status"], "signed")
+        policy = json.loads(m.CAPSULE_POLICY_PATH.read_text())
+        policy["revision"] = 8
+        m.CAPSULE_POLICY_PATH.write_text(json.dumps(policy))
+        with self.assertRaisesRegex(PermissionError, "policy revision"):
+            m.execute_capsule(admin, signed["capsule"], signed["signature"])
+
+    def test_capsule_command_discards_output_before_operation_storage(self):
+        m = load("cloud")
+        secret = "sensitive-credential-material"
+        completed = type("Completed", (), {"returncode": 0, "stdout": None, "stderr": None})()
+        with patch.object(m.subprocess, "run", return_value=completed) as run:
+            result = m.command_result(["ssh", "node", "secret-command"], secret, 30, capture_output=False)
+        self.assertEqual(run.call_args.kwargs["stdout"], m.subprocess.DEVNULL)
+        self.assertEqual(run.call_args.kwargs["stderr"], m.subprocess.DEVNULL)
+        self.assertTrue(result["output_suppressed"])
+        for value in (result, m.OPERATIONS[result["operation_id"]]):
+            self.assertNotIn("argv", value)
+            self.assertNotIn("stdout", value)
+            self.assertNotIn("stderr", value)
+            self.assertNotIn(secret, json.dumps(value))
 
 
 if __name__ == "__main__":

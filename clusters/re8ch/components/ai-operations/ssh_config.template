@@ -1,6 +1,9 @@
 Host restricted-node-6dc3f140f9
   HostName 192.0.2.178
   User re8ch-ai
+Host restricted-node-abb3f27a69 192.0.2.223
+  HostName 192.0.2.223
+  User re8ch-ai
 Host restricted-node-1eb0570f74
   HostName 192.0.2.176
   User re8ch-ai
@@ -21,7 +24,7 @@ Host amdwsl-zt
 Host domain-ex
   HostName 192.0.2.89
   User re8ch-ai
-Host harbor
+Host muaya-ecs harbor
   HostName 192.0.2.74
   User re8ch-ai
 Host ali
@@ -42,7 +45,7 @@ Host qwen-3
 Host artchaisprod
   HostName 192.0.2.44
   User ubuntu
-Host rancher
+Host zan rancher
   HostName 192.0.2.138
   User re8ch-ai
 Host *

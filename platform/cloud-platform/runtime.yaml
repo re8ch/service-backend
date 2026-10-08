@@ -25,7 +25,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:41841bac44d7ef73adae77e2f7af7884337f9b4bd771f42a684d83b6ca2bae6d
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:779465757b402159dd8586d7707af8da114dfee44c56e3f40e88c4fb040ab943
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
@@ -44,7 +44,10 @@ spec:
             - {name: http-acceptance-tmp, mountPath: /tmp}
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
             - {name: ssh-projected, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
+            - {name: ssh-projected, mountPath: /etc/re8ch-ai-operations, readOnly: true}
+            - {name: ssh-known-hosts, mountPath: /var/lib/re8ch-ai-operations}
       volumes:
+        - {name: ssh-known-hosts, emptyDir: {medium: Memory, sizeLimit: 1Mi}}
         - {name: http-acceptance-tmp, emptyDir: {medium: Memory, sizeLimit: 16Mi}}
         - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}
         # A new name is required when migrating the live volume from Secret to

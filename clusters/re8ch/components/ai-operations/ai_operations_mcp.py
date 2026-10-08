@@ -332,8 +332,12 @@ def capsule_policy() -> dict[str, Any]:
 
 
 def authorize_capsule(identity: dict[str, Any], action: str, node: str, credential_refs: list[str]) -> dict[str, Any]:
-    if not identity.get("subject"):
-        raise PermissionError("device identity is required")
+    if identity.get("auth_type") != "device" or not identity.get("subject") or not identity.get("device_id"):
+        raise PermissionError("registered device identity is required")
+    if ADMIN_GROUP not in set(identity.get("groups") or []):
+        raise PermissionError("node operations require the platform administrator group")
+    if action in {"shell", "file"} and "node-ssh" not in credential_refs:
+        raise PermissionError("node-ssh credential reference is required")
     target = resolve_node(node)
     policy = capsule_policy()
     groups = set(identity.get("groups") or [])
@@ -376,8 +380,13 @@ class CredentialBroker:
 
 class NodeRunner:
     def run(self, capsule: dict[str, Any], credentials: dict[str, Any]) -> dict[str, Any]:
+        # Capsule commands may use broker-held credentials. Never capture their
+        # output (or argv) in MCP responses, operation history, or SQLite.
         if capsule["action"] not in {"shell", "file"}:
             raise ValueError("node runner supports shell and file capsules")
+        ssh_credential = credentials.get("node-ssh")
+        if ssh_credential != {"kind": "file", "paths": [SSH_CONFIG, SSH_IDENTITY_FILE]}:
+            raise PermissionError("node-ssh credential is unavailable or unbound")
         node = resolve_node(capsule["node"])
         for item in capsule.get("files") or []:
             path = item["remote_path"]
@@ -385,10 +394,10 @@ class NodeRunner:
                 raise ValueError("capsule files must target /var/tmp/re8ch-capsules")
             data = base64.b64decode(item["data_base64"], validate=True)
             upload = f"install -d -m 700 {shlex.quote(str(Path(path).parent))} && base64 -d > {shlex.quote(path)}"
-            result = command_result(ssh_argv(node, upload), base64.b64encode(data).decode(), 300)
+            result = command_result(capsule_ssh_argv(node, upload), base64.b64encode(data).decode(), 300, capture_output=False)
             if result["exit_code"] != 0:
                 return result
-        return command_result(ssh_argv(node, capsule.get("command") or "true"), None, MAX_TIMEOUT)
+        return command_result(capsule_ssh_argv(node, capsule.get("command") or "true"), None, MAX_TIMEOUT, capture_output=False)
 
 
 def credential_catalog() -> list[dict[str, Any]]:
@@ -435,9 +444,13 @@ def create_capsule(identity: dict[str, Any], args: dict[str, Any]) -> dict[str, 
 def execute_capsule(identity: dict[str, Any], capsule: dict[str, Any], signature: str) -> dict[str, Any]:
     if capsule.get("subject") != identity.get("subject"):
         raise PermissionError("capsule identity mismatch")
+    if not identity.get("device_id") or capsule.get("device_id") != identity.get("device_id"):
+        raise PermissionError("capsule device identity mismatch")
     if not hmac.compare_digest(signature, capsule_signature(capsule)):
         raise PermissionError("capsule signature is invalid")
     decision = authorize_capsule(identity, capsule["action"], capsule["node"], capsule.get("credential_refs") or [])
+    if capsule.get("policy_revision") != decision["policy_revision"]:
+        raise PermissionError("capsule policy revision is no longer current")
     credentials = CredentialBroker().resolve(capsule.get("credential_refs") or [], capsule["action"])
     saved = registry().consume_capsule(capsule["capsule_id"], identity["subject"])
     if not saved:
@@ -605,7 +618,7 @@ def allowed(identity: dict[str, Any]) -> bool:
     return bool(set(identity.get("groups", [])) & PROFILE_GROUPS.get(PROFILE, set()))
 
 
-def command_result(argv: list[str], stdin: str | None, timeout: int) -> dict[str, Any]:
+def command_result(argv: list[str], stdin: str | None, timeout: int, *, capture_output: bool = True) -> dict[str, Any]:
     operation_id = "op_" + uuid.uuid4().hex
     started = now()
     timeout = max(1, min(timeout, MAX_TIMEOUT))
@@ -613,32 +626,35 @@ def command_result(argv: list[str], stdin: str | None, timeout: int) -> dict[str
         proc = subprocess.run(
             argv,
             input=stdin.encode() if stdin is not None else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE if capture_output else subprocess.DEVNULL,
+            stderr=subprocess.PIPE if capture_output else subprocess.DEVNULL,
             timeout=timeout,
             check=False,
         )
         result = {
             "operation_id": operation_id,
-            "argv": argv,
             "exit_code": proc.returncode,
-            "stdout": proc.stdout[:MAX_OUTPUT].decode(errors="replace"),
-            "stderr": proc.stderr[:MAX_OUTPUT].decode(errors="replace"),
-            "truncated": len(proc.stdout) > MAX_OUTPUT or len(proc.stderr) > MAX_OUTPUT,
             "started_at": started,
             "finished_at": now(),
         }
+        if capture_output:
+            result.update({"argv": argv, "stdout": proc.stdout[:MAX_OUTPUT].decode(errors="replace"),
+                           "stderr": proc.stderr[:MAX_OUTPUT].decode(errors="replace"),
+                           "truncated": len(proc.stdout) > MAX_OUTPUT or len(proc.stderr) > MAX_OUTPUT})
+        else:
+            result["output_suppressed"] = True
     except subprocess.TimeoutExpired as exc:
         result = {
             "operation_id": operation_id,
-            "argv": argv,
             "exit_code": 124,
-            "stdout": (exc.stdout or b"")[:MAX_OUTPUT].decode(errors="replace"),
-            "stderr": "command timed out",
-            "truncated": False,
             "started_at": started,
             "finished_at": now(),
         }
+        if capture_output:
+            result.update({"argv": argv, "stdout": (exc.stdout or b"")[:MAX_OUTPUT].decode(errors="replace"),
+                           "stderr": "command timed out", "truncated": False})
+        else:
+            result["output_suppressed"] = True
     OPERATIONS[operation_id] = result
     return result
 
@@ -756,12 +772,11 @@ HARBOR_TENANT_TOOLS = [
 TENANT_INFRA_TOOLS = [
     {"name": "tenant_create", "description": "Create a named tenant identity boundary. Protected admin identity is never created through this tool.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "display_name": {"type": "string"}, "identity_ref": {"type": "string"}}, ["tenant_ref", "display_name", "identity_ref"])},
     {"name": "tenant_list", "description": "List tenant identity boundaries. Only the protected admin tenant may call this tool.", "inputSchema": schema({})},
-    {"name": "tenant_grant_create", "description": "Map one published Consumable role to an app-native authorization adapter and return only an opaque access reference.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "consumable_ref": {"type": "string"}, "role_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}, "constraints": {"type": "object"}}, ["tenant_ref", "consumable_ref", "role_ref", "visibility"])},
     {"name": "tenant_visibility_update", "description": "Change tenant visibility without exposing an application's native ACL model.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}}, ["tenant_ref", "visibility"])},
     {"name": "tenant_delete", "description": "Start deletion of a non-admin tenant and revoke its grants before adapter cleanup.", "inputSchema": schema({"tenant_ref": {"type": "string"}}, ["tenant_ref"])},
-    {"name": "service_catalog_list", "description": "List tenant infrastructure service classes, plans, regions, parameters and meters.", "inputSchema": schema({})},
-    {"name": "service_instance_plan", "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}}, ["name", "spec"])},
-    {"name": "service_instance_create", "description": "Create a durable tenant service instance request idempotently.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["name", "spec", "idempotency_key"])},
+    {"name": "service_catalog_list", "description": "List service classes backed by a service-instance controller, plans, regions, parameters and meters; listing does not prove provider health. For Kubernetes, volumes, readiness and other tenant operations call tenant_self_service_capabilities; use dynamic_skill_search for reviewed internal workflows.", "inputSchema": schema({})},
+    {"name": "service_instance_plan", "description": "Validate and preview a tenant-scoped instance for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_plan instead.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}}, ["name", "spec"])},
+    {"name": "service_instance_create", "description": "Create a tenant instance only for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_create; intent-only classes are rejected.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["name", "spec", "idempotency_key"])},
     {"name": "service_instance_get", "description": "Read one service instance owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}}, ["resource_ref"])},
     {"name": "service_instance_list", "description": "List service instances owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "service_instance_update", "description": "Update the desired specification of a tenant service instance idempotently.", "inputSchema": schema({"resource_ref": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["resource_ref", "spec", "idempotency_key"])},
@@ -803,7 +818,7 @@ GRAFANA_TENANT_TOOLS = [
     {"name": "grafana_exploration_delete", "description": "Explicitly delete a saved AI exploration dashboard owned by the authenticated tenant.", "inputSchema": schema({"dashboard_uid": {"type": "string"}}, ["dashboard_uid"])},
 ]
 
-TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
+TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
 DYNAMIC_SKILL_ADMIN_TOOLS = [
     {"name": "dynamic_skill_pending", "description": "List tenant workflow drafts awaiting platform review.", "inputSchema": schema({})},
     {"name": "dynamic_skill_publish", "description": "Publish a reviewed platform-wide or tenant-specific workflow directly.", "inputSchema": schema({"target_tenant": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}, "workflow": {"type": "string"}}, ["target_tenant", "name", "description", "workflow"])},
@@ -812,9 +827,9 @@ DYNAMIC_SKILL_ADMIN_TOOLS = [
 ]
 TENANT_CONSUMER_NAMES = {"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke", "usage_summary_get", "usage_events_list", "operation_get"}
 TENANT_CLAIM_TOOLS = [
-    {"name": "tenant_capabilities_list", "description": "List autonomous tenant compute and independent volume claim contracts.", "inputSchema": schema({})},
+    {"name": "tenant_capabilities_list", "description": "List the active organization's current grant entitlements alongside compute and volume claim contracts. A grant is permission, not proof that a provider is healthy or an instance is Ready. For resource operations and Ready namespaces call tenant_self_service_capabilities; search dynamic_skill_search for reviewed workflows.", "inputSchema": schema({})},
     {"name": "tenant_claim_plan", "description": "Normalize and quota-check a claim without changing cluster state; returns the claimHash required by writes.", "inputSchema": schema({"claim": {"type": "object"}}, ["claim"])},
-    {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the active TenantGrant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
+    {"name": "tenant_claim_create", "description": "Create an already planned tenant claim idempotently within the authenticated tenant.", "inputSchema": schema({"claim": {"type": "object"}, "claim_hash": {"type": "string"}}, ["claim", "claim_hash"])},
     {"name": "tenant_claim_get", "description": "Read one claim and its workload, volume or public endpoint binding.", "inputSchema": schema({"name": {"type": "string"}}, ["name"])},
     {"name": "tenant_claim_list", "description": "List claims owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "tenant_claim_update", "description": "Scale or roll a Deployment, or expand a volume, using a fresh claimHash. Job parameters are immutable.", "inputSchema": schema({"name": {"type": "string"}, "claim": {"type": "object"}, "claim_hash": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8, "maxLength": 128}}, ["name", "claim", "claim_hash", "idempotency_key"])},
@@ -826,7 +841,7 @@ TENANT_KUBERNETES_TOOLS = [
     {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.", "inputSchema": schema({"namespace": {"type": "string"}, "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 604800}}, ["namespace"])},
     {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
-    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
+    {"name": "tenant_kubernetes_get", "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace. Use kind=databasecredential to list only metadata and key names of operator-provisioned Pigsty credential bindings; this does not prove the database exists or reveal Secret values.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
     {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
     {"name": "tenant_kubernetes_delete", "description": "Preview or delete one allowlisted object from an authenticated tenant namespace. Operator or admin role and apply=true are required.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["kind", "name"])},
 ]
@@ -841,6 +856,21 @@ TENANT_KUBERNETES_KINDS = {
 TENANT_KUBERNETES_READ_KINDS = {kind.lower(): (api_version, kind) for api_version, kind in TENANT_KUBERNETES_KINDS}
 TENANT_KUBERNETES_READ_KINDS.update({kind: ("v1", kind) for kind in ("pod", "pods", "event", "events", "endpoint", "endpoints")})
 TENANT_KUBERNETES_READ_KINDS.update({kind: ("apps/v1", kind) for kind in ("replicaset", "replicasets")})
+DATABASE_BINDING_TEMPLATE = '{{range .items}}{{.metadata.name}}{{"\\t"}}{{.metadata.uid}}{{"\\t"}}{{index .metadata.labels "re8ch.com/database"}}{{"\\t"}}{{range $key, $_ := .data}}{{$key}}{{","}}{{end}}{{"\\n"}}{{end}}'
+
+
+def parse_tenant_database_bindings(output: str, tenant: str, namespace: str) -> dict[str, Any]:
+    items = []
+    for line in output.strip().splitlines():
+        fields = line.split("\t", 3)
+        if (len(fields) != 4 or not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", fields[0])
+                or not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", fields[2]) or not fields[1]):
+            raise PermissionError("invalid database credential metadata response")
+        keys = sorted(key for key in fields[3].rstrip(",").split(",") if key)
+        if any(not re.fullmatch(r"[A-Za-z0-9._-]+", key) for key in keys):
+            raise PermissionError("invalid database credential key metadata")
+        items.append({"database": fields[2], "secretRef": namespace + "/" + fields[0], "secretUID": fields[1], "keys": keys, "databaseState": "unverified"})
+    return {"tenantRef": tenant, "namespace": namespace, "kind": "databasecredential", "items": items}
 TENANT_BYOC_TOOLS = [
     {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},
     {"name": "byoc_registration_list", "description": "List cluster registrations visible to the current plane.", "inputSchema": schema({"tenant_ref": {"type": "string"}})},
@@ -987,36 +1017,67 @@ def tenant_service_store() -> ServiceStore:
     return _TENANT_SERVICE_STORE
 
 
-def tenant_service_grants(tenant: str) -> dict[str, str]:
-    grants: dict[str, str] = {}
-    for item in tenant_control_request("/v1/grants", tenant).get("items", []):
-        service_class = item.get("consumableRef")
-        role = item.get("roleRef")
-        if service_class and role in {"viewer", "operator", "admin"}:
-            if service_class in grants:
-                raise PermissionError("exactly one active TenantGrant is required per service class")
-            grants[service_class] = role
-    return grants
-
-
-def require_tenant_service_grant(tenant: str, service_class: str, *, mutate: bool = False) -> None:
+def require_tenant_service_class(service_class: str) -> None:
     if service_class not in {item["serviceClass"] for item in service_catalog()}:
         raise PermissionError("service class is not published")
-    role = tenant_service_grants(tenant).get(service_class)
-    if role is None or (mutate and role not in {"operator", "admin"}):
-        raise PermissionError("an active service class TenantGrant is required")
 
 
-def tenant_catalog_for_profile(tenant: str) -> list[dict[str, Any]]:
-    grants = tenant_service_grants(tenant)
-    return [item for item in service_catalog() if item["serviceClass"] in grants]
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}
+
+
+def no_live_service_provisioner(service_class: str) -> None:
+    if service_class in {"storage.volume.v1", "compute.workload.v1"}:
+        raise ServiceError("service class has no live service-instance provisioner; use tenant_claim_plan and tenant_claim_create for this capability")
+    raise ServiceError("service class has no live provisioner; discover currently executable operations with tenant_self_service_capabilities")
+
+
+def legacy_intent_only(item: dict[str, Any]) -> dict[str, Any]:
+    return {**item, "fulfillmentState": "legacy-intent-only", "provisioned": False}
+
+
+def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref: str | None = None) -> list[dict[str, Any]]:
+    bindings = []
+    providers = {"registry.harbor.v1": "harbor", "observability.grafana.v1": "grafana"}
+    for instance in instances:
+        meta, spec, status = (instance.get(key) or {} for key in ("metadata", "spec", "status"))
+        name, uid = meta.get("name"), meta.get("uid")
+        service_class = spec.get("serviceClass")
+        provider = providers.get(service_class)
+        ref = f"service://{tenant}/{name}"
+        credential_ref = status.get("humanCredentialRef")
+        if (spec.get("tenantRef") != tenant or not provider or not name or not uid
+                or status.get("phase") != "Ready" or resource_ref and resource_ref != ref
+                or not isinstance(credential_ref, str)
+                or not credential_ref.startswith(f"credential://{provider}/{tenant}/")
+                or "generation" in meta and status.get("observedGeneration") != meta["generation"]):
+            continue
+        bindings.append({"bindingRef": f"binding://{tenant}/provider/{uid}", "resourceRef": ref,
+                         "bindingType": "access:broker-reference", "accessRef": credential_ref,
+                         "serviceClass": service_class, "source": "provider-status", "state": "Ready",
+                         "revocable": False, "revokeWith": "service_instance_suspend",
+                         "credentialMaterialReturned": False})
+    return bindings
+
+
+def service_bindings(tenant: str, resource_ref: str | None = None) -> list[dict[str, Any]]:
+    legacy = tenant_service_store().bindings(tenant, resource_ref)
+    controlled = tenant_control_request("/v1/services", tenant).get("items", [])
+    return legacy + provider_bindings(controlled, tenant, resource_ref)
+
+
+def tenant_catalog_for_profile(tenant: str, grants: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    active = {grant.get("consumableRef") for grant in grants if grant.get("lifecycle") == "Active"}
+    return [item for item in service_catalog()
+            if item["serviceClass"] in LIVE_SERVICE_CLASSES
+            and item["serviceClass"] in active
+            and (item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais")]
 
 
 def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
     """List authorized resource descriptors without fetching their contents."""
     tenant = authenticated_tenant(identity)
     records = [
-        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(tenant), "pricingIncluded": False}),
+        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(tenant, authenticated_tenant_grants(identity)), "pricingIncluded": False}),
     ]
     if PROFILE == "admin":
         records.extend([
@@ -1026,8 +1087,8 @@ def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
         ])
     else:
         records.extend([
-            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": tenant_service_store().list(tenant)}),
-            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": tenant_service_store().bindings(tenant)}),
+            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": [legacy_intent_only(item) for item in tenant_service_store().list(tenant)] + tenant_control_request("/v1/services", tenant).get("items", [])}),
+            (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": service_bindings(tenant)}),
             (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", lambda: tenant_service_store().usage_summary(tenant, None)),
             (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", lambda: tenant_control_request("/v1/claims", tenant)),
             (f"re8ch://tenant/{tenant}/usage", "Unpriced tenant claim showback", lambda: tenant_claim_usage_summary(tenant)),
@@ -1142,8 +1203,27 @@ def authenticated_tenant(identity: dict[str, Any]) -> str:
 def authenticated_tenant_operator(identity: dict[str, Any]) -> str:
     context = authenticated_tenant_context(identity)
     if context["role"] not in {"operator", "admin"}:
-        raise PermissionError("an operator TenantGrant role is required")
+        raise PermissionError("an operator tenant role is required")
     return context["tenantRef"]
+
+
+def authenticated_tenant_grants(identity: dict[str, Any]) -> list[dict[str, Any]]:
+    context = authenticated_tenant_context(identity)
+    tenant, role = context["tenantRef"], context["role"]
+    response = tenant_control_request("/v1/capabilities", tenant)
+    if response.get("tenantRef") != tenant or not isinstance(response.get("grants"), list):
+        raise RuntimeError("tenant grant discovery returned an invalid scope")
+    return [{"name": grant.get("name"), "consumableRef": grant.get("consumableRef"),
+             "roleRef": grant.get("roleRef"), "lifecycle": grant.get("lifecycle"),
+             "canRequest": grant.get("lifecycle") == "Active" and
+                           (role == "admin" or role == "operator" and grant.get("roleRef") != "admin")}
+            for grant in response["grants"] if isinstance(grant, dict) and grant.get("consumableRef")]
+
+
+def require_published_tenant_grant(identity: dict[str, Any], capability: str) -> None:
+    if not any(grant["consumableRef"] == capability and grant["canRequest"]
+               for grant in authenticated_tenant_grants(identity)):
+        raise PermissionError("active tenant grant and role are required for this capability")
 
 
 def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> None:
@@ -1157,8 +1237,12 @@ def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> No
                 raise PermissionError("cross-namespace service account binding is denied")
         if (obj.get("roleRef") or {}).get("kind") != "Role":
             raise PermissionError("binding ClusterRoles through the tenant publication is denied")
-    if kind == "Service" and (obj.get("spec") or {}).get("type") in {"NodePort", "LoadBalancer", "ExternalName"}:
-        raise PermissionError("public or external service types require the shared PublicEdge service")
+    if kind == "Service":
+        service = obj.get("spec") or {}
+        if service.get("type") not in (None, "", "ClusterIP"):
+            raise PermissionError("public or external service types require the shared PublicEdge service")
+        if service.get("externalIPs"):
+            raise PermissionError("Service externalIPs bypass the shared PublicEdge service")
     pod_spec = obj.get("spec") or {}
     if kind == "CronJob":
         pod_spec = pod_spec.get("jobTemplate", {}).get("spec", {}).get("template", {}).get("spec", {})
@@ -1172,6 +1256,8 @@ def validate_tenant_kubernetes_object(obj: dict[str, Any], namespace: str) -> No
         security = container.get("securityContext") or {}
         if security.get("privileged") or security.get("allowPrivilegeEscalation") is True:
             raise PermissionError("privileged containers are denied")
+        if any(port.get("hostPort") not in (None, 0) for port in container.get("ports", [])):
+            raise PermissionError("hostPort bypasses the shared PublicEdge service")
 
 
 def label_native_metered_object(obj: dict[str, Any], tenant: str, namespace: str) -> dict[str, Any]:
@@ -1217,25 +1303,35 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
             return preview
         return {**preview, "deleted": True, "operation": tenant_control_request("/v1/namespaces/" + urllib.parse.quote(namespace, safe=""), tenant, method="DELETE")}
     namespace = valid_kubernetes_name(str(args.get("namespace") or context.get("defaultNamespace") or context["runtimeNamespaceRef"]))
-    if "defaultNamespace" in context:
-        owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
-        ready_namespaces = set()
-        for item in owned:
-            spec = item.get("spec", {})
-            if spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
-                continue
-            expires_at = spec.get("expiresAt")
-            if expires_at:
-                try:
-                    if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
-                        continue
-                except (TypeError, ValueError):
+    owned = tenant_control_request("/v1/namespaces", tenant).get("items", [])
+    ready_namespaces = set()
+    for item in owned:
+        spec = item.get("spec", {})
+        if spec.get("tenantRef") != tenant or spec.get("operation") != "EnsurePresent" or item.get("status", {}).get("phase") != "Ready":
+            continue
+        expires_at = spec.get("expiresAt")
+        if expires_at:
+            try:
+                if datetime.fromisoformat(expires_at.replace("Z", "+00:00")) <= datetime.now(timezone.utc):
                     continue
-            ready_namespaces.add(spec.get("namespaceName"))
-        if namespace not in ready_namespaces:
-            raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
+            except (TypeError, ValueError):
+                continue
+        ready_namespaces.add(spec.get("namespaceName"))
+    if namespace not in ready_namespaces:
+        raise PermissionError("namespace is not a Ready namespace owned by the authenticated tenant")
     if name == "tenant_kubernetes_get":
         kind = str(args["kind"]).lower()
+        if kind == "databasecredential":
+            require_published_tenant_grant(identity, "database.postgresql.shared.v1")
+            argv = ["kubectl", "--namespace", namespace, "get", "secrets", "-l",
+                    "re8ch.com/secret-purpose=postgres-credentials,re8ch.com/tenant=" + namespace,
+                    "-o", "go-template=" + DATABASE_BINDING_TEMPLATE]
+            if args.get("name"):
+                argv += ["--field-selector", "metadata.name=" + valid_kubernetes_name(str(args["name"]))]
+            result = command_result(argv, None, 120)
+            if result["exit_code"] != 0:
+                raise PermissionError(result.get("stderr") or "database credential metadata is unavailable")
+            return parse_tenant_database_bindings(result.get("stdout") or "", tenant, namespace)
         if kind not in TENANT_KUBERNETES_READ_KINDS:
             raise PermissionError("kind is not in the non-secret tenant read allowlist")
         argv = ["kubectl", "--namespace", namespace, "get", kind]
@@ -1260,7 +1356,7 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
             raise PermissionError(result["stderr"] or "tenant Kubernetes apply was denied")
         return {**preview, "applied": True, "result": result}
     kind = str(args["kind"]).lower()
-    if kind not in TENANT_KUBERNETES_READ_KINDS:
+    if kind not in TENANT_KUBERNETES_READ_KINDS or kind not in {allowed_kind.lower() for _, allowed_kind in TENANT_KUBERNETES_KINDS}:
         raise PermissionError("kind is not in the tenant workload allowlist")
     resource_name = valid_kubernetes_name(str(args["name"]))
     preview = {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, "deleted": False, "kind": kind, "name": resource_name}
@@ -1565,6 +1661,11 @@ def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
     return ["ssh", "-F", SSH_CONFIG, "--", node["target"], command]
 
 
+def capsule_ssh_argv(node: dict[str, Any], command: str) -> list[str]:
+    return ["ssh", "-F", SSH_CONFIG, "-i", SSH_IDENTITY_FILE, "-o", "IdentitiesOnly=yes",
+            "-o", "BatchMode=yes", "--", node["target"], command]
+
+
 def call_grafana_tenant_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     tenant = authenticated_tenant(identity)
     operation_id = "op_" + uuid.uuid4().hex
@@ -1712,10 +1813,12 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 {"name": "kubernetes.namespace.v1", "access": "native", "approvalRequired": False, "imagePolicy": "tenant-selected", "interfaces": ["Kubernetes API", "Helm", "GitOps"]},
                 {"name": "compute.workload.v1", "access": "optional-managed-claim", "kinds": ["Job", "Deployment"], "resources": ["cpu", "memory", "ephemeralStorage"], "publicExposure": "shared-service-opt-in", "imagePolicy": "managed claims use the optional supply-chain policy", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
                 {"name": "storage.volume.v1", "plans": ["rbd", "cephfs"], "lifecycle": "independent-retained", "ttl": {"required": True, "renewable": True, "minimumSeconds": 300, "maximumSeconds": 2592000}},
-            ], "requiresApproval": False, "operationalReadiness": readiness()[1], "pricingIncluded": False}
+            ], "grantedConsumables": authenticated_tenant_grants(identity), "requiresApproval": False, "operationalReadiness": readiness()[1], "pricingIncluded": False}
         if name == "tenant_claim_plan":
+            require_published_tenant_grant(identity, (args["claim"].get("spec") or {}).get("capability", ""))
             return tenant_control_request("/v1/claims/plan", tenant, {"claim": args["claim"]})
         if name == "tenant_claim_create":
+            require_published_tenant_grant(identity, (args["claim"].get("spec") or {}).get("capability", ""))
             return tenant_control_request("/v1/claims", tenant, {"claim": args["claim"], "claimHash": args["claim_hash"]})
         if name == "tenant_claim_get":
             return tenant_control_request("/v1/claims/" + urllib.parse.quote(args["name"], safe=""), tenant)
@@ -2201,15 +2304,13 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if PROFILE in tenant_profiles and name in tenant_tool_names:
         tenant = authenticated_tenant(identity)
         store = tenant_service_store()
-        admin_tools = {"tenant_create", "tenant_list", "tenant_grant_create", "tenant_visibility_update", "tenant_delete"}
+        admin_tools = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete"}
         if name in admin_tools | {"byoc_connection_approve"} and (PROFILE != "admin" or tenant != "admin"):
             raise PermissionError("the protected admin tenant is required")
         if name == "tenant_create":
             return store.create_tenant(args["tenant_ref"], args["display_name"], args["identity_ref"])
         if name == "tenant_list":
             return {"tenantRef": tenant, "tenants": tenant_control_request("/v1/tenants", tenant, caller="admin").get("items", [])}
-        if name == "tenant_grant_create":
-            return store.create_grant(args["tenant_ref"], args["consumable_ref"], args["role_ref"], args["visibility"], args.get("constraints") or {})
         if name == "tenant_visibility_update":
             return store.set_visibility(args["tenant_ref"], args["visibility"])
         if name == "tenant_delete":
@@ -2229,7 +2330,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 raise PermissionError("cross-tenant connection revoke is forbidden")
             return store.revoke_connection(target, args["connection_ref"], bool(args.get("offline")))
         if name == "service_catalog_list":
-            services = tenant_catalog_for_profile(tenant)
+            services = tenant_catalog_for_profile(tenant, authenticated_tenant_grants(identity))
             if tenant == "artchais" and any(item["serviceClass"] == "network.among-clusters.v1" for item in services):
                 try:
                     tenant_control_request("/v1/services/catalog", tenant)
@@ -2237,21 +2338,21 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                     services = [item for item in services if item["serviceClass"] != "network.among-clusters.v1"]
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
-            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
+            require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
+            if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
-            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
-            authenticated_tenant_operator(identity)
-            return store.plan(tenant, args["name"], args["spec"])
+            require_tenant_service_class(args["spec"].get("serviceClass", ""))
+            no_live_service_provisioner(args["spec"]["serviceClass"])
         if name == "service_instance_create":
-            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
+            require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
+            if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
-            require_tenant_service_grant(tenant, args["spec"].get("serviceClass", ""), mutate=True)
-            authenticated_tenant_operator(identity)
-            return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
+            require_tenant_service_class(args["spec"].get("serviceClass", ""))
+            no_live_service_provisioner(args["spec"]["serviceClass"])
         if name == "service_instance_get":
             if args["resource_ref"].startswith(f"service://{tenant}/"):
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
@@ -2259,17 +2360,17 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                     return tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
                 except ValueError:
                     pass
-            return store.get(tenant, args["resource_ref"])
+            return legacy_intent_only(store.get(tenant, args["resource_ref"]))
         if name == "service_instance_list":
             controlled = tenant_control_request("/v1/services", tenant).get("items", [])
-            return {"tenantRef": tenant, "instances": store.list(tenant) + controlled}
+            return {"tenantRef": tenant, "instances": [legacy_intent_only(item) for item in store.list(tenant)] + controlled}
         if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
             authenticated_tenant_operator(identity)
             if args["resource_ref"].startswith(f"service://{tenant}/"):
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
                 try:
                     current = tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
-                    if current.get("spec", {}).get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
+                    if current.get("spec", {}).get("serviceClass") in LIVE_SERVICE_CLASSES:
                         if authenticated_tenant_operator(identity) != tenant:
                             raise PermissionError("tenant context changed during authorization")
                         if name == "service_instance_update":
@@ -2279,22 +2380,12 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 except ValueError:
                     pass
             current = store.get(tenant, args["resource_ref"])
-            if name in {"service_instance_update", "service_instance_resume"}:
-                require_tenant_service_grant(tenant, current["service_class"], mutate=True)
-            spec = dict(args.get("spec") or current["spec"])
-            if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
-                raise ServiceError("serviceClass is immutable")
-            desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}.get(name)
-            if desired:
-                spec["desiredState"] = desired
-            return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
+            no_live_service_provisioner(current["service_class"])
         if name == "service_binding_create":
             current = store.get(tenant, args["resource_ref"])
-            require_tenant_service_grant(tenant, current["service_class"], mutate=True)
-            authenticated_tenant_operator(identity)
-            return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
+            no_live_service_provisioner(current["service_class"])
         if name == "service_binding_list":
-            return {"tenantRef": tenant, "bindings": store.bindings(tenant, args.get("resource_ref"))}
+            return {"tenantRef": tenant, "bindings": service_bindings(tenant, args.get("resource_ref"))}
         if name == "service_binding_revoke":
             authenticated_tenant_operator(identity)
             return store.revoke_binding(tenant, args["binding_ref"])

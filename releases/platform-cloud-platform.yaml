@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: grove-amber
+codename: canopy-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:2bff8ccf68f42bd88df936abec63ef4a317dcdb0c4a8ad71dc73c75ac6e1d915
+  digest: sha256:f5c5bb8fe554864235599bdbb3b867c2808bd12aff2dc1edeedeeeef6802b017
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

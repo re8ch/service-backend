@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -29,6 +30,11 @@ func (s *server) registerGrafanaTools(ms *mcp.Server) {
 				id, err := identityFrom(ctx)
 				if err != nil {
 					return nil, nil, err
+				}
+				if name == "grafana_render" || name == "grafana_exploration_save" || name == "grafana_exploration_delete" {
+					if err := requireOperator(id); err != nil {
+						return nil, nil, err
+					}
 				}
 				value, err := s.callGrafana(ctx, id.Tenant, name, args)
 				return nil, value, err
@@ -199,6 +205,30 @@ func (s *server) callGrafana(ctx context.Context, tenant, name string, args map[
 		}
 		return withOperation(tenant, operation, map[string]any{"method": method, "correlations": rows, "best": best, "warning": "Correlation does not imply causation."}), nil
 	}
+	if name == "grafana_render" || name == "grafana_exploration_save" {
+		binding, bindingErr := tenantGrafanaBinding(tenant)
+		if bindingErr != nil {
+			if client == nil || client.orgID <= 1 || !strings.HasPrefix(tenant, "personal-") {
+				return nil, bindingErr
+			}
+			binding = grafanaBinding{OrgID: client.orgID, TenantLabel: tenant}
+		}
+		dashboard := object(args["dashboard"])
+		if name == "grafana_render" && args["dashboard"] == nil {
+			uid := asString(args, "dashboard_uid")
+			if uid == "" {
+				return nil, errors.New("dashboard_uid or dashboard is required")
+			}
+			current, readErr := client.request(ctx, http.MethodGet, "/api/dashboards/uid/"+url.PathEscape(uid), nil, 30*time.Second, false)
+			if readErr != nil {
+				return nil, readErr
+			}
+			dashboard = object(object(current)["dashboard"])
+		}
+		if err := validateGrafanaDashboardScope(dashboard, binding.TenantLabel, datasources); err != nil {
+			return nil, err
+		}
+	}
 	admin, err := tenantGrafana(ctx, tenant, true)
 	if err != nil {
 		return nil, err
@@ -248,6 +278,7 @@ func (s *server) grafanaRender(ctx context.Context, tenant, operation string, ad
 		for key, value := range object(args["dashboard"]) {
 			dashboard[key] = value
 		}
+		delete(dashboard, "id")
 		dashboard["uid"], dashboard["tags"] = temporary, uniqueSortedTags(dashboard["tags"], "re8ch-ai-ephemeral", "tenant:"+tenant)
 		if _, err := admin.request(ctx, http.MethodPost, "/api/dashboards/db", map[string]any{"dashboard": dashboard, "folderUid": "", "overwrite": false, "message": "Ephemeral tenant MCP render"}, 30*time.Second, false); err != nil {
 			return nil, err
@@ -286,6 +317,7 @@ func (s *server) grafanaSave(ctx context.Context, tenant, operation string, admi
 	for key, value := range object(args["dashboard"]) {
 		dashboard[key] = value
 	}
+	delete(dashboard, "id")
 	if asString(dashboard, "uid") == "" {
 		digest := sha256.Sum256([]byte(tenant + ":" + asString(args, "idempotency_key")))
 		dashboard["uid"] = "ai-" + hex.EncodeToString(digest[:])[:24]
