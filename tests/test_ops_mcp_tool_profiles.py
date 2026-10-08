@@ -1,4 +1,6 @@
 import importlib.util
+import base64
+import json
 import os
 from pathlib import Path
 import unittest
@@ -46,9 +48,48 @@ class ToolProfileTests(unittest.TestCase):
         self.assertEqual(read.hostname, module.PG_SERVICE_ROUTES["readService"]["host"])
         self.assertEqual(read.port, 5432)
         self.assertEqual(urlsplit(values["DATABASE_URL_POOL_RW"]).port, 6432)
+        self.assertEqual(module.pg_route_from_args({}, read_only=True)[2], "readService")
+        self.assertEqual(module.pg_route_from_args({}, read_only=False)[2], "writeService")
         plan = module.generate_pg_tenant_database_plan({"database": "example"})
         self.assertEqual(plan["connectionRoutes"]["recommendedRead"], read.hostname + ":5432")
         self.assertNotIn("5433", plan["psqlCommand"])
+
+    def test_database_secret_values_stay_inside_sql_proxy(self):
+        module = load_profile("admin")
+        legacy = load_profile("legacy")
+        proxy_schema = next(tool["inputSchema"] for tool in legacy.mcp_tools() if tool["name"] == "postgres_sql_proxy")
+        self.assertNotIn("user", proxy_schema["properties"])
+        self.assertNotIn("password", proxy_schema["properties"])
+        module.current_namespace = lambda: "tenant-a"
+        module.current_tenant = lambda: "tenant-a"
+        module.allowed_databases_for_namespace = lambda _namespace: ["app"]
+        module.get_database_secret_reference = lambda namespace, database: {"namespace": namespace, "name": "app-db-credentials"}
+        secret = "test-only-db-password"
+        doc = {"metadata": {"name": "app-db-credentials", "namespace": "tenant-a", "labels": {
+            "re8ch.com/tenant": "tenant-a", "re8ch.com/secret-purpose": "postgres-credentials", "re8ch.com/database": "app",
+        }, "annotations": {"re8ch.com/credential-status": "complete"}}, "data": {
+            "APP_APP_RO_USER": base64.b64encode(b"app_app_ro").decode(),
+            "APP_APP_RO_PASSWORD": base64.b64encode(secret.encode()).decode(),
+        }}
+        module.kube_request = lambda method, path: doc
+        metadata = module.get_tenant_database_credentials({"database": "app"})
+        self.assertEqual(metadata["credentialMaterialReturned"], False)
+        self.assertEqual(metadata["metadata"]["keys"], ["APP_APP_RO_PASSWORD", "APP_APP_RO_USER"])
+        self.assertNotIn(secret, json.dumps(metadata))
+        self.assertNotIn("data", metadata)
+        self.assertNotIn("recommendedRoutes", metadata)
+        with self.assertRaisesRegex(ValueError, "direct database credentials"):
+            module.postgres_sql_proxy({"database": "app", "sql": "SELECT 1", "password": secret})
+        with self.assertRaisesRegex(PermissionError, "role is not published"):
+            module.postgres_sql_proxy({"database": "app", "sql": "SELECT 1", "role": "admin"})
+        invoked = []
+        module.pg_connect = lambda host, port, database, user, password, timeout: invoked.append((user, password)) or type("Socket", (), {"close": lambda self: None})()
+        module.pg_execute_simple = lambda *_args, **_kwargs: {"rows": []}
+        result = module.postgres_sql_proxy({"database": "app", "sql": "SELECT 1"})
+        self.assertEqual(invoked, [("app_app_ro", secret)])
+        for key in ("data", "password", "user", "host", "port"):
+            self.assertNotIn(key, result)
+        self.assertNotIn(secret, json.dumps(result))
 
     def test_profiles_are_mutually_exclusive(self):
         observe = set(self.tools("observe"))

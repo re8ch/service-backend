@@ -307,14 +307,14 @@ Grafana for AI agents:
 - Do not use human Grafana web passwords for AI agents.
 
 Recommended PostgreSQL routing:
-- Prefer tenant Secrets and the get_tenant_database_credentials tool instead of hardcoding database hosts.
+- Prefer tenant Secret references and metadata from get_tenant_database_credentials instead of hardcoding database hosts. Credential values are never returned.
 - Direct write/admin/migration SQL: pgwrite.zt.re8ch.com:5433.
 - Pooled app read/write direct PG: pgwrite.zt.re8ch.com:6432 when PgBouncer semantics fit the app.
 - Direct normal reads: pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434, chosen by region and health.
 - CloudBeaver/DBeaver JDBC templates may use pgwrite.zt.re8ch.com:5432 for intentional instance-level GUI access, but do not treat 5432 as the HA write route.
 - Cloud functions should prefer the PostgREST HA gateway on :3080 for simple CRUD: Shanghai write/strong read http://192.0.2.172:3080, Shanghai read http://192.0.2.141:3080, Guangzhou read http://192.0.2.33:3080.
 - PostgreSQL 5432 is the instance port. It is useful for DBA inspection and some GUI clients, but the tenant default write route is 5433 or PgBouncer 6432.
-- For Ops MCP postgres_sql_proxy specifically, the default route is instancePrimaryName / pgwrite.zt.re8ch.com:5432 because it is a network reachability helper for external agents and current tenant roles authenticate reliably on that direct instance entry. Use explicit route only when you intentionally need to test 5433/5434/6432.
+- Ops MCP postgres_sql_proxy defaults to the current readService for read-only calls and writeService for writes. Both routes are selected from the server-side Pigsty service inventory.
 
 Safety boundary:
 - Tenant namespace: qwen
@@ -322,7 +322,7 @@ Safety boundary:
 - Node access is read-only for topology and metrics.
 - Admin token can reconcile Dex static users and tenant RBAC.
 - k8s_api_proxy only forwards Kubernetes API paths. The caller-provided kubeToken controls Kubernetes RBAC; Ops MCP only solves public-to-ZT/K3s API reachability.
-- postgres_sql_proxy executes lightweight SQL from the Ops MCP network position. PostgreSQL username/password or tenant DB Secret role still controls database permissions; normal Ops tokens are limited to cataloged tenant databases.
+- postgres_sql_proxy executes bounded SQL from the Ops MCP network position using server-held tenant DB credentials; direct username/password inputs are rejected and normal Ops tokens are limited to cataloged tenant databases and app roles.
 """
 
 if OPS_TOOL_PROFILE != "legacy":
@@ -651,7 +651,7 @@ def tenant_db_secret_role(secret_data, database, role):
 
 
 def pg_route_from_args(args, read_only=True):
-    route = args.get("route") or "instancePrimaryName"
+    route = args.get("route") or ("readService" if read_only else "writeService")
     if route not in PG_SERVICE_ROUTES or "host" not in PG_SERVICE_ROUTES[route]:
         raise ValueError("route must be one of: %s" % ", ".join(sorted(k for k, v in PG_SERVICE_ROUTES.items() if "host" in v)))
     return PG_SERVICE_ROUTES[route]["host"], int(PG_SERVICE_ROUTES[route]["port"]), route
@@ -671,16 +671,16 @@ def postgres_sql_proxy(args=None, admin=False):
         raise PermissionError("readOnly SQL proxy only allows SELECT/WITH/SHOW/EXPLAIN/VALUES")
     max_rows = min(max(int(args.get("maxRows") or 100), 1), 500)
     timeout = min(max(int(args.get("timeoutSeconds") or 10), 1), 30)
+    if any(key in args for key in ("user", "username", "password")):
+        raise ValueError("direct database credentials are not accepted by the SQL proxy")
     role = args.get("role") or ("app_ro" if read_only else "app_rw")
-    user = args.get("user") or args.get("username")
-    password = args.get("password")
-    secret_ref = None
-    if not (user and password):
-        creds = get_tenant_database_credentials({"namespace": namespace, "database": database}, admin=admin)
-        if creds.get("status") != "complete":
-            raise RuntimeError("database credential secret is not complete: %s" % creds)
-        user, password = tenant_db_secret_role(creds.get("data", {}), database, role)
-        secret_ref = creds.get("secret")
+    if not admin and role not in {"app_ro", "app_rw"}:
+        raise PermissionError("database role is not published to tenant users")
+    creds = _tenant_database_credential({"namespace": namespace, "database": database}, admin=admin)
+    if creds.get("status") != "complete":
+        raise RuntimeError("database credential secret is not complete")
+    user, password = tenant_db_secret_role(creds.get("data", {}), database, role)
+    secret_ref = creds.get("secret")
     if not user or not password:
         raise ValueError("database user/password not available for role: %s" % role)
     host, port, route = pg_route_from_args(args, read_only=read_only)
@@ -696,13 +696,10 @@ def postgres_sql_proxy(args=None, admin=False):
             "namespace": namespace,
             "database": database,
             "route": route,
-            "host": host,
-            "port": port,
-            "user": user,
             "role": role,
             "readOnly": read_only,
             "credentialSecret": secret_ref,
-            "note": "Ops MCP only proxies network reachability. PostgreSQL authentication and role permissions are still enforced by the supplied database credentials.",
+            "note": "Ops MCP resolves the tenant database credential server-side; PostgreSQL role permissions still apply.",
         })
         return result
     finally:
@@ -934,7 +931,7 @@ def read_allowed_tenant_secret(namespace, name, expected_purpose=None):
     return doc
 
 
-def get_tenant_database_credentials(args=None, admin=False):
+def _tenant_database_credential(args=None, admin=False):
     args = args or {}
     namespace = namespace_for_secret_args(args, admin=admin)
     database = args.get("database") or args.get("db") or ""
@@ -970,6 +967,12 @@ def get_tenant_database_credentials(args=None, admin=False):
         "metadata": secret_summary(doc),
         "data": decode_secret_data(doc),
     }
+
+
+def get_tenant_database_credentials(args=None, admin=False):
+    """Expose only credential metadata; SQL proxy resolves material server-side."""
+    resolved = _tenant_database_credential(args, admin=admin)
+    return {key: value for key, value in resolved.items() if key not in {"data", "recommendedRoutes", "usageNotes"}} | {"credentialMaterialReturned": False}
 
 
 def decode_dockerconfig_secret(doc):
@@ -4147,10 +4150,10 @@ def mcp_tools(include_admin=False):
         {"name": "get_database_routing_status", "description": "Return Pigsty PostgreSQL/PgBouncer/PostgREST route reachability, sanitized EndpointSlice readiness and CloudBeaver reachability without SQL, schema, row, credential or connection data.", "inputSchema": schema()},
         {"name": "get_external_publication_readiness", "description": "Return fixed tools/auth DNS, trusted TLS, OAuth metadata, MCP challenge without reading OAuth secrets, tokens, certificate bodies, DNS credentials or user claims.", "inputSchema": schema()},
         {"name": "get_tenant_secret_refs", "description": "Return tenant-readable Kubernetes Secret references. Normal token is limited to this tenant namespace; admin can pass allTenants=true.", "inputSchema": schema({"namespace": {"type": "string"}, "allTenants": {"type": "boolean", "default": False}})},
-        {"name": "get_tenant_database_credentials", "description": "Return decoded PostgreSQL credential Secret data for a tenant database. Normal token can only read this tenant namespace and cataloged databases.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
+        {"name": "get_tenant_database_credentials", "description": "Return only PostgreSQL credential Secret metadata and key names for a cataloged tenant database. Credential values remain server-side for the SQL proxy and are never returned.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}}, ["database"])},
         {"name": "get_tenant_web_logins", "description": "Return tenant web/robot logins stored in tenant namespace Secrets, including CloudBeaver, Grafana, and Harbor credentials.", "inputSchema": schema({"namespace": {"type": "string"}})},
         {"name": "k8s_api_proxy", "description": "Forward one request to the internal Kubernetes API server using the caller-provided kubeToken. Ops MCP only solves reachability; Kubernetes RBAC is enforced by kubeToken. Path must be a Kubernetes API path such as /api/v1/namespaces/anycam/pods.", "inputSchema": schema({"method": {"type": "string", "default": "GET"}, "path": {"type": "string"}, "kubeToken": {"type": "string"}, "body": {}, "contentType": {"type": "string", "default": "application/json"}, "timeoutSeconds": {"type": "integer", "default": 20}}, ["path", "kubeToken"])},
-        {"name": "postgres_sql_proxy", "description": "Execute lightweight PostgreSQL SQL from the Ops MCP network position, useful when external agents cannot resolve or reach pgwrite.zt.re8ch.com. Default route is instancePrimaryName, currently pgwrite.zt.re8ch.com:5432, because tenant roles authenticate there reliably. Default is readOnly=true and only allows SELECT/WITH/SHOW/EXPLAIN/VALUES. PostgreSQL credentials and tenant catalog still enforce access.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}, "sql": {"type": "string"}, "role": {"type": "string", "default": "app_ro"}, "route": {"type": "string", "default": "instancePrimaryName"}, "readOnly": {"type": "boolean", "default": True}, "user": {"type": "string"}, "password": {"type": "string"}, "maxRows": {"type": "integer", "default": 100}, "timeoutSeconds": {"type": "integer", "default": 10}}, ["database", "sql"])},
+        {"name": "postgres_sql_proxy", "description": "Execute bounded tenant PostgreSQL SQL using a server-held app_ro or app_rw credential; direct credential inputs and privileged roles are not accepted for tenant users. Defaults to readOnly=true and the readService route; writes default to writeService. Results do not return credential material or internal connection addresses.", "inputSchema": schema({"namespace": {"type": "string"}, "database": {"type": "string"}, "sql": {"type": "string"}, "role": {"type": "string", "default": "app_ro"}, "route": {"type": "string"}, "readOnly": {"type": "boolean", "default": True}, "maxRows": {"type": "integer", "default": 100}, "timeoutSeconds": {"type": "integer", "default": 10}}, ["database", "sql"])},
     ]
     if include_admin:
         tools.extend([
