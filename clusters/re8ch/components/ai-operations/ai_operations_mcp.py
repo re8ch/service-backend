@@ -758,9 +758,9 @@ TENANT_INFRA_TOOLS = [
     {"name": "tenant_list", "description": "List tenant identity boundaries. Only the protected admin tenant may call this tool.", "inputSchema": schema({})},
     {"name": "tenant_visibility_update", "description": "Change tenant visibility without exposing an application's native ACL model.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "visibility": {"type": "string", "enum": ["Private", "Tenant", "Shared"]}}, ["tenant_ref", "visibility"])},
     {"name": "tenant_delete", "description": "Start deletion of a non-admin tenant and revoke its grants before adapter cleanup.", "inputSchema": schema({"tenant_ref": {"type": "string"}}, ["tenant_ref"])},
-    {"name": "service_catalog_list", "description": "List published service classes, plans, regions, parameters and meters. This is not the full tenant capability catalog: call tenant_self_service_capabilities for current resource operations and dynamic_skill_search for reviewed internal workflows.", "inputSchema": schema({})},
-    {"name": "service_instance_plan", "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}}, ["name", "spec"])},
-    {"name": "service_instance_create", "description": "Create a durable tenant service instance request idempotently.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["name", "spec", "idempotency_key"])},
+    {"name": "service_catalog_list", "description": "List service classes backed by a service-instance controller, plans, regions, parameters and meters; listing does not prove provider health. For Kubernetes, volumes, readiness and other tenant operations call tenant_self_service_capabilities; use dynamic_skill_search for reviewed internal workflows.", "inputSchema": schema({})},
+    {"name": "service_instance_plan", "description": "Validate and preview a tenant-scoped instance for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_plan instead.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}}, ["name", "spec"])},
+    {"name": "service_instance_create", "description": "Create a tenant instance only for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_create; intent-only classes are rejected.", "inputSchema": schema({"name": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["name", "spec", "idempotency_key"])},
     {"name": "service_instance_get", "description": "Read one service instance owned by the authenticated tenant.", "inputSchema": schema({"resource_ref": {"type": "string"}}, ["resource_ref"])},
     {"name": "service_instance_list", "description": "List service instances owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "service_instance_update", "description": "Update the desired specification of a tenant service instance idempotently.", "inputSchema": schema({"resource_ref": {"type": "string"}, "spec": {"type": "object"}, "idempotency_key": {"type": "string"}}, ["resource_ref", "spec", "idempotency_key"])},
@@ -991,16 +991,32 @@ def require_tenant_service_class(service_class: str) -> None:
         raise PermissionError("service class is not published")
 
 
-def tenant_catalog_for_profile(tenant: str) -> list[dict[str, Any]]:
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}
+
+
+def no_live_service_provisioner(service_class: str) -> None:
+    if service_class in {"storage.volume.v1", "compute.workload.v1"}:
+        raise ServiceError("service class has no live service-instance provisioner; use tenant_claim_plan and tenant_claim_create for this capability")
+    raise ServiceError("service class has no live provisioner; discover currently executable operations with tenant_self_service_capabilities")
+
+
+def legacy_intent_only(item: dict[str, Any]) -> dict[str, Any]:
+    return {**item, "fulfillmentState": "legacy-intent-only", "provisioned": False}
+
+
+def tenant_catalog_for_profile(tenant: str, grants: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    active = {grant.get("consumableRef") for grant in grants if grant.get("lifecycle") == "Active"}
     return [item for item in service_catalog()
-            if item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais"]
+            if item["serviceClass"] in LIVE_SERVICE_CLASSES
+            and item["serviceClass"] in active
+            and (item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais")]
 
 
 def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
     """List authorized resource descriptors without fetching their contents."""
     tenant = authenticated_tenant(identity)
     records = [
-        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(tenant), "pricingIncluded": False}),
+        (f"re8ch://tenant/{tenant}/catalog", "Service catalog", lambda: {"services": tenant_catalog_for_profile(tenant, authenticated_tenant_grants(identity)), "pricingIncluded": False}),
     ]
     if PROFILE == "admin":
         records.extend([
@@ -1010,7 +1026,7 @@ def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
         ])
     else:
         records.extend([
-            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": tenant_service_store().list(tenant)}),
+            (f"re8ch://tenant/{tenant}/instances", "Service instances", lambda: {"instances": [legacy_intent_only(item) for item in tenant_service_store().list(tenant)]}),
             (f"re8ch://tenant/{tenant}/bindings", "Consumption bindings", lambda: {"bindings": tenant_service_store().bindings(tenant)}),
             (f"re8ch://tenant/{tenant}/service-usage", "Unpriced service usage summary", lambda: tenant_service_store().usage_summary(tenant, None)),
             (f"re8ch://tenant/{tenant}/claims", "Tenant resource claims", lambda: tenant_control_request("/v1/claims", tenant)),
@@ -2232,7 +2248,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 raise PermissionError("cross-tenant connection revoke is forbidden")
             return store.revoke_connection(target, args["connection_ref"], bool(args.get("offline")))
         if name == "service_catalog_list":
-            services = tenant_catalog_for_profile(tenant)
+            services = tenant_catalog_for_profile(tenant, authenticated_tenant_grants(identity))
             if tenant == "artchais" and any(item["serviceClass"] == "network.among-clusters.v1" for item in services):
                 try:
                     tenant_control_request("/v1/services/catalog", tenant)
@@ -2241,22 +2257,20 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
             require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
-            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
+            if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services/plan", tenant, {"name": args["name"], "spec": args["spec"]})
             require_tenant_service_class(args["spec"].get("serviceClass", ""))
-            authenticated_tenant_operator(identity)
-            return store.plan(tenant, args["name"], args["spec"])
+            no_live_service_provisioner(args["spec"]["serviceClass"])
         if name == "service_instance_create":
             require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
-            if args["spec"].get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
+            if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
                 return tenant_control_request("/v1/services", tenant, {"name": args["name"], "spec": args["spec"], "idempotencyKey": args["idempotency_key"]})
             require_tenant_service_class(args["spec"].get("serviceClass", ""))
-            authenticated_tenant_operator(identity)
-            return store.mutate(tenant, args["name"], args["spec"], args["idempotency_key"], "create")
+            no_live_service_provisioner(args["spec"]["serviceClass"])
         if name == "service_instance_get":
             if args["resource_ref"].startswith(f"service://{tenant}/"):
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
@@ -2264,17 +2278,17 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                     return tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
                 except ValueError:
                     pass
-            return store.get(tenant, args["resource_ref"])
+            return legacy_intent_only(store.get(tenant, args["resource_ref"]))
         if name == "service_instance_list":
             controlled = tenant_control_request("/v1/services", tenant).get("items", [])
-            return {"tenantRef": tenant, "instances": store.list(tenant) + controlled}
+            return {"tenantRef": tenant, "instances": [legacy_intent_only(item) for item in store.list(tenant)] + controlled}
         if name in {"service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete"}:
             authenticated_tenant_operator(identity)
             if args["resource_ref"].startswith(f"service://{tenant}/"):
                 candidate = args["resource_ref"].rsplit("/", 1)[-1]
                 try:
                     current = tenant_control_request("/v1/services/" + urllib.parse.quote(candidate, safe=""), tenant)
-                    if current.get("spec", {}).get("serviceClass") in {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1"}:
+                    if current.get("spec", {}).get("serviceClass") in LIVE_SERVICE_CLASSES:
                         if authenticated_tenant_operator(identity) != tenant:
                             raise PermissionError("tenant context changed during authorization")
                         if name == "service_instance_update":
@@ -2284,20 +2298,10 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 except ValueError:
                     pass
             current = store.get(tenant, args["resource_ref"])
-            if name in {"service_instance_update", "service_instance_resume"}:
-                require_tenant_service_class(current["service_class"])
-            spec = dict(args.get("spec") or current["spec"])
-            if args.get("spec") and spec.get("serviceClass") != current["service_class"]:
-                raise ServiceError("serviceClass is immutable")
-            desired = {"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}.get(name)
-            if desired:
-                spec["desiredState"] = desired
-            return store.mutate(tenant, current["name"], spec, args["idempotency_key"], name.removeprefix("service_instance_"))
+            no_live_service_provisioner(current["service_class"])
         if name == "service_binding_create":
             current = store.get(tenant, args["resource_ref"])
-            require_tenant_service_class(current["service_class"])
-            authenticated_tenant_operator(identity)
-            return store.create_binding(tenant, args["resource_ref"], args["binding_type"], args.get("parameters") or {})
+            no_live_service_provisioner(current["service_class"])
         if name == "service_binding_list":
             return {"tenantRef": tenant, "bindings": store.bindings(tenant, args.get("resource_ref"))}
         if name == "service_binding_revoke":

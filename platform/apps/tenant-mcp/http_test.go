@@ -281,7 +281,11 @@ func TestMCPSharedPersonalClassRetainsOwnerAndPublishesResourceTools(t *testing.
 		writeJSON(w, 200, map[string]string{"id": "user-1"})
 	}))
 	defer goTrue.Close()
-	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/capabilities" {
+			writeJSON(w, 200, map[string]any{"tenantRef": owner, "grants": []any{map[string]any{"name": "personal-harbor", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"}}})
+			return
+		}
 		writeJSON(w, 200, map[string]string{
 			"tenantRef":        "personal-11111111-1111-4111-8111-111111111111",
 			"runtimeTenantRef": "personal-standard", "role": "admin", "defaultNamespace": owner + "-default",

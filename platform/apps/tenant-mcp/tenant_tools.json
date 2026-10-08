@@ -1,6 +1,6 @@
 [
   {
-    "description": "List published service classes, plans, regions, parameters and meters. This is not the full tenant capability catalog: call tenant_self_service_capabilities for current resource operations and dynamic_skill_search for reviewed internal workflows.",
+    "description": "List service classes backed by a service-instance controller, plans, regions, parameters and meters; listing does not prove provider health. For Kubernetes, volumes, readiness and other tenant operations call tenant_self_service_capabilities; use dynamic_skill_search for reviewed internal workflows.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {},
@@ -9,7 +9,7 @@
     "name": "service_catalog_list"
   },
   {
-    "description": "Validate and preview a tenant-scoped service instance without changing infrastructure.",
+    "description": "Validate and preview a tenant-scoped instance for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_plan instead.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -29,7 +29,7 @@
     "name": "service_instance_plan"
   },
   {
-    "description": "Create a durable tenant service instance request idempotently.",
+    "description": "Create a tenant instance only for a live service class from service_catalog_list. For volumes and workloads use tenant_claim_create; intent-only classes are rejected.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

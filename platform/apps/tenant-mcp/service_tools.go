@@ -4,12 +4,55 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var providerBacked = map[string]bool{"network.among-clusters.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true}
+
+func liveServiceOnly(services []map[string]any, tenant string) []map[string]any {
+	filtered := []map[string]any{}
+	for _, service := range services {
+		serviceClass := asString(service, "serviceClass")
+		if providerBacked[serviceClass] && (serviceClass != "network.among-clusters.v1" || tenant == "artchais") {
+			filtered = append(filtered, service)
+		}
+	}
+	return filtered
+}
+
+func activeGrantedServices(services []map[string]any, grants []map[string]any) []map[string]any {
+	active := map[string]bool{}
+	for _, grant := range grants {
+		if asString(grant, "lifecycle") == "Active" {
+			active[asString(grant, "consumableRef")] = true
+		}
+	}
+	filtered := []map[string]any{}
+	for _, service := range services {
+		if active[asString(service, "serviceClass")] {
+			filtered = append(filtered, service)
+		}
+	}
+	return filtered
+}
+
+func noLiveServiceProvisioner(serviceClass string) error {
+	if serviceClass == "storage.volume.v1" || serviceClass == "compute.workload.v1" {
+		return errors.New("service class has no live service-instance provisioner; use tenant_claim_plan and tenant_claim_create for this capability")
+	}
+	return errors.New("service class has no live provisioner; discover currently executable operations with tenant_self_service_capabilities")
+}
+
+func legacyIntentOnly(item map[string]any) map[string]any {
+	copy := make(map[string]any, len(item)+2)
+	for key, value := range item {
+		copy[key] = value
+	}
+	copy["fulfillmentState"] = "legacy-intent-only"
+	copy["provisioned"] = false
+	return copy
+}
 
 func slice(value any) []any { result, _ := value.([]any); return result }
 
@@ -56,16 +99,11 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if err != nil {
 			return nil, err
 		}
-		services := catalog
-		if tenant != "artchais" {
-			filtered := []map[string]any{}
-			for _, service := range services {
-				if service["serviceClass"] != "network.among-clusters.v1" {
-					filtered = append(filtered, service)
-				}
-			}
-			services = filtered
+		grants, err := tenantGrantedConsumables(ctx, tenant, id.Role)
+		if err != nil {
+			return nil, err
 		}
+		services := activeGrantedServices(liveServiceOnly(catalog, tenant), grants)
 		if tenant == "artchais" {
 			if _, err = controlRequest(ctx, tenant, "/v1/services/catalog"); err != nil {
 				var denied controlHTTPError
@@ -104,13 +142,7 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if _, err := catalogEntry(serviceClass); err != nil {
 			return nil, errors.New("service class is not published")
 		}
-		if err := requireOperator(id); err != nil {
-			return nil, err
-		}
-		if name == "service_instance_plan" {
-			return s.instancePlan(tenant, asString(args, "name"), spec)
-		}
-		return s.instanceMutate(tenant, asString(args, "name"), spec, asString(args, "idempotency_key"), "create")
+		return nil, noLiveServiceProvisioner(serviceClass)
 	case "service_instance_get":
 		if candidate, err := resourceName(tenant, ref); err == nil {
 			value, err := controlRequest(ctx, tenant, "/v1/services/"+url.PathEscape(candidate))
@@ -121,7 +153,11 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 				return nil, err
 			}
 		}
-		return s.instanceGet(tenant, ref)
+		legacy, err := s.instanceGet(tenant, ref)
+		if err != nil {
+			return nil, err
+		}
+		return legacyIntentOnly(legacy), nil
 	case "service_instance_list":
 		controlled, err := controlRequest(ctx, tenant, "/v1/services")
 		if err != nil {
@@ -133,7 +169,7 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		}
 		combined := []any{}
 		for _, item := range local {
-			combined = append(combined, item)
+			combined = append(combined, legacyIntentOnly(item))
 		}
 		combined = append(combined, slice(controlled["items"])...)
 		return map[string]any{"tenantRef": tenant, "instances": combined}, nil
@@ -158,31 +194,13 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if err != nil {
 			return nil, err
 		}
-		spec := object(args["spec"])
-		if len(spec) == 0 {
-			spec = object(current["spec"])
-		}
-		if args["spec"] != nil && asString(spec, "serviceClass") != asString(current, "service_class") {
-			return nil, errors.New("serviceClass is immutable")
-		}
-		if name != "service_instance_update" {
-			specCopy := map[string]any{}
-			for key, value := range spec {
-				specCopy[key] = value
-			}
-			spec = specCopy
-			spec["desiredState"] = map[string]string{"service_instance_suspend": "Suspended", "service_instance_resume": "Ready", "service_instance_delete": "Deleted"}[name]
-		}
-		return s.instanceMutate(tenant, asString(current, "name"), spec, asString(args, "idempotency_key"), strings.TrimPrefix(name, "service_instance_"))
+		return nil, noLiveServiceProvisioner(asString(current, "service_class"))
 	case "service_binding_create":
-		_, err := s.instanceGet(tenant, ref)
+		current, err := s.instanceGet(tenant, ref)
 		if err != nil {
 			return nil, err
 		}
-		if err = requireOperator(id); err != nil {
-			return nil, err
-		}
-		return s.bindingCreate(tenant, ref, asString(args, "binding_type"), object(args["parameters"]))
+		return nil, noLiveServiceProvisioner(asString(current, "service_class"))
 	case "service_binding_list":
 		items, err := s.bindingList(tenant, ref)
 		return map[string]any{"tenantRef": tenant, "bindings": items}, err

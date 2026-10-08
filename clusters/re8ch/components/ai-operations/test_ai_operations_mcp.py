@@ -358,6 +358,10 @@ class RegistryTests(unittest.TestCase):
         self.assertNotIn("tenant_create", names)
         self.assertIn("byoc_cluster_register", names)
         registry.authenticated_tenant = lambda _identity: "acme"
+        registry.authenticated_tenant_grants = lambda _identity: [
+            {"consumableRef": "registry.harbor.v1", "lifecycle": "Active"},
+            {"consumableRef": "observability.grafana.v1", "lifecycle": "Active"},
+        ]
         registry.tenant_claim_usage_summary = lambda *_args, **_kwargs: {"claims": []}
         identity = {"tenant": "acme", "groups": []}
         listed = registry.resources_list(identity, None)

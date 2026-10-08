@@ -83,7 +83,14 @@ func (s *server) resourceValue(ctx context.Context, id identity, suffix string) 
 		return map[string]any{"services": object(result)["services"], "pricingIncluded": false}, nil
 	case "instances":
 		items, err := s.instanceList(id.Tenant)
-		return map[string]any{"instances": items}, err
+		if err != nil {
+			return nil, err
+		}
+		legacy := make([]map[string]any, 0, len(items))
+		for _, item := range items {
+			legacy = append(legacy, legacyIntentOnly(item))
+		}
+		return map[string]any{"instances": legacy}, nil
 	case "bindings":
 		items, err := s.bindingList(id.Tenant, "")
 		return map[string]any{"bindings": items}, err
