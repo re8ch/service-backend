@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-beryl
+    delivery.re8ch.com/codename: cascade-emerald
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:19b2d06081ebea63672860def52bae90995ff3feecb5ee762ec17308e08f4a6d
+    digest: sha256:963040b546cd57e419575eacdf46ea6f28e7d06b229f10be5cd6e1f65ffa741c
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: tideway-beryl
+    delivery.re8ch.com/codename: cascade-emerald
 spec:
   interval: 1m
   retryInterval: 1m
