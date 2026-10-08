@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: riptide-zircon
+    delivery.re8ch.com/codename: springtide-zircon
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:7f2a9dd7349436b112e33df51a0555d39d79d9f8594f9755abfae3bb50b90b05
+    digest: sha256:95640556de06a2b179bdde504f9914e9c410ed8eaf31493b3061c4300bba73a7
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: riptide-zircon
+    delivery.re8ch.com/codename: springtide-zircon
 spec:
   interval: 1m
   retryInterval: 1m
