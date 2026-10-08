@@ -61,10 +61,25 @@ func readyNamespace(ctx context.Context, tenant, namespace string) error {
 	if err != nil {
 		return err
 	}
+	for _, owned := range readyTenantNamespaces(value, tenant) {
+		if owned == namespace {
+			return nil
+		}
+	}
+	return errors.New("namespace is not a Ready namespace owned by the authenticated tenant")
+}
+
+func readyTenantNamespaces(value map[string]any, tenant string) []string {
+	namespaces := []string{}
+	seen := map[string]bool{}
 	for _, raw := range slice(value["items"]) {
 		item := object(raw)
 		spec, status := object(item["spec"]), object(item["status"])
-		if spec["tenantRef"] != tenant || spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" || spec["namespaceName"] != namespace {
+		if spec["tenantRef"] != tenant || spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" {
+			continue
+		}
+		namespace := asString(spec, "namespaceName")
+		if !validKubernetesName(namespace) || seen[namespace] {
 			continue
 		}
 		if expiration := asString(spec, "expiresAt"); expiration != "" {
@@ -73,9 +88,10 @@ func readyNamespace(ctx context.Context, tenant, namespace string) error {
 				continue
 			}
 		}
-		return nil
+		seen[namespace] = true
+		namespaces = append(namespaces, namespace)
 	}
-	return errors.New("namespace is not a Ready namespace owned by the authenticated tenant")
+	return namespaces
 }
 
 func validateTenantObject(obj map[string]any, namespace string) error {

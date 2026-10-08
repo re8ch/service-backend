@@ -204,16 +204,7 @@ func (s *server) exposureCount(ctx context.Context, id identity) (int, error) {
 		return 0, err
 	}
 	total := 0
-	for _, raw := range slice(value["items"]) {
-		item := object(raw)
-		spec, status := object(item["spec"]), object(item["status"])
-		if spec["operation"] != "EnsurePresent" || status["phase"] != "Ready" {
-			continue
-		}
-		namespace := asString(spec, "namespaceName")
-		if namespace == "" {
-			continue
-		}
+	for _, namespace := range readyTenantNamespaces(value, id.Tenant) {
 		listed, err := commandJSON(ctx, []string{"kubectl", "--namespace", namespace, "get", "httproutes.gateway.networking.k8s.io", "-l", "tenancy.re8ch.com/managed-by=tenant-exposure-controller,tenancy.re8ch.com/tenant=" + id.Tenant, "-o", "json"})
 		if err != nil {
 			return 0, err

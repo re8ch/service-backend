@@ -37,6 +37,30 @@ func TestReadyNamespaceRequiresMatchingTenantRef(t *testing.T) {
 	}
 }
 
+func TestReadyTenantNamespacesFiltersForeignExpiredAndDuplicateEntries(t *testing.T) {
+	entry := func(tenant, namespace, operation, phase, expiry string) any {
+		return map[string]any{
+			"spec":   map[string]any{"tenantRef": tenant, "namespaceName": namespace, "operation": operation, "expiresAt": expiry},
+			"status": map[string]any{"phase": phase},
+		}
+	}
+	value := map[string]any{"items": []any{
+		entry("acme", "acme-default", "EnsurePresent", "Ready", ""),
+		entry("acme", "acme-default", "EnsurePresent", "Ready", ""),
+		entry("other", "other-default", "EnsurePresent", "Ready", ""),
+		entry("acme", "acme-expired", "EnsurePresent", "Ready", "2000-01-01T00:00:00Z"),
+		entry("acme", "acme-pending", "EnsurePresent", "Pending", ""),
+		entry("acme", "acme-deleted", "EnsureAbsent", "Ready", ""),
+		entry("acme", "bad/name", "EnsurePresent", "Ready", ""),
+		entry("acme", "acme-future", "EnsurePresent", "Ready", "2100-01-01T00:00:00Z"),
+	}}
+	got := readyTenantNamespaces(value, "acme")
+	want := []string{"acme-default", "acme-future"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ready namespaces = %v, want %v", got, want)
+	}
+}
+
 func TestTenantKubernetesDeleteRejectsReadOnlyKindBeforeKubectl(t *testing.T) {
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, map[string]any{"items": []any{map[string]any{"spec": map[string]any{"tenantRef": "acme", "namespaceName": "acme-default", "operation": "EnsurePresent"}, "status": map[string]any{"phase": "Ready"}}}})
