@@ -1030,6 +1030,8 @@ modules:
       digest: sha256:3abf21ab7aa4f9dac0960064b3d36412e33266215eb556d55da58b68c0309bae
     - codename: riptide-jasper
       digest: sha256:7ffecff9324300183b7b9e6743531ee1d55be809b3a21a3e0bcdbf55abeac2fe
+    - codename: springtide-jasper
+      digest: sha256:ccf2a8e17297a38d512c1e18b090804b2ec47e7e9a3b9d9328b460bc8991b556
   platform/hyperswitch:
     releases:
     - codename: anchor
