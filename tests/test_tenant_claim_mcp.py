@@ -149,6 +149,7 @@ def test_harbor_and_grafana_service_requests_use_controller_not_local_store(monk
 def test_artchais_catalog_hides_amongclusters_when_controller_denies_product(monkeypatch):
     module = load(monkeypatch)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "artchais")
+    monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: [{"consumableRef": "network.among-clusters.v1", "lifecycle": "Active"}])
     monkeypatch.setattr(module, "tenant_service_store", lambda: object())
     def deny_product(*_args, **_kwargs): raise PermissionError("product unavailable")
     monkeypatch.setattr(module, "tenant_control_request", deny_product)
@@ -156,9 +157,8 @@ def test_artchais_catalog_hides_amongclusters_when_controller_denies_product(mon
     assert "network.among-clusters.v1" not in {item["serviceClass"] for item in value["services"]}
 
 
-def test_service_catalog_and_mutations_require_published_class_and_operator(monkeypatch):
+def test_service_catalog_excludes_intent_only_classes_and_rejects_fake_provisioning(monkeypatch):
     module = load(monkeypatch)
-    role = {"value": "operator"}
     calls = []
     class Store:
         def plan(self, *args): calls.append(("plan", args)); return {"decision": "preview"}
@@ -167,23 +167,23 @@ def test_service_catalog_and_mutations_require_published_class_and_operator(monk
         def create_binding(self, *args): calls.append(("bind", args)); return {"bindingRef": "binding://acme/one"}
     monkeypatch.setattr(module, "tenant_service_store", Store)
     monkeypatch.setattr(module, "authenticated_tenant", lambda _identity: "acme")
-    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": role["value"]})
+    monkeypatch.setattr(module, "authenticated_tenant_context", lambda _identity: {"tenantRef": "acme", "role": "operator"})
     monkeypatch.setattr(module, "authenticated_tenant_grants", lambda _identity: [{"consumableRef": "storage.volume.v1", "canRequest": True}])
     def no_provider_instance(*_args, **_kwargs): raise ValueError("local service")
     monkeypatch.setattr(module, "tenant_control_request", no_provider_instance)
     import pytest
     spec = {"serviceClass": "storage.volume.v1", "planRef": "shared", "regionRef": "loudi", "parameters": {"sizeGiB": 1}}
     listed = module.call_tool("service_catalog_list", {}, {"subject": "agent"})
-    assert "storage.volume.v1" in {item["serviceClass"] for item in listed["services"]}
-    assert module.call_tool("service_instance_plan", {"name": "disk", "spec": spec}, {"subject": "agent"}) == {"decision": "preview"}
-    role["value"] = "viewer"
-    with pytest.raises(PermissionError, match="operator tenant role"):
-        module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
-    role["value"] = "operator"
-    module.call_tool("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}, {"subject": "agent"})
-    module.call_tool("service_binding_create", {"resource_ref": "service://acme/disk", "binding_type": "access", "parameters": {}}, {"subject": "agent"})
-    module.call_tool("service_instance_delete", {"resource_ref": "service://acme/disk", "idempotency_key": "delete-12345"}, {"subject": "agent"})
-    assert [name for name, _ in calls] == ["plan", "mutate", "bind", "mutate"]
+    assert "storage.volume.v1" not in {item["serviceClass"] for item in listed["services"]}
+    for name, arguments in [
+        ("service_instance_plan", {"name": "disk", "spec": spec}),
+        ("service_instance_create", {"name": "disk", "spec": spec, "idempotency_key": "key-12345"}),
+        ("service_binding_create", {"resource_ref": "service://acme/disk", "binding_type": "access", "parameters": {}}),
+        ("service_instance_delete", {"resource_ref": "service://acme/disk", "idempotency_key": "delete-12345"}),
+    ]:
+        with pytest.raises(module.ServiceError, match="tenant_claim_plan and tenant_claim_create"):
+            module.call_tool(name, arguments, {"subject": "agent"})
+    assert calls == []
 
 
 def test_namespace_tools_use_authenticated_tenant_and_explicit_prefix(monkeypatch):

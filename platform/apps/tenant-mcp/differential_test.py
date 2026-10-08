@@ -44,7 +44,10 @@ class FixtureAPI(BaseHTTPRequestHandler):
         elif self.path == "/v1/claims":
             self.reply(200, {"items": []})
         elif self.path == "/v1/capabilities":
-            self.reply(200, {"tenantRef": "acme", "grants": [{"name": "acme-database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active"}]})
+            self.reply(200, {"tenantRef": "acme", "grants": [
+                {"name": "acme-database", "consumableRef": "database.postgresql.shared.v1", "roleRef": "operator", "lifecycle": "Active"},
+                {"name": "acme-harbor", "consumableRef": "registry.harbor.v1", "roleRef": "operator", "lifecycle": "Active"},
+            ]})
         elif self.path in ("/readyz", "/healthz", "/.well-known/openid-configuration"):
             self.reply(200, {"status": "ready"})
         else:
@@ -163,7 +166,6 @@ def main():
             tool_cases = [
                 ("service_catalog_list", {}), ("service_instance_list", {}),
                 ("service_instance_get", {"resource_ref": "service://acme/worker"}),
-                ("service_instance_plan", {"name": "proposed", "spec": {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}}),
                 ("service_binding_list", {}), ("usage_summary_get", {}),
                 ("usage_events_list", {}), ("byoc_registration_list", {}),
                 ("byoc_connection_list", {}),
@@ -178,6 +180,12 @@ def main():
                 p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))
                 g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))
                 equivalent(name, p, g)
+                if name == "service_catalog_list":
+                    equivalent("service catalog only granted provider-backed classes", {item["serviceClass"] for item in p["services"]}, {"registry.harbor.v1"})
+                if name == "service_instance_get":
+                    equivalent("legacy intent is not reported as provisioned", (p["fulfillmentState"], p["provisioned"]), ("legacy-intent-only", False))
+                if name == "service_instance_list":
+                    equivalent("legacy list item is not reported as provisioned", (p["instances"][0]["fulfillmentState"], p["instances"][0]["provisioned"]), ("legacy-intent-only", False))
             p_grants = content(mcp(python_url, "tools/call", {"name": "tenant_capabilities_list", "arguments": {}}))["grantedConsumables"]
             g_grants = content(mcp(go_url, "tools/call", {"name": "tenant_capabilities_list", "arguments": {}}))["grantedConsumables"]
             equivalent("tenant_capabilities_list granted consumables", p_grants, g_grants)
@@ -197,16 +205,17 @@ def main():
             if abs(exchanged[0]["expires_in"] - exchanged[1]["expires_in"]) > 1:
                 raise AssertionError("OAuth token lifetime differs")
             print("PASS OAuth token lifetime")
-            create_args = {"name": "proposed", "spec": {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}, "idempotency_key": "fixture-create-1"}
-            first = []
-            for base in (python_url, go_url):
-                result = content(mcp(base, "tools/call", {"name": "service_instance_create", "arguments": create_args}))
-                first.append(result)
-                replay = content(mcp(base, "tools/call", {"name": "service_instance_create", "arguments": create_args}))
-                equivalent("idempotent replay " + base, replay, {**result, "idempotentReplay": True})
-                instance = content(mcp(base, "tools/call", {"name": "service_instance_get", "arguments": {"resource_ref": "service://acme/proposed"}}))
-                equivalent("persisted state " + base, instance["state"], "Provisioning")
-            equivalent("service_instance_create stable fields", {k: v for k, v in first[0].items() if k != "operationId"}, {k: v for k, v in first[1].items() if k != "operationId"})
+            unsupported = {"name": "proposed", "spec": {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}}
+            for name, args in [("service_instance_plan", unsupported), ("service_instance_create", {**unsupported, "idempotency_key": "fixture-create-1"})]:
+                for base in (python_url, go_url):
+                    status, result = request(base + "/mcp", "POST", {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": name, "arguments": args}})
+                    error_text = result.get("error", {}).get("message", "")
+                    tool_result = result.get("result", {})
+                    if tool_result.get("isError"):
+                        error_text = " ".join(item.get("text", "") for item in tool_result.get("content", []))
+                    if status != 200 or "no live provisioner" not in error_text:
+                        raise AssertionError(f"{base} falsely accepted an intent-only service: {status} {result}")
+                    print("PASS intent-only service rejected", base, name)
             invalid_headers = {"Authorization": "Bearer invalid"}
             for base in (python_url, go_url):
                 status, _ = request(base + "/billing/usage", headers=invalid_headers)
