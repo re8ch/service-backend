@@ -139,6 +139,9 @@ spec:
           env:
             - {name: NUCLIO_FUNCTION_NAME, value: commerce-api}
             - {name: NUCLIO_FUNCTION_VERSION, value: latest}
+            - {name: WX_PAY_MCH_ID, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_MCH_ID}}}
+            - {name: WX_PAY_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_SERIAL_NO}}}
+            - {name: WX_PAY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_PRIVATE_KEY}}}
             - {name: RE8CH_AUTH_BASE_URL, value: "https://api.re8ch.com/auth"}
             - {name: COMMERCE_RW_URL, value: "https://db-rw.re8ch.com/commerce"}
             - {name: COMMERCE_RO_URL, value: "https://db-ro.re8ch.com/commerce"}
