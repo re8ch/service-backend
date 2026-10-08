@@ -442,6 +442,8 @@ def tenant_groups(tenant_ref):
 def tenant_namespace_resources(tenant, namespace):
     tenant_ref = tenant["metadata"]["name"]
     tenant_uid = tenant["metadata"]["uid"]
+    if len(tenant_ref) > 63:
+        raise ValueError("tenant reference exceeds the Kubernetes label value limit")
     labels = {
         "tenancy.re8ch.com/tenant": tenant_ref,
         "tenancy.re8ch.com/managed": "true",
@@ -460,7 +462,7 @@ def tenant_namespace_resources(tenant, namespace):
     subjects = [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     subjects += [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": group} for group in tenant_groups(tenant_ref)]
     return [
-        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": labels, "annotations": annotation}},
+        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": {**labels, "saas.re8ch.com/tenant": tenant_ref}, "annotations": annotation}},
         {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "tenant-boundary", "namespace": namespace, "labels": labels}, "spec": {"hard": {"pods": "100", "requests.cpu": "20", "requests.memory": "64Gi", "requests.storage": "1Ti"}}},
         {"apiVersion": "v1", "kind": "LimitRange", "metadata": {"name": "tenant-defaults", "namespace": namespace, "labels": labels}, "spec": {"limits": [{"type": "Container", "defaultRequest": {"cpu": "25m", "memory": "64Mi"}, "default": {"cpu": "2", "memory": "4Gi"}}]}},
         {"apiVersion": "v1", "kind": "ServiceAccount", "metadata": {"name": "tenant-native-operator", "namespace": namespace, "labels": labels}, "automountServiceAccountToken": False},

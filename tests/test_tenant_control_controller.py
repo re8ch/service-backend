@@ -304,6 +304,7 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     namespace = resources[0]
     assert namespace["metadata"]["annotations"]["tenancy.re8ch.com/tenant-uid"] == "tenant-uid"
     assert namespace["metadata"]["labels"]["tenancy.re8ch.com/tenant"] == "re8ch"
+    assert namespace["metadata"]["labels"]["saas.re8ch.com/tenant"] == "re8ch"
     assert namespace["metadata"]["labels"]["tenancy.re8ch.com/managed"] == "true"
     role = next(item for item in resources if item["kind"] == "Role")
     assert "namespaces" not in str(role["rules"])
@@ -311,6 +312,25 @@ def test_namespace_resources_bind_only_namespaced_tenant_authority(monkeypatch):
     metrics = next(item for item in resources if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "tenant-metrics-scrape")
     assert metrics["spec"]["podSelector"] == {"matchLabels": {"observability.re8ch.com/scrape": "true"}}
     assert metrics["spec"]["ingress"] == [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]
+
+
+def test_personal_namespace_qualifies_for_shared_publicedge_listener(monkeypatch):
+    personal_ref = "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38"
+    value = tenant(personal_ref)
+    value["metadata"]["uid"] = "personal-uid"
+    monkeypatch.setattr(controller, "KUBE", FakeKube([], [value]))
+    namespace = controller.tenant_namespace_resources(value, personal_ref + "-default")[0]
+    labels = namespace["metadata"]["labels"]
+    assert labels["saas.re8ch.com/tenant"] == personal_ref
+    assert labels["tenancy.re8ch.com/tenant"] == personal_ref
+
+
+def test_namespace_rejects_tenant_ref_too_long_for_publicedge_label(monkeypatch):
+    value = tenant("tenant-" + "x" * 58)
+    value["metadata"]["uid"] = "too-long-uid"
+    monkeypatch.setattr(controller, "KUBE", FakeKube([], [value]))
+    with pytest.raises(ValueError, match="label value limit"):
+        controller.tenant_namespace_resources(value, "tenant-demo")
 
 
 def test_groups_spanning_tenants_are_denied(monkeypatch):
