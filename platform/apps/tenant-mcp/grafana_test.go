@@ -89,6 +89,41 @@ func TestMetricsQLEverySelectorBranchIsTenantScoped(t *testing.T) {
 	}
 }
 
+func TestDashboardRenderAndSaveTenantScope(t *testing.T) {
+	datasources := []map[string]any{{"uid": "metrics", "type": "prometheus"}, {"uid": "logs", "type": "loki"}}
+	dashboard := map[string]any{"panels": []any{map[string]any{
+		"id": 1, "type": "timeseries", "targets": []any{map[string]any{
+			"refId": "A", "datasource": map[string]any{"uid": "metrics"}, "expr": `http_requests_total{tenant="acme"}`,
+		}},
+	}}}
+	if err := validateGrafanaDashboardScope(dashboard, "acme", datasources); err != nil {
+		t.Fatal(err)
+	}
+	target := slice(object(slice(dashboard["panels"])[0])["targets"])[0].(map[string]any)
+	for _, expr := range []string{`http_requests_total`, `http_requests_total{tenant="acme"} or errors_total`, `http_requests_total{tenant="other"}`} {
+		target["expr"] = expr
+		if err := validateGrafanaDashboardScope(dashboard, "acme", datasources); err == nil {
+			t.Errorf("unscoped dashboard target accepted: %s", expr)
+		}
+	}
+	target["expr"] = `http_requests_total{tenant="acme"}`
+	target["datasource"] = map[string]any{"uid": "logs"}
+	if err := validateGrafanaDashboardScope(dashboard, "acme", datasources); err == nil {
+		t.Fatal("unsupported log datasource accepted")
+	}
+	target["datasource"] = map[string]any{"uid": "metrics"}
+	dashboard["templating"] = map[string]any{"list": []any{map[string]any{"query": "label_values(up,tenant)"}}}
+	if err := validateGrafanaDashboardScope(dashboard, "acme", datasources); err == nil {
+		t.Fatal("query variable accepted")
+	}
+	delete(dashboard, "templating")
+	panel := object(slice(dashboard["panels"])[0])
+	panel["type"] = "custom-plugin"
+	if err := validateGrafanaDashboardScope(dashboard, "acme", datasources); err == nil {
+		t.Fatal("unreviewed panel plugin accepted")
+	}
+}
+
 func TestGrafanaAnalysisHandlesLongLag(t *testing.T) {
 	rows := lagCorrelations([]float64{1, 2}, []float64{2, 4}, "pearson", 100)
 	if len(rows) != 201 {
