@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: confluence-emerald
+codename: eddy-emerald
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:2cd6b040d40742a4100b731de9af54d1431301cffdfc43426c419b0b8e2233dd
+  digest: sha256:ffb5e80a9409415de465cc8cb9159516a91f88e101ead1749303b16695e914f4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

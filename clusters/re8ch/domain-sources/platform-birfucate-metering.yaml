@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: confluence-emerald
+    delivery.re8ch.com/codename: eddy-emerald
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
   ref:
-    digest: sha256:2cd6b040d40742a4100b731de9af54d1431301cffdfc43426c419b0b8e2233dd
+    digest: sha256:ffb5e80a9409415de465cc8cb9159516a91f88e101ead1749303b16695e914f4
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/birfucate-metering
-    delivery.re8ch.com/codename: confluence-emerald
+    delivery.re8ch.com/codename: eddy-emerald
 spec:
   interval: 1m
   retryInterval: 1m
