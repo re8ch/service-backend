@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Retire Farseer's old Cloudflare CNAME after its tenant-app cutover.
 
-Run on restricted-node-6dc3f140f9 only after the GitOps removal of the old ExternalDNS Ingress and
+Run on R640 only after the GitOps removal of the old ExternalDNS Ingress and
 HTTPRoute has reconciled. The Cloudflare token remains in this process memory.
 """
 
@@ -28,7 +28,7 @@ def main():
         if result.returncode == 0 or "NotFound" not in result.stderr:
             raise RuntimeError(f"old {kind}/{name} remains or could not be checked")
 
-    new_route = kubectl("-n", "farseer", "get", "httproute", "farseer-tenant-app-public", "-o", "json")
+    new_route = kubectl("-n", "re8ch-farseer", "get", "httproute", "farseer-tenant-canary", "-o", "json")
     if new_route.returncode:
         raise RuntimeError("new tenant-app HTTPRoute is absent")
     route = json.loads(new_route.stdout)
