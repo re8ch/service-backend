@@ -41,6 +41,12 @@ surface; it runs as a small Go Deployment in `payments`.
   to application roles; do not apply that SQL to this payment database. The
   payment and commerce APIs must retain RPC-only grants and separate RO/RW
   credentials. No database or Secret was created by this plan call.
+- In an isolated arm64 container, `ghcr.io/omnigres/omnigres-17:latest`
+  provided PostgreSQL 17.11 and `omni_ledger` 0.1.3; `CREATE EXTENSION
+  omni_ledger CASCADE` succeeded and installed `omni_id` 0.4.3. The image
+  logged that `omni` was compiled against PostgreSQL 17.6 while running
+  17.11. This smoke test does not establish compatibility with the live
+  Pigsty PostgreSQL major, its node architecture, or its failover setup.
 
 ## Migration sequence and required gates
 
