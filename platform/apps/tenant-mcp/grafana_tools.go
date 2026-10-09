@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -208,7 +207,7 @@ func (s *server) callGrafana(ctx context.Context, tenant, name string, args map[
 	if name == "grafana_render" || name == "grafana_exploration_save" {
 		binding, bindingErr := tenantGrafanaBinding(tenant)
 		if bindingErr != nil {
-			if client == nil || client.orgID <= 1 || !strings.HasPrefix(tenant, "personal-") {
+			if client == nil || client.orgID <= 1 {
 				return nil, bindingErr
 			}
 			binding = grafanaBinding{OrgID: client.orgID, TenantLabel: tenant}

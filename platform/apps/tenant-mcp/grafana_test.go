@@ -22,7 +22,7 @@ func TestGrafanaLocalAnalysisWithoutTenantBinding(t *testing.T) {
 	}
 }
 
-func TestPersonalGrafanaBindingRejectsOtherOwner(t *testing.T) {
+func TestServiceGrafanaBindingRejectsOtherOwner(t *testing.T) {
 	owner := "personal-11111111-1111-4111-8111-111111111111"
 	other := "personal-22222222-2222-4222-8222-222222222222"
 	items := []any{
@@ -31,12 +31,18 @@ func TestPersonalGrafanaBindingRejectsOtherOwner(t *testing.T) {
 		map[string]any{"spec": map[string]any{"tenantRef": owner, "serviceClass": "observability.grafana.v1"},
 			"status": map[string]any{"phase": "Ready", "access": map[string]any{"organizationId": float64(11)}, "humanCredentialRef": "credential://grafana/" + owner + "/own"}},
 	}
-	orgID, reference, err := personalGrafanaAccess(owner, items)
+	orgID, reference, err := serviceGrafanaAccess(owner, items)
 	if err != nil || orgID != 11 || reference != "credential://grafana/"+owner+"/own" {
-		t.Fatalf("Personal Grafana binding crossed owner boundary: %d %s %v", orgID, reference, err)
+		t.Fatalf("Grafana binding crossed owner boundary: %d %s %v", orgID, reference, err)
 	}
-	if _, _, err := personalGrafanaAccess("personal-33333333-3333-4333-8333-333333333333", items); err == nil {
-		t.Fatal("unprovisioned Personal organization inherited another Grafana binding")
+	if _, _, err := serviceGrafanaAccess("personal-33333333-3333-4333-8333-333333333333", items); err == nil {
+		t.Fatal("unprovisioned organization inherited another Grafana binding")
+	}
+	shared := "re8ch"
+	items = append(items, map[string]any{"spec": map[string]any{"tenantRef": shared, "serviceClass": "observability.grafana.v1"},
+		"status": map[string]any{"phase": "Ready", "access": map[string]any{"organizationId": float64(12)}, "humanCredentialRef": "credential://grafana/re8ch/own"}})
+	if orgID, reference, err = serviceGrafanaAccess(shared, items); err != nil || orgID != 12 || reference != "credential://grafana/re8ch/own" {
+		t.Fatalf("shared tenant Ready binding was not selected: %d %s %v", orgID, reference, err)
 	}
 }
 
