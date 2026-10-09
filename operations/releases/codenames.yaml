@@ -1050,6 +1050,8 @@ modules:
       digest: sha256:705726588d5878dea1c03d0f3d0ced784c03b0533380b245c081962f10f01e05
     - codename: cascade-turquoise
       digest: sha256:e4b57cf4a62ae0209135c73cdf02568329bc7544f8ab94145662cdad2d4b62f6
+    - codename: confluence-turquoise
+      digest: sha256:2e7791bd7affa08b9ac6787d6ecd135422cdbf98c0e3b83e362c104024e5b47c
   platform/hyperswitch:
     releases:
     - codename: anchor
