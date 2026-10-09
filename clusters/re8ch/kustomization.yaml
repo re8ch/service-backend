@@ -56,6 +56,7 @@ resources:
 - components/cilium/advfab-worker-node-ips.yaml
 - components/cilium/native-routing-rollout.yaml
 - components/farseer/public-web.yaml
+- components/farseer/tenant-web.yaml
 - components/cilium/r640-policy-update-budget.yaml
 - components/ai-operations/platform.yaml
 - components/anycam/market-demo.yaml
