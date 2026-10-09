@@ -495,14 +495,6 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: {name: farseer-tenant-app-public, namespace: farseer}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}]
-  hostnames: [farseer.apps.re8ch.com]
-  rules: [{backendRefs: [{name: farseer-web, port: 80}]}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
 metadata: {name: opensandbox-service-public, namespace: opensandbox-system}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
