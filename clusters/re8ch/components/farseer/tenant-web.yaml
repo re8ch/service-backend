@@ -10,6 +10,9 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: farseer-web, saas.re8ch.com/tenant: re8ch}}
     spec:
+      # Match the previously healthy restricted-node-6dc3f140f9 placement while the intermittent
+      # gateway-to-b1-wsl-zt connection timeout is investigated.
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
