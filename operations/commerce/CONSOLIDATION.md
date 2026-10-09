@@ -33,9 +33,12 @@ surface; it runs as a small Go Deployment in `payments`.
   payment and Credits tables still have separate posting semantics and no
   production data has moved.
 - The new Commerce schema now posts purchases and refunds to one `billing`
-  double-entry journal inside the order transaction. The historical Identity
-  Credits outbox still writes `re8ch_identity`, so this is only the new-order
-  side of the consolidation until the registry and identity routes cut over.
+  double-entry journal inside the order transaction. Its account transfer
+  primitive now supports personal and organization accounts, opening imports,
+  and service spend with insufficient-balance checks. The historical Identity
+  Credits outbox still writes `re8ch_identity`, and the Credits API has not
+  switched to this primitive, so this is only the new-order side of the
+  consolidation until the registry and identity routes cut over.
 - The platform's read-only `generate_pg_tenant_database_plan` produced a
   `re8ch_billing` role/route plan. Its generic SQL grants direct table writes
   to application roles; do not apply that SQL to this payment database. The
