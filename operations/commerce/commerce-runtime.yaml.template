@@ -142,6 +142,11 @@ spec:
             - {name: WX_PAY_MCH_ID, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_MCH_ID}}}
             - {name: WX_PAY_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_SERIAL_NO}}}
             - {name: WX_PAY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_PRIVATE_KEY}}}
+            - {name: WX_PAY_API_V3_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-api-v3, key: WX_PAY_API_V3_KEY}}}
+            - {name: WX_PAY_PLATFORM_PUBLIC_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-platform-certificate, key: WX_PAY_PLATFORM_PUBLIC_KEY}}}
+            - {name: WX_PAY_PLATFORM_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-platform-certificate, key: WX_PAY_PLATFORM_SERIAL_NO}}}
+            - {name: WX_PAY_APP_ID, valueFrom: {secretKeyRef: {name: commerce-wechat-app-identities, key: WX_PAY_APP_ID}}}
+            - {name: WECHAT_MINI_APP_ID, valueFrom: {secretKeyRef: {name: commerce-wechat-app-identities, key: WECHAT_MINI_APP_ID}}}
             - {name: RE8CH_AUTH_BASE_URL, value: "https://api.re8ch.com/auth"}
             - {name: COMMERCE_RW_URL, value: "https://db-rw.re8ch.com/commerce"}
             - {name: COMMERCE_RO_URL, value: "https://db-ro.re8ch.com/commerce"}

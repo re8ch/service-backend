@@ -11,9 +11,13 @@ the payer UUID; no card or WeChat credential is written to this database.
    JWT signing secret in that Secret and `payments/commerce-api-secrets`.
 2. The Ruiqi merchant certificate for merchant `1722340397` is encrypted in
    `clusters/re8ch/secrets/commerce-ruiqi-merchant-certificate.sops.yaml` and
-   supplies the merchant ID, certificate serial and private key. Provision the
-   matching WeChat mini-program App ID, API v3 key, platform public key and
-   platform serial in `payments/commerce-api-secrets`. Verify the App ID is
+   supplies the merchant ID, certificate serial and private key. The API v3 key
+   is encrypted in `clusters/re8ch/secrets/commerce-ruiqi-api-v3.sops.yaml`.
+   The current platform certificate and its verification key are encrypted in
+   `clusters/re8ch/secrets/commerce-ruiqi-platform-certificate.sops.yaml`.
+   Refresh them before certificate rotation. Read the matching WeChat
+   mini-program App ID from `payments/commerce-wechat-app-identities`; provision
+   its App Secret in `payments/commerce-api-secrets`. Verify the App ID is
    linked to merchant `1722340397` before enabling checkout. Include a random
    `COMMERCE_RECONCILE_TOKEN` for the internal periodic reconciliation Job. Register exactly
    `https://api.re8ch.com/commerce/v1/webhooks/wechat` as the notify URL.
