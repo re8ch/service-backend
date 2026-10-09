@@ -1044,6 +1044,8 @@ modules:
       digest: sha256:e2dd3904a905ab80b3f428e695cf5f366c639f316bbf989707996e8ee19b2464
     - codename: riptide-agate
       digest: sha256:2aeec271a74cda548f964152ed724330098c85d2cd9bb0f30f9e6bea2a1903b6
+    - codename: springtide-agate
+      digest: sha256:971dd6c0321c5571027a9b0004bb402fba30e05f3bdf572f3d791b055453cf8e
   platform/hyperswitch:
     releases:
     - codename: anchor
