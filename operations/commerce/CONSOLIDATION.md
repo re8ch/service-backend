@@ -58,6 +58,12 @@ surface; it runs as a small Go Deployment in `payments`.
    maximum journal sequence, outstanding payment attempts, credits balances,
    and pgBackRest/PITR health. Export signed, immutable reconciliation reports.
    Preserve the current databases as read-only migration sources.
+   Run `inventory-identity.sql`, `inventory-commerce.sql`, and
+   `inventory-payment.sql` against their respective existing databases with
+   read-only credentials. Each query uses a repeatable-read snapshot and emits
+   aggregate figures without owner identifiers. A missing schema is a failed
+   inventory, not an empty database; record that failure separately. Capture
+   backup/PITR status from the platform operator alongside these SQL reports.
 2. On the exact Pigsty PostgreSQL major version and architecture, pin and test
    the Omnigres package on every database node and replica. Verify
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create
