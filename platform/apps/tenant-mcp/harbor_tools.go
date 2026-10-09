@@ -124,9 +124,9 @@ func (s *server) callHarbor(ctx context.Context, id identity, name string, args 
 		}
 		return preview, nil
 	case "harbor_build_start":
-		if _, err := client.request(ctx, http.MethodGet, projectPath, nil, true); err != nil {
-			return nil, err
-		}
+		// tenantHarbor already validates the tenant-scoped credential and project.
+		// A build-push robot cannot read project metadata, and the worker checks
+		// its repository permissions when it pushes the image.
 		preview := mutationPreview("harbor/"+project+"/"+repository+":"+asString(args, "tag"), nil, map[string]any{"sbom": true, "provenance": "mode=max", "sign": flag(args, "sign", true), "scan": flag(args, "scan", true)}, flag(args, "apply", false), "cancel build and explicitly delete its artifact")
 		if flag(args, "apply", false) {
 			result, err := startBuild(ctx, tenant, project, args)
