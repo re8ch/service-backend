@@ -47,6 +47,15 @@ class RegistryTests(unittest.TestCase):
         self.assertFalse(bindings[0]["revocable"])
         self.assertEqual(m.provider_bindings(items, "acme", "service://acme/unrelated"), [])
 
+    def test_tenant_robot_binding_uses_machine_credential(self):
+        m = load("tenant")
+        item = {"metadata": {"name": "registry-build", "uid": "uid-robot", "generation": 1},
+                "spec": {"tenantRef": "acme", "serviceClass": "registry.harbor.v1"},
+                "status": {"phase": "Ready", "observedGeneration": 1,
+                           "access": {"robotCredentialRef": "credential://harbor/acme/robot"}}}
+        bindings = m.provider_bindings([item], "acme")
+        self.assertEqual(bindings[0]["accessRef"], "credential://harbor/acme/robot")
+
     def test_admin_dynamic_skill_tools_forward_review_with_subject(self):
         with patch.dict(os.environ, {"DYNAMIC_SKILL_ADMIN_URL": "http://tenant-api.test/internal/dynamic-skills", "SERVICE_API_TOKEN": "test-secret"}):
             admin = load("admin")

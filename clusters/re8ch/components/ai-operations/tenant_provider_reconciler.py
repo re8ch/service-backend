@@ -414,16 +414,95 @@ def reconcile_harbor(kube, instance: dict[str, Any], client: HarborClient, ident
     return {"project": project, "humanLogin": desired["username"], "humanCredentialRef": reference, "webUrl": HARBOR_URL, "quotaGiB": quota, "nativeRoleId": role_id, "credentialMaterialReturned": False}
 
 
+def reconcile_harbor_robot(kube, instance: dict[str, Any], client: HarborClient) -> dict[str, Any]:
+    """Give a tenant build or pull access without binding a human account."""
+    spec, meta = instance["spec"], instance["metadata"]
+    tenant, project, plan = spec["tenantRef"], spec["parameters"]["project"], spec["plan"]
+    if plan not in {"pull", "build-push"} or project != control.harbor_project(tenant):
+        raise PermissionError("tenant robot plan or project is invalid")
+    quota = spec["parameters"]["quotaGiB"]
+    live = client.find_project(project)
+    if not live:
+        client.create_project(project, quota)
+        live = client.find_project(project)
+    if not live or (live.get("metadata") or {}).get("public") not in {"false", False}:
+        raise RuntimeError("private Harbor project could not be verified")
+    client.ensure_project_quota(int(live["project_id"]), quota)
+
+    credential_id = uuid.uuid5(uuid.NAMESPACE_URL, f"harbor:{tenant}:{meta['uid']}:tenant-robot").hex
+    secret_name = f"harbor-{credential_id}"
+    reference = f"credential://harbor/{tenant}/{credential_id}"
+    description = f"RE8CH tenant-owned robot for {meta['uid']}"
+    existing = None
+    try:
+        existing = kube.get("secrets", secret_name, "credential-broker", "api/v1")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+    old_id = None
+    if existing:
+        labels = existing.get("metadata", {}).get("labels", {})
+        if any(labels.get(f"credentials.re8ch.com/{key}") != value for key, value in
+               {"provider": "harbor", "tenant": tenant, "project": project, "type": "robot", "instance-uid": meta["uid"]}.items()):
+            raise PermissionError("tenant robot credential ownership does not match")
+        data = existing.get("data") or {}
+        old_id = int(base64.b64decode(data["robot_id"]).decode())
+        if not data.get("username") or not data.get("password"):
+            raise RuntimeError("tenant robot credential is incomplete")
+        robot = next((item for item in client.robots() if int(item.get("id") or 0) == old_id), None)
+        expected_access = ({("repository", "pull")} if plan == "pull" else
+                           {("repository", "pull"), ("repository", "push"),
+                            ("artifact", "read"), ("artifact", "create"), ("scan", "create")})
+        permissions = (robot.get("permissions") or []) if robot else []
+        actual_access = {(entry.get("resource"), entry.get("action"))
+                         for permission in permissions for entry in permission.get("access") or []}
+        if (robot and not robot.get("disable") and robot.get("description") == description
+                and robot.get("level") == "project"
+                and permissions and all(permission.get("namespace") == project for permission in permissions)
+                and actual_access == expected_access
+                and labels.get("credentials.re8ch.com/plan") == plan
+                and int(robot.get("expires_at") or 0) > int(time.time()) + 86400):
+            return {"project": project, "robotCredentialRef": reference, "robotId": old_id,
+                    "quotaGiB": quota, "credentialMaterialReturned": False}
+
+    robot, token = client.create_robot(project, f"tenant-{credential_id[:16]}-{secrets.token_hex(3)}",
+                                       plan, spec["parameters"]["robotDurationDays"], description=description)
+    robot_id = int(robot["id"])
+    material = {"username": str(robot["name"]), "password": token, "project": project, "robot_id": str(robot_id)}
+    labels = {"credentials.re8ch.com/provider": "harbor", "credentials.re8ch.com/tenant": tenant,
+              "credentials.re8ch.com/project": project, "credentials.re8ch.com/type": "robot",
+              "credentials.re8ch.com/instance-uid": meta["uid"], "credentials.re8ch.com/plan": plan}
+    if existing:
+        kube.patch("secrets", secret_name, {"metadata": {"labels": labels}, "stringData": material},
+                   "credential-broker", "api/v1")
+    else:
+        kube.create("secrets", {"apiVersion": "v1", "kind": "Secret",
+                                "metadata": {"name": secret_name, "namespace": "credential-broker", "labels": labels},
+                                "type": "Opaque", "stringData": material}, "credential-broker", "api/v1")
+    if old_id and old_id != robot_id:
+        client.disable_robot(old_id, True)
+    return {"project": project, "robotCredentialRef": reference, "robotId": robot_id,
+            "quotaGiB": quota, "credentialMaterialReturned": False}
+
+
 def revoke_harbor(kube, instance: dict[str, Any], client: HarborClient) -> list[int]:
     tenant = instance["spec"]["tenantRef"]
     project = instance["spec"]["parameters"]["project"]
     if project != control.harbor_project(tenant):
         raise PermissionError("Harbor project is outside the tenant")
     suspended = set(instance.get("status", {}).get("suspendedRobotIds") or [])
+    own_robot = not instance["spec"]["parameters"].get("identityUserRef")
+    own_description = f"RE8CH tenant-owned robot for {instance['metadata']['uid']}"
     robots = client.robots()
-    for robot in robots:
+    def owned(robot):
         permissions = robot.get("permissions") or []
         if robot.get("level") != "project" or not permissions or any(item.get("namespace") != project for item in permissions):
+            return False
+        description = str(robot.get("description") or "")
+        return description == own_description if own_robot else not description.startswith("RE8CH tenant-owned robot for ")
+    suspended &= {int(robot["id"]) for robot in robots if owned(robot)}
+    for robot in robots:
+        if not owned(robot):
             continue
         robot_id = int(robot["id"])
         if not robot.get("disable"):
@@ -434,15 +513,17 @@ def revoke_harbor(kube, instance: dict[str, Any], client: HarborClient) -> list[
     for robot in robots:
         if int(robot.get("id") or 0) in suspended and not robot.get("disable"):
             client.disable_robot(int(robot["id"]), True)
-    catalog = json.loads(kube.get("configmaps", "harbor-tenant-catalog", "ai-operations", "api/v1")["data"]["harbor-tenants.json"])["tenants"]
-    login = desired_tenant(tenant, catalog.get(tenant))["username"]
+    login = None
+    if not own_robot:
+        catalog = json.loads(kube.get("configmaps", "harbor-tenant-catalog", "ai-operations", "api/v1")["data"]["harbor-tenants.json"])["tenants"]
+        login = desired_tenant(tenant, catalog.get(tenant))["username"]
     if login:
         for member in client.project_members(project):
             if (member.get("entity_name") or (member.get("entity") or {}).get("entity_name")) == login:
                 client.remove_project_member(project, int(member["id"]))
         if any((member.get("entity_name") or (member.get("entity") or {}).get("entity_name")) == login for member in client.project_members(project)):
             raise RuntimeError("Harbor human project membership could not be revoked")
-    if any(robot.get("level") == "project" and robot.get("permissions") and all(item.get("namespace") == project for item in robot["permissions"]) and not robot.get("disable") for robot in client.robots()):
+    if any(owned(robot) and not robot.get("disable") for robot in client.robots()):
         raise RuntimeError("Harbor project robot access could not be revoked")
     return sorted(suspended)
 
@@ -542,14 +623,15 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
     if (lifecycle == "Deleting" and (instance.get("status") or {}).get("phase") == "Deleted"
             and (instance.get("status") or {}).get("observedGeneration") == meta.get("generation", 1)):
         return
-    identity = identity_factory()
+    identity = identity_factory() if spec.get("parameters", {}).get("identityUserRef") else None
     if lifecycle in {"Suspended", "Deleting"}:
         prior = instance.get("status") or {}
         suspended_robots = revoke_harbor(kube, instance, harbor_factory(kube)) if service_class == "registry.harbor.v1" else None
         if service_class == "observability.grafana.v1":
             revoke_grafana(instance, grafana_factory(kube))
         phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
-        identity.record(instance, prior.get("access"), phase)
+        if identity:
+            identity.record(instance, prior.get("access"), phase)
         status = {"observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None, "access": prior.get("access"), "humanCredentialRef": prior.get("humanCredentialRef"), "conditions": [control.condition("Ready", False, "ProviderAccessRevoked")]}
         if suspended_robots is not None:
             status["suspendedRobotIds"] = suspended_robots
@@ -561,6 +643,14 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
     normalized = control.provider_service_spec(tenant, meta["name"], request)
     if normalized != spec.get("parameters"):
         raise PermissionError("provider service parameters differ from the controller contract")
+    if service_class == "registry.harbor.v1" and identity is None:
+        access = reconcile_harbor_robot(kube, instance, harbor_factory(kube))
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
+            "access": access, "conditions": [control.condition("Ready", True, "ProviderAccessReady")],
+            "suspendedRobotIds": [], "humanCredentialRef": None,
+        }, namespace)
+        return
     try:
         identity_email = identity.human_email(tenant, spec["parameters"]["identityUserRef"])
     except PermissionError:

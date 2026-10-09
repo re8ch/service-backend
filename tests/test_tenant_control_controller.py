@@ -193,6 +193,17 @@ def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypat
         controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 1025, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
 
 
+def test_harbor_build_plan_can_be_tenant_owned_without_human_identity(monkeypatch):
+    monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
+    request = {"serviceClass": "registry.harbor.v1", "planRef": "build-push",
+               "parameters": {"quotaGiB": 10, "robotDurationDays": 30}}
+    assert controller.provider_service_spec("acme", "registry-build", request) == {
+        "project": "acme", "quotaGiB": 10, "robotDurationDays": 30}
+    request["planRef"] = "project-admin"
+    with pytest.raises(PermissionError, match="requires an active human"):
+        controller.provider_service_spec("acme", "registry-admin", request)
+
+
 def test_grafana_service_contract_publishes_only_app_and_kube_metrics(monkeypatch):
     monkeypatch.delenv("GRAFANA_TENANT_BINDINGS_JSON", raising=False)
     request = {"serviceClass": "observability.grafana.v1", "planRef": "viewer", "parameters": {

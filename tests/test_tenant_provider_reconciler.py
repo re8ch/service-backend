@@ -98,6 +98,14 @@ class FakeKube:
         self.secrets[(namespace, value["metadata"]["name"])] = {"metadata": value["metadata"], "data": encoded}
         return value
 
+    def patch(self, plural, name, value, namespace=None, api=None):
+        assert plural == "secrets" and namespace == "credential-broker"
+        secret = self.secrets[(namespace, name)]
+        secret["metadata"]["labels"] = value["metadata"]["labels"]
+        secret["data"].update({key: base64.b64encode(item.encode()).decode()
+                               for key, item in value["stringData"].items()})
+        return secret
+
     def patch_status(self, plural, name, status, namespace):
         assert plural == "tenantserviceinstances" and namespace == "acme"
         self.status = status
@@ -153,6 +161,20 @@ class FakeHarbor:
     def robots(self):
         return list(self.robot_items)
 
+    def create_robot(self, project, name, permission, duration_days, description=None):
+        assert project == "acme" and permission in {"pull", "build-push"}
+        access = [{"resource": "repository", "action": "pull"}]
+        if permission == "build-push":
+            access += [{"resource": "repository", "action": "push"},
+                       {"resource": "artifact", "action": "read"},
+                       {"resource": "artifact", "action": "create"},
+                       {"resource": "scan", "action": "create"}]
+        robot = {"id": len(self.robot_items) + 1, "name": "robot$acme+" + name,
+                 "level": "project", "disable": False, "description": description,
+                 "expires_at": 4102444800, "permissions": [{"namespace": project, "access": access}]}
+        self.robot_items.append(robot)
+        return robot, "token-never-returned-to-tenant"
+
     def disable_robot(self, robot_id, disabled=True):
         next(item for item in self.robot_items if item["id"] == robot_id)["disable"] = disabled
 
@@ -174,6 +196,54 @@ def test_harbor_reconcile_creates_private_project_quota_and_human_account():
     assert harbor.quota == (7, 10)
     assert harbor.created_users == 1
     assert harbor.granted_role_id == 2
+
+
+def test_tenant_build_robot_needs_no_human_membership_and_is_reused():
+    kube = FakeKube("registry.harbor.v1")
+    harbor = FakeHarbor()
+    value = instance("registry.harbor.v1", {"project": "acme", "quotaGiB": 10,
+                                            "robotDurationDays": 90}, "build-push")
+
+    class NoHumanIdentity:
+        def __init__(self):
+            raise AssertionError("machine build must not consult a human identity")
+
+    provider.reconcile_instance(kube, value, harbor_factory=lambda _kube: harbor,
+                                identity_factory=NoHumanIdentity)
+    assert kube.status["phase"] == "Ready"
+    ref = kube.status["access"]["robotCredentialRef"]
+    assert ref.startswith("credential://harbor/acme/")
+    assert "token-never-returned" not in json.dumps(kube.status)
+    assert len(harbor.robot_items) == 1 and not harbor.members
+    value["status"] = kube.status
+    provider.reconcile_instance(kube, value, harbor_factory=lambda _kube: harbor,
+                                identity_factory=NoHumanIdentity)
+    assert kube.status["access"]["robotCredentialRef"] == ref
+    assert len(harbor.robot_items) == 1
+
+
+def test_human_membership_revocation_preserves_other_tenant_instance_robot():
+    kube = FakeKube("registry.harbor.v1")
+    harbor = FakeHarbor()
+    value = instance("registry.harbor.v1", {"project": "acme", "quotaGiB": 10,
+                                            "robotDurationDays": 90, "identityUserRef": IDENTITY_USER}, "build-push")
+    provider.reconcile_instance(kube, value, harbor_factory=lambda _kube: harbor,
+                                identity_factory=lambda: identity)
+    value["status"] = kube.status
+    harbor.robot_items = [{"id": 7, "level": "project", "disable": False,
+                           "description": "RE8CH tenant-owned robot for other-instance",
+                           "permissions": [{"namespace": "acme"}]},
+                          {"id": 8, "level": "project", "disable": False,
+                           "permissions": [{"namespace": "acme"}]}]
+
+    class RevokedIdentity(FakeIdentity):
+        def human_email(self, tenant, identity_user):
+            raise PermissionError("membership revoked")
+
+    provider.reconcile_instance(kube, value, harbor_factory=lambda _kube: harbor,
+                                identity_factory=RevokedIdentity)
+    assert kube.status["phase"] == "Suspended"
+    assert [robot["disable"] for robot in harbor.robot_items] == [False, True]
 
 
 def test_new_tenant_uses_its_active_tenant_project_without_legacy_harbor_catalog():
