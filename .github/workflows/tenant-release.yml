@@ -36,6 +36,10 @@ jobs:
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
           printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
+          # The cached builder references Docker Desktop's desktop-linux
+          # context. Copy context metadata only, never the personal auth config.
+          install -d -m 700 "$DOCKER_CONFIG/contexts"
+          cp -R "${HOME}/.docker/contexts/meta" "$DOCKER_CONFIG/contexts/meta"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           # Keep registry auth isolated while reading the runner's existing
           # Buildx instance index and cache.
