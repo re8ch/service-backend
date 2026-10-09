@@ -180,9 +180,9 @@ spec:
             - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
-            - {name: AUTH_DISCOVERY_URL, value: "https://api.re8ch.com/auth/.well-known/openid-configuration"}
+            - {name: AUTH_DISCOVERY_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/.well-known/oauth-authorization-server"}
             - {name: DEX_USERINFO_URL, value: "https://api.re8ch.com/auth/userinfo"}
-            - {name: SUPABASE_USER_URL, value: "https://db-rw.re8ch.com/auth/v1/user"}
+            - {name: SUPABASE_USER_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/user"}
             - {name: HARBOR_SUPPLY_CHAIN_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: HARBOR_SUPPLY_CHAIN_REQUIRED, value: {{ .Values.tenantPlatform.supplyChain.required | quote }}}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
