@@ -21,11 +21,12 @@ the payer UUID; no card or WeChat credential is written to this database.
    linked to merchant `1722340397` before enabling checkout. Include a random
    `COMMERCE_RECONCILE_TOKEN` for the internal periodic reconciliation Job. Register exactly
    `https://api.re8ch.com/commerce/v1/webhooks/wechat` as the notify URL.
-3. After the image is built, scanned, signed and pinned by digest, replace the
+3. Build the small Go HTTP server from `cloud-functions/functions/commerce-api/Dockerfile`.
+   After the image is scanned, signed and pinned by digest, replace the
    marker in `commerce-runtime.yaml.template` and move it into
    `clusters/re8ch/components/payments/`; add it to the cluster kustomization in
    a reviewed GitOps change. Provision `commerce-registry-pull`. Deploy the
-   commerce API image and both PostgREST services. Verify RO rejects a write RPC and RW accepts it only with a signed
+   commerce API Deployment and both PostgREST services. Verify RO rejects a write RPC and RW accepts it only with a signed
    short-lived runtime JWT. Confirm anonymous table access is denied.
 4. A signed-in member of `re8ch:pricing-admins` publishes a CNY Credits SKU via
    `POST /commerce/v1/admin/catalog` with `{sku,name,amount_minor,credits}`.
