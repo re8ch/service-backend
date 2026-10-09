@@ -54,12 +54,14 @@ surface; it runs as a small Go Deployment in `payments`.
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create
    `omni_ledger` in a disposable clone and run concurrent transfer, retry,
    PITR and replica promotion tests before any production installation.
-3. Create `re8ch_billing`; apply order/payment schema and a billing-specific
-   account mapping to `omni_ledger`. Each purchase, refund, and service spend
-   must have a unique business event key and post in the same database
-   transaction as its order/payment state transition. Since `omni_ledger`
-   requires serializable transfer transactions, the API and SQL entry points
-   must retry serialization failures without repeating provider calls.
+3. Create `re8ch_billing`; apply order/payment schema and the native `billing`
+   journal. Each purchase, refund, and service spend must have a unique
+   business event key and post in the same database transaction as its
+   order/payment state transition. Treat `omni_ledger` as an evaluated option:
+   adopt it only after testing its serializable transaction requirement,
+   retries, account mapping and migration against the exact Pigsty build.
+   Provider calls must never be repeated merely because a database transaction
+   was retried.
 4. Map Identity wallets and Commerce wallets to one canonical billing account
    per owner and unit. Compare historical transactions and balances before
    import; overlapping credits must be deduplicated by source, never summed
