@@ -86,10 +86,11 @@ kind: Deployment
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
 spec:
   # A single eligible worker cannot satisfy cross-node replica anti-affinity.
+  # It may also have no spare Pod slot, so replace the old replica before scheduling the new one.
   replicas: {{ min 2 (len .Values.tenantPlatform.placement.nodeNames) }}
   progressDeadlineSeconds: 180
   {{- if eq (len .Values.tenantPlatform.placement.nodeNames) 1 }}
-  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   {{- else }}
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   {{- end }}
