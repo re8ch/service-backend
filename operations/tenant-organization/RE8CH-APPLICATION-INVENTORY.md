@@ -44,7 +44,7 @@ The live catalog also shows application-shaped workloads outside a `re8ch-*` ten
 
 | Shared backend or service | Re8ch tenant path today | Next review |
 | --- | --- | --- |
-| Harbor | `registry.harbor.v1` grant and service catalog entry; `re8ch-registry` is Suspended because its selected identity is not an active Re8ch member. | Select an active Re8ch organization service owner, then plan provider reconciliation. Keep Harbor core and registry infrastructure under Admin. |
+| Harbor | `registry.harbor.v1` grant and service catalog entry; the legacy human `re8ch-registry` instance is Suspended because its selected identity is not an active Re8ch member. | Create a separate `build-push` tenant service instance without `identityUserRef`. It provisions a project-scoped robot credential for tenant builds and stays independent of human membership. Keep Harbor core under Admin; retain the human instance only for optional browser administration. |
 | Grafana | `observability.grafana.v1` grant and service catalog entry; no Ready Re8ch instance. The failed request using an Admin identity was soft-deleted. | Select an active Re8ch owner and provision the `app`/`kube` viewer instance. Tenant MCP Ready-instance support is proposed in PR #1638. Keep shared Grafana and metrics storage under Admin. |
 | PostgreSQL, Neo4j, Supabase, LiteLLM, OpenSandbox, Nuclio | Platform catalog exposes shared runtime or status, but the Review Demo service catalog currently publishes no equivalent general service instance for most of these. | Define tenant-scoped data/access contracts and grants before exposing application operations. Do not move a shared control plane into a tenant namespace to make a tool appear. |
 

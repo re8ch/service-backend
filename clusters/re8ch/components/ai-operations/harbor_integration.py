@@ -188,16 +188,17 @@ class HarborClient:
     def remove_project_member(self, project: str, member_id: int) -> None:
         self.request("DELETE", f"/projects/{self.quote(project)}/members/{member_id}")
 
-    def create_robot(self, project: str, name: str, permission: str, duration_days: int) -> tuple[dict[str, Any], str]:
+    def create_robot(self, project: str, name: str, permission: str, duration_days: int,
+                     description: str | None = None) -> tuple[dict[str, Any], str]:
         templates = {
             "pull": [("repository", "pull")],
-            "build-push": [("repository", "pull"), ("repository", "push"), ("artifact", "read"), ("artifact", "create")],
+            "build-push": [("repository", "pull"), ("repository", "push"), ("artifact", "read"), ("artifact", "create"), ("scan", "create")],
             "project-admin": [("repository", "pull"), ("repository", "push"), ("repository", "delete"), ("artifact", "read"), ("artifact", "create"), ("artifact", "delete"), ("scan", "create")],
         }
         if permission not in templates:
             raise ValueError("unknown robot permission template")
         access = [{"resource": resource, "action": action} for resource, action in templates[permission]]
-        response = self.request("POST", "/robots", {"name": name, "description": f"RE8CH {permission} robot for {project}", "disable": False, "duration": duration_days, "level": "project", "permissions": [{"kind": "project", "namespace": project, "access": access}]}, sanitize_response=False)
+        response = self.request("POST", "/robots", {"name": name, "description": description or f"RE8CH {permission} robot for {project}", "disable": False, "duration": duration_days, "level": "project", "permissions": [{"kind": "project", "namespace": project, "access": access}]}, sanitize_response=False)
         token = str(response.get("secret") or response.get("token") or "")
         if not token:
             raise HarborError(502, "Harbor did not return the robot secret")

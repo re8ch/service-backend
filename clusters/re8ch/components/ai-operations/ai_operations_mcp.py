@@ -1044,7 +1044,8 @@ def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref
         service_class = spec.get("serviceClass")
         provider = providers.get(service_class)
         ref = f"service://{tenant}/{name}"
-        credential_ref = status.get("humanCredentialRef")
+        credential_ref = (status.get("access") or {}).get("robotCredentialRef") if service_class == "registry.harbor.v1" else None
+        credential_ref = credential_ref or status.get("humanCredentialRef")
         if (spec.get("tenantRef") != tenant or not provider or not name or not uid
                 or status.get("phase") != "Ready" or resource_ref and resource_ref != ref
                 or not isinstance(credential_ref, str)

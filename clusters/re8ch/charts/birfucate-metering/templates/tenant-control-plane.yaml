@@ -204,7 +204,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: tenant-provider-credential-write, namespace: credential-broker}
 rules:
-  - {apiGroups: [""], resources: [secrets], verbs: [get, create]}
+  - {apiGroups: [""], resources: [secrets], verbs: [get, create, patch]}
   - {apiGroups: [operator.victoriametrics.com], resources: [vmusers], verbs: [get, create, delete]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
