@@ -33,11 +33,13 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     tenant = deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]
     admin = deployments["admin-api"]["spec"]["template"]["spec"]["containers"][0]
     assert tenant["image"] == "registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64
-    for container in (tenant, admin):
-        env = {v["name"]: v.get("value") for v in container["env"]}
-        assert env["AUTH_DISCOVERY_URL"] == "https://api.re8ch.com/auth/.well-known/openid-configuration"
+    tenant_env = {v["name"]: v.get("value") for v in tenant["env"]}
+    admin_env = {v["name"]: v.get("value") for v in admin["env"]}
+    assert tenant_env["AUTH_DISCOVERY_URL"] == "http://supabase-identity-auth.supabase-identity.svc:9999/.well-known/oauth-authorization-server"
+    assert tenant_env["SUPABASE_USER_URL"] == "http://supabase-identity-auth.supabase-identity.svc:9999/user"
+    assert admin_env["AUTH_DISCOVERY_URL"] == "https://api.re8ch.com/auth/.well-known/openid-configuration"
+    for env in (tenant_env, admin_env):
         assert env["DEX_USERINFO_URL"] == "https://api.re8ch.com/auth/userinfo"
-    assert next(v["value"] for v in tenant["env"] if v["name"] == "SUPABASE_USER_URL") == "https://db-rw.re8ch.com/auth/v1/user"
 
     assert admin["image"].endswith("sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6")
     assert {port["name"] for port in tenant["ports"]} == {"http", "skill-admin"}
