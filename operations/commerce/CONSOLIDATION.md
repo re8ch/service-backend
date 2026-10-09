@@ -28,17 +28,18 @@ surface; it runs as a small Go Deployment in `payments`.
   platform tool intentionally does not expose schemas or rows. The current
   payment registry remains live and needs a separately verified cutover.
 - A disposable PostgreSQL 16 database accepted the payment registry migrations
-  `021`, `040`–`044` and commerce migrations `046`–`047` together, and the
-  commerce SQL tests passed there. This proves schema coexistence only; the
-  payment and Credits tables still have separate posting semantics and no
-  production data has moved.
+  `021`, `040`–`044` and billing/commerce migrations `046`–`048` together, and
+  their SQL tests passed there. Migration `048` posts a bound Credits topup
+  within the payment success update and reverses it within the refund update;
+  an unbound success rolls back. No production data has moved.
 - The new Commerce schema now posts purchases and refunds to one `billing`
   double-entry journal inside the order transaction. Its account transfer
   primitive now supports personal and organization accounts, opening imports,
   and service spend with insufficient-balance checks. The historical Identity
   Credits outbox still writes `re8ch_identity`, and the Credits API has not
-  switched to this primitive, so this is only the new-order side of the
-  consolidation until the registry and identity routes cut over.
+  switched to target billing RPCs. Keep the old dispatcher active only for old
+  traffic while its outbox drains; the target Pod must have
+  `CREDITS_DISPATCH_ENABLED=false` before target traffic begins.
 - The platform's read-only `generate_pg_tenant_database_plan` produced a
   `re8ch_billing` role/route plan. Its generic SQL grants direct table writes
   to application roles; do not apply that SQL to this payment database. The
