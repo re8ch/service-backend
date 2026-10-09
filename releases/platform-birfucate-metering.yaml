@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: confluence-agate
+codename: eddy-agate
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:b8520bd84652ed6e690a48fbcfcafd97a59c25c7375d1d3161308a7f244b52ac
+  digest: sha256:b7ee44f67803db9b698dd62d10cd4697bfe94fb66961a7b555c8e6c98f4bfc78
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
