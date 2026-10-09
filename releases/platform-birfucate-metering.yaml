@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: riptide-agate
+codename: springtide-agate
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:2aeec271a74cda548f964152ed724330098c85d2cd9bb0f30f9e6bea2a1903b6
+  digest: sha256:971dd6c0321c5571027a9b0004bb402fba30e05f3bdf572f3d791b055453cf8e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
