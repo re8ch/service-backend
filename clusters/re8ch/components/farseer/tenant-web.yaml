@@ -10,9 +10,9 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: farseer-web, saas.re8ch.com/tenant: re8ch}}
     spec:
-      # Match the previously healthy restricted-node-6dc3f140f9 placement while the intermittent
+      # Match the previously healthy R640 placement while the intermittent
       # gateway-to-b1-wsl-zt connection timeout is investigated.
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -72,5 +72,5 @@ kind: HTTPRoute
 metadata: {name: farseer-tenant-canary, namespace: re8ch-farseer}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: apps-wildcard-https}]
-  hostnames: [farseer-canary.apps.re8ch.com]
+  hostnames: [farseer-canary.apps.re8ch.com, farseer.apps.re8ch.com]
   rules: [{backendRefs: [{name: farseer-web, port: 80}]}]
