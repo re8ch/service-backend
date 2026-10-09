@@ -37,18 +37,18 @@ jobs:
           umask 077
           printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          printf '[dns]\nnameservers = ["1.1.1.1"]\n' > "$RUNNER_TEMP/tenant-release-buildkitd.toml"
-          docker buildx create --name "tenant-release-${GITHUB_RUN_ID}" --driver docker-container \
-            --buildkitd-config "$RUNNER_TEMP/tenant-release-buildkitd.toml" --use
-          docker buildx inspect --bootstrap "tenant-release-${GITHUB_RUN_ID}" >/dev/null
-          builder_container="buildx_buildkit_tenant-release-${GITHUB_RUN_ID}0"
+          # Reuse the trusted local builder so slow upstream package and SBOM
+          # layers survive retries and subsequent releases.
+          builder_name=re8ch-direct
+          docker buildx inspect --bootstrap "$builder_name" >/dev/null
+          builder_container=buildx_buildkit_re8ch-direct0
           docker exec "$builder_container" sh -ec 'printf "nameserver 1.1.1.1\n" > /etc/resolv.conf'
           registry_ip="$(docker exec "$builder_container" getent hosts registry.re8ch.com | awk 'NR == 1 {print $1}')"
           case "$registry_ip" in
             ""|198.18.*|198.19.*) echo "Registry DNS did not resolve to a public authority" >&2; exit 1 ;;
           esac
           echo "Builder resolves registry.re8ch.com to $registry_ip"
-          echo "TENANT_IMAGE_BUILDER=tenant-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          echo "TENANT_IMAGE_BUILDER=$builder_name" >> "$GITHUB_ENV"
       - id: publish
         run: |
           ./operations/mcp-conformance/release-tenant-infrastructure.sh
@@ -59,8 +59,6 @@ jobs:
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
           BUILDKIT_NO_CLIENT_TOKEN: "1"
-      - if: always()
-        run: docker buildx rm "tenant-release-${GITHUB_RUN_ID}" || true
   finalize:
     needs: release
     runs-on: ubuntu-latest
