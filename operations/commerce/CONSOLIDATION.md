@@ -32,6 +32,11 @@ surface; it runs as a small Go Deployment in `payments`.
   commerce SQL tests passed there. This proves schema coexistence only; the
   payment and Credits tables still have separate posting semantics and no
   production data has moved.
+- The platform's read-only `generate_pg_tenant_database_plan` produced a
+  `re8ch_billing` role/route plan. Its generic SQL grants direct table writes
+  to application roles; do not apply that SQL to this payment database. The
+  payment and commerce APIs must retain RPC-only grants and separate RO/RW
+  credentials. No database or Secret was created by this plan call.
 
 ## Migration sequence and required gates
 
