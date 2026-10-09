@@ -46,6 +46,8 @@ resources:
 - secrets/cloud-disk-credentials.sops.yaml
 - secrets/commerce-wechat-app-identities.sops.yaml
 - secrets/commerce-ruiqi-merchant-certificate.sops.yaml
+- secrets/commerce-ruiqi-api-v3.sops.yaml
+- secrets/commerce-ruiqi-platform-certificate.sops.yaml
 - secrets/ledger-wechat-app-identities.sops.yaml
 - components/cilium/gateway-api-canary.yaml
 - components/aesthete/native-api-route.yaml
