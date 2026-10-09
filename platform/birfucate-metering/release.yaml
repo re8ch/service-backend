@@ -186,7 +186,7 @@ spec:
             maxNamespaces: 20
             allowCreate: true
             allowDelete: true
-            bootstrapNamespaces: [re8ch-default, re8ch-ledger, re8ch-neo4j, re8ch-anysite, re8ch-dataspace]
+            bootstrapNamespaces: [re8ch-default, re8ch-ledger, re8ch-neo4j, re8ch-anysite, re8ch-dataspace, re8ch-anycam, re8ch-compocv, re8ch-farseer, re8ch-incidentrelay, re8ch-payments]
           runtimeNamespaceRef: ledger
           imagePullSecretRef: harbor-functions-shared-pull
           harborProjectRef: re8ch

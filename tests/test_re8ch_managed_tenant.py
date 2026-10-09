@@ -58,7 +58,10 @@ def test_birfucate_publishes_re8ch_with_ai_sandbox_but_without_byoc_grants():
         "maxNamespaces": 20,
         "allowCreate": True,
         "allowDelete": True,
-        "bootstrapNamespaces": ["re8ch-default", "re8ch-ledger", "re8ch-neo4j", "re8ch-anysite", "re8ch-dataspace"],
+        "bootstrapNamespaces": [
+            "re8ch-default", "re8ch-ledger", "re8ch-neo4j", "re8ch-anysite", "re8ch-dataspace",
+            "re8ch-anycam", "re8ch-compocv", "re8ch-farseer", "re8ch-incidentrelay", "re8ch-payments",
+        ],
     }
     assert "businessNamespaces" not in re8ch
     grants = {item["consumableRef"] for item in re8ch["grants"]}

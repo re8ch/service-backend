@@ -20,9 +20,23 @@ Snapshot: 2026-10-09 00:10 UTC. Sources: live `get_platform_service_catalog`, th
 
 The older and tenant namespaces both contain workload objects for AnySite, Dataspace, Ledger and Neo4j. This inventory does not establish which copy currently receives traffic or owns data.
 
-## Product workloads to assess for Re8ch placement
+## Approved Re8ch application scope
 
-The live catalog shows application-shaped workloads outside a `re8ch-*` tenant namespace in `anycam` (4), `compocv` (3), `farseer` (1), `incidentrelay` (3), `payments` (8), `cosyvoice` (1), `cube-trial` (2), `mitos-trial` (4), `observable` (1), `studio-toolkit` (4) and `symphony-trial` (1). These are candidates, not approved migrations. Confirm the product owner, traffic entry point, data volumes, external identity, image source and current GitOps authority for each before changing placement. The application names alone do not prove that all resources in their namespaces belong to the same organization.
+The product owner approved AnyCam, CompoCV, Farseer, IncidentRelay and Payments for the Re8ch application organization. Their destination namespaces are `re8ch-anycam`, `re8ch-compocv`, `re8ch-farseer`, `re8ch-incidentrelay` and `re8ch-payments`. The Re8ch Tenant definition bootstraps these five namespace boundaries. Existing workloads, routes, secrets and data remain under their current GitOps authority until each application's cutover is reviewed. An empty destination namespace is not evidence that its application has migrated.
+
+| Application | Current namespace | Destination | Cutover dependency |
+| --- | --- | --- | --- |
+| AnyCam | `anycam` | `re8ch-anycam` | Model storage, Nuclio function, image pull and device gateway references. |
+| CompoCV | `compocv` | `re8ch-compocv` | API relay, Nuclio function, NodePort and public ingress hosts. |
+| Farseer | `farseer` | `re8ch-farseer` | Existing `saas.re8ch.com/tenant: farseer` labels and public HTTPRoute. |
+| IncidentRelay | `incidentrelay` | `re8ch-incidentrelay` | Database bootstrap, SOPS Secrets, Alertmanager targets and public route. |
+| Payments | `payments` | `re8ch-payments` | Hyperswitch database and Redis, SOPS Secrets, payment API and public routes. |
+
+Move one application's desired state and traffic at a time. Verify the destination is Ready under tenant `re8ch`, provision its non-Git secrets, compare its data authority and rollback path, then switch routes. Preserve the existing namespace and data through the rollback window.
+
+## Other product workloads to assess for Re8ch placement
+
+The live catalog also shows application-shaped workloads outside a `re8ch-*` tenant namespace in `cosyvoice` (1), `cube-trial` (2), `mitos-trial` (4), `observable` (1), `studio-toolkit` (4) and `symphony-trial` (1). These remain candidates, not approved migrations. Confirm the product owner, traffic entry point, data volumes, external identity, image source and current GitOps authority for each before changing placement. The application names alone do not prove that all resources in their namespaces belong to the same organization.
 
 ## Shared software: tenant access rather than backend relocation
 
