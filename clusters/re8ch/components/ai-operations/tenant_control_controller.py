@@ -648,7 +648,7 @@ def provider_service_spec(tenant_ref, name, request):
         if "identityUserRef" in parameters:
             try:
                 identity_user = str(uuid.UUID(str(parameters["identityUserRef"])))
-            except (ValueError, AttributeError):
+            except (ValueError, TypeError, AttributeError):
                 raise PermissionError("identityUserRef must identify a Supabase user") from None
         if request.get("planRef") == "project-admin" and identity_user is None:
             raise PermissionError("project-admin requires an active human identityUserRef")
