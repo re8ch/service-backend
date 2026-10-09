@@ -57,3 +57,12 @@ metadata: {name: farseer-web, namespace: re8ch-farseer}
 spec:
   selector: {app.kubernetes.io/name: farseer-web}
   ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: allow-public-gateway, namespace: re8ch-farseer}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: farseer-web}}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{protocol: TCP, port: 8080}]
