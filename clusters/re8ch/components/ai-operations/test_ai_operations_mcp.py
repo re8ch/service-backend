@@ -30,6 +30,15 @@ def load(profile="cloud"):
 
 
 class RegistryTests(unittest.TestCase):
+    def test_build_push_robot_can_preview_without_project_metadata_grant(self):
+        m = load("tenant")
+        args = {"credential_ref": "credential://harbor/re8ch/robot", "context": "https://github.com/example/source.git",
+                "repository": "build-smoke", "tag": "test", "idempotency_key": "build-smoke-test", "apply": False}
+        with patch.object(m, "authenticated_tenant", return_value="re8ch"), \
+             patch.object(m, "tenant_client", return_value=(None, "re8ch")):
+            preview = m.call_tool("harbor_build_start", args, {"subject": "tenant-user"})
+        self.assertIn("harbor/re8ch/build-smoke:test", json.dumps(preview))
+
     def test_provider_binding_projection_excludes_cross_tenant_and_stale_access(self):
         m = load("tenant")
         def instance(tenant, phase, credential, observed):

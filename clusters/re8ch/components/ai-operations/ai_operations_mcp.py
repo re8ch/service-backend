@@ -2275,8 +2275,9 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
                 preview = mutation_preview(f"build/{tenant}/{args['operation_id']}", {"state": "running"}, {"state": "cancelled"}, bool(args.get("apply")), "restart build")
                 if args.get("apply"): preview.update(supply_chain_client().cancel_build(tenant, args["operation_id"]))
                 return preview
-            client, project = tenant_client(tenant, args["credential_ref"])
-            client.project(project)
+            # The tenant-scoped broker reference fixes the project. A build-push
+            # robot need not have Harbor's separate project-metadata read grant.
+            _, project = tenant_client(tenant, args["credential_ref"])
             preview = mutation_preview(f"harbor/{project}/{args['repository']}:{args['tag']}", None, {"sbom": True, "provenance": "mode=max", "sign": args.get("sign", True), "scan": args.get("scan", True)}, bool(args.get("apply")), "cancel build and explicitly delete its artifact")
             if args.get("apply"): preview.update(supply_chain_client().start_build(tenant, project, args, args["idempotency_key"]))
             return preview
