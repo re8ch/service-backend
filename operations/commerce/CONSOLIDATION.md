@@ -21,6 +21,12 @@ surface; it runs as a small Go Deployment in `payments`.
   On 2026-10-10, public `/commerce/v1/healthz` and `/commerce/v1/catalog`
   both returned HTTP 503. This is a point-in-time availability observation,
   not evidence that the database has or has not been provisioned.
+- The authenticated Cloud Platform inventory on 2026-10-10 showed no
+  `commerce-api` Deployment or Service in `payments`. It did show one ready
+  `nuclio-payment-registry-api` Deployment and one ready `payment-postgrest`
+  Deployment. Pigsty's primary and `/auth/ready` routes were reachable; the
+  platform tool intentionally does not expose schemas or rows. The current
+  payment registry remains live and needs a separately verified cutover.
 
 ## Migration sequence and required gates
 
