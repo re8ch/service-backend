@@ -27,6 +27,11 @@ surface; it runs as a small Go Deployment in `payments`.
   Deployment. Pigsty's primary and `/auth/ready` routes were reachable; the
   platform tool intentionally does not expose schemas or rows. The current
   payment registry remains live and needs a separately verified cutover.
+- A disposable PostgreSQL 16 database accepted the payment registry migrations
+  `021`, `040`–`044` and commerce migrations `046`–`047` together, and the
+  commerce SQL tests passed there. This proves schema coexistence only; the
+  payment and Credits tables still have separate posting semantics and no
+  production data has moved.
 
 ## Migration sequence and required gates
 

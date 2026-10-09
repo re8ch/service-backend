@@ -1,12 +1,16 @@
-# RE8CH commerce database and WeChat Native rollout
+# RE8CH billing database and WeChat Native rollout
 
-The new `re8ch_commerce` database owns product price versions, orders, payment
-attempts, verified provider events and the RE8CH Credits ledger. Identity supplies
-the payer UUID; no card or WeChat credential is written to this database.
+The target `re8ch_billing` database is intended to own product price versions,
+orders, payment attempts, verified provider events and the RE8CH Credits ledger. Identity supplies
+the payer UUID; no card or WeChat credential is written to this database. Read
+`CONSOLIDATION.md` before applying this to a live system: the existing payment
+registry and historical Identity Credits data need reconciliation and cutover.
 
 1. Verify Pigsty primary and pgBackRest/PITR health. Apply `bootstrap.sql` to
-   `postgres`, then apply `cloud-functions/sql/046_re8ch_commerce.sql` to the new
-   database. Grant `commerce_runtime` to both authenticator roles. Provision
+   `postgres`, then apply the payment registry migrations `021`, `040`–`044`
+   and commerce migrations `046`–`047` from cloud-functions to `re8ch_billing`.
+   Grant `commerce_runtime` to both commerce authenticator roles and database
+   `CONNECT` to the existing payment PostgREST role after its migration. Provision
    distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
    JWT signing secret in that Secret and `payments/commerce-api-secrets`.
 2. The Ruiqi merchant certificate for merchant `1722340397` is encrypted in
