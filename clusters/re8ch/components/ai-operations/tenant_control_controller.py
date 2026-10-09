@@ -644,10 +644,14 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("Harbor plan is not published")
         if set(parameters) - {"project", "quotaGiB", "robotDurationDays", "identityUserRef"}:
             raise PermissionError("Harbor parameters are not published")
-        try:
-            identity_user = str(uuid.UUID(str(parameters["identityUserRef"])))
-        except (KeyError, ValueError, AttributeError):
-            raise PermissionError("identityUserRef must identify a Supabase user") from None
+        identity_user = None
+        if "identityUserRef" in parameters:
+            try:
+                identity_user = str(uuid.UUID(str(parameters["identityUserRef"])))
+            except (ValueError, TypeError, AttributeError):
+                raise PermissionError("identityUserRef must identify a Supabase user") from None
+        if request.get("planRef") == "project-admin" and identity_user is None:
+            raise PermissionError("project-admin requires an active human identityUserRef")
         project = harbor_project(tenant_ref)
         if parameters.get("project", project) != project:
             raise PermissionError("Harbor project is outside the authenticated tenant")
@@ -656,7 +660,10 @@ def provider_service_spec(tenant_ref, name, request):
         maximum = 1024
         if type(quota) is not int or not 1 <= quota <= maximum or type(duration) is not int or not 1 <= duration <= 365:
             raise PermissionError("Harbor quota or robot duration is outside the published limits")
-        return {"project": project, "quotaGiB": quota, "robotDurationDays": duration, "identityUserRef": identity_user}
+        result = {"project": project, "quotaGiB": quota, "robotDurationDays": duration}
+        if identity_user is not None:
+            result["identityUserRef"] = identity_user
+        return result
     if request.get("planRef") not in {"viewer", "editor"}:
         raise PermissionError("Grafana plan is not published")
     if set(parameters) - {"datasourceRefs", "folderRefs", "humanLogin", "identityUserRef"}:
