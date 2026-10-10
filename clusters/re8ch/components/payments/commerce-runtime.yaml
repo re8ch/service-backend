@@ -1,5 +1,5 @@
 # Signed image from commerce-go-release run 38048650285, source e825a6527940d67161355d3a05ef12250f3ac8ec.
-# Secrets commerce-postgrest-secrets, commerce-api-secrets and commerce-registry-pull are managed out of band.
+# Secrets commerce-postgrest-secrets, commerce-api-secrets are managed out of band.
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: commerce-postgrest-rw, namespace: payments}
@@ -9,7 +9,7 @@ spec:
   template:
     metadata: {labels: {app: commerce-postgrest-rw}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
@@ -35,7 +35,7 @@ spec:
   template:
     metadata: {labels: {app: commerce-postgrest-ro}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
@@ -107,7 +107,7 @@ spec:
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
-      imagePullSecrets: [{name: commerce-registry-pull}]
+      imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: commerce-api
           image: registry.re8ch.com/hyperswitch/processor-commerce-api@sha256:dbfc6ae7b7eaa04ba654ef416ac7e0cb847c1b08171b11796585702cebeadc1d
@@ -169,7 +169,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
-          nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
           containers:
             - name: reconcile
               image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
