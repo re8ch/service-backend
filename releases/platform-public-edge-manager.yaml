@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-onyx
+codename: zephyr-onyx
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:74a002df7ca3a6f4f98b6cc8f0b194616298ffc93a0c33f24c618380fe72342b
+  digest: sha256:d8934dc5c3b3916689008d78a25a48a377956fba294c8325af759e917db9ada8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
