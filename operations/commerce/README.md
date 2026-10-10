@@ -23,12 +23,14 @@ documents a separate historical migration procedure if that decision changes.
    `psql` meta commands: translate `bootstrap.sql`'s `\gexec` and
    `\connect` steps into separate, reviewed calls to `postgres` and
    `re8ch_billing`. Use `transactional=false` only for `CREATE DATABASE`.
-   Apply `052_billing_commerce_runtime.sql` after its Cloud Functions PR is
-   reviewed. It creates a target-specific RPC role and grants it to both
-   commerce authenticator roles, along with database `CONNECT` for payment
-   PostgREST. Provision
-   distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
-   JWT signing secret in that Secret and `payments/commerce-api-secrets`.
+   Migrations `052_billing_commerce_runtime.sql` and
+   `053_billing_commerce_pgrst_login.sql` were applied after Cloud Functions
+   PRs #120 and #122 merged. The existing Commerce PostgREST login is now a
+   member of the target-specific RPC role. Before the GitOps runtime PR merges,
+   run `provision_billing_secrets.py plan` and then `apply` through the
+   authenticated restricted-node-6dc3f140f9 administrator path. It creates new payment and Commerce
+   Secrets for `re8ch_billing` from existing managed login credentials, with a
+   read-only session option on each RO URI. It prints no credential values.
 2. The Ruiqi merchant certificate for merchant `1722340397` is encrypted in
    `clusters/re8ch/secrets/commerce-ruiqi-merchant-certificate.sops.yaml` and
    supplies the merchant ID, certificate serial and private key. The API v3 key
@@ -47,19 +49,18 @@ documents a separate historical migration procedure if that decision changes.
    `linux/amd64`, publishes them to the existing Harbor `hyperswitch` project,
    attaches SBOM and provenance, and signs and verifies both digests. Inspect
    the workflow's `commerce-go.images` artifact and the Harbor scan before
-   using either image. Replace the
-   marker in `commerce-runtime.yaml.template` and the marker in
-   `payment-registry-go.yaml.template` with the corresponding digest. Move the
-   Commerce template into
-   `clusters/re8ch/components/payments/`; add it to the cluster kustomization in
-   a reviewed GitOps change. Provision `commerce-registry-pull`. Deploy the
+   using either image. The signed digests from release run `38048650285` are
+   pinned in `clusters/re8ch/components/payments/`. The Commerce API reuses
+   the existing `payments/harbor-hyperswitch-admin` pull Secret. Deploy the
    commerce API Deployment and both PostgREST services. Verify RO rejects a write RPC and RW accepts it only with a signed
    short-lived runtime JWT. Confirm anonymous table access is denied.
    The payment registry Go Pod replacement is staged in
    `payment-registry-go.yaml.template`; it preserves the current Service name
-   and disables the old cross-database dispatcher. Do not replace the live
-   Nuclio Deployment until the target Credits routes, source outbox drain,
-   billing database DSN and signed registry image have been verified.
+   and disables the old cross-database dispatcher. The nine expired historical
+   `re8ch_payment` rows are failed attempts; retain them for audit without
+   importing them into the fresh billing database. Do not replace the live
+   Nuclio Deployment until the target Credits routes, new billing database
+   Secrets and signed registry image have been verified.
 4. A signed-in member of `re8ch:pricing-admins` publishes a CNY Credits SKU via
    `POST /commerce/v1/admin/catalog` with `{sku,name,amount_minor,credits}`.
    There is no implicit price. Publish a low-value package for the first real
