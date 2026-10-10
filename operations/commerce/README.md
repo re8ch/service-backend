@@ -59,7 +59,9 @@ source IDs, sequence numbers and verified Identity hash-chain proofs. Import
 source transactions in order and require `billing.verify_legacy_wallets` to
 report zero owner balance mismatches before switching traffic.
 `051` imports historical Identity purchase rates, service prices, topups,
-refunds and quotes only after the payment snapshot and journal import.
+refunds and quotes only after the payment snapshot and journal import. Match
+its counts to the frozen source inventory and require zero mismatches from
+`billing.verify_legacy_identity_metadata()` before moving traffic.
 The target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
 accepting target traffic. Drain the old registry outbox with the old Pod and
 reconcile rates, wallet mapping and historical postings before routing the

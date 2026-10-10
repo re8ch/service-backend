@@ -83,7 +83,11 @@ surface; it runs as a small Go Deployment in `payments`.
    unbound topup; `tenant_id` is otherwise derived from the migrated payment.
    The importer verifies credited topups and refunds against migrated payment
    rows and historical journal postings, and is idempotent only when all
-   source fields match. A credited
+   source fields match. Compare its per-type target counts to the frozen source
+   inventory and require every mismatch in
+   `billing.verify_legacy_identity_metadata()` to be zero before cutover.
+   This includes succeeded Credits payments without a topup, missing journal
+   postings, refund overdraw and accepted quotes without spend. A credited
    topup without a payment ID requires an explicit source investigation before
    import. Resolve each topup's tenant from the payment registry or an
    independently verified ownership record; the old topup table has no tenant
