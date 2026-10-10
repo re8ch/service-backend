@@ -70,6 +70,11 @@ def validate(inv):
                 errors.append(f'{node["name"]}: invalid podCIDRPeers peer: {peer_name}')
             elif node["name"] not in peer.get("podCIDRPeers", []):
                 errors.append(f'{node["name"]}: non-reciprocal podCIDR peer: {peer_name}')
+        api_relay = node.get("apiVipVia")
+        if api_relay and (api_relay != {"peer": "restricted-node-6dc3f140f9", "prefix": "192.0.2.116/32"}
+                          or node["name"] != "overseas-la"
+                          or api_relay["peer"] not in node.get("meshPeers", [])):
+            errors.append(f'{node["name"]}: invalid API VIP relay')
     names = {node["name"]: node for node in inv["nodes"]}
     for node in inv["nodes"]:
         for peer_name in node.get("meshPeers", []):
@@ -128,6 +133,8 @@ def render_wireguard(inv, node, peers, stage):
         allowed = [f'{peer["transportIp"]}/32', f"{identity}/32"]
         if peer["name"] in node.get("podCIDRPeers", []):
             allowed.append(peer["podCIDR"])
+        if node.get("apiVipVia", {}).get("peer") == peer["name"]:
+            allowed.append(node["apiVipVia"]["prefix"])
         lines += [
             "",
             "[Peer]",
@@ -153,7 +160,10 @@ def render_frr(inv, node, stage):
         "bfd",
     ]
     for peer in peers:
-        lines += [f' peer {peer["transportIp"]}', "  transmit-interval 1000", "  receive-interval 1000", "  detect-multiplier 3", "  no shutdown", " exit"]
+        api_relay_pair = (node.get("apiVipVia", {}).get("peer") == peer["name"]
+                          or peer.get("apiVipVia", {}).get("peer") == node["name"])
+        if not api_relay_pair:
+            lines += [f' peer {peer["transportIp"]}', "  transmit-interval 1000", "  receive-interval 1000", "  detect-multiplier 3", "  no shutdown", " exit"]
     lines += ["!", f'ip route {self_prefix}/32 Null0 254']
     for route in node.get("rescueRoutes", []):
         lines.append(f'ip route {route["prefix"]} {route["via"]} {route["distance"]}')
@@ -163,13 +173,23 @@ def render_frr(inv, node, stage):
     if has_expanded_peer and not expanded:
         lines.append(f'ip prefix-list SELF-ACCEL seq 10 permit 10.250.0.{node["id"]}/32')
     for peer in peers:
+        if peer.get("apiVipVia", {}).get("peer") == node["name"]:
+            lines.append(f'ip prefix-list TO-{peer["id"]} seq 10 permit 10.250.0.{node["id"]}/32')
+            lines.append(f'ip prefix-list TO-{peer["id"]} seq 20 permit {peer["apiVipVia"]["prefix"]}')
+    for peer in peers:
         identity = f'10.250.0.{peer["id"]}' if expanded or "meshPeers" in peer else peer["ztIp"]
         lines.append(f'ip prefix-list FROM-{peer["id"]} seq 10 permit {identity}/32')
+        if node.get("apiVipVia", {}).get("peer") == peer["name"]:
+            lines.append(f'ip prefix-list FROM-{peer["id"]} seq 15 permit {node["apiVipVia"]["prefix"]}')
         if peer["name"] in node.get("podCIDRPeers", []):
             lines.append(f'ip prefix-list FROM-{peer["id"]} seq 20 permit {peer["podCIDR"]}')
     lines += ["!", f'router bgp {node["asn"]}', f' bgp router-id {node["ztIp"]}', " bgp ebgp-requires-policy", " no bgp default ipv4-unicast"]
     for peer in peers:
-        lines += [f' neighbor {peer["transportIp"]} remote-as {peer["asn"]}', f' neighbor {peer["transportIp"]} update-source {node["transportIp"]}', f' neighbor {peer["transportIp"]} disable-connected-check', f' neighbor {peer["transportIp"]} timers 1 3', f' neighbor {peer["transportIp"]} bfd']
+        api_relay_pair = (node.get("apiVipVia", {}).get("peer") == peer["name"]
+                          or peer.get("apiVipVia", {}).get("peer") == node["name"])
+        lines += [f' neighbor {peer["transportIp"]} remote-as {peer["asn"]}', f' neighbor {peer["transportIp"]} update-source {node["transportIp"]}', f' neighbor {peer["transportIp"]} disable-connected-check', f' neighbor {peer["transportIp"]} timers {"3 9" if api_relay_pair else "1 3"}']
+        if not api_relay_pair:
+            lines.append(f' neighbor {peer["transportIp"]} bfd')
         if node["name"] in peer.get("peerCompatibility", {}).get(
             "disableFqdnCapabilityFrom", []
         ):
@@ -177,11 +197,18 @@ def render_frr(inv, node, stage):
     lines += [" !", " address-family ipv4 unicast", f'  network {self_prefix}/32']
     if has_expanded_peer and not expanded:
         lines.append(f'  network 10.250.0.{node["id"]}/32')
+    for peer in peers:
+        if peer.get("apiVipVia", {}).get("peer") == node["name"]:
+            lines.append(f'  network {peer["apiVipVia"]["prefix"]}')
     if node.get("podCIDR"):
         lines.append(f'  network {node["podCIDR"]}')
     for peer in peers:
         maximum = 2 if peer["name"] in node.get("podCIDRPeers", []) else 1
+        if node.get("apiVipVia", {}).get("peer") == peer["name"]:
+            maximum += 1
         outbound = "SELF-ACCEL" if "meshPeers" in peer and not expanded else "SELF"
+        if peer.get("apiVipVia", {}).get("peer") == node["name"]:
+            outbound = f'TO-{peer["id"]}'
         lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list {outbound} out', f'  neighbor {peer["transportIp"]} maximum-prefix {maximum} 90 restart 5']
     lines += [" exit-address-family", "exit", "!"]
     return "\n".join(lines) + "\n"

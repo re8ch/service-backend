@@ -105,6 +105,23 @@ def test_expansion_rejects_unpaired_mesh_peer():
         PUBLIC_MESH.validate(data)
 
 
+def test_la1_api_vip_is_reachable_only_through_r640_peer():
+    data = inventory()
+    la1 = PUBLIC_MESH.select(data, "overseas-la")
+    restricted-node-6dc3f140f9 = PUBLIC_MESH.select(data, "restricted-node-6dc3f140f9")
+    keys = {node["id"]: f'key-{node["id"]}' for node in data["nodes"]}
+    la1_wg = PUBLIC_MESH.render_wireguard(data, la1, keys, stage=10)
+    la1_frr = PUBLIC_MESH.render_frr(data, la1, stage=10)
+    r640_frr = PUBLIC_MESH.render_frr(data, restricted-node-6dc3f140f9, stage=10)
+
+    assert "AllowedIPs = 192.0.2.125/32, 192.0.2.179/32, 192.0.2.116/32" in la1_wg
+    assert "FROM-128 seq 15 permit 192.0.2.116/32" in la1_frr
+    assert "neighbor 192.0.2.125 maximum-prefix 2 90 restart 5" in la1_frr
+    assert "TO-104 seq 20 permit 192.0.2.116/32" in r640_frr
+    assert "neighbor 192.0.2.188 prefix-list TO-104 out" in r640_frr
+    assert "neighbor 192.0.2.188 timers 3 9" in r640_frr
+
+
 def test_mubao_dials_two_public_spines_without_advertising_zerotier():
     data = inventory()
     PUBLIC_MESH.validate(data)
