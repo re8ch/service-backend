@@ -713,6 +713,18 @@
       "applyEligible": false,
       "wireguard": [
         {
+          "name": "wg-public-mesh",
+          "modelSection": "publicMesh",
+          "inventoryName": "overseas-la",
+          "transportIp": "192.0.2.49",
+          "mtu": 1280,
+          "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
+          "declaredWriters": [
+            "host-wg-quick",
+            "podcidr-fabric-reconciler"
+          ]
+        },
+        {
           "name": "wg-pt-a1",
           "modelSection": "privateTransit",
           "inventoryName": "overseas-la",
@@ -738,6 +750,7 @@
         "replacement": "owned-scopes-only",
         "modelSections": [
           "podcidrFabric",
+          "publicMesh",
           "privateTransit"
         ],
         "declaredWriters": [
@@ -1137,7 +1150,7 @@
       "controlPodRoutePolicy": []
     }
   },
-  "modelDigest": "sha256:9286d2ffacaa7b37c9ddf5b59b9112fd7e93031e664a7547cab5ae9773301d70",
+  "modelDigest": "sha256:96de3f971800ee4cc7122305eed7e6958fd1861877b8161618843ba78abc54d1",
   "transitPaths": {
     "sources": [
       "192.0.2.29/32",

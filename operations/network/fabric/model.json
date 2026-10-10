@@ -147,6 +147,7 @@
           "meshPeers": [
             "restricted-node-6dc3f140f9",
             "overseas-la-2",
+            "overseas-la",
             "restricted-node-abb3f27a69"
           ]
         },
@@ -164,6 +165,21 @@
             "restricted-node-6dc3f140f9",
             "overseas-flk",
             "restricted-node-abb3f27a69"
+          ]
+        },
+        {
+          "id": "104",
+          "name": "overseas-la",
+          "ztIp": "192.0.2.55",
+          "transportIp": "192.0.2.49",
+          "acceleratedIp": "192.0.2.29",
+          "publicIp": "192.0.2.91",
+          "asn": 4200000104,
+          "rollout": 10,
+          "publicMode": "static",
+          "meshPeers": [
+            "restricted-node-6dc3f140f9",
+            "overseas-flk"
           ]
         },
         {
