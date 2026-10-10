@@ -64,7 +64,7 @@ if [[ $action == export ]]; then
   [[ $(summary) == "$(cat "$directory/source-summary.txt")" ]] || {
     printf 'source changed during snapshot; discard dump and freeze writes\n' >&2; exit 1;
   }
-  "${checksum[@]}" "$directory/payment.dump" > "$directory/payment.dump.sha256"
+  (cd -- "$directory" && "${checksum[@]}" payment.dump > payment.dump.sha256)
   printf 'payment snapshot exported to %s\n' "$directory"
 elif [[ $action == restore ]]; then
   [[ -f $directory/payment.dump && -f $directory/payment.dump.sha256 &&

@@ -61,7 +61,7 @@ if [[ $action == export ]]; then
     printf 'source changed during Commerce snapshot; discard dump and freeze writes\n' >&2
     exit 1
   }
-  "${checksum[@]}" "$directory/commerce.dump" > "$directory/commerce.dump.sha256"
+  (cd -- "$directory" && "${checksum[@]}" commerce.dump > commerce.dump.sha256)
   printf 'Commerce order snapshot exported to %s\n' "$directory"
 elif [[ $action == restore ]]; then
   [[ -f $directory/commerce.dump && -f $directory/commerce.dump.sha256 &&
