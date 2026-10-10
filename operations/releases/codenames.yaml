@@ -1264,6 +1264,8 @@ modules:
       digest: sha256:c33a194416fcdde9708235c0d1b59610c83cfc0111afc86e389f2ef982dc1a59
     - codename: mistral-onyx
       digest: sha256:0d24a7846b789d6c228921bbcf20cb46e9e81ff8a5379b972f2bc8ed349d6329
+    - codename: sirocco-onyx
+      digest: sha256:bf27cfc9643bddb7efde5c2b43ae123bdddaed9a19c712fce81ca7fbf30c64bc
   platform/adapter:
     releases:
     - codename: anchor
