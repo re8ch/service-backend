@@ -7,6 +7,11 @@ select jsonb_build_object(
   'event_sequence',(select coalesce(max(sequence_no),0) from payment.payment_events),
   'refunds',(select count(*) from payment.refunds),
   'outbox',(select count(*) from payment.outbox_events),
+  'pending_credit_outbox',(
+    select count(*) from payment.outbox_events where delivered_at is null
+      and business_reference like 'credits:%'
+      and event_type in ('payment.succeeded','refund.succeeded')
+  ),
   'outbox_sequence',(select coalesce(max(id),0) from payment.outbox_events),
   'audit_batches',(select count(*) from payment.audit_batches),
   'audit_delivery',(select count(*) from payment.audit_delivery),

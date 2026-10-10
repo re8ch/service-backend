@@ -37,7 +37,8 @@ require_integrity() {
   local report=$1 field
   for field in event_chain_breaks event_hash_mismatches audit_delivery_missing \
     audit_delivery_orphans audit_delivery_hash_mismatches attempt_orphans \
-    event_orphans refund_orphans outbox_orphans audit_base_orphans audit_member_orphans; do
+    event_orphans refund_orphans outbox_orphans audit_base_orphans audit_member_orphans \
+    pending_credit_outbox; do
     [[ $report == *\"$field\":\ 0* ]] || {
       printf 'payment snapshot integrity failed: %s\n' "$field" >&2
       exit 1

@@ -101,6 +101,13 @@ surface; it runs as a small Go Deployment in `payments`.
    and the Commerce timestamp/ID order; interpret an empty previous hash as
    empty bytes. Independently check source balance totals against the exported
    wallet rows. A live production export has not yet been obtained.
+   Run `python analyze-wallet-overlap.py IDENTITY_WALLETS.csv
+   COMMERCE_WALLETS.csv` on the protected exports. The JSON report contains
+   aggregates only and exits nonzero if any non-system owner exists in both
+   sources. Equal balances do not prove duplicate transactions: compare the
+   corresponding journals and provider references before choosing an additive
+   or deduplicated account mapping. Do not import an overlapping owner until
+   that choice is supported by source evidence.
 2. On the exact Pigsty PostgreSQL major version and architecture, pin and test
    the Omnigres package on every database node and replica. Verify
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create
