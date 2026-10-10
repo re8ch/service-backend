@@ -1,10 +1,16 @@
-# Single order and ledger database migration
+# Historical order and ledger migration (not in the fresh-start rollout)
+
+The 2026-10-10 rollout starts `re8ch_billing` empty and does not import old
+wallets, orders, payment events, rates or journals. See `FRESH-START.md` for
+the active release. This document remains the controlled procedure if a later
+decision requires a historical migration.
 
 Target: one `re8ch_billing` database owns catalog prices, orders, provider
 payments, refunds, accounting accounts, and Credits transfers. Identity remains
 the authority for payer UUIDs and organization membership, but does not post
-new billing transactions. The commerce HTTP API remains the sole public payment
-surface; it runs as a small Go Deployment in `payments`.
+new billing transactions. In the fresh-start rollout, the Commerce Go API
+serves WeChat Native orders and the payment registry Go API serves Stripe
+Credits top-ups through Hyperswitch; both target the same database.
 
 ## Current evidence
 
