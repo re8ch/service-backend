@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ops-admin-postgres-credential
+  namespace: supabase-pg-re8ch
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [supabase-pg-re8ch-secrets]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ops-admin-postgres-credential
+  namespace: supabase-pg-re8ch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ops-admin-postgres-credential
+subjects:
+  - kind: ServiceAccount
+    name: ops-mcp-admin
+    namespace: toolhive-system

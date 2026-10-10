@@ -65,6 +65,7 @@
         "generate_pg_tenant_database_plan": true,
         "ensure_tenant_database_secrets": true,
         "ensure_tenant_database_bundle": true,
+        "postgres_admin_sql": true,
         "ensure_tenant_access": true,
         "ensure_harbor_tenant": true,
         "set_tool_publication_stage": true,

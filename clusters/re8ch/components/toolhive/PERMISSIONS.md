@@ -9,7 +9,7 @@ A tool is publishable only when all four are defined.
 | Kubernetes | list/get approved resources | bounded restart in tenant namespace | reviewed RBAC/identity provisioning | Kubernetes RBAC | Headlamp + audit/Grafana |
 | Metrics/logs | tenant summaries, fixed service health and dashboard links | same | datasource/config administration later | Grafana org/SA and metrics proxy | Grafana |
 | Harbor registry | internal API health and project/image metadata | promotion/scan action later | tenant/project/robot provisioning | Harbor project roles | Harbor UI + Grafana |
-| Pigsty PostgreSQL | fixed route health and tenant database metrics | migration job by approval later | role/database/Secret plan and reconciliation | PostgreSQL roles and K8s Secret RBAC | CloudBeaver + Pigsty/Grafana |
+| Pigsty PostgreSQL | fixed route health and tenant database metrics | migration job by approval later | plan/apply SQL through the fixed Supabase admin identity | PostgreSQL roles and exact Secret RBAC | CloudBeaver + Pigsty/Grafana |
 | Tool registry | API health and approved catalog metadata | request promotion later | approval-ID-gated canary/internal/deprecated transition for three reviewed servers | scoped ToolHive CR RBAC + Registry discovery | Registry API/CR status + Grafana |
 
 ## Implemented identities
@@ -27,8 +27,12 @@ before the dedicated ToolHive backend identities reach Kubernetes RBAC.
 
 - `secrets`, decoded credentials, kubeconfigs and login passwords are never
   observe tools.
-- Generic Kubernetes and SQL proxies are not included in any default surface.
-  A caller-supplied token does not make a generic proxy low risk.
+- Generic Kubernetes and tenant SQL proxies are not included in any default
+  surface. The named `postgres_admin_sql` exception is available only to an
+  authenticated platform-admin session through self-service. It fixes the
+  Pigsty route and credential source and requires an approval ID and matching
+  plan hash for writes. A caller-supplied token does not make a generic proxy
+  low risk.
 - Write tools must be resource-scoped and idempotent. Destructive changes need
   an approval ID and must emit an audit event before execution.
 - Humans and agents use separate identities even when they have equivalent
@@ -44,7 +48,7 @@ For each surface, call `tools/list`, then test one allowed and one denied action
 | --- | --- | --- |
 | observe | `list_k8s_resources`, `get_tenant_metrics_summary`, `get_platform_service_health` | `restart_deployment`, `get_kubeconfig`, every credential/admin tool |
 | operate | `restart_deployment` | `k8s_api_proxy`, credential tools, every admin tool |
-| admin | named provisioning tools in the checked-in allowlist | `k8s_api_proxy`, `postgres_sql_proxy`, credential-returning tools |
+| admin | named provisioning tools and `postgres_admin_sql` in the checked-in allowlist | `k8s_api_proxy`, `postgres_sql_proxy`, credential-returning tools |
 
 Also verify:
 

@@ -82,6 +82,17 @@ service account from three named Secrets via tightly scoped `get` RBAC and are
 never returned to the caller. The old Admin and Cloud/Infra MCP connections
 remain published.
 
+The authenticated self-service plugin is the preferred administrator entry.
+An active `admin` organization session with verified platform-admin membership
+uses the platform catalog's separate allowlist and backend permissions. Empty
+tenant consumables or service classes do not restrict this administrator path.
+The `admin` backend publishes `postgres_admin_sql` for reviewed Pigsty SQL:
+read-only queries execute through the fixed Supabase database identity; writes
+require an approval ID, first return a plan hash, and execute only with
+`apply=true` and that hash.
+Neither callers nor tool results receive the database password. This path
+avoids requiring a fresh Supabase Studio login for every migration.
+
 Run `go test -race ./...` and `go vet ./...` in this directory. The repository
 chart tests are `python3 -m pytest tests/test_tenant_infrastructure_gitops.py`.
 Run `python3 differential_test.py` here to start both tenant runtimes against

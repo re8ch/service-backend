@@ -12,6 +12,14 @@ registry and historical Identity Credits data need reconciliation and cutover.
    payment writes are frozen, transfer the historical payment snapshot using
    `payment-snapshot.sh` as described in `CONSOLIDATION.md`; inspect the target
    inventory before applying billing/commerce migrations `046`–`051`.
+   The authenticated administrator self-service catalog publishes
+   `postgres_admin_sql` for this database work. Use `platform_tool_catalog`
+   to discover it, run read-only inventory first, and pass each reviewed SQL
+   script with a PR approval ID. The first write call returns a plan hash;
+   execute only with `apply=true` and that hash. The tool accepts SQL, not
+   `psql` meta commands: translate `bootstrap.sql`'s `\gexec` and
+   `\connect` steps into separate, reviewed calls to `postgres` and
+   `re8ch_billing`. Use `transactional=false` only for `CREATE DATABASE`.
    Grant `commerce_runtime` to both commerce authenticator roles and database
    `CONNECT` to the existing payment PostgREST role after its migration. Provision
    distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
