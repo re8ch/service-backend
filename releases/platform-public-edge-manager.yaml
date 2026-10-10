@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: etesian-quartz
+codename: mistral-quartz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:bd29f94a9e6aba045bd0b44933af185c7020af3c41682c1994cc6826e400de05
+  digest: sha256:3b5e136967333a1f17c13ee4d825bfafec78ad3239e68744e32267178a0114e7
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
