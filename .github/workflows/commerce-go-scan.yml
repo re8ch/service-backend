@@ -1,0 +1,38 @@
+name: Scan pinned Commerce Go images
+
+on:
+  workflow_dispatch:
+    inputs:
+      commerce_digest:
+        description: Immutable Commerce API image digest
+        required: true
+        type: string
+      registry_digest:
+        description: Immutable payment-registry image digest
+        required: true
+        type: string
+
+permissions: {contents: read}
+
+jobs:
+  scan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Scan the two fixed Harbor repositories
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          COMMERCE_DIGEST: ${{ inputs.commerce_digest }}
+          REGISTRY_DIGEST: ${{ inputs.registry_digest }}
+        run: |
+          python operations/commerce/scan_harbor_images.py \
+            "$COMMERCE_DIGEST" "$REGISTRY_DIGEST" scan-reports
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: commerce-go-harbor-scans
+          path: scan-reports/*.json
+          if-no-files-found: error
