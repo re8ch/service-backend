@@ -62,6 +62,9 @@ report zero owner balance mismatches before switching traffic.
 refunds and quotes only after the payment snapshot and journal import. Match
 its counts to the frozen source inventory and require zero mismatches from
 `billing.verify_legacy_identity_metadata()` before moving traffic.
+For a fresh target and reconciled wallet ownership, `billing-import.sh` stages
+all protected source CSVs and runs those imports in one transaction; see
+`CONSOLIDATION.md` for input order and tenant-resolution evidence.
 The target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
 accepting target traffic. Drain the old registry outbox with the old Pod and
 reconcile rates, wallet mapping and historical postings before routing the

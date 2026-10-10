@@ -108,6 +108,19 @@ surface; it runs as a small Go Deployment in `payments`.
    corresponding journals and provider references before choosing an additive
    or deduplicated account mapping. Do not import an overlapping owner until
    that choice is supported by source evidence.
+   For a non-overlapping snapshot, the DBA can run `billing-import.sh` with
+   the target `PGSERVICEFILE` alias and the five protected source CSV paths:
+   Identity wallets, Identity transfers, Commerce wallets, Commerce transfers,
+   and Identity billing records. Pass a sixth CSV for unbound topup tenant
+   resolutions with header `legacy_topup_id,tenant_id,evidence_ref`; a
+   header-only file is valid when no resolution is needed. The script first
+   rejects owner overlap, then stages all CSVs and imports wallets, transfers
+   and metadata in one target transaction. It requires a fresh billing target,
+   exact source/target row counts and zero reconciliation mismatches. A failed
+   import rolls back; retain the source CSVs and failed output for review.
+   Use a migration-owner connection; runtime credentials must not execute the
+   import functions. A synthetic end-to-end PostgreSQL 16 run passed, and a
+   second run correctly refused the nonempty target. Production has not run.
 2. On the exact Pigsty PostgreSQL major version and architecture, pin and test
    the Omnigres package on every database node and replica. Verify
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create
