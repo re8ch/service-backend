@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:f91e349f1847746552af0c206ce0b2ff6d3b4b04cf4395397264c40e61673b73}
+  ref: {digest: sha256:d874018c650fc8f05d5b749910690ee181f67f21ff12d1291d3d9895e81562bc}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.27"
+      tag: "0.6.28"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:e6da6bad5a5cd2fad70c295e54fe6c527515ed3cdd31e0a4b09bc8cc4cc31128
+      digest: sha256:f3620faeafe4d96bf6c955ac95418356020e1ec18ccf031570addabda39d263f
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -166,6 +166,7 @@ spec:
       # Keep auth's authoritative zone for rollback, but stop recreating its
       # parent NS delegation before replacing that delegation with EdgeOne CNAME.
       childZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com, test.re8ch.com]
+      addressZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com]
       # HE slave authority verified over public UDP and TCP before delegation.
       secondaryNameserversByZone:
         service.re8ch.com: [ns1.he.net., ns2.he.net., ns3.he.net., ns4.he.net., ns5.he.net.]
