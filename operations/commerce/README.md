@@ -32,6 +32,11 @@ registry and historical Identity Credits data need reconciliation and cutover.
    a reviewed GitOps change. Provision `commerce-registry-pull`. Deploy the
    commerce API Deployment and both PostgREST services. Verify RO rejects a write RPC and RW accepts it only with a signed
    short-lived runtime JWT. Confirm anonymous table access is denied.
+   The payment registry Go Pod replacement is staged in
+   `payment-registry-go.yaml.template`; it preserves the current Service name
+   and disables the old cross-database dispatcher. Do not replace the live
+   Nuclio Deployment until the target Credits routes, source outbox drain,
+   billing database DSN and signed registry image have been verified.
 4. A signed-in member of `re8ch:pricing-admins` publishes a CNY Credits SKU via
    `POST /commerce/v1/admin/catalog` with `{sku,name,amount_minor,credits}`.
    There is no implicit price. Publish a low-value package for the first real

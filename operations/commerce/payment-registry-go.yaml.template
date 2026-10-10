@@ -1,0 +1,30 @@
+# Template only. Keep out of clusters/re8ch/components/payments until the
+# target billing database, Credits routes and signed immutable image are ready.
+# Replace the existing Deployment in credits-runtime.yaml; keep its Service name.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: nuclio-payment-registry-api, namespace: payments}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: payment-registry-api}}
+  template:
+    metadata: {labels: {app: payment-registry-api}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      imagePullSecrets: [{name: harbor-hyperswitch-admin}]
+      containers:
+        - name: payment-registry-api
+          image: REPLACE_WITH_SIGNED_PAYMENT_REGISTRY_IMAGE_DIGEST
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 8080}]
+          envFrom:
+            - secretRef: {name: payment-registry-secrets}
+          env:
+            - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
+            - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
+            - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
+            - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
+          readinessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
