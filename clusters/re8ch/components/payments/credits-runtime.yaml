@@ -113,49 +113,32 @@ spec:
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: nuclio-payment-registry-api
-  namespace: payments
+metadata: {name: nuclio-payment-registry-api, namespace: payments}
 spec:
   replicas: 1
-  selector:
-    matchLabels: {app: payment-registry-api}
+  selector: {matchLabels: {app: payment-registry-api}}
   template:
-    metadata:
-      labels: {app: payment-registry-api}
+    metadata: {labels: {app: payment-registry-api}}
     spec:
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
-        - name: nuclio
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api:stripe-profile-aa5196e@sha256:b6ffb0620a3175d425a27db89e29546403111bd41e1a39ca995bd0a7147ca432
+        - name: payment-registry-api
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:f5e5fc8423d49237bcb097cbb92054ff42f15f7ff7c9aa201738a048cd4c424b
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
-          volumeMounts:
-            - {name: processor-config, mountPath: /etc/nuclio/config/processor, readOnly: true}
           ports: [{name: http, containerPort: 8080}]
           envFrom:
             - secretRef: {name: payment-registry-secrets}
-            - secretRef: {name: identity-credits-secrets}
           env:
-            - {name: NUCLIO_FUNCTION_NAME, value: payment-registry-api}
-            - {name: NUCLIO_FUNCTION_VERSION, value: latest}
-            - {name: CREDITS_DISPATCH_ENABLED, value: "true"}
+            - {name: BILLING_CREDITS_ENABLED, value: "true"}
+            - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
-            - {name: CREDITS_POSTGREST_RW_BASE_URL, value: "http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000"}
-            - {name: CREDITS_POSTGREST_RO_BASE_URL, value: "http://supabase-identity-rest-ro.supabase-identity.svc.cluster.local:3000"}
-          readinessProbe:
-            httpGet: {path: /v1/healthz, port: http}
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            requests: {cpu: 100m, memory: 128Mi}
-            limits: {cpu: "1", memory: 512Mi}
-      volumes:
-        - name: processor-config
-          configMap: {name: nuclio-payment-registry-api}
+          readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
 ---
 apiVersion: v1
 kind: Service

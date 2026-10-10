@@ -1,0 +1,182 @@
+# Signed image from commerce-go-release run 38048650285, source e825a6527940d67161355d3a05ef12250f3ac8ec.
+# Secrets commerce-postgrest-secrets, commerce-api-secrets and commerce-registry-pull are managed out of band.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: commerce-postgrest-rw, namespace: payments}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: commerce-postgrest-rw}}
+  template:
+    metadata: {labels: {app: commerce-postgrest-rw}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: postgrest
+          image: docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - name: PGRST_DB_URI
+              valueFrom: {secretKeyRef: {name: commerce-postgrest-secrets, key: PGRST_DB_URI_RW}}
+            - {name: PGRST_DB_SCHEMAS, value: commerce_api}
+            - {name: PGRST_DB_ANON_ROLE, value: commerce_anon}
+            - name: PGRST_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: commerce-postgrest-secrets, key: PGRST_JWT_SECRET}}
+          readinessProbe: {httpGet: {path: /, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: commerce-postgrest-ro, namespace: payments}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: commerce-postgrest-ro}}
+  template:
+    metadata: {labels: {app: commerce-postgrest-ro}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: postgrest
+          image: docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - name: PGRST_DB_URI
+              valueFrom: {secretKeyRef: {name: commerce-postgrest-secrets, key: PGRST_DB_URI_RO}}
+            - {name: PGRST_DB_SCHEMAS, value: commerce_api}
+            - {name: PGRST_DB_ANON_ROLE, value: commerce_anon}
+            - name: PGRST_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: commerce-postgrest-secrets, key: PGRST_JWT_SECRET}}
+          readinessProbe: {httpGet: {path: /, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: commerce-postgrest-rw, namespace: payments}
+spec: {selector: {app: commerce-postgrest-rw}, ports: [{name: http, port: 3000, targetPort: http}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: commerce-postgrest-ro, namespace: payments}
+spec: {selector: {app: commerce-postgrest-ro}, ports: [{name: http, port: 3000, targetPort: http}]}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: commerce-db-rw, namespace: payments}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-rw-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-rw-https}
+  hostnames: [db-rw.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /commerce}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: commerce-postgrest-rw, port: 3000}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: commerce-db-ro, namespace: payments}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: db-ro-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-ro-https}
+  hostnames: [db-ro.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /commerce}}]
+      filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
+      backendRefs: [{name: commerce-postgrest-ro, port: 3000}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: commerce-api, namespace: payments}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: commerce-api}}
+  template:
+    metadata: {labels: {app: commerce-api}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      imagePullSecrets: [{name: commerce-registry-pull}]
+      containers:
+        - name: commerce-api
+          image: registry.re8ch.com/hyperswitch/processor-commerce-api@sha256:dbfc6ae7b7eaa04ba654ef416ac7e0cb847c1b08171b11796585702cebeadc1d
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 8080}]
+          envFrom: [{secretRef: {name: commerce-api-secrets}}]
+          env:
+            - {name: WX_PAY_MCH_ID, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_MCH_ID}}}
+            - {name: WX_PAY_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_SERIAL_NO}}}
+            - {name: WX_PAY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_PRIVATE_KEY}}}
+            - {name: WX_PAY_API_V3_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-api-v3, key: WX_PAY_API_V3_KEY}}}
+            - {name: WX_PAY_PLATFORM_PUBLIC_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-platform-certificate, key: WX_PAY_PLATFORM_PUBLIC_KEY}}}
+            - {name: WX_PAY_PLATFORM_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-platform-certificate, key: WX_PAY_PLATFORM_SERIAL_NO}}}
+            - {name: WX_PAY_APP_ID, valueFrom: {secretKeyRef: {name: commerce-wechat-app-identities, key: WX_PAY_APP_ID}}}
+            - {name: WECHAT_MINI_APP_ID, valueFrom: {secretKeyRef: {name: commerce-wechat-app-identities, key: WECHAT_MINI_APP_ID}}}
+            - {name: RE8CH_AUTH_BASE_URL, value: "https://api.re8ch.com/auth"}
+            - {name: COMMERCE_RW_URL, value: "https://db-rw.re8ch.com/commerce"}
+            - {name: COMMERCE_RO_URL, value: "https://db-ro.re8ch.com/commerce"}
+            - {name: WX_PAY_NOTIFY_URL, value: "https://api.re8ch.com/commerce/v1/webhooks/wechat"}
+            - {name: COMMERCE_CHECKOUT_ENABLED, value: "false"}
+            - {name: COMMERCE_MINI_CHECKOUT_ENABLED, value: "false"}
+          readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: commerce-api, namespace: payments}
+spec: {selector: {app: commerce-api}, ports: [{name: http, port: 8080, targetPort: http}]}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: commerce-public-api, namespace: payments}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: api-https}
+  hostnames: [api.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /commerce}}]
+      backendRefs: [{name: commerce-api, port: 8080}]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: commerce-wechat-reconcile, namespace: payments}
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 250
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          containers:
+            - name: reconcile
+              image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+              env:
+                - name: COMMERCE_RECONCILE_TOKEN
+                  valueFrom: {secretKeyRef: {name: commerce-api-secrets, key: COMMERCE_RECONCILE_TOKEN}}
+              command: [sh, -ec]
+              args:
+                - 'wget -qO- --header="X-Commerce-Reconcile-Token: ${COMMERCE_RECONCILE_TOKEN}" --post-data="" --timeout=240 http://commerce-api.payments.svc.cluster.local:8080/v1/internal/reconcile'
+              resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
