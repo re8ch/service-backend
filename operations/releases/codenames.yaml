@@ -1052,6 +1052,8 @@ modules:
       digest: sha256:e4b57cf4a62ae0209135c73cdf02568329bc7544f8ab94145662cdad2d4b62f6
     - codename: confluence-turquoise
       digest: sha256:2e7791bd7affa08b9ac6787d6ecd135422cdbf98c0e3b83e362c104024e5b47c
+    - codename: eddy-turquoise
+      digest: sha256:8fe6518176814263f8897f767a01555f8c41ed8b737d5ad16e85b3cb1737f7e8
   platform/hyperswitch:
     releases:
     - codename: anchor
