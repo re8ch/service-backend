@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: zephyr-jade
+    delivery.re8ch.com/codename: bora-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-advanced-fabric
   ref:
-    digest: sha256:0b70a232ec5425ef6807b5935e74178f4082b5d66cc78131de5e8dfe16af7b7f
+    digest: sha256:0c2aab4176f88165bf6a0a3899bab3f91a2da5ffcad0295b6e25367343ce52d9
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/advanced-fabric
-    delivery.re8ch.com/codename: zephyr-jade
+    delivery.re8ch.com/codename: bora-pearl
 spec:
   interval: 1m
   retryInterval: 1m
