@@ -23,8 +23,10 @@ documents a separate historical migration procedure if that decision changes.
    `psql` meta commands: translate `bootstrap.sql`'s `\gexec` and
    `\connect` steps into separate, reviewed calls to `postgres` and
    `re8ch_billing`. Use `transactional=false` only for `CREATE DATABASE`.
-   Grant `commerce_runtime` to both commerce authenticator roles and database
-   `CONNECT` to the existing payment PostgREST role after its migration. Provision
+   Apply `052_billing_commerce_runtime.sql` after its Cloud Functions PR is
+   reviewed. It creates a target-specific RPC role and grants it to both
+   commerce authenticator roles, along with database `CONNECT` for payment
+   PostgREST. Provision
    distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
    JWT signing secret in that Secret and `payments/commerce-api-secrets`.
 2. The Ruiqi merchant certificate for merchant `1722340397` is encrypted in

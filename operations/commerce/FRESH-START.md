@@ -16,6 +16,13 @@ The authenticated administrator `postgres_admin_sql` path created
 `021`, `040`, `041`, `042_payment_public_verification`, `043`, `044`, `046`,
 `047`, `048`, `049`.
 
+The existing global `commerce_runtime` role cannot be delegated by the
+`supabase_admin` identity because it has no admin membership. Its attempted
+grant failed without changing membership. A reviewed follow-on migration
+`052_billing_commerce_runtime.sql` will create a target-specific RPC role and
+grant it to the Commerce PostgREST login roles. Do not route traffic through
+those roles until this migration is applied and verified.
+
 Each write used a plan hash and `apply=true`; the migration scripts' outer
 `BEGIN`/`COMMIT` were removed so the tool could wrap each script in a single
 transaction. Read-only inspection found the `payment`, `commerce`, and
@@ -53,7 +60,8 @@ payment and after new schemas have been included in a backup.
    digests through the reviewed `commerce-go-release` workflow. The Commerce
    deployment remains a template and the public `/commerce/v1/healthz` returned
    HTTP 503 on 2026-10-10.
-2. Provision the target database's distinct RO/RW PostgREST credentials and
+2. Apply and verify `052_billing_commerce_runtime.sql`, then provision the
+   target database's distinct RO/RW PostgREST credentials and
    runtime JWT secret through the approved Secret path. Grant only the required
    RPC roles. Keep the current payment registry Secret pointed at its existing
    store until the new Go Pod and target routes are ready.
