@@ -5,7 +5,7 @@ copy (
     debit.wallet_id as from_wallet_id,credit.wallet_id as to_wallet_id,
     credit.amount,t.sequence_no,
     encode(t.previous_hash,'hex') as previous_hash_hex,
-    encode(t.entry_hash,'hex') as entry_hash_hex,t.payment_id
+    encode(t.entry_hash,'hex') as entry_hash_hex,t.payment_id,t.created_at
   from credits.transactions t
     join credits.entries debit on debit.transaction_id=t.id and debit.amount<0
     join credits.entries credit on credit.transaction_id=t.id and credit.amount>0

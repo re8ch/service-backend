@@ -103,7 +103,7 @@ surface; it runs as a small Go Deployment in `payments`.
    per owner and unit with `billing.map_legacy_wallet`. Compare historical
    transactions and balances before import. Import each historical transfer
    with `billing.import_legacy_transfer`, preserving its source transaction ID
-   and validating each Identity sequence, entry hash and previous hash against
+   and original `created_at`, and validating each Identity sequence, entry hash and previous hash against
    the original journal algorithm. Then require `billing.verify_legacy_wallets`
    to show zero owner balance mismatches for each source. The importer rejects
    a second source for the same owner account; reconcile overlap and prove
