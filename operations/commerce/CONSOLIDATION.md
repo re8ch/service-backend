@@ -95,8 +95,25 @@ surface; it runs as a small Go Deployment in `payments`.
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create
    `omni_ledger` in a disposable clone and run concurrent transfer, retry,
    PITR and replica promotion tests before any production installation.
-3. Create `re8ch_billing`; apply order/payment schema and the native `billing`
-   journal. Each purchase, refund, and service spend must have a unique
+3. Create `re8ch_billing`; apply payment migrations `021`, `040`–`044` to the
+   empty target. With the old payment registry frozen, a DBA with approved
+   source read and target restore privileges runs `payment-snapshot.sh export
+   OLD_PAYMENT_SERVICE PRIVATE_DIRECTORY`, then `payment-snapshot.sh restore
+   NEW_BILLING_SERVICE PRIVATE_DIRECTORY`. The service names are entries in a
+   protected `PGSERVICEFILE`; authentication comes from a protected
+   `PGPASSFILE`. The private directory contains payment data and stays outside
+   Git. The script requires an empty target `payment` schema, equal table
+   lists, an unchanged source summary during export, a matching dump SHA-256,
+   and matching source/target summaries. Restore temporarily disables triggers
+   in one transaction so existing events and audit bytes retain their original
+   values; the DBA must inspect `target-inventory.txt`, confirm zero integrity
+   mismatches and no disabled payment triggers, then perform independent FK and
+   provider reference reconciliation. A source with pending Credits outbox
+   entries is not ready for cutover. The script was exercised with synthetic
+   data on PostgreSQL 16; it has not moved production records.
+   Apply commerce/billing migrations `046`–`050` after this payment snapshot;
+   import and reconcile Identity and Commerce records before routing traffic.
+   Each purchase, refund, and service spend must have a unique
    business event key and post in the same database transaction as its
    order/payment state transition. Treat `omni_ledger` as an evaluated option:
    adopt it only after testing its serializable transaction requirement,

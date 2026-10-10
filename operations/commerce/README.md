@@ -8,7 +8,10 @@ registry and historical Identity Credits data need reconciliation and cutover.
 
 1. Verify Pigsty primary and pgBackRest/PITR health. Apply `bootstrap.sql` to
    `postgres`, then apply the payment registry migrations `021`, `040`–`044`
-   and billing/commerce migrations `046`–`050` from cloud-functions to `re8ch_billing`.
+   from cloud-functions to the empty `re8ch_billing` database. After source
+   payment writes are frozen, transfer the historical payment snapshot using
+   `payment-snapshot.sh` as described in `CONSOLIDATION.md`; inspect the target
+   inventory before applying billing/commerce migrations `046`–`050`.
    Grant `commerce_runtime` to both commerce authenticator roles and database
    `CONNECT` to the existing payment PostgREST role after its migration. Provision
    distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
