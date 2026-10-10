@@ -1260,6 +1260,8 @@ modules:
       digest: sha256:851c6aa2abbbabdc47db546ee9a575b567f84c1a11f1ec8f588066288c955964
     - codename: chinook-onyx
       digest: sha256:990d86f0fb05c7eff6c31e22ede0985ee8174232ee38177cffae21406074039c
+    - codename: etesian-onyx
+      digest: sha256:c33a194416fcdde9708235c0d1b59610c83cfc0111afc86e389f2ef982dc1a59
   platform/adapter:
     releases:
     - codename: anchor
