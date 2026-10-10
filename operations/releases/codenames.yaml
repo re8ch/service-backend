@@ -1274,6 +1274,8 @@ modules:
       digest: sha256:74a002df7ca3a6f4f98b6cc8f0b194616298ffc93a0c33f24c618380fe72342b
     - codename: zephyr-onyx
       digest: sha256:d8934dc5c3b3916689008d78a25a48a377956fba294c8325af759e917db9ada8
+    - codename: bora-quartz
+      digest: sha256:8a1db493f910bbcd9a149db7ac6ad4a6219486a76f67ba1bd458a99e4ac28ef0
   platform/adapter:
     releases:
     - codename: anchor
