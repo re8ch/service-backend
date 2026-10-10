@@ -1278,6 +1278,8 @@ modules:
       digest: sha256:8a1db493f910bbcd9a149db7ac6ad4a6219486a76f67ba1bd458a99e4ac28ef0
     - codename: chinook-quartz
       digest: sha256:1f3332c40688d1e84fd49ff76611560077c03a24af5e16860dcae4d25d6c0c07
+    - codename: etesian-quartz
+      digest: sha256:bd29f94a9e6aba045bd0b44933af185c7020af3c41682c1994cc6826e400de05
   platform/adapter:
     releases:
     - codename: anchor
