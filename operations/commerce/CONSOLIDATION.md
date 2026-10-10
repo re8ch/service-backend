@@ -108,6 +108,17 @@ surface; it runs as a small Go Deployment in `payments`.
    corresponding journals and provider references before choosing an additive
    or deduplicated account mapping. Do not import an overlapping owner until
    that choice is supported by source evidence.
+   After applying migrations `046`–`051` to the target and freezing old
+   Commerce writes, run `commerce-snapshot.sh export OLD_COMMERCE_SERVICE
+   PRIVATE_DIRECTORY` and then `commerce-snapshot.sh restore
+   NEW_BILLING_SERVICE PRIVATE_DIRECTORY`. This copies the eight order-side
+   Commerce tables and provider event sequence while retaining their source
+   IDs. It does not copy the old Commerce wallet or credit journal tables;
+   those enter `billing` through the CSV importer below. Require matching
+   source/target summaries, zero order integrity mismatches, an empty target
+   before restore, and no disabled Commerce triggers afterward. The script
+   was exercised with a synthetic paid order and partial refund on PostgreSQL
+   16; production records have not been moved.
    For a non-overlapping snapshot, the DBA can run `billing-import.sh` with
    the target `PGSERVICEFILE` alias and the five protected source CSV paths:
    Identity wallets, Identity transfers, Commerce wallets, Commerce transfers,
@@ -118,6 +129,9 @@ surface; it runs as a small Go Deployment in `payments`.
    and metadata in one target transaction. It requires a fresh billing target,
    exact source/target row counts and zero reconciliation mismatches. A failed
    import rolls back; retain the source CSVs and failed output for review.
+   The importer also requires each restored paid order and positive Credits
+   refund to match a source Commerce transfer with the same business key,
+   owner and Credits amount. It rejects orphaned purchase/refund transfers.
    Use a migration-owner connection; runtime credentials must not execute the
    import functions. A synthetic end-to-end PostgreSQL 16 run passed, and a
    second run correctly refused the nonempty target. Production has not run.
@@ -144,7 +158,8 @@ surface; it runs as a small Go Deployment in `payments`.
    entries is not ready for cutover. The script was exercised with synthetic
    data on PostgreSQL 16; it has not moved production records.
    Apply commerce/billing migrations `046`–`051` after this payment snapshot;
-   import and reconcile Identity and Commerce records before routing traffic.
+   restore Commerce orders, then import and reconcile Identity and Commerce
+   records before routing traffic.
    Each purchase, refund, and service spend must have a unique
    business event key and post in the same database transaction as its
    order/payment state transition. Treat `omni_ledger` as an evaluated option:

@@ -94,6 +94,40 @@ begin
       else -t.amount end),0) from stage_commerce_transfers t
       where w.legacy_wallet_id in (t.from_wallet_id,t.to_wallet_id))) then
     raise exception 'Commerce CSV wallet balance differs from exported transfers'; end if;
+  if exists(
+    select 1 from commerce.orders o
+    left join commerce.order_items i on i.order_id=o.id and i.line_no=1
+    left join stage_commerce_transfers t on t.legacy_kind='purchase'
+      and t.legacy_source_ref='order:'||o.id::text
+    left join stage_commerce_wallets w on w.legacy_wallet_id=t.to_wallet_id
+    where (o.status='paid') is distinct from (t.legacy_transaction_id is not null)
+      or (o.status='paid' and (t.amount is distinct from i.credits
+        or w.owner_kind is distinct from 'personal'
+        or w.owner_ref is distinct from o.payer_subject::text))
+  ) or exists(
+    select 1 from stage_commerce_transfers t where t.legacy_kind='purchase'
+      and not exists(select 1 from commerce.orders o where o.status='paid'
+        and t.legacy_source_ref='order:'||o.id::text)
+  ) then
+    raise exception 'Commerce paid orders do not match source purchase transfers'; end if;
+  if exists(
+    select 1 from commerce.refunds r join commerce.orders o on o.id=r.order_id
+    left join stage_commerce_transfers t on t.legacy_kind='refund'
+      and t.legacy_source_ref='refund:'||r.provider_ref
+    left join stage_commerce_wallets w on w.legacy_wallet_id=t.from_wallet_id
+    where (r.status='succeeded' and r.credits_reversed>0)
+      is distinct from (t.legacy_transaction_id is not null)
+      or (r.status='succeeded' and r.credits_reversed>0 and
+        (t.amount is distinct from r.credits_reversed
+          or w.owner_kind is distinct from 'personal'
+          or w.owner_ref is distinct from o.payer_subject::text))
+  ) or exists(
+    select 1 from stage_commerce_transfers t where t.legacy_kind='refund'
+      and not exists(select 1 from commerce.refunds r where r.status='succeeded'
+        and r.credits_reversed>0
+        and t.legacy_source_ref='refund:'||r.provider_ref)
+  ) then
+    raise exception 'Commerce refunds do not match source refund transfers'; end if;
   for v_row in select * from stage_identity_wallets order by ordinal loop
     perform billing.map_legacy_wallet('identity',v_row.legacy_wallet_id,
       v_row.owner_kind,v_row.owner_ref,v_row.source_balance);

@@ -65,6 +65,13 @@ its counts to the frozen source inventory and require zero mismatches from
 For a fresh target and reconciled wallet ownership, `billing-import.sh` stages
 all protected source CSVs and runs those imports in one transaction; see
 `CONSOLIDATION.md` for input order and tenant-resolution evidence.
+Restore the old Commerce order-side tables first with `commerce-snapshot.sh`
+after migrations `046`–`051`. Its source/target summary and integrity checks
+cover orders, attempts, provider events and refunds. `billing-import.sh` then
+requires the paid orders and positive Credits refunds to match the imported
+Commerce journal by business key, payer and amount. Both scripts require DBA
+access through protected PostgreSQL service aliases; no production restore has
+been performed.
 The target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
 accepting target traffic. Drain the old registry outbox with the old Pod and
 reconcile rates, wallet mapping and historical postings before routing the
