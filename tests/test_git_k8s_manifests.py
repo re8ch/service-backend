@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:f91e349f1847746552af0c206ce0b2ff6d3b4b04cf4395397264c40e61673b73"}
+    assert source["spec"]["ref"] == {"digest": "sha256:d874018c650fc8f05d5b749910690ee181f67f21ff12d1291d3d9895e81562bc"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.27",
-        "digest": "sha256:e6da6bad5a5cd2fad70c295e54fe6c527515ed3cdd31e0a4b09bc8cc4cc31128",
+        "tag": "0.6.28",
+        "digest": "sha256:f3620faeafe4d96bf6c955ac95418356020e1ec18ccf031570addabda39d263f",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -571,6 +571,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     ]
     assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
     assert values["discovery"]["excludedNodeNames"] == ["overseas-la-2", "overseas-la"]
+    assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
     assert values["dns"]["axfrZones"] == ["service.re8ch.com."]
     assert values["dns"]["axfrAllowedCidrs"] == ["192.0.2.67/32"]
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
