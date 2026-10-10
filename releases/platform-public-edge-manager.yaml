@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: etesian-onyx
+codename: mistral-onyx
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:c33a194416fcdde9708235c0d1b59610c83cfc0111afc86e389f2ef982dc1a59
+  digest: sha256:0d24a7846b789d6c228921bbcf20cb46e9e81ff8a5379b972f2bc8ed349d6329
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
