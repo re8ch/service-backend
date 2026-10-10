@@ -1,4 +1,9 @@
-# Single order and ledger database migration
+# Historical order and ledger migration (not in the fresh-start rollout)
+
+The 2026-10-10 rollout starts `re8ch_billing` empty and does not import old
+wallets, orders, payment events, rates or journals. See `FRESH-START.md` for
+the active release. This document remains the controlled procedure if a later
+decision requires a historical migration.
 
 Target: one `re8ch_billing` database owns catalog prices, orders, provider
 payments, refunds, accounting accounts, and Credits transfers. Identity remains
