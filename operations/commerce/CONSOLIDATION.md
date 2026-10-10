@@ -8,8 +8,9 @@ decision requires a historical migration.
 Target: one `re8ch_billing` database owns catalog prices, orders, provider
 payments, refunds, accounting accounts, and Credits transfers. Identity remains
 the authority for payer UUIDs and organization membership, but does not post
-new billing transactions. The commerce HTTP API remains the sole public payment
-surface; it runs as a small Go Deployment in `payments`.
+new billing transactions. In the fresh-start rollout, the Commerce Go API
+serves WeChat Native orders and the payment registry Go API serves Stripe
+Credits top-ups through Hyperswitch; both target the same database.
 
 ## Current evidence
 
