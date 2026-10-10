@@ -973,7 +973,7 @@
     "kind": "agent-memory",
     "module": "service-backend",
     "ref": "catalogs/platform/modules/service-backend/MEMORY.md",
-    "sha256": "92e76e386d5a725c309afe08a7213b1c3b1e70911de7bf6525b2bdbd218abcc9"
+    "sha256": "a07be136e3b82ca723ac376e69096405a792ed3c6a7b7bbab42537dd686b0485"
   },
   {
     "module": "tool-distribution",

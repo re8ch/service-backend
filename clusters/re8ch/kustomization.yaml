@@ -92,6 +92,7 @@ resources:
 - components/toolhive/external-observe-rbac.yaml
 - components/toolhive/external-privileged-publication.yaml
 - components/toolhive/platform-restart-rbac.yaml
+- components/toolhive/ops-admin-postgres-rbac.yaml
 # ConnecTool aggregates these private ToolHive workloads on stable workers.
 - components/toolhive/vmcp-external-publication.yaml
 - components/toolhive/runtime-child-tolerations.yaml

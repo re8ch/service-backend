@@ -227,6 +227,42 @@ class ToolProfileTests(unittest.TestCase):
         self.assertFalse(any("authentik" in name for name in admin))
         self.assertNotIn("get_kubeconfig", admin)
         self.assertNotIn("postgres_sql_proxy", admin)
+        self.assertIn("postgres_admin_sql", admin)
+        self.assertNotIn("postgres_admin_sql", self.tools("observe"))
+        self.assertNotIn("postgres_admin_sql", self.tools("operate"))
+
+    def test_admin_sql_requires_plan_and_keeps_supabase_credential_server_side(self):
+        module = load_profile("admin")
+        sql = "CREATE TABLE billing_probe (id bigint)"
+        args = {"database": "re8ch_billing", "sql": sql, "readOnly": False,
+                "approvalId": "re8ch/service-backend#1670"}
+        requests = []
+        module.kube_request = lambda *request: requests.append(request) or {"data": {
+            "POSTGRES_PASSWORD": base64.b64encode(b"test-only-password").decode(),
+        }}
+        plan = module.postgres_admin_sql(args)
+        self.assertEqual(plan["status"], "planned")
+        self.assertEqual(requests, [])
+        self.assertNotIn("test-only-password", json.dumps(plan))
+        with self.assertRaisesRegex(PermissionError, "matching planHash"):
+            module.postgres_admin_sql({**args, "apply": True, "planHash": "incorrect"})
+        with self.assertRaisesRegex(PermissionError, "admin token required"):
+            module.call_tool("postgres_admin_sql", args, admin=False)
+        calls = []
+        class FakeSocket:
+            def close(self):
+                pass
+        module.pg_connect = lambda *values, **_kw: calls.append(("connect", values)) or FakeSocket()
+        module.pg_execute_simple = lambda _sock, statement, **_kw: calls.append(("sql", statement)) or {"command": "COMMIT"}
+        result = module.call_tool("postgres_admin_sql", {**args, "apply": True, "planHash": plan["planHash"]}, admin=True)
+        self.assertEqual(result["status"], "executed")
+        self.assertEqual(calls[0][1][3:5], ("supabase_admin", "test-only-password"))
+        self.assertIn("BEGIN;", calls[2][1])
+        self.assertIn("COMMIT;", calls[2][1])
+        self.assertNotIn("test-only-password", json.dumps(result))
+        self.assertEqual(requests[0][1], "/api/v1/namespaces/supabase-pg-re8ch/secrets/supabase-pg-re8ch-secrets")
+        with self.assertRaisesRegex(PermissionError, "readOnly admin SQL"):
+            module.postgres_admin_sql({"database": "postgres", "sql": sql})
 
     def test_external_profiles_do_not_inherit_qwen_tenant_defaults(self):
         for profile in ("observe", "operate", "admin"):

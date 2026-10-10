@@ -710,6 +710,77 @@ def postgres_sql_proxy(args=None, admin=False):
             except Exception:
                 pass
 
+
+def postgres_admin_sql(args=None):
+    """Plan or execute DBA SQL through the fixed Supabase/Pigsty identity."""
+    args = args or {}
+    database = pg_ident(args.get("database") or "")
+    sql = args.get("sql")
+    if not isinstance(sql, str) or not sql.strip():
+        raise ValueError("sql is required")
+    sql = sql.strip()
+    if len(sql.encode("utf-8")) > 200000:
+        raise ValueError("sql too large; max 200 KB")
+    if any(key in args for key in ("host", "port", "user", "username", "password", "secret")):
+        raise ValueError("direct connection parameters and credentials are not accepted")
+    if any(line.lstrip().startswith("\\") for line in sql.splitlines()):
+        raise ValueError("psql meta commands are not SQL; submit SQL statements only")
+    read_only = bool(args.get("readOnly", True))
+    transactional = bool(args.get("transactional", True))
+    timeout = min(max(int(args.get("timeoutSeconds") or 30), 1), 120)
+    approval_id = args.get("approvalId") or ""
+    if not read_only and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9:/._#-]{3,127}", approval_id):
+        raise ValueError("writes require a reviewed approvalId")
+    digest_input = json.dumps({"database": database, "sql": sql, "readOnly": read_only,
+                               "transactional": transactional, "timeoutSeconds": timeout,
+                               "approvalId": approval_id},
+                              sort_keys=True, separators=(",", ":"))
+    plan_hash = hashlib.sha256(digest_input.encode("utf-8")).hexdigest()
+    if not read_only and not bool(args.get("apply", False)):
+        return {"status": "planned", "database": database, "readOnly": False,
+                "transactional": transactional, "sqlBytes": len(sql.encode("utf-8")),
+                "planHash": plan_hash, "credentialRef": "supabase-pg-re8ch/supabase-pg-re8ch-secrets",
+                "role": "supabase_admin", "route": "writeService", "approvalId": approval_id}
+    if not read_only and args.get("planHash") != plan_hash:
+        raise PermissionError("apply requires the matching planHash from a prior plan")
+    if read_only and bool(args.get("apply", False)):
+        raise ValueError("apply is only for a planned write")
+    if read_only:
+        sql = normalize_sql_for_safety(sql)
+        if not READONLY_SQL_RE.match(sql):
+            raise PermissionError("readOnly admin SQL only allows SELECT/WITH/SHOW/EXPLAIN/VALUES")
+    doc = kube_request("GET", "/api/v1/namespaces/supabase-pg-re8ch/secrets/supabase-pg-re8ch-secrets")
+    encoded = (doc.get("data") or {}).get("POSTGRES_PASSWORD")
+    if not encoded:
+        raise RuntimeError("Supabase PostgreSQL credential is unavailable")
+    password = base64.b64decode(encoded).decode("utf-8")
+    host = PG_SERVICE_ROUTES["writeService"]["host"]
+    port = PG_SERVICE_ROUTES["writeService"]["port"]
+    sock = None
+    try:
+        sock = pg_connect(host, port, database, "supabase_admin", password, timeout=timeout)
+        pg_execute_simple(sock, "SET statement_timeout = %s" % sql_literal("%sms" % (timeout * 1000)), max_rows=1)
+        if read_only:
+            pg_execute_simple(sock, "SET default_transaction_read_only = on", max_rows=1)
+            result = pg_execute_simple(sock, sql, max_rows=min(max(int(args.get("maxRows") or 100), 1), 500))
+            return {"status": "executed", "database": database, "readOnly": True,
+                    "planHash": plan_hash, "columns": result["columns"], "rows": result["rows"],
+                    "rowCount": result["rowCount"], "truncated": result["truncated"]}
+        script = "BEGIN;\n%s\nCOMMIT;" % sql if transactional else sql
+        result = pg_execute_simple(sock, script, max_rows=0)
+        return {"status": "executed", "database": database, "readOnly": False,
+                "planHash": plan_hash, "transactional": transactional,
+                "command": result["command"], "approvalId": approval_id}
+    except PgProtocolError as exc:
+        raise RuntimeError("PostgreSQL rejected the admin SQL script") from exc
+    finally:
+        if sock is not None:
+            try:
+                pg_send_message(sock, b"X", b"")
+                sock.close()
+            except Exception:
+                pass
+
 def resource_path(kind):
     if kind == "nodes":
         return "/api/v1/nodes"
@@ -4110,6 +4181,7 @@ ADMIN_TOOL_NAMES = {
     "get_tenancy_admin_workflow", "generate_pg_tenant_database_plan",
     "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access",
     "ensure_harbor_tenant", "get_tenant_secret_refs", "set_tool_publication_stage",
+    "postgres_admin_sql",
 }
 
 
@@ -4166,6 +4238,7 @@ def mcp_tools(include_admin=False):
             {"name": "generate_pg_tenant_database_plan", "description": "Admin: generate the standard Pigsty PostgreSQL tenant database plan, roles, secret paths, SQL, and connection routes. This does not execute SQL.", "inputSchema": schema({"database": {"type": "string"}, "tenant": {"type": "string"}, "schema": {"type": "string", "default": "app"}, "generatePasswords": {"type": "boolean", "default": False}, "grantCreateRole": {"type": "boolean", "default": False}, "passwords": {"type": "object"}}, ["database"])},
             {"name": "ensure_tenant_database_secrets", "description": "Admin: create or repair the standard per-database PostgreSQL credential Secret in a tenant namespace. Provide passwords or set generatePasswords=true.", "inputSchema": schema({"namespace": {"type": "string"}, "tenant": {"type": "string"}, "database": {"type": "string"}, "passwords": {"type": "object"}, "generatePasswords": {"type": "boolean", "default": False}, "readHost": {"type": "string"}}, ["namespace", "database"])},
             {"name": "ensure_tenant_database_bundle", "description": "Admin: produce the Pigsty database plan and, when credentials are provided/generated, write the standard database Secret and CloudBeaver access expectations.", "inputSchema": schema({"namespace": {"type": "string"}, "tenant": {"type": "string"}, "database": {"type": "string"}, "schema": {"type": "string", "default": "app"}, "passwords": {"type": "object"}, "generatePasswords": {"type": "boolean", "default": False}, "grantCreateRole": {"type": "boolean", "default": False}, "readHost": {"type": "string"}}, ["namespace", "database"])},
+            {"name": "postgres_admin_sql", "description": "Platform admin only: run bounded SQL on Pigsty through the fixed supabase_admin identity held by the Supabase Secret. Read queries execute immediately; writes require a reviewed approvalId, return a planHash first, then require apply=true with that exact hash. No password or arbitrary host input. Retain the plan/output as migration evidence.", "inputSchema": schema({"database": {"type": "string"}, "sql": {"type": "string"}, "readOnly": {"type": "boolean", "default": True}, "transactional": {"type": "boolean", "default": True}, "approvalId": {"type": "string"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string"}, "maxRows": {"type": "integer", "default": 100}, "timeoutSeconds": {"type": "integer", "default": 30}}, ["database", "sql"])},
             {"name": "ensure_tenant_access", "description": "Admin: create namespace, tenant roles, OIDC group RoleBinding, robot ServiceAccount token, and cluster read-only bindings.", "inputSchema": schema({"namespace": {"type": "string"}, "group": {"type": "string"}, "serviceAccount": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["namespace"])},
             {"name": "create_dex_user", "description": "Admin: create a Dex static user and optionally grant namespace operator access. Requires passwordHash, not plaintext password. Can also reconcile the matching Harbor tenant when ensureHarbor=true.", "inputSchema": schema({"email": {"type": "string"}, "username": {"type": "string"}, "userID": {"type": "string"}, "passwordHash": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "groups": {"type": "array", "items": {"type": "string"}}, "createNamespace": {"type": "boolean", "default": True}, "updateExisting": {"type": "boolean", "default": False}, "ensureHarbor": {"type": "boolean", "default": False}, "harborPassword": {"type": "string"}, "rotateHarborRobot": {"type": "boolean", "default": False}}, ["email", "passwordHash"])},
             {"name": "grant_user_namespace", "description": "Admin: grant an existing Dex static user operator access to a namespace and reconcile tenant RBAC.", "inputSchema": schema({"email": {"type": "string"}, "namespace": {"type": "string"}, "group": {"type": "string"}, "createNamespace": {"type": "boolean", "default": True}}, ["email", "namespace"])},
@@ -4191,8 +4264,9 @@ def mcp_tools(include_admin=False):
         "restart_ceph_osd_1",
         "k8s_api_proxy",
         "postgres_sql_proxy",
+        "postgres_admin_sql",
     }
-    destructive_tools = {"set_tool_publication_stage", "scale_managed_platform_deployment", "k8s_api_proxy", "postgres_sql_proxy"}
+    destructive_tools = {"set_tool_publication_stage", "scale_managed_platform_deployment", "k8s_api_proxy", "postgres_sql_proxy", "postgres_admin_sql"}
     for tool in tools:
         name = tool["name"]
         tool["annotations"] = {
@@ -4304,6 +4378,10 @@ def call_tool(name, args, admin=False):
         return k8s_api_proxy(args)
     if name == "postgres_sql_proxy":
         return postgres_sql_proxy(args, admin=admin)
+    if name == "postgres_admin_sql":
+        if not admin:
+            raise PermissionError("admin token required for tool: postgres_admin_sql")
+        return postgres_admin_sql(args)
     admin_tools = {"list_authentik_users", "ensure_authentik_user", "grant_authentik_user_group", "list_dex_users", "get_tenancy_admin_workflow", "get_dex_hash_instructions", "generate_pg_tenant_database_plan", "ensure_tenant_database_secrets", "ensure_tenant_database_bundle", "ensure_tenant_access", "create_dex_user", "grant_user_namespace", "ensure_harbor_tenant", "set_tool_publication_stage"}
     if name in admin_tools and not admin:
         raise PermissionError("admin token required for tool: %s" % name)

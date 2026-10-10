@@ -204,10 +204,12 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
         ) == "192.0.2.57/16"
-        assert (
-            server["metadata"]["annotations"]["re8ch.com/reconcile-generation"]
-            == "r640-fallback-2026-09-24"
+        expected_generation = (
+            "admin-postgres-sql-2026-10-10"
+            if server["metadata"]["name"] == "ops-admin-vmcp-internal"
+            else "r640-fallback-2026-09-24"
         )
+        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == expected_generation
         pod_spec = spec["podTemplateSpec"]["spec"]
         expected_annotations = {
             "scheduling.re8ch.com/placement-class": "service-core-r640",
