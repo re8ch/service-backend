@@ -421,6 +421,8 @@ modules:
       digest: sha256:9e2354aff206951e34eccd3e3d04ee357db6beb141db0f9ddfb0eb2e02773e31
     - codename: grove-umber
       digest: sha256:a621e69e40b41d6750a557d6b79c323ae4b075e516e6a3a28fa7d2abdb751d43
+    - codename: reef-umber
+      digest: sha256:c4832903b146fa4af2e493f031d1eb3153729a326efdcd30617345d50957a3d4
   platform/cloud-platform:
     releases:
     - codename: atoll
