@@ -114,6 +114,7 @@ spec:
       annotations:
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
+        re8ch.com/code-revision: admin-postgres-sql-2026-10-10
     spec:
       nodeSelector:
         scheduling.re8ch.com/pool-service-core-r640: "true"

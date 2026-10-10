@@ -215,6 +215,8 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
             "scheduling.re8ch.com/placement-class": "service-core-r640",
             "scheduling.re8ch.com/placement-revision": "workload-contract-v1",
         }
+        if server["metadata"]["name"] == "ops-admin-vmcp-internal":
+            expected_annotations["re8ch.com/code-revision"] = "admin-postgres-sql-2026-10-10"
         if server["metadata"]["name"] == "ops-observe-vmcp-internal":
             expected_annotations["observability.re8ch.com/probe-revision"] = "shared-observability-v1"
         assert spec["podTemplateSpec"]["metadata"]["annotations"] == expected_annotations
