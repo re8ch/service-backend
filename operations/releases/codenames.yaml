@@ -1276,6 +1276,8 @@ modules:
       digest: sha256:d8934dc5c3b3916689008d78a25a48a377956fba294c8325af759e917db9ada8
     - codename: bora-quartz
       digest: sha256:8a1db493f910bbcd9a149db7ac6ad4a6219486a76f67ba1bd458a99e4ac28ef0
+    - codename: chinook-quartz
+      digest: sha256:1f3332c40688d1e84fd49ff76611560077c03a24af5e16860dcae4d25d6c0c07
   platform/adapter:
     releases:
     - codename: anchor
