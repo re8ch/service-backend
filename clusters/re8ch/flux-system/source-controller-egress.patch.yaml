@@ -9,8 +9,7 @@ spec:
     type: Recreate
   template:
     spec:
-      # The MUBAO -> RouterOS -> A1 -> LA2 SOCKS path is host-routed. Keep
-      # source delivery on that path rather than Cilium's Pod egress table.
+      # Keep source delivery on the host-routed path to the FLK SOCKS endpoint.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
@@ -34,7 +33,7 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     # MUBAO owns the primary RouterOS path; A1 has a direct
-                    # WireGuard path to the same verified LA2 SOCKS endpoint.
+                    # WireGuard path to the same verified FLK SOCKS endpoint.
                     values: [restricted-node-abb3f27a69, restricted-node-1eb0570f74]
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
