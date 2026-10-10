@@ -70,6 +70,13 @@ surface; it runs as a small Go Deployment in `payments`.
    `psql -X -v ON_ERROR_STOP=1 -f export-identity-wallets.sql`,
    `export-identity-transfers.sql`, `export-commerce-wallets.sql`, and
    `export-commerce-transfers.sql`, each against its named source database.
+   Also run `export-identity-billing-records.sql` against the frozen Identity
+   database. Its JSON records cover purchase rates, topups, refunds, service
+   prices, and quotes; compare per-type counts with the inventory. A credited
+   topup without a payment ID requires an explicit source investigation before
+   import. Resolve each topup's tenant from the payment registry or an
+   independently verified ownership record; the old topup table has no tenant
+   column. Do not invent a tenant or mark an uncredited topup as paid.
    Redirect each CSV to a protected path outside Git and record its SHA-256,
    snapshot time, database identity, and row count. The export scripts emit
    owner identifiers and payment references, so restrict access to the

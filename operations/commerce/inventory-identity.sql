@@ -10,7 +10,12 @@ select jsonb_pretty(jsonb_build_object(
   'organization_wallets', (select count(*) from credits.wallets where owner_kind='organization'),
   'wallet_balance_sum', (select coalesce(sum(balance),0) from credits.wallets),
   'topups', (select count(*) from credits.topups),
+  'purchase_rates', (select count(*) from credits.purchase_rates),
+  'service_prices', (select count(*) from credits.service_prices),
   'uncredited_topups', (select count(*) from credits.topups where credited_at is null),
+  'bound_topups', (select count(*) from credits.topups where payment_id is not null),
+  'credited_unbound_topups', (select count(*) from credits.topups
+    where credited_at is not null and payment_id is null),
   'refunds', (select count(*) from credits.refunds),
   'quotes', (select count(*) from credits.quotes),
   'accepted_quotes', (select count(*) from credits.quotes where accepted_at is not null),
