@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: bora-quartz
+codename: chinook-quartz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:8a1db493f910bbcd9a149db7ac6ad4a6219486a76f67ba1bd458a99e4ac28ef0
+  digest: sha256:1f3332c40688d1e84fd49ff76611560077c03a24af5e16860dcae4d25d6c0c07
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
