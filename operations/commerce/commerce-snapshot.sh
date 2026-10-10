@@ -29,7 +29,9 @@ summary() {
 }
 require_integrity() {
   local report=$1 field
-  for field in order_amount_mismatches intent_amount_mismatches \
+  for field in orphan_prices orphan_order_items orphan_payment_intents \
+    orphan_payment_attempts orphan_provider_events orphan_refunds \
+    order_amount_mismatches intent_amount_mismatches \
     paid_orders_missing_successful_attempt refund_overdraw refund_on_unpaid_order; do
     [[ $report == *\"$field\":\ 0* ]] || {
       printf 'Commerce snapshot integrity failed: %s\n' "$field" >&2

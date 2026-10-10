@@ -12,6 +12,32 @@ select jsonb_build_object(
   'max_provider_event_id',(select coalesce(max(id),0) from commerce.provider_events),
   'refunds',(select count(*) from commerce.refunds),
   'succeeded_refunds',(select count(*) from commerce.refunds where status='succeeded'),
+  'orphan_prices',(
+    select count(*) from commerce.prices p left join commerce.products x on x.sku=p.sku
+      where x.sku is null
+  ),
+  'orphan_order_items',(
+    select count(*) from commerce.order_items i
+      left join commerce.orders o on o.id=i.order_id
+      left join commerce.prices p on p.id=i.price_id
+      where o.id is null or p.id is null
+  ),
+  'orphan_payment_intents',(
+    select count(*) from commerce.payment_intents i
+      left join commerce.orders o on o.id=i.order_id where o.id is null
+  ),
+  'orphan_payment_attempts',(
+    select count(*) from commerce.payment_attempts a
+      left join commerce.payment_intents i on i.id=a.intent_id where i.id is null
+  ),
+  'orphan_provider_events',(
+    select count(*) from commerce.provider_events e
+      left join commerce.payment_attempts a on a.id=e.attempt_id where a.id is null
+  ),
+  'orphan_refunds',(
+    select count(*) from commerce.refunds r
+      left join commerce.orders o on o.id=r.order_id where o.id is null
+  ),
   'order_amount_mismatches',(
     select count(*) from commerce.orders o where o.amount_minor is distinct from
       (select coalesce(sum(i.amount_minor*i.quantity),0) from commerce.order_items i
