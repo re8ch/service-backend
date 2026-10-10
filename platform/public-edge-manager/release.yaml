@@ -150,9 +150,9 @@ spec:
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
       maxNameservers: 3
-      # LA-2 is billing-retired. LA answers SOA but currently fails public A
-      # queries for API/DB; neither may regain NS authority on a lucky probe.
-      excludedNodeNames: [overseas-la-2, overseas-la]
+      # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
+      # and API/DB A answers can qualify it for NS authority.
+      excludedNodeNames: [overseas-la-2]
       probeNodeNames: [overseas-la-2, overseas-flk]
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
