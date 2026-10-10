@@ -9,7 +9,7 @@ spec:
   template:
     metadata: {labels: {app: commerce-postgrest-rw}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
@@ -35,7 +35,7 @@ spec:
   template:
     metadata: {labels: {app: commerce-postgrest-ro}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
@@ -169,7 +169,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
-          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
           containers:
             - name: reconcile
               image: busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0

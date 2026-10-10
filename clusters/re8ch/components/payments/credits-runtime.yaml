@@ -116,6 +116,7 @@ kind: Deployment
 metadata: {name: nuclio-payment-registry-api, namespace: payments}
 spec:
   replicas: 1
+  strategy: {type: RollingUpdate, rollingUpdate: {maxSurge: 0, maxUnavailable: 1}}
   selector: {matchLabels: {app: payment-registry-api}}
   template:
     metadata: {labels: {app: payment-registry-api}}
