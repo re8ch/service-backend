@@ -1280,6 +1280,8 @@ modules:
       digest: sha256:1f3332c40688d1e84fd49ff76611560077c03a24af5e16860dcae4d25d6c0c07
     - codename: etesian-quartz
       digest: sha256:bd29f94a9e6aba045bd0b44933af185c7020af3c41682c1994cc6826e400de05
+    - codename: mistral-quartz
+      digest: sha256:3b5e136967333a1f17c13ee4d825bfafec78ad3239e68744e32267178a0114e7
   platform/adapter:
     releases:
     - codename: anchor
