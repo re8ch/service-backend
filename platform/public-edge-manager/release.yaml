@@ -221,7 +221,9 @@ spec:
     # can exceed recursive resolver timeouts even while Supabase is healthy.
     workload:
       httpPort: 18080
-      kubernetesApiFallbackUrls: [https://192.0.2.220:6443]
+      # Prefer the AdvFab API VIP; retain the reachable ZeroTier control-plane
+      # member only as a secondary read path during WireGuard transit failures.
+      kubernetesApiFallbackUrls: [https://192.0.2.220:6443, https://192.0.2.183:6443]
       tolerations:
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         - {key: node.cilium.io/agent-not-ready, operator: Exists, effect: NoSchedule}
