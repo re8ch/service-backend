@@ -66,6 +66,10 @@ surface; it runs as a small Go Deployment in `payments`.
    aggregate figures without owner identifiers. A missing schema is a failed
    inventory, not an empty database; record that failure separately. Capture
    backup/PITR status from the platform operator alongside these SQL reports.
+   The payment inventory must report zero event chain breaks, event hash
+   mismatches, missing audit delivery rows, and audit delivery hash mismatches
+   before and after moving the registry. Preserve the old event sequence and
+   audit bytes exactly; do not regenerate event IDs or hashes during import.
    After source writes are frozen, export the two wallet maps and journals with
    `psql -X -v ON_ERROR_STOP=1 -f export-identity-wallets.sql`,
    `export-identity-transfers.sql`, `export-commerce-wallets.sql`, and
