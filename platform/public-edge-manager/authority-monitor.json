@@ -1,4 +1,9 @@
 {
-  "zones": ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com", "service.re8ch.com", "functions.re8ch.com"],
-  "maxNameservers": 3
+  "zones": ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com", "service.re8ch.com", "functions.re8ch.com", "test.re8ch.com"],
+  "addressZones": ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"],
+  "minPrimaryNameservers": 2,
+  "maxNameservers": 3,
+  "secondaryNameserversByZone": {
+    "service.re8ch.com": ["ns1.he.net", "ns2.he.net", "ns3.he.net", "ns4.he.net", "ns5.he.net"]
+  }
 }

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 
 def dig(server, name, record, tcp=False):
-    command = ["dig", f"@{server}", name, record, "+time=2", "+tries=1",
+    command = ["dig", f"@{server}", name, record, "+time=2", "+tries=2",
                "+noall", "+comments", "+answer"]
     if tcp:
         command.append("+tcp")
@@ -36,16 +36,26 @@ def main():
     failures = []
     observations = []
     max_nameservers = config.get("maxNameservers", 3)
+    min_nameservers = config.get("minPrimaryNameservers", 1)
+    secondary = {zone: {name.lower().rstrip(".") for name in names}
+                 for zone, names in config.get("secondaryNameserversByZone", {}).items()}
     zone_sets = {}
+    primary_sets = {}
     for zone in config["zones"]:
         parent = dig("1.1.1.1", zone, "NS")
+        if not parent["ok"] or not values(parent, "NS"):
+            parent = dig("8.8.8.8", zone, "NS")
         selected = values(parent, "NS")
         zone_sets[zone] = selected
-        if not parent["ok"] or not 1 <= len(selected) <= max_nameservers:
-            failures.append(f"{zone}: expected 1..{max_nameservers} delegated NS: {sorted(selected)}")
-    unique_sets = {frozenset(selected) for selected in zone_sets.values()}
+        expected_secondary = secondary.get(zone, set())
+        primary_sets[zone] = selected - expected_secondary
+        if not parent["ok"] or not min_nameservers <= len(primary_sets[zone]) <= max_nameservers:
+            failures.append(f"{zone}: expected {min_nameservers}..{max_nameservers} primary NS: {sorted(primary_sets[zone])}")
+        if not expected_secondary.issubset(selected):
+            failures.append(f"{zone}: missing configured secondary NS: {sorted(expected_secondary - selected)}")
+    unique_sets = {frozenset(selected) for selected in primary_sets.values()}
     if len(unique_sets) != 1:
-        failures.append("delegated zones disagree on NS set")
+        failures.append("delegated zones disagree on primary NS set")
     nameservers = sorted(next(iter(unique_sets), frozenset()))
     addresses = {}
     for ns in nameservers:
@@ -75,6 +85,17 @@ def main():
                                          "answers": [" ".join(row) for row in response["answers"]]})
                     if not ok:
                         failures.append(f"{ip}: {zone} {record} {'tcp' if tcp else 'udp'} mismatch")
+    for zone in config.get("addressZones", []):
+        for ns, ip in addresses.items():
+            for tcp in (False, True):
+                response = dig(ip, zone, "A", tcp)
+                found = values(response, "A")
+                if not response["ok"] or not response["authoritative"] or not found:
+                    failures.append(f"{ip}: {zone} A {'tcp' if tcp else 'udp'} missing")
+                observations.append({"ip": ip, "zone": zone,
+                                     "transport": "tcp" if tcp else "udp", "record": "A",
+                                     "ok": response["ok"] and response["authoritative"] and bool(found),
+                                     "answers": [" ".join(row) for row in response["answers"]]})
     print(json.dumps({"observedAt": datetime.now(timezone.utc).isoformat(),
                       "configSha256": hashlib.sha256(config_bytes).hexdigest(),
                       "nameservers": addresses, "observations": observations,
