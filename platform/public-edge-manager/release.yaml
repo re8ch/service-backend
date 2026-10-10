@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:b58ed3091d3c38fe5ca6d958dba790c62215a0dbb5b35d744ee6ece31f7a89b3}
+  ref: {digest: sha256:fd3e6c8d2bc01331f34675e634eecc4c7022af8f6dc25ea4bc8ca2ced84c8ff5}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.25"
+      tag: "0.6.26"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:af3aa6dafa7d430b3f19a0304fbe087902eaffcc79138ad7c3d2972a2b1d4ce0
+      digest: sha256:f8f1453068a05c806ffc8a8af36892ec7d2dac5ff919d96f30ecd2360243e0bd
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -150,6 +150,9 @@ spec:
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
       maxNameservers: 3
+      # Billing-retired node must not regain authority after an intermittent
+      # successful public probe. Remove only after its service is restored.
+      excludedNodeNames: [overseas-la-2]
       probeNodeNames: [overseas-la-2, overseas-flk]
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
