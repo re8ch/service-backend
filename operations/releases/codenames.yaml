@@ -1266,6 +1266,8 @@ modules:
       digest: sha256:0d24a7846b789d6c228921bbcf20cb46e9e81ff8a5379b972f2bc8ed349d6329
     - codename: sirocco-onyx
       digest: sha256:bf27cfc9643bddb7efde5c2b43ae123bdddaed9a19c712fce81ca7fbf30c64bc
+    - codename: tramontane-onyx
+      digest: sha256:74a002df7ca3a6f4f98b6cc8f0b194616298ffc93a0c33f24c618380fe72342b
   platform/adapter:
     releases:
     - codename: anchor
