@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-onyx
+codename: etesian-onyx
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:990d86f0fb05c7eff6c31e22ede0985ee8174232ee38177cffae21406074039c
+  digest: sha256:c33a194416fcdde9708235c0d1b59610c83cfc0111afc86e389f2ef982dc1a59
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
