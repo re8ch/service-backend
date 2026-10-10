@@ -11,7 +11,7 @@ registry and historical Identity Credits data need reconciliation and cutover.
    from cloud-functions to the empty `re8ch_billing` database. After source
    payment writes are frozen, transfer the historical payment snapshot using
    `payment-snapshot.sh` as described in `CONSOLIDATION.md`; inspect the target
-   inventory before applying billing/commerce migrations `046`–`050`.
+   inventory before applying billing/commerce migrations `046`–`051`.
    Grant `commerce_runtime` to both commerce authenticator roles and database
    `CONNECT` to the existing payment PostgREST role after its migration. Provision
    distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
@@ -58,6 +58,8 @@ Credits requests to those RPCs only with `BILLING_CREDITS_ENABLED=true`;
 source IDs, sequence numbers and verified Identity hash-chain proofs. Import
 source transactions in order and require `billing.verify_legacy_wallets` to
 report zero owner balance mismatches before switching traffic.
+`051` imports historical Identity purchase rates, service prices, topups,
+refunds and quotes only after the payment snapshot and journal import.
 The target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
 accepting target traffic. Drain the old registry outbox with the old Pod and
 reconcile rates, wallet mapping and historical postings before routing the

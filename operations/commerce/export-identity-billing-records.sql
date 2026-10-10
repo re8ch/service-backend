@@ -15,5 +15,6 @@ copy (
     union all
     select 'quote', to_jsonb(q), q.id::text from credits.quotes q
   ) source_rows
-  order by record_type, record_id
+  order by case record_type when 'purchase_rate' then 1 when 'service_price' then 2
+    when 'topup' then 3 when 'refund' then 4 when 'quote' then 5 end,record_id
 ) to stdout with (format csv,header true);

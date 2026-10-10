@@ -76,7 +76,14 @@ surface; it runs as a small Go Deployment in `payments`.
    `export-commerce-transfers.sql`, each against its named source database.
    Also run `export-identity-billing-records.sql` against the frozen Identity
    database. Its JSON records cover purchase rates, topups, refunds, service
-   prices, and quotes; compare per-type counts with the inventory. A credited
+   prices, and quotes; compare per-type counts with the inventory. Import these
+   records in the CSV's dependency order using the migration-owner-only
+   `billing.import_legacy_identity_record(type,record,tenant_id)` function
+   from migration `051`. Use a protected tenant-resolution list for any
+   unbound topup; `tenant_id` is otherwise derived from the migrated payment.
+   The importer verifies credited topups and refunds against migrated payment
+   rows and historical journal postings, and is idempotent only when all
+   source fields match. A credited
    topup without a payment ID requires an explicit source investigation before
    import. Resolve each topup's tenant from the payment registry or an
    independently verified ownership record; the old topup table has no tenant
@@ -111,7 +118,7 @@ surface; it runs as a small Go Deployment in `payments`.
    provider reference reconciliation. A source with pending Credits outbox
    entries is not ready for cutover. The script was exercised with synthetic
    data on PostgreSQL 16; it has not moved production records.
-   Apply commerce/billing migrations `046`–`050` after this payment snapshot;
+   Apply commerce/billing migrations `046`–`051` after this payment snapshot;
    import and reconcile Identity and Commerce records before routing traffic.
    Each purchase, refund, and service spend must have a unique
    business event key and post in the same database transaction as its
