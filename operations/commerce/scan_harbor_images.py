@@ -50,6 +50,9 @@ def scan(repository, digest, output):
         _, current = api("GET", artifact + "?with_scan_overview=true")
         overview = current.get("scan_overview") or {}
         scans = list(overview.values())
+        (output / f"{repository}-status.json").write_text(json.dumps({
+            "repository": repository, "digest": digest, "scan_overview": overview,
+        }, indent=2))
         if scans and all(item.get("scan_status") == "Success" for item in scans):
             _, report = api("GET", artifact + "/additions/vulnerabilities")
             if not isinstance(report, dict) or not any(
@@ -63,7 +66,8 @@ def scan(repository, digest, output):
             print(f"{repository}@{digest}: Harbor scan complete")
             return
         if any(item.get("scan_status") in ("Error", "Stopped") for item in scans):
-            raise RuntimeError(f"Harbor scan failed for {repository}")
+            statuses = sorted({str(item.get("scan_status")) for item in scans})
+            raise RuntimeError(f"Harbor scan failed for {repository}: {','.join(statuses)}")
         time.sleep(10)
     raise TimeoutError(f"Harbor scan did not complete for {repository}")
 

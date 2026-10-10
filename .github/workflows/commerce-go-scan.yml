@@ -32,6 +32,7 @@ jobs:
           python operations/commerce/scan_harbor_images.py \
             "$COMMERCE_DIGEST" "$REGISTRY_DIGEST" scan-reports
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
         with:
           name: commerce-go-harbor-scans
           path: scan-reports/*.json
