@@ -153,7 +153,7 @@ spec:
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
       # and API/DB A answers can qualify it for NS authority.
       excludedNodeNames: [overseas-la-2]
-      probeNodeNames: [overseas-la-2, overseas-flk]
+      probeNodeNames: [overseas-la, overseas-flk]
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
