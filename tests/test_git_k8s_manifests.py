@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:fd3e6c8d2bc01331f34675e634eecc4c7022af8f6dc25ea4bc8ca2ced84c8ff5"}
+    assert source["spec"]["ref"] == {"digest": "sha256:f91e349f1847746552af0c206ce0b2ff6d3b4b04cf4395397264c40e61673b73"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.26",
-        "digest": "sha256:f8f1453068a05c806ffc8a8af36892ec7d2dac5ff919d96f30ecd2360243e0bd",
+        "tag": "0.6.27",
+        "digest": "sha256:e6da6bad5a5cd2fad70c295e54fe6c527515ed3cdd31e0a4b09bc8cc4cc31128",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
