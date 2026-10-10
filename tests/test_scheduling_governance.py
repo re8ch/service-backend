@@ -192,7 +192,7 @@ def test_control_plane_reservations_are_declared_without_noexecute():
     agent = yaml.safe_load(
         (ROOT / "operations/network/manifests/network/private-transit/r640-k3s-agent-config.yaml").read_text()
     )
-    assert "max-pods=256" in agent["kubelet-arg"]
+    assert "max-pods=272" in agent["kubelet-arg"]
     assert "node-taint" not in agent
     for config in configs.values():
         assert config["node-taint"] == ["node-role.kubernetes.io/control-plane=true:NoSchedule"]
