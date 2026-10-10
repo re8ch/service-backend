@@ -96,30 +96,9 @@ spec:
       filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplacePrefixMatch, replacePrefixMatch: /}}}]
       backendRefs: [{name: commerce-postgrest-ro, port: 3000}]
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata: {name: nuclio-commerce-api, namespace: payments}
-data:
-  processor.yaml: |
-    metadata:
-      name: commerce-api
-      namespace: payments
-    spec:
-      runtime: golang
-      handler: main:Handler
-      eventTimeout: 300s
-      triggers:
-        default-http:
-          kind: http
-          mode: sync
-          name: default-http
-          attributes:
-            serviceType: ClusterIP
-            maxRequestBodySize: 1048576
----
 apiVersion: apps/v1
 kind: Deployment
-metadata: {name: nuclio-commerce-api, namespace: payments}
+metadata: {name: commerce-api, namespace: payments}
 spec:
   replicas: 1
   selector: {matchLabels: {app: commerce-api}}
@@ -130,15 +109,12 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       imagePullSecrets: [{name: commerce-registry-pull}]
       containers:
-        - name: nuclio
+        - name: commerce-api
           image: REPLACE_WITH_SIGNED_COMMERCE_IMAGE_DIGEST
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: processor-config, mountPath: /etc/nuclio/config/processor, readOnly: true}]
           ports: [{name: http, containerPort: 8080}]
           envFrom: [{secretRef: {name: commerce-api-secrets}}]
           env:
-            - {name: NUCLIO_FUNCTION_NAME, value: commerce-api}
-            - {name: NUCLIO_FUNCTION_VERSION, value: latest}
             - {name: WX_PAY_MCH_ID, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_MCH_ID}}}
             - {name: WX_PAY_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_SERIAL_NO}}}
             - {name: WX_PAY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_PRIVATE_KEY}}}
@@ -152,13 +128,14 @@ spec:
             - {name: COMMERCE_RO_URL, value: "https://db-ro.re8ch.com/commerce"}
             - {name: WX_PAY_NOTIFY_URL, value: "https://api.re8ch.com/commerce/v1/webhooks/wechat"}
             - {name: COMMERCE_CHECKOUT_ENABLED, value: "false"}
-          readinessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+            - {name: COMMERCE_MINI_CHECKOUT_ENABLED, value: "false"}
+          readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
-      volumes: [{name: processor-config, configMap: {name: nuclio-commerce-api}}]
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: nuclio-commerce-api, namespace: payments}
+metadata: {name: commerce-api, namespace: payments}
 spec: {selector: {app: commerce-api}, ports: [{name: http, port: 8080, targetPort: http}]}
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -175,7 +152,7 @@ spec:
   hostnames: [api.re8ch.com]
   rules:
     - matches: [{path: {type: PathPrefix, value: /commerce}}]
-      backendRefs: [{name: nuclio-commerce-api, port: 8080}]
+      backendRefs: [{name: commerce-api, port: 8080}]
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -201,5 +178,5 @@ spec:
                   valueFrom: {secretKeyRef: {name: commerce-api-secrets, key: COMMERCE_RECONCILE_TOKEN}}
               command: [sh, -ec]
               args:
-                - 'wget -qO- --header="X-Commerce-Reconcile-Token: ${COMMERCE_RECONCILE_TOKEN}" --post-data="" --timeout=240 http://nuclio-commerce-api.payments.svc.cluster.local:8080/v1/internal/reconcile'
+                - 'wget -qO- --header="X-Commerce-Reconcile-Token: ${COMMERCE_RECONCILE_TOKEN}" --post-data="" --timeout=240 http://commerce-api.payments.svc.cluster.local:8080/v1/internal/reconcile'
               resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
