@@ -570,7 +570,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "service.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."
     ]
     assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
-    assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.116:6443"]
+    assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.116:6443", "https://192.0.2.178:6443"]
     assert values["discovery"]["excludedNodeNames"] == ["overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
     assert values["dns"]["axfrZones"] == ["service.re8ch.com."]
