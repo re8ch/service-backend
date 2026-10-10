@@ -177,6 +177,10 @@
           "asn": 4200000104,
           "rollout": 10,
           "publicMode": "static",
+          "apiVipVia": {
+            "peer": "restricted-node-6dc3f140f9",
+            "prefix": "192.0.2.220/32"
+          },
           "meshPeers": [
             "restricted-node-6dc3f140f9",
             "overseas-flk"

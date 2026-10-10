@@ -375,6 +375,9 @@ def validate(model):
         raise ValueError("restricted-node-6dc3f140f9 public authority changed")
     if public["restricted-node-6dc3f140f9"]["publicAuthority"]["gatewayVIP"] != "192.0.2.209":
         raise ValueError("restricted-node-6dc3f140f9 public Gateway authority changed")
+    api_relay = public["overseas-la"].get("apiVipVia")
+    if api_relay != {"peer": "restricted-node-6dc3f140f9", "prefix": "192.0.2.220/32"}:
+        raise ValueError("LA1 public-mesh API relay must use restricted-node-6dc3f140f9's exact VIP")
 
     spines = model["routeIntent"]["publicSpines"]
     if len(spines) != 2 or len(set(spines)) != 2:
