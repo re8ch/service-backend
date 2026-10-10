@@ -10,7 +10,7 @@ spec:
   template:
     metadata: {labels: {app: payment-registry-api}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
@@ -21,6 +21,7 @@ spec:
           envFrom:
             - secretRef: {name: payment-registry-secrets}
           env:
+            - {name: BILLING_CREDITS_ENABLED, value: "true"}
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}

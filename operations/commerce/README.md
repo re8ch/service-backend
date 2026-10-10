@@ -8,7 +8,7 @@ registry and historical Identity Credits data need reconciliation and cutover.
 
 1. Verify Pigsty primary and pgBackRest/PITR health. Apply `bootstrap.sql` to
    `postgres`, then apply the payment registry migrations `021`, `040`–`044`
-   and billing/commerce migrations `046`–`048` from cloud-functions to `re8ch_billing`.
+   and billing/commerce migrations `046`–`049` from cloud-functions to `re8ch_billing`.
    Grant `commerce_runtime` to both commerce authenticator roles and database
    `CONNECT` to the existing payment PostgREST role after its migration. Provision
    distinct RW and RO DSNs in `payments/commerce-postgrest-secrets`, and the same
@@ -49,6 +49,8 @@ registry and historical Identity Credits data need reconciliation and cutover.
 Do not copy credentials from historical product deployments. The existing
 Hyperswitch and Identity Credits ledgers remain independent historical systems.
 Migration `048` adds target-only Credits topups and payment/refund triggers;
+`049` adds wallet, pricing, history and quote RPCs. The Go registry Pod routes
+Credits requests to those RPCs only with `BILLING_CREDITS_ENABLED=true`;
 the target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
 accepting target traffic. Drain the old registry outbox with the old Pod and
 reconcile rates, wallet mapping and historical postings before routing the
