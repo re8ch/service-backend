@@ -17,6 +17,15 @@ select jsonb_pretty(jsonb_build_object(
   'transactions', (select count(*) from credits.transactions),
   'max_sequence_no', (select coalesce(max(sequence_no),0) from credits.transactions),
   'entry_sum', (select coalesce(sum(amount),0) from credits.entries),
+  'malformed_transactions', (
+    select count(*) from (
+      select t.id from credits.transactions t left join credits.entries e on e.transaction_id=t.id
+      group by t.id having count(e.wallet_id)<>2
+        or count(*) filter(where e.amount>0)<>1
+        or count(*) filter(where e.amount<0)<>1
+        or coalesce(sum(e.amount),0)<>0
+    ) bad
+  ),
   'wallet_balance_mismatches', (
     select count(*) from credits.wallets w where w.balance is distinct from
       (select coalesce(sum(e.amount),0) from credits.entries e where e.wallet_id=w.id)

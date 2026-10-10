@@ -55,7 +55,7 @@ Credits requests to those RPCs only with `BILLING_CREDITS_ENABLED=true`;
 source IDs, sequence numbers and verified Identity hash-chain proofs. Import
 source transactions in order and require `billing.verify_legacy_wallets` to
 report zero owner balance mismatches before switching traffic.
-the target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
+The target payment Pod must start with `CREDITS_DISPATCH_ENABLED=false` before
 accepting target traffic. Drain the old registry outbox with the old Pod and
 reconcile rates, wallet mapping and historical postings before routing the
 Credits API to `re8ch_billing`.

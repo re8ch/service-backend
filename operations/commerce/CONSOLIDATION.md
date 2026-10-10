@@ -66,6 +66,19 @@ surface; it runs as a small Go Deployment in `payments`.
    aggregate figures without owner identifiers. A missing schema is a failed
    inventory, not an empty database; record that failure separately. Capture
    backup/PITR status from the platform operator alongside these SQL reports.
+   After source writes are frozen, export the two wallet maps and journals with
+   `psql -X -v ON_ERROR_STOP=1 -f export-identity-wallets.sql`,
+   `export-identity-transfers.sql`, `export-commerce-wallets.sql`, and
+   `export-commerce-transfers.sql`, each against its named source database.
+   Redirect each CSV to a protected path outside Git and record its SHA-256,
+   snapshot time, database identity, and row count. The export scripts emit
+   owner identifiers and payment references, so restrict access to the
+   migration operator. Require zero malformed transactions in the inventories,
+   and match exported wallet and transfer counts to the inventory counts
+   before importing anything. Preserve the Identity transfer sequence order
+   and the Commerce timestamp/ID order; interpret an empty previous hash as
+   empty bytes. Independently check source balance totals against the exported
+   wallet rows. A live production export has not yet been obtained.
 2. On the exact Pigsty PostgreSQL major version and architecture, pin and test
    the Omnigres package on every database node and replica. Verify
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create

@@ -15,6 +15,16 @@ select jsonb_pretty(jsonb_build_object(
   'wallet_balance_sum', (select coalesce(sum(balance),0) from commerce.wallets),
   'credit_transactions', (select count(*) from commerce.credit_transactions),
   'credit_entry_sum', (select coalesce(sum(amount),0) from commerce.credit_entries),
+  'malformed_credit_transactions', (
+    select count(*) from (
+      select t.id from commerce.credit_transactions t
+        left join commerce.credit_entries e on e.transaction_id=t.id
+      group by t.id having count(e.account)<>2
+        or count(*) filter(where e.amount>0)<>1
+        or count(*) filter(where e.amount<0)<>1
+        or coalesce(sum(e.amount),0)<>0
+    ) bad
+  ),
   'wallet_balance_mismatches', (
     select count(*) from commerce.wallets w where w.balance is distinct from
       (select coalesce(sum(e.amount),0) from commerce.credit_entries e
