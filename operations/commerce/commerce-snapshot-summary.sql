@@ -22,6 +22,10 @@ select jsonb_build_object(
       left join commerce.prices p on p.id=i.price_id
       where o.id is null or p.id is null
   ),
+  'order_item_price_mismatches',(
+    select count(*) from commerce.order_items i join commerce.prices p on p.id=i.price_id
+      where i.sku<>p.sku or i.amount_minor<>p.amount_minor or i.credits<>p.credits
+  ),
   'orphan_payment_intents',(
     select count(*) from commerce.payment_intents i
       left join commerce.orders o on o.id=i.order_id where o.id is null
@@ -33,6 +37,11 @@ select jsonb_build_object(
   'orphan_provider_events',(
     select count(*) from commerce.provider_events e
       left join commerce.payment_attempts a on a.id=e.attempt_id where a.id is null
+  ),
+  'provider_event_attempt_mismatches',(
+    select count(*) from commerce.provider_events e
+      join commerce.payment_attempts a on a.id=e.attempt_id
+      where e.provider<>a.provider or e.merchant_id<>a.merchant_id
   ),
   'orphan_refunds',(
     select count(*) from commerce.refunds r
