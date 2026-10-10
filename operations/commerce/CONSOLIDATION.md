@@ -28,7 +28,7 @@ surface; it runs as a small Go Deployment in `payments`.
   platform tool intentionally does not expose schemas or rows. The current
   payment registry remains live and needs a separately verified cutover.
 - A disposable PostgreSQL 16 database accepted the payment registry migrations
-  `021`, `040`–`044` and billing/commerce migrations `046`–`049` together, and
+  `021`, `040`–`044` and billing/commerce migrations `046`–`050` together, and
   their SQL tests passed there. Migration `048` posts a bound Credits topup
   within the payment success update and reverses it within the refund update;
   an unbound success rolls back. No production data has moved.
@@ -80,11 +80,16 @@ surface; it runs as a small Go Deployment in `payments`.
    Provider calls must never be repeated merely because a database transaction
    was retried.
 4. Map Identity wallets and Commerce wallets to one canonical billing account
-   per owner and unit. Compare historical transactions and balances before
-   import; overlapping credits must be deduplicated by source, never summed
-   blindly. Keep provider transaction IDs unique across all imports. Import
-   opening balances with traceable adjustment transactions and independently
-   reconcile every owner balance and total debits/credits.
+   per owner and unit with `billing.map_legacy_wallet`. Compare historical
+   transactions and balances before import. Import each historical transfer
+   with `billing.import_legacy_transfer`, preserving its source transaction ID
+   and validating each Identity sequence, entry hash and previous hash against
+   the original journal algorithm. Then require `billing.verify_legacy_wallets`
+   to show zero owner balance mismatches for each source. The importer rejects
+   a second source for the same owner account; reconcile overlap and prove
+   deduplication before changing that rule. Keep provider transaction IDs
+   unique across imports. Use an opening adjustment only for a documented,
+   independently verified gap that cannot be represented by source entries.
 5. Point both PostgREST services and the Go API at the new database, keeping
    public checkout disabled. Replay signed callback fixtures, duplicate events,
    partial refunds, uncertain WeChat orders and concurrent spend. Verify
