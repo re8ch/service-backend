@@ -28,9 +28,16 @@ registry and historical Identity Credits data need reconciliation and cutover.
    linked to merchant `1722340397` before enabling checkout. Include a random
    `COMMERCE_RECONCILE_TOKEN` for the internal periodic reconciliation Job. Register exactly
    `https://api.re8ch.com/commerce/v1/webhooks/wechat` as the notify URL.
-3. Build the small Go HTTP server from `cloud-functions/functions/commerce-api/Dockerfile`.
-   After the image is scanned, signed and pinned by digest, replace the
-   marker in `commerce-runtime.yaml.template` and move it into
+3. After the Cloud Functions PR is merged, run the reviewed
+   `commerce-go-release` workflow on service-backend `main` with that exact
+   40-character Cloud Functions `master` commit. It builds both Go Pods for
+   `linux/amd64`, publishes them to the existing Harbor `hyperswitch` project,
+   attaches SBOM and provenance, and signs and verifies both digests. Inspect
+   the workflow's `commerce-go.images` artifact and the Harbor scan before
+   using either image. Replace the
+   marker in `commerce-runtime.yaml.template` and the marker in
+   `payment-registry-go.yaml.template` with the corresponding digest. Move the
+   Commerce template into
    `clusters/re8ch/components/payments/`; add it to the cluster kustomization in
    a reviewed GitOps change. Provision `commerce-registry-pull`. Deploy the
    commerce API Deployment and both PostgREST services. Verify RO rejects a write RPC and RW accepts it only with a signed
