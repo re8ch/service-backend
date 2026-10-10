@@ -1268,6 +1268,8 @@ modules:
       digest: sha256:bf27cfc9643bddb7efde5c2b43ae123bdddaed9a19c712fce81ca7fbf30c64bc
     - codename: tramontane-onyx
       digest: sha256:74a002df7ca3a6f4f98b6cc8f0b194616298ffc93a0c33f24c618380fe72342b
+    - codename: zephyr-onyx
+      digest: sha256:d8934dc5c3b3916689008d78a25a48a377956fba294c8325af759e917db9ada8
   platform/adapter:
     releases:
     - codename: anchor
