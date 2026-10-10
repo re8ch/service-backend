@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prepare billing runtime Secrets on a cluster administrator host.
 
-Run as root on restricted-node-6dc3f140f9 so kubectl uses the reviewed cluster administrator context.
+Run as root on R640 so kubectl uses the reviewed cluster administrator context.
 The plan prints only resource names and connection hosts, never credentials.
 """
 
@@ -10,7 +10,7 @@ import base64
 import json
 import secrets
 import subprocess
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 
 def kubectl(*args, input_text=None, allow_missing=False):
@@ -38,7 +38,8 @@ def billing_uri(uri, readonly=False):
     query = dict(parse_qsl(parts.query, keep_blank_values=True))
     if readonly:
         query["options"] = "-c default_transaction_read_only=on"
-    return urlunsplit((parts.scheme, parts.netloc, "/re8ch_billing", urlencode(query), parts.fragment))
+    # libpq treats '+' literally in the URI query; encode the option space as %20.
+    return urlunsplit((parts.scheme, parts.netloc, "/re8ch_billing", urlencode(query, quote_via=quote), parts.fragment))
 
 
 def secret_object(name, values):
