@@ -125,7 +125,8 @@ surface; it runs as a small Go Deployment in `payments`.
    the Omnigres package on every database node and replica. Verify
    `pg_available_extensions` lists `omni_ledger` and its dependencies. Create
    `omni_ledger` in a disposable clone and run concurrent transfer, retry,
-   PITR and replica promotion tests before any production installation.
+   PITR and replica promotion tests before any production installation. The
+   isolated functional results and integration gates are in `OMNI-LEDGER.md`.
 3. Create `re8ch_billing`; apply payment migrations `021`, `040`–`044` to the
    empty target. With the old payment registry frozen, a DBA with approved
    source read and target restore privileges runs `payment-snapshot.sh export
