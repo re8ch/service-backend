@@ -1322,6 +1322,8 @@ modules:
       digest: sha256:a83ea2aa60671a230bd09091113865beeeb7d31926e00709fd7760f3a7d5fd4f
     - codename: etesian-sapphire
       digest: sha256:bdbefbd0696a688418b3030a577473253516120f66bb68177fa3db78e0f50926
+    - codename: mistral-sapphire
+      digest: sha256:8b823e9fe72c5ad23340cbeb224eb3e3c3cae66065d391303b603a676dd5416d
   platform/adapter:
     releases:
     - codename: anchor
