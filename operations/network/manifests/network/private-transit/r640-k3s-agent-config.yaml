@@ -21,7 +21,7 @@ node-label:
   - topology.kubernetes.io/zone=hunan
   - scheduling.re8ch.com/node-profile=worker-large
 kubelet-arg:
-  - max-pods=272
+  - max-pods=512
   - kube-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096
   - system-reserved=cpu=2,memory=4Gi,ephemeral-storage=10Gi,pid=4096
   - enforce-node-allocatable=pods
