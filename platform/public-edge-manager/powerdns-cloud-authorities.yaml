@@ -33,6 +33,9 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       terminationGracePeriodSeconds: 30
+      tolerations:
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+        - {key: node.cilium.io/agent-not-ready, operator: Exists, effect: NoSchedule}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
