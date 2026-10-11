@@ -1306,6 +1306,8 @@ modules:
       digest: sha256:101f747389a563fef5d7aea7f65fc4cf3e0c09cd14e053c15c06eb08162adb37
     - codename: chinook-ruby
       digest: sha256:b160180504466ff5addc91f010639758e55d353a34616826c950165674804d6d
+    - codename: etesian-ruby
+      digest: sha256:0cf32b914e2f2e57ce356f9dde7c98b9fefb9897560ea48a0f796664e1447f5b
   platform/adapter:
     releases:
     - codename: anchor
