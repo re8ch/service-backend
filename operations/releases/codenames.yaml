@@ -1312,6 +1312,8 @@ modules:
       digest: sha256:06fac7eeb96a0709ad054d17517060b836f1101feddff2fed50cc6e75987c0cd
     - codename: sirocco-ruby
       digest: sha256:e49894de5c42382086ba19f026aa78e28f234a8304b5499726b8de813f0af323
+    - codename: tramontane-ruby
+      digest: sha256:c98e9af8a7fa96d6088131a057909a9aace71bb2ac5dd0c69afddfb256b700b4
   platform/adapter:
     releases:
     - codename: anchor
