@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: mistral-sapphire
+codename: sirocco-sapphire
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:8b823e9fe72c5ad23340cbeb224eb3e3c3cae66065d391303b603a676dd5416d
+  digest: sha256:efc77cfd02451e69414a8b10927215b9042ea58f4720e8fafa4957087b45552d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
