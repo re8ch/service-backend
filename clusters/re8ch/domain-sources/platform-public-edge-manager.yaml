@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-sapphire
+    delivery.re8ch.com/codename: mistral-sapphire
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:bdbefbd0696a688418b3030a577473253516120f66bb68177fa3db78e0f50926
+    digest: sha256:8b823e9fe72c5ad23340cbeb224eb3e3c3cae66065d391303b603a676dd5416d
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-sapphire
+    delivery.re8ch.com/codename: mistral-sapphire
 spec:
   interval: 1m
   retryInterval: 1m
