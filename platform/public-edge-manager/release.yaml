@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:41445b16cd919331e90e5d13c60bd71261cdf685242d18aaa0aba3ad147f9f01}
+  ref: {digest: sha256:7e9e7b9fc51ef53453bff3ec0fdbcaa41c35053e9ee67bbae6479118776f3cde}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.32"
+      tag: "0.6.33"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:89221a0aea3c046c4a176283ecd3a74723e8a593337790e29ba5823a49b21c58
+      digest: sha256:6498d77aed47a8a311bcfab4ed26876ac7d763394288fe21920115066cf05d03
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
