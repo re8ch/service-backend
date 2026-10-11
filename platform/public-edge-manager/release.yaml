@@ -153,7 +153,7 @@ spec:
       # Enable only after the independent ARM32 authority has a fresh signed
       # AdvFab bundle and public UDP/TCP SOA and address probes pass.
       externalAuthorities:
-        - {id: routeros-r640, address: 192.0.2.138, nameserver: ns-routeros.re8ch.com., region: cn, capacityMbps: 1000, enabled: false}
+        - {id: routeros-r640, address: 192.0.2.138, nameserver: ns-routeros.re8ch.com., region: cn, capacityMbps: 1000, enabled: true}
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
       # and API/DB A answers can qualify it for NS authority.
       excludedNodeNames: [overseas-la-2]

@@ -591,7 +591,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["discovery"]["externalAuthorities"] == [{
         "id": "routeros-r640", "address": "192.0.2.138",
         "nameserver": "ns-routeros.re8ch.com.", "region": "cn",
-        "capacityMbps": 1000, "enabled": False,
+        "capacityMbps": 1000, "enabled": True,
     }]
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
     assert values["dns"]["externalRecords"]["_acme-challenge.service.re8ch.com."][0]["value"] == "_acme-challenge.re8ch.com."
