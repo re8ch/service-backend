@@ -149,7 +149,7 @@ spec:
       # capacity annotations and the same public IP/path/listener probes.
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
-      maxNameservers: 3
+      maxNameservers: 5
       # PowerDNS nodes are independent of Public Edge ingress admission. Only
       # public UDP/TCP SOA and address probes can elect these external authorities.
       externalAuthorities:
