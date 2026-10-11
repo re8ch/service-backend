@@ -1292,6 +1292,8 @@ modules:
       digest: sha256:662583ae2b1140d0fedb5dcce91cd3659b7b55bf91089e0185ef838890ebeef9
     - codename: tramontane-quartz
       digest: sha256:f8909485701089fab818a9fd4fc700db8df339c91ef53620e0ea3ba00422e6ac
+    - codename: zephyr-quartz
+      digest: sha256:90f47fad7b3ea71b8b4e595515b215e48cca675c9b6069a4f6f53ec9a0dfc71e
   platform/adapter:
     releases:
     - codename: anchor
