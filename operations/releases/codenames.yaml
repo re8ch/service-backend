@@ -298,6 +298,8 @@ modules:
       digest: sha256:c9a49c4f47cd899d8d75b0947b4113ce961339905f54b7d805ad64b05877059d
     - codename: starfire-jade
       digest: sha256:6e93992c2552a45d701262d3c2b6b2ec90980d49c33ff73db3b0e6f07eae44cd
+    - codename: torch-jade
+      digest: sha256:74b97eaf81b8805ba86401a588ad538f7f513be8bfbd7c5aa6d92c34673a65ad
   platform/among-clusters:
     releases:
     - codename: bora
