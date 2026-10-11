@@ -137,7 +137,7 @@ def test_connectool_renders_worker_runtime_and_disruption_contracts():
     assert "Object.spec.template.spec.affinity.nodeAffinity{" in serialized
     assert "Object.spec.template.spec.affinity.podAntiAffinity{" in serialized
     assert "'app': object.metadata.labels['app']" in serialized
-    assert "restricted-node-6dc3f140f9" in serialized
+    assert "r640" in serialized
 
 
 def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
@@ -188,7 +188,7 @@ def test_dex_reconciler_consumes_connectool_contract_and_retires_split_clients()
     assert "config == original" in script
     assert "print(" not in script
     assert "@sha256:" in deployment["spec"]["template"]["spec"]["containers"][0]["image"]
-    assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
     assert not any(item["kind"] in {"Job", "CronJob"} for item in objects)
 
 
@@ -219,8 +219,6 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
                 "id": "re8ch-grafana", "name": "RE8CH Grafana", "public": True,
                 "redirectURIs": ["https://grafana.service.re8ch.com/grafana/login/generic_oauth"],
             })}}
-        if method == "GET" and path.endswith("paralus-oidc-client"):
-            return {"data": {"clientSecret": base64.b64encode(b"test-only-paralus-secret").decode()}}
         if method == "GET" and path.endswith("dex-config"):
             return copy.deepcopy(secret)
         writes.append((method, path))
@@ -238,11 +236,6 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
     grafana = next(item for item in updated["staticClients"] if item["id"] == "re8ch-grafana")
     assert grafana["public"] is True
     assert grafana["redirectURIs"] == ["https://grafana.service.re8ch.com/grafana/login/generic_oauth"]
-    paralus = next(item for item in updated["staticClients"] if item["id"] == "paralus-service")
-    assert paralus["secret"] == "test-only-paralus-secret"
-    assert paralus["redirectURIs"] == [
-        "https://paralus.service.re8ch.com/self-service/methods/oidc/callback/re8ch-dex"
-    ]
     assert any(path.endswith("deployments/dex") for _, path in writes)
     writes.clear()
     import pytest

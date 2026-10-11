@@ -112,7 +112,6 @@ resources:
 - ../../platform/observability-source
 - components/synthetic-monitoring
 - ../../platform/incidentrelay
-- ../../platform/paralus
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources
 - components/studio-toolkit/runtime.yaml
