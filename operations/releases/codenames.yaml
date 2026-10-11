@@ -1290,6 +1290,8 @@ modules:
       digest: sha256:3b5e136967333a1f17c13ee4d825bfafec78ad3239e68744e32267178a0114e7
     - codename: sirocco-quartz
       digest: sha256:662583ae2b1140d0fedb5dcce91cd3659b7b55bf91089e0185ef838890ebeef9
+    - codename: tramontane-quartz
+      digest: sha256:f8909485701089fab818a9fd4fc700db8df339c91ef53620e0ea3ba00422e6ac
   platform/adapter:
     releases:
     - codename: anchor
