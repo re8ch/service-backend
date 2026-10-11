@@ -14,7 +14,7 @@
     "test.re8ch.com."
   ],
   "stateDirectory": "/state",
-  "refreshSeconds": 300,
+  "refreshSeconds": 21600,
   "maxStaleSeconds": 86400,
   "upstreamTimeoutSeconds": 2
 }
