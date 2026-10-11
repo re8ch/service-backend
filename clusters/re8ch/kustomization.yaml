@@ -107,6 +107,7 @@ resources:
 - components/ops/cloudbeaver.yaml
 - components/ops/zerotier-planet.yaml
 - components/ops/kube-state-metrics-stable.yaml
+- components/ops/paralus-helmrelease-retirement.yaml
 - components/plugin-runtime/runtime.yaml
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
