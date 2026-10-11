@@ -1310,6 +1310,8 @@ modules:
       digest: sha256:0cf32b914e2f2e57ce356f9dde7c98b9fefb9897560ea48a0f796664e1447f5b
     - codename: mistral-ruby
       digest: sha256:06fac7eeb96a0709ad054d17517060b836f1101feddff2fed50cc6e75987c0cd
+    - codename: sirocco-ruby
+      digest: sha256:e49894de5c42382086ba19f026aa78e28f234a8304b5499726b8de813f0af323
   platform/adapter:
     releases:
     - codename: anchor
