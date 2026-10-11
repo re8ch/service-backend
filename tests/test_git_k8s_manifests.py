@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:b0d737d991230d27784071b18b27fc2260e0c8b54a85e6dfec9757d604084e39"}
+    assert source["spec"]["ref"] == {"digest": "sha256:b136b87b71703c691c673ef70bc8108334e142328dbefa3704e878ec89161782"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.34",
-        "digest": "sha256:994b3bede1e546b9aadb5cf4e884afb4b42579c9ba0a03ddaf1267b6de106578",
+        "tag": "0.6.35",
+        "digest": "sha256:b6f512cb788cab87e48f21f6493a70ed092ff239d37c93f21a453b865302c8cd",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -593,7 +593,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     authorities = {item["id"]: item for item in values["discovery"]["externalAuthorities"]}
     assert authorities["routeros-r640"]["enabled"] is False
     assert {"tencent-domain-ex", "aliyun-muaya-lightweight", "tencent-suxunji", "tencent-zan"} <= authorities.keys()
-    assert values["discovery"]["excludedAuthorityNodeNames"] == ["restricted-node-6dc3f140f9", "domain-ex", "muaya-lightweight", "suxunji", "zan"]
+    assert values["discovery"]["excludedAuthorityNodeNames"] == ["restricted-node-6dc3f140f9", "domain-ex", "muaya-lightweight", "suxunji", "zan", "overseas-la-2"]
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
     assert values["dns"]["externalRecords"]["_acme-challenge.service.re8ch.com."][0]["value"] == "_acme-challenge.re8ch.com."
     assert values["dns"]["externalRecords"]["dnshenet-key.service.re8ch.com."][0]["type"] == "TXT"
