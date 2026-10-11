@@ -1,20 +1,14 @@
 {
-  "publicAddress": "192.0.2.138",
   "listenAddress": "0.0.0.0",
   "listenPort": 53,
   "healthPort": 8080,
-  "upstreams": ["192.0.2.38", "192.0.2.111"],
-  "axfrPrimary": "192.0.2.38",
-  "zones": [
-    "api.re8ch.com.",
-    "db-ro.re8ch.com.",
-    "db-rw.re8ch.com.",
-    "service.re8ch.com.",
-    "functions.re8ch.com.",
-    "test.re8ch.com."
-  ],
-  "stateDirectory": "/state",
-  "refreshSeconds": 300,
-  "maxStaleSeconds": 86400,
-  "upstreamTimeoutSeconds": 2
+  "nodeName": "routeros-r640",
+  "bundleUrl": "http://192.168.88.251:18553/v1/authority-bundle",
+  "allowPrivateHttp": true,
+  "bundleKeyFile": "/config/bundle.key",
+  "bundleDirectory": "/state",
+  "bundleCacheDirectory": "/data",
+  "bundleRefreshSeconds": 60,
+  "bundleMaxAgeSeconds": 86400,
+  "soaRname": "hostmaster.re8ch.com."
 }
