@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:b0d737d991230d27784071b18b27fc2260e0c8b54a85e6dfec9757d604084e39}
+  ref: {digest: sha256:b136b87b71703c691c673ef70bc8108334e142328dbefa3704e878ec89161782}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.34"
+      tag: "0.6.35"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:994b3bede1e546b9aadb5cf4e884afb4b42579c9ba0a03ddaf1267b6de106578
+      digest: sha256:b6f512cb788cab87e48f21f6493a70ed092ff239d37c93f21a453b865302c8cd
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -165,7 +165,7 @@ spec:
       excludedNodeNames: [overseas-la-2]
       # Keep the embedded authority off restricted-node-6dc3f140f9 and the dedicated PowerDNS hosts.
       # restricted-node-6dc3f140f9 remains independently eligible for Public Edge ingress.
-      excludedAuthorityNodeNames: [restricted-node-6dc3f140f9, domain-ex, muaya-lightweight, suxunji, zan]
+      excludedAuthorityNodeNames: [restricted-node-6dc3f140f9, domain-ex, muaya-lightweight, suxunji, zan, overseas-la-2]
       probeNodeNames: [overseas-la, overseas-flk]
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
@@ -182,7 +182,7 @@ spec:
       addressZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com]
       # HE slave authority verified over public UDP and TCP before delegation.
       secondaryNameserversByZone:
-        service.re8ch.com: [ns1.he.net., ns2.he.net., ns3.he.net., ns4.he.net., ns5.he.net.]
+        service.re8ch.com: [ns1.he.net., ns2.he.net., ns3.he.net.]
       cloudflareSecretRef: {namespace: qianwen-ops, name: cloudflare-pg-dns-controller-secret, key: CF_API_TOKEN}
     services:
       # /__edge/ready has no accepted HTTPRoute and yields Envoy 503 on both edges.
