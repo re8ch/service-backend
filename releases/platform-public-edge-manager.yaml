@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-sapphire
+codename: zephyr-sapphire
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:b5d7e9d7a1c08e3c4e3462de86373472c13ae82e08ab9fff8d4097ccc04d4fb3
+  digest: sha256:2a731e6b636c9195c3d906679d8d825712cb7a77a41e63ffe27220be9ecc3cc2
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
