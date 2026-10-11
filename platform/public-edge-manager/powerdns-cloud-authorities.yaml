@@ -37,8 +37,8 @@ spec:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-              - matchFields:
-                  - key: metadata.name
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
                     operator: In
                     values: [domain-ex, muaya-lightweight, suxunji, zan]
       initContainers:
