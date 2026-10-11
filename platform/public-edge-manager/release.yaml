@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:6ce1791b3034dfabdf7727bc0115926cdd9416cce0f5270201eefa0602bc70c0}
+  ref: {digest: sha256:41445b16cd919331e90e5d13c60bd71261cdf685242d18aaa0aba3ad147f9f01}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.31"
+      tag: "0.6.32"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:6f58fa71d151f33fdc51ac173c0e750c99d99affe23cacff91a503886c0db8d6
+      digest: sha256:89221a0aea3c046c4a176283ecd3a74723e8a593337790e29ba5823a49b21c58
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -41,8 +41,8 @@ spec:
       nameserversConfigMap: public-edge-nameservers
       # HE remains a secondary for service.re8ch.com. RouterOS consumes a
       # signed control-plane bundle and does not request AXFR from DNS peers.
-      axfrZones: [service.re8ch.com.]
-      axfrAllowedCidrs: [192.0.2.192/32]
+      axfrZones: [service.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., functions.re8ch.com., test.re8ch.com.]
+      axfrAllowedCidrs: [192.0.2.192/32, 192.0.2.62/32, 192.0.2.197/32, 192.0.2.86/32, 192.0.2.192/32]
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
@@ -150,13 +150,20 @@ spec:
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
       maxNameservers: 3
-      # Enable only after the independent ARM32 authority has a fresh signed
-      # AdvFab bundle and public UDP/TCP SOA and address probes pass.
+      # PowerDNS nodes are independent of Public Edge ingress admission. Only
+      # public UDP/TCP SOA and address probes can elect these external authorities.
       externalAuthorities:
-        - {id: routeros-r640, address: 192.0.2.138, nameserver: ns-routeros.re8ch.com., region: cn, capacityMbps: 1000, enabled: true}
+        - {id: routeros-r640, address: 192.0.2.138, nameserver: ns-routeros.re8ch.com., region: cn-hunan, enabled: false}
+        - {id: tencent-domain-ex, address: 192.0.2.62, nameserver: ns-domain-ex.re8ch.com., region: cn-shanghai, enabled: true}
+        - {id: aliyun-muaya-lightweight, address: 192.0.2.197, nameserver: ns-muaya-lightweight.re8ch.com., region: cn-shanghai, enabled: true}
+        - {id: tencent-suxunji, address: 192.0.2.86, nameserver: ns-suxunji.re8ch.com., region: cn-shanghai, enabled: true}
+        - {id: tencent-zan, address: 192.0.2.192, nameserver: ns-zan.re8ch.com., region: cn-guangdong, enabled: true}
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
       # and API/DB A answers can qualify it for NS authority.
       excludedNodeNames: [overseas-la-2]
+      # Keep the embedded authority off restricted-node-6dc3f140f9 and the dedicated PowerDNS hosts.
+      # restricted-node-6dc3f140f9 remains independently eligible for Public Edge ingress.
+      excludedAuthorityNodeNames: [restricted-node-6dc3f140f9, domain-ex, muaya-lightweight, suxunji, zan]
       probeNodeNames: [overseas-la, overseas-flk]
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
