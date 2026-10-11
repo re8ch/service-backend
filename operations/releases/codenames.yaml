@@ -317,6 +317,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: bora-amber
       digest: sha256:caaabb5650fd4e1de16d63ef75393e3e20370e6353b37a0d2553e51718fb68bf
+    - codename: chinook-amber
+      digest: sha256:64f1c21d74d54db62847ede5d6392e174c9f4547deaa61597d946bddac42b960
   platform/scheduling-fabric:
     releases:
     - codename: atoll
@@ -1066,6 +1068,10 @@ modules:
       digest: sha256:2e7791bd7affa08b9ac6787d6ecd135422cdbf98c0e3b83e362c104024e5b47c
     - codename: eddy-turquoise
       digest: sha256:8fe6518176814263f8897f767a01555f8c41ed8b737d5ad16e85b3cb1737f7e8
+    - codename: gulfstream-turquoise
+      digest: sha256:13905629eeaa9047af36a271f43a4023c008f5b416e0dbe2480c96e5d5512952
+    - codename: riptide-turquoise
+      digest: sha256:de2b3e07a4175a0e31c865f20779e980c4054e8fa4fa4c65c3a9fea4452e0f11
   platform/hyperswitch:
     releases:
     - codename: anchor
