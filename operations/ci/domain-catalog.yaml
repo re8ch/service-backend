@@ -112,7 +112,6 @@ domains:
       - tests/test_dex_egress.py
       - tests/test_identity_egress.py
       - tests/test_native_mcp_oauth_gitops.py
-      - tests/test_paralus_gitops.py
 
   observability:
     theme: lenses
