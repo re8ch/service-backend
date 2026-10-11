@@ -202,6 +202,8 @@ modules:
       digest: sha256:1494567bf9561cd28b2dac58e99ae6f5d6df4b3850687fccf3d5e8a4ce9f8ac8
     - codename: zephyr-silver
       digest: sha256:197af7db8e938af036a84530dfcd15d72ed268df0fb14c2abe059588f28caeb4
+    - codename: bora-umber
+      digest: sha256:fb53ab6f339fc48dc4878654c1e1fe0052dd58409f277fe6262edf8655608754
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
