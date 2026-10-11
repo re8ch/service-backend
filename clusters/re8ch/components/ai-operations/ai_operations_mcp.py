@@ -58,6 +58,7 @@ NODE_INVENTORY_PATH = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-ai-opera
 KUBECONFIG_DIR = Path(os.getenv("KUBECONFIG_DIR", "/etc/re8ch-ai-operations/kubeconfigs"))
 SSH_CONFIG = os.getenv("SSH_CONFIG", "/etc/re8ch-ai-operations/ssh_config")
 SSH_IDENTITY_FILE = os.getenv("SSH_IDENTITY_FILE", "/etc/re8ch-ai-operations/id_ed25519")
+BYOC_KNOWN_HOSTS = os.getenv("BYOC_KNOWN_HOSTS", "/etc/re8ch-ai-operations/byoc_known_hosts")
 MAX_TIMEOUT = int(os.getenv("MAX_COMMAND_TIMEOUT_SECONDS", "3600"))
 MAX_OUTPUT = int(os.getenv("MAX_OUTPUT_BYTES", str(4 * 1024 * 1024)))
 ADMIN_GROUP = os.getenv("ADMIN_GROUP", "re8ch:k8s-admins")
@@ -68,6 +69,10 @@ GRAFANA_URL = os.getenv("GRAFANA_URL", "https://grafana.service.re8ch.com/grafan
 HARBOR_TENANTS_PATH = Path(os.getenv("HARBOR_TENANTS_PATH", "/etc/re8ch-ai-operations/harbor-tenants.json"))
 CREDENTIAL_NAMESPACE = os.getenv("CREDENTIAL_NAMESPACE", "credential-broker")
 TENANT_SERVICE_DB = Path(os.getenv("TENANT_SERVICE_DB", "/var/lib/re8ch-ai-operations/tenant-services.db"))
+BYOC_AGENT_CHART = os.getenv("BYOC_AGENT_CHART", "oci://ghcr.io/re8ch/charts/among-clusters-agent")
+BYOC_AGENT_CHART_DIGEST = os.getenv("BYOC_AGENT_CHART_DIGEST", "sha256:e546d8e9056a85b813488524282727a6135a0cc544f39d2dc5a8afe23bb042a3")
+BYOC_AGENT_IMAGE = os.getenv("BYOC_AGENT_IMAGE", "ghcr.io/re8ch/among-clusters@sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a")
+BYOC_AGENT_CHART_IDENTITY = os.getenv("BYOC_AGENT_CHART_IDENTITY", "https://github.com/re8ch/among-clusters/.github/workflows/release.yaml@refs/tags/v0.3.25")
 SUPPLY_CHAIN_URL = os.getenv("HARBOR_SUPPLY_CHAIN_URL", "http://harbor-supply-chain.tenant-infrastructure.svc")
 DYNAMIC_SKILL_ADMIN_URL = os.getenv("DYNAMIC_SKILL_ADMIN_URL", "")
 SUPPLY_CHAIN_REQUIRED = os.getenv("HARBOR_SUPPLY_CHAIN_REQUIRED", "false").lower() == "true"
@@ -670,6 +675,125 @@ def resolve_node(node: str) -> dict[str, Any]:
     raise ValueError("unknown or disabled node")
 
 
+def resolve_byoc_endpoint(ssh_ref: str, tenant_ref: str) -> dict[str, Any]:
+    endpoint = resolve_node(ssh_ref)
+    byoc = endpoint.get("byoc") or {}
+    required = {"tenantRef", "hostFingerprint", "clusterUID", "clusterID", "regionRef"}
+    if not required.issubset(byoc) or byoc["tenantRef"] != tenant_ref:
+        raise PermissionError("ssh_ref is not reviewed for this tenant")
+    if not re.fullmatch(r"SHA256:[A-Za-z0-9+/]{43}", str(byoc["hostFingerprint"])):
+        raise ValueError("reviewed SSH endpoint has an invalid host fingerprint")
+    return endpoint
+
+
+BYOC_PROBE_COMMAND = r'''set -eu
+K="sudo k3s kubectl"
+uid=$($K get namespace kube-system -o jsonpath='{.metadata.uid}')
+version=$($K version -o json | python3 -c 'import json,sys; print(json.load(sys.stdin)["serverVersion"]["gitVersion"])')
+issuer=$($K get --raw /.well-known/openid-configuration | python3 -c 'import json,sys; print(json.load(sys.stdin)["issuer"])')
+ca=$($K get configmap -n kube-public kube-root-ca.crt -o jsonpath='{.data.ca\.crt}' | openssl x509 -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum | cut -d' ' -f1)
+agent=$($K get deploy -A -l app.kubernetes.io/name=among-clusters-agent -o json 2>/dev/null || printf '{"items":[]}')
+gateway=$($K get pods -A -l app.kubernetes.io/name=among-clusters-gateway -o json 2>/dev/null || printf '{"items":[]}')
+identity=$($K get secret -n among-clusters among-clusters-agent-identity -o jsonpath='{.metadata.name}|{.metadata.uid}|{.metadata.creationTimestamp}' 2>/dev/null || true)
+nodes=$($K get nodes -o json)
+python3 - "$uid" "$version" "$issuer" "$ca" "$agent" "$gateway" "$identity" "$nodes" <<'PY'
+import json,sys
+uid,version,issuer,ca,agent,gateway,identity,nodes=sys.argv[1:]
+def workloads(raw):
+  rows=[]
+  for item in json.loads(raw).get("items",[]):
+    meta,status,spec=item.get("metadata",{}),item.get("status",{}),item.get("spec",{})
+    rows.append({"namespace":meta.get("namespace"),"name":meta.get("name"),"ready":status.get("readyReplicas",0),"desired":spec.get("replicas",1),"clusterID":next((e.get("value") for c in spec.get("template",{}).get("spec",{}).get("containers",[]) for e in c.get("env",[]) if e.get("name")=="CLUSTER_ID"),None)})
+  return rows
+secret={}
+if identity:
+  name,secret_uid,created=identity.split("|",2); secret={"name":name,"uid":secret_uid,"createdAt":created}
+capacity={"nodes":[]}
+for node in json.loads(nodes).get("items",[]):
+  capacity["nodes"].append({"name":node.get("metadata",{}).get("name"),**{k:node.get("status",{}).get("capacity",{}).get(k) for k in ("cpu","memory","ephemeral-storage")}})
+print(json.dumps({"cluster":{"uid":uid,"distribution":"k3s","version":version,"issuer":issuer,"caPublicKeyDigest":"sha256:"+ca,"capacity":capacity},"amongClusters":{"agents":workloads(agent),"gateways":workloads(gateway),"identitySecret":secret}}))
+PY'''
+
+
+def ssh_host_fingerprint(endpoint: dict[str, Any]) -> str:
+    scan = subprocess.run(["ssh-keyscan", "-T", "10", "-t", "ed25519", endpoint["address"]],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=15, check=False)
+    if scan.returncode or not scan.stdout:
+        raise ServiceError("unable to read reviewed SSH host key")
+    key = subprocess.run(["ssh-keygen", "-lf", "-", "-E", "sha256"], input=scan.stdout,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5, check=False)
+    match = re.search(rb"(SHA256:[A-Za-z0-9+/]{43})", key.stdout)
+    if key.returncode or not match:
+        raise ServiceError("unable to calculate SSH host fingerprint")
+    return match.group(1).decode()
+
+
+def byoc_probe(endpoint: dict[str, Any]) -> dict[str, Any]:
+    fingerprint = ssh_host_fingerprint(endpoint)
+    expected = endpoint["byoc"]["hostFingerprint"]
+    if not hmac.compare_digest(fingerprint, expected):
+        raise ServiceError("SSH host fingerprint does not match reviewed endpoint")
+    result = command_result(byoc_ssh_argv(endpoint, BYOC_PROBE_COMMAND), None, 60)
+    if result["exit_code"]:
+        raise ServiceError("reviewed SSH Kubernetes probe failed")
+    try:
+        probe = json.loads(result["stdout"].strip().splitlines()[-1])
+    except (ValueError, KeyError, IndexError) as exc:
+        raise ServiceError("reviewed SSH Kubernetes probe returned invalid data") from exc
+    probe["ssh"] = {"hostFingerprint": fingerprint, "sshRef": endpoint["id"]}
+    return probe
+
+
+def byoc_agent_health(probe: dict[str, Any], cluster_id: str) -> dict[str, Any]:
+    agents = probe.get("amongClusters", {}).get("agents", [])
+    matching = [row for row in agents if row.get("clusterID") == cluster_id]
+    ready = bool(matching and all(int(row.get("ready", 0)) >= int(row.get("desired", 1)) for row in matching))
+    return {"agent": "Ready" if ready else "NotReady", "clusterID": cluster_id,
+            "gateway": "Ready" if probe.get("amongClusters", {}).get("gateways") else "Unknown"}
+
+
+def render_byoc_agent(endpoint: dict[str, Any]) -> str:
+    byoc = endpoint["byoc"]
+    chart_ref = f"{BYOC_AGENT_CHART}@{BYOC_AGENT_CHART_DIGEST}"
+    verify_ref = f"{BYOC_AGENT_CHART.removeprefix('oci://')}@{BYOC_AGENT_CHART_DIGEST}"
+    verified = subprocess.run(["cosign", "verify", "--certificate-identity", BYOC_AGENT_CHART_IDENTITY,
+                               "--certificate-oidc-issuer", "https://token.actions.githubusercontent.com", verify_ref],
+                              stdout=subprocess.DEVNULL,
+                              stderr=subprocess.PIPE, timeout=120, check=False)
+    if verified.returncode:
+        raise ServiceError("AmongClusters chart signature verification failed")
+    repository, digest = BYOC_AGENT_IMAGE.rsplit("@", 1)
+    values = json.dumps({"clusterID": byoc["clusterID"], "tenant": byoc["tenantRef"],
+                         "trustDomain": "re8ch.internal",
+                         "hubEndpoint": "https://among-clusters.service.re8ch.com",
+                         "image": {"repository": repository, "digest": digest}})
+    rendered = subprocess.run(["helm", "template", "among-clusters-agent", chart_ref,
+                               "--namespace", "among-clusters", "--include-crds", "-f", "-"],
+                              input=values.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              timeout=180, check=False)
+    if rendered.returncode:
+        raise ServiceError("AmongClusters chart rendering failed")
+    return rendered.stdout.decode()
+
+
+def reconcile_byoc_agent(endpoint: dict[str, Any], bootstrap_token: str, bootstrap_ref: str) -> None:
+    manifest = render_byoc_agent(endpoint)
+    token_data = base64.b64encode(bootstrap_token.encode()).decode()
+    id_data = base64.b64encode(bootstrap_ref.encode()).decode()
+    prefix = ("apiVersion: v1\nkind: Namespace\nmetadata:\n  name: among-clusters\n---\n"
+              "apiVersion: v1\nkind: Secret\nmetadata:\n  name: among-clusters-invitation\n"
+              "  namespace: among-clusters\n  annotations:\n    re8ch.com/single-use: 'true'\n"
+              f"type: Opaque\ndata:\n  invitation-id: {id_data}\n  token: {token_data}\n---\n")
+    result = command_result(byoc_ssh_argv(endpoint, "sudo k3s kubectl apply --server-side --field-manager=re8ch-byoc-enroll -f -"),
+                            prefix + manifest, 300, capture_output=False)
+    if result["exit_code"]:
+        raise ServiceError("AmongClusters server-side apply failed")
+    restarted = command_result(byoc_ssh_argv(endpoint, "sudo k3s kubectl -n among-clusters rollout restart deployment/among-clusters-agent"),
+                               None, 60, capture_output=False)
+    if restarted["exit_code"]:
+        raise ServiceError("AmongClusters agent restart failed")
+
+
 def schema(properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:
     value: dict[str, Any] = {"type": "object", "properties": properties, "additionalProperties": False}
     if required:
@@ -818,7 +942,7 @@ GRAFANA_TENANT_TOOLS = [
     {"name": "grafana_exploration_delete", "description": "Explicitly delete a saved AI exploration dashboard owned by the authenticated tenant.", "inputSchema": schema({"dashboard_uid": {"type": "string"}}, ["dashboard_uid"])},
 ]
 
-TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke"}
+TENANT_ADMIN_NAMES = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete", "byoc_registration_list", "byoc_connection_approve", "byoc_connection_revoke", "byoc_ssh_enroll"}
 DYNAMIC_SKILL_ADMIN_TOOLS = [
     {"name": "dynamic_skill_pending", "description": "List tenant workflow drafts awaiting platform review.", "inputSchema": schema({})},
     {"name": "dynamic_skill_publish", "description": "Publish a reviewed platform-wide or tenant-specific workflow directly.", "inputSchema": schema({"target_tenant": {"type": "string"}, "name": {"type": "string"}, "description": {"type": "string"}, "workflow": {"type": "string"}}, ["target_tenant", "name", "description", "workflow"])},
@@ -877,6 +1001,7 @@ TENANT_BYOC_TOOLS = [
     {"name": "byoc_connection_list", "description": "List authenticated cluster connections visible to the current tenant.", "inputSchema": schema({})},
     {"name": "byoc_connection_approve", "description": "Approve one pending registration and issue a workload identity reference.", "inputSchema": schema({"registration_ref": {"type": "string"}}, ["registration_ref"])},
     {"name": "byoc_connection_revoke", "description": "Revoke a cluster connection; offline clusters enter RevocationPending.", "inputSchema": schema({"tenant_ref": {"type": "string"}, "connection_ref": {"type": "string"}, "offline": {"type": "boolean"}}, ["tenant_ref", "connection_ref"])},
+    {"name": "byoc_ssh_enroll", "description": "Plan, execute or inspect a reviewed SSH bootstrap into an AmongClusters-managed BYOC connection.", "inputSchema": schema({"phase": {"type": "string", "enum": ["plan", "execute", "status"]}, "tenant_ref": {"type": "string"}, "ssh_ref": {"type": "string"}, "idempotency_key": {"type": "string", "minLength": 8}, "plan_hash": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}, ["phase", "tenant_ref", "ssh_ref", "idempotency_key"])},
 ]
 
 ARTCHAIS_CLUSTER_TOOLS = [
@@ -1662,6 +1787,12 @@ def ssh_argv(node: dict[str, Any], command: str) -> list[str]:
     return ["ssh", "-F", SSH_CONFIG, "--", node["target"], command]
 
 
+def byoc_ssh_argv(node: dict[str, Any], command: str) -> list[str]:
+    return ["ssh", "-F", SSH_CONFIG, "-o", "StrictHostKeyChecking=yes", "-o",
+            f"UserKnownHostsFile={BYOC_KNOWN_HOSTS}", "-o", "HostKeyAlgorithms=ssh-ed25519",
+            "--", node["target"], command]
+
+
 def capsule_ssh_argv(node: dict[str, Any], command: str) -> list[str]:
     return ["ssh", "-F", SSH_CONFIG, "-i", SSH_IDENTITY_FILE, "-o", "IdentitiesOnly=yes",
             "-o", "BatchMode=yes", "--", node["target"], command]
@@ -1794,6 +1925,109 @@ def dynamic_skill_admin_call(name: str, args: dict[str, Any], identity: dict[str
         raise ValueError(f"dynamic skill administration returned HTTP {exc.code}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError("dynamic skill administration is unavailable") from exc
+
+
+def byoc_link_status(tenant_ref: str, peer_name: str) -> dict[str, Any]:
+    status = {}
+    for resource, key in (("peer", "peer"), ("authenticatedlink", "authenticatedLink")):
+        result = command_result(["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"),
+                                 "-n", tenant_ref, "get", resource, peer_name, "-o", "json"], None, 20)
+        if result["exit_code"]:
+            status[key] = "Unknown"
+            continue
+        try:
+            item = json.loads(result["stdout"])
+            ready = any(condition.get("type") == "Ready" and condition.get("status") == "True"
+                        for condition in item.get("status", {}).get("conditions", []))
+            status[key] = "Ready" if ready else "Present"
+        except ValueError:
+            status[key] = "Unknown"
+    return status
+
+
+def call_byoc_ssh_enroll(args: dict[str, Any]) -> dict[str, Any]:
+    tenant_ref = ServiceStore.validate_tenant_ref(args["tenant_ref"])
+    endpoint = resolve_byoc_endpoint(args["ssh_ref"], tenant_ref)
+    store = tenant_service_store()
+    phase = args["phase"]
+    if phase == "status":
+        current = store.ssh_enrollment(tenant_ref, args["idempotency_key"])
+        status = dict(current.get("status") or {})
+        try:
+            probe = byoc_probe(endpoint)
+            status.update(byoc_agent_health(probe, endpoint["byoc"]["clusterID"]))
+            status["ssh"] = "Ready"
+        except (ServiceError, subprocess.SubprocessError, OSError):
+            status["ssh"] = "Degraded"
+        status.update(byoc_link_status(tenant_ref, f"re8ch-{endpoint['byoc']['clusterID']}"))
+        state = current["state"]
+        if status["ssh"] == "Degraded" and status.get("authenticatedLink") != "Ready":
+            state = "Degraded"
+        return {"enrollmentRef": current["enrollment_ref"], "tenantRef": tenant_ref,
+                "sshRef": args["ssh_ref"], "state": state,
+                "registrationRef": current.get("registration_ref"),
+                "connectionRef": current.get("connection_ref"), "status": status,
+                "credentialMaterialReturned": False}
+
+    probe = byoc_probe(endpoint)
+    byoc = endpoint["byoc"]
+    if probe["cluster"]["uid"] != byoc["clusterUID"]:
+        raise ServiceError("Kubernetes cluster UID does not match reviewed endpoint")
+    health = byoc_agent_health(probe, byoc["clusterID"])
+    action = "adopt" if health["agent"] == "Ready" else ("repair" if probe["amongClusters"]["agents"] else "install")
+    plan = {
+        "tenantRef": tenant_ref, "sshRef": args["ssh_ref"], "ssh": probe["ssh"],
+        "cluster": {**probe["cluster"], "region": byoc["regionRef"],
+                    "capacity": probe["cluster"].get("capacity", byoc.get("capacity", {}))},
+        "amongClusters": {**health, "identitySecret": {"namespace": "among-clusters",
+                                                        **probe["amongClusters"].get("identitySecret", {})}},
+        "actions": [action, "register-or-adopt", "approve", "reconcile-identity", "verify-link"],
+        "quota": {"connectionLimit": int(byoc.get("connectionLimit", 1)), "decision": "allowed"},
+        "ownership": {"tenantRef": tenant_ref, "clusterID": byoc["clusterID"]},
+        "artifacts": {"chart": f"{BYOC_AGENT_CHART}@{BYOC_AGENT_CHART_DIGEST}",
+                      "signatureRequired": True, "image": BYOC_AGENT_IMAGE},
+        "rollback": ["retain connection evidence", "mark Degraded", "restore SSH and reconcile"],
+        "credentialMaterialReturned": False,
+    }
+    reviewed = store.save_ssh_enrollment_plan(plan, args["idempotency_key"])
+    if phase == "plan":
+        return reviewed
+    if phase != "execute":
+        raise ServiceError("phase must be plan, execute or status")
+    if not args.get("plan_hash"):
+        raise ServiceError("execute requires planHash")
+    current = store.ssh_enrollment(tenant_ref, args["idempotency_key"])
+    if current["state"] == "Ready":
+        return call_byoc_ssh_enroll({**args, "phase": "status"})
+    if reviewed["planHash"] != args["plan_hash"]:
+        raise ServiceError("planHash does not match the reviewed plan")
+
+    bootstrap_token = secrets.token_urlsafe(32)
+    bootstrap_ref = f"bootstrap://{tenant_ref}/{uuid.uuid4().hex}"
+    expires = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat().replace("+00:00", "Z")
+    store.begin_ssh_enrollment(tenant_ref, args["idempotency_key"], args["plan_hash"],
+                               probe["ssh"]["hostFingerprint"], probe["cluster"]["uid"],
+                               "sha256:" + hashlib.sha256(bootstrap_token.encode()).hexdigest(),
+                               bootstrap_ref, expires)
+    if action != "adopt":
+        reconcile_byoc_agent(endpoint, bootstrap_token, bootstrap_ref)
+        for attempt in range(6):
+            verified = byoc_probe(endpoint)
+            health = byoc_agent_health(verified, byoc["clusterID"])
+            if health["agent"] == "Ready":
+                break
+            if attempt < 5:
+                time.sleep(5)
+        if health["agent"] != "Ready":
+            raise ServiceError("AmongClusters agent did not become Ready after reconciliation")
+    registration = store.adopt_cluster(tenant_ref, probe["cluster"]["uid"], byoc["regionRef"],
+                                       probe["cluster"]["issuer"], probe["cluster"]["caPublicKeyDigest"],
+                                       ["among-clusters", "kubernetes-api"])
+    connection = store.approve_cluster_idempotent(registration["registrationRef"])
+    status = {**health, **byoc_link_status(tenant_ref, f"re8ch-{byoc['clusterID']}"),
+              "ssh": "Ready", "bootstrapCredential": "Consumed"}
+    return store.complete_ssh_enrollment(current["enrollment_ref"], registration["registrationRef"],
+                                         connection["connectionRef"], status)
 
 
 def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
@@ -2306,7 +2540,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
     if PROFILE in tenant_profiles and name in tenant_tool_names:
         tenant = authenticated_tenant(identity)
         store = tenant_service_store()
-        admin_tools = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete"}
+        admin_tools = {"tenant_create", "tenant_list", "tenant_visibility_update", "tenant_delete", "byoc_ssh_enroll"}
         if name in admin_tools | {"byoc_connection_approve"} and (PROFILE != "admin" or tenant != "admin"):
             raise PermissionError("the protected admin tenant is required")
         if name == "tenant_create":
@@ -2326,6 +2560,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"tenantRef": tenant, "connections": store.connections(tenant)}
         if name == "byoc_connection_approve":
             return store.approve_cluster(args["registration_ref"])
+        if name == "byoc_ssh_enroll":
+            return call_byoc_ssh_enroll(args)
         if name == "byoc_connection_revoke":
             target = args.get("tenant_ref") if tenant == "admin" else tenant
             if target != tenant and tenant != "admin":

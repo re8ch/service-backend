@@ -86,7 +86,13 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         assert node_terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]}]
         assert "nodeSelector" not in pod
         assert pod["automountServiceAccountToken"] is (name == "tenant-api")
-        assert pod["volumes"] == [{"name": "runtime-state", "persistentVolumeClaim": {"claimName": "tenant-platform-state"}}]
+        volume_names = {item["name"] for item in pod["volumes"]}
+        assert "runtime-state" in volume_names
+        if name == "admin-api":
+            assert volume_names == {"runtime-state", "byoc-ssh-endpoints", "byoc-ssh-runtime"}
+            assert next(item for item in pod["volumes"] if item["name"] == "byoc-ssh-runtime")["secret"]["defaultMode"] == 0o400
+        else:
+            assert volume_names == {"runtime-state"}
         container = pod["containers"][0]
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         profiles[env["RE8CH_TOOL_PROFILE"]] = env["RE8CH_TOOL_AUDIENCE"]
@@ -96,6 +102,11 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         env = {item["name"]: item.get("value") for item in container["env"] if "value" in item}
         assert env["DEVICE_REGISTRY_PATH"].startswith("/var/lib/tenant-platform/")
         assert env["TENANT_SERVICE_DB"] == "/var/lib/tenant-platform/tenant-services.db"
+        if name == "admin-api":
+            mounts = {item["mountPath"]: item for item in container["volumeMounts"]}
+            assert mounts["/etc/re8ch-ai-operations/id_ed25519"]["readOnly"] is True
+            assert mounts["/etc/re8ch-ai-operations/byoc_known_hosts"]["readOnly"] is True
+            assert env["BYOC_KNOWN_HOSTS"] == "/etc/re8ch-ai-operations/byoc_known_hosts"
         assert container["startupProbe"]["httpGet"]["path"] == "/livez"
         assert container["readinessProbe"]["httpGet"]["path"] == "/readyz"
         assert container["livenessProbe"]["httpGet"]["path"] == "/livez"

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "artchaisprod",
+    "target": "artchaisprod",
+    "address": "192.0.2.208",
+    "roles": ["controlled-subcluster", "control-plane", "byoc-bootstrap"],
+    "enabled": true,
+    "byoc": {
+      "tenantRef": "artchais",
+      "hostFingerprint": "SHA256:Vvd78aDuY4cfVC1S9rncVuKqVYhgHKJ+Cx/A9X5Cm6Q",
+      "clusterUID": "be6dadfe-cc9e-4756-97b7-a22443f46c00",
+      "clusterID": "artc",
+      "regionRef": "tencent-shanghai",
+      "connectionLimit": 1,
+      "capacity": {"cpu": "4", "memory": "3300Mi", "ephemeralStorage": "39Gi"}
+    }
+  }
+]

@@ -19,8 +19,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 def load(profile="cloud"):
     root = Path(__file__).parent
     tmp = tempfile.mkdtemp()
-    Path(tmp, "nodes.json").write_text(json.dumps([{"id": "restricted-node-6dc3f140f9", "target": "restricted-node-6dc3f140f9", "enabled": True}]))
-    Path(tmp, "ssh_config").write_text("Host restricted-node-6dc3f140f9\n  HostName 127.0.0.1\n")
+    Path(tmp, "nodes.json").write_text(json.dumps([{"id": "r640", "target": "r640", "enabled": True}]))
+    Path(tmp, "ssh_config").write_text("Host r640\n  HostName 127.0.0.1\n")
     Path(tmp, "id_ed25519").write_text("test-only")
     Path(tmp, "policy.json").write_text(json.dumps({"revision": 7, "rules": [{"name": "test-node-ops", "actions": ["shell", "file"], "nodes": ["*"], "groups": ["re8ch:k8s-admins"], "credential_refs": ["node-ssh"]}]}))
     os.environ.update({"RE8CH_TOOL_PROFILE": profile, "RE8CH_TOOL_AUDIENCE": f"aud-{profile}", "DEVICE_REGISTRY_PATH": f"{tmp}/devices.db", "NODE_INVENTORY_PATH": f"{tmp}/nodes.json", "SSH_CONFIG": f"{tmp}/ssh_config", "SSH_IDENTITY_FILE": f"{tmp}/id_ed25519", "CAPSULE_POLICY_PATH": f"{tmp}/policy.json", "CAPSULE_SIGNING_KEY": "unit-test-signing-key"})
@@ -420,6 +420,86 @@ class RegistryTests(unittest.TestCase):
         self.assertNotEqual(stored["public_key_hash"], "public-key")
         self.assertTrue(stored["public_key_hash"].startswith("sha256:"))
 
+    def _byoc_admin(self):
+        admin = load("admin")
+        admin.TENANT_SERVICE_DB = Path(tempfile.mkdtemp()) / "tenant.db"
+        admin._TENANT_SERVICE_STORE = None
+        endpoint = {
+            "id": "artchaisprod", "target": "artchaisprod", "address": "203.0.113.10", "enabled": True,
+            "byoc": {"tenantRef": "artchais", "hostFingerprint": "SHA256:" + "A" * 43,
+                     "clusterUID": "cluster-uid-artc", "clusterID": "artc", "regionRef": "test-region",
+                     "connectionLimit": 1, "capacity": {"cpu": "4"}},
+        }
+        admin.NODE_INVENTORY_PATH.write_text(json.dumps([endpoint]))
+        admin.authenticated_tenant = lambda _identity: "admin"
+        probe = {
+            "ssh": {"hostFingerprint": endpoint["byoc"]["hostFingerprint"], "sshRef": "artchaisprod"},
+            "cluster": {"uid": "cluster-uid-artc", "distribution": "k3s", "version": "v1.33.4+k3s1",
+                        "issuer": "https://kubernetes.default.svc.cluster.local", "caPublicKeyDigest": "sha256:" + "b" * 64},
+            "amongClusters": {"agents": [{"clusterID": "artc", "ready": 1, "desired": 1}], "gateways": [{}]},
+        }
+        return admin, probe
+
+    def test_admin_exposes_reviewed_byoc_ssh_enrollment_only(self):
+        admin, _ = self._byoc_admin()
+        self.assertIn("byoc_ssh_enroll", {tool["name"] for tool in admin.tools()})
+        tenant = load("tenant")
+        self.assertNotIn("byoc_ssh_enroll", {tool["name"] for tool in tenant.tools()})
+        with self.assertRaises(PermissionError):
+            admin.resolve_byoc_endpoint("artchaisprod", "other")
+
+    def test_byoc_ssh_plan_execute_adopts_existing_agent_idempotently(self):
+        admin, probe = self._byoc_admin()
+        args = {"phase": "plan", "tenant_ref": "artchais", "ssh_ref": "artchaisprod",
+                "idempotency_key": "artchais-enroll-001"}
+        identity = {"tenant": "admin", "groups": ["re8ch:tenant-admins"]}
+        with patch.object(admin, "byoc_probe", return_value=probe), patch.object(admin, "byoc_link_status", return_value={"peer": "Ready", "authenticatedLink": "Ready"}):
+            plan = admin.call_tool("byoc_ssh_enroll", args, identity)
+            self.assertEqual(plan["actions"][0], "adopt")
+            self.assertNotIn("token", json.dumps(plan).lower())
+            result = admin.call_tool("byoc_ssh_enroll", {**args, "phase": "execute", "plan_hash": plan["planHash"]}, identity)
+            replay = admin.call_tool("byoc_ssh_enroll", {**args, "phase": "execute", "plan_hash": plan["planHash"]}, identity)
+        self.assertEqual(result["state"], "Ready")
+        self.assertEqual(replay["connectionRef"], result["connectionRef"])
+        self.assertEqual(len(admin.tenant_service_store().connections("artchais")), 1)
+        self.assertNotIn("bootstrap_hash", replay)
+
+    def test_byoc_ssh_execute_rejects_cluster_change_after_plan(self):
+        admin, probe = self._byoc_admin()
+        args = {"phase": "plan", "tenant_ref": "artchais", "ssh_ref": "artchaisprod",
+                "idempotency_key": "artchais-enroll-002"}
+        identity = {"tenant": "admin", "groups": ["re8ch:tenant-admins"]}
+        with patch.object(admin, "byoc_probe", return_value=probe):
+            plan = admin.call_tool("byoc_ssh_enroll", args, identity)
+        changed = json.loads(json.dumps(probe)); changed["cluster"]["uid"] = "different-cluster"
+        with patch.object(admin, "byoc_probe", return_value=changed), self.assertRaises(admin.ServiceError):
+            admin.call_tool("byoc_ssh_enroll", {**args, "phase": "execute", "plan_hash": plan["planHash"]}, identity)
+
+    def test_byoc_bootstrap_credential_is_single_use_and_redacted(self):
+        admin, probe = self._byoc_admin()
+        store = admin.tenant_service_store()
+        plan = {"tenantRef": "artchais", "sshRef": "artchaisprod", "ssh": probe["ssh"],
+                "cluster": probe["cluster"], "amongClusters": {}, "actions": [], "quota": {},
+                "ownership": {}, "artifacts": {}, "rollback": [], "credentialMaterialReturned": False}
+        saved = store.save_ssh_enrollment_plan(plan, "bootstrap-test-001")
+        current = store.begin_ssh_enrollment("artchais", "bootstrap-test-001", saved["planHash"],
+                                             probe["ssh"]["hostFingerprint"], probe["cluster"]["uid"],
+                                             "sha256:" + "c" * 64, "bootstrap://opaque", "2099-01-01T00:00:00Z")
+        store.complete_ssh_enrollment(current["enrollment_ref"], "registration://one", "connection://one", {})
+        with self.assertRaises(admin.ServiceError):
+            store.complete_ssh_enrollment(current["enrollment_ref"], "registration://one", "connection://one", {})
+        visible = store.ssh_enrollment("artchais", "bootstrap-test-001")
+        self.assertNotIn("bootstrap_hash", visible)
+
+    def test_byoc_admin_adoption_rejects_cluster_owned_by_another_tenant(self):
+        admin, probe = self._byoc_admin()
+        store = admin.tenant_service_store()
+        store.register_cluster("first", probe["cluster"]["uid"], "test-region",
+                               probe["cluster"]["issuer"], "public-key", [])
+        with self.assertRaises(admin.ServiceError):
+            store.adopt_cluster("second", probe["cluster"]["uid"], "test-region",
+                                probe["cluster"]["issuer"], "public-key", [])
+
     def test_tenant_context_never_uses_group_or_tenant_claims(self):
         m = load("tenant")
         with self.assertRaises(PermissionError):
@@ -528,7 +608,7 @@ class RegistryTests(unittest.TestCase):
     def test_capsule_is_signed_one_time_and_broker_hides_material(self):
         m = load("cloud")
         identity = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-test", "auth_type": "device"}
-        signed = m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]})
+        signed = m.create_capsule(identity, {"action": "shell", "node": "r640", "command": "hostname", "credential_refs": ["node-ssh"]})
         invoked = []
         def command_result(argv, stdin, timeout, *, capture_output):
             invoked.append(argv)
@@ -551,21 +631,21 @@ class RegistryTests(unittest.TestCase):
         m = load("cloud")
         identity = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-test", "auth_type": "device"}
         with self.assertRaisesRegex(PermissionError, "node-ssh credential reference is required"):
-            m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": []})
+            m.create_capsule(identity, {"action": "shell", "node": "r640", "command": "hostname", "credential_refs": []})
         with self.assertRaisesRegex(PermissionError, "node-ssh credential is unavailable or unbound"):
-            m.NodeRunner().run({"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname"}, {})
+            m.NodeRunner().run({"action": "shell", "node": "r640", "command": "hostname"}, {})
 
     def test_tampered_capsule_is_rejected(self):
         m = load("cloud")
         identity = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-test", "auth_type": "device"}
-        signed = m.create_capsule(identity, {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]})
+        signed = m.create_capsule(identity, {"action": "shell", "node": "r640", "command": "hostname", "credential_refs": ["node-ssh"]})
         signed["capsule"]["command"] = "id"
         with self.assertRaises(PermissionError):
             m.execute_capsule(identity, signed["capsule"], signed["signature"])
 
     def test_capsule_requires_admin_registered_device_and_same_device_execution(self):
         m = load("cloud")
-        request = {"action": "shell", "node": "restricted-node-6dc3f140f9", "command": "hostname", "credential_refs": ["node-ssh"]}
+        request = {"action": "shell", "node": "r640", "command": "hostname", "credential_refs": ["node-ssh"]}
         admin = {"subject": "user-1", "groups": [m.ADMIN_GROUP], "device_id": "dev-one", "auth_type": "device"}
         for identity in (
             {**admin, "groups": []},
