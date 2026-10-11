@@ -50,7 +50,7 @@ spec:
       containers:
         - name: pdns-auth
           image: docker.io/powerdns/pdns-auth-49:4.9.17@sha256:b554df74bbde1afa7caedad4af9c91378be6d46d05807d089b3c7c443002e684
-          command: [/usr/sbin/pdns_server]
+          command: [/usr/local/sbin/pdns_server]
           args: [--daemon=no, --guardian=no, --config-dir=/etc/powerdns]
           ports:
             - {name: dns-udp, containerPort: 53, protocol: UDP}
