@@ -1314,6 +1314,8 @@ modules:
       digest: sha256:e49894de5c42382086ba19f026aa78e28f234a8304b5499726b8de813f0af323
     - codename: tramontane-ruby
       digest: sha256:c98e9af8a7fa96d6088131a057909a9aace71bb2ac5dd0c69afddfb256b700b4
+    - codename: zephyr-ruby
+      digest: sha256:0c5eb9d1aac0786534d943ea08c4dcaa7bec81c227994ab264f5885a3d2646bb
   platform/adapter:
     releases:
     - codename: anchor
