@@ -159,7 +159,7 @@ class AdvancedFabricTests(unittest.TestCase):
             expression["key"] == "kubernetes.io/hostname"
             and expression["operator"] == "In"
             and set(expression["values"]) == {
-                "restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "overseas-flk", "overseas-la-2"
+                "restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "overseas-flk", "overseas-la", "overseas-la-2"
             }
             for term in terms for expression in term["matchExpressions"]
         )

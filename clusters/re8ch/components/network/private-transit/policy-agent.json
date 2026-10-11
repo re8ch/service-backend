@@ -1,5 +1,5 @@
 {
-  "acceleratedPrefix": "192.0.2.65/24",
+  "acceleratedPrefix": "10.250.0.0/24",
   "decisionTable": 15300,
   "decisionRulePriority": 11530,
   "probeIntervalSeconds": 2,
@@ -11,27 +11,177 @@
   "telemetryTimeoutSeconds": 0.5,
   "telemetryMaxAgeSeconds": 10,
   "gateways": [
-    {"name": "a1", "address": "192.0.2.176", "interface": "wg-pt-a1", "probeTable": 15101, "mark": "0x1", "staticWeight": 100, "capacityMbps": 200},
-    {"name": "b1", "address": "192.0.2.4", "interface": "wg-pt-b1", "probeTable": 15102, "mark": "0x2", "staticWeight": 100, "capacityMbps": 200}
+    {
+      "name": "a1",
+      "address": "10.181.22.147",
+      "interface": "wg-pt-a1",
+      "probeTable": 15101,
+      "mark": "0x1",
+      "staticWeight": 100,
+      "capacityMbps": 200
+    },
+    {
+      "name": "b1",
+      "address": "10.181.22.125",
+      "interface": "wg-pt-b1",
+      "probeTable": 15102,
+      "mark": "0x2",
+      "staticWeight": 100,
+      "capacityMbps": 200
+    }
   ],
   "targets": [
-    {"name": "restricted-node-1eb0570f74", "address": "192.0.2.242", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "restricted-node-296f36f2fb", "address": "192.0.2.1", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "zan", "address": "192.0.2.152", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "qwen-1", "address": "192.0.2.147", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "amdwsl-zt", "address": "192.0.2.117", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "overseas-edge-50", "address": "192.0.2.81", "region": "overseas", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "vm-20-12-ubuntu", "address": "192.0.2.223", "region": "shanghai", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "suxunji", "address": "192.0.2.246", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "muaya-lightweight", "address": "192.0.2.160", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "overseas-kl", "address": "192.0.2.149", "region": "kuala-lumpur", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "muaya-ecs", "address": "192.0.2.32", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "overseas-la", "address": "192.0.2.147", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "overseas-flk", "address": "192.0.2.48", "region": "overseas-flk", "directRouteOnGateway": true, "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "overseas-la-2", "address": "192.0.2.148", "region": "overseas-la", "directRouteOnGateway": true, "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "restricted-node-6dc3f140f9", "address": "192.0.2.179", "region": "r640-lan", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "domain-ex", "address": "192.0.2.46", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "qwen-2", "address": "192.0.2.214", "staticPreference": {"a1": 100, "b1": 100}},
-    {"name": "qwen-3", "address": "192.0.2.18", "staticPreference": {"a1": 100, "b1": 100}}
+    {
+      "name": "a1-wsl-zt",
+      "address": "10.250.0.147",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "b1-wsl-zt",
+      "address": "10.250.0.125",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "zan",
+      "address": "10.250.0.16",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "qwen-1",
+      "address": "10.250.0.24",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "amdwsl-zt",
+      "address": "10.250.0.38",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "overseas-edge-50",
+      "address": "10.250.0.50",
+      "region": "overseas",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "vm-20-12-ubuntu",
+      "address": "10.250.0.73",
+      "region": "shanghai",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "suxunji",
+      "address": "10.250.0.77",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "muaya-lightweight",
+      "address": "10.250.0.79",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "overseas-kl",
+      "address": "10.250.0.89",
+      "region": "kuala-lumpur",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "muaya-ecs",
+      "address": "10.250.0.95",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "overseas-la",
+      "address": "10.250.0.104",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "overseas-flk",
+      "address": "10.250.0.105",
+      "region": "overseas-flk",
+      "directRouteOnGateway": true,
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "overseas-la-2",
+      "address": "10.250.0.220",
+      "region": "overseas-la",
+      "directRouteOnGateway": true,
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "r640",
+      "address": "10.250.0.128",
+      "region": "r640-lan",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "domain-ex",
+      "address": "10.250.0.186",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "qwen-2",
+      "address": "10.250.0.217",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    },
+    {
+      "name": "qwen-3",
+      "address": "10.250.0.47",
+      "staticPreference": {
+        "a1": 100,
+        "b1": 100
+      }
+    }
   ]
 }

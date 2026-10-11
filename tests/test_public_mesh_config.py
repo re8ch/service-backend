@@ -82,7 +82,7 @@ def test_expansion_stages_preserve_legacy_and_add_direct_spines():
         data, PUBLIC_MESH.select(data, "qianwen-nuclio-79"), stage=8)
 
 
-def test_expanded_peers_exchange_accelerated_identities_only():
+def test_expanded_peers_exchange_accelerated_identities_and_declared_pod_cidrs():
     data = inventory()
     flk = PUBLIC_MESH.select(data, "overseas-flk")
     restricted-node-6dc3f140f9 = PUBLIC_MESH.select(data, "restricted-node-6dc3f140f9")
@@ -93,8 +93,10 @@ def test_expanded_peers_exchange_accelerated_identities_only():
     assert "network 192.0.2.48/32" in flk_frr
     assert "network 192.0.2.39/32" not in flk_frr
     assert "FROM-128 seq 10 permit 192.0.2.179/32" in flk_frr
-    assert "neighbor 192.0.2.154 prefix-list SELF-ACCEL out" in r640_frr
-    assert "AllowedIPs = 192.0.2.125/32, 192.0.2.179/32" in flk_wg
+    assert "neighbor 192.0.2.154 prefix-list TO-105 out" in r640_frr
+    assert "TO-105 seq 20 permit 192.0.2.140/24" in r640_frr
+    assert "FROM-105 seq 20 permit 192.0.2.165/24" in r640_frr
+    assert "AllowedIPs = 192.0.2.125/32, 192.0.2.179/32, 192.0.2.140/24" in flk_wg
     assert "192.0.2.178/32" not in flk_wg
 
 
@@ -114,10 +116,11 @@ def test_la1_api_vip_is_reachable_only_through_r640_peer():
     la1_frr = PUBLIC_MESH.render_frr(data, la1, stage=10)
     r640_frr = PUBLIC_MESH.render_frr(data, restricted-node-6dc3f140f9, stage=10)
 
-    assert "AllowedIPs = 192.0.2.125/32, 192.0.2.179/32, 192.0.2.116/32" in la1_wg
+    assert "AllowedIPs = 192.0.2.125/32, 192.0.2.179/32, 192.0.2.140/24, 192.0.2.116/32" in la1_wg
     assert "FROM-128 seq 15 permit 192.0.2.116/32" in la1_frr
-    assert "neighbor 192.0.2.125 maximum-prefix 2 90 restart 5" in la1_frr
-    assert "TO-104 seq 20 permit 192.0.2.116/32" in r640_frr
+    assert "neighbor 192.0.2.125 maximum-prefix 3 90 restart 5" in la1_frr
+    assert "TO-104 seq 20 permit 192.0.2.140/24" in r640_frr
+    assert "TO-104 seq 30 permit 192.0.2.116/32" in r640_frr
     assert "neighbor 192.0.2.188 prefix-list TO-104 out" in r640_frr
     assert "neighbor 192.0.2.188 timers 3 9" in r640_frr
 

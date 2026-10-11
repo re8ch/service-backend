@@ -41,7 +41,9 @@
       "publicMode": "mikrotik-ebgp-transit-dnat",
       "podCIDR": "192.0.2.140/24",
       "podCIDRPeers": [
-        "vm-20-12-ubuntu"
+        "vm-20-12-ubuntu",
+        "overseas-flk",
+        "overseas-la"
       ],
       "publicAuthority": {
         "type": "RouterOS",
@@ -140,6 +142,11 @@
       "asn": 4200000105,
       "rollout": 7,
       "publicMode": "static",
+      "podCIDR": "192.0.2.165/24",
+      "podCIDRPeers": [
+        "restricted-node-6dc3f140f9",
+        "restricted-node-abb3f27a69"
+      ],
       "meshPeers": [
         "restricted-node-6dc3f140f9",
         "overseas-la-2",
@@ -173,6 +180,10 @@
       "asn": 4200000104,
       "rollout": 10,
       "publicMode": "static",
+      "podCIDR": "192.0.2.114/24",
+      "podCIDRPeers": [
+        "restricted-node-6dc3f140f9"
+      ],
       "apiVipVia": {
         "peer": "restricted-node-6dc3f140f9",
         "prefix": "192.0.2.116/32"
@@ -193,6 +204,10 @@
       "rollout": 9,
       "publicMode": "dial-only",
       "mtu": 1120,
+      "podCIDR": "192.0.2.113/24",
+      "podCIDRPeers": [
+        "overseas-flk"
+      ],
       "meshPeers": [
         "overseas-flk",
         "overseas-la-2"

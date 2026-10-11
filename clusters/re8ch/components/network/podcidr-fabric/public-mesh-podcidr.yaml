@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: public-mesh-podcidr-reconciler
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels: {app.kubernetes.io/name: public-mesh-podcidr-reconciler}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 1}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: public-mesh-podcidr-reconciler}
+    spec:
+      hostPID: true
+      hostNetwork: true
+      priorityClassName: system-node-critical
+      tolerations: [{operator: Exists}]
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [r640, overseas-flk, overseas-la, mubao-wsl]
+      containers:
+        - name: reconciler
+          image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
+          imagePullPolicy: IfNotPresent
+          command: [/bin/sh, /config/reconcile.sh]
+          env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+          securityContext: {privileged: true}
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: host-root, mountPath: /host, readOnly: false}
+      volumes:
+        - name: config
+          projected:
+            sources:
+              - configMap: {name: public-mesh-podcidr, items: [{key: public-mesh-podcidr-reconcile.sh, path: reconcile.sh}, {key: inventory.json, path: public-mesh.json}]}
+        - name: host-root
+          hostPath: {path: /, type: Directory}
