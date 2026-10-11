@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: sirocco-quartz
+codename: tramontane-quartz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:662583ae2b1140d0fedb5dcce91cd3659b7b55bf91089e0185ef838890ebeef9
+  digest: sha256:f8909485701089fab818a9fd4fc700db8df339c91ef53620e0ea3ba00422e6ac
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
