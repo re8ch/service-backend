@@ -1930,7 +1930,8 @@ def dynamic_skill_admin_call(name: str, args: dict[str, Any], identity: dict[str
 def byoc_link_status(tenant_ref: str, peer_name: str) -> dict[str, Any]:
     status = {}
     for resource, key in (("peer", "peer"), ("authenticatedlink", "authenticatedLink")):
-        result = command_result(["kubectl", "-n", tenant_ref, "get", resource, peer_name, "-o", "json"], None, 20)
+        result = command_result(["kubectl", "--kubeconfig", str(KUBECONFIG_DIR / "re8ch.yaml"),
+                                 "-n", tenant_ref, "get", resource, peer_name, "-o", "json"], None, 20)
         if result["exit_code"]:
             status[key] = "Unknown"
             continue

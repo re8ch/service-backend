@@ -93,7 +93,7 @@ subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastruc
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: admin-api, namespace: tenant-infrastructure}
-automountServiceAccountToken: true
+automountServiceAccountToken: false
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -108,7 +108,7 @@ spec:
     metadata: {labels: {app: admin-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: admin-api
-      automountServiceAccountToken: true
+      automountServiceAccountToken: false
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -144,6 +144,7 @@ spec:
             - {name: SSH_CONFIG, value: /etc/re8ch-ai-operations/ssh_config}
             - {name: SSH_IDENTITY_FILE, value: /etc/re8ch-ai-operations/id_ed25519}
             - {name: BYOC_KNOWN_HOSTS, value: /etc/re8ch-ai-operations/byoc_known_hosts}
+            - {name: KUBECONFIG_DIR, value: /etc/re8ch-ai-operations/kubeconfigs}
             {{- if .Values.tenantPlatform.tenantAPI.enabled }}
             - {name: DYNAMIC_SKILL_ADMIN_URL, value: "http://tenant-api.tenant-infrastructure.svc:19450/internal/dynamic-skills"}
             {{- end }}
@@ -164,6 +165,7 @@ spec:
             - {name: byoc-ssh-endpoints, mountPath: /etc/re8ch-ai-operations/ssh_config, subPath: ssh-config, readOnly: true}
             - {name: byoc-ssh-endpoints, mountPath: /etc/re8ch-ai-operations/byoc_known_hosts, subPath: known-hosts, readOnly: true}
             - {name: byoc-ssh-runtime, mountPath: /etc/re8ch-ai-operations/id_ed25519, subPath: id_ed25519, readOnly: true}
+            - {name: byoc-ssh-runtime, mountPath: /etc/re8ch-ai-operations/kubeconfigs/re8ch.yaml, subPath: kubeconfig-re8ch.yaml, readOnly: true}
       volumes:
         - {name: runtime-state, persistentVolumeClaim: {claimName: tenant-platform-state}}
         - {name: byoc-ssh-endpoints, configMap: {name: byoc-ssh-endpoints, defaultMode: 292}}

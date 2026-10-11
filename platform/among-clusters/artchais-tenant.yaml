@@ -37,22 +37,8 @@ metadata:
 spec:
   peerRef: re8ch-artc
   transport: quic-mtls
-  localGateway: quic://192.0.2.138:8443
+  localGateway: quic://223.159.210.222:8443
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata: {name: byoc-connection-status, namespace: artchais}
-rules:
-  - apiGroups: [peering.re8ch.com]
-    resources: [peers, authenticatedlinks]
-    verbs: [get, list]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata: {name: byoc-connection-status, namespace: artchais}
-roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: byoc-connection-status}
-subjects: [{kind: ServiceAccount, name: admin-api, namespace: tenant-infrastructure}]
 ---
 apiVersion: peering.re8ch.com/v1alpha1
 kind: PeerPolicy
