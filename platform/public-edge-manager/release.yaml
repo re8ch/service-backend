@@ -26,6 +26,20 @@ spec:
     timeout: 15m
     remediation: {retries: 3, strategy: rollback}
   rollback: {cleanupOnFail: true}
+  # Cluster DNS Service routing fails on the overseas discovery nodes. Use
+  # reachable public resolvers for Cloudflare API calls and health checks.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target: {group: apps, version: v1, kind: Deployment, name: public-edge-manager-controller}
+            patch: |-
+              - op: add
+                path: /spec/template/spec/dnsPolicy
+                value: None
+              - op: add
+                path: /spec/template/spec/dnsConfig
+                value:
+                  nameservers: [1.1.1.1, 8.8.8.8]
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
