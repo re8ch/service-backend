@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: zephyr-quartz
+codename: chinook-ruby
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:90f47fad7b3ea71b8b4e595515b215e48cca675c9b6069a4f6f53ec9a0dfc71e
+  digest: sha256:b160180504466ff5addc91f010639758e55d353a34616826c950165674804d6d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
