@@ -1288,6 +1288,8 @@ modules:
       digest: sha256:bd29f94a9e6aba045bd0b44933af185c7020af3c41682c1994cc6826e400de05
     - codename: mistral-quartz
       digest: sha256:3b5e136967333a1f17c13ee4d825bfafec78ad3239e68744e32267178a0114e7
+    - codename: sirocco-quartz
+      digest: sha256:662583ae2b1140d0fedb5dcce91cd3659b7b55bf91089e0185ef838890ebeef9
   platform/adapter:
     releases:
     - codename: anchor
