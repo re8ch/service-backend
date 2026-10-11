@@ -1318,6 +1318,8 @@ modules:
       digest: sha256:0c5eb9d1aac0786534d943ea08c4dcaa7bec81c227994ab264f5885a3d2646bb
     - codename: bora-sapphire
       digest: sha256:430b804377ac948cc168c55803271adb4858d5007028d47e1ba35301d097a9ec
+    - codename: chinook-sapphire
+      digest: sha256:a83ea2aa60671a230bd09091113865beeeb7d31926e00709fd7760f3a7d5fd4f
   platform/adapter:
     releases:
     - codename: anchor
