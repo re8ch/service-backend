@@ -1320,6 +1320,8 @@ modules:
       digest: sha256:430b804377ac948cc168c55803271adb4858d5007028d47e1ba35301d097a9ec
     - codename: chinook-sapphire
       digest: sha256:a83ea2aa60671a230bd09091113865beeeb7d31926e00709fd7760f3a7d5fd4f
+    - codename: etesian-sapphire
+      digest: sha256:bdbefbd0696a688418b3030a577473253516120f66bb68177fa3db78e0f50926
   platform/adapter:
     releases:
     - codename: anchor
