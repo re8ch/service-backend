@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-ruby
+codename: etesian-ruby
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:b160180504466ff5addc91f010639758e55d353a34616826c950165674804d6d
+  digest: sha256:0cf32b914e2f2e57ce356f9dde7c98b9fefb9897560ea48a0f796664e1447f5b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
