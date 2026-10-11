@@ -1308,6 +1308,8 @@ modules:
       digest: sha256:b160180504466ff5addc91f010639758e55d353a34616826c950165674804d6d
     - codename: etesian-ruby
       digest: sha256:0cf32b914e2f2e57ce356f9dde7c98b9fefb9897560ea48a0f796664e1447f5b
+    - codename: mistral-ruby
+      digest: sha256:06fac7eeb96a0709ad054d17517060b836f1101feddff2fed50cc6e75987c0cd
   platform/adapter:
     releases:
     - codename: anchor
