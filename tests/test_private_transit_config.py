@@ -26,24 +26,37 @@ def fake_keys(inv):
 
 def test_r640_pod_cidr_is_allowed_by_b1_gateway():
     inv = inventory()
-    b1 = MODULE.by_name(inv, "restricted-node-296f36f2fb")
+    b1 = MODULE.by_name(inv, "b1-wsl-zt")
     rendered = MODULE.render_wg(inv, b1, "b1", fake_keys(inv))
-    restricted-node-6dc3f140f9 = rendered.split("# restricted-node-6dc3f140f9", 1)[1].split("[Peer]", 1)[0]
-    assert "192.0.2.18/24" in restricted-node-6dc3f140f9
+    r640 = rendered.split("# r640", 1)[1].split("[Peer]", 1)[0]
+    assert "10.42.6.0/24" in r640
 
 
 def test_gateway_pod_cidr_is_allowed_by_r640_spoke():
     inv = inventory()
-    restricted-node-6dc3f140f9 = MODULE.by_name(inv, "restricted-node-6dc3f140f9")
-    rendered = MODULE.render_wg(inv, restricted-node-6dc3f140f9, "b1", fake_keys(inv))
-    assert "192.0.2.26/24" in rendered
+    r640 = MODULE.by_name(inv, "r640")
+    rendered = MODULE.render_wg(inv, r640, "b1", fake_keys(inv))
+    assert "10.42.13.0/24" in rendered
 
 
 def test_interface_directives_precede_all_peer_sections():
     inv = inventory()
-    b1 = MODULE.by_name(inv, "restricted-node-296f36f2fb")
+    b1 = MODULE.by_name(inv, "b1-wsl-zt")
     rendered = MODULE.render_wg(inv, b1, "b1", fake_keys(inv))
     interface, peers = rendered.split("[Peer]", 1)
     assert "PostUp" in interface
     assert "PostUp" not in peers
     assert "PostDown" not in peers
+
+
+def test_la1_and_route_servers_agree_on_private_transit_ports():
+    inv = inventory()
+    keys = fake_keys(inv)
+    la1 = MODULE.by_name(inv, "overseas-la")
+    for fabric in ("a1", "b1"):
+        gateway = MODULE.gateway(inv, fabric)
+        port = inv["fabrics"][fabric]["port"]
+        la1_conf = MODULE.render_wg(inv, la1, fabric, keys)
+        gateway_conf = MODULE.render_wg(inv, gateway, fabric, keys)
+        assert f"ListenPort = {port}" in la1_conf
+        assert f"Endpoint = {la1['publicIp']}:{port}" in gateway_conf

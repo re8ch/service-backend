@@ -20,6 +20,7 @@ OUTPUTS = {
     "publicMesh": (
         "operations/network/manifests/network/public-mesh/inventory.json",
         "clusters/re8ch/components/network/public-mesh/inventory.json",
+        "clusters/re8ch/components/network/podcidr-fabric/public-mesh-inventory.json",
     ),
     "privateTransit": (
         "operations/network/manifests/network/private-transit/inventory.json",
@@ -250,8 +251,8 @@ def outputs(model):
                 "transitSources": transit["sources"],
             }
         result[paths[0]] = section
-        if len(paths) == 2:
-            result[paths[1]] = project(
+        for path in paths[1:]:
+            result[path] = project(
                 section, model.get("runtimeProjections", {}).get(section_name, {})
             )
     result[HOST_CONTRACT] = host_contract(model)
@@ -274,6 +275,8 @@ def outputs(model):
                           "endpoint": f'{peer["publicIp"]}:{public["listenPort"]}', "keepalive": 15})
             key = f'FROM-{peer["id"]}'
             lists[key] = [f'ip prefix-list {key} seq 10 permit {identity}/32']
+            if name in own.get("podCIDRPeers", []):
+                lists[key].append(f'ip prefix-list {key} seq 20 permit {peer["podCIDR"]}')
             transports.append(peer["transportIp"])
         base = "clusters/re8ch/components/network/host-network-controller/"
         result[base + "package.json"] = {"node": controller["node"], "scope": controller["scope"],

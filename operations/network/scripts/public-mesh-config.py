@@ -60,6 +60,8 @@ def validate(inv):
                     f'{node["name"]}: invalid disableFqdnCapabilityFrom peer: {source}'
                 )
         pod_cidr = node.get("podCIDR")
+        if node.get("podCIDRPeers") and not pod_cidr:
+            errors.append(f'{node["name"]}: podCIDRPeers requires podCIDR')
         if pod_cidr and not ipaddress.ip_network(pod_cidr).subnet_of(
             ipaddress.ip_network("192.0.2.224/16")
         ):
@@ -170,12 +172,19 @@ def render_frr(inv, node, stage):
     lines += [f'ip prefix-list SELF seq 10 permit {self_prefix}/32']
     if node.get("podCIDR"):
         lines.append(f'ip prefix-list SELF seq 20 permit {node["podCIDR"]}')
+        lines.append(f'ip prefix-list SELF-IDENTITY seq 10 permit {self_prefix}/32')
     if has_expanded_peer and not expanded:
         lines.append(f'ip prefix-list SELF-ACCEL seq 10 permit 10.250.0.{node["id"]}/32')
     for peer in peers:
-        if peer.get("apiVipVia", {}).get("peer") == node["name"]:
-            lines.append(f'ip prefix-list TO-{peer["id"]} seq 10 permit 10.250.0.{node["id"]}/32')
-            lines.append(f'ip prefix-list TO-{peer["id"]} seq 20 permit {peer["apiVipVia"]["prefix"]}')
+        pod_peer = peer["name"] in node.get("podCIDRPeers", [])
+        relay_peer = peer.get("apiVipVia", {}).get("peer") == node["name"]
+        if pod_peer or relay_peer:
+            identity = f'10.250.0.{node["id"]}' if expanded or "meshPeers" in peer else node["ztIp"]
+            lines.append(f'ip prefix-list TO-{peer["id"]} seq 10 permit {identity}/32')
+            if pod_peer:
+                lines.append(f'ip prefix-list TO-{peer["id"]} seq 20 permit {node["podCIDR"]}')
+            if relay_peer:
+                lines.append(f'ip prefix-list TO-{peer["id"]} seq 30 permit {peer["apiVipVia"]["prefix"]}')
     for peer in peers:
         identity = f'10.250.0.{peer["id"]}' if expanded or "meshPeers" in peer else peer["ztIp"]
         lines.append(f'ip prefix-list FROM-{peer["id"]} seq 10 permit {identity}/32')
@@ -206,8 +215,8 @@ def render_frr(inv, node, stage):
         maximum = 2 if peer["name"] in node.get("podCIDRPeers", []) else 1
         if node.get("apiVipVia", {}).get("peer") == peer["name"]:
             maximum += 1
-        outbound = "SELF-ACCEL" if "meshPeers" in peer and not expanded else "SELF"
-        if peer.get("apiVipVia", {}).get("peer") == node["name"]:
+        outbound = "SELF-ACCEL" if "meshPeers" in peer and not expanded else "SELF-IDENTITY" if node.get("podCIDR") else "SELF"
+        if peer["name"] in node.get("podCIDRPeers", []) or peer.get("apiVipVia", {}).get("peer") == node["name"]:
             outbound = f'TO-{peer["id"]}'
         lines += [f'  neighbor {peer["transportIp"]} activate', f'  neighbor {peer["transportIp"]} prefix-list FROM-{peer["id"]} in', f'  neighbor {peer["transportIp"]} prefix-list {outbound} out', f'  neighbor {peer["transportIp"]} maximum-prefix {maximum} 90 restart 5']
     lines += [" exit-address-family", "exit", "!"]

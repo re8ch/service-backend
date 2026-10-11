@@ -1,7 +1,7 @@
 {
   "node": "overseas-flk",
   "scope": "public-mesh-peers",
-  "revision": "02fec89041d9e42b880f99025ced14ffcfcb4d22aec96b38f3a75d60533ef4ba",
+  "revision": "ff79195e490cb9989a0c51f9b88e3c2b5398db6256b4fe52a32549e09e2bdf1a",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-public-mesh",
@@ -31,7 +31,8 @@
   },
   "prefixLists": {
     "FROM-128": [
-      "ip prefix-list FROM-128 seq 10 permit 192.0.2.205/32"
+      "ip prefix-list FROM-128 seq 10 permit 192.0.2.205/32",
+      "ip prefix-list FROM-128 seq 20 permit 192.0.2.18/24"
     ],
     "FROM-220": [
       "ip prefix-list FROM-220 seq 10 permit 192.0.2.59/32"
