@@ -1330,6 +1330,8 @@ modules:
       digest: sha256:efc77cfd02451e69414a8b10927215b9042ea58f4720e8fafa4957087b45552d
     - codename: tramontane-sapphire
       digest: sha256:b5d7e9d7a1c08e3c4e3462de86373472c13ae82e08ab9fff8d4097ccc04d4fb3
+    - codename: zephyr-sapphire
+      digest: sha256:2a731e6b636c9195c3d906679d8d825712cb7a77a41e63ffe27220be9ecc3cc2
   platform/adapter:
     releases:
     - codename: anchor
