@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:bd08abb655daf92283fc6cc773c69e784e4d163f13df05d3392dfce4bd05eb0b"}
+    assert source["spec"]["ref"] == {"digest": "sha256:46f156fe6f7f78cbcf78b1f0119c49d7ae5714fd9705847724dcf3aa25da863e"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.36",
-        "digest": "sha256:318e8d45dd22b4e2d212eab942a3800954c5c62878c274b71ca8c77373cc9d19",
+        "tag": "0.6.37",
+        "digest": "sha256:7a4d0b0cc1201e241d7acb56b4ace426d326f7b1b98dd9bad7b46003e7f24c38",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -573,6 +573,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.116:6443", "https://192.0.2.178:6443"]
     assert values["discovery"]["excludedNodeNames"] == ["overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
+    assert values["discovery"]["requiredAddressNames"] == ["headlamp.service.re8ch.com"]
     assert values["discovery"]["dnsPolicy"] == "None"
     assert values["discovery"]["dnsNameservers"] == ["1.1.1.1", "8.8.8.8"]
     assert set(values["dns"]["axfrZones"]) == {"service.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."}
