@@ -4,6 +4,7 @@ resources:
 - components/pigsty-external/pg-re8ch-services.yaml
 - ../../operations/plugin-capabilities
 - namespaces.yaml
+- components/registry-authority/node-installer.yaml
 - flux-system/gotk-components.yaml
 - flux-system/verification-keys.yaml
 - flux-system/sops-canary.sops.yaml
