@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: sirocco-ruby
+codename: tramontane-ruby
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:e49894de5c42382086ba19f026aa78e28f234a8304b5499726b8de813f0af323
+  digest: sha256:c98e9af8a7fa96d6088131a057909a9aace71bb2ac5dd0c69afddfb256b700b4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
