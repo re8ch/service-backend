@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/among-clusters
-codename: bora-amber
+codename: chinook-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
-  digest: sha256:caaabb5650fd4e1de16d63ef75393e3e20370e6353b37a0d2553e51718fb68bf
+  digest: sha256:64f1c21d74d54db62847ede5d6392e174c9f4547deaa61597d946bddac42b960
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
