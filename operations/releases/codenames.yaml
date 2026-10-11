@@ -1070,6 +1070,8 @@ modules:
       digest: sha256:8fe6518176814263f8897f767a01555f8c41ed8b737d5ad16e85b3cb1737f7e8
     - codename: gulfstream-turquoise
       digest: sha256:13905629eeaa9047af36a271f43a4023c008f5b416e0dbe2480c96e5d5512952
+    - codename: riptide-turquoise
+      digest: sha256:de2b3e07a4175a0e31c865f20779e980c4054e8fa4fa4c65c3a9fea4452e0f11
   platform/hyperswitch:
     releases:
     - codename: anchor
