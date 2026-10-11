@@ -1,9 +1,9 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-10-01T08:47:44Z'
-  generation: 1790844464
-  schemaHash: 4f239cfc42af4e136d29a29b8d8492475691433278522a33744d2f158255ae9e
+  generatedAt: '2026-10-11T11:40:07Z'
+  generation: 1791718807
+  schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
     commit: 019c2b9c2a21f93bf371ecb3e01eec3ed605f38c
@@ -61,24 +61,24 @@ modules:
     defaultBranch: main
     dependencies:
     - artchais-web
-    repository: https://github.com/XProfessorJ/Artchais-MicroServices.git
+    repository: https://github.com/Rchais/Artchais-MicroServices.git
   artchais-web:
     commit: 22ae111927323bce9adaa9cf9f28f9a36807c359
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/XProfessorJ/ArtChais-Web.git
+    repository: https://github.com/Rchais/ArtChais-Web.git
   arthandler-artchais-web:
     commit: 541afc8f91a93604621b6c7c35344c0709c6d0f9
     defaultBranch: main
     dependencies:
     - artchais-web
-    repository: https://github.com/re8ch/arthandler-artchais-web.git
+    repository: https://github.com/Rchais/arthandler-artchais-web.git
   arthandler-gallery-robot:
     commit: d18ba129b46ea9e5011fdb02bb841cea78418d26
     defaultBranch: main
     dependencies:
     - artchais-web
-    repository: https://github.com/Woomou/ArtHandler-Gallery-Robot.git
+    repository: https://github.com/Rchais/ArtHandler-Gallery-Robot.git
   baozou-ppt-studio:
     commit: 6638d35c72443dad258c2f248076f751e0a337c0
     defaultBranch: main
@@ -225,6 +225,18 @@ modules:
     dependencies:
     - phonaid-service
     repository: https://github.com/re8ch/phonaid-website.git
+  product-assets:
+    commit: 330151f58dc7c592646b1d39723b064d5c99798f
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/Rchais/product-assets.git
+  product-prd:
+    commit: 2f59e18253c570f062f5c26bf27b85adf44b794f
+    defaultBranch: main
+    dependencies:
+    - artchais-web
+    - artchais-microservices
+    repository: https://github.com/Rchais/product-prd.git
   product-public-data:
     commit: f694be0bc4b7d01b499c03b20c1198c0112b7dbf
     defaultBranch: main
@@ -294,7 +306,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
   user-hub:
-    commit: 6e67758c0acdd226495a05b02441516a0a2dbdb3
+    commit: aa1be379c4cb1c022c0e94856d2ba16586311f15
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/user-hub.git
