@@ -69,10 +69,13 @@ data:
       install -m 0600 "$work" "$registry_file"
     fi
 
-    # Kubelet/containerd runs in the host network namespace, where public DNS
-    # can hairpin registry.re8ch.com through the edge instead of reaching the
-    # in-cluster Harbor origin. Keep the stable Harbor Service IP authoritative
-    # for node-local image pulls.
+    # The four cloud DNS nodes cannot reach the Harbor Service IP from their
+    # host network namespace. Use the tested public Harbor gateway there;
+    # other nodes continue to use the in-cluster origin.
+    registry_ip=10.43.198.203
+    case "${NODE_NAME:-}" in
+      domain-ex|muaya-lightweight|suxunji|zan) registry_ip=223.159.210.222 ;;
+    esac
     hosts_work=$(mktemp "$host/etc/.hosts.XXXXXX")
     awk '
       {
@@ -81,7 +84,7 @@ data:
         if (keep) print
       }
     ' "$hosts_file" >"$hosts_work"
-    printf '%s\n' '192.0.2.26 registry.re8ch.com # re8ch cluster-local Harbor origin' >>"$hosts_work"
+    printf '%s registry.re8ch.com # re8ch Harbor origin\n' "$registry_ip" >>"$hosts_work"
     cat "$hosts_work" >"$hosts_file"
     rm -f "$hosts_work"
 
@@ -149,6 +152,8 @@ spec:
               touch /state/installed
               exec sleep infinity
           env:
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
             # Installing the mirror configuration is safe to roll out to every
             # node. K3s activation is performed separately, one node at a time,
             # so a first deployment cannot restart the whole cluster together.
