@@ -72,6 +72,14 @@
     "ref": "python"
   },
   {
+    "module": "product-assets",
+    "ref": "git"
+  },
+  {
+    "module": "product-prd",
+    "ref": "git"
+  },
+  {
     "module": "baozou-ppt-studio",
     "ref": "npm"
   },

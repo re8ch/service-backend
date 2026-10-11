@@ -197,7 +197,7 @@
     "kind": "agent-memory",
     "module": "artchais-microservices",
     "ref": "catalogs/artchais/modules/artchais-microservices/MEMORY.md",
-    "sha256": "0e5c560c0f3a887fed49f2d09bc15764821dc2b4034e70709f37097a081ffdf9"
+    "sha256": "aca0f7acfe6019211e6ea22182161c883a2825f674333ced41e32b1781660078"
   },
   {
     "module": "artchais-web",
@@ -217,7 +217,7 @@
     "kind": "agent-memory",
     "module": "artchais-web",
     "ref": "catalogs/artchais/modules/artchais-web/MEMORY.md",
-    "sha256": "35099931c44800d2dbff7956b7ab0c2592eae252b2368a6fc9d536f56ac0f58c"
+    "sha256": "aa7183abd9c0178d97626870008b781eb91b3e8081f0b3d5c68797e38609f739"
   },
   {
     "module": "arthandler-artchais-web",
@@ -237,7 +237,7 @@
     "kind": "agent-memory",
     "module": "arthandler-artchais-web",
     "ref": "catalogs/artchais/modules/arthandler-artchais-web/MEMORY.md",
-    "sha256": "8a359eee94ab4f1ca23d94dad15c9db58715a7f2df173dc6a4da10b47f4443ac"
+    "sha256": "1d75cee6cf1430bc9fc18ff8fb287f622347ad5bfa11b2d75a6c43d4a1d44ef8"
   },
   {
     "module": "arthandler-gallery-robot",
@@ -257,7 +257,47 @@
     "kind": "agent-memory",
     "module": "arthandler-gallery-robot",
     "ref": "catalogs/artchais/modules/arthandler-gallery-robot/MEMORY.md",
-    "sha256": "7b7fc7569010b5d58c7c28b7bc930e87d3bfafe93d0e634bae4e17656912d547"
+    "sha256": "47bafdf155610e5db88f6879ddf939f6d96307b62ca5c0f7faef95ae898e1cfe"
+  },
+  {
+    "module": "product-assets",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "product-assets",
+    "ref": "catalogs/artchais/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "product-assets",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "product-assets",
+    "ref": "catalogs/artchais/modules/product-assets/MEMORY.md",
+    "sha256": "8e757114b8ecd65caf85871b72c93b73ed42a866eb37e560f0f9bdc85543b51d"
+  },
+  {
+    "module": "product-prd",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "product-prd",
+    "ref": "catalogs/artchais/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "product-prd",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "product-prd",
+    "ref": "catalogs/artchais/modules/product-prd/MEMORY.md",
+    "sha256": "a9399e34355f821bac1f48255763daaf2559842bcab5ac262d006aad663fac44"
   },
   {
     "module": "baozou-ppt-studio",

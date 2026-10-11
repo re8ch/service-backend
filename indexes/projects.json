@@ -86,7 +86,7 @@
     "id": "artchais-microservices",
     "ownership": "collaboration",
     "projectType": "microservices",
-    "repository": "https://github.com/XProfessorJ/Artchais-MicroServices.git",
+    "repository": "https://github.com/Rchais/Artchais-MicroServices.git",
     "source": "catalogs/artchais/modules/artchais-microservices/source"
   },
   {
@@ -95,7 +95,7 @@
     "id": "artchais-web",
     "ownership": "collaboration",
     "projectType": "web",
-    "repository": "https://github.com/XProfessorJ/ArtChais-Web.git",
+    "repository": "https://github.com/Rchais/ArtChais-Web.git",
     "source": "catalogs/artchais/modules/artchais-web/source"
   },
   {
@@ -104,7 +104,7 @@
     "id": "arthandler-artchais-web",
     "ownership": "collaboration",
     "projectType": "web",
-    "repository": "https://github.com/re8ch/arthandler-artchais-web.git",
+    "repository": "https://github.com/Rchais/arthandler-artchais-web.git",
     "source": "catalogs/artchais/modules/arthandler-artchais-web/source"
   },
   {
@@ -113,8 +113,26 @@
     "id": "arthandler-gallery-robot",
     "ownership": "collaboration",
     "projectType": "automation",
-    "repository": "https://github.com/Woomou/ArtHandler-Gallery-Robot.git",
+    "repository": "https://github.com/Rchais/ArtHandler-Gallery-Robot.git",
     "source": "catalogs/artchais/modules/arthandler-gallery-robot/source"
+  },
+  {
+    "catalog": "artchais",
+    "commit": "330151f58dc7c592646b1d39723b064d5c99798f",
+    "id": "product-assets",
+    "ownership": "collaboration",
+    "projectType": "brand-assets",
+    "repository": "https://github.com/Rchais/product-assets.git",
+    "source": "catalogs/artchais/modules/product-assets/source"
+  },
+  {
+    "catalog": "artchais",
+    "commit": "2f59e18253c570f062f5c26bf27b85adf44b794f",
+    "id": "product-prd",
+    "ownership": "collaboration",
+    "projectType": "product-documentation",
+    "repository": "https://github.com/Rchais/product-prd.git",
+    "source": "catalogs/artchais/modules/product-prd/source"
   },
   {
     "catalog": "baozou-ppt-studio",

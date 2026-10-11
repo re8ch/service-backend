@@ -36,19 +36,27 @@
 	branch = main
 [submodule "artchais/artchais-microservices"]
 	path = catalogs/artchais/modules/artchais-microservices/source
-	url = https://github.com/XProfessorJ/Artchais-MicroServices.git
+	url = https://github.com/Rchais/Artchais-MicroServices.git
 	branch = main
 [submodule "artchais/artchais-web"]
 	path = catalogs/artchais/modules/artchais-web/source
-	url = https://github.com/XProfessorJ/ArtChais-Web.git
+	url = https://github.com/Rchais/ArtChais-Web.git
 	branch = main
 [submodule "artchais/arthandler-artchais-web"]
 	path = catalogs/artchais/modules/arthandler-artchais-web/source
-	url = https://github.com/re8ch/arthandler-artchais-web.git
+	url = https://github.com/Rchais/arthandler-artchais-web.git
 	branch = main
 [submodule "artchais/arthandler-gallery-robot"]
 	path = catalogs/artchais/modules/arthandler-gallery-robot/source
-	url = https://github.com/Woomou/ArtHandler-Gallery-Robot.git
+	url = https://github.com/Rchais/ArtHandler-Gallery-Robot.git
+	branch = main
+[submodule "artchais/product-assets"]
+	path = catalogs/artchais/modules/product-assets/source
+	url = https://github.com/Rchais/product-assets.git
+	branch = main
+[submodule "artchais/product-prd"]
+	path = catalogs/artchais/modules/product-prd/source
+	url = https://github.com/Rchais/product-prd.git
 	branch = main
 [submodule "baozou-ppt-studio/baozou-ppt-studio"]
 	path = catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/source
