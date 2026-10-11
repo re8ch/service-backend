@@ -39,10 +39,11 @@ spec:
     dns:
       soaRname: hostmaster.re8ch.com.
       nameserversConfigMap: public-edge-nameservers
-      # HE pulls the public service zone over TCP from the overseas primary.
-      # Its documented slave source is 192.0.2.67; all other AXFR is refused.
-      axfrZones: [service.re8ch.com.]
-      axfrAllowedCidrs: [192.0.2.67/32]
+      # HE pulls service.re8ch.com. The RouterOS authority takes AXFR copies
+      # of every delegated child zone for local failover. Its actual egress
+      # source must be verified before the router is added to NS election.
+      axfrZones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
+      axfrAllowedCidrs: [192.0.2.67/32, 192.0.2.79/32]
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
@@ -150,6 +151,10 @@ spec:
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
       maxNameservers: 3
+      # Enable only after the ARM32 container has fresh AXFR copies and both
+      # public UDP/TCP SOA and address probes pass on the router IP.
+      externalAuthorities:
+        - {id: routeros-r640, address: 192.0.2.79, nameserver: ns-routeros.re8ch.com., region: cn, capacityMbps: 1000, enabled: false}
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
       # and API/DB A answers can qualify it for NS authority.
       excludedNodeNames: [overseas-la-2]

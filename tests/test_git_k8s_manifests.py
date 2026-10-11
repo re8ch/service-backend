@@ -573,8 +573,13 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.220:6443", "https://192.0.2.183:6443"]
     assert values["discovery"]["excludedNodeNames"] == ["overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
-    assert values["dns"]["axfrZones"] == ["service.re8ch.com."]
-    assert values["dns"]["axfrAllowedCidrs"] == ["192.0.2.67/32"]
+    assert values["dns"]["axfrZones"] == [zone + "." for zone in values["discovery"]["childZones"]]
+    assert values["dns"]["axfrAllowedCidrs"] == ["192.0.2.67/32", "192.0.2.79/32"]
+    assert values["discovery"]["externalAuthorities"] == [{
+        "id": "routeros-r640", "address": "192.0.2.79",
+        "nameserver": "ns-routeros.re8ch.com.", "region": "cn",
+        "capacityMbps": 1000, "enabled": False,
+    }]
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
     assert values["dns"]["externalRecords"]["_acme-challenge.service.re8ch.com."][0]["value"] == "_acme-challenge.re8ch.com."
     assert values["dns"]["externalRecords"]["dnshenet-key.service.re8ch.com."][0]["type"] == "TXT"
