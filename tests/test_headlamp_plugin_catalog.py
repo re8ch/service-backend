@@ -15,7 +15,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generators = {item["name"]: item for item in kustomization["configMapGenerator"]}
     expected = {
-        "headlamp-public-edge-v023": "re8ch-headlamp-public-edge-0.2.3.bundle",
+        "headlamp-public-edge-v024": "re8ch-headlamp-public-edge-0.2.4.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
         "headlamp-secretary-v030": "re8ch-headlamp-secretary-0.3.0.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
@@ -47,6 +47,15 @@ def test_plugin_runtime_is_pod_local_and_complete():
     } <= init_names
     plugins = next(volume for volume in pod["volumes"] if volume["name"] == "plugins")
     assert plugins == {"name": "plugins", "emptyDir": {}}
+
+
+def test_public_edge_lists_active_dns_authorities_with_candidates():
+    source = (ROOT / "platform/plugins/headlamp-public-edge/src/index.tsx").read_text()
+    assert "DNS Authorities in use" in source
+    assert "external-dns.alpha.kubernetes.io/hostname" in source
+    assert "external-dns.alpha.kubernetes.io/target" in source
+    assert "networking.re8ch.com/selected-public-edge" in source
+    assert "networking.re8ch.com/dns-authority" in source
 
 
 def test_runtime_anatomy_plugin_uses_declarative_actions_and_scope_contract():

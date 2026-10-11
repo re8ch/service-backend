@@ -101,7 +101,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.23.1
+              target=/headlamp/plugins/advanced-fabric-0.23.2
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               rmdir "$lock" 2>/dev/null || true
@@ -111,9 +111,9 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.23.1.new
+              stage=/headlamp/plugins/.advanced-fabric-0.23.2.new
               base64 -d /plugin/plugin.tar.gz.b64 > "$archive"
-              echo 'd57bba5f5e4c0988d353e4ec04abfcfdd68d32c0a96418bda22ece3665ab2af5  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '247fb3f43b8f46b42f99181653d18e8b99cba887c8efa98aaaffae7161a53203  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage" --strip-components=1
@@ -166,10 +166,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/public-edge-0.2.3
+              target=/headlamp/plugins/public-edge-0.2.4
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '4385d4f2460e726a4668cedfb5ef8b14bcae7d2c21827a186da902ec7f662b23  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'df44fb59af13a74ba0decafe3a8522679c9aaa2ce9d80e288791dac99d0c76e2  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -335,13 +335,13 @@ spec:
             name: headlamp-birfucate-browser-v045
         - name: advanced-fabric-plugin
           configMap:
-            name: headlamp-advanced-fabric-v0231
+            name: headlamp-advanced-fabric-v0232
         - name: among-clusters-plugin
           configMap:
             name: headlamp-among-clusters-v0324
         - name: public-edge-plugin
           configMap:
-            name: headlamp-public-edge-v023
+            name: headlamp-public-edge-v024
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v011
