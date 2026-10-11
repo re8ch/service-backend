@@ -9,7 +9,7 @@
       "properties": {"enabled": {"type": "boolean"}, "lookbackSeconds": {"type": "integer", "minimum": 60, "maximum": 3600}}
     },
     "tenantPlatform": {
-      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "provider", "tenantReadinessPath", "placement", "state", "supplyChain", "tenants"],
+      "type": "object", "additionalProperties": false, "required": ["enabled", "image", "provider", "tenantReadinessPath", "placement", "state", "supplyChain", "byocSSH", "tenants"],
       "properties": {
         "enabled": {"type": "boolean"},
         "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
@@ -45,6 +45,10 @@
         "supplyChain": {
           "type": "object", "additionalProperties": false, "required": ["required"],
           "properties": {"required": {"type": "boolean"}}
+        },
+        "byocSSH": {
+          "type": "object", "additionalProperties": false, "required": ["secretName"],
+          "properties": {"secretName": {"type": "string", "minLength": 1}}
         },
         "tenants": {"type": "array", "items": {"type": "object"}}
       }

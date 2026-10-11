@@ -23,6 +23,28 @@ spec:
   resources: {requests: {storage: {{ .Values.tenantPlatform.state.size }}}}
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata: {name: byoc-ssh-endpoints, namespace: tenant-infrastructure}
+data:
+  nodes.json: |
+{{ .Files.Get "files/byoc-ssh-endpoints.json" | indent 4 }}
+  ssh-config: |
+    Host artchaisprod
+      HostName 192.0.2.44
+      User ubuntu
+    Host *
+      BatchMode yes
+      IdentitiesOnly yes
+      IdentityFile /etc/re8ch-ai-operations/id_ed25519
+      StrictHostKeyChecking yes
+      UserKnownHostsFile /etc/re8ch-ai-operations/byoc_known_hosts
+      ConnectTimeout 10
+      ServerAliveInterval 20
+      ServerAliveCountMax 3
+  known-hosts: |
+    192.0.2.44 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMm5W5YiKAtLIx0UpzIEyTs3mpBifAf369ykmN5jyLIc
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata: {name: tenant-api, namespace: tenant-infrastructure}
 automountServiceAccountToken: false
@@ -71,7 +93,7 @@ subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastruc
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: admin-api, namespace: tenant-infrastructure}
-automountServiceAccountToken: false
+automountServiceAccountToken: true
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -86,7 +108,7 @@ spec:
     metadata: {labels: {app: admin-api, tenant-runtime: "true", saas.re8ch.com/tenant: platform, ai.connectool.io/mcp-backend: "true"}}
     spec:
       serviceAccountName: admin-api
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -118,6 +140,10 @@ spec:
             - {name: DEX_USERINFO_URL, value: "https://api.re8ch.com/auth/userinfo"}
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/admin-devices.db}
+            - {name: NODE_INVENTORY_PATH, value: /etc/re8ch-ai-operations/nodes.json}
+            - {name: SSH_CONFIG, value: /etc/re8ch-ai-operations/ssh_config}
+            - {name: SSH_IDENTITY_FILE, value: /etc/re8ch-ai-operations/id_ed25519}
+            - {name: BYOC_KNOWN_HOSTS, value: /etc/re8ch-ai-operations/byoc_known_hosts}
             {{- if .Values.tenantPlatform.tenantAPI.enabled }}
             - {name: DYNAMIC_SKILL_ADMIN_URL, value: "http://tenant-api.tenant-infrastructure.svc:19450/internal/dynamic-skills"}
             {{- end }}
@@ -132,8 +158,16 @@ spec:
           livenessProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 3, periodSeconds: 15, timeoutSeconds: 3}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: runtime-state, mountPath: /var/lib/tenant-platform}]
-      volumes: [{name: runtime-state, persistentVolumeClaim: {claimName: tenant-platform-state}}]
+          volumeMounts:
+            - {name: runtime-state, mountPath: /var/lib/tenant-platform}
+            - {name: byoc-ssh-endpoints, mountPath: /etc/re8ch-ai-operations/nodes.json, subPath: nodes.json, readOnly: true}
+            - {name: byoc-ssh-endpoints, mountPath: /etc/re8ch-ai-operations/ssh_config, subPath: ssh-config, readOnly: true}
+            - {name: byoc-ssh-endpoints, mountPath: /etc/re8ch-ai-operations/byoc_known_hosts, subPath: known-hosts, readOnly: true}
+            - {name: byoc-ssh-runtime, mountPath: /etc/re8ch-ai-operations/id_ed25519, subPath: id_ed25519, readOnly: true}
+      volumes:
+        - {name: runtime-state, persistentVolumeClaim: {claimName: tenant-platform-state}}
+        - {name: byoc-ssh-endpoints, configMap: {name: byoc-ssh-endpoints, defaultMode: 292}}
+        - {name: byoc-ssh-runtime, secret: {secretName: {{ .Values.tenantPlatform.byocSSH.secretName }}, defaultMode: 256}}
 ---
 apiVersion: apps/v1
 kind: Deployment

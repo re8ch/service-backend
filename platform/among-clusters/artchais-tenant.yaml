@@ -2,13 +2,24 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: artchais
+  annotations:
+    byoc.re8ch.com/tenant-ref: artchais
+    byoc.re8ch.com/ssh-ref: artchaisprod
+    byoc.re8ch.com/cluster-uid: be6dadfe-cc9e-4756-97b7-a22443f46c00
+    byoc.re8ch.com/enrollment-mode: ssh-bootstrap-among-clusters
+    byoc.re8ch.com/git-source-pr: https://github.com/re8ch/service-backend/pull/1716
+    byoc.re8ch.com/git-source-count: "6"
   labels:
     app.kubernetes.io/part-of: among-clusters
     peering.re8ch.com/tenant: artchais
 ---
 apiVersion: peering.re8ch.com/v1alpha1
 kind: Peer
-metadata: {name: re8ch-artc, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+metadata:
+  name: re8ch-artc
+  namespace: artchais
+  labels: {app.kubernetes.io/part-of: among-clusters, byoc.re8ch.com/tenant-ref: artchais}
+  annotations: {byoc.re8ch.com/cluster-uid: be6dadfe-cc9e-4756-97b7-a22443f46c00}
 spec:
   localIdentityRef: re8ch
   remoteIdentityRef: artc
@@ -18,12 +29,30 @@ spec:
 ---
 apiVersion: peering.re8ch.com/v1alpha1
 kind: AuthenticatedLink
-metadata: {name: re8ch-artc, namespace: artchais, labels: {app.kubernetes.io/part-of: among-clusters}}
+metadata:
+  name: re8ch-artc
+  namespace: artchais
+  labels: {app.kubernetes.io/part-of: among-clusters, byoc.re8ch.com/tenant-ref: artchais}
+  annotations: {byoc.re8ch.com/connection-owner: artchais}
 spec:
   peerRef: re8ch-artc
   transport: quic-mtls
   localGateway: quic://192.0.2.138:8443
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: byoc-connection-status, namespace: artchais}
+rules:
+  - apiGroups: [peering.re8ch.com]
+    resources: [peers, authenticatedlinks]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: byoc-connection-status, namespace: artchais}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: byoc-connection-status}
+subjects: [{kind: ServiceAccount, name: admin-api, namespace: tenant-infrastructure}]
 ---
 apiVersion: peering.re8ch.com/v1alpha1
 kind: PeerPolicy

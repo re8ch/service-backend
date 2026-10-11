@@ -42,6 +42,8 @@ tenantPlatform:
     size: 1Gi
   supplyChain:
     required: false
+  byocSSH:
+    secretName: cloud-platform-runtime
   tenants:
     - name: admin
       displayName: RE8CH Platform Administration

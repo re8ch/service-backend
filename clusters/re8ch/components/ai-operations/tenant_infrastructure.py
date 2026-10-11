@@ -173,6 +173,7 @@ class ServiceStore:
             DROP TABLE IF EXISTS grants;
             CREATE TABLE IF NOT EXISTS cluster_registrations(registration_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, cluster_uid TEXT NOT NULL, region_ref TEXT NOT NULL, issuer TEXT NOT NULL, public_key_hash TEXT NOT NULL, capabilities_json TEXT NOT NULL, state TEXT NOT NULL, enrollment_ref TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(tenant_ref,cluster_uid));
             CREATE TABLE IF NOT EXISTS cluster_connections(connection_ref TEXT PRIMARY KEY, registration_ref TEXT NOT NULL UNIQUE, tenant_ref TEXT NOT NULL, state TEXT NOT NULL, identity_ref TEXT NOT NULL, last_heartbeat TEXT, revoked_at TEXT, created_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS byoc_ssh_enrollments(enrollment_ref TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, ssh_ref TEXT NOT NULL, idempotency_key TEXT NOT NULL, plan_hash TEXT NOT NULL, plan_json TEXT NOT NULL, cluster_uid TEXT NOT NULL, host_fingerprint TEXT NOT NULL, registration_ref TEXT, connection_ref TEXT, bootstrap_ref TEXT, bootstrap_hash TEXT, bootstrap_expires_at TEXT, bootstrap_consumed_at TEXT, state TEXT NOT NULL, status_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, UNIQUE(tenant_ref,idempotency_key));
             """)
 
     @staticmethod
@@ -282,6 +283,115 @@ class ServiceStore:
             db.execute("INSERT INTO cluster_connections VALUES(?,?,?,?,?,?,?,?)", (connection_ref, registration_ref, registration["tenant_ref"], "Ready", identity_ref, now, None, now))
             db.execute("UPDATE cluster_registrations SET state='Approved',updated_at=? WHERE registration_ref=?", (now, registration_ref)); db.commit()
         return {"connectionRef": connection_ref, "registrationRef": registration_ref, "tenantRef": registration["tenant_ref"], "identityRef": identity_ref, "state": "Ready"}
+
+    def adopt_cluster(self, tenant_ref: str, cluster_uid: str, region_ref: str, issuer: str, public_key: str, capabilities: list[str]) -> dict[str, Any]:
+        """Create or adopt an administrator-verified cluster registration."""
+        tenant_ref = self.validate_tenant_ref(tenant_ref)
+        with self.connect() as db:
+            foreign = db.execute(
+                "SELECT tenant_ref FROM cluster_registrations WHERE cluster_uid=? AND tenant_ref!=? LIMIT 1",
+                (cluster_uid, tenant_ref),
+            ).fetchone()
+            if foreign:
+                raise ServiceError("cluster UID is already owned by another tenant")
+            existing = db.execute(
+                "SELECT * FROM cluster_registrations WHERE tenant_ref=? AND cluster_uid=?",
+                (tenant_ref, cluster_uid),
+            ).fetchone()
+        if existing:
+            value = dict(existing)
+            return {"registrationRef": value["registration_ref"], "tenantRef": tenant_ref,
+                    "clusterUid": cluster_uid, "regionRef": value["region_ref"], "state": value["state"],
+                    "credentialMaterialReturned": False, "adopted": True}
+        return {**self.register_cluster(tenant_ref, cluster_uid, region_ref, issuer, public_key, capabilities), "adopted": False}
+
+    def approve_cluster_idempotent(self, registration_ref: str) -> dict[str, Any]:
+        with self.connect() as db:
+            existing = db.execute(
+                "SELECT * FROM cluster_connections WHERE registration_ref=? AND state!='Revoked'",
+                (registration_ref,),
+            ).fetchone()
+        if existing:
+            value = dict(existing)
+            return {"connectionRef": value["connection_ref"], "registrationRef": registration_ref,
+                    "tenantRef": value["tenant_ref"], "identityRef": value["identity_ref"],
+                    "state": value["state"], "adopted": True}
+        return {**self.approve_cluster(registration_ref), "adopted": False}
+
+    def save_ssh_enrollment_plan(self, plan: dict[str, Any], idempotency_key: str) -> dict[str, Any]:
+        tenant_ref = self.validate_tenant_ref(str(plan["tenantRef"]))
+        if len(idempotency_key) < 8:
+            raise ServiceError("idempotencyKey must contain at least 8 characters")
+        plan_hash = canonical_hash(plan)
+        now = timestamp()
+        with self.lock, self.connect() as db:
+            existing = db.execute(
+                "SELECT * FROM byoc_ssh_enrollments WHERE tenant_ref=? AND idempotency_key=?",
+                (tenant_ref, idempotency_key),
+            ).fetchone()
+            if existing:
+                if existing["plan_hash"] != plan_hash:
+                    raise ServiceError("idempotencyKey was already used for a different enrollment plan")
+                return {**json.loads(existing["plan_json"]), "planHash": plan_hash,
+                        "enrollmentRef": existing["enrollment_ref"], "idempotentReplay": True}
+            enrollment_ref = f"byoc-enrollment://{tenant_ref}/{uuid.uuid4().hex}"
+            db.execute(
+                "INSERT INTO byoc_ssh_enrollments VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (enrollment_ref, tenant_ref, plan["sshRef"], idempotency_key, plan_hash,
+                 json.dumps(plan, sort_keys=True), plan["cluster"]["uid"], plan["ssh"]["hostFingerprint"],
+                 None, None, None, None, None, None, "Planned", "{}", now, now),
+            )
+            db.commit()
+        return {**plan, "planHash": plan_hash, "enrollmentRef": enrollment_ref, "idempotentReplay": False}
+
+    def ssh_enrollment(self, tenant_ref: str, idempotency_key: str) -> dict[str, Any]:
+        tenant_ref = self.validate_tenant_ref(tenant_ref)
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT * FROM byoc_ssh_enrollments WHERE tenant_ref=? AND idempotency_key=?",
+                (tenant_ref, idempotency_key),
+            ).fetchone()
+        if not row:
+            raise ServiceError("BYOC SSH enrollment not found")
+        value = dict(row)
+        value["plan"] = json.loads(value.pop("plan_json"))
+        value["status"] = json.loads(value.pop("status_json"))
+        value.pop("bootstrap_hash", None)
+        return value
+
+    def begin_ssh_enrollment(self, tenant_ref: str, idempotency_key: str, plan_hash: str,
+                             host_fingerprint: str, cluster_uid: str, bootstrap_hash: str,
+                             bootstrap_ref: str, bootstrap_expires_at: str) -> dict[str, Any]:
+        current = self.ssh_enrollment(tenant_ref, idempotency_key)
+        if current["plan_hash"] != plan_hash:
+            raise ServiceError("planHash does not match the reviewed plan")
+        if current["host_fingerprint"] != host_fingerprint:
+            raise ServiceError("SSH host fingerprint changed after plan")
+        if current["cluster_uid"] != cluster_uid:
+            raise ServiceError("Kubernetes cluster UID changed after plan")
+        now = timestamp()
+        with self.connect() as db:
+            db.execute(
+                "UPDATE byoc_ssh_enrollments SET bootstrap_ref=?,bootstrap_hash=?,bootstrap_expires_at=?,state='Reconciling',updated_at=? WHERE enrollment_ref=?",
+                (bootstrap_ref, bootstrap_hash, bootstrap_expires_at, now, current["enrollment_ref"]),
+            )
+            db.commit()
+        return current
+
+    def complete_ssh_enrollment(self, enrollment_ref: str, registration_ref: str, connection_ref: str,
+                                status: dict[str, Any]) -> dict[str, Any]:
+        now = timestamp()
+        with self.connect() as db:
+            changed = db.execute(
+                "UPDATE byoc_ssh_enrollments SET registration_ref=?,connection_ref=?,bootstrap_consumed_at=?,state='Ready',status_json=?,updated_at=? WHERE enrollment_ref=? AND bootstrap_consumed_at IS NULL",
+                (registration_ref, connection_ref, now, json.dumps(status, sort_keys=True), now, enrollment_ref),
+            ).rowcount
+            db.commit()
+        if not changed:
+            raise ServiceError("bootstrap credential was already consumed")
+        return {"enrollmentRef": enrollment_ref, "registrationRef": registration_ref,
+                "connectionRef": connection_ref, "state": "Ready", "status": status,
+                "credentialMaterialReturned": False}
 
     def connections(self, tenant_ref: str | None = None) -> list[dict[str, Any]]:
         sql, args = "SELECT * FROM cluster_connections", []
