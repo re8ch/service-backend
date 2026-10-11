@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-sapphire
+codename: etesian-sapphire
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:a83ea2aa60671a230bd09091113865beeeb7d31926e00709fd7760f3a7d5fd4f
+  digest: sha256:bdbefbd0696a688418b3030a577473253516120f66bb68177fa3db78e0f50926
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
