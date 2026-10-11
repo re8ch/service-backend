@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:303169fc07db6ff201f151aa3fa29558ef6b52ec4eca2a68b0d25230352dc9c7"}
+    assert source["spec"]["ref"] == {"digest": "sha256:6ce1791b3034dfabdf7727bc0115926cdd9416cce0f5270201eefa0602bc70c0"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.30",
-        "digest": "sha256:f11c0cdddd4c0b9ace62e7c495c002d608ea1bb2e9811f9b1e859e5e3368baa4",
+        "tag": "0.6.31",
+        "digest": "sha256:6f58fa71d151f33fdc51ac173c0e750c99d99affe23cacff91a503886c0db8d6",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -573,8 +573,21 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.116:6443", "https://192.0.2.178:6443"]
     assert values["discovery"]["excludedNodeNames"] == ["overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
-    assert values["dns"]["axfrZones"] == [zone + "." for zone in values["discovery"]["childZones"]]
-    assert values["dns"]["axfrAllowedCidrs"] == ["192.0.2.192/32", "192.0.2.138/32"]
+    assert values["dns"]["axfrZones"] == ["service.re8ch.com."]
+    assert values["dns"]["axfrAllowedCidrs"] == ["192.0.2.192/32"]
+    assert values["bundlePublisher"] == {
+        "enabled": True,
+        "nodeName": "restricted-node-6dc3f140f9",
+        "bindAddress": "192.0.2.169",
+        "port": 18553,
+        "hmacSecretName": "routeros-authority-bundle-key",
+    }
+    router = json.loads((ROOT / "operations/network/manifests/network/public-mesh/routeros-authority.json").read_text())
+    assert router["bundleUrl"] == "http://192.0.2.169:18553/v1/authority-bundle"
+    assert router["bundleDirectory"] == "/state"
+    assert "upstreams" not in router and "axfrPrimary" not in router
+    root_kustomization = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "secrets/routeros-authority-bundle-key.sops.yaml" in root_kustomization["resources"]
     assert values["discovery"]["externalAuthorities"] == [{
         "id": "routeros-r640", "address": "192.0.2.138",
         "nameserver": "ns-routeros.re8ch.com.", "region": "cn",

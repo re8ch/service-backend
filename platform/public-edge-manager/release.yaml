@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:303169fc07db6ff201f151aa3fa29558ef6b52ec4eca2a68b0d25230352dc9c7}
+  ref: {digest: sha256:6ce1791b3034dfabdf7727bc0115926cdd9416cce0f5270201eefa0602bc70c0}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.30"
+      tag: "0.6.31"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:f11c0cdddd4c0b9ace62e7c495c002d608ea1bb2e9811f9b1e859e5e3368baa4
+      digest: sha256:6f58fa71d151f33fdc51ac173c0e750c99d99affe23cacff91a503886c0db8d6
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -39,11 +39,10 @@ spec:
     dns:
       soaRname: hostmaster.re8ch.com.
       nameserversConfigMap: public-edge-nameservers
-      # HE pulls service.re8ch.com. The RouterOS authority takes AXFR copies
-      # of every delegated child zone for local failover. Its actual egress
-      # source must be verified before the router is added to NS election.
-      axfrZones: [api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
-      axfrAllowedCidrs: [192.0.2.192/32, 192.0.2.138/32]
+      # HE remains a secondary for service.re8ch.com. RouterOS consumes a
+      # signed control-plane bundle and does not request AXFR from DNS peers.
+      axfrZones: [service.re8ch.com.]
+      axfrAllowedCidrs: [192.0.2.192/32]
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
@@ -151,8 +150,8 @@ spec:
       clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
       maxNameservers: 3
-      # Enable only after the ARM32 container has fresh AXFR copies and both
-      # public UDP/TCP SOA and address probes pass on the router IP.
+      # Enable only after the independent ARM32 authority has a fresh signed
+      # AdvFab bundle and public UDP/TCP SOA and address probes pass.
       externalAuthorities:
         - {id: routeros-r640, address: 192.0.2.138, nameserver: ns-routeros.re8ch.com., region: cn, capacityMbps: 1000, enabled: false}
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
@@ -271,6 +270,13 @@ spec:
       resource: networkpathassessments
       requireNodeReady: false
       allowedStates: [Ready, Partial]
+    # The private control-plane feed does not change public DNS routing.
+    bundlePublisher:
+      enabled: true
+      nodeName: restricted-node-6dc3f140f9
+      bindAddress: 192.0.2.169
+      port: 18553
+      hmacSecretName: routeros-authority-bundle-key
     publication: {enabled: false, adapters: {}, refs: {}}
     rbac: {mutateIngresses: false}
     service: {type: ClusterIP, annotations: {}, externalTrafficPolicy: ""}
