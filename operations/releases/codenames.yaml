@@ -1352,6 +1352,8 @@ modules:
       digest: sha256:2076b17feed76b484cee748e21b9b5f1decda0df9917d4dcd73c28aac5344663
     - codename: chinook-topaz
       digest: sha256:2b93940a562b9245d651e48330189ffb1755fd6c48b2cc05bae2caf81f2e820a
+    - codename: etesian-topaz
+      digest: sha256:6aa07ff797db279e0b5481727b9eab0224cd0d3605f8624b47e6bd3426199b3a
   platform/adapter:
     releases:
     - codename: anchor
