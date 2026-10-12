@@ -3,3 +3,5 @@ kind: Kustomization
 resources:
   - release.yaml
   - powerdns-cloud-authorities.yaml
+  - xot-pki.yaml
+  - route-snapshot-public-key.yaml

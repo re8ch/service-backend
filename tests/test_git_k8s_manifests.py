@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:46f156fe6f7f78cbcf78b1f0119c49d7ae5714fd9705847724dcf3aa25da863e"}
+    assert source["spec"]["ref"] == {"digest": "sha256:c87947849dc6ca48fbdbd610c2a75dc9f6a1d6f88515c0dfcf11c18c3a73929b"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.6.37",
-        "digest": "sha256:7a4d0b0cc1201e241d7acb56b4ace426d326f7b1b98dd9bad7b46003e7f24c38",
+        "tag": "0.7.0",
+        "digest": "sha256:3d41ec35d702a1acd5a940877a5ec3fcc9da9de3b4bd115a8fbbb1b29b0f4854",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -576,14 +576,14 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["discovery"]["requiredAddressNames"] == ["headlamp.service.re8ch.com"]
     assert values["discovery"]["dnsPolicy"] == "None"
     assert values["discovery"]["dnsNameservers"] == ["1.1.1.1", "8.8.8.8"]
-    assert set(values["dns"]["axfrZones"]) == {"service.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."}
+    assert set(values["dns"]["axfrZones"]) == {"auth.re8ch.com.", "service.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."}
     assert set(values["dns"]["axfrAllowedCidrs"]) == {"192.0.2.192/32", "192.0.2.62/32", "192.0.2.197/32", "192.0.2.86/32", "192.0.2.192/32"}
     assert values["bundlePublisher"] == {
-        "enabled": True,
-        "nodeName": "restricted-node-6dc3f140f9",
-        "bindAddress": "192.0.2.169",
+        "enabled": False,
+        "nodeName": "",
+        "bindAddress": "",
         "port": 18553,
-        "hmacSecretName": "routeros-authority-bundle-key",
+        "hmacSecretName": "",
     }
     router = json.loads((ROOT / "operations/network/manifests/network/public-mesh/routeros-authority.json").read_text())
     assert router["bundleUrl"] == "http://192.0.2.169:18553/v1/authority-bundle"
