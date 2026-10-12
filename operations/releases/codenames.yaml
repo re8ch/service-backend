@@ -1350,6 +1350,8 @@ modules:
       digest: sha256:2a731e6b636c9195c3d906679d8d825712cb7a77a41e63ffe27220be9ecc3cc2
     - codename: bora-topaz
       digest: sha256:2076b17feed76b484cee748e21b9b5f1decda0df9917d4dcd73c28aac5344663
+    - codename: chinook-topaz
+      digest: sha256:2b93940a562b9245d651e48330189ffb1755fd6c48b2cc05bae2caf81f2e820a
   platform/adapter:
     releases:
     - codename: anchor

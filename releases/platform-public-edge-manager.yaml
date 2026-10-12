@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: bora-topaz
+codename: chinook-topaz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:2076b17feed76b484cee748e21b9b5f1decda0df9917d4dcd73c28aac5344663
+  digest: sha256:2b93940a562b9245d651e48330189ffb1755fd6c48b2cc05bae2caf81f2e820a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
