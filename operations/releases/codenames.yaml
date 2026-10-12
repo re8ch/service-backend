@@ -1094,6 +1094,8 @@ modules:
       digest: sha256:13905629eeaa9047af36a271f43a4023c008f5b416e0dbe2480c96e5d5512952
     - codename: riptide-turquoise
       digest: sha256:de2b3e07a4175a0e31c865f20779e980c4054e8fa4fa4c65c3a9fea4452e0f11
+    - codename: springtide-turquoise
+      digest: sha256:534df2dccc3e0b656b47720163cba9248443a99963d686e61016ec244c14c3e1
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -1468,6 +1470,8 @@ modules:
       digest: sha256:9c0bc9fc07dc9f1a0d4f7d7d0432a9157b9d0ec4e91e4260bdca2b6b45cf50c4
     - codename: zenith
       digest: sha256:a7cd29ec0c2a0f2e1c0d9454d16b434e28dad08082023e720092f1842967eb1e
+    - codename: aperture-amber
+      digest: sha256:9c56524a0230dd0942842fec75052914f8d2143bcbb9ff9ae50d2fd268694e18
   platform/observability/production:
     releases:
     - codename: aperture
