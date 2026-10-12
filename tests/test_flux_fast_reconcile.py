@@ -47,6 +47,10 @@ def test_rendered_controller_failover_and_source_cache_safety():
     assert source['spec']['replicas'] == 1
     assert source['spec']['template']['spec']['hostNetwork'] is True
     assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirstWithHostNet'
+    assert source['spec']['template']['spec']['nodeSelector'] == {
+        'kubernetes.io/os': 'linux',
+        'networking.re8ch.com/egress-policy': 'direct',
+    }
     manager = source['spec']['template']['spec']['containers'][0]
     proxy = next(e for e in manager['env'] if e['name'] == 'ALL_PROXY')
     assert proxy['valueFrom']['secretKeyRef'] == {'name': 'service-backend-github-socks', 'key': 'address'}
@@ -56,6 +60,6 @@ def test_rendered_controller_failover_and_source_cache_safety():
     assert expression == {
         'key': 'kubernetes.io/hostname',
         'operator': 'In',
-        'values': ['restricted-node-abb3f27a69', 'restricted-node-1eb0570f74'],
+        'values': ['overseas-flk'],
     }
     assert services['identity-egress-control-plane']['spec']['internalTrafficPolicy'] == 'Local'
