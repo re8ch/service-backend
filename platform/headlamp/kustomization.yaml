@@ -15,7 +15,7 @@ configMapGenerator:
   - name: headlamp-advanced-fabric-v0250
     namespace: headlamp
     files:
-      - plugin.tar.gz.b64=assets/headlamp-advanced-fabric-0.25.0.bundle.b64
+      - plugin.tar.gz.b64=assets/headlamp-advanced-fabric-0.26.0.bundle.b64
   - name: headlamp-among-clusters-v0324
     namespace: headlamp
     files:

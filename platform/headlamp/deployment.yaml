@@ -101,7 +101,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.25.0
+              target=/headlamp/plugins/advanced-fabric-0.26.0
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               rmdir "$lock" 2>/dev/null || true
@@ -111,7 +111,7 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.25.0.new
+              stage=/headlamp/plugins/.advanced-fabric-0.26.0.new
               base64 -d /plugin/plugin.tar.gz.b64 > "$archive"
               echo '3f449998fdcecbb0e7409e73b0f1fbff8362915b62f84e377d6776b0c60b3728  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
