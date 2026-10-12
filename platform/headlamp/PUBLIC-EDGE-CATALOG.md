@@ -17,3 +17,14 @@ existing catalog entries are retained.
 Other externally delivered domains can be added to the `sites` array with
 `sourceOfTruth: manual`. Refresh preserves those entries. Review the generated
 diff before committing. This catalog does not change provider DNS or routing.
+
+`inventory/public-sites.yaml` is the separate desired-state registry. Reconcile
+the desired registry with this provider snapshot after refresh:
+
+```sh
+python operations/public-sites/reconcile.py
+```
+
+The generated `public-site-governance.yaml` is displayed in the Websites tab.
+It does not change cloud resources and deliberately keeps advisory quality
+targets separate from required GitHub checks.

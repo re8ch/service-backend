@@ -16,5 +16,11 @@ not prove external DNS/TLS reachability; the
 scheduled public authority monitor covers that separate boundary. The plugin
 never patches DNS or routing.
 
+The Websites tab joins the reviewed public-site desired-state registry with
+the external provider snapshot. It shows each logical site's global and China
+deployments, origin allocation, CDN delivery, GEO/A2A declaration, quality
+profile, and reconciliation state. These indicators are advisory and do not
+write cloud configuration or enforce GitHub branch protection.
+
 The plugin requires read access to `PublicEdge`, `Node`, `HTTPRoute`, `Ingress`, `Pod`,
 `Deployment`, `DaemonSet`, `EndpointSlice` and the PublicEdge records `ConfigMap`.

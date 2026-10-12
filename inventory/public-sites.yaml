@@ -1,0 +1,91 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: PublicSiteCatalog
+metadata:
+  name: public-sites
+spec:
+  allocationPolicy:
+    originIsolation: site-deployment
+    hostnameSharing: same-artifact-owner-cache-and-rollback-only
+    regionalDefaults:
+      globalStatic: cloudflare-pages
+      globalEdge: cloudflare-workers
+      chinaRe8chFamily: tencent-cos-edgeone
+      chinaYnzsFamily: aliyun-oss-esa
+  qualityProfiles:
+    page-speed-standard:
+      advisory: true
+      runs: 3
+      lighthouse:
+        performance: 90
+        accessibility: 90
+        bestPractices: 90
+        seo: 90
+      webVitals:
+        lcpMs: 2500
+        cls: 0.1
+        tbtMs: 200
+  healthProfiles:
+    public-static-geo:
+      availabilityCadence: 5m
+      qualityCadence: daily
+      paths:
+        - path: /
+          status: 200
+          contentTypeContains: text/html
+        - path: /robots.txt
+          status: 200
+          contentTypeContains: text/plain
+          bodyContains: "Sitemap:"
+        - path: /sitemap.xml
+          status: 200
+          contentTypeContains: application/xml
+          bodyContains: "<urlset"
+        - path: /llms.txt
+          status: 200
+          contentTypeContains: text/plain
+          bodyContains: "# RE8CH"
+          bodyNotContains: "<!DOCTYPE html>"
+        - path: /.well-known/agent-card.json
+          status: 404
+  sites:
+    - id: re8ch
+      displayName: RE8CH
+      owner: re8ch/re8ch
+      repository:
+        url: https://github.com/re8ch/re8ch.git
+        defaultBranch: main
+      qualityProfile: page-speed-standard
+      healthProfile: public-static-geo
+      agentDiscovery:
+        geo: active
+        a2a: planned
+      deployments:
+        - id: global
+          region: global
+          primaryUrl: https://re8ch.com
+          hostnames:
+            - re8ch.com
+          build:
+            command: npm run workers:build
+            outputDirectory: out
+          origin:
+            provider: cloudflare-workers
+            resource: re8ch-studio
+          delivery:
+            provider: cloudflare-workers
+            resource: re8ch-studio
+        - id: china
+          region: china
+          primaryUrl: https://www.re8ch.com
+          hostnames:
+            - www.re8ch.com
+          build:
+            command: npm run build:china
+            outputDirectory: zh-build
+          origin:
+            provider: tencent-cos
+            resource: re8ch-1301339749
+            region: ap-guangzhou
+          delivery:
+            provider: tencent-edgeone
+            resource: re8ch.com

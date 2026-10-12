@@ -1,4 +1,4 @@
-version: 0.2.7
+version: 0.3.0
 name: public-edge
 displayName: Public Edge
 createdAt: "2026-10-13T00:00:00Z"
@@ -7,7 +7,7 @@ license: Apache-2.0
 homeURL: https://github.com/public-edge/headlamp-public-edge
 containersImages: []
 annotations:
-  headlamp/plugin/archive-url: https://github.com/public-edge/headlamp-public-edge/releases/download/v0.2.7/re8ch-headlamp-public-edge-0.2.7.tar.gz
-  headlamp/plugin/archive-checksum: SHA256:6d58bed93f45a677dcbcefbf5d3609e02be87f078b30f322ba06a09226fe3090
+  headlamp/plugin/archive-url: https://github.com/public-edge/headlamp-public-edge/releases/download/v0.3.0/re8ch-headlamp-public-edge-0.3.0.tar.gz
+  headlamp/plugin/archive-checksum: SHA256:13a330a34336dedde401c7fdf7e682ccfe959e667193607722cfb43dd1715122
   headlamp/plugin/version-compat: ">=0.42.0"
   headlamp/plugin/distro-compat: in-cluster,web,docker-desktop,desktop

@@ -15,7 +15,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generators = {item["name"]: item for item in kustomization["configMapGenerator"]}
     expected = {
-        "headlamp-public-edge-v027": "re8ch-headlamp-public-edge-0.2.7.bundle",
+        "headlamp-public-edge-v030": "re8ch-headlamp-public-edge-0.3.0.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
         "headlamp-secretary-v030": "re8ch-headlamp-secretary-0.3.0.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
@@ -66,6 +66,9 @@ def test_public_edge_lists_active_dns_authorities_with_candidates():
     assert "networking.re8ch.com/dns-authority" in source
     assert "group: 'networking.k8s.io', version: 'v1'" in source
     assert "K8s.ResourceClasses.Ingress.useList" not in source
+    assert 'value="websites" label="Websites"' in source
+    assert "public-site-governance" in source
+    assert "agentDiscovery" in source
 
 
 def test_secretary_read_route_uses_the_active_headlamp_service_hostname():
