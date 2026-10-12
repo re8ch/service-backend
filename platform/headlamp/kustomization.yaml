@@ -12,10 +12,10 @@ resources:
   - oidc-landing.yaml
   - public-edge-catalog.yaml
 configMapGenerator:
-  - name: headlamp-advanced-fabric-v0240
+  - name: headlamp-advanced-fabric-v0241
     namespace: headlamp
     files:
-      - plugin.tar.gz.b64=assets/headlamp-advanced-fabric-0.24.0.bundle.b64
+      - plugin.tar.gz.b64=assets/headlamp-advanced-fabric-0.24.1.bundle.b64
   - name: headlamp-among-clusters-v0324
     namespace: headlamp
     files:
