@@ -306,6 +306,8 @@ modules:
       digest: sha256:152777dcef6c05958c9d56123635ef14be47f46d4358826bdc702d69575b8952
     - codename: lantern-pearl
       digest: sha256:bf313b47dc8cd0eeb6ca6d9a6cc20fc2e7d8e43aa1e12fb8010eb00f8ad46294
+    - codename: lighthouse-pearl
+      digest: sha256:9632923bb4dcded45e08c4a679920addea233c3061b2fdb9f3200fa2c50eb2a9
   platform/among-clusters:
     releases:
     - codename: bora
@@ -551,6 +553,8 @@ modules:
       digest: sha256:0b70a232ec5425ef6807b5935e74178f4082b5d66cc78131de5e8dfe16af7b7f
     - codename: bora-pearl
       digest: sha256:0c2aab4176f88165bf6a0a3899bab3f91a2da5ffcad0295b6e25367343ce52d9
+    - codename: chinook-pearl
+      digest: sha256:29eb6e893ae3697d3a484fac083d093c024116a3637edacb5395fdc5ee8ae6ed
   platform/git-workspaces:
     releases:
     - codename: andromeda
