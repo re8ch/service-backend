@@ -76,8 +76,9 @@ function Dashboard() {
   const [edges, edgeError] = PublicEdge.useList({} as any);
   const [routes, routeError] = HTTPRoute.useList({} as any);
   const [nodes, nodeError] = K8s.ResourceClasses.Node.useList({} as any);
-  const [pods] = K8s.ResourceClasses.Pod.useList({} as any);
-  const [daemonSets] = K8s.ResourceClasses.DaemonSet.useList({} as any);
+  const [pods, podError] = K8s.ResourceClasses.Pod.useList({} as any);
+  const [daemonSets, daemonSetError] = K8s.ResourceClasses.DaemonSet.useList({} as any);
+  const [deployments, deploymentError] = K8s.ResourceClasses.Deployment.useList({} as any);
   const [slices] = K8s.ResourceClasses.EndpointSlice.useList({} as any);
   const [ingresses] = Ingress.useList({} as any);
   const [configMaps, configError] = K8s.ResourceClasses.ConfigMap.useList({} as any);
@@ -168,6 +169,50 @@ function Dashboard() {
   ).length;
   const powerDnsHealthyInUse = powerDnsRows.filter((server: any) => server.healthy).length;
   const powerDnsDesired = powerDnsDaemonSet?.status?.desiredNumberScheduled ?? powerDnsRows.length;
+  const powerDnsDataAvailable =
+    !podError && !daemonSetError && !nodeError && !(powerDnsDesired > 0 && powerDnsRows.length === 0);
+  const transferDeployments = (deployments || [])
+    .map(raw)
+    .filter(
+      (deployment: any) =>
+        deployment.metadata?.namespace === 'regional-routing' &&
+        (deployment.metadata?.name === 'public-edge-manager-hidden-primary' ||
+          deployment.metadata?.name?.startsWith('public-edge-manager-secondary-'))
+    );
+  const transferRows = transferDeployments.map((deployment: any) => {
+    const name = deployment.metadata?.name || '-';
+    const role = name.endsWith('-hidden-primary') ? 'primary' : 'secondary';
+    const appName = deployment.spec?.selector?.matchLabels?.['app.kubernetes.io/name'];
+    const pod = (pods || [])
+      .map(raw)
+      .find(
+        (item: any) =>
+          item.metadata?.namespace === 'regional-routing' &&
+          item.metadata?.labels?.['app.kubernetes.io/name'] === appName
+      );
+    const desired = deployment.spec?.replicas ?? 1;
+    const ready = deployment.status?.readyReplicas ?? 0;
+    const nodeName = pod?.spec?.nodeName || deployment.spec?.template?.spec?.nodeName || '-';
+    const restarts = (pod?.status?.containerStatuses || []).reduce(
+      (total: number, container: any) => total + (container.restartCount || 0),
+      0
+    );
+    return {
+      name,
+      role,
+      node: nodeName,
+      pod: pod?.metadata?.name || '-',
+      desired,
+      ready,
+      healthy: desired > 0 && ready === desired && Boolean(pod && isReady(pod)),
+      restarts,
+    };
+  });
+  const transferReady = transferRows.filter((item: any) => item.healthy).length;
+  const transferDataAvailable =
+    !deploymentError &&
+    !podError &&
+    !(transferDeployments.length > 0 && transferRows.every(row => row.pod === '-'));
   const dnsAuthorities = ingressObjects
     .filter((ingress: any) => {
       const labels = ingress.metadata?.labels || {};
@@ -386,10 +431,24 @@ function Dashboard() {
         公网 Candidate、地域与容量，以及 ExternalDNS authority → Gateway listener → Service
         的实际发布路径。
       </Typography>
-      {(edgeError || routeError || nodeError || configError) && (
+      {(edgeError ||
+        routeError ||
+        nodeError ||
+        podError ||
+        daemonSetError ||
+        deploymentError ||
+        configError) && (
         <Alert severity="error">
-          无法读取 PublicEdge/Gateway/Node/ConfigMap API：
-          {String(edgeError || routeError || nodeError || configError)}
+          无法读取 PublicEdge/Gateway/Node/Pod/Workload/ConfigMap API：
+          {String(
+            edgeError ||
+              routeError ||
+              nodeError ||
+              podError ||
+              daemonSetError ||
+              deploymentError ||
+              configError
+          )}
         </Alert>
       )}
       <Stack direction="row" gap={1} flexWrap="wrap" sx={{ my: 2 }}>
@@ -399,12 +458,38 @@ function Dashboard() {
           label={`Public DNS in use ${nameserversInUse.length}`}
         />
         <Chip
-          color={powerDnsReady === powerDnsDesired && powerDnsDesired > 0 ? 'success' : 'warning'}
-          label={`PowerDNS runtime ${powerDnsReady}/${powerDnsDesired} Ready`}
+          color={
+            powerDnsDataAvailable && powerDnsReady === powerDnsDesired && powerDnsDesired > 0
+              ? 'success'
+              : 'warning'
+          }
+          label={
+            powerDnsDataAvailable
+              ? `PowerDNS runtime ${powerDnsReady}/${powerDnsDesired} Ready`
+              : `PowerDNS runtime unavailable (${powerDnsDesired} desired)`
+          }
         />
         <Chip
-          color={powerDnsHealthyInUse > 1 ? 'success' : 'warning'}
-          label={`PowerDNS healthy & in use ${powerDnsHealthyInUse}`}
+          color={powerDnsDataAvailable && powerDnsHealthyInUse > 1 ? 'success' : 'warning'}
+          label={
+            powerDnsDataAvailable
+              ? `PowerDNS healthy & in use ${powerDnsHealthyInUse}`
+              : 'PowerDNS health unavailable'
+          }
+        />
+        <Chip
+          color={
+            transferDataAvailable &&
+            transferReady === transferRows.length &&
+            transferRows.length > 0
+              ? 'success'
+              : 'warning'
+          }
+          label={
+            transferDataAvailable
+              ? `XoT topology ${transferReady}/${transferRows.length} Ready`
+              : 'XoT topology unavailable'
+          }
         />
       </Stack>
       <Tabs
@@ -498,11 +583,19 @@ function Dashboard() {
             />
           </SectionBox>
           <SectionBox
-            title={`PowerDNS health (${powerDnsHealthyInUse} healthy & in use / ${powerDnsDesired} desired)`}
+            title={
+              powerDnsDataAvailable
+                ? `PowerDNS health (${powerDnsHealthyInUse} healthy & in use / ${powerDnsDesired} desired)`
+                : `PowerDNS health (data unavailable / ${powerDnsDesired} desired)`
+            }
           >
-            <Alert severity={powerDnsHealthyInUse > 1 ? 'success' : 'warning'} sx={{ mb: 2 }}>
-              “In use”来自 controller 维护的 public-edge-nameservers；“Healthy”同时要求 Pod
-              Ready、Node Ready，且该 nameserver 已通过公网 UDP/TCP 53 资格检查进入使用集合。
+            <Alert
+              severity={powerDnsDataAvailable && powerDnsHealthyInUse > 1 ? 'success' : 'warning'}
+              sx={{ mb: 2 }}
+            >
+              {powerDnsDataAvailable
+                ? '“In use”来自 controller 维护的 public-edge-nameservers；“Healthy”同时要求 Pod Ready、Node Ready，且该 nameserver 已通过公网 UDP/TCP 53 资格检查进入使用集合。'
+                : 'Pod/Node/DaemonSet 数据不完整或 API watch 已断开；此时不将空表解释为 0 healthy。'}
             </Alert>
             <Table
               data={powerDnsRows}
@@ -533,6 +626,42 @@ function Dashboard() {
                     accessorFn: (x: any) => (
                       <StatusLabel status={x.healthy ? 'success' : 'error'}>
                         {x.healthy ? 'Healthy' : 'Unhealthy / unused'}
+                      </StatusLabel>
+                    ),
+                  },
+                  { header: 'Restarts', accessorKey: 'restarts' },
+                ] as any
+              }
+            />
+          </SectionBox>
+          <SectionBox
+            title={`XoT / RouteSnapshot topology (${transferReady}/${transferRows.length} Ready)`}
+          >
+            <Alert
+              severity={
+                transferDataAvailable && transferReady === transferRows.length
+                  ? 'success'
+                  : 'warning'
+              }
+              sx={{ mb: 2 }}
+            >
+              0.7.x 通过 hidden primary 与 secondary 同步 XoT zone transfer 和 signed
+              RouteSnapshot。本表反映 Kubernetes 运行态；具体 serial、snapshot revision 和
+              staleness 由各实例的 /v1/status 及外部权威监测验证。
+            </Alert>
+            <Table
+              data={transferRows}
+              columns={
+                [
+                  { header: 'Workload', accessorKey: 'name' },
+                  { header: 'Role', accessorKey: 'role' },
+                  { header: 'Node', accessorKey: 'node' },
+                  { header: 'Pod', accessorKey: 'pod' },
+                  {
+                    header: 'Runtime',
+                    accessorFn: (x: any) => (
+                      <StatusLabel status={x.healthy ? 'success' : 'error'}>
+                        {x.healthy ? 'Ready' : `${x.ready}/${x.desired} Ready`}
                       </StatusLabel>
                     ),
                   },

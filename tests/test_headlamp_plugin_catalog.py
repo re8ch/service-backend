@@ -15,7 +15,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generators = {item["name"]: item for item in kustomization["configMapGenerator"]}
     expected = {
-        "headlamp-public-edge-v026": "re8ch-headlamp-public-edge-0.2.6.bundle",
+        "headlamp-public-edge-v027": "re8ch-headlamp-public-edge-0.2.7.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
         "headlamp-secretary-v030": "re8ch-headlamp-secretary-0.3.0.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
@@ -56,6 +56,10 @@ def test_public_edge_lists_active_dns_authorities_with_candidates():
     assert "powerdns-cloud-authorities" in source
     assert "PowerDNS healthy & in use" in source
     assert "desiredNumberScheduled" in source
+    assert "public-edge-manager-hidden-primary" in source
+    assert "public-edge-manager-secondary-" in source
+    assert "XoT / RouteSnapshot topology" in source
+    assert "data unavailable" in source
     assert "external-dns.alpha.kubernetes.io/hostname" in source
     assert "external-dns.alpha.kubernetes.io/target" in source
     assert "networking.re8ch.com/selected-public-edge" in source

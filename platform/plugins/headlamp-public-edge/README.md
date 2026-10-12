@@ -7,11 +7,14 @@ and resolved the route; `In-cluster path` additionally requires a selected publi
 ready backend EndpointSlice and ready Pod. Empty parent conditions no longer
 count as accepted. Candidate Ready is checked against a live Node and fresh
 PublicEdge evidence. PowerDNS-authoritative zones and legacy published domains
-are shown separately; authoritative rows derive their service-specific exit
+are shown separately. The DNS view distinguishes the four public PowerDNS
+authorities from the 0.7.x hidden-primary/secondary XoT and signed RouteSnapshot
+topology. Missing workload API data is reported as unavailable instead of as
+zero healthy. Authoritative rows derive their service-specific exit
 from PublicEdge probes instead of obsolete ExternalDNS annotations. This does
 not prove external DNS/TLS reachability; the
 scheduled public authority monitor covers that separate boundary. The plugin
 never patches DNS or routing.
 
 The plugin requires read access to `PublicEdge`, `Node`, `HTTPRoute`, `Ingress`, `Pod`,
-`EndpointSlice` and the PublicEdge records `ConfigMap`.
+`Deployment`, `DaemonSet`, `EndpointSlice` and the PublicEdge records `ConfigMap`.
