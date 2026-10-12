@@ -17,7 +17,7 @@ spec:
   template:
     metadata: {labels: {app.kubernetes.io/name: restate}}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: restate
@@ -63,7 +63,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-runtime}}
     spec:
       serviceAccountName: secretary
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
@@ -211,7 +211,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-api}}
     spec:
       serviceAccountName: secretary
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
@@ -282,7 +282,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-projector}}
     spec:
       serviceAccountName: secretary
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       initContainers:
         - name: migrate
@@ -318,7 +318,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-delivery-manager}}
     spec:
       serviceAccountName: secretary
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: manager
@@ -368,7 +368,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: secretary-cluster-watcher}}
     spec:
       serviceAccountName: secretary-cluster-observer
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: watcher
@@ -466,13 +466,8 @@ kind: HTTPRoute
 metadata: {name: secretary-headlamp-read, namespace: re8ch-secretary}
 spec:
   parentRefs:
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: headlamp-https}
-    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: headlamp-https}
-    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: headlamp-https}
-    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: headlamp-https}
-    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: headlamp-https}
-    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: headlamp-https}
-  hostnames: [headlamp.re8ch.com]
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}
+  hostnames: [headlamp.service.re8ch.com]
   rules:
     - matches: [{path: {type: Exact, value: /secretary-api/v1/event-stream}}]
       filters:

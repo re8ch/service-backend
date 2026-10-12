@@ -12,6 +12,13 @@ const PublicEdge = makeCustomResourceClass({
   isNamespaced: false,
 });
 const HTTPRoute = K8s.ResourceClasses.HTTPRoute;
+const Ingress = makeCustomResourceClass({
+  apiInfo: [{ group: 'networking.k8s.io', version: 'v1' }],
+  kind: 'Ingress',
+  pluralName: 'ingresses',
+  singularName: 'ingress',
+  isNamespaced: true,
+});
 
 function condition(item: any, type: string) {
   const data = item?.jsonData || item;
@@ -72,7 +79,7 @@ function Dashboard() {
   const [pods] = K8s.ResourceClasses.Pod.useList({} as any);
   const [daemonSets] = K8s.ResourceClasses.DaemonSet.useList({} as any);
   const [slices] = K8s.ResourceClasses.EndpointSlice.useList({} as any);
-  const [ingresses] = K8s.ResourceClasses.Ingress.useList({} as any);
+  const [ingresses] = Ingress.useList({} as any);
   const [configMaps, configError] = K8s.ResourceClasses.ConfigMap.useList({} as any);
   const publicRoutes = (routes || []).map(raw).filter((x: any) => x.spec?.hostnames?.length);
   const podByIp = new Map(
