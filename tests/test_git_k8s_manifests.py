@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:c87947849dc6ca48fbdbd610c2a75dc9f6a1d6f88515c0dfcf11c18c3a73929b"}
+    assert source["spec"]["ref"] == {"digest": "sha256:0d4e33fcc684985093a7e643de722562c0b171088526757e3d04ce56a366d223"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.7.0",
-        "digest": "sha256:3d41ec35d702a1acd5a940877a5ec3fcc9da9de3b4bd115a8fbbb1b29b0f4854",
+        "tag": "0.7.1",
+        "digest": "sha256:e37a5fe6b2b0adb99c91982bfcb2543d5c9f985d35615019bf7fe217239ea64b",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -618,6 +618,21 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["candidateSelection"]["minReadySeconds"] == 120
     assert values["candidateSelection"]["minHoldSeconds"] == 600
     assert values["candidateSelection"]["localNodeBonus"] == 0
+    assert values["transferTopology"] == {
+        "primary": {
+            "enabled": True,
+            "nodeName": "overseas-flk",
+            "tlsSecretRef": "public-edge-hidden-primary-tls",
+            "snapshotTlsSecretRef": "public-edge-hidden-primary-tls",
+            "signingKeySecretRef": "public-edge-route-snapshot-signing",
+        },
+        "secondaries": [{
+            "id": "overseas-la", "enabled": True, "nodeName": "overseas-la",
+            "tlsSecretRef": "public-edge-overseas-la-tls",
+        }],
+        "shadowDnsPort": 5353,
+    }
+    assert values["dns"]["transfer"]["role"] == "disabled"
     assert values["fabricEvidence"] == {
         "mode": "Required",
         "apiGroup": "networking.re8ch.com",

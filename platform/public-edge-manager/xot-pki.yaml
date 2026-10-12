@@ -29,8 +29,8 @@ kind: Certificate
 metadata: {name: public-edge-hidden-primary, namespace: regional-routing}
 spec:
   secretName: public-edge-hidden-primary-tls
-  commonName: hidden-primary.dns.re8ch.com
-  dnsNames: [hidden-primary.dns.re8ch.com]
+  commonName: hidden-primary.service.re8ch.com
+  dnsNames: [hidden-primary.service.re8ch.com]
   usages: [server auth]
   duration: 2160h
   renewBefore: 360h
