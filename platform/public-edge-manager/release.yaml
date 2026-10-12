@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:46f156fe6f7f78cbcf78b1f0119c49d7ae5714fd9705847724dcf3aa25da863e}
+  ref: {digest: sha256:c87947849dc6ca48fbdbd610c2a75dc9f6a1d6f88515c0dfcf11c18c3a73929b}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.6.37"
+      tag: "0.7.0"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:7a4d0b0cc1201e241d7acb56b4ace426d326f7b1b98dd9bad7b46003e7f24c38
+      digest: sha256:3d41ec35d702a1acd5a940877a5ec3fcc9da9de3b4bd115a8fbbb1b29b0f4854
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -41,8 +41,22 @@ spec:
       nameserversConfigMap: public-edge-nameservers
       # HE remains a secondary for service.re8ch.com. RouterOS consumes a
       # signed control-plane bundle and does not request AXFR from DNS peers.
-      axfrZones: [service.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., functions.re8ch.com., test.re8ch.com.]
+      axfrZones: [auth.re8ch.com., service.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., functions.re8ch.com., test.re8ch.com.]
       axfrAllowedCidrs: [192.0.2.67/32, 192.0.2.72/32, 192.0.2.110/32, 192.0.2.231/32, 192.0.2.67/32]
+      # Shadow-only until the 0.7.x chart digest is pinned below. Enabling the
+      # role before that artifact exists would turn a declaration into drift.
+      transfer:
+        role: disabled
+        xot:
+          listenAddress: 0.0.0.0:853
+          serverName: hidden-primary.dns.re8ch.com
+          tlsSecretRef: ""
+        secondaries:
+          - {id: overseas-la, dnsName: overseas-la}
+          - {id: domain-ex, dnsName: domain-ex}
+          - {id: muaya-lightweight, dnsName: muaya-lightweight}
+          - {id: suxunji, dnsName: suxunji}
+          - {id: zan, dnsName: zan}
       # Pre-stage the control-plane child zone on the existing public authorities.
       # Parent NS delegation and application A records are separate gated cutovers.
       zones: [auth.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., service.re8ch.com., functions.re8ch.com., test.re8ch.com.]
@@ -273,6 +287,35 @@ spec:
       resolverCidrs:
         CN: [192.0.2.228/24, 192.0.2.90/24, 192.0.2.95/24]
         US: [192.0.2.219/24, 192.0.2.172/24]
+        EU: [192.0.2.218/24, 192.0.2.85/24]
+    routingPolicy:
+      defaultRegion: default
+      trustedEcsPrefixes: [192.0.2.228/24, 192.0.2.90/24, 192.0.2.95/24, 192.0.2.219/24, 192.0.2.172/24, 192.0.2.218/24, 192.0.2.85/24]
+      regions:
+        CN:
+          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.79, region: CN}
+          - {id: overseas-flk, ip: 192.0.2.101, region: EU}
+          - {id: overseas-la, ip: 192.0.2.91, region: US}
+        US:
+          - {id: overseas-la, ip: 192.0.2.91, region: US}
+          - {id: overseas-flk, ip: 192.0.2.101, region: EU}
+          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.79, region: CN}
+        EU:
+          - {id: overseas-flk, ip: 192.0.2.101, region: EU}
+          - {id: overseas-la, ip: 192.0.2.91, region: US}
+          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.79, region: CN}
+        default:
+          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.79, region: CN}
+          - {id: overseas-flk, ip: 192.0.2.101, region: EU}
+          - {id: overseas-la, ip: 192.0.2.91, region: US}
+    routeSnapshot:
+      endpoint: https://hidden-primary.dns.re8ch.com:8443/v1/route-snapshot
+      publicKeyRef: public-edge-route-snapshot-public-key
+      signingKeySecretRef: ""
+      tlsSecretRef: ""
+      statePath: /var/lib/public-edge/route-snapshot.json
+      refreshSeconds: 15
+      maxStaleSeconds: 900
     # Require fresh measured path evidence independent of kubelet scheduling state.
     fabricEvidence:
       mode: Required
@@ -282,12 +325,8 @@ spec:
       requireNodeReady: false
       allowedStates: [Ready, Partial]
     # The private control-plane feed does not change public DNS routing.
-    bundlePublisher:
-      enabled: true
-      nodeName: restricted-node-6dc3f140f9
-      bindAddress: 192.0.2.97
-      port: 18553
-      hmacSecretName: routeros-authority-bundle-key
+    # RouterOS is only the CN PublicEdge transport and never a DNS authority.
+    bundlePublisher: {enabled: false, nodeName: "", bindAddress: "", port: 18553, hmacSecretName: ""}
     publication: {enabled: false, adapters: {}, refs: {}}
     rbac: {mutateIngresses: false}
     service: {type: ClusterIP, annotations: {}, externalTrafficPolicy: ""}

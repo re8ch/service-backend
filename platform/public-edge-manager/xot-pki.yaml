@@ -1,0 +1,121 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata: {name: public-edge-bootstrap, namespace: regional-routing}
+spec: {selfSigned: {}}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-transfer-ca, namespace: regional-routing}
+spec:
+  isCA: true
+  commonName: PublicEdge transfer CA
+  secretName: public-edge-transfer-ca
+  duration: 87600h
+  renewBefore: 720h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-bootstrap, kind: Issuer}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata: {name: public-edge-transfer-ca, namespace: regional-routing}
+spec:
+  ca: {secretName: public-edge-transfer-ca}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-hidden-primary, namespace: regional-routing}
+spec:
+  secretName: public-edge-hidden-primary-tls
+  commonName: hidden-primary.dns.re8ch.com
+  dnsNames: [hidden-primary.dns.re8ch.com]
+  usages: [server auth]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-transfer-ca, kind: Issuer}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-overseas-la, namespace: regional-routing}
+spec:
+  secretName: public-edge-overseas-la-tls
+  commonName: overseas-la
+  dnsNames: [overseas-la]
+  usages: [client auth]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-transfer-ca, kind: Issuer}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-domain-ex, namespace: regional-routing}
+spec:
+  secretName: public-edge-domain-ex-tls
+  commonName: domain-ex
+  dnsNames: [domain-ex]
+  usages: [client auth]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-transfer-ca, kind: Issuer}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-muaya-lightweight, namespace: regional-routing}
+spec:
+  secretName: public-edge-muaya-lightweight-tls
+  commonName: muaya-lightweight
+  dnsNames: [muaya-lightweight]
+  usages: [client auth]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-transfer-ca, kind: Issuer}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-suxunji, namespace: regional-routing}
+spec:
+  secretName: public-edge-suxunji-tls
+  commonName: suxunji
+  dnsNames: [suxunji]
+  usages: [client auth]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-transfer-ca, kind: Issuer}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: public-edge-zan, namespace: regional-routing}
+spec:
+  secretName: public-edge-zan-tls
+  commonName: zan
+  dnsNames: [zan]
+  usages: [client auth]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  issuerRef: {name: public-edge-transfer-ca, kind: Issuer}

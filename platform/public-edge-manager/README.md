@@ -35,3 +35,23 @@ A local Pod `/healthz` only proves process health. The discovery controller
 probes each public IP directly and changes only derived eligibility, NS
 delegation and glue; it does not alter routers. The external monitor remains
 an independent check on its results.
+
+## XFR-over-TLS migration gate
+
+GitHub `main` remains the only desired-state authority. The OCI artifacts are
+commit-derived delivery objects. `overseas-flk` is the hidden primary transport
+role, not another configuration source. Zone data uses mTLS on TCP 853;
+regional state uses an mTLS RouteSnapshot endpoint plus Ed25519 signatures.
+Secondaries retain the last verified snapshot on transport, expiry, signature,
+or rollback failure.
+
+All seven zones enter shadow synchronization together, but delegation changes
+remain zone-by-zone. Run
+`operations/network/scripts/validate-public-edge-cutover.sh` against every
+candidate authority before changing apex or parent NS. NXDOMAIN, serial/NS
+mismatch, or an incorrect CN/US/EU answer stops rollout. Retain old NS records
+for two maximum-TTL intervals and until recursive probes no longer see them.
+
+RouterOS is absent from the DNS authority set. `223.159.210.222` is only the
+default CN PublicEdge transport; an unhealthy backend becomes a controlled
+HTTP 503 at PublicEdge, never DNS NXDOMAIN for a declared service.
