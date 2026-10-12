@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: flare-pearl
+codename: lantern-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:152777dcef6c05958c9d56123635ef14be47f46d4358826bdc702d69575b8952
+  digest: sha256:bf313b47dc8cd0eeb6ca6d9a6cc20fc2e7d8e43aa1e12fb8010eb00f8ad46294
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
