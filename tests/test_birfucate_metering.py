@@ -82,6 +82,12 @@ def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
     assert {"ai-gateway-provider-spend", "ai-gateway-tool-spend", "ai-gateway-tool-calls"} <= names
     assert {"sandbox-cpu-request", "sandbox-memory-request"} <= names
+    allocation = values["nodeCostAllocation"]
+    assert allocation["enabled"] is False
+    assert {item["name"] for item in allocation["resources"]} == {"cpu", "ram"}
+    assert "re8ch_node_hourly_cost" in allocation["hourlyCostQuery"]
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    assert release["spec"]["values"]["nodeCostAllocation"]["enabled"] is True
 
 
 def test_namespace_meter_uses_controller_ownership_and_excludes_individually_metered_pods(tmp_path, monkeypatch):
@@ -200,6 +206,47 @@ def test_showback_pricing_is_explicit_and_never_posts_accounting(tmp_path, monke
     assert 'birfucate_metered_cost_total{currency="CNY"' in rendered
     assert 'purpose="runtime"' in rendered
     assert 'birfucate_tenant_cost_total{currency="CNY",tenant="acme"} 0.4' in rendered
+
+
+def test_node_cost_is_derived_from_capacity_share_without_resource_price(tmp_path, monkeypatch):
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "queryBaseURL": "http://query", "timeoutSeconds": 1},
+        "opencost": {"enabled": False},
+        "nodeCostAllocation": {
+            "enabled": True, "hourlyCostQuery": "cost", "weightQuery": "weight",
+            "nodeLabel": "node", "tenantLabel": "tenant", "currencyLabel": "currency",
+            "resources": [
+                {"name": "cpu", "unit": "core-second", "capacityQuery": "cpu-capacity", "usageQuery": "cpu-usage"},
+                {"name": "ram", "unit": "GiB-second", "capacityQuery": "ram-capacity", "usageQuery": "ram-usage"},
+            ],
+        },
+        "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
+        "meters": {"usage": [], "occupancy": [], "bifurcation": []},
+    }
+    data = {
+        "cost": [{"metric": {"node": "flk", "currency": "USD"}, "value": [0, "1"]}],
+        "weight": [
+            {"metric": {"node": "flk", "resource": "cpu"}, "value": [0, "0.5"]},
+            {"metric": {"node": "flk", "resource": "ram"}, "value": [0, "0.5"]},
+        ],
+        "cpu-capacity": [{"metric": {"node": "flk"}, "value": [0, "2"]}],
+        "cpu-usage": [{"metric": {"node": "flk", "tenant": "acme"}, "value": [0, "1"]}],
+        "ram-capacity": [{"metric": {"node": "flk"}, "value": [0, "4"]}],
+        "ram-usage": [{"metric": {"node": "flk", "tenant": "acme"}, "value": [0, "1"]}],
+    }
+    monkeypatch.setattr(collector, "prometheus_query", lambda _base, query, _timeout: data[query])
+    collector.METRICS.clear()
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 0, 3600)
+    events = [event for _, event in outbox.pending()]
+    assert len(events) == 2
+    assert sum(event["cost"] for event in events) == pytest.approx(0.375)
+    assert all(event["pricingApplied"] is False for event in events)
+    assert all(event["costAllocated"] is True for event in events)
+    rendered = collector.render_metrics().decode()
+    assert 'birfucate_tenant_cost_total{currency="USD",tenant="acme"} 0.375' in rendered
+    assert 'birfucate_unallocated_cost_total{cost_basis="contracted-node-cost",currency="USD",node="flk",resource="cpu"} 0.25' in rendered
+    assert 'birfucate_unallocated_cost_total{cost_basis="contracted-node-cost",currency="USD",node="flk",resource="ram"} 0.375' in rendered
 
 
 def test_direct_usage_preserves_gateway_spend_and_service_class(tmp_path, monkeypatch):

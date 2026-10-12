@@ -34,6 +34,7 @@ BROWSER_METRICS = frozenset({
     "birfucate_bifurcation_score_total",
     "birfucate_metered_cost_total",
     "birfucate_tenant_cost_total",
+    "birfucate_unallocated_cost_total",
     "birfucate_tenant_resource_count",
 })
 
@@ -79,6 +80,23 @@ def vector(items: list[dict[str, Any]], tenant_label: str, resource_label: str) 
             continue
         if math.isfinite(value) and value >= 0:
             result[(tenant, resource)] = value
+    return result
+
+
+def labeled_vector(items: list[dict[str, Any]], labels: list[str]) -> dict[tuple[str, ...], float]:
+    """Return finite non-negative samples keyed by required Prometheus labels."""
+    result: dict[tuple[str, ...], float] = {}
+    for item in items:
+        metric = item.get("metric") or {}
+        key = tuple(str(metric.get(label) or "") for label in labels)
+        if any(not value for value in key):
+            continue
+        try:
+            value = float((item.get("value") or [0, 0])[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if math.isfinite(value) and value >= 0:
+            result[key] = value
     return result
 
 
@@ -153,6 +171,81 @@ def usage_event(tenant: str, resource: str, domain: str, meter: str, quantity: f
     return event
 
 
+def collect_node_cost_allocation(
+    config: dict[str, Any], start: int, end: int, queue: Any,
+    tenant_resources: set[tuple[str, str, str]], tenant_costs: dict[tuple[str, str], float],
+) -> None:
+    """Allocate contracted node cost from observed CPU/RAM capacity shares."""
+    allocation = config.get("nodeCostAllocation") or {}
+    if not allocation.get("enabled"):
+        return
+    prom = config["prometheus"]
+    query_base_url = prom.get("queryBaseURL") or prom["baseURL"]
+    timeout = int(prom["timeoutSeconds"])
+    node_label = str(allocation.get("nodeLabel", "node"))
+    tenant_label = str(allocation.get("tenantLabel", "tenant"))
+    currency_label = str(allocation.get("currencyLabel", "currency"))
+    interval = max(1, end - start)
+    costs = labeled_vector(
+        prometheus_query(query_base_url, allocation["hourlyCostQuery"], timeout),
+        [node_label, currency_label],
+    )
+    weights = labeled_vector(
+        prometheus_query(query_base_url, allocation["weightQuery"], timeout),
+        [node_label, "resource"],
+    )
+    for resource in allocation.get("resources", []):
+        resource_name = str(resource["name"])
+        capacities = labeled_vector(
+            prometheus_query(query_base_url, resource["capacityQuery"], timeout), [node_label]
+        )
+        usages = labeled_vector(
+            prometheus_query(query_base_url, resource["usageQuery"], timeout), [node_label, tenant_label]
+        )
+        for (node, currency), hourly_cost in costs.items():
+            capacity = capacities.get((node,), 0.0)
+            weight = weights.get((node, resource_name), 0.0)
+            if hourly_cost <= 0 or capacity <= 0 or weight <= 0:
+                continue
+            node_usages = {tenant: value for (usage_node, tenant), value in usages.items() if usage_node == node}
+            total_usage = sum(node_usages.values())
+            # Capacity is the normal denominator. If telemetry briefly exceeds
+            # allocatable capacity, normalize by observed total to ensure the
+            # cost pool is never over-allocated.
+            denominator = max(capacity, total_usage)
+            pool_cost = hourly_cost * interval / 3600.0 * weight
+            allocated_cost = 0.0
+            for tenant, usage in node_usages.items():
+                cost = pool_cost * usage / denominator
+                allocated_cost += cost
+                labels = {
+                    "tenant": tenant, "resource_ref": node, "domain": "compute",
+                    "resource_type": f"node-{resource_name}-cost", "purpose": "actual-node-cost",
+                    "meter": f"node-{resource_name}-cost-allocation", "unit": resource["unit"],
+                    "currency": currency, "priced": "true", "cost_basis": "contracted-node-cost",
+                }
+                add_metric("birfucate_metered_cost_total", labels, cost)
+                tenant_resources.add((tenant, node, f"node-{resource_name}-cost"))
+                tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0.0) + cost
+                event = usage_event(
+                    tenant, node, "compute", f"cost.node-{resource_name}", usage * interval,
+                    resource["unit"], start, end,
+                    {"observed": usage, "capacity": capacity, "share": usage / denominator,
+                     "allocationWeight": weight, "costBasis": "contracted-node-cost",
+                     "nodeHourlyCost": hourly_cost, "resourceType": f"node-{resource_name}-cost",
+                     "purpose": "actual-node-cost"},
+                    service_class="compute.workload.v1",
+                )
+                event.update({"cost": cost, "currency": currency, "costAllocated": True})
+                queue(event)
+            add_metric(
+                "birfucate_unallocated_cost_total",
+                {"node": node, "resource": resource_name, "currency": currency,
+                 "cost_basis": "contracted-node-cost"},
+                max(0.0, pool_cost - allocated_cost),
+            )
+
+
 def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -> None:
     interval = max(1, end - start)
     allowed_tenants = set((config.get("usageSink") or {}).get("allowedTenants") or [])
@@ -174,6 +267,13 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
                 set_metric("birfucate_dependency_up", {"dependency": "opencost"}, 1 if response.status == 200 else 0)
         except urllib.error.URLError:
             set_metric("birfucate_dependency_up", {"dependency": "opencost"}, 0)
+    try:
+        collect_node_cost_allocation(config, start, end, queue, tenant_resources, tenant_costs)
+        set_metric("birfucate_dependency_up", {"dependency": "node-cost-allocation"}, 1)
+    except (KeyError, OSError, RuntimeError, urllib.error.URLError):
+        # Cost enrichment must not suppress raw occupancy and bifurcation facts
+        # while its upstream metrics are rolling out or temporarily unavailable.
+        set_metric("birfucate_dependency_up", {"dependency": "node-cost-allocation"}, 0)
     for meter in config["meters"].get("occupancy", []):
         values = vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
         for (tenant, resource), gauge in values.items():

@@ -65,6 +65,19 @@
       "type": "object", "additionalProperties": false, "required": ["enabled", "currency", "rateCardRef"],
       "properties": {"enabled": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "rateCardRef": {"type": "string", "minLength": 1}}
     },
+    "nodeCostAllocation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["enabled", "hourlyCostQuery", "weightQuery", "nodeLabel", "tenantLabel", "currencyLabel", "resources"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "hourlyCostQuery": {"type": "string", "minLength": 1},
+        "weightQuery": {"type": "string", "minLength": 1},
+        "nodeLabel": {"type": "string", "minLength": 1},
+        "tenantLabel": {"type": "string", "minLength": 1},
+        "currencyLabel": {"type": "string", "minLength": 1},
+        "resources": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["name", "unit", "capacityQuery", "usageQuery"], "properties": {"name": {"enum": ["cpu", "ram", "gpu"]}, "unit": {"type": "string", "minLength": 1}, "capacityQuery": {"type": "string", "minLength": 1}, "usageQuery": {"type": "string", "minLength": 1}}}}
+      }
+    },
     "meters": {
       "type": "object", "required": ["usage", "occupancy", "bifurcation"],
       "properties": {
