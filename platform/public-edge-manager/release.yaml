@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:c87947849dc6ca48fbdbd610c2a75dc9f6a1d6f88515c0dfcf11c18c3a73929b}
+  ref: {digest: sha256:0d4e33fcc684985093a7e643de722562c0b171088526757e3d04ce56a366d223}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.7.0"
+      tag: "0.7.1"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:3d41ec35d702a1acd5a940877a5ec3fcc9da9de3b4bd115a8fbbb1b29b0f4854
+      digest: sha256:e37a5fe6b2b0adb99c91982bfcb2543d5c9f985d35615019bf7fe217239ea64b
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -49,7 +49,7 @@ spec:
         role: disabled
         xot:
           listenAddress: 0.0.0.0:853
-          serverName: hidden-primary.dns.re8ch.com
+          serverName: hidden-primary.service.re8ch.com
           tlsSecretRef: ""
         secondaries:
           - {id: overseas-la, dnsName: overseas-la}
@@ -64,6 +64,8 @@ spec:
       # remains authoritative for service records; no per-service parent A is
       # needed. The chart's externalCDN field is its static-record opt-in.
       externalRecords:
+        hidden-primary.service.re8ch.com.:
+          - {type: A, value: 192.0.2.101, externalCDN: true, provider: public-edge-xot}
         _dnsauth.auth.re8ch.com.:
           - {type: CNAME, value: auth.re8ch.com.eoacme0.com., externalCDN: true, provider: tencent-edgeone}
         aliyun.anycam.functions.re8ch.com.:
@@ -309,13 +311,23 @@ spec:
           - {id: overseas-flk, ip: 192.0.2.101, region: EU}
           - {id: overseas-la, ip: 192.0.2.91, region: US}
     routeSnapshot:
-      endpoint: https://hidden-primary.dns.re8ch.com:8443/v1/route-snapshot
+      endpoint: https://hidden-primary.service.re8ch.com:8443/v1/route-snapshot
       publicKeyRef: public-edge-route-snapshot-public-key
       signingKeySecretRef: ""
       tlsSecretRef: ""
       statePath: /var/lib/public-edge/route-snapshot.json
       refreshSeconds: 15
       maxStaleSeconds: 900
+    transferTopology:
+      primary:
+        enabled: true
+        nodeName: overseas-flk
+        tlsSecretRef: public-edge-hidden-primary-tls
+        snapshotTlsSecretRef: public-edge-hidden-primary-tls
+        signingKeySecretRef: public-edge-route-snapshot-signing
+      secondaries:
+        - {id: overseas-la, enabled: true, nodeName: overseas-la, tlsSecretRef: public-edge-overseas-la-tls}
+      shadowDnsPort: 5353
     # Require fresh measured path evidence independent of kubelet scheduling state.
     fabricEvidence:
       mode: Required
