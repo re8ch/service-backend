@@ -1,0 +1,15 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: headlamp-public-edge, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: 'https://github.com/public-edge/headlamp-public-edge.git', defaultBranch: main, owner: public-edge}
+  projectType: headlamp-plugin
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [npm, kubectl]
+  dependencies: [public-edge-manager]
+  source: {kind: submodule, path: source, metadataPolicy: in-repository}
+  identity: {maintainerAddress: headlamp-public-edge-maintain@phonaid.com, accountClass: project-maintainer}
+  clusterIndex: {path: .re8ch/cluster-resources.yaml}

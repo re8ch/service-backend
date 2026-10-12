@@ -840,6 +840,46 @@
     "sha256": "9bcd62eb77f0696d50323ccb85666e5c41218af33a1dd47b9707440688dfbb21"
   },
   {
+    "module": "headlamp-mihomos-cluster",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "headlamp-mihomos-cluster",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "headlamp-mihomos-cluster",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "headlamp-mihomos-cluster",
+    "ref": "catalogs/platform/modules/headlamp-mihomos-cluster/MEMORY.md",
+    "sha256": "1e9be72f0bdf4c26d67e3a8f0cdd89c4be38ed9a848c3b4a7d11b6c0543dbd98"
+  },
+  {
+    "module": "headlamp-public-edge",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "headlamp-public-edge",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "headlamp-public-edge",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "headlamp-public-edge",
+    "ref": "catalogs/platform/modules/headlamp-public-edge/MEMORY.md",
+    "sha256": "e5424827327a25a072a30b6123f054afeb8422cec19fead5101d68471ac38fd9"
+  },
+  {
     "module": "image-website",
     "ref": "README.md"
   },
@@ -938,6 +978,34 @@
     "module": "product-public-data",
     "ref": "catalogs/platform/modules/product-public-data/MEMORY.md",
     "sha256": "1564dabaa7b8e7b98beb6cf4435cafb448627815ca00d6d7035771e2d147a918"
+  },
+  {
+    "module": "public-edge-manager",
+    "ref": "README.md"
+  },
+  {
+    "module": "public-edge-manager",
+    "ref": "CONTRIBUTING.md"
+  },
+  {
+    "module": "public-edge-manager",
+    "ref": "SECURITY.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "public-edge-manager",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "public-edge-manager",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "public-edge-manager",
+    "ref": "catalogs/platform/modules/public-edge-manager/MEMORY.md",
+    "sha256": "6e68626fdf7824f8d968173987e345e6face76b72e30df1c5a352f090be0a6ce"
   },
   {
     "module": "re8ch-core",

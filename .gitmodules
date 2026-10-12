@@ -233,3 +233,15 @@
 	path = catalogs/platform/modules/user-hub/source
 	url = https://github.com/re8ch/user-hub.git
 	branch = main
+[submodule "platform/public-edge-manager"]
+	path = catalogs/platform/modules/public-edge-manager/source
+	url = https://github.com/public-edge/public-edge-manager.git
+	branch = main
+[submodule "platform/headlamp-public-edge"]
+	path = catalogs/platform/modules/headlamp-public-edge/source
+	url = https://github.com/public-edge/headlamp-public-edge.git
+	branch = main
+[submodule "platform/headlamp-mihomos-cluster"]
+	path = catalogs/platform/modules/headlamp-mihomos-cluster/source
+	url = https://github.com/public-edge/headlamp-mihomos-cluster.git
+	branch = main

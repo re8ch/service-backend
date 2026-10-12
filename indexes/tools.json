@@ -276,6 +276,22 @@
     "ref": "kubectl"
   },
   {
+    "module": "headlamp-mihomos-cluster",
+    "ref": "npm"
+  },
+  {
+    "module": "headlamp-mihomos-cluster",
+    "ref": "kubectl"
+  },
+  {
+    "module": "headlamp-public-edge",
+    "ref": "npm"
+  },
+  {
+    "module": "headlamp-public-edge",
+    "ref": "kubectl"
+  },
+  {
     "module": "image-website",
     "ref": "npm"
   },
@@ -298,6 +314,18 @@
   {
     "module": "product-public-data",
     "ref": "git"
+  },
+  {
+    "module": "public-edge-manager",
+    "ref": "public-edge"
+  },
+  {
+    "module": "public-edge-manager",
+    "ref": "helm"
+  },
+  {
+    "module": "public-edge-manager",
+    "ref": "kubectl"
   },
   {
     "module": "re8ch-core",

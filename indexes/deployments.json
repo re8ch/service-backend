@@ -48,6 +48,10 @@
     "ref": "mihomos"
   },
   {
+    "module": "public-edge-manager",
+    "ref": "public-edge-manager"
+  },
+  {
     "module": "service-backend",
     "ref": "github.com/re8ch/service-backend"
   },

@@ -793,6 +793,54 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: headlamp-mihomos-cluster-maintain
+  namespace: git-workspaces
+spec:
+  email: headlamp-mihomos-cluster-maintain@phonaid.com
+  provider: github
+  project: headlamp-mihomos-cluster
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: headlamp-mihomos-cluster-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: headlamp-mihomos-cluster-maintain
+  projectRef: headlamp-mihomos-cluster
+  repository: https://github.com/public-edge/headlamp-mihomos-cluster.git
+  folder: catalogs/platform/modules/headlamp-mihomos-cluster/source
+  branchPrefix: workspace/headlamp-mihomos-cluster-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: headlamp-public-edge-maintain
+  namespace: git-workspaces
+spec:
+  email: headlamp-public-edge-maintain@phonaid.com
+  provider: github
+  project: headlamp-public-edge
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: headlamp-public-edge-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: headlamp-public-edge-maintain
+  projectRef: headlamp-public-edge
+  repository: https://github.com/public-edge/headlamp-public-edge.git
+  folder: catalogs/platform/modules/headlamp-public-edge/source
+  branchPrefix: workspace/headlamp-public-edge-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: image-website-maintain
   namespace: git-workspaces
 spec:
@@ -885,6 +933,30 @@ spec:
   repository: https://github.com/re8ch/product-public-data.git
   folder: catalogs/platform/modules/product-public-data/source
   branchPrefix: workspace/product-public-data-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: public-edge-manager-maintain
+  namespace: git-workspaces
+spec:
+  email: public-edge-manager-maintain@phonaid.com
+  provider: github
+  project: public-edge-manager
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: public-edge-manager-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: public-edge-manager-maintain
+  projectRef: public-edge-manager
+  repository: https://github.com/public-edge/public-edge-manager.git
+  folder: catalogs/platform/modules/public-edge-manager/source
+  branchPrefix: workspace/public-edge-manager-maintain/
 ---
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
@@ -985,6 +1057,30 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: user-hub-maintain
+  namespace: git-workspaces
+spec:
+  email: user-hub-maintain@phonaid.com
+  provider: github
+  project: user-hub
+  mailbox: stalwart
+  googleWorkspace: eligible
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: user-hub-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: user-hub-maintain
+  projectRef: user-hub
+  repository: https://github.com/re8ch/user-hub.git
+  folder: catalogs/platform/modules/user-hub/source
+  branchPrefix: workspace/user-hub-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: space-mining-stage-maintain
   namespace: git-workspaces
 spec:
@@ -1029,27 +1125,3 @@ spec:
   repository: https://github.com/re8ch/thiking-machine.git
   folder: catalogs/thiking-machine/modules/thiking-machine/source
   branchPrefix: workspace/thiking-machine-maintain/
----
-apiVersion: governance.re8ch.com/v1alpha1
-kind: GitAccount
-metadata:
-  name: user-hub-maintain
-  namespace: git-workspaces
-spec:
-  email: user-hub-maintain@phonaid.com
-  provider: github
-  project: user-hub
-  mailbox: stalwart
-  googleWorkspace: eligible
----
-apiVersion: governance.re8ch.com/v1alpha1
-kind: GitWorkspace
-metadata:
-  name: user-hub-maintain
-  namespace: git-workspaces
-spec:
-  accountRef: user-hub-maintain
-  projectRef: user-hub
-  repository: https://github.com/re8ch-business/user-hub.git
-  folder: catalogs/platform/modules/user-hub/source
-  branchPrefix: workspace/user-hub-maintain/

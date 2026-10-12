@@ -13,6 +13,7 @@ spec:
     clusterDesiredState: ../../platform/modules/cloud-functions/module.yaml
     networkControlPlane:
       - ../../platform/modules/advanced-fabric/module.yaml
+      - ../../platform/modules/public-edge-manager/module.yaml
       - ../../platform/modules/mihomos-cluster/module.yaml
     toolDistribution:
       - ../../platform/modules/codex-admin-plugins/module.yaml

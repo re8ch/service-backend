@@ -20,6 +20,24 @@ def test_registry_is_valid_and_has_expected_catalogs():
     assert {"cloud-functions", "service-backend", "jjklive", "ledger", "qianwen-app", "artchais-web"} <= registry.modules.keys()
 
 
+def test_public_edge_org_projects_are_independent_workspace_modules():
+    registry = workspace.Registry(ROOT)
+    expected = {
+        "public-edge-manager": (),
+        "mihomos-cluster": (),
+        "headlamp-public-edge": ("public-edge-manager",),
+        "headlamp-mihomos-cluster": ("mihomos-cluster",),
+    }
+    for name, dependencies in expected.items():
+        module = registry.modules[name]
+        document = yaml.safe_load(module.source.read_text())
+        assert module.ownership == "owned"
+        assert module.write_policy == "github-pr"
+        assert document["spec"]["repository"]["owner"] == "public-edge"
+        assert workspace.repository_key(module.repository).startswith("github.com/public-edge/")
+        assert module.dependencies == dependencies
+
+
 def test_collaboration_modules_never_use_owned_write_policy():
     registry = workspace.Registry(ROOT)
     for module in registry.modules.values():

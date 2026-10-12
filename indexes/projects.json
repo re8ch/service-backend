@@ -370,6 +370,24 @@
   },
   {
     "catalog": "platform",
+    "commit": "55f7724afa49da031ed97840650a5f5cfefb9772",
+    "id": "headlamp-mihomos-cluster",
+    "ownership": "owned",
+    "projectType": "headlamp-plugin",
+    "repository": "https://github.com/public-edge/headlamp-mihomos-cluster.git",
+    "source": "catalogs/platform/modules/headlamp-mihomos-cluster/source"
+  },
+  {
+    "catalog": "platform",
+    "commit": "ef1ed64bc1eb82f1ced669703d585982e5aaeab3",
+    "id": "headlamp-public-edge",
+    "ownership": "owned",
+    "projectType": "headlamp-plugin",
+    "repository": "https://github.com/public-edge/headlamp-public-edge.git",
+    "source": "catalogs/platform/modules/headlamp-public-edge/source"
+  },
+  {
+    "catalog": "platform",
     "commit": "2b178d3664e6a0d63f8bf886dcad79ae8c18470a",
     "id": "image-website",
     "ownership": "owned",
@@ -412,6 +430,15 @@
     "projectType": "public-data",
     "repository": "https://github.com/re8ch/product-public-data.git",
     "source": "catalogs/platform/modules/product-public-data/source"
+  },
+  {
+    "catalog": "platform",
+    "commit": "8ae9e0a2b33d2298c859eaef7ee65dfc62c5f252",
+    "id": "public-edge-manager",
+    "ownership": "owned",
+    "projectType": "network-controller",
+    "repository": "https://github.com/public-edge/public-edge-manager.git",
+    "source": "catalogs/platform/modules/public-edge-manager/source"
   },
   {
     "catalog": "platform",
