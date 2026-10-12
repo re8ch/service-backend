@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:0d4e33fcc684985093a7e643de722562c0b171088526757e3d04ce56a366d223"}
+    assert source["spec"]["ref"] == {"digest": "sha256:49190bb73532fa9d84b1d08c52dc75c5f7c8ecb08df62ad37ec01c9889aef67e"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.7.1",
-        "digest": "sha256:e37a5fe6b2b0adb99c91982bfcb2543d5c9f985d35615019bf7fe217239ea64b",
+        "tag": "0.7.2",
+        "digest": "sha256:4e41be09145496ea299d7f45ad339c56c68445630a5ba67247bac393456dc493",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -619,6 +619,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["candidateSelection"]["minHoldSeconds"] == 600
     assert values["candidateSelection"]["localNodeBonus"] == 0
     assert values["transferTopology"] == {
+        "httpPort": 18081,
         "primary": {
             "enabled": True,
             "nodeName": "overseas-flk",
