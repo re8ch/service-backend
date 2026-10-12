@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: lantern-pearl
+    delivery.re8ch.com/codename: lighthouse-pearl
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:bf313b47dc8cd0eeb6ca6d9a6cc20fc2e7d8e43aa1e12fb8010eb00f8ad46294
+    digest: sha256:9632923bb4dcded45e08c4a679920addea233c3061b2fdb9f3200fa2c50eb2a9
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: lantern-pearl
+    delivery.re8ch.com/codename: lighthouse-pearl
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
