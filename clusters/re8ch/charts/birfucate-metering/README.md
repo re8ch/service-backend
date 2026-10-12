@@ -52,6 +52,22 @@ The score is a usage fact, not money. Billing owns price curves and Accounting
 owns cost allocation/journal entries. Raw dimensions accompany every event so
 the downstream calculation remains explainable and replayable.
 
+## Contracted node cost allocation
+
+Production can enable `nodeCostAllocation` to turn whole-node contracted cost
+into tenant-attributed cost without declaring artificial CPU or RAM prices.
+The routing advisor publishes each confirmed node's hourly cost, currency and
+CPU/RAM/GPU allocation weights. Birfucate then applies, for each resource pool:
+
+`allocated cost = node hourly cost × interval hours × resource weight × observed usage / max(allocatable capacity, total observed usage)`
+
+The capacity denominator preserves idle cost instead of silently charging it to
+active tenants. If telemetry briefly exceeds capacity, the observed-total floor
+prevents over-allocation. The remainder is exported as
+`birfucate_unallocated_cost_total`. These are cost-allocation facts, not sales
+prices, and the resulting UsageEvents retain `pricingApplied=false` and
+`accountingPosted=false`.
+
 ## Data flow
 
 ```text

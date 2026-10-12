@@ -340,12 +340,14 @@ class Advisor:
         cost_nodes = []
         today = datetime.datetime.now(datetime.timezone.utc).date()
         for node in self.node_catalog.get("nodes", []):
-            labels = {"node": node["name"], "provider": node.get("provider", "unknown"), "account": node.get("account", "unknown"), "region": node.get("region", "unknown"), "status": node.get("status", "pending")}
+            labels = {"node": node["name"], "provider": node.get("provider", "unknown"), "account": node.get("account", "unknown"), "region": node.get("region", "unknown"), "status": node.get("status", "pending"), "currency": node.get("currency", "CNY")}
             monthly = node.get("fixedMonthlyCost")
             lines.append(prom("re8ch_node_cost_fact_status", 1 if node.get("status") == "confirmed" and monthly is not None else 0, labels))
             if monthly is not None:
                 lines.append(prom("re8ch_node_fixed_monthly_cost", float(monthly), labels))
                 lines.append(prom("re8ch_node_hourly_cost", float(monthly) / 730.0, labels))
+            for resource, weight in sorted((node.get("allocationWeights") or {}).items()):
+                lines.append(prom("re8ch_node_cost_allocation_weight", float(weight), {**labels, "resource": resource}))
             for field, metric in (("configuredBandwidthMbps", "re8ch_node_configured_bandwidth_mbps"),
                                   ("monthlyTrafficLimitGiB", "re8ch_node_monthly_traffic_limit_gib"),
                                   ("annualCost", "re8ch_node_annual_cost"),

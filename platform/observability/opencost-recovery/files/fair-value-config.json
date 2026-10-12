@@ -22,9 +22,9 @@
     "Standard_D32as_v5": {"cpuCores": 32, "memoryGiB": 128, "storageGiB": 40}
   },
   "targets": [
-    {"name": "restricted-node-6dc3f140f9", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 80, "memoryGiB": 247.3, "storageGiB": 294.7, "bookMonthlyCNY": 1166.666667},
-    {"name": "restricted-node-1eb0570f74", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
-    {"name": "restricted-node-296f36f2fb", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
+    {"name": "r640", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 80, "memoryGiB": 247.3, "storageGiB": 294.7, "bookMonthlyCNY": 1166.666667},
+    {"name": "a1-wsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
+    {"name": "b1-wsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
     {"name": "amdwsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": null},
     {"name": "rancher-panel", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
     {"name": "harbor-registry", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 6.666667},
@@ -37,7 +37,7 @@
     {"name": "overseas-edge-50", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": null, "storageGiB": null, "bookMonthlyCNY": null},
     {"name": "overseas-la", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.92, "storageGiB": 19.6, "bookMonthlyCNY": null},
     {"name": "overseas-la-2", "regionGroup": "us-west", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.9, "storageGiB": 20, "bookMonthlyCNY": null},
-    {"name": "overseas-flk", "regionGroup": "eu-central", "resourceClass": "compute-storage", "cpuCores": 2, "memoryGiB": 3.7, "storageGiB": 40, "bookMonthlyCNY": null},
+    {"name": "overseas-flk", "regionGroup": "eu-central", "resourceClass": "compute-storage", "cpuCores": 2, "memoryGiB": 3.7, "storageGiB": 40, "bookMonthlyCost": 7.0, "bookCurrency": "USD", "bookMonthlyCNY": null},
     {"name": "overseas-kl", "regionGroup": "ap-southeast", "resourceClass": "compute-storage", "cpuCores": 1, "memoryGiB": 1.92, "storageGiB": 19.58, "bookMonthlyCNY": null}
   ]
 }

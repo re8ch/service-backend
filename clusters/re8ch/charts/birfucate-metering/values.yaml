@@ -114,6 +114,26 @@ opencost:
   baseURL: http://opencost.opencost.svc.cluster.local:9003
   allocationPath: /allocation/compute?window=1h&aggregate=namespace
 
+# Allocate contracted node cost instead of inventing CPU/RAM prices. Each cost
+# pool is split by the node's declared weights and multiplied by the tenant's
+# observed share of allocatable capacity. Unused capacity remains unallocated.
+nodeCostAllocation:
+  enabled: false
+  hourlyCostQuery: re8ch_node_hourly_cost{status="confirmed"}
+  weightQuery: re8ch_node_cost_allocation_weight{status="confirmed"}
+  nodeLabel: node
+  tenantLabel: label_tenancy_re8ch_com_tenant
+  currencyLabel: currency
+  resources:
+    - name: cpu
+      unit: core-second
+      capacityQuery: max by (node) (kube_node_status_allocatable{resource="cpu",unit="core"})
+      usageQuery: sum by (node, label_tenancy_re8ch_com_tenant) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]) * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)"))
+    - name: ram
+      unit: GiB-second
+      capacityQuery: max by (node) (kube_node_status_allocatable{resource="memory",unit="byte"}) / 1073741824
+      usageQuery: sum by (node, label_tenancy_re8ch_com_tenant) (container_memory_working_set_bytes{container!="",image!=""} * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)")) / 1073741824
+
 usageSink:
   enabled: false
   url: http://tenant-infrastructure.tenant-infrastructure.svc.cluster.local/internal/usage-events
