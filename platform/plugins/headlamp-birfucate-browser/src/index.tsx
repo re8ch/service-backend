@@ -74,6 +74,38 @@ async function optionalApiList(path: string): Promise<{items:KubeObject[]; error
   catch (caught) { return {items:[], error:String(caught)}; }
 }
 
+async function mapLimited<T, R>(items: T[], limit: number, worker: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function run() {
+    while (next < items.length) {
+      const index = next++;
+      results[index] = await worker(items[index]);
+    }
+  }
+  await Promise.all(Array.from({length: Math.min(limit, items.length)}, run));
+  return results;
+}
+
+type ApiResourceList = {resources?: {name?: string}[]};
+
+async function discoverResources(groupVersion: string): Promise<Set<string>> {
+  try {
+    const response: ApiResourceList = await withTimeout(
+      request(`/apis/${groupVersion}`, {method: 'GET'}),
+      `API discovery ${groupVersion}`
+    );
+    return new Set((response.resources || []).map(resource=>resource.name || '').filter(Boolean));
+  } catch (_) {
+    return new Set();
+  }
+}
+
+function customResource(path: string): {groupVersion:string; plural:string} | null {
+  const match = path.match(/^\/apis\/([^/]+\/[^/]+)\/([^/?]+)/);
+  return match ? {groupVersion:match[1], plural:match[2]} : null;
+}
+
 function quantity(value: unknown): number {
   const raw=String(value ?? '').trim();
   if (!raw) return 0;
@@ -132,7 +164,7 @@ function Dashboard() {
   async function refresh() {
     setLoading(true); setError('');
     try {
-      const metricResults=await Promise.all(METRICS.map(metric=>instantQuery(metric).then(items=>({items,error:''})).catch(caught=>({items:[] as Sample[],error:String(caught)}))));
+      const metricResults=await mapLimited([...METRICS], 4, metric=>instantQuery(metric).then(items=>({items,error:''})).catch(caught=>({items:[] as Sample[],error:String(caught)})));
       const results=metricResults.map(result=>result.items);
       const paths=[
         '/apis/tenancy.re8ch.com/v1alpha1/tenants','/apis/tenancy.re8ch.com/v1alpha1/tenantidentitybindings',
@@ -141,7 +173,14 @@ function Dashboard() {
         '/apis/finops.re8ch.com/v1alpha1/clusterconnections','/apis/finops.re8ch.com/v1alpha1/consumptionbindings','/apis/finops.re8ch.com/v1alpha1/consumables',
         '/apis/tenancy.re8ch.com/v1alpha1/tenantresourceclaims','/api/v1/resourcequotas','/api/v1/nodes','/apis/events.k8s.io/v1/events','/api/v1/pods','/api/v1/persistentvolumeclaims',
       ];
-      const kubeResults=await Promise.all(paths.map(optionalApiList));
+      const optionalGroups=[...new Set(paths.map(customResource).filter(Boolean).map(resource=>resource!.groupVersion))];
+      const discoveredEntries=await mapLimited(optionalGroups, 3, async groupVersion=>[groupVersion,await discoverResources(groupVersion)] as const);
+      const discovered=new Map(discoveredEntries);
+      const kubeResults=await mapLimited(paths, 4, path=>{
+        const resource=customResource(path);
+        if (resource && !discovered.get(resource.groupVersion)?.has(resource.plural)) return Promise.resolve({items:[],error:''});
+        return optionalApiList(path);
+      });
       const [tenantObjects, identityObjects, registrations, namespaceObjects, deployments, statefulSets, daemonSets, jobs, cronJobs, nuclioFunctions, instances, clusterConnections, bindings, consumableObjects, claims, quotas, nodeObjects, events, podObjects, pvcObjects]=kubeResults.map(result=>result.items);
       setSourceErrors([...new Set([...metricResults.map(x=>x.error),...kubeResults.map(x=>x.error)].filter(Boolean))]);
       const typedWorkloads = [

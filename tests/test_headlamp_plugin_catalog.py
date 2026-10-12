@@ -15,7 +15,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     kustomization = yaml.safe_load((HEADLAMP / "kustomization.yaml").read_text())
     generators = {item["name"]: item for item in kustomization["configMapGenerator"]}
     expected = {
-        "headlamp-public-edge-v025": "re8ch-headlamp-public-edge-0.2.5.bundle",
+        "headlamp-public-edge-v026": "re8ch-headlamp-public-edge-0.2.6.bundle",
         "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
         "headlamp-secretary-v030": "re8ch-headlamp-secretary-0.3.0.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
@@ -60,6 +60,19 @@ def test_public_edge_lists_active_dns_authorities_with_candidates():
     assert "external-dns.alpha.kubernetes.io/target" in source
     assert "networking.re8ch.com/selected-public-edge" in source
     assert "networking.re8ch.com/dns-authority" in source
+    assert "group: 'networking.k8s.io', version: 'v1'" in source
+    assert "K8s.ResourceClasses.Ingress.useList" not in source
+
+
+def test_secretary_read_route_uses_the_active_headlamp_service_hostname():
+    documents = list(yaml.safe_load_all((ROOT / "platform/secretary-system/runtime.yaml").read_text()))
+    route = next(item for item in documents if item and item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "secretary-headlamp-read")
+    assert route["spec"]["hostnames"] == ["headlamp.service.re8ch.com"]
+    assert route["spec"]["parentRefs"] == [{
+        "name": "re8ch-gateway-canary",
+        "namespace": "kube-system",
+        "sectionName": "service-wildcard-https",
+    }]
 
 
 def test_runtime_anatomy_plugin_uses_declarative_actions_and_scope_contract():
