@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:49190bb73532fa9d84b1d08c52dc75c5f7c8ecb08df62ad37ec01c9889aef67e}
+  ref: {digest: sha256:7cb2819c1e9947447d7bb4fa7359b03e4201bc1c1fed6f62449e5400c376c067}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.7.2"
+      tag: "0.7.3"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:4e41be09145496ea299d7f45ad339c56c68445630a5ba67247bac393456dc493
+      digest: sha256:0085d6841ee61a9a8dff2d9f15ccf64106764a9e9ccb5e0106aac082e15c2df7
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -252,6 +252,7 @@ spec:
     # can exceed recursive resolver timeouts even while Supabase is healthy.
     workload:
       httpPort: 18080
+      maxUnavailable: 2
       # Prefer the AdvFab API VIP; retain the reachable ZeroTier control-plane
       # member only as a secondary read path during WireGuard transit failures.
       kubernetesApiFallbackUrls: [https://192.0.2.220:6443, https://192.0.2.183:6443]
