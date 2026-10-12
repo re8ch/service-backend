@@ -9,7 +9,8 @@ spec:
     type: Recreate
   template:
     spec:
-      # Keep source delivery on the host-routed path to the FLK SOCKS endpoint.
+      # Run public source delivery beside the FLK SOCKS endpoint. This removes
+      # the China-to-FLK proxy hop while GitHub remains the desired-state source.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
@@ -24,7 +25,7 @@ spec:
                   key: address
       nodeSelector:
         kubernetes.io/os: linux
-        networking.re8ch.com/egress-policy: auto
+        networking.re8ch.com/egress-policy: direct
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -32,13 +33,8 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    # MUBAO owns the primary RouterOS path; A1 has a direct
-                    # WireGuard path to the same verified FLK SOCKS endpoint.
-                    values: [restricted-node-abb3f27a69, restricted-node-1eb0570f74]
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-abb3f27a69]}
+                    # Source fetches are intentionally colocated with the
+                    # verified public egress endpoint on the German worker.
+                    values: [overseas-flk]
       tolerations:
         - operator: Exists
