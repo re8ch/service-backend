@@ -304,6 +304,8 @@ modules:
       digest: sha256:505555fe4c290e6022da88d95fb386766675bd594017594e77e1acba4d92b68c
     - codename: flare-pearl
       digest: sha256:152777dcef6c05958c9d56123635ef14be47f46d4358826bdc702d69575b8952
+    - codename: lantern-pearl
+      digest: sha256:bf313b47dc8cd0eeb6ca6d9a6cc20fc2e7d8e43aa1e12fb8010eb00f8ad46294
   platform/among-clusters:
     releases:
     - codename: bora
