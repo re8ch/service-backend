@@ -618,6 +618,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["candidateSelection"]["minReadySeconds"] == 120
     assert values["candidateSelection"]["minHoldSeconds"] == 600
     assert values["candidateSelection"]["localNodeBonus"] == 0
+    assert values["routeSnapshot"]["endpoint"] == "https://192.0.2.38:8443/v1/route-snapshot"
     assert values["transferTopology"] == {
         "httpPort": 18081,
         "primary": {
@@ -634,6 +635,13 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "shadowDnsPort": 5353,
     }
     assert values["dns"]["transfer"]["role"] == "disabled"
+    transfer_pki = documents(ROOT / "platform/public-edge-manager/xot-pki.yaml")
+    primary_certificate = next(
+        item for item in transfer_pki
+        if item["kind"] == "Certificate" and item["metadata"]["name"] == "public-edge-hidden-primary"
+    )
+    assert primary_certificate["spec"]["dnsNames"] == ["hidden-primary.service.re8ch.com"]
+    assert primary_certificate["spec"]["ipAddresses"] == ["192.0.2.38"]
     assert values["fabricEvidence"] == {
         "mode": "Required",
         "apiGroup": "networking.re8ch.com",

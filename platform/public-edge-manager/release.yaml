@@ -311,7 +311,10 @@ spec:
           - {id: overseas-flk, ip: 192.0.2.38, region: EU}
           - {id: overseas-la, ip: 192.0.2.111, region: US}
     routeSnapshot:
-      endpoint: https://hidden-primary.service.re8ch.com:8443/v1/route-snapshot
+      # Bootstrap over the declared FLK public address so transfer recovery does
+      # not depend on the DNS service being repaired. TLS still authenticates
+      # the dedicated hidden-primary certificate.
+      endpoint: https://192.0.2.38:8443/v1/route-snapshot
       publicKeyRef: public-edge-route-snapshot-public-key
       signingKeySecretRef: ""
       tlsSecretRef: ""
