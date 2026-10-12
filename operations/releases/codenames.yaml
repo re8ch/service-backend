@@ -312,6 +312,8 @@ modules:
       digest: sha256:801434160aa31c187cf1ff889a5bebacadccdc77ca5ee1c9a01814bc0ce83e3d
     - codename: starfire-pearl
       digest: sha256:095a4430a3e21806ebcc8aeac9f5c49f145e94249fdec85d47eccd7c62852909
+    - codename: torch-pearl
+      digest: sha256:595066a79effd20eb72c6a2535e6e95367ef112cc8d49844649c870c01b21c77
   platform/among-clusters:
     releases:
     - codename: bora
