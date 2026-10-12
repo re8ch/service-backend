@@ -1356,6 +1356,8 @@ modules:
       digest: sha256:6aa07ff797db279e0b5481727b9eab0224cd0d3605f8624b47e6bd3426199b3a
     - codename: mistral-topaz
       digest: sha256:9605036db632299ebe63371a64abb52f9ba0b129748bbe504ee63b100da02fc3
+    - codename: sirocco-topaz
+      digest: sha256:fc96c61d7512f0991a563a1fa64d8073fa7a559dc75bde07e52e4533ec3db882
   platform/adapter:
     releases:
     - codename: anchor
