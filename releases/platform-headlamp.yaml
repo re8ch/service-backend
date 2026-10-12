@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: lighthouse-pearl
+codename: signal-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:9632923bb4dcded45e08c4a679920addea233c3061b2fdb9f3200fa2c50eb2a9
+  digest: sha256:801434160aa31c187cf1ff889a5bebacadccdc77ca5ee1c9a01814bc0ce83e3d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
