@@ -250,6 +250,8 @@ spec:
     # usage is delivered only for the re8ch tenant.
     outbox:
       enabled: false
+    nodeCostAllocation:
+      enabled: true
     usageSink:
       enabled: true
       allowedTenants: [re8ch]

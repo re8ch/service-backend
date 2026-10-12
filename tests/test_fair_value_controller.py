@@ -68,8 +68,15 @@ def test_config_covers_the_full_book_catalog_and_has_three_independent_sources()
     config = json.loads((ROOT / "platform/observability/opencost-recovery/files/fair-value-config.json").read_text())
     book = json.loads((ROOT / "clusters/re8ch/components/network/public-mesh/node-costs.yaml").read_text())
     assert {item["name"] for item in config["targets"]} == {item["name"] for item in book["nodes"]}
-    configured = {item["name"]: item["bookMonthlyCNY"] for item in config["targets"]}
-    assert configured == {item["name"]: item.get("fixedMonthlyCost") for item in book["nodes"]}
+    configured = {item["name"]: item for item in config["targets"]}
+    for node in book["nodes"]:
+        target = configured[node["name"]]
+        if node.get("currency", "CNY") == "CNY":
+            assert target["bookMonthlyCNY"] == node.get("fixedMonthlyCost")
+        else:
+            assert target["bookMonthlyCNY"] is None
+            assert target["bookMonthlyCost"] == node.get("fixedMonthlyCost")
+            assert target["bookCurrency"] == node["currency"]
     assert {"azure", "linode", "vultr"} <= set(config["sources"])
     assert config["minimumIndependentSources"] >= 2
     assert config["maximumObservationAgeHours"] < 2 * config["refreshIntervalSeconds"] / 3600 + 24

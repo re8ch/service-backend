@@ -33,6 +33,14 @@ CATALOG = {"paths": [
 
 
 class AdvisorPolicyTests(unittest.TestCase):
+    def test_node_cost_catalog_records_flk_contract(self):
+        import json
+        catalog_path = pathlib.Path(__file__).parents[1] / "clusters/re8ch/components/network/public-mesh/node-costs.yaml"
+        nodes = {item["name"]: item for item in json.loads(catalog_path.read_text())["nodes"]}
+        flk = nodes["overseas-flk"]
+        self.assertEqual((flk["fixedMonthlyCost"], flk["annualCost"], flk["currency"]), (7.0, 84.0, "USD"))
+        self.assertEqual(flk["status"], "confirmed")
+
     def test_public_wg_wins_when_healthy(self):
         public = ADVISOR.evaluate_path(POLICY, CATALOG, "public_wg", {"success": 1, "loss": 0, "rtt": 30, "bgp": 1, "bfd": 1, "handshake_age": 20})
         zt = ADVISOR.evaluate_path(POLICY, CATALOG, "zerotier", {"success": 1, "loss": 0, "rtt": 10})
