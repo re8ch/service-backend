@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: starfire-pearl
+    delivery.re8ch.com/codename: torch-pearl
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:095a4430a3e21806ebcc8aeac9f5c49f145e94249fdec85d47eccd7c62852909
+    digest: sha256:595066a79effd20eb72c6a2535e6e95367ef112cc8d49844649c870c01b21c77
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: starfire-pearl
+    delivery.re8ch.com/codename: torch-pearl
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
