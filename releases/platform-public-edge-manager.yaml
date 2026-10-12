@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: etesian-topaz
+codename: mistral-topaz
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:6aa07ff797db279e0b5481727b9eab0224cd0d3605f8624b47e6bd3426199b3a
+  digest: sha256:9605036db632299ebe63371a64abb52f9ba0b129748bbe504ee63b100da02fc3
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-topaz
+    delivery.re8ch.com/codename: mistral-topaz
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:6aa07ff797db279e0b5481727b9eab0224cd0d3605f8624b47e6bd3426199b3a
+    digest: sha256:9605036db632299ebe63371a64abb52f9ba0b129748bbe504ee63b100da02fc3
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: etesian-topaz
+    delivery.re8ch.com/codename: mistral-topaz
 spec:
   interval: 1m
   retryInterval: 1m
