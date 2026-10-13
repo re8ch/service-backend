@@ -20,6 +20,7 @@ from contract import ContractError, validate_target
 GROUP = "conformance.re8ch.com"
 VERSION = "v1alpha1"
 NAMESPACE = os.getenv("POD_NAMESPACE", "api-conformance-system")
+CODE_CONFIG_MAP = os.getenv("CODE_CONFIG_MAP", "api-conformance-code")
 RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "schemathesis/schemathesis:4.29.1@sha256:e276982651536cb60c316f805a822b469bbf0d27544794fbeed42eeb957278e0")
 APP_ID = os.getenv("GITHUB_APP_ID", "")
 PRIVATE_KEY = Path(os.getenv("GITHUB_PRIVATE_KEY_PATH", "/github-app/private-key.pem"))
@@ -168,7 +169,7 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
                                                        "env": env, "resources": {"requests": {"cpu": "50m", "memory": "128Mi"}, "limits": {"cpu": "500m", "memory": "512Mi"}},
                                                        "securityContext": {"allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True, "capabilities": {"drop": ["ALL"]}},
                                                        "volumeMounts": [{"name": "code", "mountPath": "/app", "readOnly": True}, {"name": "tmp", "mountPath": "/tmp"}]}],
-                                       "volumes": [{"name": "code", "configMap": {"name": "api-conformance-code"}}, {"name": "tmp", "emptyDir": {"sizeLimit": "64Mi"}}]}}},
+                                       "volumes": [{"name": "code", "configMap": {"name": CODE_CONFIG_MAP}}, {"name": "tmp", "emptyDir": {"sizeLimit": "64Mi"}}]}}},
     }
     created = kube_request("POST", f"/apis/batch/v1/namespaces/{NAMESPACE}/jobs", job)
     allowed_hosts = target["spec"].get("network", {}).get("allowedHosts", [])

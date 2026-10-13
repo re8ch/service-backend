@@ -11,8 +11,8 @@ kind: ServiceAccount
 metadata: {name: api-conformance-controller, namespace: api-conformance-system}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata: {name: api-conformance-controller}
+kind: Role
+metadata: {name: api-conformance-controller, namespace: api-conformance-system}
 rules:
 - apiGroups: [conformance.re8ch.com]
   resources: [apiconformancetargets, apiconformanceruns]
@@ -29,6 +29,20 @@ rules:
 - apiGroups: [""]
   resources: [pods/log]
   verbs: [get]
+- apiGroups: [cilium.io]
+  resources: [ciliumnetworkpolicies]
+  verbs: [get, list, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: api-conformance-controller, namespace: api-conformance-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: api-conformance-controller}
+subjects: [{kind: ServiceAccount, name: api-conformance-controller, namespace: api-conformance-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: api-conformance-controller}
+rules:
 - apiGroups: [""]
   resources: [services]
   verbs: [get, list, watch]
@@ -38,9 +52,6 @@ rules:
 - apiGroups: [gateway.networking.k8s.io]
   resources: [httproutes]
   verbs: [get, list, watch]
-- apiGroups: [cilium.io]
-  resources: [ciliumnetworkpolicies]
-  verbs: [get, list, create]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -67,6 +78,7 @@ spec:
         resources: {requests: {cpu: 25m, memory: 48Mi}, limits: {cpu: 300m, memory: 192Mi}}
         securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
         env:
+        - {name: CODE_CONFIG_MAP, value: api-conformance-code}
         - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
         - {name: GITHUB_APP_ID, valueFrom: {secretKeyRef: {name: api-conformance-github-app, key: app-id, optional: true}}}
         volumeMounts:

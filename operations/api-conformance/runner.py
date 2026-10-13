@@ -11,6 +11,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import unquote, urlsplit
 from pathlib import Path
 
 import yaml
@@ -69,7 +70,17 @@ def lifecycle_request(target: dict, step: dict, variables: dict[str, str]) -> No
     method = step["method"].upper()
     if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
         raise ContractError("invalid lifecycle method")
-    url = target["baseUrl"].rstrip("/") + template(step["path"], variables)
+    path = template(step["path"], variables)
+    parsed = urlsplit(path)
+    if (not path.startswith("/") or path.startswith("//") or parsed.scheme
+            or parsed.netloc or parsed.fragment or "\\" in unquote(path)
+            or any(part in {".", ".."} for part in unquote(parsed.path).split("/"))):
+        raise ContractError("invalid lifecycle path")
+    operations = target.get("operations", {})
+    allowed = operations.get("readOperationIds", []) if method in {"GET", "HEAD", "OPTIONS"} else operations.get("mutationOperationIds", [])
+    if step.get("operationId") not in allowed:
+        raise ContractError("lifecycle operation is not allowlisted")
+    url = target["baseUrl"].rstrip("/") + path
     body = template(step.get("body"), variables)
     raw = None if body is None else json.dumps(body, separators=(",", ":")).encode()
     headers = {"Accept": "application/json", "X-RE8CH-Synthetic": "true", "X-RE8CH-Run-ID": variables["RUN_ID"]}
@@ -79,7 +90,7 @@ def lifecycle_request(target: dict, step: dict, variables: dict[str, str]) -> No
         headers["Authorization"] = authorization
     request = urllib.request.Request(url, data=raw, method=method, headers=headers)
     try:
-        response = urllib.request.urlopen(request, timeout=20)
+        response = urllib.request.build_opener(NoRedirect()).open(request, timeout=20)
     except urllib.error.HTTPError as exc:
         response = exc
     except (urllib.error.URLError, TimeoutError) as exc:
@@ -133,6 +144,8 @@ def main() -> int:
     operation_ids = configured.get("readOperationIds", []) if mode == "read" else configured.get("mutationOperationIds", [])
     if mode == "mutation" and not operation_ids:
         raise ContractError("mutation run has no allowlisted operations")
+    if not operation_ids:
+        raise ContractError("run has no allowlisted operations")
     lifecycle = {"setup": "not_run", "test": "not_run", "cleanup": "not_run", "reversal": "not_run"}
     variables = {"RUN_ID": run_id, "TARGET": target_name}
     report = None
@@ -145,7 +158,7 @@ def main() -> int:
         try:
             if mode == "mutation":
                 lifecycle["setup"] = run_steps(target, "setup", variables)
-            pattern = "^(?:" + "|".join(re.escape(item) for item in operation_ids) + ")$" if operation_ids else ".*"
+            pattern = "^(?:" + "|".join(re.escape(item) for item in operation_ids) + ")$"
             limits = target.get("limits", {})
             rate = int(limits.get("ratePerSecond", 1))
             request_budget = int(limits.get("maxRequests", 500))

@@ -38,6 +38,63 @@ def test_target_and_operation_classification_fail_closed():
         contract.validate_document(document("post"), value)
 
 
+def test_lifecycle_must_match_allowed_schema_operation():
+    schema = document("delete", "deleteUser")
+    schema["paths"]["/users/{userId}"] = schema["paths"].pop("/users")
+    value = target(operations={"readOperationIds": [], "mutationOperationIds": ["deleteUser"]},
+                   lifecycle={"cleanup": [{"operationId": "deleteUser", "method": "DELETE", "path": "/users/${userId}"}]})
+    contract.validate_document(schema, value)
+    for change in ({"path": "/organizations/${userId}"}, {"method": "POST"}, {"operationId": "unknown"}):
+        step = value["lifecycle"]["cleanup"][0]
+        original = step.copy()
+        step.update(change)
+        with pytest.raises(contract.ContractError):
+            contract.validate_document(schema, value)
+        step.clear()
+        step.update(original)
+
+
+def test_lifecycle_redirect_cannot_forward_credentials(monkeypatch):
+    import sys
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    monkeypatch.setitem(sys.modules, "contract", contract)
+    runner_spec = importlib.util.spec_from_file_location("conformance_runner", BASE / "runner.py")
+    runner = importlib.util.module_from_spec(runner_spec)
+    runner_spec.loader.exec_module(runner)
+    seen = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            seen.append(self.path)
+            self.send_response(302)
+            self.send_header("Location", "/unexpected")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        value = target(baseUrl=f"http://127.0.0.1:{server.server_port}")
+        step = {"operationId": "listUsers", "method": "GET", "path": "/users"}
+        monkeypatch.setenv("AUTHORIZATION", "Bearer synthetic-test")
+        with pytest.raises(contract.ContractError, match="redirects"):
+            runner.lifecycle_request(value, step, {"RUN_ID": "test"})
+        assert seen == ["/users"]
+        for path in ("//external.invalid", "/%2e%2e/admin", "/users#fragment", "/users\\admin"):
+            with pytest.raises(contract.ContractError, match="path"):
+                runner.lifecycle_request(value, {**step, "path": path}, {"RUN_ID": "test"})
+        assert seen == ["/users"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
 def test_mutation_requires_canary_cleanup_and_explicit_opt_in():
     value = target(operations={"readOperationIds": [], "mutationOperationIds": ["createUser"], "allowGeneratedMutations": True})
     with pytest.raises(contract.ContractError, match="canary"):
@@ -112,6 +169,37 @@ def test_runner_accepts_yaml_and_derives_hard_request_budget():
 def test_root_gitops_includes_conformance_system():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "../../operations/api-conformance" in root["resources"]
+
+
+def test_controller_execution_permissions_are_namespace_scoped():
+    manifests = list(yaml.safe_load_all((BASE / "runtime.yaml").read_text()))
+    cluster_role = next(item for item in manifests if item["kind"] == "ClusterRole")
+    for rule in cluster_role["rules"]:
+        assert set(rule["verbs"]) <= {"get", "list", "watch"}
+        assert not set(rule["resources"]) & {"pods/log", "jobs", "secrets"}
+    role = next(item for item in manifests if item["kind"] == "Role")
+    binding = next(item for item in manifests if item["kind"] == "RoleBinding")
+    assert role["metadata"]["namespace"] == binding["metadata"]["namespace"] == "api-conformance-system"
+    assert binding["roleRef"]["kind"] == "Role"
+    assert binding["roleRef"]["name"] == role["metadata"]["name"]
+
+
+def test_rendered_code_version_is_pinned_for_controller_and_runner():
+    import shutil
+    import subprocess
+
+    if not shutil.which("kustomize"):
+        pytest.skip("kustomize required for rendered name-reference check")
+    rendered = subprocess.check_output(["kustomize", "build", str(BASE)], text=True)
+    manifests = list(yaml.safe_load_all(rendered))
+    configmap = next(item for item in manifests if item["kind"] == "ConfigMap")
+    name = configmap["metadata"]["name"]
+    assert name.startswith("api-conformance-code-")
+    deployment = next(item for item in manifests if item["kind"] == "Deployment")
+    pod = deployment["spec"]["template"]["spec"]
+    assert next(v for v in pod["volumes"] if v["name"] == "code")["configMap"]["name"] == name
+    assert next(e for e in pod["containers"][0]["env"] if e["name"] == "CODE_CONFIG_MAP")["value"] == name
+    assert '"configMap": {"name": CODE_CONFIG_MAP}' in configmap["data"]["controller.py"]
 
 
 def test_pilot_targets_are_digest_pinned_and_fail_closed():
