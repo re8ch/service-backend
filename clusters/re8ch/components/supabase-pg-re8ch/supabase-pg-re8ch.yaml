@@ -600,7 +600,7 @@ spec:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
         - name: rest
-          image: mjhsdd6xkcym4k.xuanyuan.run/postgrest/postgrest:v14.12
+          image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef: { name: supabase-pg-re8ch-env }
@@ -616,8 +616,8 @@ spec:
             - { name: PGRST_APP_SETTINGS_JWT_EXP, valueFrom: { configMapKeyRef: { name: supabase-pg-re8ch-env, key: JWT_EXPIRY } } }
           ports: [{ name: http, containerPort: 3000 }]
           resources:
-            requests: { cpu: 40m, memory: 64Mi }
-            limits: { cpu: 100m, memory: 256Mi }
+            requests: { cpu: 40m, memory: 128Mi }
+            limits: { cpu: 100m, memory: 512Mi }
 ---
 apiVersion: apps/v1
 kind: Deployment
