@@ -289,11 +289,4 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}
           podSelector: {matchLabels: {tenant-runtime: "true"}}
       ports: [{protocol: TCP, port: 19447}]
-    # User deletion and organization archival must check runtime dependencies.
-    # Keep the identity gateway's authenticated preflight reachable without
-    # granting all auth namespace workloads access to the control plane.
-    - from:
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: auth}}
-          podSelector: {matchLabels: {app.kubernetes.io/name: re8ch-auth-gateway}}
-      ports: [{protocol: TCP, port: 19447}]
 {{- end }}
