@@ -1,0 +1,69 @@
+name: stagehand-service-release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/stagehand-service-release.yml
+      - operations/stagehand-service/**
+  pull_request:
+    paths:
+      - .github/workflows/stagehand-service-release.yml
+      - operations/stagehand-service/**
+permissions:
+  contents: read
+concurrency:
+  group: stagehand-service-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: {node-version: 24.18.0, cache: npm, cache-dependency-path: operations/stagehand-service/package-lock.json}
+      - working-directory: operations/stagehand-service
+        run: npm ci --ignore-scripts --no-audit --no-fund && npm test
+      - run: docker build -t re8ch-stagehand-service:pr operations/stagehand-service
+  release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    permissions: {contents: read, packages: write, id-token: write}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: image
+        env: {IMAGE: ghcr.io/re8ch/stagehand-service, VERSION: 0.1.0}
+        run: |
+          short_sha="${GITHUB_SHA::12}"
+          docker buildx build \
+            --builder "${{ steps.buildx.outputs.name }}" \
+            --platform linux/amd64 \
+            --provenance mode=max \
+            --sbom true \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            --metadata-file "$RUNNER_TEMP/image-metadata.json" \
+            --tag "$IMAGE:$VERSION" \
+            --tag "$IMAGE:sha-$short_sha" \
+            --push operations/stagehand-service
+          digest="$(jq -r '."containerimage.digest"' "$RUNNER_TEMP/image-metadata.json")"
+          test -n "$digest" && test "$digest" != null
+          cosign sign --yes "$IMAGE@$digest"
+          printf '%s@%s\n' "$IMAGE" "$digest" > "$RUNNER_TEMP/stagehand-service.image"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stagehand-service-${{ github.sha }}
+          path: ${{ runner.temp }}/stagehand-service.image
+          if-no-files-found: error
+          retention-days: 30
