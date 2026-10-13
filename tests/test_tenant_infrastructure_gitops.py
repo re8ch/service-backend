@@ -69,7 +69,8 @@ def test_identity_gateway_can_check_deletion_dependencies_without_broad_access()
     path = "components/auth/dependency-policy.yaml"
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert path in root["resources"]
-    policy = yaml.safe_load((ROOT / "clusters/re8ch" / path).read_text())
+    documents = list(yaml.safe_load_all((ROOT / "clusters/re8ch" / path).read_text()))
+    policy = next(item for item in documents if item["kind"] == "NetworkPolicy")
     assert policy["metadata"]["namespace"] == "tenant-infrastructure"
     assert policy["spec"]["podSelector"] == {"matchLabels": {"app": "tenant-control-controller"}}
     rules = [rule for rule in policy["spec"]["ingress"]
@@ -79,6 +80,11 @@ def test_identity_gateway_can_check_deletion_dependencies_without_broad_access()
         "namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "auth"}},
         "podSelector": {"matchLabels": {"app.kubernetes.io/name": "re8ch-auth-gateway"}},
     }], "ports": [{"protocol": "TCP", "port": 19447}]}]
+    role = next(item for item in documents if item["kind"] == "ClusterRole")
+    assert role["rules"] == [{"apiGroups": [""], "resources": ["persistentvolumes"], "verbs": ["list"]}]
+    binding = next(item for item in documents if item["kind"] == "ClusterRoleBinding")
+    assert binding["roleRef"] == {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": role["metadata"]["name"]}
+    assert binding["subjects"] == [{"kind": "ServiceAccount", "name": "tenant-control-controller", "namespace": "tenant-infrastructure"}]
 
 
 def test_contract_schemas_are_valid_json_and_have_stable_ids():
