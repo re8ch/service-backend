@@ -154,6 +154,10 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="re8ch-schemathesis-") as directory:
         schema_path = Path(directory) / "openapi.json"
         report_path = Path(directory) / "report.json"
+        config_path = Path(directory) / "schemathesis.toml"
+        # Generation DB=none does not disable Schemathesis' separate crash
+        # cache. Never persist request/response examples or replay commands.
+        config_path.write_text("[cache]\nenabled = false\n")
         schema_path.write_bytes(raw)
         try:
             if mode == "mutation":
@@ -166,7 +170,7 @@ def main() -> int:
             # together with the global rate limiter, is the hard run-level budget.
             effective_timeout = min(int(limits.get("timeoutSeconds", 600)), max(60, request_budget // rate))
             command = [
-                "schemathesis", "run", str(schema_path), "--url", target["baseUrl"],
+                "schemathesis", "--config-file", str(config_path), "run", str(schema_path), "--url", target["baseUrl"],
                 "--include-operation-id-regex", pattern,
                 "--checks", "all", "--workers", "1", "--max-examples", str(limits.get("maxExamples", 25)),
                 "--max-time", str(effective_timeout), "--max-failures", "20",
