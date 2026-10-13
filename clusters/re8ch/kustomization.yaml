@@ -114,6 +114,7 @@ resources:
 - components/plugin-runtime/rbac.yaml
 - ../../platform/observability-source
 - components/synthetic-monitoring
+- ../../operations/api-conformance
 - ../../platform/incidentrelay
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources

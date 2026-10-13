@@ -120,16 +120,19 @@ domains:
       - platform/observability/**
       - clusters/re8ch/components/synthetic-monitoring/**
       - operations/k6/**
+      - operations/api-conformance/**
     roots:
       - platform/observability-source
       - platform/observability/bootstrap
       - platform/observability/opencost-recovery
       - platform/observability/production
       - clusters/re8ch/components/synthetic-monitoring
+      - operations/api-conformance
     tests:
       - tests/test_observability.py
       - tests/test_k6_contracts.py
       - tests/test_k6_summary.py
+      - tests/test_api_conformance_system.py
 
   tenant-runtime:
     theme: habitats

@@ -1,0 +1,76 @@
+apiVersion: conformance.re8ch.com/v1alpha1
+kind: APIConformanceTarget
+metadata:
+  name: cloud-functions-identity
+  namespace: api-conformance-system
+  annotations:
+    conformance.re8ch.com/activation-blockers: dedicated-canary-auth-secret,reviewed-cleanup-fixture,github-app-installation
+spec:
+  serviceRef: identity.re8ch.v2
+  repository: re8ch/cloud-functions
+  commit: e37a09c132aaca7779495f78d10deef4547cab5f
+  branch: master
+  baseUrl: https://api.re8ch.com/auth
+  suspend: true
+  schema:
+    url: https://api.re8ch.com/auth/v2/openapi.yaml
+    sha256: 61426b8acbde14744fda187c805b79b298f25ec2823c7c9735d35548c71e2742
+  network: {allowedHosts: [api.re8ch.com]}
+  operations:
+    readOperationIds: [listUsers, getUser, listOrganizations, getOrganization, listOrganizationMembers]
+    mutationOperationIds: [createUser, updateUser, deleteUser, createOrganization, renameOrganization, addOrganizationMember, updateOrganizationMember, removeOrganizationMember, archiveOrganization]
+    allowGeneratedMutations: false
+  limits: {maxExamples: 25, maxRequests: 500, ratePerSecond: 1, timeoutSeconds: 600}
+  schedule: {readSeconds: 21600, mutationSeconds: 86400}
+  canary: {tenantRef: schemathesis-canary-identity}
+---
+apiVersion: conformance.re8ch.com/v1alpha1
+kind: APIConformanceTarget
+metadata:
+  name: cloud-functions-payment-credits
+  namespace: api-conformance-system
+  annotations:
+    conformance.re8ch.com/activation-blockers: isolated-credits-fixture,immutable-reversal-contract,github-app-installation
+spec:
+  serviceRef: payment.credits.v1
+  repository: re8ch/cloud-functions
+  commit: e37a09c132aaca7779495f78d10deef4547cab5f
+  branch: master
+  baseUrl: https://api.re8ch.com/payment
+  suspend: true
+  schema:
+    url: https://api.re8ch.com/payment/v1/openapi.yaml
+    sha256: 7a75c605804e19d9b06c50ca5fe4031681fc6068507d9766cde999f6fbceca99
+  network: {allowedHosts: [api.re8ch.com]}
+  operations:
+    readOperationIds: [paymentHealth, paymentReady, listPayments, getPayment, listCreditServices, getCreditWallet]
+    mutationOperationIds: [registerCreditService, updateCreditService, publishCreditServicePrice, reportCreditServiceHealth, createCreditWallet, createCreditServiceQuote]
+    allowGeneratedMutations: false
+  limits: {maxExamples: 25, maxRequests: 500, ratePerSecond: 1, timeoutSeconds: 600}
+  schedule: {readSeconds: 21600, mutationSeconds: 86400}
+  canary: {tenantRef: schemathesis-canary-payment}
+---
+apiVersion: conformance.re8ch.com/v1alpha1
+kind: APIConformanceTarget
+metadata:
+  name: cloud-functions-commerce
+  namespace: api-conformance-system
+  annotations:
+    conformance.re8ch.com/activation-blockers: dedicated-canary-auth-secret,github-app-installation
+spec:
+  serviceRef: commerce.re8ch.v1
+  repository: re8ch/cloud-functions
+  commit: e37a09c132aaca7779495f78d10deef4547cab5f
+  branch: master
+  baseUrl: https://api.re8ch.com/commerce
+  suspend: true
+  schema:
+    url: https://api.re8ch.com/commerce/v1/openapi.yaml
+    sha256: 9d4084209c3d6e30dff411ba7a36859af3a94524c373727eb7140034a2f10d00
+  network: {allowedHosts: [api.re8ch.com]}
+  operations:
+    readOperationIds: [commerceHealth, commerceReady, listCommerceCatalog, getCommerceWallet, listCommerceOrders, getCommerceOrder]
+    mutationOperationIds: []
+    allowGeneratedMutations: false
+  limits: {maxExamples: 25, maxRequests: 500, ratePerSecond: 1, timeoutSeconds: 600}
+  schedule: {readSeconds: 21600}

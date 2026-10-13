@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- crds.yaml
+- runtime.yaml
+- targets.yaml
+configMapGenerator:
+- name: api-conformance-code
+  namespace: api-conformance-system
+  files:
+  - controller.py
+  - runner.py
+  - contract.py
+generatorOptions:
+  disableNameSuffixHash: true
