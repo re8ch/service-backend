@@ -1100,6 +1100,8 @@ modules:
       digest: sha256:de2b3e07a4175a0e31c865f20779e980c4054e8fa4fa4c65c3a9fea4452e0f11
     - codename: springtide-turquoise
       digest: sha256:534df2dccc3e0b656b47720163cba9248443a99963d686e61016ec244c14c3e1
+    - codename: tideway-turquoise
+      digest: sha256:68ce03594cbf7cca5566048d0742d74b79cf2f1320007f99cc110c25e6920e7f
   platform/hyperswitch:
     releases:
     - codename: anchor
