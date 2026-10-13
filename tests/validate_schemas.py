@@ -23,6 +23,8 @@ def validate(pattern, schema_name, kinds=None):
 validate("plugins/*.yaml", "plugin-definition.schema.json")
 validate("inventory/*.yaml", "infrastructure-target.schema.json",
          {"InfrastructureTarget", "InfrastructureTargetList"})
+validate("inventory/public-sites.yaml", "public-site-catalog.schema.json",
+         {"PublicSiteCatalog"})
 validate("catalogs/*/modules/*/module.yaml", "workspace-module.schema.json")
 validate(".re8ch/project.yaml", "project-binding.schema.json")
 validate(".re8ch/cluster-resources.yaml", "cluster-resource-index.schema.json")

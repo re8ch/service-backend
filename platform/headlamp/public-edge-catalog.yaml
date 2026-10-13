@@ -440,6 +440,18 @@ data:
           "sourceOfTruth": "aliyun esa/ynzs.com"
         },
         {
+          "name": "re8ch.com",
+          "hostnames": [
+            "re8ch.com"
+          ],
+          "provider": "Cloudflare Workers",
+          "delivery": "online",
+          "origin": "re8ch-studio",
+          "dnsMode": "Worker custom domain",
+          "sourceOfTruth": "manual",
+          "notes": "Global deployment for the RE8CH website; provider refresh preserves manual records."
+        },
+        {
           "name": "analytics.re8ch.com",
           "hostnames": [
             "analytics.re8ch.com"
