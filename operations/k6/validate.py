@@ -49,12 +49,15 @@ def validate_catalog(catalog):
         assert url.hostname and not url.username and not url.password and not url.query and not url.fragment, "invalid probe URL"
         if probe["vantage"] == "external":
             assert url.scheme == "https" and not url.hostname.endswith(".cluster.local"), "external probe must use public HTTPS"
-            assert "jsonField" in probe or "header" in probe, "external probe needs semantic assertion"
+            assert any(key in probe for key in ("jsonField", "header", "contentTypeContains", "bodyContains", "bodyNotContains")), "external probe needs semantic assertion"
         else:
             assert url.scheme == "http" and url.hostname.endswith(".svc.cluster.local"), "internal probe must use service DNS"
         assert type(probe["status"]) is int and 100 <= probe["status"] <= 599, "invalid status contract"
         assert ("jsonField" in probe) == ("equals" in probe), "incomplete JSON assertion"
         assert ("header" in probe) == ("contains" in probe), "incomplete header assertion"
+        for key in ("contentTypeContains", "bodyContains", "bodyNotContains"):
+            if key in probe:
+                assert isinstance(probe[key], str) and probe[key], f"{key} must be a non-empty string"
 
 
 def validate_schedules(catalog, k8s_path, workflow_path):

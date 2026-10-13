@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "cadences": {
     "fast": {
       "periodSeconds": 300,
@@ -63,6 +63,67 @@
       "status": 200,
       "jsonField": "database",
       "equals": "ok"
+    },
+    {
+      "id": "re8ch-global-home",
+      "owner": "re8ch/re8ch",
+      "vantage": "external",
+      "cadence": "fast",
+      "url": "https://re8ch.com/zh-CN/",
+      "status": 200,
+      "contentTypeContains": "text/html",
+      "bodyContains": "RE8CH"
+    },
+    {
+      "id": "re8ch-china-home",
+      "owner": "re8ch/re8ch",
+      "vantage": "external",
+      "cadence": "fast",
+      "url": "https://www.re8ch.com/zh-CN/",
+      "status": 200,
+      "contentTypeContains": "text/html",
+      "bodyContains": "RE8CH"
+    },
+    {
+      "id": "re8ch-global-llms",
+      "owner": "re8ch/re8ch",
+      "vantage": "external",
+      "cadence": "standard",
+      "url": "https://re8ch.com/llms.txt",
+      "status": 200,
+      "contentTypeContains": "text/plain",
+      "bodyContains": "# RE8CH",
+      "bodyNotContains": "<!DOCTYPE html>"
+    },
+    {
+      "id": "re8ch-china-llms",
+      "owner": "re8ch/re8ch",
+      "vantage": "external",
+      "cadence": "standard",
+      "url": "https://www.re8ch.com/llms.txt",
+      "status": 200,
+      "contentTypeContains": "text/plain",
+      "bodyContains": "# RE8CH",
+      "bodyNotContains": "<!DOCTYPE html>"
+    },
+    {
+      "id": "re8ch-global-a2a-unpublished",
+      "owner": "re8ch/re8ch",
+      "vantage": "external",
+      "cadence": "standard",
+      "url": "https://re8ch.com/.well-known/agent-card.json",
+      "status": 404,
+      "contentTypeContains": "text/plain",
+      "bodyNotContains": "<!DOCTYPE html>"
+    },
+    {
+      "id": "re8ch-china-a2a-unpublished",
+      "owner": "re8ch/re8ch",
+      "vantage": "external",
+      "cadence": "standard",
+      "url": "https://www.re8ch.com/.well-known/agent-card.json",
+      "status": 404,
+      "bodyNotContains": "<!DOCTYPE html>"
     },
     {
       "id": "cloud-platform-internal-health",

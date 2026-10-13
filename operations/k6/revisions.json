@@ -11,6 +11,12 @@
       "contractSha256": "c8a76837df9224526e3c8f870f6bedd47fef346ac88a150c682c9fefc5626845",
       "previousSha256": "3c0a309fa3ff0114344ea42ffa0be54fd8d7aab2a9face071e3b90782cb8a553",
       "reason": "Classify reusable probes by owner, vantage, and cadence; add internal service health checks"
+    },
+    {
+      "number": 3,
+      "contractSha256": "78717faec6b9a9ea99412ae4549d69d40a9981537bd326723dd63c3a59e166d6",
+      "previousSha256": "c8a76837df9224526e3c8f870f6bedd47fef346ac88a150c682c9fefc5626845",
+      "reason": "Add RE8CH dual-region website availability, GEO content, and unpublished A2A contracts"
     }
   ]
 }

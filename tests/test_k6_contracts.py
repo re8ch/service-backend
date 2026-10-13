@@ -33,6 +33,15 @@ def test_external_probe_cannot_target_service_dns():
         k6.validate_catalog(changed)
 
 
+def test_external_probe_requires_semantic_content_assertion():
+    changed = copy.deepcopy(catalog())
+    probe = next(item for item in changed["probes"] if item["id"] == "re8ch-global-llms")
+    for key in ("contentTypeContains", "bodyContains", "bodyNotContains"):
+        probe.pop(key, None)
+    with pytest.raises(AssertionError, match="semantic assertion"):
+        k6.validate_catalog(changed)
+
+
 def test_contract_revision_digest_detects_dataset_edit():
     raw = k6.repo_path(k6.DEFAULT_CATALOG).read_bytes()
     revisions = k6.read_json(k6.DEFAULT_REVISIONS)["revisions"]

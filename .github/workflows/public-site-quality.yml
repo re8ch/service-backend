@@ -1,0 +1,61 @@
+name: Public website quality advisory
+
+on:
+  schedule:
+    - cron: "27 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python -m pip install 'PyYAML>=6.0.2'
+      - id: plan
+        run: python operations/public-sites/quality.py matrix
+
+  lighthouse:
+    needs: plan
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - run: python -m pip install 'PyYAML>=6.0.2'
+      - name: Run repeatable mobile audits
+        env:
+          SITE_URL: ${{ matrix.url }}
+          RUNS: ${{ matrix.runs }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/lighthouse"
+          for run in $(seq 1 "$RUNS"); do
+            npx --yes lighthouse@12.8.2 "$SITE_URL" \
+              --output=json \
+              --output-path="$RUNNER_TEMP/lighthouse/run-$run.json" \
+              --chrome-flags="--headless --no-sandbox" \
+              --quiet
+          done
+      - name: Publish advisory result
+        run: >-
+          python operations/public-sites/quality.py report
+          --site '${{ matrix.site }}'
+          --deployment '${{ matrix.deployment }}'
+          "$RUNNER_TEMP"/lighthouse/run-*.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: lighthouse-${{ matrix.site }}-${{ matrix.deployment }}
+          path: ${{ runner.temp }}/lighthouse
+          if-no-files-found: warn
+          retention-days: 30
