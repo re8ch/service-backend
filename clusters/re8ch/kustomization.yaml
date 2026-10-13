@@ -87,6 +87,7 @@ resources:
 - components/opencost/ui-nginx-config.yaml
 - components/observability/retire-legacy-qianwen-grafana.yaml
 - components/observable/postgrest-ha.yaml
+- components/supabase-pg-re8ch/supabase-rest-runtime.yaml
 - components/payments/credits-runtime.yaml
 - components/payments/commerce-runtime.yaml
 - components/regional-routing/cert-manager-bootstrap.yaml
