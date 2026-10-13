@@ -8,7 +8,8 @@ metadata:
 spec:
   serviceRef: identity.re8ch.v2
   repository: re8ch/cloud-functions
-  commit: e37a09c132aaca7779495f78d10deef4547cab5f
+  commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
+  imageDigest: sha256:d83d0a9278d686c74022b203f26420433deeebf0ab83efc23b0312565e82205e
   branch: master
   baseUrl: https://api.re8ch.com/auth
   suspend: true
@@ -34,13 +35,14 @@ metadata:
 spec:
   serviceRef: payment.credits.v1
   repository: re8ch/cloud-functions
-  commit: e37a09c132aaca7779495f78d10deef4547cab5f
+  commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
+  imageDigest: sha256:f13b07b494ccd10a957bc58246419f9fb2e0ab0bfe3c412c2901e712a68b59fc
   branch: master
   baseUrl: https://api.re8ch.com/payment
   suspend: true
   schema:
     url: https://api.re8ch.com/payment/v1/openapi.yaml
-    sha256: 7a75c605804e19d9b06c50ca5fe4031681fc6068507d9766cde999f6fbceca99
+    sha256: a80f8618740572f35e42b4ebbc4135ad92d57f22bdcea1f1ce2c8dffd99b0689
   network: {allowedHosts: [api.re8ch.com]}
   operations:
     readOperationIds: [paymentHealth, paymentReady, listPayments, getPayment, listCreditServices, getCreditWallet]
@@ -60,7 +62,8 @@ metadata:
 spec:
   serviceRef: commerce.re8ch.v1
   repository: re8ch/cloud-functions
-  commit: e37a09c132aaca7779495f78d10deef4547cab5f
+  commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
+  imageDigest: sha256:cc16ca8150d4140e988dbdfdfc8653f15472be1ff15ee3aefe59b243c52d0e4c
   branch: master
   baseUrl: https://api.re8ch.com/commerce
   suspend: true

@@ -110,7 +110,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: commerce-api
-          image: registry.re8ch.com/hyperswitch/processor-commerce-api@sha256:bb98a35fec6d50b262b0b11afbd34b7123d1a0f84bbc9c7ce0a47cade2907ab3
+          image: registry.re8ch.com/hyperswitch/processor-commerce-api@sha256:cc16ca8150d4140e988dbdfdfc8653f15472be1ff15ee3aefe59b243c52d0e4c
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 8080}]
           envFrom: [{secretRef: {name: commerce-api-secrets}}]
