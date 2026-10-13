@@ -209,6 +209,8 @@ def test_pilot_targets_are_digest_pinned_and_fail_closed():
     for item in targets:
         assert item["spec"]["suspend"] is True
         assert len(item["spec"]["schema"]["sha256"]) == 64
-        assert item["spec"]["commit"] == "e37a09c132aaca7779495f78d10deef4547cab5f"
+        assert item["spec"]["commit"] == "81a757cdb10784d69957c7a4e7aee8568d36a295"
+        assert item["spec"]["imageDigest"].startswith("sha256:")
+        assert len(item["spec"]["imageDigest"]) == 71
     mutation_targets = [item for item in targets if item["spec"]["operations"]["mutationOperationIds"]]
     assert mutation_targets and all(item["spec"]["operations"]["allowGeneratedMutations"] is False for item in mutation_targets)
