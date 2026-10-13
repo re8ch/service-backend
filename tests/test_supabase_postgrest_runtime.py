@@ -4,7 +4,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / "clusters/re8ch/components/supabase-pg-re8ch/supabase-pg-re8ch.yaml"
+MANIFEST = ROOT / "clusters/re8ch/components/supabase-pg-re8ch/supabase-rest-runtime.yaml"
 POSTGREST_IMAGE = (
     "docker.io/postgrest/postgrest:v14.12@"
     "sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c"
