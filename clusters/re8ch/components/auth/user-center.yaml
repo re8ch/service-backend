@@ -8,7 +8,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: re8ch-user-center, app.kubernetes.io/part-of: re8ch-auth}}
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -17,7 +17,7 @@ spec:
       imagePullSecrets: [{name: user-hub-harbor-pull}]
       containers:
         - name: web
-          image: registry.re8ch.com/auth/user-hub@sha256:8bdd7b1a596b4ca2183df772380cfdaae8642fa070316cfcd523dd86c7dbb769
+          image: registry.re8ch.com/auth/user-hub@sha256:547722b6a6bb38930cc424599a398569839ae8f4b3b07d8fe1b3173a58b9d92f
           ports: [{name: http, containerPort: 8080}]
           resources: {requests: {cpu: 10m, memory: 16Mi}, limits: {cpu: 100m, memory: 64Mi}}
           readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
@@ -120,7 +120,7 @@ metadata:
   labels: {networking.re8ch.com/dns-authority: public-edge}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: auth-origin.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     networking.re8ch.com/provider: public-edge-manager
