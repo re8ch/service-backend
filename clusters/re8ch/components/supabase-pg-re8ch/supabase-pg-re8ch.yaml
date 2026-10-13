@@ -14,7 +14,7 @@ spec:
     # The steady-state Supabase Pods consume 1 CPU. Reserve 250m for bounded
     # database bootstrap/maintenance Jobs that carry their own resource limits.
     limits.cpu: "1250m"
-    requests.memory: 1024Mi
+    requests.memory: 1280Mi
     limits.memory: 4096Mi
 ---
 apiVersion: v1
@@ -248,7 +248,7 @@ data:
               hide_groups_header: true
               allow: [admin]
       - name: dashboard
-        url: http://192.0.2.97:3000/
+        url: http://192.168.88.251:3000/
         routes:
           - name: dashboard-all
             strip_path: true
@@ -403,7 +403,7 @@ spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -451,7 +451,7 @@ spec:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: kong
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -504,7 +504,7 @@ spec:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: meta
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -544,7 +544,7 @@ spec:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: auth
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -595,7 +595,7 @@ spec:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: realtime
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -646,7 +646,7 @@ spec:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: storage
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -697,7 +697,7 @@ spec:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: imgproxy
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
