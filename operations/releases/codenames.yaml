@@ -316,6 +316,8 @@ modules:
       digest: sha256:595066a79effd20eb72c6a2535e6e95367ef112cc8d49844649c870c01b21c77
     - codename: aurora-silver
       digest: sha256:0831c55f1ac2e25ac133e6cbe0a5b33af5a76c44c17deeb20164373641423871
+    - codename: flare-silver
+      digest: sha256:d2abfd02a3ed9b216e71265f4a3666e518dd96de0b265f88761e4ec735c8c7b2
   platform/among-clusters:
     releases:
     - codename: bora
