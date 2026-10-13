@@ -16,12 +16,13 @@ The authenticated administrator `postgres_admin_sql` path created
 `021`, `040`, `041`, `042_payment_public_verification`, `043`, `044`, `046`,
 `047`, `048`, `049`.
 
-The existing global `commerce_runtime` role cannot be delegated by the
-`supabase_admin` identity because it has no admin membership. Its attempted
-grant failed without changing membership. A reviewed follow-on migration
-`052_billing_commerce_runtime.sql` will create a target-specific RPC role and
-grant it to the Commerce PostgREST login roles. Do not route traffic through
-those roles until this migration is applied and verified.
+The existing global `commerce_runtime` and `commerce_anon` roles cannot be
+delegated by the `supabase_admin` identity because it has no admin membership.
+Their attempted grants failed without changing membership. Reviewed follow-on
+migrations create target-specific `billing_commerce_runtime` and
+`billing_commerce_anon` roles owned by the billing migration authority. Do not
+route traffic through those roles until the migrations are applied and
+verified.
 
 Each write used a plan hash and `apply=true`; the migration scripts' outer
 `BEGIN`/`COMMIT` were removed so the tool could wrap each script in a single

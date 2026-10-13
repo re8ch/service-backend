@@ -26,7 +26,10 @@ documents a separate historical migration procedure if that decision changes.
    Migrations `052_billing_commerce_runtime.sql` and
    `053_billing_commerce_pgrst_login.sql` were applied after Cloud Functions
    PRs #120 and #122 merged. The existing Commerce PostgREST login is now a
-   member of the target-specific RPC role. Before the GitOps runtime PR merges,
+   member of the target-specific RPC role. Migration
+   `056_billing_commerce_anon_role.sql` replaces the undelegable cluster-global
+   anonymous role with `billing_commerce_anon`; apply and verify it before the
+   runtime uses that role. Before the GitOps runtime PR merges,
    run `provision_billing_secrets.py plan` and then `apply` through the
    authenticated restricted-node-6dc3f140f9 administrator path. It creates new payment and Commerce
    Secrets for `re8ch_billing` from existing managed login credentials, with a
