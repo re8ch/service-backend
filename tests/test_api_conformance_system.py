@@ -139,6 +139,39 @@ def test_crds_and_runtime_keep_runner_unprivileged():
     assert default_deny["spec"] == {"endpointSelector": {}, "ingress": [], "egress": []}
 
 
+def test_current_engine_counts_and_incomplete_reports_fail_closed():
+    report = {"schemathesis_version": "4.29.1", "complete": True, "exit_code": 0,
+              "stop_reason": "completed", "command": "Bearer never-persist-this",
+              "operations": {"total": 10, "selected": 2, "tested": 2, "errored": 0, "skipped": 0},
+              "test_cases": {"generated": 25, "with_failures": 0, "unique_failures": 0, "without_checks": 1},
+              "failures": [], "errors": []}
+
+    def summarize(value):
+        return contract.sanitized_summary(target="identity", run_id="r1", mode="read", seed=1,
+            schema_sha256="a" * 64, exit_code=0, report=value, lifecycle={}, audit_refs=[])
+
+    result = summarize(report)
+    assert result["status"] == "passed"
+    assert result["counts"]["generated"] == 25
+    assert result["counts"]["operationsTested"] == 2
+    assert "never-persist-this" not in json.dumps(result)
+    for change in ({"complete": False}, {"stop_reason": "time_limit"}, {"exit_code": 1},
+                   {"test_cases": {}}, {"operations": {}}, {"schemathesis_version": "unknown"},
+                   {"errors": [{"title": "sensitive exception text", "count": 1}]}):
+        assert summarize({**report, **change})["status"] == "failed"
+    assert summarize(None)["status"] == "failed"
+    a = summarize({**report, "failures": [{"type": "status_code_conformance", "operations": ["GET /users"], "count": 1}]})
+    b = summarize({**report, "failures": [{"type": "status_code_conformance", "operations": ["GET /users"], "count": 9, "title": "different example"}]})
+    assert a["failureFingerprints"] == b["failureFingerprints"]
+
+
+def test_runner_disables_crash_cache_independently_of_generation_database():
+    source = (BASE / "runner.py").read_text()
+    assert 'config_path.write_text("[cache]\\nenabled = false\\n")' in source
+    assert '"--config-file", str(config_path), "run"' in source
+    assert '"--generation-database", "none"' in source
+
+
 def test_crd_object_schemas_do_not_mix_properties_and_additional_properties():
     """Kubernetes rejects this JSONSchema combination during CRD dry-run."""
     def visit(value):
