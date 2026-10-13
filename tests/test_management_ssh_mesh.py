@@ -43,9 +43,21 @@ def test_windows_watchdog_uses_quorum_and_cooldown_guards() -> None:
     assert "hostRebootDelaySeconds" in script
     assert "hostRebootCooldownSeconds" in script
     assert "nodeReplyTimeoutSeconds" in script
-    assert "WaitForExit($timeoutMilliseconds)" in script
-    assert "Kill($true)" in script
+    assert "control-plane-wsl-heartbeat.json" in script
+    assert "$heartbeat.controlPlaneReady -eq $true" in script
     assert "shutdown.exe" in script
+
+
+def test_wsl_heartbeat_does_not_make_zerotier_a_host_reboot_gate() -> None:
+    script = (
+        ROOT
+        / "operations/network/scripts/control-plane-watchdog/re8ch-control-plane-heartbeat.sh"
+    ).read_text()
+    assert "systemctl is-active --quiet k3s.service" in script
+    assert "systemctl is-active --quiet ssh.service" in script
+    assert '"controlPlaneReady":true' in script
+    assert '"zerotierReady":%s' in script
+    assert "ip -4 addr show | grep -q '192.0.2.208/'" in script
 
 
 def test_windows_installer_separates_wsl_owner_from_host_reboot_authority() -> None:

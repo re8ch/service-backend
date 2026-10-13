@@ -41,7 +41,9 @@ function Test-LocalWsl {
         $heartbeat = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
         $observed = [DateTimeOffset]::FromUnixTimeSeconds([long]$heartbeat.unixSeconds)
         $age = ([DateTimeOffset]::UtcNow - $observed).TotalSeconds
-        return $age -ge 0 -and $age -le 180 -and $heartbeat.nodeName -eq 'restricted-node-296f36f2fb'
+        return $age -ge 0 -and $age -le 180 -and
+            $heartbeat.nodeName -eq 'restricted-node-296f36f2fb' -and
+            $heartbeat.controlPlaneReady -eq $true
     } catch {
         return $false
     }

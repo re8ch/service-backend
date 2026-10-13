@@ -3,9 +3,11 @@
 `b1-windows.json` is the reviewed, nonsecret configuration installed at
 `C:\ProgramData\RE8CH\control-plane-watchdog.json`. The task runs as SYSTEM
 every five minutes and reads the WSL heartbeat written by
-`re8ch-control-plane-heartbeat.timer`. A heartbeat is published only when
-B1's k3s, SSH, and WSL ZeroTier identity are present; the host accepts it
-for 180 seconds. This avoids calling Administrator-owned WSL from SYSTEM.
+`re8ch-control-plane-heartbeat.timer`. A heartbeat is published when B1's
+k3s and SSH services are active; the host accepts it for 180 seconds.
+ZeroTier readiness is included as a diagnostic field but is not a host reboot
+gate: loss of a management overlay must not reboot a functioning control plane.
+This also avoids calling Administrator-owned WSL from SYSTEM.
 
 After three unhealthy checks, host recovery requires both independent
 signals: A1 Windows SSH on the `192.0.2.180/24` LAN and HTTPS at the
