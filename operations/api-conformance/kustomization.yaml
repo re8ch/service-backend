@@ -11,5 +11,5 @@ configMapGenerator:
   - controller.py
   - runner.py
   - contract.py
-generatorOptions:
-  disableNameSuffixHash: true
+configurations:
+- kustomizeconfig.yaml

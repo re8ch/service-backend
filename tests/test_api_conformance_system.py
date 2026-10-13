@@ -171,6 +171,37 @@ def test_root_gitops_includes_conformance_system():
     assert "../../operations/api-conformance" in root["resources"]
 
 
+def test_controller_execution_permissions_are_namespace_scoped():
+    manifests = list(yaml.safe_load_all((BASE / "runtime.yaml").read_text()))
+    cluster_role = next(item for item in manifests if item["kind"] == "ClusterRole")
+    for rule in cluster_role["rules"]:
+        assert set(rule["verbs"]) <= {"get", "list", "watch"}
+        assert not set(rule["resources"]) & {"pods/log", "jobs", "secrets"}
+    role = next(item for item in manifests if item["kind"] == "Role")
+    binding = next(item for item in manifests if item["kind"] == "RoleBinding")
+    assert role["metadata"]["namespace"] == binding["metadata"]["namespace"] == "api-conformance-system"
+    assert binding["roleRef"]["kind"] == "Role"
+    assert binding["roleRef"]["name"] == role["metadata"]["name"]
+
+
+def test_rendered_code_version_is_pinned_for_controller_and_runner():
+    import shutil
+    import subprocess
+
+    if not shutil.which("kustomize"):
+        pytest.skip("kustomize required for rendered name-reference check")
+    rendered = subprocess.check_output(["kustomize", "build", str(BASE)], text=True)
+    manifests = list(yaml.safe_load_all(rendered))
+    configmap = next(item for item in manifests if item["kind"] == "ConfigMap")
+    name = configmap["metadata"]["name"]
+    assert name.startswith("api-conformance-code-")
+    deployment = next(item for item in manifests if item["kind"] == "Deployment")
+    pod = deployment["spec"]["template"]["spec"]
+    assert next(v for v in pod["volumes"] if v["name"] == "code")["configMap"]["name"] == name
+    assert next(e for e in pod["containers"][0]["env"] if e["name"] == "CODE_CONFIG_MAP")["value"] == name
+    assert '"configMap": {"name": CODE_CONFIG_MAP}' in configmap["data"]["controller.py"]
+
+
 def test_pilot_targets_are_digest_pinned_and_fail_closed():
     targets = list(yaml.safe_load_all((BASE / "targets.yaml").read_text()))
     assert {item["metadata"]["name"] for item in targets} == {
