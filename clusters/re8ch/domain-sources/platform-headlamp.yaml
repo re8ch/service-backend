@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: flare-silver
+    delivery.re8ch.com/codename: lantern-silver
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:d2abfd02a3ed9b216e71265f4a3666e518dd96de0b265f88761e4ec735c8c7b2
+    digest: sha256:dcb3a11a3a5d944dfaa3f22de1907483fc7c0b3a61d4c04a5d6206bf3424ff2d
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: flare-silver
+    delivery.re8ch.com/codename: lantern-silver
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
