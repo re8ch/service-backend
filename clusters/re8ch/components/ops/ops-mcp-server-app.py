@@ -439,7 +439,10 @@ def k8s_api_proxy(args):
 
 
 class PgProtocolError(RuntimeError):
-    pass
+    def __init__(self, message, sqlstate=None, severity=None):
+        super().__init__(message)
+        self.sqlstate = sqlstate
+        self.severity = severity
 
 
 def pg_read_message(sock):
@@ -463,13 +466,26 @@ def pg_send_message(sock, msg_type, payload=b""):
     sock.sendall(msg_type + struct.pack("!I", len(payload) + 4) + payload)
 
 
-def pg_error_message(payload):
+def pg_error_details(payload):
     parts = payload.split(b"\x00")
     fields = {}
     for part in parts:
         if len(part) >= 2:
             fields[part[:1].decode("ascii", errors="ignore")] = part[1:].decode("utf-8", errors="replace")
-    return fields.get("M") or fields.get("S") or "PostgreSQL error"
+    return {
+        "message": fields.get("M") or fields.get("S") or "PostgreSQL error",
+        "sqlState": fields.get("C"),
+        "severity": fields.get("V") or fields.get("S"),
+    }
+
+
+def pg_error_message(payload):
+    return pg_error_details(payload)["message"]
+
+
+def pg_protocol_error(payload):
+    details = pg_error_details(payload)
+    return PgProtocolError(details["message"], sqlstate=details["sqlState"], severity=details["severity"])
 
 
 def pg_cstring(value):
@@ -513,7 +529,7 @@ def pg_authenticate(sock, user, password, auth_payload):
         pg_send_message(sock, b"p", first_payload)
         msg_type, payload = pg_read_message(sock)
         if msg_type == b"E":
-            raise PgProtocolError(pg_error_message(payload))
+            raise pg_protocol_error(payload)
         if msg_type != b"R" or struct.unpack("!I", payload[:4])[0] != 11:
             raise PgProtocolError("expected SASLContinue")
         server_first = payload[4:].decode("utf-8", errors="replace")
@@ -536,7 +552,7 @@ def pg_authenticate(sock, user, password, auth_payload):
         pg_send_message(sock, b"p", client_final.encode("utf-8"))
         msg_type, payload = pg_read_message(sock)
         if msg_type == b"E":
-            raise PgProtocolError(pg_error_message(payload))
+            raise pg_protocol_error(payload)
         if msg_type != b"R" or struct.unpack("!I", payload[:4])[0] != 12:
             raise PgProtocolError("expected SASLFinal")
         return
@@ -562,7 +578,7 @@ def pg_connect(host, port, database, user, password, timeout=10):
         if msg_type == b"R":
             pg_authenticate(sock, user, password, msg_payload)
         elif msg_type == b"E":
-            raise PgProtocolError(pg_error_message(msg_payload))
+            raise pg_protocol_error(msg_payload)
         elif msg_type == b"Z":
             return sock
         elif msg_type in (b"S", b"K", b"N"):
@@ -611,7 +627,7 @@ def pg_execute_simple(sock, sql, max_rows=100):
         elif msg_type == b"N":
             notices.append(pg_error_message(payload))
         elif msg_type == b"E":
-            raise PgProtocolError(pg_error_message(payload))
+            raise pg_protocol_error(payload)
         elif msg_type == b"Z":
             return {"columns": columns, "rows": rows, "rowCount": len(rows), "truncated": truncated, "command": command, "notices": notices}
 
@@ -772,7 +788,19 @@ def postgres_admin_sql(args=None):
                 "planHash": plan_hash, "transactional": transactional,
                 "command": result["command"], "approvalId": approval_id}
     except PgProtocolError as exc:
-        raise RuntimeError("PostgreSQL rejected the admin SQL script") from exc
+        return {
+            "status": "rejected",
+            "database": database,
+            "readOnly": read_only,
+            "planHash": plan_hash,
+            "transactional": transactional,
+            "approvalId": approval_id,
+            "error": {
+                "message": str(exc),
+                "sqlState": exc.sqlstate,
+                "severity": exc.severity,
+            },
+        }
     finally:
         if sock is not None:
             try:
