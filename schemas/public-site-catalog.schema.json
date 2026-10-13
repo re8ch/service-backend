@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/public-site-catalog.schema.json",
+  "title": "RE8CH public website desired-state catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "delivery.re8ch.com/v1alpha1"},
+    "kind": {"const": "PublicSiteCatalog"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"const": "public-sites"}}
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allocationPolicy", "qualityProfiles", "healthProfiles", "sites"],
+      "properties": {
+        "allocationPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["originIsolation", "hostnameSharing", "regionalDefaults"],
+          "properties": {
+            "originIsolation": {"const": "site-deployment"},
+            "hostnameSharing": {"const": "same-artifact-owner-cache-and-rollback-only"},
+            "regionalDefaults": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["globalStatic", "globalEdge", "chinaRe8chFamily", "chinaYnzsFamily"],
+              "properties": {
+                "globalStatic": {"const": "cloudflare-pages"},
+                "globalEdge": {"const": "cloudflare-workers"},
+                "chinaRe8chFamily": {"const": "tencent-cos-edgeone"},
+                "chinaYnzsFamily": {"const": "aliyun-oss-esa"}
+              }
+            }
+          }
+        },
+        "qualityProfiles": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/qualityProfile"}
+        },
+        "healthProfiles": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/healthProfile"}
+        },
+        "sites": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/site"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "qualityProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["advisory", "runs", "lighthouse", "webVitals"],
+      "properties": {
+        "advisory": {"const": true},
+        "runs": {"type": "integer", "minimum": 1, "maximum": 5},
+        "lighthouse": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["performance", "accessibility", "bestPractices", "seo"],
+          "properties": {
+            "performance": {"type": "integer", "minimum": 0, "maximum": 100},
+            "accessibility": {"type": "integer", "minimum": 0, "maximum": 100},
+            "bestPractices": {"type": "integer", "minimum": 0, "maximum": 100},
+            "seo": {"type": "integer", "minimum": 0, "maximum": 100}
+          }
+        },
+        "webVitals": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["lcpMs", "cls", "tbtMs"],
+          "properties": {
+            "lcpMs": {"type": "integer", "minimum": 1},
+            "cls": {"type": "number", "minimum": 0},
+            "tbtMs": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "healthProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["availabilityCadence", "qualityCadence", "paths"],
+      "properties": {
+        "availabilityCadence": {"const": "5m"},
+        "qualityCadence": {"const": "daily"},
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "status"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^/"},
+              "status": {"type": "integer", "minimum": 100, "maximum": 599},
+              "contentTypeContains": {"type": "string", "minLength": 1},
+              "bodyContains": {"type": "string", "minLength": 1},
+              "bodyNotContains": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "resource"],
+      "properties": {
+        "provider": {
+          "enum": ["cloudflare-pages", "cloudflare-workers", "tencent-cos", "tencent-edgeone", "aliyun-oss", "aliyun-esa"]
+        },
+        "resource": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1}
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "region", "primaryUrl", "hostnames", "build", "origin", "delivery"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "region": {"enum": ["global", "china"]},
+        "primaryUrl": {"type": "string", "format": "uri", "pattern": "^https://"},
+        "hostnames": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "hostname"}
+        },
+        "build": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["command", "outputDirectory"],
+          "properties": {
+            "command": {"type": "string", "minLength": 1},
+            "outputDirectory": {"type": "string", "pattern": "^[^/]"}
+          }
+        },
+        "origin": {"$ref": "#/$defs/endpoint"},
+        "delivery": {"$ref": "#/$defs/endpoint"}
+      }
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "owner", "repository", "qualityProfile", "healthProfile", "agentDiscovery", "deployments"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "displayName": {"type": "string", "minLength": 1},
+        "owner": {"type": "string", "pattern": "^[a-z0-9-]+/[a-z0-9-]+$"},
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["url", "defaultBranch"],
+          "properties": {
+            "url": {"type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+(?:\\.git)?$"},
+            "defaultBranch": {"type": "string", "minLength": 1}
+          }
+        },
+        "qualityProfile": {"type": "string", "minLength": 1},
+        "healthProfile": {"type": "string", "minLength": 1},
+        "agentDiscovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["geo", "a2a"],
+          "properties": {
+            "geo": {"enum": ["active", "planned", "disabled"]},
+            "a2a": {"enum": ["active", "planned", "disabled"]}
+          }
+        },
+        "deployments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/deployment"}
+        }
+      }
+    }
+  }
+}

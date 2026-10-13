@@ -165,6 +165,10 @@ domains:
   delivery:
     theme: waypoints
     paths:
+      - inventory/public-sites.yaml
+      - schemas/public-site-catalog.schema.json
+      - operations/public-sites/**
+      - tests/test_public_sites.py
       - platform/adapter/**
       - platform/connectool/**
       - platform/external-projects/**

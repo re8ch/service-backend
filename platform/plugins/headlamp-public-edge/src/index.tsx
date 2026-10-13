@@ -38,6 +38,28 @@ type ExternalSite = {
   notes?: string;
 };
 
+type GovernedDeployment = {
+  id: string;
+  region: string;
+  primaryUrl: string;
+  hostnames: string[];
+  origin: { provider: string; resource: string; region?: string };
+  delivery: { provider: string; resource: string; region?: string };
+  status: 'healthy' | 'drifted' | 'declared-but-missing';
+  observed: ExternalSite[];
+};
+
+type GovernedSite = {
+  id: string;
+  displayName: string;
+  owner: string;
+  repository: { url: string; defaultBranch: string };
+  qualityProfile: string;
+  healthProfile: string;
+  agentDiscovery: { geo: string; a2a: string };
+  deployments: GovernedDeployment[];
+};
+
 function externalSitesFrom(configMap: any): ExternalSite[] {
   try {
     const parsed = JSON.parse(configMap?.data?.['sites.json'] || '{"sites":[]}');
@@ -49,6 +71,15 @@ function externalSitesFrom(configMap: any): ExternalSite[] {
             site.hostnames.every((host: any) => typeof host === 'string')
         )
       : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function governedSitesFrom(configMap: any): GovernedSite[] {
+  try {
+    const parsed = JSON.parse(configMap?.data?.['governance.json'] || '{"sites":[]}');
+    return Array.isArray(parsed.sites) ? parsed.sites : [];
   } catch (_) {
     return [];
   }
@@ -104,6 +135,12 @@ function Dashboard() {
       (x: any) =>
         x.metadata?.namespace === 'kube-system' && x.metadata?.name === 'public-edge-catalog'
     );
+  const governanceConfigMap = (configMaps || [])
+    .map(raw)
+    .find(
+      (x: any) =>
+        x.metadata?.namespace === 'kube-system' && x.metadata?.name === 'public-site-governance'
+    );
   const nameserversConfigMap = (configMaps || [])
     .map(raw)
     .find(
@@ -112,6 +149,7 @@ function Dashboard() {
         x.metadata?.name === 'public-edge-nameservers'
     );
   const externalSites = externalSitesFrom(sitesConfigMap);
+  const governedSites = governedSitesFrom(governanceConfigMap);
   const nameserversInUse = nameserversFrom(nameserversConfigMap);
   let records: any = { services: {}, zones: [] };
   try {
@@ -503,6 +541,7 @@ function Dashboard() {
         <Tab value="dns" label="DNS Authorities" />
         <Tab value="routes" label="Service Routes" />
         <Tab value="cdn" label="External CDN" />
+        <Tab value="websites" label="Websites" />
       </Tabs>
       {tab === 'candidates' && (
         <SectionBox title={`Candidates (${(edges || []).length})`}>
@@ -720,6 +759,49 @@ function Dashboard() {
                 { header: 'DNS mode', accessorKey: 'dnsMode' },
                 { header: 'Source of truth', accessorKey: 'sourceOfTruth' },
                 { header: 'Notes', accessorFn: (x: any) => x.notes || '-' },
+              ] as any
+            }
+          />
+        </SectionBox>
+      )}
+      {tab === 'websites' && (
+        <SectionBox title={`Governed websites (${governedSites.length})`}>
+          <Table
+            data={governedSites.flatMap(site =>
+              site.deployments.map(deployment => ({ ...deployment, site }))
+            )}
+            columns={
+              [
+                { header: 'Website', accessorFn: (x: any) => x.site.displayName },
+                { header: 'Deployment', accessorFn: (x: any) => `${x.id} / ${x.region}` },
+                { header: 'Primary URL', accessorKey: 'primaryUrl' },
+                {
+                  header: 'Origin',
+                  accessorFn: (x: any) =>
+                    `${x.origin.provider} / ${x.origin.resource}${x.origin.region ? ` / ${x.origin.region}` : ''}`,
+                },
+                {
+                  header: 'Delivery',
+                  accessorFn: (x: any) => `${x.delivery.provider} / ${x.delivery.resource}`,
+                },
+                {
+                  header: 'Reconciliation',
+                  accessorFn: (x: any) => (
+                    <StatusLabel status={x.status === 'healthy' ? 'success' : 'warning'}>
+                      {x.status}
+                    </StatusLabel>
+                  ),
+                },
+                { header: 'Owner', accessorFn: (x: any) => x.site.owner },
+                {
+                  header: 'AI discovery',
+                  accessorFn: (x: any) =>
+                    `GEO ${x.site.agentDiscovery.geo} · A2A ${x.site.agentDiscovery.a2a}`,
+                },
+                {
+                  header: 'Profiles',
+                  accessorFn: (x: any) => `${x.site.healthProfile} / ${x.site.qualityProfile}`,
+                },
               ] as any
             }
           />
