@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: identity-dependency-preflight
+  namespace: tenant-infrastructure
+spec:
+  podSelector:
+    matchLabels: {app: tenant-control-controller}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels: {kubernetes.io/metadata.name: auth}
+      podSelector:
+        matchLabels: {app.kubernetes.io/name: re8ch-auth-gateway}
+    ports: [{protocol: TCP, port: 19447}]
