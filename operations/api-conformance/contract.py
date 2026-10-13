@@ -102,8 +102,33 @@ def sanitized_summary(*, target: str, run_id: str, mode: str, seed: int, schema_
                       exit_code: int, report: dict | None, lifecycle: dict, audit_refs: list[str]) -> dict:
     """Project a potentially sensitive Schemathesis report into a bounded result."""
     report = report if isinstance(report, dict) else {}
-    statistic = report.get("statistic", {}) if isinstance(report.get("statistic"), dict) else {}
+    cases = report.get("test_cases", {}) if isinstance(report.get("test_cases"), dict) else {}
+    operations = report.get("operations", {}) if isinstance(report.get("operations"), dict) else {}
     failures = report.get("failures", []) if isinstance(report.get("failures"), list) else []
+    errors = report.get("errors", []) if isinstance(report.get("errors"), list) else []
+    # These are the actual 4.29.1 JSON report fields, not the legacy statistics
+    # structure. A successful process alone cannot prove that tests ran.
+    counts = {
+        "generated": int(cases.get("generated", 0) or 0),
+        "withFailures": int(cases.get("with_failures", 0) or 0),
+        "withoutChecks": int(cases.get("without_checks", 0) or 0),
+        "uniqueFailures": int(cases.get("unique_failures", 0) or 0),
+        **{"operations" + key.title(): int(operations.get(key, 0) or 0)
+           for key in ("total", "selected", "tested", "errored", "skipped")},
+    }
+    _require(all(0 <= value <= 1000000 for value in counts.values()), "invalid report counts")
+    passed = (exit_code == 0 and report.get("exit_code") == 0
+              and report.get("complete") is True and report.get("stop_reason") == "completed"
+              and report.get("schemathesis_version") == "4.29.1"
+              and counts["generated"] > counts["withoutChecks"]
+              and counts["operationsTested"] == counts["operationsSelected"] > 0
+              and counts["operationsSkipped"] == 0 and counts["withFailures"] == 0
+              and counts["operationsErrored"] == 0 and not failures and not errors
+              and lifecycle.get("cleanup") != "failed" and lifecycle.get("reversal") != "failed")
+    # Counts, titles, bodies, random examples and exception text are not stable
+    # regression identities. Hash only the check type and operation templates.
+    fingerprints = {failure_fingerprint({"type": item.get("type"), "operations": item.get("operations", [])})
+                    for item in failures if isinstance(item, dict)}
     result = {
         "version": 1,
         "target": target,
@@ -113,13 +138,10 @@ def sanitized_summary(*, target: str, run_id: str, mode: str, seed: int, schema_
         "engineVersion": "4.29.1",
         "seed": seed,
         "schemaSha256": schema_sha256,
-        "status": "passed" if exit_code == 0 and lifecycle.get("cleanup") != "failed" and lifecycle.get("reversal") != "failed" else "failed",
+        "status": "passed" if passed else "failed",
         "exitCode": exit_code,
-        "counts": {
-            key: int(statistic.get(key, 0) or 0)
-            for key in ("total", "passed", "failed", "errored", "skipped")
-        },
-        "failureFingerprints": sorted({failure_fingerprint(item) for item in failures})[:50],
+        "counts": counts,
+        "failureFingerprints": sorted(fingerprints)[:50],
         "lifecycle": {
             "setup": lifecycle.get("setup", "not_run"),
             "test": lifecycle.get("test", "not_run"),
