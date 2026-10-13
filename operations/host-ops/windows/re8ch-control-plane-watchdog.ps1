@@ -33,15 +33,20 @@ function Test-TcpEndpoint([string] $Address, [int] $Port, [int] $TimeoutMillisec
 }
 
 function Test-LocalWsl {
-    $arguments = @('-d', $config.distribution, '--exec', '/bin/sh', '-lc', 'systemctl is-active --quiet k3s && systemctl is-active --quiet ssh && ip -4 addr show | grep -q "10.181.22."')
-    $process = Start-Process -FilePath "$env:SystemRoot\System32\wsl.exe" -ArgumentList $arguments -PassThru -WindowStyle Hidden
-    $timeoutMilliseconds = [int] $config.localWslProbeTimeoutSeconds * 1000
-    if (-not $process.WaitForExit($timeoutMilliseconds)) {
-        Write-WatchdogLog "status=probe-timeout timeoutSeconds=$($config.localWslProbeTimeoutSeconds)"
-        try { $process.Kill($true) } catch { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+    # A SYSTEM scheduled task cannot reliably open Administrator's WSL
+    # distribution. Read a bounded heartbeat written by that WSL instead.
+    $path = Join-Path $env:ProgramData 'RE8CH\control-plane-wsl-heartbeat.json'
+    if (-not (Test-Path -LiteralPath $path)) { return $false }
+    try {
+        $heartbeat = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+        $observed = [DateTimeOffset]::FromUnixTimeSeconds([long]$heartbeat.unixSeconds)
+        $age = ([DateTimeOffset]::UtcNow - $observed).TotalSeconds
+        return $age -ge 0 -and $age -le 180 -and
+            $heartbeat.nodeName -eq 'restricted-node-296f36f2fb' -and
+            $heartbeat.controlPlaneReady -eq $true
+    } catch {
         return $false
     }
-    return $process.ExitCode -eq 0
 }
 
 $state = Read-WatchdogState
