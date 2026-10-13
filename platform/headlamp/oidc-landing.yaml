@@ -33,7 +33,6 @@ metadata:
 spec:
   selector:
     app.kubernetes.io/name: headlamp
-    traffic.re8ch.com/headlamp-active: "true"
   ports:
     - name: http
       port: 80
