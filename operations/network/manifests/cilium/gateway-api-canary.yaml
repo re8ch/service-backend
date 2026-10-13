@@ -33,7 +33,7 @@ metadata:
   annotations:
     # DNS names belong to the public 443 edge, while the Gateway and backend
     # Pods may live anywhere in the Cilium routing domain.
-    external-dns.alpha.kubernetes.io/target: 192.0.2.192
+    external-dns.alpha.kubernetes.io/target: 1.14.174.244
 spec:
   gatewayClassName: cilium-re8ch
   infrastructure:
@@ -41,7 +41,7 @@ spec:
       networking.re8ch.com/lb-pool: service-vip
       networking.re8ch.com/bgp-advertise: enabled
     annotations:
-      lbipam.cilium.io/ips: 192.0.2.213
+      lbipam.cilium.io/ips: 10.251.0.4
   listeners:
     - name: http
       protocol: HTTP
@@ -142,7 +142,7 @@ spec:
               - name: X-Re8ch-Gateway
                 value: cilium
       backendRefs:
-        - name: headlamp
+        - name: headlamp-gateway-backend
           port: 80
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -153,7 +153,7 @@ metadata:
   annotations:
     # Gateway status contains private service VIPs for every regional parent.
     # Publish only the routable public edge; the VIPs remain internal origins.
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
 spec:
@@ -170,7 +170,7 @@ spec:
               - name: X-Re8ch-Gateway
                 value: cilium
       backendRefs:
-        - name: headlamp
+        - name: headlamp-gateway-backend
           port: 80
 ---
 apiVersion: gateway.networking.k8s.io/v1
