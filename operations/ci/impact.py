@@ -79,6 +79,14 @@ def load_catalog() -> dict:
         for tree in (ROOT / "clusters", ROOT / "platform")
         for path in tree.rglob("kustomization.yaml")
     )
+    # A small number of operational controllers are deployed directly from
+    # operations/. They remain explicit domain roots rather than making every
+    # helper kustomization deployable by implication.
+    actual.extend(
+        root for root in declared
+        if root.startswith("operations/") and (ROOT / root / "kustomization.yaml").is_file()
+    )
+    actual = sorted(set(actual))
     missing = sorted(set(actual) - set(declared) - {"clusters/re8ch", "clusters/re8ch/flux-system/github-canary", "clusters/re8ch/domain-sources"})
     stale = sorted(set(declared) - set(actual))
     if set(catalog.get("external_inputs", {})) - set(declared):
