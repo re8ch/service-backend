@@ -64,9 +64,14 @@ def test_provider_worker_requires_explicit_signed_image_rollout():
 
 
 def test_identity_gateway_can_check_deletion_dependencies_without_broad_access():
-    docs = tenant_chart_documents()
-    policy = next(item for item in docs if item["kind"] == "NetworkPolicy"
-                  and item["metadata"]["name"] == "tenant-control-controller")
+    # Identity dependency reachability must not depend on a healthy Helm
+    # upgrade of the entire tenant runtime platform.
+    path = "components/auth/dependency-policy.yaml"
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert path in root["resources"]
+    policy = yaml.safe_load((ROOT / "clusters/re8ch" / path).read_text())
+    assert policy["metadata"]["namespace"] == "tenant-infrastructure"
+    assert policy["spec"]["podSelector"] == {"matchLabels": {"app": "tenant-control-controller"}}
     rules = [rule for rule in policy["spec"]["ingress"]
              if any(peer.get("namespaceSelector", {}).get("matchLabels", {}).get(
                  "kubernetes.io/metadata.name") == "auth" for peer in rule.get("from", []))]
