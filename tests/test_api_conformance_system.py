@@ -188,10 +188,13 @@ def test_crd_object_schemas_do_not_mix_properties_and_additional_properties():
         visit(document["spec"]["versions"][0]["schema"]["openAPIV3Schema"])
 
 
-def test_runner_accepts_yaml_and_derives_hard_request_budget():
+def test_runner_accepts_yaml_and_bounds_a_single_generation_cycle():
     source = (BASE / "runner.py").read_text()
     assert "yaml.safe_load(raw)" in source
     assert "request_budget // rate" in source
+    assert '"--max-time"' not in source
+    assert "timeout=effective_timeout, check=False" in source
+    assert "max(60," not in source
     controller = (BASE / "controller.py").read_text()
     assert 'status["mutationBlocked"] = True' in controller
     assert 'not status.get("mutationBlocked")' in controller
