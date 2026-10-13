@@ -74,6 +74,18 @@ def validate_document(document: dict, target: dict) -> dict[str, tuple[str, str]
         _require(operations[operation_id][0] in SAFE_METHODS, f"read operation is mutating: {operation_id}")
     for operation_id in configured.get("mutationOperationIds", []):
         _require(operations[operation_id][0] in MUTATION_METHODS, f"mutation operation is not mutating: {operation_id}")
+    for steps in target.get("lifecycle", {}).values():
+        for step in steps:
+            operation_id = step.get("operationId")
+            _require(operation_id in operations, "lifecycle requires a schema operationId")
+            method, path = operations[operation_id]
+            allowlist = configured.get("readOperationIds", []) if method in SAFE_METHODS else configured.get("mutationOperationIds", [])
+            _require(operation_id in allowlist, "lifecycle operation is not allowlisted")
+            _require(step.get("method", "").lower() == method, "lifecycle method differs from schema")
+            pattern = re.escape(path)
+            pattern = re.sub(r"\\\{[^{}]+\\\}", r"[^/]+", pattern)
+            _require(re.fullmatch(pattern, step.get("path", "").split("?", 1)[0]) is not None,
+                     "lifecycle path differs from schema")
     return operations
 
 

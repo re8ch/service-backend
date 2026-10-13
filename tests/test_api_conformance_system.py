@@ -38,6 +38,63 @@ def test_target_and_operation_classification_fail_closed():
         contract.validate_document(document("post"), value)
 
 
+def test_lifecycle_must_match_allowed_schema_operation():
+    schema = document("delete", "deleteUser")
+    schema["paths"]["/users/{userId}"] = schema["paths"].pop("/users")
+    value = target(operations={"readOperationIds": [], "mutationOperationIds": ["deleteUser"]},
+                   lifecycle={"cleanup": [{"operationId": "deleteUser", "method": "DELETE", "path": "/users/${userId}"}]})
+    contract.validate_document(schema, value)
+    for change in ({"path": "/organizations/${userId}"}, {"method": "POST"}, {"operationId": "unknown"}):
+        step = value["lifecycle"]["cleanup"][0]
+        original = step.copy()
+        step.update(change)
+        with pytest.raises(contract.ContractError):
+            contract.validate_document(schema, value)
+        step.clear()
+        step.update(original)
+
+
+def test_lifecycle_redirect_cannot_forward_credentials(monkeypatch):
+    import sys
+    import threading
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    monkeypatch.setitem(sys.modules, "contract", contract)
+    runner_spec = importlib.util.spec_from_file_location("conformance_runner", BASE / "runner.py")
+    runner = importlib.util.module_from_spec(runner_spec)
+    runner_spec.loader.exec_module(runner)
+    seen = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            seen.append(self.path)
+            self.send_response(302)
+            self.send_header("Location", "/unexpected")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        value = target(baseUrl=f"http://127.0.0.1:{server.server_port}")
+        step = {"operationId": "listUsers", "method": "GET", "path": "/users"}
+        monkeypatch.setenv("AUTHORIZATION", "Bearer synthetic-test")
+        with pytest.raises(contract.ContractError, match="redirects"):
+            runner.lifecycle_request(value, step, {"RUN_ID": "test"})
+        assert seen == ["/users"]
+        for path in ("//external.invalid", "/%2e%2e/admin", "/users#fragment", "/users\\admin"):
+            with pytest.raises(contract.ContractError, match="path"):
+                runner.lifecycle_request(value, {**step, "path": path}, {"RUN_ID": "test"})
+        assert seen == ["/users"]
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
 def test_mutation_requires_canary_cleanup_and_explicit_opt_in():
     value = target(operations={"readOperationIds": [], "mutationOperationIds": ["createUser"], "allowGeneratedMutations": True})
     with pytest.raises(contract.ContractError, match="canary"):
