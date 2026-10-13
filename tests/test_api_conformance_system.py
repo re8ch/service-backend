@@ -82,6 +82,22 @@ def test_crds_and_runtime_keep_runner_unprivileged():
     assert default_deny["spec"] == {"endpointSelector": {}, "ingress": [], "egress": []}
 
 
+def test_crd_object_schemas_do_not_mix_properties_and_additional_properties():
+    """Kubernetes rejects this JSONSchema combination during CRD dry-run."""
+    def visit(value):
+        if isinstance(value, dict):
+            assert not ("properties" in value and "additionalProperties" in value)
+            assert value.get("uniqueItems") is not True
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    for document in yaml.safe_load_all((BASE / "crds.yaml").read_text()):
+        visit(document["spec"]["versions"][0]["schema"]["openAPIV3Schema"])
+
+
 def test_runner_accepts_yaml_and_derives_hard_request_budget():
     source = (BASE / "runner.py").read_text()
     assert "yaml.safe_load(raw)" in source

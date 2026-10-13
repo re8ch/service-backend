@@ -26,7 +26,6 @@ spec:
         properties:
           spec:
             type: object
-            additionalProperties: false
             required: [serviceRef, repository, commit, branch, baseUrl, schema, network, operations, limits]
             properties:
               serviceRef: {type: string, minLength: 1}
@@ -38,32 +37,27 @@ spec:
               suspend: {type: boolean, default: false}
               schema:
                 type: object
-                additionalProperties: false
                 required: [url, sha256]
                 properties:
                   url: {type: string, pattern: '^https://'}
                   sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
               network:
                 type: object
-                additionalProperties: false
                 required: [allowedHosts]
                 properties:
                   allowedHosts:
                     type: array
                     minItems: 1
-                    uniqueItems: true
                     items: {type: string, pattern: '^[A-Za-z0-9.-]+$'}
               operations:
                 type: object
-                additionalProperties: false
                 required: [readOperationIds, mutationOperationIds]
                 properties:
-                  readOperationIds: {type: array, uniqueItems: true, items: {type: string, minLength: 1}}
-                  mutationOperationIds: {type: array, uniqueItems: true, items: {type: string, minLength: 1}}
+                  readOperationIds: {type: array, items: {type: string, minLength: 1}}
+                  mutationOperationIds: {type: array, items: {type: string, minLength: 1}}
                   allowGeneratedMutations: {type: boolean, default: false}
               limits:
                 type: object
-                additionalProperties: false
                 required: [maxExamples, maxRequests, ratePerSecond, timeoutSeconds]
                 properties:
                   maxExamples: {type: integer, minimum: 1, maximum: 100}
@@ -72,37 +66,31 @@ spec:
                   timeoutSeconds: {type: integer, minimum: 60, maximum: 900}
               schedule:
                 type: object
-                additionalProperties: false
                 properties:
                   readSeconds: {type: integer, minimum: 900, default: 21600}
                   mutationSeconds: {type: integer, minimum: 3600, default: 86400}
               github:
                 type: object
-                additionalProperties: false
                 required: [installationId]
                 properties: {installationId: {type: string, pattern: '^[0-9]+$'}}
               authSecretRef:
                 type: object
-                additionalProperties: false
                 required: [name]
                 properties:
                   name: {type: string, minLength: 1}
                   key: {type: string, default: authorization}
               canary:
                 type: object
-                additionalProperties: false
                 properties:
                   tenantRef: {type: string, pattern: '^schemathesis-canary[A-Za-z0-9_.-]*$'}
                   resourceRef: {type: string}
               lifecycle:
                 type: object
-                additionalProperties: false
                 properties:
                   setup:
                     type: array
                     items: &lifecycleStep
                       type: object
-                      additionalProperties: false
                       required: [method, path, expectedStatuses]
                       properties:
                         method: {type: string, enum: [GET, POST, PUT, PATCH, DELETE]}
@@ -147,7 +135,6 @@ spec:
         properties:
           spec:
             type: object
-            additionalProperties: false
             required: [targetRef, mode, trigger, commit]
             properties:
               targetRef: {type: string, minLength: 1}
