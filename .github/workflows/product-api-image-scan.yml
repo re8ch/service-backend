@@ -1,0 +1,45 @@
+name: Scan immutable product API images
+on:
+  workflow_dispatch:
+    inputs:
+      auth_digest: {description: Auth image SHA256 digest, required: true, type: string}
+      commerce_digest: {description: Commerce image SHA256 digest, required: true, type: string}
+      payment_digest: {description: Payment image SHA256 digest, required: true, type: string}
+permissions: {contents: read}
+jobs:
+  scan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 25
+    steps:
+      - name: Scan fixed repositories with independent CI scanner
+        env:
+          AUTH_DIGEST: ${{ inputs.auth_digest }}
+          COMMERCE_DIGEST: ${{ inputs.commerce_digest }}
+          PAYMENT_DIGEST: ${{ inputs.payment_digest }}
+          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for digest in "$AUTH_DIGEST" "$COMMERCE_DIGEST" "$PAYMENT_DIGEST"; do
+            [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          done
+          mkdir -p "$RUNNER_TEMP/product-scans"
+          images=("auth/re8ch-auth-gateway@$AUTH_DIGEST" "hyperswitch/processor-commerce-api@$COMMERCE_DIGEST" "hyperswitch/processor-payment-registry-api@$PAYMENT_DIGEST")
+          names=(auth commerce payment)
+          for i in 0 1 2; do
+            docker run --rm -e TRIVY_USERNAME -e TRIVY_PASSWORD \
+              --volume "$RUNNER_TEMP/product-scans:/out" \
+              ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
+              image --image-src remote --scanners vuln --format json \
+              --output "/out/${names[$i]}.json" "registry.re8ch.com/${images[$i]}"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: product-api-image-scans
+          path: ${{ runner.temp }}/product-scans/*.json
+          retention-days: 30
+          if-no-files-found: error
