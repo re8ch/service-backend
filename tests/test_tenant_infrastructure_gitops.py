@@ -63,6 +63,19 @@ def test_provider_worker_requires_explicit_signed_image_rollout():
     assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
 
 
+def test_identity_gateway_can_check_deletion_dependencies_without_broad_access():
+    docs = tenant_chart_documents()
+    policy = next(item for item in docs if item["kind"] == "NetworkPolicy"
+                  and item["metadata"]["name"] == "tenant-control-controller")
+    rules = [rule for rule in policy["spec"]["ingress"]
+             if any(peer.get("namespaceSelector", {}).get("matchLabels", {}).get(
+                 "kubernetes.io/metadata.name") == "auth" for peer in rule.get("from", []))]
+    assert rules == [{"from": [{
+        "namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "auth"}},
+        "podSelector": {"matchLabels": {"app.kubernetes.io/name": "re8ch-auth-gateway"}},
+    }], "ports": [{"protocol": "TCP", "port": 19447}]}]
+
+
 def test_contract_schemas_are_valid_json_and_have_stable_ids():
     instance = json.loads((ROOT / "schemas/tenant-service-instance.schema.json").read_text())
     usage = json.loads((ROOT / "schemas/usage-event.schema.json").read_text())
