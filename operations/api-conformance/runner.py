@@ -166,14 +166,15 @@ def main() -> int:
             limits = target.get("limits", {})
             rate = int(limits.get("ratePerSecond", 1))
             request_budget = int(limits.get("maxRequests", 500))
-            # Schemathesis applies max-examples per operation. The wall-clock cap,
-            # together with the global rate limiter, is the hard run-level budget.
-            effective_timeout = min(int(limits.get("timeoutSeconds", 600)), max(60, request_budget // rate))
+            # Keep one finite generation cycle. In 4.29.1 --max-time repeats
+            # fuzzing until time runs out, even after max-examples is reached.
+            # This is a time/rate safety bound, not an exact request counter.
+            effective_timeout = min(int(limits.get("timeoutSeconds", 600)), max(1, request_budget // rate))
             command = [
                 "schemathesis", "--config-file", str(config_path), "run", str(schema_path), "--url", target["baseUrl"],
                 "--include-operation-id-regex", pattern,
                 "--checks", "all", "--workers", "1", "--max-examples", str(limits.get("maxExamples", 25)),
-                "--max-time", str(effective_timeout), "--max-failures", "20",
+                "--max-failures", "20",
                 "--rate-limit", f"{rate}/s", "--max-redirects", "0",
                 "--request-timeout", "15", "--request-retries", "0", "--seed", str(seed),
                 "--generation-database", "none", "--output-sanitize", "true", "--output-truncate", "true",
@@ -183,7 +184,7 @@ def main() -> int:
             if authorization := os.getenv("AUTHORIZATION"):
                 command += ["--header", "Authorization:" + authorization]
             completed = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                       timeout=effective_timeout + 30, check=False)
+                                       timeout=effective_timeout, check=False)
             exit_code = completed.returncode
             if report_path.exists():
                 report = json.loads(report_path.read_text())
