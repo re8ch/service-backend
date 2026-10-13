@@ -40,7 +40,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
-          image: docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2
+          image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 3000}]
           env:
@@ -55,8 +55,8 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
-            requests: {cpu: 50m, memory: 64Mi}
-            limits: {cpu: 500m, memory: 256Mi}
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
 ---
 apiVersion: v1
 kind: Service
@@ -80,7 +80,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: postgrest
-          image: docker.io/postgrest/postgrest:v14.1@sha256:e9490aa503a5fb07d8e8c80da46e5c0c193894e583b59ed9077e74c4101ffae2
+          image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 3000}]
           env:
@@ -91,7 +91,7 @@ spec:
             - name: PGRST_JWT_SECRET
               valueFrom: {secretKeyRef: {name: billing-payment-postgrest-secrets, key: PGRST_JWT_SECRET}}
           readinessProbe: {httpGet: {path: /, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
-          resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
 ---
 apiVersion: v1
 kind: Service
