@@ -11,6 +11,8 @@ spec:
     matchLabels: { app.kubernetes.io/component: rest }
   template:
     metadata:
+      annotations:
+        re8ch.com/recovery-rollout: "2026-10-14-postgrest"
       labels:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: rest
