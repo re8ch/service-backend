@@ -38,11 +38,9 @@ rules:
 # namespace must contain only runner pull credentials, never App/service tokens.
 - apiGroups: [""]
   resources: [secrets]
-  verbs: [get, list, create]
-- apiGroups: [""]
-  resources: [secrets]
-  resourceNames: [harbor-functions-shared-pull]
-  verbs: [update, patch, delete]
+  # Kyverno admission checks these verbs without a resourceName. The Enforce
+  # boundary below ensures this namespace contains only the named pull Secret.
+  verbs: [get, list, create, update, patch, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

@@ -1,4 +1,4 @@
-# Enable only after runner-runtime bootstrap RBAC and its Secret boundary apply.
+# Applied by a Flux unit depending on the runner bootstrap RBAC and boundary.
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata: {name: api-conformance-runner-pull}

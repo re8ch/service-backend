@@ -1,0 +1,24 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: api-conformance-runner-bootstrap, namespace: flux-system}
+spec:
+  interval: 5m
+  retryInterval: 30s
+  timeout: 2m
+  path: ./operations/api-conformance/runner-bootstrap
+  prune: false
+  wait: true
+  sourceRef: {kind: GitRepository, name: service-backend}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: api-conformance-runner-projection, namespace: flux-system}
+spec:
+  interval: 5m
+  retryInterval: 30s
+  timeout: 2m
+  path: ./operations/api-conformance/runner-projection
+  prune: false
+  wait: true
+  dependsOn: [{name: api-conformance-runner-bootstrap}]
+  sourceRef: {kind: GitRepository, name: service-backend}
