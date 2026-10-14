@@ -181,7 +181,10 @@ spec:
         - {id: tencent-zan, address: 192.0.2.192, nameserver: ns-zan.re8ch.com., region: cn-guangdong, enabled: true}
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
       # and API/DB A answers can qualify it for NS authority.
-      excludedNodeNames: [overseas-la-2]
+      # LA is currently NotReady and its public redirector cannot complete TLS.
+      # Exclude it until live path qualification recovers so one unhealthy
+      # fixed-node Pod cannot block the DaemonSet rollout on healthy edges.
+      excludedNodeNames: [overseas-la, overseas-la-2]
       # Keep the embedded authority off restricted-node-6dc3f140f9 and the dedicated PowerDNS hosts.
       # restricted-node-6dc3f140f9 remains independently eligible for Public Edge ingress.
       excludedAuthorityNodeNames: [restricted-node-6dc3f140f9, domain-ex, muaya-lightweight, suxunji, zan, overseas-la-2]
