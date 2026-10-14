@@ -162,7 +162,7 @@
           "required": ["tool", "replace"],
           "properties": {
             "tool": {
-              "enum": ["storage-file-api", "firebase-cli", "tencent-coscli", "aliyun-ossutil", "cloudflare-wrangler"]
+              "enum": ["storage-file-api", "firebase-cli", "tencent-cos-api", "aliyun-ossutil", "cloudflare-wrangler"]
             },
             "replace": {"const": true}
           }

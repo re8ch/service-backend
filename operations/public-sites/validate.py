@@ -33,7 +33,7 @@ def validate(catalog: dict) -> None:
     publish_tools = {
         "cloudflare-pages": {"cloudflare-wrangler"},
         "cloudflare-workers": {"cloudflare-wrangler"},
-        "tencent-cos": {"tencent-coscli", "storage-file-api"},
+        "tencent-cos": {"tencent-cos-api", "storage-file-api"},
         "aliyun-oss": {"aliyun-ossutil", "storage-file-api"},
     }
 

@@ -48,7 +48,7 @@ def test_static_delivery_uses_direct_or_compiled_artifacts_and_native_publishers
     deployments = catalog()["spec"]["sites"][0]["deployments"]
     assert {item["build"]["mode"] for item in deployments} <= {"direct", "compiled"}
     assert {item["publish"]["tool"] for item in deployments} == {
-        "cloudflare-wrangler", "tencent-coscli",
+        "cloudflare-wrangler", "tencent-cos-api",
     }
     assert all(item["publish"]["replace"] is True for item in deployments)
 

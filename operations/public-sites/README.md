@@ -34,7 +34,8 @@ path selected by `publish.tool`:
 
 - `storage-file-api` or `firebase-cli` for the shared storage/file API and
   Firebase-backed buckets;
-- `tencent-coscli` for Tencent COS;
+- `tencent-cos-api` for Tencent COS through COSCLI, the Tencent COS SDK/API,
+  or the shared file API;
 - `aliyun-ossutil` for Aliyun OSS;
 - `cloudflare-wrangler` for Cloudflare Pages, Workers Static Assets, or R2.
 

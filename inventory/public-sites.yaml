@@ -88,7 +88,7 @@ spec:
             command: npm run build:china
             outputDirectory: zh-build
           publish:
-            tool: tencent-coscli
+            tool: tencent-cos-api
             replace: true
           origin:
             provider: tencent-cos
