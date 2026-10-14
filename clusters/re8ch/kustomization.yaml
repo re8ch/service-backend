@@ -26,6 +26,7 @@ resources:
 - secrets/hyperswitch-runtime-values.sops.yaml
 - secrets/hyperswitch-bootstrap-admin.sops.yaml
 - secrets/tenant-claim-internal-auth.sops.yaml
+- secrets/api-conformance-github-app.sops.yaml
 - secrets/re8ch-auth-broker-client-auth.sops.yaml
 - secrets/cloud-disk-oidc-client-auth.sops.yaml
 - secrets/cloud-disk-edge.sops.yaml

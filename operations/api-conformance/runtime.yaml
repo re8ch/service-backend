@@ -79,6 +79,8 @@ spec:
         securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
         env:
         - {name: CODE_CONFIG_MAP, value: api-conformance-code}
+        - {name: GITHUB_REPOSITORY_INSTALLATIONS, value: '{"re8ch/cloud-functions":"171153917"}'}
+        - {name: DISCOVERY_ENABLED, value: "false"}
         - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
         - {name: GITHUB_APP_ID, valueFrom: {secretKeyRef: {name: api-conformance-github-app, key: app-id, optional: true}}}
         volumeMounts:

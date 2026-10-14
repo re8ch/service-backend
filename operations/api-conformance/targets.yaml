@@ -4,9 +4,10 @@ metadata:
   name: cloud-functions-identity
   namespace: api-conformance-system
   annotations:
-    conformance.re8ch.com/activation-blockers: dedicated-canary-auth-secret,reviewed-cleanup-fixture,github-app-installation
+    conformance.re8ch.com/activation-blockers: short-lived-credentials,reviewed-cleanup-fixture,oidc-result-proxy
 spec:
   serviceRef: identity.re8ch.v2
+  github: {installationId: "171153917"}
   repository: re8ch/cloud-functions
   commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
   imageDigest: sha256:d83d0a9278d686c74022b203f26420433deeebf0ab83efc23b0312565e82205e
@@ -31,9 +32,10 @@ metadata:
   name: cloud-functions-payment-credits
   namespace: api-conformance-system
   annotations:
-    conformance.re8ch.com/activation-blockers: isolated-credits-fixture,immutable-reversal-contract,github-app-installation
+    conformance.re8ch.com/activation-blockers: isolated-credits-fixture,immutable-reversal-contract,oidc-result-proxy
 spec:
   serviceRef: payment.credits.v1
+  github: {installationId: "171153917"}
   repository: re8ch/cloud-functions
   commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
   imageDigest: sha256:f13b07b494ccd10a957bc58246419f9fb2e0ab0bfe3c412c2901e712a68b59fc
@@ -58,9 +60,10 @@ metadata:
   name: cloud-functions-commerce
   namespace: api-conformance-system
   annotations:
-    conformance.re8ch.com/activation-blockers: dedicated-canary-auth-secret,github-app-installation
+    conformance.re8ch.com/activation-blockers: short-lived-credentials,oidc-result-proxy
 spec:
   serviceRef: commerce.re8ch.v1
+  github: {installationId: "171153917"}
   repository: re8ch/cloud-functions
   commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
   imageDigest: sha256:cc16ca8150d4140e988dbdfdfc8653f15472be1ff15ee3aefe59b243c52d0e4c
