@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -11,6 +12,7 @@ type fakeAPI struct {
 	calls                     int
 	method, path, contentType string
 	body                      []byte
+	response                  []byte
 	err                       error
 }
 
@@ -20,7 +22,26 @@ func (f *fakeAPI) Request(_ context.Context, method, path, contentType string, b
 	f.path = path
 	f.contentType = contentType
 	f.body = body
-	return nil, f.err
+	return f.response, f.err
+}
+
+func TestKubernetesCompletedRecord(t *testing.T) {
+	f := &fakeAPI{response: []byte(`{"metadata":{"resourceVersion":"123"},"status":{"phase":"Succeeded","delivery":{"repositoryId":"42","ownerId":"7","expiresAt":"2026-10-14T10:00:00Z","claimed":false,"report":{"runId":"run-1","target":"target-1","repository":"org/repo"}}}}`)}
+	s := KubernetesStore{API: f, Namespace: "api-conformance-system"}
+	r, err := s.Get(context.Background(), "run-1")
+	if err != nil || r.ResourceVersion != "123" || r.RepositoryID != "42" || r.OwnerID != "7" || r.Claimed || r.Report.RunID != "run-1" || r.Expires.IsZero() {
+		t.Fatal("invalid record projection")
+	}
+	for _, body := range []string{`{}`, `invalid`, `{"status":{"phase":"Running"}}`, strings.Repeat("x", 65537)} {
+		f.response = []byte(body)
+		if _, err := s.Get(context.Background(), "run-1"); err == nil {
+			t.Fatal("accepted invalid/incomplete record")
+		}
+	}
+	f.err = errors.New("unavailable")
+	if _, err := s.Get(context.Background(), "run-1"); err == nil {
+		t.Fatal("accepted API failure")
+	}
 }
 func TestKubernetesCAS(t *testing.T) {
 	f := &fakeAPI{}
