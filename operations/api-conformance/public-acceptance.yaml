@@ -62,7 +62,9 @@ spec:
   checks:
     exclude: [unsupported_method]
     rationale: Envoy returns 400 for HTTP/1.1 QUERY before app routing; HTTP/2 returns 405, so this single transport probe cannot be enforced at the application API.
-  limits: {maxExamples: 3, maxRequests: 100, ratePerSecond: 1, timeoutSeconds: 180}
+  # Coverage generates 63 cases; the initial 100-second engine cap expired
+  # before the report on restricted-node-6dc3f140f9. Retain 1 req/s and a finite 200-request cap.
+  limits: {maxExamples: 3, maxRequests: 200, ratePerSecond: 1, timeoutSeconds: 240}
   schedule: {readSeconds: 21600}
 ---
 # Anonymous payment health and authorization contract only. No wallet, payment,

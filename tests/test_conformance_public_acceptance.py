@@ -25,10 +25,12 @@ def test_public_acceptance_is_bounded_and_has_no_credentials_or_mutations():
         }
         assert target["limits"] == {
             "maxExamples": 5 if name == "commerce-public-contract" else 3,
-            "maxRequests": 100, "ratePerSecond": 1, "timeoutSeconds": 180,
+            "maxRequests": 200 if name == "identity-public-denial-contract" else 100,
+            "ratePerSecond": 1,
+            "timeoutSeconds": 240 if name == "identity-public-denial-contract" else 180,
         }
         assert target["network"]["allowedHosts"] == ["api.re8ch.com"]
-        assert target["network"]["pinnedEgressIPs"] == {"api.re8ch.com": "192.0.2.79"}
+        assert target["network"]["pinnedEgressIPs"] == {"api.re8ch.com": "223.159.210.222"}
         assert target["network"]["pinnedEgressEntity"] == "host"
         assert target["checks"]["exclude"] == ["unsupported_method"]
         assert len(target["checks"]["rationale"]) >= 40
@@ -64,12 +66,12 @@ def test_controller_github_egress_uses_local_proxy_and_excludes_kubernetes_api()
     docs = list(yaml.safe_load_all((ROOT / "runtime.yaml").read_text()))
     deployment = next(d for d in docs if d["kind"] == "Deployment")
     env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
-    assert env["HTTPS_PROXY"] == "http://192.0.2.16:17893"
-    assert "192.0.2.203/8" in env["NO_PROXY"]
+    assert env["HTTPS_PROXY"] == "http://10.43.179.196:17893"
+    assert "10.0.0.0/8" in env["NO_PROXY"]
     proxy_docs = list(yaml.safe_load_all((ROOT.parents[1] / "clusters/re8ch/components/egress-fabric/identity-egress.yaml").read_text()))
     proxy = next(d for d in proxy_docs if d["kind"] == "Service"
                  and d["metadata"]["name"] == "identity-egress-control-plane")
-    assert proxy["spec"]["clusterIP"] == "192.0.2.16"
+    assert proxy["spec"]["clusterIP"] == "10.43.179.196"
     assert proxy["spec"]["internalTrafficPolicy"] == "Local"
     policy = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy"
                   and d["metadata"]["name"] == "api-conformance-controller")
