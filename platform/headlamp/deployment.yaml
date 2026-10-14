@@ -43,6 +43,7 @@ spec:
                     app.kubernetes.io/name: headlamp
                 topologyKey: kubernetes.io/hostname
       tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
         - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       # Use the selected control-plane node's local API listener. This removes
