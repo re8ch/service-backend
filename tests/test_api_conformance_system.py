@@ -38,6 +38,17 @@ def test_target_and_operation_classification_fail_closed():
         contract.validate_document(document("post"), value)
 
 
+def test_check_exception_is_narrow_and_requires_rationale():
+    rationale = "Envoy rejects HTTP/1.1 QUERY with 400 before routing; HTTP/2 returns 405."
+    assert contract.validate_target(target(checks={"exclude": ["unsupported_method"],
+                                                 "rationale": rationale}))
+    for excluded, reason in ((["response_schema_conformance"], rationale),
+                             (["unsupported_method", "not_a_server_error"], rationale),
+                             (["unsupported_method"], "too short")):
+        with pytest.raises(contract.ContractError):
+            contract.validate_target(target(checks={"exclude": excluded, "rationale": reason}))
+
+
 def test_lifecycle_must_match_allowed_schema_operation():
     schema = document("delete", "deleteUser")
     schema["paths"]["/users/{userId}"] = schema["paths"].pop("/users")

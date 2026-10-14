@@ -31,6 +31,8 @@ paths:
                    "sha256": hashlib.sha256(raw).hexdigest()},
         "network": {"allowedHosts": ["api.re8ch.com"]},
         "operations": {"readOperationIds": ["commerceHealth"], "mutationOperationIds": []},
+        "checks": {"exclude": ["unsupported_method"],
+                   "rationale": "Envoy rejects HTTP/1.1 QUERY before routing while HTTP/2 returns 405."},
         "limits": {"maxExamples": 1, "maxRequests": 10, "ratePerSecond": 1, "timeoutSeconds": 60},
     }
     monkeypatch.setenv("TARGET_NAME", "commerce-public-contract")
@@ -42,6 +44,7 @@ paths:
     def fake_run(command, **kwargs):
         schema_path = Path(command[command.index("run") + 1])
         observed.append(json.loads(schema_path.read_text()))
+        assert command[command.index("--exclude-checks") + 1] == "unsupported_method"
         return SimpleNamespace(returncode=0)
 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
