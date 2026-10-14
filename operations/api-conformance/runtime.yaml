@@ -116,27 +116,6 @@ spec:
 ---
 # Clone only the existing shared-runtime pull credential through the established
 # Kyverno pattern. No plaintext credential enters Git, agent output or a pod mount.
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata: {name: api-conformance-runner-pull}
-spec:
-  admission: true
-  background: true
-  generateExisting: true
-  validationFailureAction: Audit
-  rules:
-  - name: project-shared-runtime-pull
-    match:
-      any:
-      - resources: {kinds: [Namespace], names: [api-conformance-system]}
-    generate:
-      apiVersion: v1
-      kind: Secret
-      name: harbor-functions-shared-pull
-      namespace: api-conformance-system
-      synchronize: true
-      clone: {namespace: toolhive-system, name: harbor-functions-shared-pull}
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: api-conformance-pull-source, namespace: toolhive-system}
