@@ -941,6 +941,7 @@
     "hostSourceIdentity": {
       "nodes": [
         "overseas-flk",
+        "overseas-kl",
         "overseas-la-2"
       ],
       "destinationClass": "admitted-fabric-routes",
