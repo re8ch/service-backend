@@ -42,7 +42,7 @@ def test_isolated_job_has_no_static_credentials_or_cross_namespace_mount(monkeyp
     monkeypatch.setattr(c, "validate_target", lambda value: value)
     monkeypatch.setattr(c, "patch_status", lambda *a: None)
     calls = []
-    def request(method, path, body):
+    def request(method, path, body, content_type="application/json"):
         calls.append((path, body))
         return {"metadata": {"uid": "test-job"}}
     monkeypatch.setattr(c, "kube_request", request)
@@ -53,8 +53,10 @@ def test_isolated_job_has_no_static_credentials_or_cross_namespace_mount(monkeyp
     pod = job["spec"]["template"]["spec"]
     assert job["metadata"]["namespace"] == "api-conformance-runners"
     assert pod["automountServiceAccountToken"] is False
+    assert job["spec"]["suspend"] is True
     assert [v["name"] for v in pod["volumes"]] == ["tmp"]
     assert calls[1][1]["metadata"]["namespace"] == "api-conformance-runners"
+    assert calls[2] == ("/apis/batch/v1/namespaces/api-conformance-runners/jobs/test-run", {"spec": {"suspend": False}})
     calls.clear()
     target["spec"]["authSecretRef"] = {"name": "forbidden"}
     with pytest.raises(c.ContractError, match="credential broker"):
@@ -70,7 +72,7 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
     monkeypatch.setattr(c, "RUNNER_NAMESPACE", "api-conformance-runners")
     monkeypatch.setattr(c, "patch_status", lambda *a: None)
     calls = []
-    def request(method, path, body):
+    def request(method, path, body, content_type="application/json"):
         calls.append((path, body))
         return {"metadata": {"uid": "test-job"}}
     monkeypatch.setattr(c, "kube_request", request)
@@ -81,13 +83,15 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
         "limits": {"timeoutSeconds": 180},
     }}
     c.create_run(target, "read", "manual", "test-run")
+    pod = calls[0][1]["spec"]["template"]["spec"]
+    assert pod["hostAliases"] == [{"ip": "192.0.2.79", "hostnames": ["api.re8ch.com"]}]
     policy = calls[1][1]
     assert policy["spec"]["endpointSelector"]["matchLabels"] == {"conformance.re8ch.com/run": "test-run"}
-    assert policy["spec"]["egress"][2] == {
+    assert policy["spec"]["egress"] == [{
         "toCIDR": ["192.0.2.79/32"],
         "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}],
-    }
+    }]
     target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "192.0.2.209"}
     with pytest.raises(c.ContractError, match="public IPv4"):
         c.create_run(target, "read", "manual", "test-run")
-    assert len(calls) == 2
+    assert len(calls) == 3

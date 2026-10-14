@@ -18,7 +18,7 @@ spec:
     url: https://api.re8ch.com/commerce/v1/openapi.yaml
     sha256: 9d4084209c3d6e30dff411ba7a36859af3a94524c373727eb7140034a2f10d00
   # restricted-node-6dc3f140f9's declared public authority. FQDN policy remains in place; this
-  # single pinned address covers Cilium's public egress identity on restricted-node-6dc3f140f9.
+  # single pinned address is placed in the runner hosts file and egress policy.
   network: {allowedHosts: [api.re8ch.com], pinnedEgressIPs: {api.re8ch.com: 192.0.2.79}}
   operations:
     readOperationIds: [commerceHealth, listCommerceOrders]

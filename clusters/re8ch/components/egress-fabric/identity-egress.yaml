@@ -44,7 +44,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl, overseas-la, restricted-node-6dc3f140f9]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl, overseas-la, r640]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
@@ -62,10 +62,10 @@ spec:
           image: alpine:3.22
           imagePullPolicy: IfNotPresent
           command: [/bin/sh, -ec]
-          # restricted-node-6dc3f140f9's overlay address is not a valid public-egress source. Let the
+          # R640's overlay address is not a valid public-egress source. Let the
           # kernel choose its provider-facing source there; edge nodes continue
           # binding their routable endpoint address.
-          args: ['if [ "$NODE_NAME" = restricted-node-6dc3f140f9 ]; then cp /base/config.yaml /work/config.yaml; else sed "s|bind-address: 0.0.0.0|bind-address: ${POD_IP}|" /base/config.yaml > /work/config.yaml; fi']
+          args: ['if [ "$NODE_NAME" = r640 ]; then cp /base/config.yaml /work/config.yaml; else sed "s|bind-address: 0.0.0.0|bind-address: ${POD_IP}|" /base/config.yaml > /work/config.yaml; fi']
           env:
             - {name: POD_IP, valueFrom: {fieldRef: {fieldPath: status.podIP}}}
             - {name: NODE_NAME, valueFrom: {fieldRef: {fieldPath: spec.nodeName}}}
@@ -141,7 +141,10 @@ metadata:
   namespace: egress-fabric
   labels: {app.kubernetes.io/name: identity-egress}
 spec:
-  # Control-plane callers are pinned to restricted-node-6dc3f140f9, which has a healthy local proxy.
+  # Pinned for control-plane clients that must not depend on DNS to reach the
+  # local proxy while the cluster resolver is degraded.
+  clusterIP: 10.43.179.196
+  # Control-plane callers are pinned to R640, which has a healthy local proxy.
   # Do not select a remote host-network endpoint across a broken PodCIDR path.
   internalTrafficPolicy: Local
   # A transient upstream readiness failure must not remove the control plane's
@@ -196,10 +199,10 @@ spec:
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
-            except: [192.0.2.203/8, 192.0.2.225/10, 127.0.0.0/8, 192.0.2.148/16, 192.0.2.179/12, 192.0.2.148/16]
+            except: [10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16]
       ports: [{port: 443, protocol: TCP}]
 ---
-# Tenant claim traffic is transparently SNATed on the controlled restricted-node-6dc3f140f9 egress
+# Tenant claim traffic is transparently SNATed on the controlled R640 egress
 # node. The per-claim NetworkPolicy independently rejects private/control-plane
 # destinations before this policy is considered.
 apiVersion: cilium.io/v2
@@ -212,7 +215,7 @@ spec:
       podSelector:
         matchLabels: {networking.re8ch.com/egress-class: metered-public}
   destinationCIDRs: [0.0.0.0/0]
-  excludedCIDRs: [192.0.2.203/8, 192.0.2.225/10, 127.0.0.0/8, 192.0.2.148/16, 192.0.2.179/12, 192.0.2.148/16, 224.0.0.0/4]
+  excludedCIDRs: [10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4]
   egressGateway:
     nodeSelector:
-      matchLabels: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      matchLabels: {kubernetes.io/hostname: r640}

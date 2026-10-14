@@ -13,7 +13,7 @@ metadata: {name: api-conformance-controller, namespace: api-conformance-runners}
 rules:
 - apiGroups: [batch]
   resources: [jobs]
-  verbs: [get, list, watch, create]
+  verbs: [get, list, watch, create, patch]
 - apiGroups: [""]
   resources: [pods]
   verbs: [get, list, watch]
