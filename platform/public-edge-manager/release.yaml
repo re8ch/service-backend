@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:4f1b36d36f283d377b5c1316265021a1ab7a661fd25630f6d09a1d10a2e1fba8}
+  ref: {digest: sha256:64be1270b6ee0630eeecce517d43fb022bef8f491b683b49d53f8160aa2595c7}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -29,9 +29,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.7.4"
+      tag: "0.8.1"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:8f8aefa175c8834d75b4c7c500bb46a6da4fc821f6e5cd554cd12d201a090621
+      digest: sha256:34d2d7df6ed64a7084b1b3ef4d1ba3dfb62181c92ce115897495ce8b7e05f3c7
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -192,9 +192,13 @@ spec:
       gatewayNamespace: kube-system
       gatewaySelector: networking.re8ch.com/public-edge-gateway=true
       authorityLabel: networking.re8ch.com/public-edge-authority-ready
+      authorityQualifiedLabel: networking.re8ch.com/public-edge-authority-qualified
       ingressLabel: networking.re8ch.com/public-edge-ready
       serviceClasses: [api, db-ro, db-rw, web, registry, service-pilot, service-overseas]
       parentZone: re8ch.com
+      # First rollout persists ns-01..99 allocations without changing parent
+      # delegations. A separately reviewed dual phase follows live validation.
+      nameserverMigrationPhase: legacy
       # Keep auth's authoritative zone for rollback, but stop recreating its
       # parent NS delegation before replacing that delegation with EdgeOne CNAME.
       childZones: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com, functions.re8ch.com, test.re8ch.com]
@@ -272,7 +276,26 @@ spec:
       responseTimeoutSeconds: 12
       intervalSeconds: 15
       maxWorkers: 8
-      userAgent: public-edge-manager/0.6.9
+      userAgent: public-edge-manager/0.8.1
+    globalping:
+      enabled: true
+      apiUrl: https://api.globalping.io
+      apiTokenSecretRef: {name: "", key: GLOBALPING_API_TOKEN}
+      intervalSeconds: 300
+      locations: [{magic: World}]
+      probeLimit: 10
+      maxTargetsPerKind: 8
+      maxMeasurementsPerCycle: 12
+      outputConfigMap: public-edge-globalping-quality
+      dnsTargets: [api.re8ch.com, db-ro.re8ch.com, db-rw.re8ch.com, service.re8ch.com]
+      httpTargets:
+        - {hostname: db-rw.re8ch.com, path: /auth/ready, method: GET, acceptedStatuses: [200]}
+      edgeHttpTargets:
+        - {hostname: db-rw.re8ch.com, path: /auth/ready, method: GET, acceptedStatuses: [200]}
+      extraAuthorityAddresses: [192.0.2.72, 192.0.2.110, 192.0.2.231, 192.0.2.67]
+      resources:
+        requests: {cpu: 10m, memory: 32Mi}
+        limits: {cpu: 100m, memory: 96Mi}
     candidateSelection:
       capacityWeight: 10
       localAreaBonus: 100000
@@ -287,6 +310,8 @@ spec:
       failoverGraceSeconds: 300
       minReadySeconds: 120
       minHoldSeconds: 600
+      globalpingQualityMode: Shadow
+      globalpingQualityMaxAgeSeconds: 900
       resolverCidrs:
         CN: [192.0.2.228/24, 192.0.2.90/24, 192.0.2.95/24]
         US: [192.0.2.219/24, 192.0.2.172/24]
