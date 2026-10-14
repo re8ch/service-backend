@@ -6,10 +6,9 @@ ROOT=Path(__file__).parents[1]
 
 def test_runner_pull_uses_exact_managed_secret():
     docs=list(yaml.safe_load_all((ROOT/"operations/api-conformance/runtime.yaml").read_text()))
-    policy=next(x for x in docs if x["kind"]=="ClusterPolicy")
-    rule=policy["spec"]["rules"][0]
-    assert rule["match"]["any"][0]["resources"]["names"]==["api-conformance-system"]
-    assert rule["generate"]["clone"]=={"namespace":"toolhive-system","name":"harbor-functions-shared-pull"}
+    # Kyverno requires namespace-wide Secret reads for generate admission.
+    # Do not enable cloning in the namespace containing the App private key.
+    assert not any(x["kind"]=="ClusterPolicy" for x in docs)
     source=next(x for x in docs if x["kind"]=="Role" and x["metadata"]["name"]=="api-conformance-pull-source")
     assert source["rules"][0]["verbs"]==["get"]
     assert source["rules"][0]["resourceNames"]==["harbor-functions-shared-pull"]
