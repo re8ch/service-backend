@@ -206,6 +206,8 @@ modules:
       digest: sha256:fb53ab6f339fc48dc4878654c1e1fe0052dd58409f277fe6262edf8655608754
     - codename: chinook-umber
       digest: sha256:00a7293c2071ad8f607d630ef77e1aabedbcfc4f2a84466d8ab0b3482b471fb7
+    - codename: etesian-umber
+      digest: sha256:b632a8d1cd8fa8688a658817af67f0b75699868a3825f803a9d21578abeffb70
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
