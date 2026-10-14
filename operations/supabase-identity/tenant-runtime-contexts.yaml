@@ -24,46 +24,9 @@ data:
     alter table core.organization_context_audit enable row level security;
     revoke all on core.organization_context_audit from public, anon, authenticated, service_role;
 
-    -- Preserve conflicting historical memberships as suspended audit evidence.
-    with ranked as (
-      select m.tenant_ref, m.user_id, m.status,
-        row_number() over (partition by m.user_id order by
-          case m.tenant_ref when 'admin' then 0 when 're8ch' then 1 else 2 end,
-          m.created_at, m.tenant_ref) as position
-      from core.organization_members m
-      join core.organizations o on o.tenant_ref = m.tenant_ref
-      where m.status = 'active' and o.kind <> 'personal'
-    ), audited as (
-      insert into core.organization_context_audit(
-        actor_user_id, source_tenant_ref, target_tenant_ref, action, before_state, after_state, request_id)
-      select user_id, tenant_ref, null, 'membership_conflict_suspended',
-        jsonb_build_object('userId', user_id, 'status', status), jsonb_build_object('userId', user_id, 'status', 'suspended'),
-        'migration:supabase-tenant-runtime-contexts-v4'
-      from ranked where position > 1
-    )
-    update core.organization_members m set status = 'suspended', updated_at = now()
-      from ranked r where r.position > 1 and m.tenant_ref = r.tenant_ref and m.user_id = r.user_id;
-
-    create or replace function core.enforce_single_active_non_personal_membership()
-    returns trigger language plpgsql security definer set search_path = pg_catalog, pg_temp as $$
-    begin
-      if new.status = 'active' and exists (
-        select 1 from core.organizations o where o.tenant_ref = new.tenant_ref and o.kind <> 'personal'
-      ) and exists (
-        select 1 from core.organization_members m
-        join core.organizations o on o.tenant_ref = m.tenant_ref
-        where m.user_id = new.user_id and m.status = 'active' and o.kind <> 'personal'
-          and m.tenant_ref <> new.tenant_ref
-      ) then
-        raise exception 'user already has an active non-personal organization' using errcode = '23505';
-      end if;
-      return new;
-    end $$;
-    alter function core.enforce_single_active_non_personal_membership() owner to supabase_admin;
-    drop trigger if exists enforce_single_active_non_personal_membership on core.organization_members;
-    create trigger enforce_single_active_non_personal_membership
-      before insert or update of tenant_ref, user_id, status on core.organization_members
-      for each row execute function core.enforce_single_active_non_personal_membership();
+    -- Membership is an entitlement, not the current request context. A user may
+    -- belong to multiple organizations; user_active_organizations below selects
+    -- the single organization whose resources are active for the session.
 
     create table if not exists core.user_active_organizations (
       user_id uuid primary key references auth.users(id) on delete cascade,
@@ -181,7 +144,7 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       tolerations:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
