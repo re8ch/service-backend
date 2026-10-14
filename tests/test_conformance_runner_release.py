@@ -21,3 +21,5 @@ def test_release_requires_version_scan_and_signature():
     text=(ROOT/".github/workflows/conformance-runner-release.yml").read_text()
     for required in ["merge-base --is-ancestor", "4.29.1", "HIGH,CRITICAL --exit-code 1", "cosign verify", "functions-shared/api-conformance-runner", "provenance: mode=max", "sbom: true"]:
         assert required in text
+    assert "maxRegistryConcurrency = 1" in text
+    assert "timeout-minutes: 30" in text
