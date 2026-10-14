@@ -19,7 +19,9 @@ spec:
     sha256: 9d4084209c3d6e30dff411ba7a36859af3a94524c373727eb7140034a2f10d00
   # restricted-node-6dc3f140f9's declared public authority. FQDN policy remains in place; this
   # single pinned address is placed in the runner hosts file and egress policy.
-  network: {allowedHosts: [api.re8ch.com], pinnedEgressIPs: {api.re8ch.com: 192.0.2.138}}
+  # restricted-node-6dc3f140f9's public IP is classified as reserved:host by Cilium. CIDR policy
+  # cannot select it; the reviewed host entity is restricted to TCP 443.
+  network: {allowedHosts: [api.re8ch.com], pinnedEgressIPs: {api.re8ch.com: 192.0.2.138}, pinnedEgressEntity: host}
   operations:
     readOperationIds: [commerceHealth, listCommerceOrders]
     mutationOperationIds: []

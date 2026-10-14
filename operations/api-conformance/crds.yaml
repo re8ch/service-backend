@@ -53,6 +53,7 @@ spec:
                     type: object
                     maxProperties: 4
                     additionalProperties: {type: string, format: ipv4}
+                  pinnedEgressEntity: {type: string, enum: [host]}
               operations:
                 type: object
                 required: [readOperationIds, mutationOperationIds]
