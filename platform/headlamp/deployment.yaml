@@ -52,7 +52,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       initContainers:
         - name: install-runtime-anatomy-plugin
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
@@ -69,7 +69,7 @@ spec:
             - {name: plugins, mountPath: /headlamp/plugins}
             - {name: runtime-anatomy-plugin, mountPath: /plugin, readOnly: true}
         - name: install-birfucate-browser
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
@@ -100,7 +100,7 @@ spec:
               mountPath: /plugin
               readOnly: true
         - name: install-advanced-fabric-plugin
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
@@ -131,7 +131,7 @@ spec:
               mountPath: /plugin
               readOnly: true
         - name: install-among-clusters-plugin
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
@@ -165,7 +165,7 @@ spec:
               mountPath: /plugin
               readOnly: true
         - name: install-public-edge-plugin
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
@@ -185,7 +185,7 @@ spec:
             - {name: plugins, mountPath: /headlamp/plugins}
             - {name: public-edge-plugin, mountPath: /plugin, readOnly: true}
         - name: install-mihomos-cluster-plugin
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
@@ -210,7 +210,7 @@ spec:
             - name: plugins
               mountPath: /headlamp/plugins
         - name: install-secretary-plugin
-          image: curlimages/curl@sha256:9a1ed35addb45476afa911696297f8e115993df459278ed036182dd2cd22b67b
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
           args:
             - |
