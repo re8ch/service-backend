@@ -621,6 +621,8 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["candidateSelection"]["minReadySeconds"] == 120
     assert values["candidateSelection"]["minHoldSeconds"] == 600
     assert values["candidateSelection"]["globalpingQualityMode"] == "Shadow"
+    assert values["candidateSelection"]["globalpingQualityMaxAgeSeconds"] == 2700
+    assert values["globalping"]["intervalSeconds"] == 1800
     assert values["globalping"]["probeLimit"] == 10
     assert values["globalping"]["edgeHttpTargets"] == [{
         "hostname": "db-rw.re8ch.com", "path": "/auth/ready", "method": "GET",

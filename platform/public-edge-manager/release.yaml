@@ -284,7 +284,10 @@ spec:
       enabled: true
       apiUrl: https://api.globalping.io
       apiTokenSecretRef: {name: "", key: GLOBALPING_API_TOKEN}
-      intervalSeconds: 300
+      # Anonymous credits count every selected probe. Twelve measurements at
+      # ten probes consume 120 tests per cycle, so two cycles/hour stay below
+      # the public 250 tests/hour budget.
+      intervalSeconds: 1800
       locations: [{magic: World}]
       probeLimit: 10
       maxTargetsPerKind: 8
@@ -314,7 +317,7 @@ spec:
       minReadySeconds: 120
       minHoldSeconds: 600
       globalpingQualityMode: Shadow
-      globalpingQualityMaxAgeSeconds: 900
+      globalpingQualityMaxAgeSeconds: 2700
       resolverCidrs:
         CN: [192.0.2.52/24, 192.0.2.208/24, 192.0.2.174/24]
         US: [192.0.2.204/24, 192.0.2.89/24]
