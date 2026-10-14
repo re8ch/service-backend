@@ -179,6 +179,10 @@ spec:
             matchLabels: {kubernetes.io/metadata.name: flux-system}
           podSelector:
             matchLabels: {app: source-controller}
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: api-conformance-system}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: api-conformance-controller}
       ports: [{port: 17893, protocol: TCP}]
   egress:
     - to:

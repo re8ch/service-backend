@@ -20,6 +20,7 @@ def test_public_acceptance_is_bounded_and_has_no_credentials_or_mutations():
         "timeoutSeconds": 180,
     }
     assert target["network"]["allowedHosts"] == ["api.re8ch.com"]
+    assert target["network"]["pinnedEgressIPs"] == {"api.re8ch.com": "192.0.2.138"}
 
 
 def test_authenticated_targets_remain_suspended():
@@ -46,6 +47,17 @@ def test_controller_dns_policy_supports_fqdn_learning():
     dns = policy["spec"]["egress"][1]["toPorts"][0]
     assert dns["rules"] == {"dns": [{"matchPattern": "*"}]}
     assert {p["protocol"] for p in dns["ports"]} == {"TCP", "UDP"}
+
+
+def test_controller_github_egress_uses_local_proxy_and_excludes_kubernetes_api():
+    docs = list(yaml.safe_load_all((ROOT / "runtime.yaml").read_text()))
+    deployment = next(d for d in docs if d["kind"] == "Deployment")
+    env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert env["HTTPS_PROXY"] == "http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893"
+    assert "192.0.2.183/8" in env["NO_PROXY"]
+    policy = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy"
+                  and d["metadata"]["name"] == "api-conformance-controller")
+    assert {"toEntities": ["host"], "toPorts": [{"ports": [{"port": "17893", "protocol": "TCP"}]}]} in policy["spec"]["egress"]
 
 
 def test_all_dns_rules_select_actual_cluster_resolver():

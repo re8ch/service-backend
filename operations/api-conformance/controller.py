@@ -131,7 +131,10 @@ def kube_request(method: str, path: str, body: dict | None = None, content_type:
     request = urllib.request.Request(f"https://{host}:{port}{path}", data=raw, method=method,
                                      headers={"Authorization": f"Bearer {token}", "Content-Type": content_type})
     context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-    with urllib.request.urlopen(request, context=context, timeout=15) as response:
+    # Kubernetes traffic must stay on the cluster path even when GitHub API
+    # traffic uses HTTPS_PROXY. urllib does not interpret NO_PROXY CIDRs.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=context))
+    with opener.open(request, timeout=15) as response:
         return json.load(response) if response.length != 0 else {}
 
 
@@ -212,6 +215,7 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
         job_spec["containers"][0]["volumeMounts"] = [v for v in job_spec["containers"][0]["volumeMounts"] if v["name"] != "code"]
     created = kube_request("POST", f"/apis/batch/v1/namespaces/{RUNNER_NAMESPACE}/jobs", job)
     allowed_hosts = target["spec"].get("network", {}).get("allowedHosts", [])
+    pinned_ips = target["spec"].get("network", {}).get("pinnedEgressIPs", {})
     policy = {
         "apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy",
         "metadata": {"name": run_name, "namespace": RUNNER_NAMESPACE,
@@ -224,6 +228,8 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
                                    "rules": {"dns": [{"matchPattern": "*"}]}}]},
                      {"toFQDNs": [{"matchName": host} for host in allowed_hosts],
                       "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]},
+                     *([{"toCIDR": [f"{address}/32" for address in pinned_ips.values()],
+                         "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]}] if pinned_ips else []),
                  ]},
     }
     kube_request("POST", f"/apis/cilium.io/v2/namespaces/{RUNNER_NAMESPACE}/ciliumnetworkpolicies", policy)
@@ -241,7 +247,8 @@ def pod_log(run_name: str) -> str:
     request = urllib.request.Request(f"https://{host}:{port}/api/v1/namespaces/{RUNNER_NAMESPACE}/pods/{name}/log?container=runner&tailLines=2",
                                      headers={"Authorization": f"Bearer {token}"})
     context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-    with urllib.request.urlopen(request, context=context, timeout=15) as response:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPSHandler(context=context))
+    with opener.open(request, timeout=15) as response:
         return response.read(65536).decode("utf-8", "replace")
 
 

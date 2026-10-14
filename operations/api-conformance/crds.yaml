@@ -49,6 +49,10 @@ spec:
                     type: array
                     minItems: 1
                     items: {type: string, pattern: '^[A-Za-z0-9.-]+$'}
+                  pinnedEgressIPs:
+                    type: object
+                    maxProperties: 4
+                    additionalProperties: {type: string, format: ipv4}
               operations:
                 type: object
                 required: [readOperationIds, mutationOperationIds]

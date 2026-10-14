@@ -60,3 +60,34 @@ def test_isolated_job_has_no_static_credentials_or_cross_namespace_mount(monkeyp
     with pytest.raises(c.ContractError, match="credential broker"):
         c.create_run(target, "read", "manual", "test-run")
     assert calls == []
+
+
+def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
+    monkeypatch.syspath_prepend(str(BASE))
+    spec = importlib.util.spec_from_file_location("isolated_controller_pinned", BASE / "controller.py")
+    c = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(c)
+    monkeypatch.setattr(c, "RUNNER_NAMESPACE", "api-conformance-runners")
+    monkeypatch.setattr(c, "patch_status", lambda *a: None)
+    calls = []
+    def request(method, path, body):
+        calls.append((path, body))
+        return {"metadata": {"uid": "test-job"}}
+    monkeypatch.setattr(c, "kube_request", request)
+    target = {"metadata": {"name": "target"}, "spec": {
+        "repository": "re8ch/cloud-functions", "baseUrl": "https://api.re8ch.com/commerce",
+        "schema": {"url": "https://api.re8ch.com/commerce/v1/openapi.yaml", "sha256": "0" * 64},
+        "network": {"allowedHosts": ["api.re8ch.com"], "pinnedEgressIPs": {"api.re8ch.com": "192.0.2.138"}},
+        "limits": {"timeoutSeconds": 180},
+    }}
+    c.create_run(target, "read", "manual", "test-run")
+    policy = calls[1][1]
+    assert policy["spec"]["endpointSelector"]["matchLabels"] == {"conformance.re8ch.com/run": "test-run"}
+    assert policy["spec"]["egress"][2] == {
+        "toCIDR": ["192.0.2.138/32"],
+        "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}],
+    }
+    target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "192.0.2.213"}
+    with pytest.raises(c.ContractError, match="public IPv4"):
+        c.create_run(target, "read", "manual", "test-run")
+    assert len(calls) == 2
