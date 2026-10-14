@@ -34,3 +34,18 @@ def test_controller_dns_policy_supports_fqdn_learning():
     dns = policy["spec"]["egress"][1]["toPorts"][0]
     assert dns["rules"] == {"dns": [{"matchPattern": "*"}]}
     assert {p["protocol"] for p in dns["ports"]} == {"TCP", "UDP"}
+
+
+def test_all_dns_rules_select_actual_cluster_resolver():
+    for filename in ("runtime.yaml", "result-runtime.yaml"):
+        docs = list(yaml.safe_load_all((ROOT / filename).read_text()))
+        for policy in (d for d in docs if d["kind"] == "CiliumNetworkPolicy"):
+            for rule in policy["spec"].get("egress", []):
+                if any(p.get("rules", {}).get("dns") for p in rule.get("toPorts", [])):
+                    assert rule["toEndpoints"] == [{"matchLabels": {
+                        "k8s:io.kubernetes.pod.namespace": "kube-system",
+                        "k8s:app.kubernetes.io/name": "advanced-fabric-doh",
+                    }}]
+    source = (ROOT / "controller.py").read_text()
+    assert '"k8s:app.kubernetes.io/name": "advanced-fabric-doh"' in source
+    assert '"k8s:k8s-app": "kube-dns"' not in source
