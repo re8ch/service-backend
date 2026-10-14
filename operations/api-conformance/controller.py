@@ -13,10 +13,11 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from contract import ContractError, validate_target
+from delivery import authority, publication_target, project_report, failed_report, delivery_record
 
 GROUP = "conformance.re8ch.com"
 VERSION = "v1alpha1"
@@ -26,6 +27,7 @@ RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "schemathesis/schemathesis:4.29.1@sha25
 APP_ID = os.getenv("GITHUB_APP_ID", "")
 PRIVATE_KEY = Path(os.getenv("GITHUB_PRIVATE_KEY_PATH", "/github-app/private-key.pem"))
 REPOSITORY_INSTALLATIONS = json.loads(os.getenv("GITHUB_REPOSITORY_INSTALLATIONS", "{}"))
+RESULT_BINDINGS = json.loads(os.getenv("RESULT_REPOSITORY_BINDINGS", "{}"))
 APP_PERMISSIONS = {"actions": "write", "checks": "write", "contents": "read", "issues": "write", "metadata": "read"}
 DISCOVERY_PATHS = ("/openapi.json", "/swagger.json", "/openapi.yaml")
 _last_discovery = 0.0
@@ -168,7 +170,8 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
             "apiVersion": f"{GROUP}/{VERSION}", "kind": "APIConformanceRun",
             "metadata": {"name": run_name, "namespace": NAMESPACE, "labels": {"conformance.re8ch.com/target": target_name}},
             "spec": {"targetRef": target_name, "mode": mode, "trigger": trigger,
-                     "commit": target["spec"].get("commit", ""), "imageDigest": target["spec"].get("imageDigest", "")},
+                     "commit": target["spec"].get("commit", ""), "imageDigest": target["spec"].get("imageDigest", ""),
+                     "publication": authority(target)},
         }
         kube_request("POST", f"/apis/{GROUP}/{VERSION}/namespaces/{NAMESPACE}/apiconformanceruns", run)
     target_json = json.dumps(target["spec"], separators=(",", ":"), sort_keys=True)
@@ -242,9 +245,13 @@ def publish(target: dict, report: dict, streak: int) -> None:
         "name": f"re8ch/schemathesis/{name}", "head_sha": sha, "status": "completed", "conclusion": conclusion,
         "output": {"title": f"Schemathesis {conclusion}", "summary": json.dumps(report, indent=2)[:60000]},
     })
-    encoded = base64.b64encode(json.dumps(report, separators=(",", ":"), sort_keys=True).encode()).decode()
+    if os.getenv("RESULT_DELIVERY_MODE", "dispatch") == "oidc":
+        inputs = {"run_id": report["runId"]}
+    else:
+        encoded = base64.b64encode(json.dumps(report, separators=(",", ":"), sort_keys=True).encode()).decode()
+        inputs = {"report": encoded, "run_id": report["runId"]}
     http_json(f"https://api.github.com/repos/{repository}/actions/workflows/re8ch-schemathesis-result.yml/dispatches", token, "POST",
-              {"ref": target["spec"].get("branch", "main"), "inputs": {"report": encoded, "run_id": report["runId"]}})
+              {"ref": target["spec"].get("branch", "main"), "inputs": inputs})
     marker = f"[Schemathesis] regression: {name}"
     issues = http_json(f"https://api.github.com/repos/{repository}/issues?state=all&per_page=100", token)
     issue = next((item for item in issues if item.get("title") == marker and "pull_request" not in item), None)
@@ -272,15 +279,21 @@ def collect_runs(targets: dict[str, dict]) -> None:
             continue
         text = pod_log(run["metadata"]["name"])
         try:
-            report = json.loads(next(line for line in reversed(text.splitlines()) if line.startswith("{")))
+            report = project_report(json.loads(next(line for line in reversed(text.splitlines()) if line.startswith("{"))), run)
         except Exception:
-            report = {"version": 1, "runId": run["metadata"]["name"], "mode": run["spec"]["mode"],
-                      "status": "failed", "reason": "invalid_sanitized_output"}
+            report = failed_report(run)
         target = targets.get(run["spec"]["targetRef"])
         previous = int(target.get("status", {}).get("consecutivePasses", 0)) if target else 0
         streak = previous + 1 if report.get("status") == "passed" else 0
-        patch_status("apiconformanceruns", run["metadata"]["name"], {"phase": "Succeeded" if report.get("status") == "passed" else "Failed",
-                     "finishedAt": timestamp(), "result": report})
+        completion = {"phase": "Succeeded" if report.get("status") == "passed" else "Failed",
+                      "finishedAt": timestamp(), "result": report}
+        if os.getenv("RESULT_DELIVERY_MODE", "dispatch") == "oidc":
+            try:
+                repository = publication_target(run)["spec"]["repository"]
+                completion["delivery"] = delivery_record(run, report, RESULT_BINDINGS.get(repository), timestamp(now() + timedelta(hours=1)))
+            except Exception:
+                completion["publication"] = "blocked"
+        patch_status("apiconformanceruns", run["metadata"]["name"], completion)
         if target:
             mode = run["spec"]["mode"]
             status = {**target.get("status", {}), "consecutivePasses": streak, "lastResult": report.get("status"),
@@ -292,11 +305,15 @@ def collect_runs(targets: dict[str, dict]) -> None:
                 status["mutationBlocked"] = True
                 status["mutationBlockedReason"] = "mutation_run_failed_requires_review"
             try:
-                publish(target, report, streak)
+                if completion.get("publication") == "blocked":
+                    raise ContractError("delivery initialization blocked")
+                publish(publication_target(run), report, streak)
                 status["publication"] = "published"
+                patch_status("apiconformanceruns", run["metadata"]["name"], {"publication": "published"})
             except Exception as exc:
                 status["publication"] = "blocked"
                 status["publicationReason"] = type(exc).__name__
+                patch_status("apiconformanceruns", run["metadata"]["name"], {"publication": "blocked", "publicationReason": type(exc).__name__})
             patch_status("apiconformancetargets", target["metadata"]["name"], status)
 
 
@@ -411,6 +428,7 @@ def reconcile() -> None:
         valid = (target and not target["spec"].get("suspend", False) and
                  run["spec"].get("commit") == target["spec"].get("commit") and
                  run["spec"].get("imageDigest") == target["spec"].get("imageDigest") and
+                 run["spec"].get("publication") == authority(target) and
                  (mode == "read" or (mode == "mutation" and not target.get("status", {}).get("mutationBlocked") and
                                       bool(target["spec"].get("operations", {}).get("mutationOperationIds")))))
         if not valid:

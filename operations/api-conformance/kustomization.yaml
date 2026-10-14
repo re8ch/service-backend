@@ -11,6 +11,7 @@ configMapGenerator:
   - controller.py
   - runner.py
   - contract.py
+  - delivery.py
   - request_budget.py
   - budget_hooks.py
 configurations:

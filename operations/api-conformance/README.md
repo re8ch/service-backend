@@ -34,6 +34,20 @@ Production mutation targets use only `schemathesis-canary*` tenants. Financial
 fixtures must compensate with immutable reversal entries; they never delete
 ledger history or call a real payment provider.
 
+Every new run snapshots publication repository, branch, installation, commit,
+image and schema digest in immutable `spec.publication`. Manual requests must
+include the exact reviewed snapshot; legacy runs without it cannot publish.
+The controller strictly projects runner JSON before persisting or publishing it.
+Changing a target while a run finishes cannot redirect that run's publication.
+
+`RESULT_DELIVERY_MODE=oidc` prepares a one-hour `status.delivery` envelope and
+dispatches only `run_id`. `RESULT_REPOSITORY_BINDINGS` is a reviewed mapping from
+repository to immutable `repositoryId`/`ownerId`; missing entries fail closed.
+The default remains `dispatch` until the OIDC receiver and proxy are deployed.
+Delivery initialization occurs only while completing a Running run, never when
+retrying publication; a consumed claim must never be reset. Failed publication
+is recorded on the run and requires inspection rather than blind redispatch.
+
 The initial identity, payment/Credits, and Commerce targets are committed in a
 suspended state. This is intentional: the product schema commit must be merged
 and deployed, the repository-scoped GitHub App installation must exist, and a
