@@ -161,6 +161,7 @@ def main() -> int:
         schema_path.write_bytes(raw)
         try:
             if mode == "mutation":
+                lifecycle["setup"] = "running"
                 lifecycle["setup"] = run_steps(target, "setup", variables)
             pattern = "^(?:" + "|".join(re.escape(item) for item in operation_ids) + ")$"
             limits = target.get("limits", {})
@@ -189,6 +190,14 @@ def main() -> int:
             if report_path.exists():
                 report = json.loads(report_path.read_text())
             lifecycle["test"] = "passed" if exit_code == 0 else "failed"
+        except Exception:
+            # A write may already have succeeded. Preserve compensation status
+            # even when setup, the subprocess, or report parsing fails. Never
+            # print exception text, request data, or the command containing auth.
+            if lifecycle["setup"] == "running":
+                lifecycle["setup"] = "failed"
+            lifecycle["test"] = "failed"
+            exit_code = 1
         finally:
             if mode == "mutation":
                 try:
