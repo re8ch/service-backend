@@ -13,7 +13,7 @@ spec:
   imageDigest: sha256:cc16ca8150d4140e988dbdfdfc8653f15472be1ff15ee3aefe59b243c52d0e4c
   branch: master
   baseUrl: https://api.re8ch.com/commerce
-  suspend: true
+  suspend: false
   schema:
     url: https://api.re8ch.com/commerce/v1/openapi.yaml
     sha256: 9d4084209c3d6e30dff411ba7a36859af3a94524c373727eb7140034a2f10d00
