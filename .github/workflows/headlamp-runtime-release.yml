@@ -32,7 +32,8 @@ jobs:
           umask 077
           auth="$(printf '%s:%s' "$HARBOR_USERNAME" "$HARBOR_PASSWORD" | base64 | tr -d '\n')"
           jq -n --arg auth "$auth" \
-            '{auths: {"registry.re8ch.com": {auth: $auth}}}' > "$DOCKER_CONFIG/config.json"
+            '{auths: {"registry.re8ch.com": {auth: $auth}}, cliPluginsExtraDirs: ["/Applications/Docker.app/Contents/Resources/cli-plugins"]}' \
+            > "$DOCKER_CONFIG/config.json"
           docker buildx imagetools create --tag "$TARGET_IMAGE" "$SOURCE_IMAGE"
           actual="$(docker buildx imagetools inspect "$TARGET_IMAGE" --format '{{json .Manifest}}' | jq -r .digest)"
           test "$actual" = "$EXPECTED_DIGEST"
