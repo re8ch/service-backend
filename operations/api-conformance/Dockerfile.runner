@@ -8,7 +8,16 @@ RUN apk add --no-cache --upgrade libcrypto3=3.3.7-r2 libssl3=3.3.7-r2 \
        msgpack==1.2.1 setuptools==78.1.1 urllib3==2.8.0 \
     && /opt/venv/bin/python -m pip install --no-cache-dir --upgrade \
        msgpack==1.2.1 setuptools==78.1.1 urllib3==2.8.0 \
-    && /opt/venv/bin/python -m pip check
+    && /opt/python/bin/python3.14t -m pip uninstall --yes setuptools wheel \
+    && /opt/venv/bin/python -m pip uninstall --yes setuptools wheel \
+    && /opt/venv/bin/python -m pip check \
+    && /opt/python/bin/python3.14t -m pip uninstall --yes pip \
+    && /opt/venv/bin/python -m pip uninstall --yes pip \
+    && rm -rf /opt/python/lib/python3.14t/ensurepip /opt/python/lib/python3.14/ensurepip \
+    && /opt/venv/bin/schemathesis --version
+# This sealed runner never installs packages at runtime. Remove packaging tools
+# and their vendored old dependencies instead of suppressing scanner findings.
 COPY runner.py contract.py request_budget.py budget_hooks.py /app/
 USER 65532:65532
+RUN RE8CH_REQUEST_BUDGET=/tmp/import-check python -c 'import runner, budget_hooks, requests, schemathesis; from importlib.metadata import version; assert version("schemathesis") == "4.29.1"'
 ENTRYPOINT ["python", "/app/runner.py"]
