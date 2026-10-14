@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "operations/supabase-identity/tenant-provider-config.sql"
 RUNTIME_MEMBERSHIPS = ROOT / "operations/supabase-identity/tenant-runtime-memberships.yaml"
 RUNTIME_CONTEXTS = ROOT / "operations/supabase-identity/tenant-runtime-contexts.yaml"
+MULTI_ORGANIZATION_MEMBERSHIPS = ROOT / "operations/supabase-identity/multi-organization-memberships.yaml"
 ALICE = "11111111-1111-4111-8111-111111111111"
 BOB = "22222222-2222-4222-8222-222222222222"
 
@@ -154,10 +155,10 @@ def test_runtime_contexts_keep_personal_owners_separate(postgres):
     assert postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; {query}") == f"personal-{ALICE}:admin:personal:true"
     assert postgres("select display_name from core.organizations where tenant_ref = 'admin'") == "Re8CH Admin"
     assert postgres("select display_name || ':' || parent_ref from core.organizations where tenant_ref = 're8ch'") == "Re8ch:admin"
-    postgres(f"insert into core.organization_members(tenant_ref,user_id,status,role) values ('re8ch','{ALICE}','active','member')")
     postgres("insert into core.organizations(tenant_ref,display_name,identity_ref,status,kind) values ('other','Other','other','active','enterprise')")
-    error = postgres(f"insert into core.organization_members(tenant_ref,user_id,status,role) values ('other','{ALICE}','active','member')", expect_failure=True)
-    assert "already has an active non-personal organization" in error
+    postgres(f"insert into core.organization_members(tenant_ref,user_id,status,role) values ('re8ch','{ALICE}','active','member'), ('other','{ALICE}','active','viewer')")
+    memberships = postgres(f"select string_agg(tenant_ref, ',' order by tenant_ref) from core.organization_members where user_id = '{ALICE}' and status = 'active'")
+    assert memberships == f"other,personal-{ALICE},re8ch"
     selected = postgres(f"set role authenticated; set request.jwt.claim.sub = '{ALICE}'; select api.select_active_organization('re8ch')->>'tenantRef'")
     assert selected == "re8ch"
     assert postgres(f"set request.jwt.claim.sub = '{ALICE}'; select core.can_access_tenant_resources('{ALICE}','re8ch')") == "t"
@@ -171,4 +172,40 @@ def test_runtime_context_job_mounts_its_own_migration_configmap():
     config_map, job = list(yaml.safe_load_all(RUNTIME_CONTEXTS.read_text()))
     mounted_config_map = job["spec"]["template"]["spec"]["volumes"][0]["configMap"]["name"]
     assert mounted_config_map == config_map["metadata"]["name"]
+    assert job["metadata"]["name"] == config_map["metadata"]["name"]
+
+
+def test_multi_organization_upgrade_removes_legacy_membership_constraint(postgres):
+    postgres("""
+        create role supabase_admin superuser;
+        create schema auth; create schema core;
+        create table auth.users (id uuid primary key);
+        create table core.organizations (tenant_ref text primary key, kind text);
+        create table core.organization_members (
+            tenant_ref text, user_id uuid, status text, role text,
+            primary key (tenant_ref, user_id));
+        insert into auth.users values ('11111111-1111-4111-8111-111111111111');
+        insert into core.organizations values ('admin', 'system'), ('re8ch', 'enterprise');
+        create function core.enforce_single_active_non_personal_membership()
+        returns trigger language plpgsql as $$
+        begin
+          if new.status = 'active' and exists (
+            select 1 from core.organization_members
+            where user_id = new.user_id and status = 'active' and tenant_ref <> new.tenant_ref
+          ) then raise exception 'user already has an active non-personal organization'; end if;
+          return new;
+        end $$;
+        create trigger enforce_single_active_non_personal_membership
+          before insert or update of tenant_ref, user_id, status on core.organization_members
+          for each row execute function core.enforce_single_active_non_personal_membership();
+        insert into core.organization_members values
+          ('admin', '11111111-1111-4111-8111-111111111111', 'active', 'admin');
+    """)
+    blocked = postgres(f"insert into core.organization_members values ('re8ch', '{ALICE}', 'active', 'member')", expect_failure=True)
+    assert "already has an active non-personal organization" in blocked
+    config_map, job = list(yaml.safe_load_all(MULTI_ORGANIZATION_MEMBERSHIPS.read_text()))
+    postgres(config_map["data"]["migration.sql"])
+    postgres(f"insert into core.organization_members values ('re8ch', '{ALICE}', 'active', 'member')")
+    assert postgres(f"select count(*) from core.organization_members where user_id = '{ALICE}' and status = 'active'") == "2"
+    assert job["spec"]["template"]["spec"]["volumes"][0]["configMap"]["name"] == config_map["metadata"]["name"]
     assert job["metadata"]["name"] == config_map["metadata"]["name"]
