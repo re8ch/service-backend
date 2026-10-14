@@ -181,7 +181,10 @@ def main() -> int:
         # Generation DB=none does not disable Schemathesis' separate crash
         # cache. Never persist request/response examples or replay commands.
         config_path.write_text("[cache]\nenabled = false\n")
-        schema_path.write_bytes(raw)
+        # Schemathesis selects its parser from the .json extension. The pinned
+        # source digest is over raw bytes, but the engine receives the already
+        # validated OpenAPI document as JSON so YAML sources load correctly.
+        schema_path.write_text(json.dumps(document, separators=(",", ":"), sort_keys=True))
         try:
             if mode == "mutation":
                 lifecycle["setup"] = "running"
