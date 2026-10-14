@@ -7,21 +7,31 @@ ROOT = Path(__file__).parents[1] / "operations/api-conformance"
 
 
 def test_public_acceptance_is_bounded_and_has_no_credentials_or_mutations():
-    target = yaml.safe_load((ROOT / "public-acceptance.yaml").read_text())["spec"]
-    assert target["repository"] == "re8ch/cloud-functions"
-    assert "authSecretRef" not in target
-    assert "lifecycle" not in target
-    assert target["operations"] == {
-        "readOperationIds": ["commerceHealth", "listCommerceOrders"],
-        "mutationOperationIds": [], "allowGeneratedMutations": False,
+    targets = {item["metadata"]["name"]: item["spec"] for item in
+               yaml.safe_load_all((ROOT / "public-acceptance.yaml").read_text())}
+    expected = {
+        "commerce-public-contract": ("commerceHealth", "listCommerceOrders"),
+        "identity-public-denial-contract": ("listUsers", "listOrganizations"),
+        "payment-public-contract": ("paymentHealth", "paymentReady", "listPayments"),
     }
-    assert target["limits"] == {
-        "maxExamples": 5, "maxRequests": 100, "ratePerSecond": 1,
-        "timeoutSeconds": 180,
-    }
-    assert target["network"]["allowedHosts"] == ["api.re8ch.com"]
-    assert target["network"]["pinnedEgressIPs"] == {"api.re8ch.com": "192.0.2.79"}
-    assert target["network"]["pinnedEgressEntity"] == "host"
+    assert set(targets) == set(expected)
+    for name, target in targets.items():
+        assert target["repository"] == "re8ch/cloud-functions"
+        assert "authSecretRef" not in target
+        assert "lifecycle" not in target
+        assert target["operations"] == {
+            "readOperationIds": list(expected[name]),
+            "mutationOperationIds": [], "allowGeneratedMutations": False,
+        }
+        assert target["limits"] == {
+            "maxExamples": 5 if name == "commerce-public-contract" else 3,
+            "maxRequests": 100, "ratePerSecond": 1, "timeoutSeconds": 180,
+        }
+        assert target["network"]["allowedHosts"] == ["api.re8ch.com"]
+        assert target["network"]["pinnedEgressIPs"] == {"api.re8ch.com": "192.0.2.79"}
+        assert target["network"]["pinnedEgressEntity"] == "host"
+        assert target["checks"]["exclude"] == ["unsupported_method"]
+        assert len(target["checks"]["rationale"]) >= 40
 
 
 def test_authenticated_targets_remain_suspended():
@@ -31,8 +41,8 @@ def test_authenticated_targets_remain_suspended():
 
 
 def test_enabled_public_target_requires_isolated_digest_pinned_runner():
-    target = yaml.safe_load((ROOT / "public-acceptance.yaml").read_text())["spec"]
-    if target["suspend"]:
+    targets = [item["spec"] for item in yaml.safe_load_all((ROOT / "public-acceptance.yaml").read_text())]
+    if all(target["suspend"] for target in targets):
         return
     docs = list(yaml.safe_load_all((ROOT / "runtime.yaml").read_text()))
     deployment = next(d for d in docs if d["kind"] == "Deployment")
