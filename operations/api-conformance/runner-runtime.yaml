@@ -1,0 +1,79 @@
+# Execution credentials never share a namespace with the GitHub App private key.
+# Bootstrap RBAC first; admit the Kyverno clone policy only after Flux applies it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: api-conformance-runners
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: api-conformance-controller, namespace: api-conformance-runners}
+rules:
+- apiGroups: [batch]
+  resources: [jobs]
+  verbs: [get, list, watch, create]
+- apiGroups: [""]
+  resources: [pods]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [pods/log]
+  verbs: [get]
+- apiGroups: [cilium.io]
+  resources: [ciliumnetworkpolicies]
+  verbs: [get, list, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: api-conformance-controller, namespace: api-conformance-runners}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: api-conformance-controller}
+subjects: [{kind: ServiceAccount, name: api-conformance-controller, namespace: api-conformance-system}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: api-conformance-pull-target, namespace: api-conformance-runners}
+rules:
+# Kyverno's generate admission requires unfiltered list/get. This isolated
+# namespace must contain only runner pull credentials, never App/service tokens.
+- apiGroups: [""]
+  resources: [secrets]
+  verbs: [get, list, create]
+- apiGroups: [""]
+  resources: [secrets]
+  resourceNames: [harbor-functions-shared-pull]
+  verbs: [update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: api-conformance-pull-target, namespace: api-conformance-runners}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: api-conformance-pull-target}
+subjects:
+- {kind: ServiceAccount, name: kyverno-admission-controller, namespace: kyverno}
+- {kind: ServiceAccount, name: kyverno-background-controller, namespace: kyverno}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: api-conformance-default-deny, namespace: api-conformance-runners}
+spec:
+  endpointSelector: {}
+  ingress: []
+  egress: []
+---
+# Enforce the isolation assumption before introducing any credential projection.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: api-conformance-runner-secret-boundary}
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+  - name: only-reviewed-registry-pull-secret
+    match:
+      any:
+      - resources: {kinds: [Secret], namespaces: [api-conformance-runners]}
+    validate:
+      message: Runner namespace accepts only the reviewed registry pull Secret; service and App credentials belong outside it.
+      pattern:
+        metadata: {name: harbor-functions-shared-pull}
+        type: kubernetes.io/dockerconfigjson
