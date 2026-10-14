@@ -53,8 +53,13 @@ def test_controller_github_egress_uses_local_proxy_and_excludes_kubernetes_api()
     docs = list(yaml.safe_load_all((ROOT / "runtime.yaml").read_text()))
     deployment = next(d for d in docs if d["kind"] == "Deployment")
     env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
-    assert env["HTTPS_PROXY"] == "http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893"
+    assert env["HTTPS_PROXY"] == "http://192.0.2.18:17893"
     assert "192.0.2.183/8" in env["NO_PROXY"]
+    proxy_docs = list(yaml.safe_load_all((ROOT.parents[1] / "clusters/re8ch/components/egress-fabric/identity-egress.yaml").read_text()))
+    proxy = next(d for d in proxy_docs if d["kind"] == "Service"
+                 and d["metadata"]["name"] == "identity-egress-control-plane")
+    assert proxy["spec"]["clusterIP"] == "192.0.2.18"
+    assert proxy["spec"]["internalTrafficPolicy"] == "Local"
     policy = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy"
                   and d["metadata"]["name"] == "api-conformance-controller")
     assert {"toEntities": ["host"], "toPorts": [{"ports": [{"port": "17893", "protocol": "TCP"}]}]} in policy["spec"]["egress"]

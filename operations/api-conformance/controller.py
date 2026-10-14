@@ -190,11 +190,13 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
     auth = target["spec"].get("authSecretRef")
     if auth:
         env.append({"name": "AUTHORIZATION", "valueFrom": {"secretKeyRef": {"name": auth["name"], "key": auth.get("key", "authorization")}}})
+    allowed_hosts = target["spec"].get("network", {}).get("allowedHosts", [])
+    pinned_ips = target["spec"].get("network", {}).get("pinnedEgressIPs", {})
     job = {
         "apiVersion": "batch/v1", "kind": "Job",
         "metadata": {"name": run_name, "namespace": RUNNER_NAMESPACE,
                      "labels": {"app.kubernetes.io/name": "api-conformance-runner", "conformance.re8ch.com/run": run_name}},
-        "spec": {"backoffLimit": 0, "activeDeadlineSeconds": min(930, int(target["spec"].get("limits", {}).get("timeoutSeconds", 600)) + 60),
+        "spec": {"suspend": True, "backoffLimit": 0, "activeDeadlineSeconds": min(930, int(target["spec"].get("limits", {}).get("timeoutSeconds", 600)) + 60),
                  "ttlSecondsAfterFinished": 604800,
                  "template": {"metadata": {"labels": {"app.kubernetes.io/name": "api-conformance-runner", "conformance.re8ch.com/run": run_name}},
                               "spec": {"automountServiceAccountToken": False, "restartPolicy": "Never",
@@ -207,6 +209,15 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
     }
     if pull_secret := os.getenv("RUNNER_PULL_SECRET"):
         job["spec"]["template"]["spec"]["imagePullSecrets"] = [{"name": pull_secret}]
+    if pinned_ips:
+        # /etc/hosts resolves the reviewed address before DNS. A pinned run
+        # cannot silently follow an unrelated public DNS answer.
+        by_address: dict[str, list[str]] = {}
+        for host, address in pinned_ips.items():
+            by_address.setdefault(address, []).append(host)
+        job["spec"]["template"]["spec"]["hostAliases"] = [
+            {"ip": address, "hostnames": sorted(hosts)} for address, hosts in sorted(by_address.items())
+        ]
     # Isolated runners execute the code baked into the signed image, not a
     # cross-namespace ConfigMap or a volume from the App key namespace.
     if RUNNER_NAMESPACE != NAMESPACE:
@@ -214,25 +225,33 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
         job_spec["volumes"] = [v for v in job_spec["volumes"] if v["name"] != "code"]
         job_spec["containers"][0]["volumeMounts"] = [v for v in job_spec["containers"][0]["volumeMounts"] if v["name"] != "code"]
     created = kube_request("POST", f"/apis/batch/v1/namespaces/{RUNNER_NAMESPACE}/jobs", job)
-    allowed_hosts = target["spec"].get("network", {}).get("allowedHosts", [])
-    pinned_ips = target["spec"].get("network", {}).get("pinnedEgressIPs", {})
+    unpinned_hosts = [host for host in allowed_hosts if host not in pinned_ips]
+    egress = []
+    if unpinned_hosts:
+        egress.extend([
+            {"toEndpoints": [{"matchLabels": {"k8s:io.kubernetes.pod.namespace": "kube-system", "k8s:app.kubernetes.io/name": "advanced-fabric-doh"}}],
+             "toPorts": [{"ports": [{"port": "53", "protocol": "UDP"}, {"port": "53", "protocol": "TCP"}],
+                          "rules": {"dns": [{"matchPattern": "*"}]}}]},
+            {"toFQDNs": [{"matchName": host} for host in unpinned_hosts],
+             "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]},
+        ])
+    if pinned_ips:
+        egress.append({"toCIDR": [f"{address}/32" for address in sorted(set(pinned_ips.values()))],
+                       "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]})
     policy = {
         "apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy",
         "metadata": {"name": run_name, "namespace": RUNNER_NAMESPACE,
                      "ownerReferences": [{"apiVersion": "batch/v1", "kind": "Job", "name": run_name,
                                            "uid": created["metadata"]["uid"], "controller": True, "blockOwnerDeletion": True}]},
         "spec": {"endpointSelector": {"matchLabels": {"conformance.re8ch.com/run": run_name}},
-                 "egress": [
-                     {"toEndpoints": [{"matchLabels": {"k8s:io.kubernetes.pod.namespace": "kube-system", "k8s:app.kubernetes.io/name": "advanced-fabric-doh"}}],
-                      "toPorts": [{"ports": [{"port": "53", "protocol": "UDP"}, {"port": "53", "protocol": "TCP"}],
-                                   "rules": {"dns": [{"matchPattern": "*"}]}}]},
-                     {"toFQDNs": [{"matchName": host} for host in allowed_hosts],
-                      "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]},
-                     *([{"toCIDR": [f"{address}/32" for address in pinned_ips.values()],
-                         "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]}] if pinned_ips else []),
-                 ]},
+                 "egress": egress},
     }
     kube_request("POST", f"/apis/cilium.io/v2/namespaces/{RUNNER_NAMESPACE}/ciliumnetworkpolicies", policy)
+    # The Job must not start before its per-run deny-by-default policy exists.
+    # If either write fails, it stays suspended and the persisted Run lock
+    # prevents a duplicate or an unconfined retry.
+    kube_request("PATCH", f"/apis/batch/v1/namespaces/{RUNNER_NAMESPACE}/jobs/{run_name}",
+                 {"spec": {"suspend": False}}, "application/merge-patch+json")
     patch_status("apiconformanceruns", run_name, {"phase": "Running", "startedAt": timestamp(), "jobRef": run_name})
 
 
