@@ -30,9 +30,9 @@ jobs:
           export DOCKER_CONFIG="${RUNNER_TEMP}/headlamp-runtime-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
-          printf '{}' > "$DOCKER_CONFIG/config.json"
-          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com \
-            --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+          auth="$(printf '%s:%s' "$HARBOR_USERNAME" "$HARBOR_PASSWORD" | base64 | tr -d '\n')"
+          jq -n --arg auth "$auth" \
+            '{auths: {"registry.re8ch.com": {auth: $auth}}}' > "$DOCKER_CONFIG/config.json"
           docker buildx imagetools create --tag "$TARGET_IMAGE" "$SOURCE_IMAGE"
           actual="$(docker buildx imagetools inspect "$TARGET_IMAGE" --format '{{json .Manifest}}' | jq -r .digest)"
           test "$actual" = "$EXPECTED_DIGEST"
