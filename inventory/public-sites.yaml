@@ -66,8 +66,12 @@ spec:
           hostnames:
             - re8ch.com
           build:
+            mode: compiled
             command: npm run workers:build
             outputDirectory: out
+          publish:
+            tool: cloudflare-wrangler
+            replace: true
           origin:
             provider: cloudflare-workers
             resource: re8ch-studio
@@ -80,8 +84,12 @@ spec:
           hostnames:
             - www.re8ch.com
           build:
+            mode: compiled
             command: npm run build:china
             outputDirectory: zh-build
+          publish:
+            tool: tencent-coscli
+            replace: true
           origin:
             provider: tencent-cos
             resource: re8ch-1301339749

@@ -128,7 +128,7 @@
     "deployment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "region", "primaryUrl", "hostnames", "build", "origin", "delivery"],
+      "required": ["id", "region", "primaryUrl", "hostnames", "build", "publish", "origin", "delivery"],
       "properties": {
         "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
         "region": {"enum": ["global", "china"]},
@@ -142,10 +142,29 @@
         "build": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["command", "outputDirectory"],
+          "required": ["mode", "outputDirectory"],
           "properties": {
+            "mode": {"enum": ["direct", "compiled"]},
             "command": {"type": "string", "minLength": 1},
             "outputDirectory": {"type": "string", "pattern": "^[^/]"}
+          },
+          "allOf": [
+            {
+              "if": {"properties": {"mode": {"const": "compiled"}}},
+              "then": {"required": ["command"]},
+              "else": {"not": {"required": ["command"]}}
+            }
+          ]
+        },
+        "publish": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tool", "replace"],
+          "properties": {
+            "tool": {
+              "enum": ["storage-file-api", "firebase-cli", "tencent-coscli", "aliyun-ossutil", "cloudflare-wrangler"]
+            },
+            "replace": {"const": true}
           }
         },
         "origin": {"$ref": "#/$defs/endpoint"},
