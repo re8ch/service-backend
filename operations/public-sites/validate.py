@@ -30,6 +30,12 @@ def validate(catalog: dict) -> None:
     site_ids: set[str] = set()
     host_owners: dict[str, str] = {}
     origins: dict[tuple[str, str, str], str] = {}
+    publish_tools = {
+        "cloudflare-pages": {"cloudflare-wrangler"},
+        "cloudflare-workers": {"cloudflare-wrangler"},
+        "tencent-cos": {"tencent-cos-api", "storage-file-api"},
+        "aliyun-oss": {"aliyun-ossutil", "storage-file-api"},
+    }
 
     for site in spec["sites"]:
         site_id = site["id"]
@@ -52,6 +58,9 @@ def validate(catalog: dict) -> None:
             origin_key = (origin["provider"], origin["resource"], origin.get("region", ""))
             assert origin_key not in origins, f"isolated origin reused by {identity} and {origins.get(origin_key)}"
             origins[origin_key] = identity
+            tool = deployment["publish"]["tool"]
+            allowed_tools = publish_tools.get(origin["provider"], {"storage-file-api", "firebase-cli"})
+            assert tool in allowed_tools, f"publisher {tool} does not match origin {origin['provider']}: {identity}"
 
 
 def main() -> None:
