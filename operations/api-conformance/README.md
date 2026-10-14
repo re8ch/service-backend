@@ -17,6 +17,19 @@ target supplies its non-secret installation ID. The App needs Metadata and
 Contents read plus Actions, Checks, and Issues write; it must not receive
 Contents write or Administration.
 
+The pilot App is `5307513`, installation `171153917`, scoped to
+`re8ch/cloud-functions`. The controller independently pins that mapping and
+requests repository-scoped installation tokens with explicit permissions. It
+verifies repository installation and commit identity before publication and
+rejects GitHub API redirects. Discovery remains opt-in (`DISCOVERY_ENABLED`)
+and is disabled until its outbound policy and onboarding review are complete.
+
+`encrypt_app_secret.py` imports an owner-readable local key through an in-memory
+pipe into SOPS. It never writes decrypted YAML, prints keys, or overwrites an
+existing encrypted output. The GitOps Secret lives under `clusters/re8ch/secrets`.
+Installing this Secret does not activate any suspended target or imply that the
+OIDC result proxy, short-lived service credentials, or canary fixtures are ready.
+
 Production mutation targets use only `schemathesis-canary*` tenants. Financial
 fixtures must compensate with immutable reversal entries; they never delete
 ledger history or call a real payment provider.
