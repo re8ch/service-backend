@@ -96,6 +96,14 @@ function nameserversFrom(configMap: any): string[] {
   }
 }
 
+function jsonDataFrom(configMap: any, key: string, fallback: any) {
+  try {
+    return JSON.parse(configMap?.data?.[key] || JSON.stringify(fallback));
+  } catch (_) {
+    return { ...fallback, parseError: `${key} is invalid JSON` };
+  }
+}
+
 const normalizedDnsName = (value: string) => value.replace(/\.$/, '').toLowerCase();
 const isReady = (item: any) =>
   item?.status?.conditions?.some(
@@ -110,8 +118,8 @@ function Dashboard() {
   const [pods, podError] = K8s.ResourceClasses.Pod.useList({} as any);
   const [daemonSets, daemonSetError] = K8s.ResourceClasses.DaemonSet.useList({} as any);
   const [deployments, deploymentError] = K8s.ResourceClasses.Deployment.useList({} as any);
-  const [slices] = K8s.ResourceClasses.EndpointSlice.useList({} as any);
-  const [ingresses] = Ingress.useList({} as any);
+  const [slices, sliceError] = K8s.ResourceClasses.EndpointSlice.useList({} as any);
+  const [ingresses, ingressError] = Ingress.useList({} as any);
   const [configMaps, configError] = K8s.ResourceClasses.ConfigMap.useList({} as any);
   const publicRoutes = (routes || []).map(raw).filter((x: any) => x.spec?.hostnames?.length);
   const podByIp = new Map(
@@ -148,9 +156,30 @@ function Dashboard() {
         x.metadata?.namespace === 'regional-routing' &&
         x.metadata?.name === 'public-edge-nameservers'
     );
+  const qualityConfigMap = (configMaps || [])
+    .map(raw)
+    .find(
+      (x: any) =>
+        x.metadata?.namespace === 'regional-routing' &&
+        x.metadata?.name === 'public-edge-globalping-quality'
+    );
   const externalSites = externalSitesFrom(sitesConfigMap);
   const governedSites = governedSitesFrom(governanceConfigMap);
   const nameserversInUse = nameserversFrom(nameserversConfigMap);
+  const authorityMetadata = jsonDataFrom(nameserversConfigMap, 'authorities.json', {
+    authorities: [],
+  });
+  const globalpingQuality = jsonDataFrom(qualityConfigMap, 'quality.json', {
+    candidates: {},
+    authorities: {},
+    services: {},
+  });
+  const globalpingCandidates = Object.entries(globalpingQuality.candidates || {}).map(
+    ([name, value]: any) => ({ name, ...value })
+  );
+  const globalpingServices = Object.entries(globalpingQuality.services || {}).map(
+    ([name, value]: any) => ({ name, ...value })
+  );
   let records: any = { services: {}, zones: [] };
   try {
     records = JSON.parse(recordsConfigMap?.data?.['records.json'] || '{"services":{},"zones":[]}');
@@ -179,13 +208,16 @@ function Dashboard() {
   const powerDnsRows = powerDnsPods.map((pod: any) => {
     const nodeName = pod.spec?.nodeName || '-';
     const node = nodeByName.get(nodeName) as any;
-    const nameserver = nodeName === '-' ? '-' : `ns-${nodeName}.re8ch.com.`;
     const podReady = isReady(pod);
     const nodeReady = isReady(node);
-    const inUse = selectedNameservers.has(normalizedDnsName(nameserver));
     const publicIp =
       node?.status?.addresses?.find((address: any) => address.type === 'ExternalIP')?.address ||
       '-';
+    const authority = (authorityMetadata.authorities || []).find(
+      (item: any) => item.ip === publicIp
+    );
+    const nameserver = authority?.slotNs || authority?.legacyNs || '-';
+    const inUse = selectedNameservers.has(normalizedDnsName(nameserver));
     const restarts = (pod.status?.containerStatuses || []).reduce(
       (total: number, container: any) => total + (container.restartCount || 0),
       0
@@ -461,6 +493,17 @@ function Dashboard() {
       }
     />
   );
+  const apiErrors = [
+    ['PublicEdge', edgeError],
+    ['Gateway / HTTPRoute', routeError],
+    ['Node', nodeError],
+    ['Pod', podError],
+    ['DaemonSet', daemonSetError],
+    ['Deployment', deploymentError],
+    ['EndpointSlice', sliceError],
+    ['Ingress', ingressError],
+    ['ConfigMap', configError],
+  ].filter(([, error]) => Boolean(error));
 
   return (
     <Box sx={{ p: 2 }}>
@@ -469,26 +512,11 @@ function Dashboard() {
         公网 Candidate、地域与容量，以及 ExternalDNS authority → Gateway listener → Service
         的实际发布路径。
       </Typography>
-      {(edgeError ||
-        routeError ||
-        nodeError ||
-        podError ||
-        daemonSetError ||
-        deploymentError ||
-        configError) && (
-        <Alert severity="error">
-          无法读取 PublicEdge/Gateway/Node/Pod/Workload/ConfigMap API：
-          {String(
-            edgeError ||
-              routeError ||
-              nodeError ||
-              podError ||
-              daemonSetError ||
-              deploymentError ||
-              configError
-          )}
+      {apiErrors.map(([resource, error]: any) => (
+        <Alert key={resource} severity="error">
+          无法读取 {resource} API：{String(error)}
         </Alert>
-      )}
+      ))}
       <Stack direction="row" gap={1} flexWrap="wrap" sx={{ my: 2 }}>
         <Chip label={`Candidates ${(edges || []).length}`} />
         <Chip
@@ -538,6 +566,7 @@ function Dashboard() {
         sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
       >
         <Tab value="candidates" label="Candidates" />
+        <Tab value="globalping" label="GlobalPing" />
         <Tab value="dns" label="DNS Authorities" />
         <Tab value="routes" label="Service Routes" />
         <Tab value="cdn" label="External CDN" />
@@ -549,6 +578,28 @@ function Dashboard() {
             data={(edges || []).map(raw)}
             columns={
               [
+                {
+                  header: 'GlobalPing',
+                  accessorFn: (x: any) => {
+                    const quality = x?.status?.externalQuality;
+                    return (
+                      <StatusLabel status={quality?.ready ? 'success' : 'error'}>
+                        {quality
+                          ? `${quality.ready ? 'Ready' : 'Problem'} · ${quality.ping?.probes || 0} probes`
+                          : 'No data'}
+                      </StatusLabel>
+                    );
+                  },
+                },
+                {
+                  header: 'Global latency / loss',
+                  accessorFn: (x: any) => {
+                    const ping = x?.status?.externalQuality?.ping;
+                    return ping
+                      ? `${ping.latencyAvgMs ?? '-'} ms / ${ping.lossMaxPercent ?? '-'}%`
+                      : '-';
+                  },
+                },
                 {
                   header: 'Candidate',
                   accessorFn: (x: any) => x?.metadata?.name || '-',
@@ -612,6 +663,43 @@ function Dashboard() {
             }
           />
         </SectionBox>
+      )}
+      {tab === 'globalping' && (
+        <>
+          {!qualityConfigMap && !configError && (
+            <Alert severity="warning">尚未发现 public-edge-globalping-quality ConfigMap。</Alert>
+          )}
+          {globalpingQuality.parseError && (
+            <Alert severity="error">{globalpingQuality.parseError}</Alert>
+          )}
+          <SectionBox title={`Per-edge SNI quality · ${globalpingQuality.observedAt || 'not observed'}`}>
+            <Table
+              data={globalpingCandidates}
+              columns={[
+                { header: 'Candidate', accessorKey: 'name' },
+                { header: 'Address', accessorKey: 'target' },
+                { header: 'Ready', accessorFn: (x: any) => String(Boolean(x.ready)) },
+                { header: 'ICMP probes', accessorFn: (x: any) => `${x.ping?.finished ?? 0}/${x.ping?.probes ?? 0}` },
+                { header: 'Average / max', accessorFn: (x: any) => `${x.ping?.latencyAvgMs ?? '-'} / ${x.ping?.latencyMaxMs ?? '-'} ms` },
+                { header: 'Loss', accessorFn: (x: any) => x.ping?.lossMaxPercent === null || x.ping?.lossMaxPercent === undefined ? '-' : `${x.ping.lossMaxPercent}%` },
+                { header: 'SNI services', accessorFn: (x: any) => Object.entries(x.services || {}).map(([host, result]: any) => `${host}: ${result.ready ? 'ready' : 'failed'} (${result.finished ?? 0}/${result.probes ?? 0})`).join(', ') || '-' },
+              ] as any}
+            />
+          </SectionBox>
+          <SectionBox title="Service-domain quality">
+            <Table
+              data={globalpingServices}
+              columns={[
+                { header: 'Hostname', accessorKey: 'name' },
+                { header: 'Path', accessorKey: 'path' },
+                { header: 'Ready', accessorFn: (x: any) => String(Boolean(x.ready)) },
+                { header: 'Probes', accessorFn: (x: any) => `${x.finished ?? 0}/${x.probes ?? 0}` },
+                { header: 'Average / max', accessorFn: (x: any) => `${x.latencyAvgMs ?? '-'} / ${x.latencyMaxMs ?? '-'} ms` },
+                { header: 'Resolved addresses', accessorFn: (x: any) => [...new Set((x.samples || []).map((sample: any) => sample.resolvedAddress).filter(Boolean))].join(', ') || '-' },
+              ] as any}
+            />
+          </SectionBox>
+        </>
       )}
       {tab === 'dns' && (
         <>

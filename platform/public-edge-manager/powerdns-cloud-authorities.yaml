@@ -8,15 +8,15 @@ data:
     local-port=53
     secondary=yes
     primary=no
-    allow-notify-from=192.0.2.38,192.0.2.111
+    allow-notify-from=2.28.106.230,179.255.126.104
     version-string=anonymous
   named.conf: |
-    zone "api.re8ch.com" { type slave; file "/var/lib/powerdns/api.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "db-ro.re8ch.com" { type slave; file "/var/lib/powerdns/db-ro.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "db-rw.re8ch.com" { type slave; file "/var/lib/powerdns/db-rw.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "service.re8ch.com" { type slave; file "/var/lib/powerdns/service.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "functions.re8ch.com" { type slave; file "/var/lib/powerdns/functions.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "test.re8ch.com" { type slave; file "/var/lib/powerdns/test.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
+    zone "api.re8ch.com" { type slave; file "/var/lib/powerdns/api.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "db-ro.re8ch.com" { type slave; file "/var/lib/powerdns/db-ro.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "db-rw.re8ch.com" { type slave; file "/var/lib/powerdns/db-rw.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "service.re8ch.com" { type slave; file "/var/lib/powerdns/service.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "functions.re8ch.com" { type slave; file "/var/lib/powerdns/functions.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "test.re8ch.com" { type slave; file "/var/lib/powerdns/test.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -38,9 +38,9 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: kubernetes.io/hostname
+                  - key: networking.re8ch.com/powerdns-authority-capable
                     operator: In
-                    values: [domain-ex, muaya-lightweight, suxunji, zan]
+                    values: ["true"]
       initContainers:
         - name: data-permissions
           image: docker.io/powerdns/pdns-auth-49:4.9.17@sha256:b554df74bbde1afa7caedad4af9c91378be6d46d05807d089b3c7c443002e684

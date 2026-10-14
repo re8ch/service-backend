@@ -6,7 +6,7 @@ metadata: {name: amdwsl-zt, labels: {networking.re8ch.com/firewall: cn, networki
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: domain-ex, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
+metadata: {name: domain-ex, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/powerdns-authority-capable: "true", topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
 ---
 apiVersion: v1
 kind: Node
@@ -14,7 +14,7 @@ metadata: {name: muaya-ecs, labels: {networking.re8ch.com/mihomo-exit-cn: enable
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: muaya-lightweight, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
+metadata: {name: muaya-lightweight, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/powerdns-authority-capable: "true", topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
 ---
 apiVersion: v1
 kind: Node
@@ -43,7 +43,7 @@ metadata:
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: suxunji, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
+metadata: {name: suxunji, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/powerdns-authority-capable: "true", topology.kubernetes.io/region: cn-shanghai, topology.kubernetes.io/zone: shanghai}}
 ---
 apiVersion: v1
 kind: Node
@@ -54,4 +54,4 @@ metadata:
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: zan, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, topology.kubernetes.io/region: cn-guangdong, topology.kubernetes.io/zone: guangdong}}
+metadata: {name: zan, labels: {networking.re8ch.com/mihomo-exit-cn: enabled, networking.re8ch.com/powerdns-authority-capable: "true", topology.kubernetes.io/region: cn-guangdong, topology.kubernetes.io/zone: guangdong}}

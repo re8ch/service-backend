@@ -557,12 +557,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
     assert release["spec"]["upgrade"]["timeout"] == "15m"
-    assert source["spec"]["ref"] == {"digest": "sha256:4f1b36d36f283d377b5c1316265021a1ab7a661fd25630f6d09a1d10a2e1fba8"}
+    assert source["spec"]["ref"] == {"digest": "sha256:64be1270b6ee0630eeecce517d43fb022bef8f491b683b49d53f8160aa2595c7"}
     values = release["spec"]["values"]
     assert values["image"] == {
         "repository": "ghcr.io/public-edge/public-edge-manager",
-        "tag": "0.7.4",
-        "digest": "sha256:8f8aefa175c8834d75b4c7c500bb46a6da4fc821f6e5cd554cd12d201a090621",
+        "tag": "0.8.1",
+        "digest": "sha256:34d2d7df6ed64a7084b1b3ef4d1ba3dfb62181c92ce115897495ce8b7e05f3c7",
         "pullPolicy": "IfNotPresent",
     }
     assert values["dns"]["zones"] == [
@@ -575,6 +575,8 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["discovery"]["excludedNodeNames"] == ["overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
     assert values["discovery"]["requiredAddressNames"] == ["headlamp.service.re8ch.com"]
+    assert values["discovery"]["authorityQualifiedLabel"] == "networking.re8ch.com/public-edge-authority-qualified"
+    assert values["discovery"]["nameserverMigrationPhase"] == "legacy"
     assert values["discovery"]["dnsPolicy"] == "None"
     assert values["discovery"]["dnsNameservers"] == ["1.1.1.1", "8.8.8.8"]
     assert set(values["dns"]["axfrZones"]) == {"auth.re8ch.com.", "service.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."}
@@ -618,6 +620,12 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["candidateSelection"]["failoverGraceSeconds"] == 300
     assert values["candidateSelection"]["minReadySeconds"] == 120
     assert values["candidateSelection"]["minHoldSeconds"] == 600
+    assert values["candidateSelection"]["globalpingQualityMode"] == "Shadow"
+    assert values["globalping"]["probeLimit"] == 10
+    assert values["globalping"]["edgeHttpTargets"] == [{
+        "hostname": "db-rw.re8ch.com", "path": "/auth/ready", "method": "GET",
+        "acceptedStatuses": [200],
+    }]
     assert values["candidateSelection"]["localNodeBonus"] == 0
     assert values["routeSnapshot"]["endpoint"] == "https://192.0.2.38:8443/v1/route-snapshot"
     assert values["transferTopology"] == {
