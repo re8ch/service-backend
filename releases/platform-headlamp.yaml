@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: lantern-silver
+codename: lighthouse-silver
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:dcb3a11a3a5d944dfaa3f22de1907483fc7c0b3a61d4c04a5d6206bf3424ff2d
+  digest: sha256:ec15bf332b0f4abd98e618e592b3840180df5cb5287564b7aa3913745f3ee6c9
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
