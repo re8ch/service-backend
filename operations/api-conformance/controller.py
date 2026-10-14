@@ -22,6 +22,7 @@ from delivery import authority, publication_target, project_report, failed_repor
 GROUP = "conformance.re8ch.com"
 VERSION = "v1alpha1"
 NAMESPACE = os.getenv("POD_NAMESPACE", "api-conformance-system")
+RUNNER_NAMESPACE = os.getenv("RUNNER_NAMESPACE", NAMESPACE)
 CODE_CONFIG_MAP = os.getenv("CODE_CONFIG_MAP", "api-conformance-code")
 RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "schemathesis/schemathesis:4.29.1@sha256:e276982651536cb60c316f805a822b469bbf0d27544794fbeed42eeb957278e0")
 APP_ID = os.getenv("GITHUB_APP_ID", "")
@@ -160,6 +161,8 @@ def active_runs():
 
 def create_run(target: dict, mode: str, trigger: str, run_name: str | None = None) -> None:
     validate_target(target["spec"])
+    if RUNNER_NAMESPACE != NAMESPACE and target["spec"].get("authSecretRef"):
+        raise ContractError("isolated runners require the credential broker, not static auth Secrets")
     if mode not in {"read", "mutation"}:
         raise ContractError("invalid run mode")
     target_name = target["metadata"]["name"]
@@ -186,7 +189,7 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
         env.append({"name": "AUTHORIZATION", "valueFrom": {"secretKeyRef": {"name": auth["name"], "key": auth.get("key", "authorization")}}})
     job = {
         "apiVersion": "batch/v1", "kind": "Job",
-        "metadata": {"name": run_name, "namespace": NAMESPACE,
+        "metadata": {"name": run_name, "namespace": RUNNER_NAMESPACE,
                      "labels": {"app.kubernetes.io/name": "api-conformance-runner", "conformance.re8ch.com/run": run_name}},
         "spec": {"backoffLimit": 0, "activeDeadlineSeconds": min(930, int(target["spec"].get("limits", {}).get("timeoutSeconds", 600)) + 60),
                  "ttlSecondsAfterFinished": 604800,
@@ -201,11 +204,17 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
     }
     if pull_secret := os.getenv("RUNNER_PULL_SECRET"):
         job["spec"]["template"]["spec"]["imagePullSecrets"] = [{"name": pull_secret}]
-    created = kube_request("POST", f"/apis/batch/v1/namespaces/{NAMESPACE}/jobs", job)
+    # Isolated runners execute the code baked into the signed image, not a
+    # cross-namespace ConfigMap or a volume from the App key namespace.
+    if RUNNER_NAMESPACE != NAMESPACE:
+        job_spec = job["spec"]["template"]["spec"]
+        job_spec["volumes"] = [v for v in job_spec["volumes"] if v["name"] != "code"]
+        job_spec["containers"][0]["volumeMounts"] = [v for v in job_spec["containers"][0]["volumeMounts"] if v["name"] != "code"]
+    created = kube_request("POST", f"/apis/batch/v1/namespaces/{RUNNER_NAMESPACE}/jobs", job)
     allowed_hosts = target["spec"].get("network", {}).get("allowedHosts", [])
     policy = {
         "apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy",
-        "metadata": {"name": run_name, "namespace": NAMESPACE,
+        "metadata": {"name": run_name, "namespace": RUNNER_NAMESPACE,
                      "ownerReferences": [{"apiVersion": "batch/v1", "kind": "Job", "name": run_name,
                                            "uid": created["metadata"]["uid"], "controller": True, "blockOwnerDeletion": True}]},
         "spec": {"endpointSelector": {"matchLabels": {"conformance.re8ch.com/run": run_name}},
@@ -217,19 +226,19 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
                       "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]},
                  ]},
     }
-    kube_request("POST", f"/apis/cilium.io/v2/namespaces/{NAMESPACE}/ciliumnetworkpolicies", policy)
+    kube_request("POST", f"/apis/cilium.io/v2/namespaces/{RUNNER_NAMESPACE}/ciliumnetworkpolicies", policy)
     patch_status("apiconformanceruns", run_name, {"phase": "Running", "startedAt": timestamp(), "jobRef": run_name})
 
 
 def pod_log(run_name: str) -> str:
     query = urllib.parse.urlencode({"labelSelector": f"conformance.re8ch.com/run={run_name}"})
-    pods = kube_request("GET", f"/api/v1/namespaces/{NAMESPACE}/pods?{query}").get("items", [])
+    pods = kube_request("GET", f"/api/v1/namespaces/{RUNNER_NAMESPACE}/pods?{query}").get("items", [])
     if not pods:
         return ""
     name = pods[0]["metadata"]["name"]
     host, port = os.environ["KUBERNETES_SERVICE_HOST"], os.environ["KUBERNETES_SERVICE_PORT_HTTPS"]
     token = Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
-    request = urllib.request.Request(f"https://{host}:{port}/api/v1/namespaces/{NAMESPACE}/pods/{name}/log?container=runner&tailLines=2",
+    request = urllib.request.Request(f"https://{host}:{port}/api/v1/namespaces/{RUNNER_NAMESPACE}/pods/{name}/log?container=runner&tailLines=2",
                                      headers={"Authorization": f"Bearer {token}"})
     context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
     with urllib.request.urlopen(request, context=context, timeout=15) as response:
@@ -276,7 +285,7 @@ def publish(target: dict, report: dict, streak: int) -> None:
 
 
 def collect_runs(targets: dict[str, dict]) -> None:
-    jobs = {item["metadata"]["name"]: item for item in kube_request("GET", f"/apis/batch/v1/namespaces/{NAMESPACE}/jobs").get("items", [])}
+    jobs = {item["metadata"]["name"]: item for item in kube_request("GET", f"/apis/batch/v1/namespaces/{RUNNER_NAMESPACE}/jobs").get("items", [])}
     for run in list_resource("apiconformanceruns"):
         phase = run.get("status", {}).get("phase", "Pending")
         if phase not in {"Starting", "Running", "Pending"} or (phase == "Pending" and run["spec"].get("trigger") == "manual"):
