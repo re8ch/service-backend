@@ -91,8 +91,9 @@ spec:
                     type: array
                     items: &lifecycleStep
                       type: object
-                      required: [method, path, expectedStatuses]
+                      required: [operationId, method, path, expectedStatuses]
                       properties:
+                        operationId: {type: string, minLength: 1}
                         method: {type: string, enum: [GET, POST, PUT, PATCH, DELETE]}
                         path: {type: string, pattern: '^/'}
                         body: {x-kubernetes-preserve-unknown-fields: true}
@@ -136,12 +137,25 @@ spec:
           spec:
             type: object
             required: [targetRef, mode, trigger, commit]
+            x-kubernetes-validations:
+            - rule: self == oldSelf
+              message: Run specifications are immutable; create a new run.
             properties:
-              targetRef: {type: string, minLength: 1}
-              mode: {type: string, enum: [read, mutation]}
-              trigger: {type: string, enum: [schedule, deployment, manual]}
-              commit: {type: string, pattern: '^[a-f0-9]{40}$'}
-              imageDigest: {type: string, pattern: '^$|^sha256:[a-f0-9]{64}$'}
+              targetRef: {type: string, minLength: 1, maxLength: 253}
+              mode: {type: string, maxLength: 8, enum: [read, mutation]}
+              trigger: {type: string, maxLength: 10, enum: [schedule, deployment, manual]}
+              commit: {type: string, maxLength: 40, pattern: '^[a-f0-9]{40}$'}
+              imageDigest: {type: string, maxLength: 71, pattern: '^$|^sha256:[a-f0-9]{64}$'}
+              publication:
+                type: object
+                required: [repository, commit, branch, imageDigest, schemaSha256, installationId]
+                properties:
+                  repository: {type: string, maxLength: 200, pattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'}
+                  commit: {type: string, maxLength: 40, pattern: '^[a-f0-9]{40}$'}
+                  branch: {type: string, maxLength: 200, pattern: '^[A-Za-z0-9_./-]+$'}
+                  imageDigest: {type: string, maxLength: 71, pattern: '^sha256:[a-f0-9]{64}$'}
+                  schemaSha256: {type: string, maxLength: 64, pattern: '^[a-f0-9]{64}$'}
+                  installationId: {type: string, maxLength: 30, pattern: '^[0-9]+$'}
           status:
             type: object
             x-kubernetes-preserve-unknown-fields: true
