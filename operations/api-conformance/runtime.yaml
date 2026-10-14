@@ -83,14 +83,14 @@ spec:
         - {name: DISCOVERY_ENABLED, value: "false"}
         - {name: RUNNER_PULL_SECRET, value: harbor-functions-shared-pull}
         - {name: RUNNER_NAMESPACE, value: api-conformance-runners}
-        - {name: RUNNER_IMAGE, value: 'registry.re8ch.com/functions-shared/api-conformance-runner@sha256:3d242c2e80fc3fe50e9390ca700755a6932509737dcc12ae550a7b5894b50599'}
-        # Explicitly reviewed restricted-node-6dc3f140f9 node address from public-mesh inventory.
-        - {name: HOST_IDENTITY_EGRESS_IPS, value: '["192.0.2.79"]'}
+        - {name: RUNNER_IMAGE, value: 'registry.re8ch.com/functions-shared/api-conformance-runner@sha256:f91f4d46e1eff19bcd68917e683fb8a43565c4aa403af0309453ec8ca7a9c418'}
+        # Explicitly reviewed R640 node address from public-mesh inventory.
+        - {name: HOST_IDENTITY_EGRESS_IPS, value: '["223.159.210.222"]'}
         - {name: RESULT_DELIVERY_MODE, value: oidc}
-        # restricted-node-6dc3f140f9 pod egress to GitHub times out; the established local control
+        # R640 pod egress to GitHub times out; the established local control
         # plane proxy has a healthy GitHub path and keeps the App token scoped.
-        - {name: HTTPS_PROXY, value: 'http://192.0.2.16:17893'}
-        - {name: NO_PROXY, value: 'localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.225/10'}
+        - {name: HTTPS_PROXY, value: 'http://10.43.179.196:17893'}
+        - {name: NO_PROXY, value: 'localhost,127.0.0.1,::1,.svc,.cluster.local,10.0.0.0/8,100.64.0.0/10'}
         - {name: RESULT_REPOSITORY_BINDINGS, value: '{"re8ch/cloud-functions":{"repositoryId":"1248776882","ownerId":"283958313"}}'}
         - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
         - {name: GITHUB_APP_ID, valueFrom: {secretKeyRef: {name: api-conformance-github-app, key: app-id, optional: true}}}
