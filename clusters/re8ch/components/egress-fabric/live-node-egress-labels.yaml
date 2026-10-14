@@ -18,7 +18,7 @@ metadata: {name: muaya-lightweight, labels: {networking.re8ch.com/mihomo-exit-cn
 ---
 apiVersion: v1
 kind: Node
-metadata: {name: overseas-kl, labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/anytls-public-edge: enabled, topology.kubernetes.io/region: my-kul, topology.kubernetes.io/zone: malaysia}}
+metadata: {name: overseas-kl, labels: {re8ch.com/cilium-migrate: "true", networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/anytls-public-edge: enabled, topology.kubernetes.io/region: my-kul, topology.kubernetes.io/zone: malaysia}}
 ---
 apiVersion: v1
 kind: Node
