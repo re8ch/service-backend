@@ -59,3 +59,21 @@ spec:
   endpointSelector: {}
   ingress: []
   egress: []
+---
+# Enforce the isolation assumption before introducing any credential projection.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: api-conformance-runner-secret-boundary}
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+  - name: only-reviewed-registry-pull-secret
+    match:
+      any:
+      - resources: {kinds: [Secret], namespaces: [api-conformance-runners]}
+    validate:
+      message: Runner namespace accepts only the reviewed registry pull Secret; service and App credentials belong outside it.
+      pattern:
+        metadata: {name: harbor-functions-shared-pull}
+        type: kubernetes.io/dockerconfigjson

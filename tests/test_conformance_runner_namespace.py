@@ -8,12 +8,21 @@ BASE = Path(__file__).parents[1] / "operations/api-conformance"
 
 def test_runner_bootstrap_has_no_app_secrets_or_generation_policy():
     docs = list(yaml.safe_load_all((BASE / "runner-runtime.yaml").read_text()))
-    assert not any(d["kind"] in {"Secret", "ClusterPolicy", "Deployment", "Job"} for d in docs)
+    assert not any(d["kind"] in {"Secret", "Deployment", "Job"} for d in docs)
+    assert not any("generate" in rule for d in docs if d["kind"] == "ClusterPolicy" for rule in d["spec"]["rules"])
     assert all(d["metadata"].get("namespace", "api-conformance-runners") == "api-conformance-runners" for d in docs)
     role = next(d for d in docs if d["kind"] == "Role" and d["metadata"]["name"] == "api-conformance-controller")
     assert all("secrets" not in rule["resources"] for rule in role["rules"])
     network = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy")
     assert network["spec"] == {"endpointSelector": {}, "ingress": [], "egress": []}
+    policy = next(d for d in docs if d["kind"] == "ClusterPolicy")
+    assert policy["spec"]["validationFailureAction"] == "Enforce"
+    rule = policy["spec"]["rules"][0]
+    assert rule["match"]["any"][0]["resources"]["namespaces"] == ["api-conformance-runners"]
+    assert rule["validate"]["pattern"] == {
+        "metadata": {"name": "harbor-functions-shared-pull"},
+        "type": "kubernetes.io/dockerconfigjson",
+    }
 
 
 def test_kyverno_write_permissions_stay_named():
