@@ -44,6 +44,22 @@ def test_origins_are_isolated_by_deployment():
         validator.validate(changed)
 
 
+def test_static_delivery_uses_direct_or_compiled_artifacts_and_native_publishers():
+    deployments = catalog()["spec"]["sites"][0]["deployments"]
+    assert {item["build"]["mode"] for item in deployments} <= {"direct", "compiled"}
+    assert {item["publish"]["tool"] for item in deployments} == {
+        "cloudflare-wrangler", "tencent-cos-api",
+    }
+    assert all(item["publish"]["replace"] is True for item in deployments)
+
+
+def test_publisher_must_match_the_origin_provider():
+    changed = copy.deepcopy(catalog())
+    changed["spec"]["sites"][0]["deployments"][1]["publish"]["tool"] = "cloudflare-wrangler"
+    with pytest.raises(AssertionError, match="does not match origin"):
+        validator.validate(changed)
+
+
 def test_headlamp_snapshot_is_current():
     output = yaml.safe_load((ROOT / "platform/headlamp/public-site-governance.yaml").read_text())
     payload = json.loads(output["data"]["governance.json"])
