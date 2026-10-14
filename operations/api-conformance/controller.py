@@ -199,6 +199,8 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
                                                        "volumeMounts": [{"name": "code", "mountPath": "/app", "readOnly": True}, {"name": "tmp", "mountPath": "/tmp"}]}],
                                        "volumes": [{"name": "code", "configMap": {"name": CODE_CONFIG_MAP}}, {"name": "tmp", "emptyDir": {"sizeLimit": "64Mi"}}]}}},
     }
+    if pull_secret := os.getenv("RUNNER_PULL_SECRET"):
+        job["spec"]["template"]["spec"]["imagePullSecrets"] = [{"name": pull_secret}]
     created = kube_request("POST", f"/apis/batch/v1/namespaces/{NAMESPACE}/jobs", job)
     allowed_hosts = target["spec"].get("network", {}).get("allowedHosts", [])
     policy = {
