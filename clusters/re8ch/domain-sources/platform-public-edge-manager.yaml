@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-opal
+    delivery.re8ch.com/codename: chinook-opal
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:600190dcc78efaaa51bcc49d2b2eaa3250ac96dc2ba31fd0e8644611f9ec867a
+    digest: sha256:c5368f144d6c8282a21d669d7052b4f9d018260a7dddcd62db844b72df3519fb
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: bora-opal
+    delivery.re8ch.com/codename: chinook-opal
 spec:
   interval: 1m
   retryInterval: 1m
