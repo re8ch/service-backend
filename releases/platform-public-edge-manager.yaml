@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: chinook-opal
+codename: etesian-opal
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:c5368f144d6c8282a21d669d7052b4f9d018260a7dddcd62db844b72df3519fb
+  digest: sha256:5906452ba257ed955aa028df0a51fd269a618968929a3f50dc83b3071e4b6a4b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

@@ -1386,6 +1386,8 @@ modules:
       digest: sha256:600190dcc78efaaa51bcc49d2b2eaa3250ac96dc2ba31fd0e8644611f9ec867a
     - codename: chinook-opal
       digest: sha256:c5368f144d6c8282a21d669d7052b4f9d018260a7dddcd62db844b72df3519fb
+    - codename: etesian-opal
+      digest: sha256:5906452ba257ed955aa028df0a51fd269a618968929a3f50dc83b3071e4b6a4b
   platform/adapter:
     releases:
     - codename: anchor
