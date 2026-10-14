@@ -6,11 +6,13 @@ metadata:
   labels:
     app.kubernetes.io/name: headlamp
 spec:
-  # Headlamp v0.42 keeps OAuth state in process memory. Keep one active
-  # instance and let Kubernetes recreate it on another control-plane node.
+  # Headlamp keeps OAuth state in process memory. Keep one steady-state
+  # instance; allow one rollout surge so an image pull cannot take the active
+  # UI down before its replacement is Ready.
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
   selector:
     matchLabels:
       app.kubernetes.io/name: headlamp
@@ -251,7 +253,10 @@ spec:
               mountPath: /work
       containers:
         - name: headlamp
-          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          # v0.42 panics when an OIDC refresh response omits id_token. v0.45
+          # moved refresh handling into the auth package and handles missing
+          # refreshed token fields without an unchecked type assertion.
+          image: ghcr.io/headlamp-k8s/headlamp@sha256:db3f0e0fc58d358d41daa3fe7fc852437552c7ee873c3645470f7b86a8e0db49
           imagePullPolicy: IfNotPresent
           args:
             - -in-cluster
