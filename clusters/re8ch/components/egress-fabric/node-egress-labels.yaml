@@ -1,26 +1,26 @@
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-6dc3f140f9
+  name: r640
   annotations: {networking.re8ch.com/capacity-mbps: "200"}
   labels: {networking.re8ch.com/geo: cn, networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-exit-cn: enabled, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-1eb0570f74
+  name: a1-wsl-zt
   labels: {node-role.kubernetes.io/observe: "true", observability.re8ch.com/agent: "true", networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-296f36f2fb
+  name: b1-wsl-zt
   labels: {node-role.kubernetes.io/observe: "true", observability.re8ch.com/agent: "true", networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: hunan}
 ---
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-abb3f27a69
+  name: mubao-wsl
   labels: {networking.re8ch.com/geo: cn, networking.re8ch.com/firewall: cn, networking.re8ch.com/egress-policy: auto, networking.re8ch.com/mihomo-control: enabled, topology.kubernetes.io/region: cn-hunan, topology.kubernetes.io/zone: loudi}
 ---
 apiVersion: v1
@@ -39,7 +39,7 @@ apiVersion: v1
 kind: Node
 metadata:
   name: overseas-kl
-  labels: {networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/anytls-public-edge: enabled, topology.kubernetes.io/region: my-kul, topology.kubernetes.io/zone: malaysia}
+  labels: {re8ch.com/cilium-migrate: "true", networking.re8ch.com/firewall: none, networking.re8ch.com/egress-policy: direct, networking.re8ch.com/anytls-public-edge: enabled, topology.kubernetes.io/region: my-kul, topology.kubernetes.io/zone: malaysia}
 ---
 apiVersion: v1
 kind: Node
