@@ -1,5 +1,14 @@
 # Preserve the reviewed Schemathesis version and upstream immutable manifest.
 FROM schemathesis/schemathesis:4.29.1@sha256:e276982651536cb60c316f805a822b469bbf0d27544794fbeed42eeb957278e0
+USER root
+# Patch the pinned upstream image; preserve the tested Schemathesis engine.
+# Both the base interpreter and its venv are scanned, not just active imports.
+RUN apk add --no-cache --upgrade libcrypto3=3.3.7-r2 libssl3=3.3.7-r2 \
+    && /opt/python/bin/python3.14t -m pip install --no-cache-dir --upgrade \
+       msgpack==1.2.1 setuptools==78.1.1 urllib3==2.8.0 \
+    && /opt/venv/bin/python -m pip install --no-cache-dir --upgrade \
+       msgpack==1.2.1 setuptools==78.1.1 urllib3==2.8.0 \
+    && /opt/venv/bin/python -m pip check
 COPY runner.py contract.py request_budget.py budget_hooks.py /app/
 USER 65532:65532
 ENTRYPOINT ["python", "/app/runner.py"]
