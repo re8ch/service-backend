@@ -55,6 +55,7 @@ def test_lifecycle_must_match_allowed_schema_operation():
 
 
 def test_lifecycle_redirect_cannot_forward_credentials(monkeypatch):
+    monkeypatch.syspath_prepend(str(BASE))
     import sys
     import threading
     from http.server import BaseHTTPRequestHandler, HTTPServer
