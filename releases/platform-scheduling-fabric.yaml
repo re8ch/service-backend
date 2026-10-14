@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: tundra-umber
+codename: wetland-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:6ef481819ac9718aabcb16f42deb7678e147eed768434929c858258cdadcda22
+  digest: sha256:1dfc64d956d44b8e8f8a4e259d5971929376ac96db2d250a291f8d09f1df28a0
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
