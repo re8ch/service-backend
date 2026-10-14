@@ -204,6 +204,8 @@ modules:
       digest: sha256:197af7db8e938af036a84530dfcd15d72ed268df0fb14c2abe059588f28caeb4
     - codename: bora-umber
       digest: sha256:fb53ab6f339fc48dc4878654c1e1fe0052dd58409f277fe6262edf8655608754
+    - codename: chinook-umber
+      digest: sha256:00a7293c2071ad8f607d630ef77e1aabedbcfc4f2a84466d8ab0b3482b471fb7
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
