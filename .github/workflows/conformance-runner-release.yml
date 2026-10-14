@@ -24,6 +24,12 @@ jobs:
           git merge-base --is-ancestor "$SOURCE_REVISION" origin/main
           git checkout --detach "$SOURCE_REVISION"
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+        with:
+          # Registry health is green, but parallel layer uploads stalled beyond
+          # 30 minutes. Keep this mitigation local to this release worker.
+          buildkitd-config-inline: |
+            [system]
+              maxRegistryConcurrency = 1
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: registry.re8ch.com
