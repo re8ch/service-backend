@@ -1382,6 +1382,8 @@ modules:
       digest: sha256:e785b75c4a7ce7588c34a30d275bf32d86376f282243945fa85a9f47c6d3b2a3
     - codename: zephyr-topaz
       digest: sha256:92cfbc60f714dd6d17d1d9b009fecc0763d04a2f3b489d657d037b6be791c941
+    - codename: bora-opal
+      digest: sha256:600190dcc78efaaa51bcc49d2b2eaa3250ac96dc2ba31fd0e8644611f9ec867a
   platform/adapter:
     releases:
     - codename: anchor
