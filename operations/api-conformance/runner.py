@@ -11,14 +11,28 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from urllib.parse import unquote, urlsplit
 from pathlib import Path
 
 import yaml
 
 from contract import ContractError, sanitized_summary, schema_digest, validate_document, validate_target
+from request_budget import initialize as initialize_budget, take as take_budget
 
 MAX_SCHEMA_BYTES = 4 * 1024 * 1024
+
+
+@contextmanager
+def scoped_budget_environment():
+    previous = os.environ.get("RE8CH_REQUEST_BUDGET")
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("RE8CH_REQUEST_BUDGET", None)
+        else:
+            os.environ["RE8CH_REQUEST_BUDGET"] = previous
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -66,7 +80,7 @@ def extract(body: object, path: str):
     return str(current)
 
 
-def lifecycle_request(target: dict, step: dict, variables: dict[str, str]) -> None:
+def lifecycle_request(target: dict, step: dict, variables: dict[str, str], *, compensation=False) -> None:
     method = step["method"].upper()
     if method not in {"GET", "POST", "PUT", "PATCH", "DELETE"}:
         raise ContractError("invalid lifecycle method")
@@ -89,6 +103,8 @@ def lifecycle_request(target: dict, step: dict, variables: dict[str, str]) -> No
     if authorization := os.getenv("AUTHORIZATION"):
         headers["Authorization"] = authorization
     request = urllib.request.Request(url, data=raw, method=method, headers=headers)
+    if budget := os.getenv("RE8CH_REQUEST_BUDGET"):
+        take_budget(budget, compensation=compensation)
     try:
         response = urllib.request.build_opener(NoRedirect()).open(request, timeout=20)
     except urllib.error.HTTPError as exc:
@@ -111,7 +127,7 @@ def run_steps(target: dict, key: str, variables: dict[str, str]) -> str:
     if not steps:
         return "not_run"
     for step in steps:
-        lifecycle_request(target, step, variables)
+        lifecycle_request(target, step, variables, compensation=key in {"cleanup", "reversal"})
     return "passed"
 
 
@@ -151,7 +167,14 @@ def main() -> int:
     report = None
     exit_code = 1
     audit_refs: list[str] = []
-    with tempfile.TemporaryDirectory(prefix="re8ch-schemathesis-") as directory:
+    with scoped_budget_environment(), tempfile.TemporaryDirectory(prefix="re8ch-schemathesis-") as directory:
+        limits = target.get("limits", {})
+        reserved = sum(len(target.get("lifecycle", {}).get(key, [])) for key in ("cleanup", "reversal")) if mode == "mutation" else 0
+        budget_path = Path(directory) / "request-budget.json"
+        initialize_budget(budget_path, int(limits.get("maxRequests", 500)), reserved,
+                          int(limits.get("ratePerSecond", 1)))
+        take_budget(budget_path)  # Account for the already completed schema GET.
+        os.environ["RE8CH_REQUEST_BUDGET"] = str(budget_path)
         schema_path = Path(directory) / "openapi.json"
         report_path = Path(directory) / "report.json"
         config_path = Path(directory) / "schemathesis.toml"
@@ -169,7 +192,7 @@ def main() -> int:
             request_budget = int(limits.get("maxRequests", 500))
             # Keep one finite generation cycle. In 4.29.1 --max-time repeats
             # fuzzing until time runs out, even after max-examples is reached.
-            # This is a time/rate safety bound, not an exact request counter.
+            # A separate shared transport counter enforces the request budget.
             effective_timeout = min(int(limits.get("timeoutSeconds", 600)), max(1, request_budget // rate))
             command = [
                 "schemathesis", "--config-file", str(config_path), "run", str(schema_path), "--url", target["baseUrl"],
@@ -185,7 +208,9 @@ def main() -> int:
             if authorization := os.getenv("AUTHORIZATION"):
                 command += ["--header", "Authorization:" + authorization]
             completed = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                       timeout=effective_timeout, check=False)
+                                       timeout=effective_timeout, check=False,
+                                       env={**os.environ, "SCHEMATHESIS_HOOKS": "budget_hooks",
+                                            "PYTHONPATH": str(Path(__file__).parent)})
             exit_code = completed.returncode
             if report_path.exists():
                 report = json.loads(report_path.read_text())
