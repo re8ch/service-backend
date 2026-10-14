@@ -326,6 +326,8 @@ modules:
       digest: sha256:6aa89113a5e56ba170fc8ac65beb920b41629e3babb97a7b981ce4e4538a310b
     - codename: starfire-silver
       digest: sha256:c5c10ccecc1d16569872095896dcaf72dafb604ac950f5de429e4116ec9c715d
+    - codename: torch-silver
+      digest: sha256:798b1ee8c4e359c9275b48cf7dbe168ec2b3e4bff1a582da61a37f2c94292443
   platform/among-clusters:
     releases:
     - codename: bora
