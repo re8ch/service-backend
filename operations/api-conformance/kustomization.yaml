@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - crds.yaml
 - runtime.yaml
+- result-runtime.yaml
 - targets.yaml
 configMapGenerator:
 - name: api-conformance-code
