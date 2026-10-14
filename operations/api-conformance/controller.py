@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import ssl
 import time
 import urllib.error
@@ -24,6 +25,8 @@ CODE_CONFIG_MAP = os.getenv("CODE_CONFIG_MAP", "api-conformance-code")
 RUNNER_IMAGE = os.getenv("RUNNER_IMAGE", "schemathesis/schemathesis:4.29.1@sha256:e276982651536cb60c316f805a822b469bbf0d27544794fbeed42eeb957278e0")
 APP_ID = os.getenv("GITHUB_APP_ID", "")
 PRIVATE_KEY = Path(os.getenv("GITHUB_PRIVATE_KEY_PATH", "/github-app/private-key.pem"))
+REPOSITORY_INSTALLATIONS = json.loads(os.getenv("GITHUB_REPOSITORY_INSTALLATIONS", "{}"))
+APP_PERMISSIONS = {"actions": "write", "checks": "write", "contents": "read", "issues": "write", "metadata": "read"}
 DISCOVERY_PATHS = ("/openapi.json", "/swagger.json", "/openapi.yaml")
 _last_discovery = 0.0
 
@@ -83,21 +86,38 @@ def github_jwt():
     return f"{header}.{payload}.{b64url(signature)}"
 
 
+class NoGitHubRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        raise ContractError("GitHub redirects are forbidden")
+
+
 def http_json(url: str, token: str, method: str = "GET", body: dict | None = None):
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != "https" or parsed.netloc != "api.github.com" or parsed.fragment:
+        raise ContractError("unexpected GitHub API origin")
     raw = json.dumps(body).encode() if body is not None else None
     request = urllib.request.Request(url, data=raw, method=method, headers={
         "Accept": "application/vnd.github+json", "Authorization": f"Bearer {token}",
         "Content-Type": "application/json", "User-Agent": "re8ch-api-conformance",
         "X-GitHub-Api-Version": "2026-03-10",
     })
-    with urllib.request.urlopen(request, timeout=20) as response:
+    with urllib.request.build_opener(NoGitHubRedirect()).open(request, timeout=20) as response:
         return json.load(response) if response.length != 0 else {}
 
 
-def installation_token(installation_id: str) -> str:
+def installation_token(installation_id: str, repository: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise ContractError("invalid repository")
+    if not installation_id.isdecimal() or REPOSITORY_INSTALLATIONS.get(repository) != installation_id:
+        raise ContractError("unreviewed repository installation")
     if not APP_ID or not installation_id or not PRIVATE_KEY.is_file():
         raise ContractError("GitHub App is not configured")
-    result = http_json(f"https://api.github.com/app/installations/{installation_id}/access_tokens", github_jwt(), "POST", {})
+    jwt = github_jwt()
+    installation = http_json(f"https://api.github.com/repos/{repository}/installation", jwt)
+    if str(installation.get("id")) != installation_id or str(installation.get("app_id")) != APP_ID:
+        raise ContractError("repository installation mismatch")
+    result = http_json(f"https://api.github.com/app/installations/{installation_id}/access_tokens", jwt, "POST",
+                       {"repositories": [repository.split("/")[1]], "permissions": APP_PERMISSIONS})
     return result["token"]
 
 
@@ -207,8 +227,13 @@ def pod_log(run_name: str) -> str:
 
 def publish(target: dict, report: dict, streak: int) -> None:
     github = target["spec"].get("github", {})
-    token = installation_token(str(github.get("installationId", "")))
     repository, sha, name = target["spec"]["repository"], target["spec"]["commit"], target["metadata"]["name"]
+    if not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise ContractError("full commit SHA required")
+    token = installation_token(str(github.get("installationId", "")), repository)
+    commit = http_json(f"https://api.github.com/repos/{repository}/commits/{sha}", token)
+    if commit.get("sha") != sha:
+        raise ContractError("repository commit mismatch")
     conclusion = "success" if report.get("status") == "passed" else "failure"
     http_json(f"https://api.github.com/repos/{repository}/check-runs", token, "POST", {
         "name": f"re8ch/schemathesis/{name}", "head_sha": sha, "status": "completed", "conclusion": conclusion,
@@ -321,7 +346,7 @@ def discover_schema(base_url: str) -> tuple[str, str] | None:
 
 
 def onboarding_issue(repository: str, installation_id: str, base_url: str, schema_url: str, digest: str) -> None:
-    token = installation_token(installation_id)
+    token = installation_token(installation_id, repository)
     host = urllib.parse.urlparse(base_url).hostname
     title = f"[Schemathesis] onboarding: {host}"
     issues = http_json(f"https://api.github.com/repos/{repository}/issues?state=all&per_page=100", token)
@@ -340,6 +365,8 @@ def onboarding_issue(repository: str, installation_id: str, base_url: str, schem
 
 def discover(targets: dict[str, dict]) -> None:
     global _last_discovery
+    if os.getenv("DISCOVERY_ENABLED", "false") != "true":
+        return
     if time.monotonic() - _last_discovery < 86400:
         return
     _last_discovery = time.monotonic()
