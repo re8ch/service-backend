@@ -6,6 +6,7 @@ resources:
 - runner-reconciliation.yaml
 - result-runtime.yaml
 - targets.yaml
+- public-acceptance.yaml
 configMapGenerator:
 - name: api-conformance-code
   namespace: api-conformance-system
