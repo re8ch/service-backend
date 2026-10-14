@@ -219,7 +219,7 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
                                            "uid": created["metadata"]["uid"], "controller": True, "blockOwnerDeletion": True}]},
         "spec": {"endpointSelector": {"matchLabels": {"conformance.re8ch.com/run": run_name}},
                  "egress": [
-                     {"toEndpoints": [{"matchLabels": {"k8s:io.kubernetes.pod.namespace": "kube-system", "k8s:k8s-app": "kube-dns"}}],
+                     {"toEndpoints": [{"matchLabels": {"k8s:io.kubernetes.pod.namespace": "kube-system", "k8s:app.kubernetes.io/name": "advanced-fabric-doh"}}],
                       "toPorts": [{"ports": [{"port": "53", "protocol": "UDP"}, {"port": "53", "protocol": "TCP"}],
                                    "rules": {"dns": [{"matchPattern": "*"}]}}]},
                      {"toFQDNs": [{"matchName": host} for host in allowed_hosts],
