@@ -155,8 +155,7 @@ def due(status: dict, key: str, seconds: int) -> bool:
 
 def active_runs():
     return [item for item in list_resource("apiconformanceruns")
-            if item.get("status", {}).get("phase", "Pending" if item.get("spec", {}).get("trigger") == "manual" else "")
-            in {"Pending", "Running"}]
+            if item.get("status", {}).get("phase", "Pending") in {"Pending", "Starting", "Running"}]
 
 
 def create_run(target: dict, mode: str, trigger: str, run_name: str | None = None) -> None:
@@ -174,6 +173,9 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
                      "publication": authority(target)},
         }
         kube_request("POST", f"/apis/{GROUP}/{VERSION}/namespaces/{NAMESPACE}/apiconformanceruns", run)
+    # Persist the lock before submitting a Job. Lost responses and restarts must
+    # never schedule a second mutation for an already-created Run.
+    patch_status("apiconformanceruns", run_name, {"phase": "Starting", "startedAt": timestamp()})
     target_json = json.dumps(target["spec"], separators=(",", ":"), sort_keys=True)
     env = [
         {"name": "TARGET_NAME", "value": target_name}, {"name": "RUN_ID", "value": run_name},
@@ -276,7 +278,8 @@ def publish(target: dict, report: dict, streak: int) -> None:
 def collect_runs(targets: dict[str, dict]) -> None:
     jobs = {item["metadata"]["name"]: item for item in kube_request("GET", f"/apis/batch/v1/namespaces/{NAMESPACE}/jobs").get("items", [])}
     for run in list_resource("apiconformanceruns"):
-        if run.get("status", {}).get("phase") != "Running":
+        phase = run.get("status", {}).get("phase", "Pending")
+        if phase not in {"Starting", "Running", "Pending"} or (phase == "Pending" and run["spec"].get("trigger") == "manual"):
             continue
         job = jobs.get(run["metadata"]["name"])
         if not job or not (job.get("status", {}).get("succeeded") or job.get("status", {}).get("failed")):
@@ -421,10 +424,11 @@ def reconcile() -> None:
     collect_runs(targets)
     discover(targets)
     active = active_runs()
-    running = [item for item in active if item.get("status", {}).get("phase") == "Running"]
+    running = [item for item in active if item.get("status", {}).get("phase") in {"Starting", "Running"}
+               or (item.get("status", {}).get("phase", "Pending") == "Pending" and item["spec"].get("trigger") != "manual")]
     running_targets = {item["spec"]["targetRef"] for item in running}
     for run in active:
-        phase = run.get("status", {}).get("phase", "Pending" if run.get("spec", {}).get("trigger") == "manual" else "")
+        phase = run.get("status", {}).get("phase", "Pending")
         if phase != "Pending" or run.get("spec", {}).get("trigger") != "manual":
             continue
         target = targets.get(run.get("spec", {}).get("targetRef"))
