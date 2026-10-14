@@ -33,7 +33,10 @@ def test_every_plugin_has_independent_identity():
 def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
     assert deployment["spec"]["replicas"] == 1
-    assert deployment["spec"]["strategy"] == {"type": "Recreate"}
+    assert deployment["spec"]["strategy"] == {
+        "type": "RollingUpdate",
+        "rollingUpdate": {"maxUnavailable": 0, "maxSurge": 1},
+    }
     pod_spec = deployment["spec"]["template"]["spec"]
     annotations = deployment["spec"]["template"]["metadata"]["annotations"]
     assert annotations["scheduling.re8ch.com/placement-class"] == "control-plane-critical"
