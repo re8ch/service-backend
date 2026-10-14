@@ -85,6 +85,10 @@ spec:
         - {name: RUNNER_NAMESPACE, value: api-conformance-runners}
         - {name: RUNNER_IMAGE, value: 'registry.re8ch.com/functions-shared/api-conformance-runner@sha256:63b3c8264bd22acf5e9fbbd5144f5f2fe34886bd95b346f64ff2218026db3413'}
         - {name: RESULT_DELIVERY_MODE, value: oidc}
+        # restricted-node-6dc3f140f9 pod egress to GitHub times out; the established local control
+        # plane proxy has a healthy GitHub path and keeps the App token scoped.
+        - {name: HTTPS_PROXY, value: 'http://identity-egress-control-plane.egress-fabric.svc.cluster.local:17893'}
+        - {name: NO_PROXY, value: 'localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.225/10'}
         - {name: RESULT_REPOSITORY_BINDINGS, value: '{"re8ch/cloud-functions":{"repositoryId":"1248776882","ownerId":"283958313"}}'}
         - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
         - {name: GITHUB_APP_ID, valueFrom: {secretKeyRef: {name: api-conformance-github-app, key: app-id, optional: true}}}
@@ -117,6 +121,8 @@ spec:
       rules: {dns: [{matchPattern: '*'}]}
   - toFQDNs: [{matchName: api.github.com}]
     toPorts: [{ports: [{port: "443", protocol: TCP}]}]
+  - toEntities: [host]
+    toPorts: [{ports: [{port: "17893", protocol: TCP}]}]
 ---
 # Clone only the existing shared-runtime pull credential through the established
 # Kyverno pattern. No plaintext credential enters Git, agent output or a pod mount.

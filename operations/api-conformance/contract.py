@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import re
 from urllib.parse import urlparse
@@ -33,6 +34,13 @@ def validate_target(spec: dict) -> dict:
     _require(schema.scheme == "https" and bool(schema.hostname), "schema URL must be HTTPS")
     allowed = set(spec.get("network", {}).get("allowedHosts", []))
     _require(bool(allowed) and base.hostname in allowed and schema.hostname in allowed, "host is not allowlisted")
+    for host, address in spec.get("network", {}).get("pinnedEgressIPs", {}).items():
+        _require(host in allowed, "pinned egress host is not allowlisted")
+        try:
+            ip = ipaddress.ip_address(address)
+        except ValueError as exc:
+            raise ContractError("invalid pinned egress IP") from exc
+        _require(ip.version == 4 and ip.is_global, "pinned egress IP must be public IPv4")
     digest = spec.get("schema", {}).get("sha256", "")
     _require(bool(re.fullmatch(r"[a-f0-9]{64}", digest)), "schema digest must be sha256")
     limits = spec.get("limits", {})
