@@ -241,10 +241,11 @@ def publish(target: dict, report: dict, streak: int) -> None:
     if commit.get("sha") != sha:
         raise ContractError("repository commit mismatch")
     conclusion = "success" if report.get("status") == "passed" else "failure"
-    http_json(f"https://api.github.com/repos/{repository}/check-runs", token, "POST", {
-        "name": f"re8ch/schemathesis/{name}", "head_sha": sha, "status": "completed", "conclusion": conclusion,
-        "output": {"title": f"Schemathesis {conclusion}", "summary": json.dumps(report, indent=2)[:60000]},
-    })
+    if os.getenv("RESULT_DELIVERY_MODE", "dispatch") != "oidc":
+        http_json(f"https://api.github.com/repos/{repository}/check-runs", token, "POST", {
+            "name": f"re8ch/schemathesis/{name}", "head_sha": sha, "status": "completed", "conclusion": conclusion,
+            "output": {"title": f"Schemathesis {conclusion}", "summary": json.dumps(report, indent=2)[:60000]},
+        })
     if os.getenv("RESULT_DELIVERY_MODE", "dispatch") == "oidc":
         inputs = {"run_id": report["runId"]}
     else:
