@@ -48,6 +48,16 @@ Delivery initialization occurs only while completing a Running run, never when
 retrying publication; a consumed claim must never be reset. Failed publication
 is recorded on the run and requires inspection rather than blind redispatch.
 
+The result proxy is a system workload in `auth`, reusing its existing kubelet
+Harbor pull reference without mounting that credential in the container. Its
+ServiceAccount has only named Run GET and Run status PATCH in
+`api-conformance-system`, with no Secret/business-data access. The legacy
+`POD_NAMESPACE` setting denotes that Run storage namespace here.
+The public route is only `/api-conformance/v1/reports` on the existing API
+Gateways. GitHub issuer egress is fixed. The receiver workflow SHA is pinned:
+review and update it when the cloud-functions master revision changes, before
+dispatching reports. Do not weaken the pin or allow arbitrary workflow refs.
+
 The initial identity, payment/Credits, and Commerce targets are committed in a
 suspended state. This is intentional: the product schema commit must be merged
 and deployed, the repository-scoped GitHub App installation must exist, and a
