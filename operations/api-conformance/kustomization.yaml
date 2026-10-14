@@ -3,8 +3,7 @@ kind: Kustomization
 resources:
 - crds.yaml
 - runtime.yaml
-- runner-runtime.yaml
-- runner-pull.yaml
+- runner-reconciliation.yaml
 - result-runtime.yaml
 - targets.yaml
 configMapGenerator:
