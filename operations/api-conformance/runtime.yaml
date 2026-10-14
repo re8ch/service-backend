@@ -81,6 +81,7 @@ spec:
         - {name: CODE_CONFIG_MAP, value: api-conformance-code}
         - {name: GITHUB_REPOSITORY_INSTALLATIONS, value: '{"re8ch/cloud-functions":"171153917"}'}
         - {name: DISCOVERY_ENABLED, value: "false"}
+        - {name: RUNNER_PULL_SECRET, value: harbor-functions-shared-pull}
         - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
         - {name: GITHUB_APP_ID, valueFrom: {secretKeyRef: {name: api-conformance-github-app, key: app-id, optional: true}}}
         volumeMounts:
@@ -110,3 +111,63 @@ spec:
     toPorts: [{ports: [{port: "53", protocol: UDP}, {port: "53", protocol: TCP}]}]
   - toFQDNs: [{matchName: api.github.com}]
     toPorts: [{ports: [{port: "443", protocol: TCP}]}]
+---
+# Clone only the existing shared-runtime pull credential through the established
+# Kyverno pattern. No plaintext credential enters Git, agent output or a pod mount.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: api-conformance-runner-pull}
+spec:
+  admission: true
+  background: true
+  generateExisting: true
+  validationFailureAction: Audit
+  rules:
+  - name: project-shared-runtime-pull
+    match:
+      any:
+      - resources: {kinds: [Namespace], names: [api-conformance-system]}
+    generate:
+      apiVersion: v1
+      kind: Secret
+      name: harbor-functions-shared-pull
+      namespace: api-conformance-system
+      synchronize: true
+      clone: {namespace: toolhive-system, name: harbor-functions-shared-pull}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: api-conformance-pull-source, namespace: toolhive-system}
+rules:
+- apiGroups: [""]
+  resources: [secrets]
+  resourceNames: [harbor-functions-shared-pull]
+  verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: api-conformance-pull-source, namespace: toolhive-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: api-conformance-pull-source}
+subjects:
+- {kind: ServiceAccount, name: kyverno-admission-controller, namespace: kyverno}
+- {kind: ServiceAccount, name: kyverno-background-controller, namespace: kyverno}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: api-conformance-pull-target, namespace: api-conformance-system}
+rules:
+- apiGroups: [""]
+  resources: [secrets]
+  verbs: [create]
+- apiGroups: [""]
+  resources: [secrets]
+  resourceNames: [harbor-functions-shared-pull]
+  verbs: [get, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: api-conformance-pull-target, namespace: api-conformance-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: api-conformance-pull-target}
+subjects:
+- {kind: ServiceAccount, name: kyverno-admission-controller, namespace: kyverno}
+- {kind: ServiceAccount, name: kyverno-background-controller, namespace: kyverno}
