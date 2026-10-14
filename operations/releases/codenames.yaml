@@ -320,6 +320,10 @@ modules:
       digest: sha256:d2abfd02a3ed9b216e71265f4a3666e518dd96de0b265f88761e4ec735c8c7b2
     - codename: lantern-silver
       digest: sha256:dcb3a11a3a5d944dfaa3f22de1907483fc7c0b3a61d4c04a5d6206bf3424ff2d
+    - codename: lighthouse-silver
+      digest: sha256:ec15bf332b0f4abd98e618e592b3840180df5cb5287564b7aa3913745f3ee6c9
+    - codename: signal-silver
+      digest: sha256:6aa89113a5e56ba170fc8ac65beb920b41629e3babb97a7b981ce4e4538a310b
   platform/among-clusters:
     releases:
     - codename: bora
