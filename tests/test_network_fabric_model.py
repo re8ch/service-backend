@@ -110,8 +110,10 @@ def test_host_sources_derive_only_declared_identity_and_remote_pod_destinations(
     model = FABRIC.load_model()
     output = FABRIC.validate(model)["clusters/re8ch/components/network/podcidr-fabric/inventory.json"]
     policies = output["hostSourceIdentity"]
-    assert set(policies) == {"overseas-flk", "overseas-la-2"}
+    assert set(policies) == {"overseas-flk", "overseas-kl", "overseas-la-2"}
     assert policies["overseas-flk"]["source"] == "192.0.2.48"
+    assert policies["overseas-kl"]["source"] == "192.0.2.149"
+    assert "192.0.2.110/24" not in policies["overseas-kl"]["destinations"]
     assert "192.0.2.113/24" in policies["overseas-flk"]["destinations"]
     assert "192.0.2.165/24" not in policies["overseas-flk"]["destinations"]
     assert all(p.startswith("10.42.") for p in policies["overseas-flk"]["destinations"])
