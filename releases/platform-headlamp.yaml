@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: torch-silver
+codename: aurora-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:798b1ee8c4e359c9275b48cf7dbe168ec2b3e4bff1a582da61a37f2c94292443
+  digest: sha256:f6a0efa6506e61042d968874c039e874e63d09e2520151bca21cc3e2324d125d
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
