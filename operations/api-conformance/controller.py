@@ -158,6 +158,9 @@ def active_runs():
 
 
 def create_run(target: dict, mode: str, trigger: str, run_name: str | None = None) -> None:
+    validate_target(target["spec"])
+    if mode not in {"read", "mutation"}:
+        raise ContractError("invalid run mode")
     target_name = target["metadata"]["name"]
     if run_name is None:
         run_name = f"{target_name}-{mode}-{int(time.time())}"
@@ -246,7 +249,8 @@ def publish(target: dict, report: dict, streak: int) -> None:
     issues = http_json(f"https://api.github.com/repos/{repository}/issues?state=all&per_page=100", token)
     issue = next((item for item in issues if item.get("title") == marker and "pull_request" not in item), None)
     if conclusion == "failure":
-        uncertain = report.get("lifecycle", {}).get("cleanup") == "failed" or report.get("lifecycle", {}).get("reversal") == "failed"
+        uncertain = (report.get("mode") == "mutation" or report.get("lifecycle", {}).get("cleanup") == "failed"
+                     or report.get("lifecycle", {}).get("reversal") == "failed")
         priority = "**Priority: high — mutation testing is blocked until cleanup/reversal is reviewed.**\n\n" if uncertain else ""
         body = "Automated production-canary API conformance regression.\n\n" + priority + "```json\n" + json.dumps(report, indent=2) + "\n```\n"
         if issue:
@@ -270,7 +274,8 @@ def collect_runs(targets: dict[str, dict]) -> None:
         try:
             report = json.loads(next(line for line in reversed(text.splitlines()) if line.startswith("{")))
         except Exception:
-            report = {"version": 1, "runId": run["metadata"]["name"], "status": "failed", "reason": "invalid_sanitized_output"}
+            report = {"version": 1, "runId": run["metadata"]["name"], "mode": run["spec"]["mode"],
+                      "status": "failed", "reason": "invalid_sanitized_output"}
         target = targets.get(run["spec"]["targetRef"])
         previous = int(target.get("status", {}).get("consecutivePasses", 0)) if target else 0
         streak = previous + 1 if report.get("status") == "passed" else 0
@@ -280,10 +285,12 @@ def collect_runs(targets: dict[str, dict]) -> None:
             mode = run["spec"]["mode"]
             status = {**target.get("status", {}), "consecutivePasses": streak, "lastResult": report.get("status"),
                       "lastRunRef": run["metadata"]["name"], "lastReadAt" if mode == "read" else "lastMutationAt": timestamp()}
-            if mode == "mutation" and (report.get("lifecycle", {}).get("cleanup") == "failed" or
-                                        report.get("lifecycle", {}).get("reversal") == "failed"):
+            # Missing/truncated logs, timeout, a lost write response or failed
+            # compensation all require review. Cleanup success alone does not
+            # prove that an unknown write was reversed.
+            if mode == "mutation" and report.get("status") != "passed":
                 status["mutationBlocked"] = True
-                status["mutationBlockedReason"] = "cleanup_or_reversal_uncertain"
+                status["mutationBlockedReason"] = "mutation_run_failed_requires_review"
             try:
                 publish(target, report, streak)
                 status["publication"] = "published"
@@ -403,6 +410,7 @@ def reconcile() -> None:
         mode = run.get("spec", {}).get("mode")
         valid = (target and not target["spec"].get("suspend", False) and
                  run["spec"].get("commit") == target["spec"].get("commit") and
+                 run["spec"].get("imageDigest") == target["spec"].get("imageDigest") and
                  (mode == "read" or (mode == "mutation" and not target.get("status", {}).get("mutationBlocked") and
                                       bool(target["spec"].get("operations", {}).get("mutationOperationIds")))))
         if not valid:
