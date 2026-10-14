@@ -39,6 +39,7 @@ resources:
 - secrets/cloudflare-advfab-dns-token.sops.yaml
 - secrets/routeros-authority-bundle-key.sops.yaml
 - secrets/public-edge-route-snapshot-signing.sops.yaml
+- secrets/globalping-adoption.sops.yaml
 - secrets/incidentrelay-config.sops.yaml
 - secrets/incidentrelay-db-bootstrap.sops.yaml
 - secrets/incidentrelay-bootstrap-admin.sops.yaml

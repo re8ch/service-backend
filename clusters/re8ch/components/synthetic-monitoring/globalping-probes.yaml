@@ -1,0 +1,151 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: globalping-system
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: globalping-probe-r640-data
+  namespace: globalping-system
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 128Mi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: globalping-probe-icp-data
+  namespace: globalping-system
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: globalping-probe-r640
+  namespace: globalping-system
+  labels:
+    app.kubernetes.io/name: globalping-probe
+    app.kubernetes.io/instance: r640
+    app.kubernetes.io/part-of: public-edge-observability
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: globalping-probe
+      app.kubernetes.io/instance: r640
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: globalping-probe
+        app.kubernetes.io/instance: r640
+        app.kubernetes.io/part-of: public-edge-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      containers:
+        - name: probe
+          image: docker.io/globalping/globalping-probe:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GP_ADOPTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: globalping-adoption
+                  key: GP_ADOPTION_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [NET_RAW]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: state
+              mountPath: /app/.cache
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: globalping-probe-r640-data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: globalping-probe-icp
+  namespace: globalping-system
+  labels:
+    app.kubernetes.io/name: globalping-probe
+    app.kubernetes.io/instance: icp-guangzhou
+    app.kubernetes.io/part-of: public-edge-observability
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: globalping-probe
+      app.kubernetes.io/instance: icp-guangzhou
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: globalping-probe
+        app.kubernetes.io/instance: icp-guangzhou
+        app.kubernetes.io/part-of: public-edge-observability
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: vm-20-12-ubuntu
+      tolerations:
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
+          effect: NoSchedule
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      automountServiceAccountToken: false
+      containers:
+        - name: probe
+          image: docker.io/globalping/globalping-probe:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GP_ADOPTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: globalping-adoption
+                  key: GP_ADOPTION_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [NET_RAW]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: state
+              mountPath: /app/.cache
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: globalping-probe-icp-data
