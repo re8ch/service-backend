@@ -23,3 +23,12 @@ def test_release_requires_version_scan_and_signature():
         assert required in text
     assert "maxRegistryConcurrency = 1" in text
     assert "timeout-minutes: 30" in text
+
+
+def test_sealed_runner_removes_build_tools_and_smoke_tests_runtime():
+    text=(ROOT/"operations/api-conformance/Dockerfile.runner").read_text()
+    assert text.count("pip uninstall --yes setuptools wheel") == 2
+    assert text.count("pip uninstall --yes pip") == 2
+    assert "pip check" in text and "schemathesis --version" in text
+    assert "import runner, budget_hooks, requests, schemathesis" in text
+    assert text.index("USER 65532:65532") < text.index("RUN python -c")
