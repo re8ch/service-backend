@@ -70,6 +70,7 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
     c = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(c)
     monkeypatch.setattr(c, "RUNNER_NAMESPACE", "api-conformance-runners")
+    monkeypatch.setattr(c, "HOST_IDENTITY_EGRESS_IPS", {"192.0.2.79"})
     monkeypatch.setattr(c, "patch_status", lambda *a: None)
     calls = []
     def request(method, path, body, content_type="application/json"):
@@ -79,7 +80,8 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
     target = {"metadata": {"name": "target"}, "spec": {
         "repository": "re8ch/cloud-functions", "baseUrl": "https://api.re8ch.com/commerce",
         "schema": {"url": "https://api.re8ch.com/commerce/v1/openapi.yaml", "sha256": "0" * 64},
-        "network": {"allowedHosts": ["api.re8ch.com"], "pinnedEgressIPs": {"api.re8ch.com": "192.0.2.79"}},
+        "network": {"allowedHosts": ["api.re8ch.com"], "pinnedEgressIPs": {"api.re8ch.com": "192.0.2.79"},
+                    "pinnedEgressEntity": "host"},
         "limits": {"timeoutSeconds": 180},
     }}
     c.create_run(target, "read", "manual", "test-run")
@@ -88,10 +90,14 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
     policy = calls[1][1]
     assert policy["spec"]["endpointSelector"]["matchLabels"] == {"conformance.re8ch.com/run": "test-run"}
     assert policy["spec"]["egress"] == [{
-        "toCIDR": ["192.0.2.79/32"],
+        "toEntities": ["host"],
         "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}],
     }]
     target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "192.0.2.209"}
     with pytest.raises(c.ContractError, match="public IPv4"):
+        c.create_run(target, "read", "manual", "test-run")
+    assert len(calls) == 3
+    target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "192.0.2.101"}
+    with pytest.raises(c.ContractError, match="not approved"):
         c.create_run(target, "read", "manual", "test-run")
     assert len(calls) == 3

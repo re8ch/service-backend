@@ -84,6 +84,8 @@ spec:
         - {name: RUNNER_PULL_SECRET, value: harbor-functions-shared-pull}
         - {name: RUNNER_NAMESPACE, value: api-conformance-runners}
         - {name: RUNNER_IMAGE, value: 'registry.re8ch.com/functions-shared/api-conformance-runner@sha256:63b3c8264bd22acf5e9fbbd5144f5f2fe34886bd95b346f64ff2218026db3413'}
+        # Explicitly reviewed restricted-node-6dc3f140f9 node address from public-mesh inventory.
+        - {name: HOST_IDENTITY_EGRESS_IPS, value: '["192.0.2.79"]'}
         - {name: RESULT_DELIVERY_MODE, value: oidc}
         # restricted-node-6dc3f140f9 pod egress to GitHub times out; the established local control
         # plane proxy has a healthy GitHub path and keeps the App token scoped.

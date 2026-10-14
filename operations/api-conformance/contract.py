@@ -41,6 +41,11 @@ def validate_target(spec: dict) -> dict:
         except ValueError as exc:
             raise ContractError("invalid pinned egress IP") from exc
         _require(ip.version == 4 and ip.is_global, "pinned egress IP must be public IPv4")
+    entity = spec.get("network", {}).get("pinnedEgressEntity")
+    _require(entity in (None, "host"), "invalid pinned egress entity")
+    if entity == "host":
+        _require(set(spec["network"].get("pinnedEgressIPs", {})) == allowed,
+                 "host identity egress requires every allowed host to be pinned")
     digest = spec.get("schema", {}).get("sha256", "")
     _require(bool(re.fullmatch(r"[a-f0-9]{64}", digest)), "schema digest must be sha256")
     limits = spec.get("limits", {})

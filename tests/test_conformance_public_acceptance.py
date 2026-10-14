@@ -21,6 +21,7 @@ def test_public_acceptance_is_bounded_and_has_no_credentials_or_mutations():
     }
     assert target["network"]["allowedHosts"] == ["api.re8ch.com"]
     assert target["network"]["pinnedEgressIPs"] == {"api.re8ch.com": "192.0.2.79"}
+    assert target["network"]["pinnedEgressEntity"] == "host"
 
 
 def test_authenticated_targets_remain_suspended():

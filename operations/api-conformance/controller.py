@@ -29,6 +29,7 @@ APP_ID = os.getenv("GITHUB_APP_ID", "")
 PRIVATE_KEY = Path(os.getenv("GITHUB_PRIVATE_KEY_PATH", "/github-app/private-key.pem"))
 REPOSITORY_INSTALLATIONS = json.loads(os.getenv("GITHUB_REPOSITORY_INSTALLATIONS", "{}"))
 RESULT_BINDINGS = json.loads(os.getenv("RESULT_REPOSITORY_BINDINGS", "{}"))
+HOST_IDENTITY_EGRESS_IPS = set(json.loads(os.getenv("HOST_IDENTITY_EGRESS_IPS", "[]")))
 APP_PERMISSIONS = {"actions": "write", "checks": "write", "contents": "read", "issues": "write", "metadata": "read"}
 DISCOVERY_PATHS = ("/openapi.json", "/swagger.json", "/openapi.yaml")
 _last_discovery = 0.0
@@ -164,6 +165,10 @@ def active_runs():
 
 def create_run(target: dict, mode: str, trigger: str, run_name: str | None = None) -> None:
     validate_target(target["spec"])
+    network = target["spec"].get("network", {})
+    if network.get("pinnedEgressEntity") == "host":
+        if not set(network["pinnedEgressIPs"].values()).issubset(HOST_IDENTITY_EGRESS_IPS):
+            raise ContractError("host identity egress IP is not approved by the cluster")
     if RUNNER_NAMESPACE != NAMESPACE and target["spec"].get("authSecretRef"):
         raise ContractError("isolated runners require the credential broker, not static auth Secrets")
     if mode not in {"read", "mutation"}:
@@ -236,8 +241,9 @@ def create_run(target: dict, mode: str, trigger: str, run_name: str | None = Non
              "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]},
         ])
     if pinned_ips:
-        egress.append({"toCIDR": [f"{address}/32" for address in sorted(set(pinned_ips.values()))],
-                       "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]})
+        peer = ({"toEntities": ["host"]} if target["spec"]["network"].get("pinnedEgressEntity") == "host"
+                else {"toCIDR": [f"{address}/32" for address in sorted(set(pinned_ips.values()))]})
+        egress.append({**peer, "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}]})
     policy = {
         "apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy",
         "metadata": {"name": run_name, "namespace": RUNNER_NAMESPACE,
