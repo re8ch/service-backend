@@ -4,6 +4,7 @@ resources:
 - crds.yaml
 - runtime.yaml
 - runner-runtime.yaml
+- runner-pull.yaml
 - result-runtime.yaml
 - targets.yaml
 configMapGenerator:
