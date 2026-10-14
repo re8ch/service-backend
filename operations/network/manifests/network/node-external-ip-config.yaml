@@ -5,15 +5,16 @@ metadata:
   namespace: kube-system
 data:
   nodes.tsv: |
-    restricted-node-1eb0570f74 none none
+    a1-wsl-zt none none
     amdwsl-zt none none
-    artchais-nuclio-1 static 192.0.2.231
-    restricted-node-296f36f2fb none none
-    harbor-registry static 192.0.2.210
-    overseas-edge-50 static 192.0.2.3
-    qianwen-nuclio-79 static 192.0.2.110
+    artchais-nuclio-1 static 101.34.217.95
+    b1-wsl-zt none none
+    harbor-registry static 8.136.187.255
+    overseas-edge-50 static 38.207.168.50
+    overseas-kl static 198.20.153.89
+    qianwen-nuclio-79 static 47.103.114.218
     qianwen-prod-nuclio-3 none none
     qianwen-test-nuclio-2 none none
-    rancher-panel static 192.0.2.67
-    restricted-node-6dc3f140f9 static 192.0.2.79
-    vm-20-12-ubuntu static 192.0.2.99
+    rancher-panel static 1.14.174.244
+    r640 static 223.159.210.222
+    vm-20-12-ubuntu static 42.194.130.91
