@@ -36,11 +36,11 @@ jobs:
           file: operations/api-conformance/Dockerfile.runner
           platforms: linux/amd64
           push: true
-          tags: registry.re8ch.com/auth/api-conformance-runner:${{ inputs.revision }}
+          tags: registry.re8ch.com/functions-shared/api-conformance-runner:${{ inputs.revision }}
           provenance: mode=max
           sbom: true
       - name: Verify runner version and scan before signing
-        env: {IMAGE: 'registry.re8ch.com/auth/api-conformance-runner@${{ steps.build.outputs.digest }}'}
+        env: {IMAGE: 'registry.re8ch.com/functions-shared/api-conformance-runner@${{ steps.build.outputs.digest }}'}
         run: |
           docker run --rm --entrypoint python "$IMAGE" -c 'from importlib.metadata import version; assert version("schemathesis") == "4.29.1"'
           docker run --rm --volume "$HOME/.docker:/root/.docker:ro" \
@@ -49,7 +49,7 @@ jobs:
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
       - name: Sign and verify immutable digest
         env:
-          IMAGE: registry.re8ch.com/auth/api-conformance-runner@${{ steps.build.outputs.digest }}
+          IMAGE: registry.re8ch.com/functions-shared/api-conformance-runner@${{ steps.build.outputs.digest }}
           IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/conformance-runner-release.yml@refs/heads/main
         run: |
           cosign sign --yes "$IMAGE"
