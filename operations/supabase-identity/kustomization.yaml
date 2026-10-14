@@ -12,6 +12,7 @@ resources:
 - oauth-clients-tenant-mcp.yaml
 - tenant-runtime-memberships.yaml
 - tenant-runtime-contexts.yaml
+- multi-organization-memberships.yaml
 - platform-admin-api.yaml
 - privacy-requests.yaml
 - identity-broker-groups.yaml

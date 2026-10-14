@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-multi-organization-memberships-v1
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    begin;
+    -- Membership records express durable entitlements. Request scoping is
+    -- independently enforced by core.user_active_organizations, so retaining
+    -- more than one active non-personal membership does not combine privileges.
+    drop trigger if exists enforce_single_active_non_personal_membership on core.organization_members;
+    drop function if exists core.enforce_single_active_non_personal_membership();
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-multi-organization-memberships-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: r640}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
+      containers:
+        - name: migrate
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args: ["psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql"]
+          env:
+            - {name: PGHOST, value: pg-re8ch-primary.pigsty-external.svc.cluster.local}
+            - {name: PGDATABASE, value: re8ch_identity}
+            - {name: PGUSER, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_USER_READ_WRITE}}}
+            - {name: PGPASSWORD, valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: POSTGRES_PASSWORD}}}
+          volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+        - {name: sql, configMap: {name: supabase-multi-organization-memberships-v1}}
