@@ -638,7 +638,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
             "signingKeySecretRef": "public-edge-route-snapshot-signing",
         },
         "secondaries": [{
-            "id": "overseas-la", "enabled": True, "nodeName": "overseas-la",
+            "id": "overseas-la", "enabled": False, "nodeName": "overseas-la",
             "tlsSecretRef": "public-edge-overseas-la-tls",
         }],
         "shadowDnsPort": 5353,

@@ -356,7 +356,10 @@ spec:
         snapshotTlsSecretRef: public-edge-hidden-primary-tls
         signingKeySecretRef: public-edge-route-snapshot-signing
       secondaries:
-        - {id: overseas-la, enabled: true, nodeName: overseas-la, tlsSecretRef: public-edge-overseas-la-tls}
+        # LA is NotReady and cannot satisfy a Helm rollout gate. Keep the
+        # shadow secondary declared but disabled until node qualification
+        # recovers; public authority election remains probe-driven.
+        - {id: overseas-la, enabled: false, nodeName: overseas-la, tlsSecretRef: public-edge-overseas-la-tls}
       shadowDnsPort: 5353
     # Require fresh measured path evidence independent of kubelet scheduling state.
     fabricEvidence:
