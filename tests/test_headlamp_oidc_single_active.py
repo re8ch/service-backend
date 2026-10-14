@@ -14,7 +14,10 @@ def test_headlamp_hpa_cannot_override_single_active_deployment():
     hpa = next(item for item in policies if item["kind"] == "HorizontalPodAutoscaler")
 
     assert deployment["spec"]["replicas"] == 1
-    assert deployment["spec"]["strategy"]["type"] == "Recreate"
+    assert deployment["spec"]["strategy"] == {
+        "type": "RollingUpdate",
+        "rollingUpdate": {"maxUnavailable": 0, "maxSurge": 1},
+    }
     assert hpa["spec"]["scaleTargetRef"]["name"] == deployment["metadata"]["name"]
     assert hpa["spec"]["minReplicas"] == hpa["spec"]["maxReplicas"] == 1
 
