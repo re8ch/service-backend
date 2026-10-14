@@ -1,0 +1,39 @@
+name: headlamp-runtime-release
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/headlamp-runtime-release.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: headlamp-runtime-release
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Mirror the verified upstream multi-platform image
+        env:
+          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          SOURCE_IMAGE: ghcr.io/headlamp-k8s/headlamp@sha256:db3f0e0fc58d358d41daa3fe7fc852437552c7ee873c3645470f7b86a8e0db49
+          TARGET_IMAGE: registry.re8ch.com/functions-shared/headlamp:v0.45.0
+          EXPECTED_DIGEST: sha256:db3f0e0fc58d358d41daa3fe7fc852437552c7ee873c3645470f7b86a8e0db49
+        run: |
+          export DOCKER_CONFIG="${RUNNER_TEMP}/headlamp-runtime-release-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          umask 077
+          printf '{}' > "$DOCKER_CONFIG/config.json"
+          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com \
+            --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+          docker buildx imagetools create --tag "$TARGET_IMAGE" "$SOURCE_IMAGE"
+          actual="$(docker buildx imagetools inspect "$TARGET_IMAGE" --format '{{json .Manifest}}' | jq -r .digest)"
+          test "$actual" = "$EXPECTED_DIGEST"
+          printf 'Mirrored %s at %s\n' "$TARGET_IMAGE" "$actual"
