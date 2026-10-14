@@ -31,4 +31,4 @@ def test_sealed_runner_removes_build_tools_and_smoke_tests_runtime():
     assert text.count("pip uninstall --yes pip") == 2
     assert "pip check" in text and "schemathesis --version" in text
     assert "import runner, budget_hooks, requests, schemathesis" in text
-    assert text.index("USER 65532:65532") < text.index("RUN python -c")
+    assert text.index("USER 65532:65532") < text.index("RUN RE8CH_REQUEST_BUDGET=/tmp/import-check python -c")

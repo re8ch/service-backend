@@ -19,5 +19,5 @@ RUN apk add --no-cache --upgrade libcrypto3=3.3.7-r2 libssl3=3.3.7-r2 \
 # and their vendored old dependencies instead of suppressing scanner findings.
 COPY runner.py contract.py request_budget.py budget_hooks.py /app/
 USER 65532:65532
-RUN python -c 'import runner, budget_hooks, requests, schemathesis; from importlib.metadata import version; assert version("schemathesis") == "4.29.1"'
+RUN RE8CH_REQUEST_BUDGET=/tmp/import-check python -c 'import runner, budget_hooks, requests, schemathesis; from importlib.metadata import version; assert version("schemathesis") == "4.29.1"'
 ENTRYPOINT ["python", "/app/runner.py"]
