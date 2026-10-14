@@ -61,6 +61,14 @@ spec:
                   readOperationIds: {type: array, items: {type: string, minLength: 1}}
                   mutationOperationIds: {type: array, items: {type: string, minLength: 1}}
                   allowGeneratedMutations: {type: boolean, default: false}
+              checks:
+                type: object
+                properties:
+                  exclude:
+                    type: array
+                    maxItems: 1
+                    items: {type: string, enum: [unsupported_method]}
+                  rationale: {type: string, minLength: 40}
               limits:
                 type: object
                 required: [maxExamples, maxRequests, ratePerSecond, timeoutSeconds]

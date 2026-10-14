@@ -208,6 +208,8 @@ def main() -> int:
                 "--report", "json", "--report-json-path", str(report_path), "--no-color",
             ]
             command += ["--phases", "examples,coverage,fuzzing,stateful" if mode == "mutation" else "coverage,fuzzing"]
+            if excluded_checks := target.get("checks", {}).get("exclude", []):
+                command += ["--exclude-checks", ",".join(excluded_checks)]
             if authorization := os.getenv("AUTHORIZATION"):
                 command += ["--header", "Authorization:" + authorization]
             completed = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,

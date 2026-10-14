@@ -53,6 +53,13 @@ def validate_target(spec: dict) -> dict:
     _require(1 <= int(limits.get("maxRequests", 500)) <= 2000, "maxRequests out of range")
     _require(1 <= int(limits.get("ratePerSecond", 1)) <= 5, "ratePerSecond out of range")
     _require(60 <= int(limits.get("timeoutSeconds", 600)) <= 900, "timeoutSeconds out of range")
+    checks = spec.get("checks", {})
+    excluded = checks.get("exclude", [])
+    _require(isinstance(excluded, list) and excluded in ([], ["unsupported_method"]),
+             "only the reviewed unsupported_method exception is allowed")
+    if excluded:
+        _require(isinstance(checks.get("rationale"), str) and len(checks["rationale"].strip()) >= 40,
+                 "excluded check requires a documented rationale")
     mutations = spec.get("operations", {}).get("mutationOperationIds", [])
     if mutations:
         _require(spec.get("canary", {}).get("tenantRef", "").startswith("schemathesis-canary"),

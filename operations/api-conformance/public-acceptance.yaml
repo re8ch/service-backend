@@ -26,5 +26,11 @@ spec:
     readOperationIds: [commerceHealth, listCommerceOrders]
     mutationOperationIds: []
     allowGeneratedMutations: false
+  # Envoy rejects extension method QUERY with HTTP/1.1 400 before app routing;
+  # HTTP/2 returns 405. Schemathesis 4.29.1 requires 405 in both transports.
+  # Keep every response/schema/auth check; exempt only this transport probe.
+  checks:
+    exclude: [unsupported_method]
+    rationale: Envoy returns 400 for HTTP/1.1 QUERY before app routing; HTTP/2 returns 405, so this single transport probe cannot be enforced at the application API.
   limits: {maxExamples: 5, maxRequests: 100, ratePerSecond: 1, timeoutSeconds: 180}
   schedule: {readSeconds: 21600}
