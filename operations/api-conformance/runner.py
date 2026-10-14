@@ -11,6 +11,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from urllib.parse import unquote, urlsplit
 from pathlib import Path
 
@@ -20,6 +21,18 @@ from contract import ContractError, sanitized_summary, schema_digest, validate_d
 from request_budget import initialize as initialize_budget, take as take_budget
 
 MAX_SCHEMA_BYTES = 4 * 1024 * 1024
+
+
+@contextmanager
+def scoped_budget_environment():
+    previous = os.environ.get("RE8CH_REQUEST_BUDGET")
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("RE8CH_REQUEST_BUDGET", None)
+        else:
+            os.environ["RE8CH_REQUEST_BUDGET"] = previous
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -154,7 +167,7 @@ def main() -> int:
     report = None
     exit_code = 1
     audit_refs: list[str] = []
-    with tempfile.TemporaryDirectory(prefix="re8ch-schemathesis-") as directory:
+    with scoped_budget_environment(), tempfile.TemporaryDirectory(prefix="re8ch-schemathesis-") as directory:
         limits = target.get("limits", {})
         reserved = sum(len(target.get("lifecycle", {}).get(key, [])) for key in ("cleanup", "reversal")) if mode == "mutation" else 0
         budget_path = Path(directory) / "request-budget.json"
