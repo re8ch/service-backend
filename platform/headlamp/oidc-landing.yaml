@@ -32,8 +32,8 @@ metadata:
   namespace: headlamp
 spec:
   selector:
-    app.kubernetes.io/name: headlamp
+    app.kubernetes.io/name: headlamp-gateway-proxy
   ports:
     - name: http
       port: 80
-      targetPort: oidc-landing
+      targetPort: http

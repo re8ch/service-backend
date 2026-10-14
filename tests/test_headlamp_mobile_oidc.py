@@ -20,7 +20,9 @@ def test_mobile_oidc_landing_is_same_origin_and_routes_back_to_cluster():
     assert 'localStorage.setItem("auth_status","success")' in nginx
     assert 'window.opener.location.replace(target)' in nginx
     assert 'var target="/c/re8ch-k3s/"' in nginx
-    assert service["spec"]["selector"] == {"app.kubernetes.io/name": "headlamp"}
+    assert service["spec"]["selector"] == {
+        "app.kubernetes.io/name": "headlamp-gateway-proxy"
+    }
 
 
 def test_service_route_sends_only_auth_landing_to_helper():
@@ -40,13 +42,30 @@ def test_service_route_sends_only_auth_landing_to_helper():
 
 
 def test_gateway_backend_tracks_ready_headlamp_across_nodes():
-    service = yaml.safe_load((ROOT / "platform/headlamp/gateway-backend.yaml").read_text())
+    documents = load_documents("platform/headlamp/gateway-backend.yaml")
+    service = next(
+        doc
+        for doc in documents
+        if doc["kind"] == "Service"
+        and doc["metadata"]["name"] == "headlamp-gateway-backend"
+    )
+    deployment = next(doc for doc in documents if doc["kind"] == "Deployment")
+    origin_names = {
+        doc["metadata"]["name"]
+        for doc in documents
+        if doc["kind"] == "Service" and doc["metadata"]["name"].endswith("-origin")
+    }
 
     assert service["kind"] == "Service"
     assert service["metadata"]["name"] == "headlamp-gateway-backend"
     assert service["spec"]["type"] == "ClusterIP"
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
-    assert service["spec"]["selector"] == {"app.kubernetes.io/name": "headlamp"}
+    assert service["spec"]["selector"] == {
+        "app.kubernetes.io/name": "headlamp-gateway-proxy"
+    }
     assert service["spec"]["ports"] == [
         {"name": "http", "port": 80, "protocol": "TCP", "targetPort": "http"}
     ]
+    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["template"]["spec"].get("hostNetwork") is None
+    assert origin_names == {"headlamp-origin", "headlamp-oidc-origin"}
