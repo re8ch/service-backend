@@ -840,7 +840,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: content-reload-v1
+        networking.re8ch.com/config-revision: kl-source-identity-v2
     spec:
       hostPID: true
       hostNetwork: true
@@ -860,7 +860,7 @@ spec:
                     # LA1 must reconcile both route-server AllowedIPs after a
                     # WireGuard restart so BGP ECMP cannot hash into a peer
                     # that rejects the selected PodCIDR.
-                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, overseas-flk, overseas-la, overseas-la-2]
+                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, overseas-flk, overseas-kl, overseas-la, overseas-la-2]
       containers:
         - name: reconciler
           image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
