@@ -82,6 +82,8 @@ spec:
         - {name: GITHUB_REPOSITORY_INSTALLATIONS, value: '{"re8ch/cloud-functions":"171153917"}'}
         - {name: DISCOVERY_ENABLED, value: "false"}
         - {name: RUNNER_PULL_SECRET, value: harbor-functions-shared-pull}
+        - {name: RUNNER_NAMESPACE, value: api-conformance-runners}
+        - {name: RUNNER_IMAGE, value: 'registry.re8ch.com/functions-shared/api-conformance-runner@sha256:63b3c8264bd22acf5e9fbbd5144f5f2fe34886bd95b346f64ff2218026db3413'}
         - {name: RESULT_DELIVERY_MODE, value: oidc}
         - {name: RESULT_REPOSITORY_BINDINGS, value: '{"re8ch/cloud-functions":{"repositoryId":"1248776882","ownerId":"283958313"}}'}
         - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}

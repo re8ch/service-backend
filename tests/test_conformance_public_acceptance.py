@@ -1,5 +1,6 @@
 """Guard the anonymous pilot against accidentally enabling production writes."""
 from pathlib import Path
+import re
 import yaml
 
 ROOT = Path(__file__).parents[1] / "operations/api-conformance"
@@ -25,6 +26,17 @@ def test_authenticated_targets_remain_suspended():
     targets = list(yaml.safe_load_all((ROOT / "targets.yaml").read_text()))
     assert len(targets) == 3
     assert all(target["spec"]["suspend"] is True for target in targets)
+
+
+def test_enabled_public_target_requires_isolated_digest_pinned_runner():
+    target = yaml.safe_load((ROOT / "public-acceptance.yaml").read_text())["spec"]
+    if target["suspend"]:
+        return
+    docs = list(yaml.safe_load_all((ROOT / "runtime.yaml").read_text()))
+    deployment = next(d for d in docs if d["kind"] == "Deployment")
+    env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
+    assert env["RUNNER_NAMESPACE"] == "api-conformance-runners"
+    assert re.fullmatch(r"registry\.re8ch\.com/functions-shared/api-conformance-runner@sha256:[a-f0-9]{64}", env.get("RUNNER_IMAGE", ""))
 
 
 def test_controller_dns_policy_supports_fqdn_learning():
