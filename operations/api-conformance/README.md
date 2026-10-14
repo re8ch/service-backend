@@ -48,6 +48,14 @@ Delivery initialization occurs only while completing a Running run, never when
 retrying publication; a consumed claim must never be reset. Failed publication
 is recorded on the run and requires inspection rather than blind redispatch.
 
+Run creation and Job submission are not a transaction. The controller retains
+the target/global concurrency lock for Pending scheduled runs and Starting
+runs, persisting Starting before submitting a Job. A lost response cannot cause
+another mutation after restart. Completed Jobs in these phases are collected
+normally; an orphan without a Job stays locked for explicit operational review
+rather than being silently retried. This intentionally favors safety over
+availability when submission state is uncertain.
+
 The result proxy is a system workload in `auth`, reusing its existing kubelet
 Harbor pull reference without mounting that credential in the container. Its
 ServiceAccount has only named Run GET and Run status PATCH in
