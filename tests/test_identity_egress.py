@@ -53,7 +53,7 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert local_service["spec"]["internalTrafficPolicy"] == "Local"
     assert local_service["spec"]["publishNotReadyAddresses"] is True
     assert "trafficDistribution" not in local_service["spec"]
-    assert "clusterIP" not in local_service["spec"]
+    assert local_service["spec"]["clusterIP"] == "192.0.2.18"
     assert budget["spec"]["minAvailable"] == 1
 
 
@@ -61,7 +61,7 @@ def test_identity_egress_is_restricted_to_declared_identity_consumers():
     docs = documents(ROOT / "clusters/re8ch/components/egress-fabric/identity-egress.yaml")
     policy = next(item for item in docs if item["kind"] == "NetworkPolicy")
     rule = policy["spec"]["ingress"][0]
-    dex_source, auth_source, flux_source = rule["from"]
+    dex_source, auth_source, flux_source, conformance_source = rule["from"]
     assert dex_source["namespaceSelector"]["matchLabels"]["kubernetes.io/metadata.name"] == "dex"
     expression = dex_source["podSelector"]["matchExpressions"][0]
     assert expression == {
@@ -77,6 +77,12 @@ def test_identity_egress_is_restricted_to_declared_identity_consumers():
             "matchLabels": {"kubernetes.io/metadata.name": "flux-system"}},
         "podSelector": {
             "matchLabels": {"app": "source-controller"}},
+    }
+    assert conformance_source == {
+        "namespaceSelector": {
+            "matchLabels": {"kubernetes.io/metadata.name": "api-conformance-system"}},
+        "podSelector": {
+            "matchLabels": {"app.kubernetes.io/name": "api-conformance-controller"}},
     }
 
 
