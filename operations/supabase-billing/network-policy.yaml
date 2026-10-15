@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: supabase-billing-default-deny, namespace: supabase-billing}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: supabase-billing-runtime, namespace: supabase-billing}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: supabase-billing}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: payments}}
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: supabase-billing}}
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: pigsty-external}}
+      ports: [{protocol: TCP, port: 5432}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+        - ipBlock: {cidr: 0.0.0.0/0, except: [192.0.2.183/8, 192.0.2.33/12, 192.0.2.136/16]}
+      ports: [{protocol: TCP, port: 443}]
