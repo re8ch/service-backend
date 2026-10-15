@@ -77,6 +77,9 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
+          # Cold base-image and module pulls on the Macmini builder can exceed
+          # the generic five-minute publisher default.
+          TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
           # Keep Harbor OAuth token requests in BuildKit, whose disposable DNS
           # config resolves the public registry authority instead of fake IPs.
           BUILDKIT_NO_CLIENT_TOKEN: "1"
