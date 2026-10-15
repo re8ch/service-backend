@@ -54,6 +54,7 @@ jobs:
           python operations/workspace-controller/workspace.py doctor
           python operations/ci/impact.py --path README.md >/dev/null
           python operations/k6/validate.py --base "${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}"
+          python operations/commerce/test_check_image_vulnerabilities.py
 
   # Production health is reported by k6-contracts.yml. A production outage
   # must not prevent merging the change that repairs it.
