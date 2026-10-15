@@ -1,0 +1,9 @@
+[Unit]
+Description=Reconcile preferred WireGuard routes without gating K3s
+After=network-online.target zerotier-one.service
+Wants=network-online.target zerotier-one.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/re8ch/wg-route-health.env
+ExecStart=/usr/local/sbin/re8ch-wg-route-health

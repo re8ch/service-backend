@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+WG_INTERFACE=${WG_INTERFACE:?WG_INTERFACE is required}
+LOCAL_NODE_IP=${LOCAL_NODE_IP:?LOCAL_NODE_IP is required}
+HANDSHAKE_MAX_AGE=${HANDSHAKE_MAX_AGE:-180}
+ROUTE_TARGETS=${ROUTE_TARGETS:-}
+
+now=$(date +%s)
+
+for target in $ROUTE_TARGETS; do
+    peer=$(wg show "$WG_INTERFACE" allowed-ips 2>/dev/null |
+        awk -v ip="$target/32" '$0 ~ ip {print $1; exit}')
+    handshake=0
+    if [ -n "$peer" ]; then
+        handshake=$(wg show "$WG_INTERFACE" latest-handshakes 2>/dev/null |
+            awk -v p="$peer" '$1 == p {print $2; exit}')
+        handshake=${handshake:-0}
+    fi
+
+    while ip route show "$target/32" | grep -q "dev $WG_INTERFACE"; do
+        ip route del "$target/32" dev "$WG_INTERFACE" 2>/dev/null || break
+    done
+    if [ "$handshake" -gt 0 ] && [ $((now - handshake)) -le "$HANDSHAKE_MAX_AGE" ]; then
+        ip route replace "$target/32" dev "$WG_INTERFACE" src "$LOCAL_NODE_IP" metric 5
+        logger -t re8ch-wg-route-health \
+            "target=$target path=wireguard handshake_age=$((now - handshake))"
+    else
+        ip route flush cache
+        logger -t re8ch-wg-route-health \
+            "target=$target path=fallback reason=stale_or_missing_handshake"
+    fi
+done
