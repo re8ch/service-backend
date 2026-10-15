@@ -23,3 +23,14 @@ def test_revision_suffix_is_a_word_not_a_number():
     size = len(state["themes"][names.module_themes()[module]])
     state["modules"][module] = {"releases": [{"codename": "used"}] * size}
     assert names.proposed(module, state).endswith("-amber")
+
+
+def test_revision_vocabulary_has_capacity_after_all_previous_words():
+    state = yaml.safe_load((ROOT / "operations/releases/codenames.yaml").read_text())
+    module = "platform/birfucate-metering"
+    size = len(state["themes"][names.module_themes()[module]])
+    previously_reviewed_words = len(state["revision_words"]) - 12
+    state["modules"][module] = {
+        "releases": [{"codename": "used"}] * size * (previously_reviewed_words + 1)
+    }
+    assert names.proposed(module, state).endswith("-amethyst")
