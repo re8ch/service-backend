@@ -69,9 +69,22 @@ def test_billing_routes_split_api_and_admin_hosts() -> None:
 
 def test_billing_post_start_policy_preserves_identity_boundary() -> None:
     sql = (BASE / "post-start.sql").read_text()
-    assert "billing.identity_subject_map" in sql
-    assert "references auth.users(id)" in sql
-    assert "new.identity_data ->> 'sub'" in sql
+    assert "billing.current_identity_subject()" in sql
+    assert "request.jwt.claims" in sql
+    assert "identity_subject_map" not in sql
+    assert "auth.identities" not in sql
     assert "billing-private" in sql and "public = false" in sql
     assert "billing:user:" in sql
     assert "re8ch_identity" not in sql
+
+
+def test_stable_db_host_is_path_split_without_cross_database_linking() -> None:
+    auth = (ROOT / "clusters/re8ch/components/auth/deployments/auth-postgrest.yaml").read_text()
+    commerce = (ROOT / "clusters/re8ch/components/payments/commerce-runtime.yaml").read_text()
+    readme = (BASE / "README.md").read_text()
+    assert "hostnames: [db-rw.re8ch.com]" in auth
+    assert "/auth/rpc" in auth
+    assert "hostnames: [db-rw.re8ch.com]" in commerce
+    assert "value: /commerce" in commerce
+    assert "re8ch_identity" in readme and "re8ch_billing" in readme
+    assert "no cross-database foreign key, fdw, dblink" in readme.lower()

@@ -12,10 +12,29 @@ before those gates would create failing Pods and an unaudited public surface.
 
 - `billing-supabase.re8ch.com`: Auth, REST, Realtime, and Storage only.
 - `billing-studio.re8ch.com`: Studio through Kong dashboard Basic Auth.
-- `db-rw.re8ch.com/commerce` and `db-ro.re8ch.com/commerce`: remain on the
-  current Payments PostgREST deployments until parallel acceptance passes.
+- `db-rw.re8ch.com/auth*` and the existing Identity RPC paths remain bound to
+  `re8ch_identity`; `db-rw.re8ch.com/commerce*` is the stable path contract for
+  the PostgREST instance bound to `re8ch_billing`.
+- `db-ro.re8ch.com/commerce*` is the read-only equivalent. The current Payments
+  PostgREST deployments continue serving both paths until parallel acceptance
+  passes, then only their backendRefs change.
 - Identity federation uses the existing Identity issuer. Billing GoTrue has
   signup disabled and uses its own signer and session store.
+
+## Identity boundary
+
+There is no cross-database foreign key, FDW, dblink, user mirror, or profile
+cache between `re8ch_identity` and `re8ch_billing`. Commerce tables store the
+canonical Identity `sub` UUID directly (`payer_subject`, owner subject, and
+equivalent domain columns). `billing.current_identity_subject()` validates and
+returns that UUID from the signed request claims for RLS/RPC use. When Commerce
+needs mutable user, organization, or disablement data it calls the Identity API;
+it does not join across PostgreSQL databases.
+
+The Commerce/Payment API remains the token-exchange boundary. Browser clients
+authenticate with Identity and receive short-lived, audience-limited business
+JWTs; they never receive a Billing service-role key. This keeps the two database
+roles and DSNs independent without inventing a second consumer identity model.
 
 ## Required preflight
 
@@ -47,8 +66,9 @@ Every database URI must name `re8ch_billing`. Storage uses its own 20 GiB
 `rbd-r640` PVC and may be expanded but never shrunk.
 6. Start GoTrue, Storage, and Realtime privately so they initialize their
    managed schemas. Then plan and apply `post-start.sql` to install the
-   canonical Identity-subject map, private Storage owner policies, and private
-   per-user Realtime policy. Stop rollout if the managed schema shape differs.
+   canonical Identity-subject claim helper, private Storage owner policies, and
+   private per-user Realtime policy. Stop rollout if the managed schema shape
+   differs.
 
 ## Activation and rollout
 
@@ -61,7 +81,8 @@ DNS names and run REST RW/RO denial tests, cross-user Storage denial, private
 Realtime topic denial, and Studio administrator access. Run payment contract
 tests and ledger invariants without real funds. Only after parallel acceptance
 may the existing `/commerce` routes switch backendRefs to the new RW/RO
-services; remove the old Deployments in a later cleanup commit.
+services. The `/auth` routes must remain unchanged and bound to Identity. Remove
+the old Deployments in a later cleanup commit.
 
 Rollback restores the prior HTTPRoute backendRefs. Never roll back database
 schemas by deleting payment or ledger data.
