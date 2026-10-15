@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Service
+metadata: {name: supabase-billing-rest-ro, namespace: supabase-billing}
+spec:
+  selector: {app.kubernetes.io/component: rest-ro}
+  ports: [{name: http, port: 3000, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: supabase-billing-rest-rw, namespace: supabase-billing}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/component: rest}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: supabase-billing, app.kubernetes.io/component: rest}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations: [{key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}]
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: rest
+          image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - {name: PGRST_DB_URI, valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: PGRST_DB_URI_RW}}}
+            - {name: PGRST_DB_SCHEMAS, value: "payment_api,commerce_api"}
+            - {name: PGRST_DB_EXTRA_SEARCH_PATH, value: "public,extensions,payment,billing,commerce"}
+            - {name: PGRST_DB_ANON_ROLE, value: billing_commerce_anon}
+            - {name: PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: JWT_SECRET}}}
+            - {name: PGRST_DB_USE_LEGACY_GUCS, value: "false"}
+          startupProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 24}
+          readinessProbe: {httpGet: {path: /, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /, port: http}, periodSeconds: 30, failureThreshold: 3}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 250m, memory: 512Mi}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: supabase-billing-rest-ro, namespace: supabase-billing}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/component: rest-ro}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: supabase-billing, app.kubernetes.io/component: rest-ro}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      tolerations: [{key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}]
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: rest
+          image: docker.io/postgrest/postgrest:v14.12@sha256:54000f24847d01a2c2302e0041cf0618b875c57fb48507d743cfa9aaa50bf43c
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          ports: [{name: http, containerPort: 3000}]
+          env:
+            - {name: PGRST_DB_URI, valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: PGRST_DB_URI_RO}}}
+            - {name: PGRST_DB_SCHEMAS, value: "payment_api,commerce_api"}
+            - {name: PGRST_DB_EXTRA_SEARCH_PATH, value: "public,extensions,payment,billing,commerce"}
+            - {name: PGRST_DB_ANON_ROLE, value: billing_commerce_anon}
+            - {name: PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: JWT_SECRET}}}
+            - {name: PGRST_DB_USE_LEGACY_GUCS, value: "false"}
+            - {name: PGRST_DB_CHANNEL_ENABLED, value: "false"}
+          startupProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 24}
+          readinessProbe: {httpGet: {path: /, port: http}, periodSeconds: 10}
+          livenessProbe: {httpGet: {path: /, port: http}, periodSeconds: 30, failureThreshold: 3}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 250m, memory: 512Mi}}
