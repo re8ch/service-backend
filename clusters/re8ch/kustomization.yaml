@@ -263,7 +263,7 @@ patches:
           - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
     - op: add
       path: /spec/template/spec/containers/0/args/-
-      value: --concurrent=10
+      value: --concurrent=2
 - target:
     group: apps
     version: v1
@@ -271,11 +271,32 @@ patches:
     name: (helm-controller|notification-controller)
     namespace: flux-system
   patch: |-
-    # MUBAO's Pod Service path to 192.0.2.248 can time out. Both scheduled
-    # control nodes expose the API on their node IP with the cluster CA.
+    # Keep the initial Flux recovery topology in one known network domain.
+    # restricted-node-6dc3f140f9 HAProxy still failsover API traffic across A1, B1 and MUBAO.
+    - op: replace
+      path: /spec/replicas
+      value: 1
+    - op: add
+      path: /spec/strategy
+      value: {type: Recreate}
+    - op: add
+      path: /spec/template/spec/affinity
+      value:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [overseas-flk]
+    - op: add
+      path: /spec/template/spec/tolerations
+      value:
+      - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+      - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     - op: add
       path: /spec/template/spec/containers/0/env/-
-      value: {name: KUBERNETES_SERVICE_HOST, valueFrom: {fieldRef: {fieldPath: status.hostIP}}}
+      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}

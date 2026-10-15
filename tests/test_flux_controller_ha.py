@@ -7,12 +7,12 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CLUSTER = ROOT / "clusters/re8ch"
-REPLICATED = {
+CORE_CONTROLLERS = {
     "helm-controller",
     "notification-controller",
+    "kustomize-controller",
 }
-DISRUPTION_BUDGETED = REPLICATED | {"kustomize-controller"}
-CONTROL_PLANES = {"restricted-node-1eb0570f74", "restricted-node-abb3f27a69"}
+DISRUPTION_BUDGETED = CORE_CONTROLLERS
 
 
 def rendered_documents():
@@ -21,39 +21,29 @@ def rendered_documents():
     return list(yaml.safe_load_all(output))
 
 
-def test_flux_controllers_span_two_control_planes_and_use_local_dns():
+def test_flux_core_controllers_share_the_overseas_recovery_domain():
     deployments = {
         item["metadata"]["name"]: item
         for item in rendered_documents()
         if item and item["kind"] == "Deployment" and item["metadata"].get("namespace") == "flux-system"
     }
-    for name in REPLICATED:
+    for name in CORE_CONTROLLERS:
         deployment = deployments[name]
-        assert deployment["spec"]["replicas"] == 2
-        assert deployment["spec"]["strategy"]["rollingUpdate"] == {"maxSurge": 1, "maxUnavailable": 1}
+        assert deployment["spec"]["replicas"] == 1
+        assert deployment["spec"]["strategy"]["type"] == "Recreate"
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression["key"] == "kubernetes.io/hostname"
-        assert set(expression["values"]) == CONTROL_PLANES
-        assert pod["dnsPolicy"] == "ClusterFirst"
+        assert expression["values"] == ["overseas-flk"]
+        assert pod.get("dnsPolicy", "ClusterFirst") == "ClusterFirst"
         env = {item["name"]: item for item in pod["containers"][0]["env"]}
-        assert env["KUBERNETES_SERVICE_HOST"]["valueFrom"]["fieldRef"]["fieldPath"] == "status.hostIP"
+        assert env["KUBERNETES_SERVICE_HOST"]["value"] == "192.0.2.179"
         assert env["KUBERNETES_SERVICE_PORT"]["value"] == "6443"
         assert env["KUBERNETES_SERVICE_PORT_HTTPS"]["value"] == "6443"
         assert "dnsConfig" not in pod
-        assert {
-            "key": "node-role.kubernetes.io/control-plane",
-            "operator": "Exists",
-            "effect": "NoSchedule",
-        } in pod["tolerations"]
-        anti_affinity = pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
-        assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
-        assert anti_affinity["matchLabelKeys"] == ["app"]
         assert "--enable-leader-election" in pod["containers"][0]["args"]
-        preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
-        assert [item["preference"]["matchExpressions"][0]["values"] for item in preferred] == [["restricted-node-abb3f27a69"], ["restricted-node-1eb0570f74"]]
         if name == "helm-controller":
-            assert "--concurrent=10" in pod["containers"][0]["args"]
+            assert "--concurrent=2" in pod["containers"][0]["args"]
 
 
 def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_proxy():
