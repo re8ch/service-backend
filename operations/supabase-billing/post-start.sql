@@ -1,42 +1,29 @@
--- Apply to re8ch_billing only after GoTrue, Storage, and Realtime have created
--- their managed schemas. This migration stores no Identity password or session.
+-- Apply to re8ch_billing only after Storage and Realtime have created their
+-- managed schemas. Identity remains the sole user authority: Billing stores
+-- the canonical Identity UUID directly in business rows and never mirrors
+-- users, passwords, sessions, profiles, or organization membership.
 begin;
 
-create table if not exists billing.identity_subject_map (
-  billing_user_id uuid primary key references auth.users(id) on delete cascade,
-  identity_subject uuid not null unique,
-  provider text not null check (provider = 'keycloak'),
-  linked_at timestamptz not null default now()
-);
-
-create or replace function billing.sync_identity_subject_map() returns trigger
-language plpgsql security definer
-set search_path = billing, pg_catalog, pg_temp
+create or replace function billing.current_identity_subject() returns uuid
+language plpgsql stable
+set search_path = pg_catalog, pg_temp
 as $$
 declare
-  v_subject text := new.identity_data ->> 'sub';
+  v_claims jsonb;
+  v_subject text;
 begin
-  if new.provider <> 'keycloak' then
-    raise exception 'billing auth only accepts the Identity OIDC provider';
-  end if;
+  v_claims := nullif(current_setting('request.jwt.claims', true), '')::jsonb;
+  v_subject := v_claims ->> 'sub';
   if v_subject is null or v_subject !~
     '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' then
-    raise exception 'Identity OIDC subject is not a canonical UUID';
+    raise exception 'Identity subject claim is not a canonical UUID'
+      using errcode = '28000';
   end if;
-  insert into billing.identity_subject_map(billing_user_id, identity_subject, provider)
-  values(new.user_id, v_subject::uuid, new.provider)
-  on conflict (billing_user_id) do update
-    set identity_subject = excluded.identity_subject,
-        provider = excluded.provider;
-  return new;
+  return v_subject::uuid;
 end;
 $$;
-revoke all on function billing.sync_identity_subject_map() from public;
-
-drop trigger if exists billing_identity_subject_map on auth.identities;
-create trigger billing_identity_subject_map
-  after insert or update of identity_data on auth.identities
-  for each row execute function billing.sync_identity_subject_map();
+revoke all on function billing.current_identity_subject() from public;
+grant execute on function billing.current_identity_subject() to authenticated;
 
 insert into storage.buckets(id, name, public)
 values ('billing-private', 'billing-private', false)
