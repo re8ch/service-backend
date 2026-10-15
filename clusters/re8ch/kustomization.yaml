@@ -314,7 +314,9 @@ patches:
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     - op: add
       path: /spec/template/spec/containers/0/args/-
-      value: --concurrent=10
+      # Bound cross-region Kubernetes API pressure so reconciliation does not
+      # amplify an etcd/control-plane recovery event.
+      value: --concurrent=2
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.205"}
