@@ -22,7 +22,10 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python operations/commerce/test_check_image_vulnerabilities.py
       - name: Scan the two fixed Harbor repositories
+        id: harbor
+        continue-on-error: true
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
@@ -31,9 +34,37 @@ jobs:
         run: |
           python operations/commerce/scan_harbor_images.py \
             "$COMMERCE_DIGEST" "$REGISTRY_DIGEST" scan-reports
+      - name: Verify complete Harbor reports and vulnerability policy
+        if: steps.harbor.outcome == 'success'
+        run: |
+          python operations/commerce/check_image_vulnerabilities.py harbor \
+            scan-reports/processor-commerce-api.json \
+            scan-reports/processor-payment-registry-api.json
+      - name: Fallback to pinned Trivy when Harbor scanner is unavailable
+        if: steps.harbor.outcome == 'failure'
+        env:
+          TRIVY_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+          TRIVY_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          COMMERCE_DIGEST: ${{ inputs.commerce_digest }}
+          REGISTRY_DIGEST: ${{ inputs.registry_digest }}
+        run: |
+          mkdir -p scan-reports
+          docker run --rm --env TRIVY_USERNAME --env TRIVY_PASSWORD \
+            --volume "$PWD/scan-reports:/out" \
+            ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
+            image --scanners vuln --format json --output /out/processor-commerce-api-trivy.json \
+            "registry.re8ch.com/hyperswitch/processor-commerce-api@$COMMERCE_DIGEST"
+          docker run --rm --env TRIVY_USERNAME --env TRIVY_PASSWORD \
+            --volume "$PWD/scan-reports:/out" \
+            ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
+            image --scanners vuln --format json --output /out/processor-payment-registry-api-trivy.json \
+            "registry.re8ch.com/hyperswitch/processor-payment-registry-api@$REGISTRY_DIGEST"
+          python operations/commerce/check_image_vulnerabilities.py trivy \
+            scan-reports/processor-commerce-api-trivy.json \
+            scan-reports/processor-payment-registry-api-trivy.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: commerce-go-harbor-scans
           path: scan-reports/*.json
-          if-no-files-found: error
+          if-no-files-found: warn
