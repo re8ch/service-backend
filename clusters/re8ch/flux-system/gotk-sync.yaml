@@ -22,7 +22,9 @@ spec:
   # The root owns intentionally suspended and condition-reporting resources;
   # waiting on every descendant makes later signed revisions impossible to apply.
   wait: false
-  timeout: 3m
+  # The signed root artifact is several MiB. Keep enough headroom for control-
+  # plane failover and constrained cross-region API links during reconciliation.
+  timeout: 20m
   decryption:
     provider: sops
     secretRef: {name: sops-age}

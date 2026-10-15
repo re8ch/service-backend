@@ -14,7 +14,7 @@ def test_root_frequency_and_local_sync():
     assert docs[0]['spec']['interval'] == '30s'
     assert docs[1]['spec']['interval'] == '1m'
     assert docs[0]['spec']['timeout'] == '15m'
-    assert docs[1]['spec']['timeout'] == '3m'
+    assert docs[1]['spec']['timeout'] == '20m'
     assert docs[0]['spec']['url'] == 'ssh://git@ssh.github.com:443/re8ch/service-backend.git'
     assert docs[0]['spec']['secretRef']['name'] == 'service-backend-github-ssh'
     assert docs[0]['spec']['proxySecretRef'] == {'name': 'service-backend-github-socks'}
@@ -34,7 +34,7 @@ def test_rendered_controller_failover_and_source_cache_safety():
     docs = list(yaml.safe_load_all(rendered))
     services = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Service'}
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
-    for name in ('helm-controller', 'kustomize-controller', 'notification-controller'):
+    for name in ('helm-controller', 'notification-controller'):
         deployment = deployments[name]
         assert deployment['spec']['replicas'] == 2
         pod = deployment['spec']['template']['spec']
@@ -42,6 +42,17 @@ def test_rendered_controller_failover_and_source_cache_safety():
         anti_affinity = pod['affinity']['podAntiAffinity']['requiredDuringSchedulingIgnoredDuringExecution'][0]
         assert anti_affinity['topologyKey'] == 'kubernetes.io/hostname'
         assert anti_affinity['matchLabelKeys'] == ['app']
+    kustomize = deployments['kustomize-controller']
+    assert kustomize['spec']['replicas'] == 1
+    expression = kustomize['spec']['template']['spec']['affinity']['nodeAffinity'][
+        'requiredDuringSchedulingIgnoredDuringExecution'
+    ]['nodeSelectorTerms'][0]['matchExpressions'][0]
+    assert expression['values'] == ['overseas-flk']
+    kustomize_env = {
+        item['name']: item.get('value')
+        for item in kustomize['spec']['template']['spec']['containers'][0]['env']
+    }
+    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.205'
     # Never load-balance artifact requests over independently empty caches.
     source = deployments['source-controller']
     assert source['spec']['replicas'] == 1
