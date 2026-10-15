@@ -243,12 +243,11 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 	}
 	id.Tenant, id.Role, id.DefaultNamespace = membership.Tenant, membership.Role, membership.DefaultNamespace
 	id.AccessStatus = "ready"
-	// Resolve the privileged membership once per verified login session.
-	if membership.Tenant == "admin" && os.Getenv("PLATFORM_SESSION_URL") == "" {
+	// Resolve platform administration independently from the active application
+	// tenant. The membership RPC proves the separate Admin-organization grant;
+	// the active tenant continues to scope ordinary resource operations.
+	if os.Getenv("PLATFORM_SESSION_URL") == "" {
 		id.PlatformAdmin = s.platformAdminForSession(ctx, bearer, id.Subject)
-	}
-	if membership.Tenant != "admin" {
-		id.PlatformAdmin = false
 	}
 	return id, nil
 }
