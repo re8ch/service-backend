@@ -334,6 +334,8 @@ modules:
       digest: sha256:798b1ee8c4e359c9275b48cf7dbe168ec2b3e4bff1a582da61a37f2c94292443
     - codename: aurora-umber
       digest: sha256:f6a0efa6506e61042d968874c039e874e63d09e2520151bca21cc3e2324d125d
+    - codename: flare-umber
+      digest: sha256:a30458e85fc20d6c86fd789fd04eb6bd16cf77348cdedda655a5330fb6fbd72f
   platform/among-clusters:
     releases:
     - codename: bora
