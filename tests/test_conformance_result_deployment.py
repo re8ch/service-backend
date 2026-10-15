@@ -19,6 +19,9 @@ def test_result_proxy_scope_and_identity():
     p=json.loads(env["RESULT_OIDC_POLICY"])
     assert p["RepositoryID"]=="1248776882" and p["OwnerID"]=="283958313"
     assert len(p["WorkflowSHA"])==40
+    public_targets = {x["metadata"]["name"]: x["spec"] for x in
+                      yaml.safe_load_all((BASE / "public-acceptance.yaml").read_text())}
+    assert p["WorkflowSHA"] == public_targets["payment-public-contract"]["commit"]
     role=next(x for x in docs if x["kind"]=="Role")
     assert role["metadata"]["namespace"]=="api-conformance-system"
     assert role["rules"]==[
