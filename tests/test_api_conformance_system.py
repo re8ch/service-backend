@@ -252,12 +252,16 @@ def test_rendered_code_version_is_pinned_for_controller_and_runner():
 
 def test_pilot_targets_are_digest_pinned_and_fail_closed():
     targets = list(yaml.safe_load_all((BASE / "targets.yaml").read_text()))
-    assert {item["metadata"]["name"] for item in targets} == {
-        "cloud-functions-identity", "cloud-functions-payment-credits", "cloud-functions-commerce"}
+    expected_commits = {
+        "cloud-functions-identity": "81a757cdb10784d69957c7a4e7aee8568d36a295",
+        "cloud-functions-payment-credits": "91cfaedabf4978019c6b8a292454653390ef9acc",
+        "cloud-functions-commerce": "81a757cdb10784d69957c7a4e7aee8568d36a295",
+    }
+    assert {item["metadata"]["name"] for item in targets} == set(expected_commits)
     for item in targets:
         assert item["spec"]["suspend"] is True
         assert len(item["spec"]["schema"]["sha256"]) == 64
-        assert item["spec"]["commit"] == "81a757cdb10784d69957c7a4e7aee8568d36a295"
+        assert item["spec"]["commit"] == expected_commits[item["metadata"]["name"]]
         assert item["spec"]["imageDigest"].startswith("sha256:")
         assert len(item["spec"]["imageDigest"]) == 71
     mutation_targets = [item for item in targets if item["spec"]["operations"]["mutationOperationIds"]]

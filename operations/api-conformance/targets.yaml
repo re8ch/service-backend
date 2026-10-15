@@ -37,14 +37,14 @@ spec:
   serviceRef: payment.credits.v1
   github: {installationId: "171153917"}
   repository: re8ch/cloud-functions
-  commit: 81a757cdb10784d69957c7a4e7aee8568d36a295
-  imageDigest: sha256:f13b07b494ccd10a957bc58246419f9fb2e0ab0bfe3c412c2901e712a68b59fc
+  commit: 91cfaedabf4978019c6b8a292454653390ef9acc
+  imageDigest: sha256:03bd6e17e917e6eb06211b11a9d9325b5980ebe82eec7fa4d43ac6f03f2b7153
   branch: master
   baseUrl: https://api.re8ch.com/payment
   suspend: true
   schema:
     url: https://api.re8ch.com/payment/v1/openapi.yaml
-    sha256: a80f8618740572f35e42b4ebbc4135ad92d57f22bdcea1f1ce2c8dffd99b0689
+    sha256: c34795591a3b92c1de661489eac380af6bab94d5734dc17017611f1067d43b74
   network: {allowedHosts: [api.re8ch.com]}
   operations:
     readOperationIds: [paymentHealth, paymentReady, listPayments, getPayment, listCreditServices, getCreditWallet]
