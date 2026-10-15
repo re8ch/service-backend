@@ -51,7 +51,7 @@ spec:
         # not the proxy's own namespace. RBAC grants only the two verbs above.
         - {name: POD_NAMESPACE, value: api-conformance-system}
         - name: RESULT_OIDC_POLICY
-          value: '{"Audience":"re8ch-api-conformance-results","Repository":"re8ch/cloud-functions","RepositoryID":"1248776882","OwnerID":"283958313","Ref":"refs/heads/master","WorkflowRef":"re8ch/cloud-functions/.github/workflows/re8ch-schemathesis-result.yml@refs/heads/master","WorkflowSHA":"9eded3c3adc57da3c721e784c5b9acb7778ab0f0"}'
+          value: '{"Audience":"re8ch-api-conformance-results","Repository":"re8ch/cloud-functions","RepositoryID":"1248776882","OwnerID":"283958313","Ref":"refs/heads/master","WorkflowRef":"re8ch/cloud-functions/.github/workflows/re8ch-schemathesis-result.yml@refs/heads/master","WorkflowSHA":"91cfaedabf4978019c6b8a292454653390ef9acc"}'
 ---
 apiVersion: v1
 kind: Service

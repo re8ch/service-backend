@@ -30,6 +30,14 @@ existing encrypted output. The GitOps Secret lives under `clusters/re8ch/secrets
 Installing this Secret does not activate any suspended target or imply that the
 OIDC result proxy, short-lived service credentials, or canary fixtures are ready.
 
+The result proxy pins the GitHub OIDC `workflow_sha` of the product repository's
+default-branch result workflow in `result-runtime.yaml`. A `workflow_dispatch`
+run uses the current default-branch commit, even when its report refers to an
+older tested image commit. Rotate this pin in the same GitOps rollout as a
+product-branch advance; otherwise redemption fails closed and the service
+repository receives neither a Check nor an artifact. Confirm the exact
+`cloud-functions/master` SHA before changing the pin.
+
 Production mutation targets use only `schemathesis-canary*` tenants. Financial
 fixtures must compensate with immutable reversal entries; they never delete
 ledger history or call a real payment provider.
