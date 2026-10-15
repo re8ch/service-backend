@@ -19,6 +19,8 @@ never patches DNS or routing.
 The GlobalPing tab renders the controller-owned per-edge SNI and service-domain
 quality snapshot, while the Candidates table shows the latest GlobalPing
 readiness, probe count, latency and loss recorded on each PublicEdge status.
+If the aggregate ConfigMap is unavailable to the Headlamp session, the panel
+falls back to the controller-owned `status.externalQuality` on each PublicEdge.
 
 The Websites tab joins the reviewed public-site desired-state registry with
 the external provider snapshot. It shows each logical site's global and China
