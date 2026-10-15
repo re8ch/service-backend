@@ -43,7 +43,7 @@ def test_flux_core_controllers_share_the_overseas_recovery_domain():
         assert "dnsConfig" not in pod
         assert "--enable-leader-election" in pod["containers"][0]["args"]
         if name == "helm-controller":
-            assert "--concurrent=2" in pod["containers"][0]["args"]
+            assert "--concurrent=1" in pod["containers"][0]["args"]
 
 
 def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_proxy():
@@ -61,7 +61,7 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     env = {item["name"]: item["value"] for item in pod["containers"][0]["env"] if "value" in item}
     assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.179"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
-    assert "--concurrent=2" in pod["containers"][0]["args"]
+    assert "--concurrent=1" in pod["containers"][0]["args"]
     assert {item.get("key") for item in pod["tolerations"]} == {
         "dedicated",
         "scheduling.re8ch.com/capacity-window",
