@@ -88,6 +88,18 @@ revision_words:
 - jasper
 - agate
 - turquoise
+- amethyst
+- aquamarine
+- carnelian
+- citrine
+- diamond
+- hematite
+- lapis
+- malachite
+- moonstone
+- obsidian
+- peridot
+- tourmaline
 modules:
   clusters/re8ch/components/re8ch-business-namespaces:
     releases:
