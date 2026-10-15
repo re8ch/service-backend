@@ -174,12 +174,41 @@ function Dashboard() {
     authorities: {},
     services: {},
   });
-  const globalpingCandidates = Object.entries(globalpingQuality.candidates || {}).map(
+  const configuredGlobalpingCandidates = Object.entries(globalpingQuality.candidates || {}).map(
     ([name, value]: any) => ({ name, ...value })
   );
-  const globalpingServices = Object.entries(globalpingQuality.services || {}).map(
+  const statusGlobalpingCandidates = (edges || [])
+    .map(raw)
+    .filter((edge: any) => edge?.status?.externalQuality)
+    .map((edge: any) => ({
+      name: edge.metadata?.name || '-',
+      ...edge.status.externalQuality,
+    }));
+  const globalpingCandidates =
+    configuredGlobalpingCandidates.length > 0
+      ? configuredGlobalpingCandidates
+      : statusGlobalpingCandidates;
+  const configuredGlobalpingServices = Object.entries(globalpingQuality.services || {}).map(
     ([name, value]: any) => ({ name, ...value })
   );
+  const statusGlobalpingServices = statusGlobalpingCandidates.flatMap((candidate: any) =>
+    Object.entries(candidate.services || {}).map(([name, value]: any) => ({
+      name,
+      candidate: candidate.name,
+      ...value,
+    }))
+  );
+  const globalpingServices =
+    configuredGlobalpingServices.length > 0
+      ? configuredGlobalpingServices
+      : statusGlobalpingServices;
+  const globalpingObservedAt =
+    globalpingQuality.observedAt ||
+    statusGlobalpingCandidates
+      .map((candidate: any) => candidate.observedAt)
+      .filter(Boolean)
+      .sort()
+      .at(-1);
   let records: any = { services: {}, zones: [] };
   try {
     records = JSON.parse(recordsConfigMap?.data?.['records.json'] || '{"services":{},"zones":[]}');
@@ -666,13 +695,18 @@ function Dashboard() {
       )}
       {tab === 'globalping' && (
         <>
-          {!qualityConfigMap && !configError && (
-            <Alert severity="warning">尚未发现 public-edge-globalping-quality ConfigMap。</Alert>
+          {!qualityConfigMap && statusGlobalpingCandidates.length > 0 && (
+            <Alert severity="info">
+              ConfigMap 当前不可用；以下数据直接来自 PublicEdge status.externalQuality。
+            </Alert>
+          )}
+          {!qualityConfigMap && statusGlobalpingCandidates.length === 0 && !configError && (
+            <Alert severity="warning">尚未发现 GlobalPing 质量数据。</Alert>
           )}
           {globalpingQuality.parseError && (
             <Alert severity="error">{globalpingQuality.parseError}</Alert>
           )}
-          <SectionBox title={`Per-edge SNI quality · ${globalpingQuality.observedAt || 'not observed'}`}>
+          <SectionBox title={`Per-edge SNI quality · ${globalpingObservedAt || 'not observed'}`}>
             <Table
               data={globalpingCandidates}
               columns={[
@@ -691,6 +725,7 @@ function Dashboard() {
               data={globalpingServices}
               columns={[
                 { header: 'Hostname', accessorKey: 'name' },
+                { header: 'Candidate', accessorFn: (x: any) => x.candidate || '-' },
                 { header: 'Path', accessorKey: 'path' },
                 { header: 'Ready', accessorFn: (x: any) => String(Boolean(x.ready)) },
                 { header: 'Probes', accessorFn: (x: any) => `${x.finished ?? 0}/${x.probes ?? 0}` },
