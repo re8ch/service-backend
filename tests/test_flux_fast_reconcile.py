@@ -54,10 +54,11 @@ def test_rendered_controller_failover_and_source_cache_safety():
         for item in kustomize['spec']['template']['spec']['containers'][0]['env']
     }
     assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.205'
-    # Leader election keeps reconciliation single-active; the standby process
-    # repopulates its local artifact cache after taking leadership.
+    # Source artifacts use pod-local storage and a non-leader replica does not
+    # become ready, so scheduler failover is safer than an empty standby cache.
     source = deployments['source-controller']
-    assert source['spec']['replicas'] == 2
+    assert source['spec']['replicas'] == 1
+    assert source['spec']['strategy']['type'] == 'Recreate'
     assert source['spec']['template']['spec']['hostNetwork'] is True
     assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirstWithHostNet'
     assert source['spec']['template']['spec']['nodeSelector'] == {
