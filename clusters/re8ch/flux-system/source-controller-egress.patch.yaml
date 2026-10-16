@@ -4,10 +4,12 @@ metadata:
   name: source-controller
   namespace: flux-system
 spec:
-  replicas: 2
+  # source-controller serves artifacts from pod-local storage. A non-leader
+  # replica does not become ready, so use scheduler failover instead of a
+  # second permanently unready replica.
+  replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    type: Recreate
   template:
     spec:
       # Run public source delivery on the KL/restricted-node-6dc3f140f9 active-standby pair while
@@ -48,11 +50,6 @@ spec:
               preference:
                 matchExpressions:
                   - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels: {app: source-controller}
-              topologyKey: kubernetes.io/hostname
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}

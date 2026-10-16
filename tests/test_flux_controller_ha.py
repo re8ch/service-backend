@@ -12,7 +12,7 @@ CORE_CONTROLLERS = {
     "notification-controller",
     "kustomize-controller",
 }
-DISRUPTION_BUDGETED = CORE_CONTROLLERS | {"source-controller"}
+DISRUPTION_BUDGETED = CORE_CONTROLLERS
 FAILOVER_NODES = ["overseas-kl", "restricted-node-6dc3f140f9"]
 
 
@@ -73,7 +73,7 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     }
 
 
-def test_source_controller_is_two_replica_single_active_on_kl_r640():
+def test_source_controller_uses_kl_r640_scheduler_failover():
     documents = rendered_documents()
     deployment = next(
         item for item in documents
@@ -81,13 +81,15 @@ def test_source_controller_is_two_replica_single_active_on_kl_r640():
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "source-controller"
     )
-    assert deployment["spec"]["replicas"] == 2
-    assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
+    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert expression["values"] == FAILOVER_NODES
     assert pod["nodeSelector"] == {"kubernetes.io/os": "linux"}
-    assert pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+    preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
+    assert preferred[0]["weight"] == 100
+    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
     assert pod["hostNetwork"] is True
     assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert "dnsConfig" not in pod
