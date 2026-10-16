@@ -19,7 +19,7 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("name: re8ch-grafana-from-gateway", manifest)
         self.assertIn("fromEntities: [ingress]", manifest)
         self.assertIn("kubernetes.io/metadata.name: toolhive-system", manifest)
-        self.assertIn("nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}", manifest)
+        self.assertIn("nodeSelector: {kubernetes.io/hostname: r640}", manifest)
 
     def test_admin_org_mapping_is_not_split_on_spaces(self):
         manifest = (ROOT / "platform/observability/production/grafana.yaml").read_text()
@@ -53,8 +53,8 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertNotIn("qianwen-ops", manifest)
 
     def test_public_grafana_route_and_dns_authority_are_not_qwen_owned(self):
-        root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
-        self.assertIn("components/public-exposure/grafana-dns-authority.yaml", root)
+        domain = (ROOT / "clusters/re8ch/domains/networking/source/kustomization.yaml").read_text()
+        self.assertIn("../../../components/public-exposure/grafana-dns-authority.yaml", domain)
         paths = [
             "clusters/re8ch/components/cilium/gateway-api-canary.yaml",
             "clusters/re8ch/components/public-exposure/grafana-dns-authority.yaml",
@@ -63,7 +63,7 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         rendered = "\n".join((ROOT / path).read_text() for path in paths)
         self.assertIn("namespace: observability-system", rendered)
         self.assertIn("observability-system/grafana-dns-authority", rendered)
-        self.assertIn("external-dns.alpha.kubernetes.io/target: 192.0.2.138", rendered)
+        self.assertIn("external-dns.alpha.kubernetes.io/target: 223.159.210.222", rendered)
         self.assertNotIn("qianwen-ops/grafana-dns-authority", rendered)
         self.assertNotIn("panel-grafana", rendered)
 
@@ -80,9 +80,9 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
         self.assertIn("resourceNames: [re8ch-grafana]", rbac)
 
     def test_legacy_qwen_grafana_publication_is_retired_without_deleting_backups(self):
-        root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
+        root = (ROOT / "clusters/re8ch/domains/observability-metering/source/kustomization.yaml").read_text()
         cleanup_path = "components/observability/retire-legacy-qianwen-grafana.yaml"
-        self.assertIn(cleanup_path, root)
+        self.assertIn("../../../" + cleanup_path, root)
         cleanup = (ROOT / "clusters/re8ch" / cleanup_path).read_text()
         for resource in (
             "grafana-dns-authority",

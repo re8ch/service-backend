@@ -30,6 +30,9 @@ def test_root_frequency_and_local_sync():
 def test_rendered_controller_failover_and_source_cache_safety():
     command = ['kustomize', 'build'] if shutil.which('kustomize') else ['kubectl', 'kustomize']
     rendered = subprocess.check_output([*command, str(ROOT / 'clusters/re8ch')], text=True)
+    rendered += "\n---\n" + subprocess.check_output(
+        [*command, str(ROOT / 'clusters/re8ch/domains/networking')], text=True
+    )
     docs = list(yaml.safe_load_all(rendered))
     services = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Service'}
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}

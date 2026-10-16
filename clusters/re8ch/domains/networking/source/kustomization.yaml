@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../secrets/among-clusters-hub-admin.sops.yaml
+- ../../../secrets/cloudflare-advfab-dns-token.sops.yaml
+- ../../../secrets/routeros-authority-bundle-key.sops.yaml
+- ../../../secrets/public-edge-route-snapshot-signing.sops.yaml
+- ../../../secrets/zerotier-planet-env.sops.yaml
+- ../../../components/cluster-inventory/configmap.yaml
+- ../../../components/cilium/gateway-api-canary.yaml
+- ../../../components/cilium/service-zone-wave-15.yaml
+- ../../../components/cilium/advfab-worker-node-ips.yaml
+- ../../../components/cilium/native-routing-rollout.yaml
+- ../../../components/cilium/r640-policy-update-budget.yaml
+- ../../../components/egress-fabric/identity-egress.yaml
+- ../../../components/egress-fabric/live-node-egress-labels.yaml
+- ../../../components/egress-fabric/mihomo-node-labeler
+- ../../../components/egress-fabric/rbac.yaml
+- ../../../components/egress-fabric/path-controller.yaml
+- ../../../components/public-exposure/external-dns-cloudflare.yaml
+- ../../../components/public-exposure/external-dns-advfab.yaml
+- ../../../components/public-exposure/gateway-dns-authorities.yaml
+- ../../../components/public-exposure/grafana-dns-authority.yaml
+- ../../../components/public-exposure/operate-tools-dns-authority.yaml
+- ../../../components/public-exposure/operate-tools-http-route.yaml
+- ../../../components/public-exposure/legacy-special-http-routes.yaml
+- ../../../components/regional-routing/cert-manager-bootstrap.yaml
+- ../../../components/regional-routing/service-http01-issuer.yaml
+- ../../../components/ops/zerotier-planet.yaml
+- ../../../components/network/podcidr-fabric
+- ../../../../../platform/advanced-fabric
+- ../../../../../platform/among-clusters
+- ../../../../../platform/public-edge-manager
+configMapGenerator:
+- name: route-path-controller-code
+  namespace: egress-fabric
+  files: [path-controller.py=../../../components/egress-fabric/controller/path_controller.py]
+- name: re8ch-geodb-snapshot
+  namespace: egress-fabric
+  files: [geodb.json.gz=../../../components/egress-fabric/geodb/geodb.json.gz]
+generatorOptions: {disableNameSuffixHash: true}
+

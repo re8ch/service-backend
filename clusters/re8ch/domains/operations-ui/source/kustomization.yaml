@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../components/ops/paralus-helmrelease-retirement.yaml
+- ../../../components/studio-toolkit/runtime.yaml
+- ../../../secrets/studio-config.sops.yaml
+- ../../../secrets/studio-db-bootstrap.sops.yaml
+- ../../../secrets/studio-registry-reader-studio-toolkit.sops.yaml
+- ../../../secrets/studio-registry-reader-supabase-pg-re8ch.sops.yaml
+- ../../../secrets/studio-retention.sops.yaml
+- ../../../secrets/studio-worker.sops.yaml
+- ../../../../../platform/headlamp
+

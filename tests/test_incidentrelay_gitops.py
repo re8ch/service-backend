@@ -102,10 +102,10 @@ def test_secrets_are_sops_encrypted_and_referenced_from_root():
         assert "\nsops:\n" in contents
         assert "REPLACED_BY_SOPS" not in contents
         assert "__DB_PASSWORD__" not in contents
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "../../platform/incidentrelay" in root["resources"]
-    assert "secrets/incidentrelay-config.sops.yaml" in root["resources"]
-    assert "secrets/incidentrelay-alertmanager-tokens.sops.yaml" in root["resources"]
+    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/observability-metering/source/kustomization.yaml").read_text())
+    assert "../../../../../platform/incidentrelay" in domain["resources"]
+    assert "../../../secrets/incidentrelay-config.sops.yaml" in domain["resources"]
+    assert "../../../secrets/incidentrelay-alertmanager-tokens.sops.yaml" in domain["resources"]
 
 
 def test_bootstrap_jobs_do_not_embed_credentials_and_use_immutable_images():

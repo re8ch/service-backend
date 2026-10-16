@@ -67,8 +67,8 @@ def test_identity_gateway_can_check_deletion_dependencies_without_broad_access()
     # Identity dependency reachability must not depend on a healthy Helm
     # upgrade of the entire tenant runtime platform.
     path = "components/auth/dependency-policy.yaml"
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert path in root["resources"]
+    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/identity-access/source/kustomization.yaml").read_text())
+    assert "../../../" + path in domain["resources"]
     documents = list(yaml.safe_load_all((ROOT / "clusters/re8ch" / path).read_text()))
     policy = next(item for item in documents if item["kind"] == "NetworkPolicy")
     assert policy["metadata"]["namespace"] == "tenant-infrastructure"
@@ -283,8 +283,8 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
         assert "pending-encryption" not in encrypted
         assert encrypted.count("ENC[AES256_GCM") >= 2
         assert encrypted.count("\nsops:\n") == 1
-    root = (ROOT / "clusters/re8ch/kustomization.yaml").read_text()
-    assert all(str(path.relative_to(ROOT / "clusters/re8ch")) in root for path in encrypted_paths)
+    domain = (ROOT / "clusters/re8ch/domains/agent-runtime/source/kustomization.yaml").read_text()
+    assert all("../../../" + str(path.relative_to(ROOT / "clusters/re8ch")) in domain for path in encrypted_paths)
 
 
 def test_production_tenant_readiness_is_truthful_and_supply_chain_is_optional():

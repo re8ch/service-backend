@@ -1,5 +1,8 @@
 # Domain releases
 
+The active Git-path reconciliation ownership model is documented in
+[`DOMAIN-RECONCILIATION.md`](DOMAIN-RECONCILIATION.md).
+
 Deployable modules publish an immutable OCI Kustomize bundle. Product releases
 also publish their own container images; third-party images are not retagged.
 Release-managed objects are pinned by `sha256` digest. Human-facing

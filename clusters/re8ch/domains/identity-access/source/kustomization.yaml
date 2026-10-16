@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../secrets/stalwart-recovery-admin.sops.yaml
+- ../../../secrets/stalwart-idp-recovery.sops.yaml
+- ../../../secrets/stalwart-idp-oidc-keys.sops.yaml
+- ../../../secrets/re8ch-auth-broker-client-auth.sops.yaml
+- ../../../secrets/ghcr-re8ch-auth.sops.yaml
+- ../../../components/tenancy/re8ch-managed-business-namespaces.yaml
+- ../../../components/auth/deployments/auth-postgrest.yaml
+- ../../../components/auth/deployments/re8ch-auth-gateway.yaml
+- ../../../components/auth/deployments/re8ch-auth-gateway-pdb.yaml
+- ../../../components/auth/dependency-policy.yaml
+- ../../../components/auth/services/re8ch-auth-gateway.yaml
+- ../../../components/auth/user-center.yaml
+- ../../../../../operations/supabase-identity
+- ../../../components/re8ch-business-namespaces
+- ../../../components/personal-access
+- ../../../../../platform/agent-onboarding-runtime
+- ../../../../../platform/apps/access-subscription
+- ../../../../../platform/secretary-system
+- ../../../../../platform/stalwart
+

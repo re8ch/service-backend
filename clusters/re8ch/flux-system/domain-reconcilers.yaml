@@ -1,0 +1,119 @@
+# Business domains reconcile directly from the verified service-backend source.
+# They intentionally do not depend on Kustomization/service-backend readiness:
+# the root grants ownership, while each domain owns its own failure and rollout.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-networking, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/networking
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-identity-access, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/identity-access
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-data-storage, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/data-storage
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-commerce-billing, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/commerce-billing
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-agent-runtime, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/agent-runtime
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-observability-metering, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/observability-metering
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-operations-ui, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/operations-ui
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-delivery-products, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/delivery-products
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-tenant-runtime, namespace: flux-system}
+spec:
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/tenant-runtime
+  prune: true
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}

@@ -78,6 +78,10 @@ def load_catalog() -> dict:
         str(path.parent.relative_to(ROOT))
         for tree in (ROOT / "clusters", ROOT / "platform")
         for path in tree.rglob("kustomization.yaml")
+        if not (
+            path.parent.name == "source"
+            and path.parent.parent.parent == ROOT / "clusters/re8ch/domains"
+        )
     )
     # A small number of operational controllers are deployed directly from
     # operations/. They remain explicit domain roots rather than making every

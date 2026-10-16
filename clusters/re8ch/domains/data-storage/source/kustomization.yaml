@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../components/pigsty-external/pg-re8ch-services.yaml
+- ../../../secrets/cloud-disk-oidc-client-auth.sops.yaml
+- ../../../secrets/cloud-disk-edge.sops.yaml
+- ../../../secrets/cloud-disk-mcp-internal.sops.yaml
+- ../../../secrets/ghcr-re8ch-cloud-disk.sops.yaml
+- ../../../secrets/cloud-disk-credentials.sops.yaml
+- ../../../components/observable/postgrest-ha.yaml
+- ../../../components/supabase-pg-re8ch/supabase-rest-runtime.yaml
+- ../../../components/rook-ceph/releases.yaml
+- ../../../components/cloud-disk
+- ../../../components/rook-ceph/storage-node-labels.yaml
+- ../../../components/ops/cloudbeaver.yaml
+configMapGenerator:
+- name: pg-re8ch-topology
+  namespace: pigsty-external
+  files: [topology.json=../../../components/pigsty-external/pg-re8ch-topology.json]
+- name: rook-ceph-operator-values
+  namespace: flux-system
+  files: [values.yaml=../../../components/rook-ceph/operator-values.yaml]
+- name: rook-ceph-csi-values
+  namespace: flux-system
+  files: [values.yaml=../../../components/rook-ceph/csi-drivers-values.yaml]
+- name: rook-ceph-cluster-values
+  namespace: flux-system
+  files: [values.yaml=../../../components/rook-ceph/cluster-values.yaml]
+- name: rook-ceph-production-overlay
+  namespace: flux-system
+  files: [values.yaml=../../../components/rook-ceph/cluster-values-production-encrypted.yaml]
+generatorOptions: {disableNameSuffixHash: true}
+
