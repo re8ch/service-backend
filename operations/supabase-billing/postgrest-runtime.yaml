@@ -31,9 +31,9 @@ spec:
             - {name: PGRST_DB_ANON_ROLE, value: billing_commerce_anon}
             - {name: PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: JWT_SECRET}}}
             - {name: PGRST_DB_USE_LEGACY_GUCS, value: "false"}
-          startupProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 24}
-          readinessProbe: {httpGet: {path: /, port: http}, periodSeconds: 10}
-          livenessProbe: {httpGet: {path: /, port: http}, periodSeconds: 30, failureThreshold: 3}
+          startupProbe: {tcpSocket: {port: http}, periodSeconds: 5, failureThreshold: 24}
+          readinessProbe: {tcpSocket: {port: http}, periodSeconds: 10}
+          livenessProbe: {tcpSocket: {port: http}, periodSeconds: 30, failureThreshold: 3}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 250m, memory: 512Mi}}
 ---
 apiVersion: apps/v1
@@ -63,7 +63,7 @@ spec:
             - {name: PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: JWT_SECRET}}}
             - {name: PGRST_DB_USE_LEGACY_GUCS, value: "false"}
             - {name: PGRST_DB_CHANNEL_ENABLED, value: "false"}
-          startupProbe: {httpGet: {path: /, port: http}, periodSeconds: 5, failureThreshold: 24}
-          readinessProbe: {httpGet: {path: /, port: http}, periodSeconds: 10}
-          livenessProbe: {httpGet: {path: /, port: http}, periodSeconds: 30, failureThreshold: 3}
+          startupProbe: {tcpSocket: {port: http}, periodSeconds: 5, failureThreshold: 24}
+          readinessProbe: {tcpSocket: {port: http}, periodSeconds: 10}
+          livenessProbe: {tcpSocket: {port: http}, periodSeconds: 30, failureThreshold: 3}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 250m, memory: 512Mi}}
