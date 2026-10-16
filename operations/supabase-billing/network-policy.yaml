@@ -22,15 +22,44 @@ spec:
     - to:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: pigsty-external}}
       ports: [{protocol: TCP, port: 5432}]
-    # pg-re8ch-primary is a selectorless Service whose EndpointSlice targets
-    # the restricted-node-6dc3f140f9 Pigsty address. A namespaceSelector only matches Pods and does
-    # not authorize traffic to a manually managed EndpointSlice address.
-    - to:
-        - ipBlock: {cidr: 192.0.2.179/32}
-      ports: [{protocol: TCP, port: 5432}]
     - to:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
       ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
     - to:
-        - ipBlock: {cidr: 0.0.0.0/0, except: [192.0.2.183/8, 192.0.2.33/12, 192.0.2.136/16]}
+        - ipBlock: {cidr: 0.0.0.0/0, except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]}
       ports: [{protocol: TCP, port: 443}]
+---
+# pg-re8ch-primary is selectorless and backed by a manually managed
+# EndpointSlice. Cilium translates toServices into the current endpoint CIDRs;
+# a Kubernetes namespaceSelector cannot match these non-Pod endpoints.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: supabase-billing-pigsty, namespace: supabase-billing}
+spec:
+  endpointSelector: {}
+  egress:
+    - toServices:
+        - k8sService:
+            serviceName: pg-re8ch-primary
+            namespace: pigsty-external
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
+    # Billing workloads and Pigsty currently share R640. Cilium classifies the
+    # EndpointSlice's node address as the reserved host identity, which CIDR
+    # and toServices rules do not match after local service translation.
+    - toEntities: [host]
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
+---
+# Cilium Gateway API traffic enters workloads with the reserved ingress
+# identity, not the kube-system namespace identity used by ordinary Pods.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata: {name: supabase-billing-public-edge, namespace: supabase-billing}
+spec:
+  endpointSelector:
+    matchLabels: {app.kubernetes.io/component: kong}
+  ingress:
+    - fromEntities: [ingress]
+      toPorts:
+        - ports: [{port: "8000", protocol: TCP}]
