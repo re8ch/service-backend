@@ -25,6 +25,7 @@ def test_billing_stack_is_isolated_and_activated() -> None:
     )
     assert config["data"]["POSTGRES_DB"] == "re8ch_billing"
     assert config["data"]["PGRST_DB_SCHEMAS"] == "payment_api,commerce_api"
+    assert config["data"]["PGRST_DB_EXTRA_SEARCH_PATH"] == "public,payment,billing,commerce"
     assert config["data"]["DISABLE_SIGNUP"] == "true"
     assert config["data"]["SUPABASE_PUBLIC_URL"] == "https://billing-supabase.re8ch.com"
     assert "re8ch_identity" not in (BASE / "billing-stack.yaml").read_text()
@@ -54,25 +55,49 @@ def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:
     assert ro_env["PGRST_DB_URI"]["valueFrom"]["secretKeyRef"]["key"] == "PGRST_DB_URI_RO"
     assert ro_env["PGRST_DB_CHANNEL_ENABLED"]["value"] == "false"
     assert rw_env["PGRST_DB_SCHEMAS"]["value"] == ro_env["PGRST_DB_SCHEMAS"]["value"] == "payment_api,commerce_api"
+    assert rw_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
+    assert ro_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert all("readinessProbe" in container and "livenessProbe" in container for container in (rw, ro))
 
 
-def test_billing_network_policy_allows_selectorless_pigsty_endpoint() -> None:
+def test_billing_network_policy_tracks_selectorless_pigsty_service() -> None:
     policies = _docs("network-policy.yaml")
     runtime = next(
         doc for doc in policies
-        if doc["kind"] == "NetworkPolicy"
-        and doc["metadata"]["name"] == "supabase-billing-runtime"
+        if doc["kind"] == "CiliumNetworkPolicy"
+        and doc["metadata"]["name"] == "supabase-billing-pigsty"
     )
-    database_rules = [
-        rule for rule in runtime["spec"]["egress"]
-        if {port.get("port") for port in rule.get("ports", [])} == {5432}
-    ]
-    assert any(
-        peer.get("ipBlock", {}).get("cidr") == "192.0.2.205/32"
-        for rule in database_rules
-        for peer in rule["to"]
+    database_rule, local_host_rule = runtime["spec"]["egress"]
+    assert database_rule["toServices"] == [{
+        "k8sService": {
+            "serviceName": "pg-re8ch-primary",
+            "namespace": "pigsty-external",
+        }
+    }]
+    assert database_rule["toPorts"] == [{
+        "ports": [{"port": "5432", "protocol": "TCP"}]
+    }]
+    assert local_host_rule == {
+        "toEntities": ["host"],
+        "toPorts": [{"ports": [{"port": "5432", "protocol": "TCP"}]}],
+    }
+    assert "192.0.2.205/32" not in (BASE / "network-policy.yaml").read_text()
+
+
+def test_billing_network_policy_allows_gateway_identity_to_kong_only() -> None:
+    policies = _docs("network-policy.yaml")
+    public_edge = next(
+        doc for doc in policies
+        if doc["kind"] == "CiliumNetworkPolicy"
+        and doc["metadata"]["name"] == "supabase-billing-public-edge"
     )
+    assert public_edge["spec"]["endpointSelector"]["matchLabels"] == {
+        "app.kubernetes.io/component": "kong"
+    }
+    assert public_edge["spec"]["ingress"] == [{
+        "fromEntities": ["ingress"],
+        "toPorts": [{"ports": [{"port": "8000", "protocol": "TCP"}]}],
+    }]
 
 
 def test_billing_routes_split_api_and_admin_hosts() -> None:

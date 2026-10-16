@@ -28,7 +28,7 @@ data:
   POSTGRES_DB: re8ch_billing
   PGRST_DB_SCHEMAS: payment_api,commerce_api
   PGRST_DB_MAX_ROWS: "1000"
-  PGRST_DB_EXTRA_SEARCH_PATH: public,extensions,payment,billing,commerce
+  PGRST_DB_EXTRA_SEARCH_PATH: public,payment,billing,commerce
   SITE_URL: https://billing-supabase.re8ch.com
   API_EXTERNAL_URL: https://billing-supabase.re8ch.com
   SUPABASE_PUBLIC_URL: https://billing-supabase.re8ch.com
