@@ -57,6 +57,24 @@ def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:
     assert all("readinessProbe" in container and "livenessProbe" in container for container in (rw, ro))
 
 
+def test_billing_network_policy_allows_selectorless_pigsty_endpoint() -> None:
+    policies = _docs("network-policy.yaml")
+    runtime = next(
+        doc for doc in policies
+        if doc["kind"] == "NetworkPolicy"
+        and doc["metadata"]["name"] == "supabase-billing-runtime"
+    )
+    database_rules = [
+        rule for rule in runtime["spec"]["egress"]
+        if {port.get("port") for port in rule.get("ports", [])} == {5432}
+    ]
+    assert any(
+        peer.get("ipBlock", {}).get("cidr") == "192.0.2.179/32"
+        for rule in database_rules
+        for peer in rule["to"]
+    )
+
+
 def test_billing_routes_split_api_and_admin_hosts() -> None:
     routes = [doc for doc in _docs("public-routes.yaml") if doc["kind"] == "HTTPRoute"]
     assert {tuple(doc["spec"]["hostnames"]) for doc in routes} == {

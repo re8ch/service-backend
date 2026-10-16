@@ -22,6 +22,12 @@ spec:
     - to:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: pigsty-external}}
       ports: [{protocol: TCP, port: 5432}]
+    # pg-re8ch-primary is a selectorless Service whose EndpointSlice targets
+    # the restricted-node-6dc3f140f9 Pigsty address. A namespaceSelector only matches Pods and does
+    # not authorize traffic to a manually managed EndpointSlice address.
+    - to:
+        - ipBlock: {cidr: 192.0.2.179/32}
+      ports: [{protocol: TCP, port: 5432}]
     - to:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
       ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
