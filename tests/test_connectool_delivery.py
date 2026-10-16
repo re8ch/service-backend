@@ -126,16 +126,25 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
             "limits": {"cpu": "100m", "memory": "64Mi"},
         },
     }
-    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["r640"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["placement"]["hostAliases"] == [{
-        "ip": "192.0.2.213",
+        "ip": "10.251.0.4",
         "hostnames": ["id.re8ch.com", "auth.re8ch.com"],
     }]
     plugins = release["spec"]["values"]["codex"]["plugins"]
     tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
     assert tenant_admin["publication"] == "re8ch-admin-vmcp"
     assert tenant_admin["mcpOwner"] is False
+
+
+def test_standalone_platform_marketplace_is_retired_into_tenant_self_service():
+    assert not (ROOT / "platform/agent-marketplace/plugins/marketplace.json").exists()
+    assert not (ROOT / "platform/plugins/re8ch-platform-observe/.codex-plugin/plugin.json").exists()
+    assert not (ROOT / "platform/plugins/re8ch-platform-operate/.codex-plugin/plugin.json").exists()
+    registry = __import__("json").loads((ROOT / "platform/apps/tenant-mcp/platform-modules.json").read_text())
+    assert "get_platform_service_health" in registry["backends"]["cloud"]["allowed"]
+    assert "get_managed_platform_operation_status" in registry["backends"]["infra"]["allowed"]
 
 
 def test_artifact_hub_uses_registered_repository_id():
@@ -160,7 +169,7 @@ def test_public_and_internal_mcp_clients_use_declared_frontends():
         ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml",
     ]
     rendered_routes = "\n".join(path.read_text() for path in route_files)
-    # The privileged Tools publication is a singleton on restricted-node-6dc3f140f9 during the
+    # The privileged Tools publication is a singleton on R640 during the
     # A1/B1 fabric incident, so its public route can safely target vMCP
     # directly. The singleton tenant publication also bypasses its router;
     # only the multi-replica admin publication requires session routing here.
@@ -171,7 +180,7 @@ def test_public_and_internal_mcp_clients_use_declared_frontends():
     assert "re8ch-operate-vmcp-session-router" in rendered_routes
     dns = yaml.safe_load((ROOT / "clusters/re8ch/components/public-exposure/operate-tools-dns-authority.yaml").read_text())
     assert dns["metadata"]["labels"]["networking.re8ch.com/dns-authority"] == "public-edge"
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
     assert "backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]" in rendered_routes
     toolhive_ingresses = "\n".join(
         (ROOT / path).read_text()
