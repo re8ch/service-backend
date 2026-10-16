@@ -36,32 +36,32 @@ def test_rendered_controller_failover_and_source_cache_safety():
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
     for name in ('helm-controller', 'notification-controller', 'kustomize-controller'):
         deployment = deployments[name]
-        assert deployment['spec']['replicas'] == 1
+        assert deployment['spec']['replicas'] == 2
         pod = deployment['spec']['template']['spec']
         assert '--enable-leader-election' in pod['containers'][0]['args']
         expression = pod['affinity']['nodeAffinity'][
             'requiredDuringSchedulingIgnoredDuringExecution'
         ]['nodeSelectorTerms'][0]['matchExpressions'][0]
-        assert expression['values'] == ['overseas-flk']
+        assert expression['values'] == ['overseas-kl', 'restricted-node-6dc3f140f9']
     kustomize = deployments['kustomize-controller']
-    assert kustomize['spec']['replicas'] == 1
+    assert kustomize['spec']['replicas'] == 2
     expression = kustomize['spec']['template']['spec']['affinity']['nodeAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'
     ]['nodeSelectorTerms'][0]['matchExpressions'][0]
-    assert expression['values'] == ['overseas-flk']
+    assert expression['values'] == ['overseas-kl', 'restricted-node-6dc3f140f9']
     kustomize_env = {
         item['name']: item.get('value')
         for item in kustomize['spec']['template']['spec']['containers'][0]['env']
     }
     assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.205'
-    # Never load-balance artifact requests over independently empty caches.
+    # Leader election keeps reconciliation single-active; the standby process
+    # repopulates its local artifact cache after taking leadership.
     source = deployments['source-controller']
-    assert source['spec']['replicas'] == 1
+    assert source['spec']['replicas'] == 2
     assert source['spec']['template']['spec']['hostNetwork'] is True
     assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirstWithHostNet'
     assert source['spec']['template']['spec']['nodeSelector'] == {
         'kubernetes.io/os': 'linux',
-        'networking.re8ch.com/egress-policy': 'direct',
     }
     manager = source['spec']['template']['spec']['containers'][0]
     proxy = next(e for e in manager['env'] if e['name'] == 'ALL_PROXY')
@@ -72,6 +72,6 @@ def test_rendered_controller_failover_and_source_cache_safety():
     assert expression == {
         'key': 'kubernetes.io/hostname',
         'operator': 'In',
-        'values': ['overseas-flk'],
+        'values': ['overseas-kl', 'restricted-node-6dc3f140f9'],
     }
     assert services['identity-egress-control-plane']['spec']['internalTrafficPolicy'] == 'Local'

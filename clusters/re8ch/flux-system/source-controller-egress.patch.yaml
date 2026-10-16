@@ -4,13 +4,14 @@ metadata:
   name: source-controller
   namespace: flux-system
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
   template:
     spec:
-      # Run public source delivery beside the FLK SOCKS endpoint. This removes
-      # the China-to-FLK proxy hop while GitHub remains the desired-state source.
+      # Run public source delivery on the KL/restricted-node-6dc3f140f9 active-standby pair while
+      # GitHub remains the desired-state source.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       containers:
@@ -30,7 +31,6 @@ spec:
             - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
       nodeSelector:
         kubernetes.io/os: linux
-        networking.re8ch.com/egress-policy: direct
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -38,8 +38,21 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    # Source fetches are intentionally colocated with the
-                    # verified public egress endpoint on the German worker.
-                    values: [overseas-flk]
+                    values: [overseas-kl, restricted-node-6dc3f140f9]
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels: {app: source-controller}
+              topologyKey: kubernetes.io/hostname
       tolerations:
-        - operator: Exists
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}

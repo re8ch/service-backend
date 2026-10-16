@@ -272,15 +272,17 @@ patches:
     name: (helm-controller|notification-controller)
     namespace: flux-system
   patch: |-
-    # Keep the initial Flux recovery topology in one known network domain.
-    # restricted-node-6dc3f140f9 HAProxy still failsover API traffic across A1, B1 and MUBAO.
+    # Run two replicas with Flux's default leader election. Keep one replica on
+    # the preferred overseas delivery node and one on the restricted-node-6dc3f140f9 recovery anchor.
     - op: replace
       path: /spec/replicas
-      value: 1
-    - op: add
+      value: 2
+    - op: replace
       path: /spec/strategy
-      value: {type: Recreate}
-    - op: add
+      value:
+        type: RollingUpdate
+        rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    - op: replace
       path: /spec/template/spec/affinity
       value:
         nodeAffinity:
@@ -289,7 +291,21 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [overseas-flk]
+                values: [overseas-kl, restricted-node-6dc3f140f9]
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
+          - weight: 50
+            preference:
+              matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector: {}
+            matchLabelKeys: [app]
+            topologyKey: kubernetes.io/hostname
     - op: add
       path: /spec/template/spec/tolerations
       value:
@@ -311,15 +327,16 @@ patches:
     name: kustomize-controller
     namespace: flux-system
   patch: |-
-    # Keep manifest rendering beside source-controller. Large source artifacts
-    # then stay on overseas-flk while only Kubernetes API calls cross regions.
+    # Keep manifest rendering beside the active/standby source delivery pair.
     - op: replace
       path: /spec/replicas
-      value: 1
-    - op: add
+      value: 2
+    - op: replace
       path: /spec/strategy
-      value: {type: Recreate}
-    - op: add
+      value:
+        type: RollingUpdate
+        rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+    - op: replace
       path: /spec/template/spec/affinity
       value:
         nodeAffinity:
@@ -328,7 +345,21 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [overseas-flk]
+                values: [overseas-kl, restricted-node-6dc3f140f9]
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
+          - weight: 50
+            preference:
+              matchExpressions:
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels: {app: kustomize-controller}
+            topologyKey: kubernetes.io/hostname
     - op: add
       path: /spec/template/spec/tolerations
       value:
