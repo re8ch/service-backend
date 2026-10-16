@@ -641,7 +641,7 @@ spec:
             - { name: RUN_JANITOR, value: "true" }
             - { name: DISABLE_HEALTHCHECK_LOGGING, value: "true" }
           ports: [{ name: http, containerPort: 4000 }]
-          startupProbe: { tcpSocket: { port: http }, periodSeconds: 5, failureThreshold: 24 }
+          startupProbe: { tcpSocket: { port: http }, periodSeconds: 5, failureThreshold: 60 }
           readinessProbe: { tcpSocket: { port: http }, periodSeconds: 10 }
           livenessProbe: { tcpSocket: { port: http }, periodSeconds: 30, failureThreshold: 3 }
           resources:

@@ -58,6 +58,30 @@ def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:
     assert rw_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert ro_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert all("readinessProbe" in container and "livenessProbe" in container for container in (rw, ro))
+    assert all(
+        container[probe] == {
+            "tcpSocket": {"port": "http"},
+            "periodSeconds": 5 if probe == "startupProbe" else 10 if probe == "readinessProbe" else 30,
+            **({"failureThreshold": 24} if probe == "startupProbe" else {"failureThreshold": 3} if probe == "livenessProbe" else {}),
+        }
+        for container in (rw, ro)
+        for probe in ("startupProbe", "readinessProbe", "livenessProbe")
+    )
+
+
+def test_billing_realtime_allows_slow_first_boot() -> None:
+    docs = _docs("billing-stack.yaml")
+    deployment = next(
+        doc for doc in docs
+        if doc["kind"] == "Deployment"
+        and doc["metadata"]["name"] == "supabase-billing-realtime"
+    )
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    assert container["startupProbe"] == {
+        "tcpSocket": {"port": "http"},
+        "periodSeconds": 5,
+        "failureThreshold": 60,
+    }
 
 
 def test_billing_network_policy_tracks_selectorless_pigsty_service() -> None:
