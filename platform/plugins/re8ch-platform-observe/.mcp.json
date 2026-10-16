@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "re8ch-platform-observe": {
-      "type": "http",
-      "url": "https://tools.re8ch.com/mcp"
-    }
-  }
-}
