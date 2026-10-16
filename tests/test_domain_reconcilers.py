@@ -6,6 +6,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 DOMAINS = ROOT / "clusters/re8ch/domains"
 RECONCILERS = ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml"
+AUTHORITY = ROOT / "operations/releases/runtime-authority.yaml"
 
 
 def load_all(path: Path) -> list[dict]:
@@ -66,3 +67,29 @@ def test_root_reconcile_stays_non_pruning_during_ownership_handoff():
     root = next(item for item in sync if item.get("kind") == "Kustomization")
     assert root["metadata"]["name"] == "service-backend"
     assert root["spec"]["prune"] is False
+
+
+def test_external_fast_changing_products_target_product_runtime():
+    policy = yaml.safe_load(AUTHORITY.read_text())
+    assert policy["selectionPolicy"]["externalAndFastChanging"] == "product-runtime"
+    authorities = policy["authorities"]
+    assert set(authorities) == {"commerce-billing", "identity", "connectool"}
+    for name, authority in authorities.items():
+        assert authority["externalUsers"] is True, name
+        assert authority["changeCadence"] == "high", name
+        assert authority["targetAuthority"] == "product-runtime", name
+        assert authority["cutoverGate"] == "authenticated product release publisher", name
+        assert authority["productRepositories"], name
+        assert authority["productOwned"], name
+        assert authority["fluxOwned"], name
+
+
+def test_flux_handoff_is_fail_closed_until_publisher_exists():
+    policy = yaml.safe_load(AUTHORITY.read_text())
+    for name, authority in policy["authorities"].items():
+        if authority["currentAuthority"] in {"flux", "split"}:
+            assert authority["migrationPhase"] in {"publisher-required", "business-api-live"}, name
+            assert authority["cutoverGate"] == "authenticated product release publisher", name
+        else:
+            assert authority["currentAuthority"] == "product-runtime", name
+            assert authority["migrationPhase"] == "complete", name
