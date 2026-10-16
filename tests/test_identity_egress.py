@@ -30,13 +30,13 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert init["env"][1]["name"] == "NODE_NAME"
     assert init["env"][1]["valueFrom"]["fieldRef"]["fieldPath"] == "spec.nodeName"
     assert "bind-address: ${POD_IP}" in init["args"][0]
-    assert '"$NODE_NAME" = restricted-node-6dc3f140f9' in init["args"][0]
+    assert '"$NODE_NAME" = r640' in init["args"][0]
     assert container["args"][:2] == ["-d", "/var/lib/mihomo"]
     assert any(volume["name"] == "state" and "emptyDir" in volume for volume in deployment["spec"]["template"]["spec"]["volumes"])
     affinity = deployment["spec"]["template"]["spec"]["affinity"]
     assert "requiredDuringSchedulingIgnoredDuringExecution" in affinity["podAntiAffinity"]
     nodes = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
-    assert nodes == ["overseas-kl", "overseas-la", "restricted-node-6dc3f140f9"]
+    assert nodes == ["overseas-kl", "overseas-la", "r640"]
     assert "accounts.google.com%2F.well-known%2Fopenid-configuration" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
     assert "clusterIP" not in service["spec"]
@@ -53,7 +53,7 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert local_service["spec"]["internalTrafficPolicy"] == "Local"
     assert local_service["spec"]["publishNotReadyAddresses"] is True
     assert "trafficDistribution" not in local_service["spec"]
-    assert local_service["spec"]["clusterIP"] == "192.0.2.16"
+    assert local_service["spec"]["clusterIP"] == "10.43.179.196"
     assert budget["spec"]["minAvailable"] == 1
 
 
@@ -87,5 +87,5 @@ def test_identity_egress_is_restricted_to_declared_identity_consumers():
 
 
 def test_identity_egress_is_reachable_from_the_cluster_root_overlay():
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/egress-fabric/identity-egress.yaml" in root["resources"]
+    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/networking/source/kustomization.yaml").read_text())
+    assert "../../../components/egress-fabric/identity-egress.yaml" in domain["resources"]

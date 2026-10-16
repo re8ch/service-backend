@@ -27,6 +27,7 @@ always_tests:
   - tests/test_domain_oci_release.py
   - tests/test_domain_publication.py
   - tests/test_live_domain_sources.py
+  - tests/test_domain_reconcilers.py
 
 domains:
   control-plane:
@@ -40,11 +41,13 @@ domains:
       - platform/git-workspaces/**
       - clusters/re8ch/components/codex-app-server-console/**
       - clusters/re8ch/components/ai-operations/sandbox-trials/**
+      - clusters/re8ch/domains/agent-runtime/**
     roots:
       - platform/workspace-controller
       - platform/git-workspaces
       - clusters/re8ch/components/codex-app-server-console
       - clusters/re8ch/components/ai-operations/sandbox-trials
+      - clusters/re8ch/domains/agent-runtime
     tests:
       - tests/test_github_policy_reviewer.py
       - tests/test_workspace_controller.py
@@ -62,6 +65,7 @@ domains:
       - clusters/re8ch/components/multicloud-functions-dns/**
       - clusters/re8ch/components/network/**
       - clusters/re8ch/components/regional-routing/**
+      - clusters/re8ch/domains/networking/**
     roots:
       - platform/advanced-fabric
       - platform/among-clusters
@@ -74,6 +78,7 @@ domains:
       - clusters/re8ch/components/network/podcidr-fabric
       - clusters/re8ch/components/network/host-network-controller
       - clusters/re8ch/components/regional-routing
+      - clusters/re8ch/domains/networking
     tests:
       - tests/test_advanced_fabric.py
       - tests/test_advanced_fabric_control_plane.py
@@ -100,6 +105,7 @@ domains:
       - clusters/re8ch/components/netbird-access/**
       - clusters/re8ch/components/personal-access/**
       - clusters/re8ch/components/re8ch-business-namespaces/**
+      - clusters/re8ch/domains/identity-access/**
     roots:
       - platform/agent-onboarding-runtime
       - platform/apps/access-subscription
@@ -108,6 +114,7 @@ domains:
       - clusters/re8ch/components/netbird-access
       - clusters/re8ch/components/personal-access
       - clusters/re8ch/components/re8ch-business-namespaces
+      - clusters/re8ch/domains/identity-access
     tests:
       - tests/test_dex_egress.py
       - tests/test_identity_egress.py
@@ -121,6 +128,7 @@ domains:
       - clusters/re8ch/components/synthetic-monitoring/**
       - operations/k6/**
       - operations/api-conformance/**
+      - clusters/re8ch/domains/observability-metering/**
     roots:
       - platform/observability-source
       - platform/observability/bootstrap
@@ -128,6 +136,7 @@ domains:
       - platform/observability/production
       - clusters/re8ch/components/synthetic-monitoring
       - operations/api-conformance
+      - clusters/re8ch/domains/observability-metering
     tests:
       - tests/test_observability.py
       - tests/test_k6_contracts.py
@@ -144,6 +153,8 @@ domains:
       - clusters/re8ch/components/plugin-runtime/**
       - clusters/re8ch/components/cloud-disk/**
       - operations/cloud-disk/**
+      - clusters/re8ch/domains/data-storage/**
+      - clusters/re8ch/domains/tenant-runtime/**
     roots:
       - platform/cloud-platform
       - platform/runtime-anatomy
@@ -153,6 +164,8 @@ domains:
       - platform/scheduling-fabric/governance/policies
       - clusters/re8ch/components/plugin-runtime
       - clusters/re8ch/components/cloud-disk
+      - clusters/re8ch/domains/data-storage
+      - clusters/re8ch/domains/tenant-runtime
     tests:
       - tests/test_cloud_platform.py
       - tests/test_cloud_platform_manifest.py
@@ -176,12 +189,14 @@ domains:
       - platform/connectool/**
       - platform/external-projects/**
       - platform/hyperswitch/**
+      - clusters/re8ch/domains/delivery-products/**
     roots:
       - platform/adapter
       - platform/connectool
       - platform/external-projects
       - platform/external-projects/ontology-microscope
       - platform/hyperswitch
+      - clusters/re8ch/domains/delivery-products
     tests:
       - tests/test_adapter.py
       - tests/test_adapter_chart.py
@@ -198,10 +213,12 @@ domains:
       - platform/incidentrelay/**
       - platform/headlamp/**
       - platform/stalwart/**
+      - clusters/re8ch/domains/operations-ui/**
     roots:
       - platform/incidentrelay
       - platform/headlamp
       - platform/stalwart
+      - clusters/re8ch/domains/operations-ui
     tests:
       - tests/test_headlamp_birfucate_browser.py
       - tests/test_headlamp_plugin_catalog.py
@@ -216,3 +233,19 @@ domains:
     tests:
       - tests/test_birfucate_discovery.py
       - tests/test_birfucate_metering.py
+
+  commerce-billing:
+    theme: currents
+    paths:
+      - operations/commerce/**
+      - operations/supabase-billing/**
+      - clusters/re8ch/components/payments/**
+      - clusters/re8ch/secrets/commerce-*.sops.yaml
+      - clusters/re8ch/secrets/ledger-wechat-app-identities.sops.yaml
+      - clusters/re8ch/domains/commerce-billing/**
+    roots:
+      - operations/supabase-billing
+      - clusters/re8ch/domains/commerce-billing
+    tests:
+      - tests/test_payment_postgrest_resources.py
+      - tests/test_supabase_billing_stack.py

@@ -7,9 +7,9 @@ ROOT = Path(__file__).parents[1]
 
 
 def test_cert_manager_webhook_is_ha_on_owned_service_plane():
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    root = yaml.safe_load((ROOT / "clusters/re8ch/domains/networking/source/kustomization.yaml").read_text())
     assert (
-        "components/regional-routing/cert-manager-bootstrap.yaml"
+        "../../../components/regional-routing/cert-manager-bootstrap.yaml"
         in root["resources"]
     )
 

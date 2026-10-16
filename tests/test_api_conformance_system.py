@@ -215,8 +215,8 @@ def test_runner_accepts_yaml_and_bounds_a_single_generation_cycle():
 
 
 def test_root_gitops_includes_conformance_system():
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "../../operations/api-conformance" in root["resources"]
+    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/agent-runtime/source/kustomization.yaml").read_text())
+    assert "../../../../../operations/api-conformance" in domain["resources"]
 
 
 def test_controller_execution_permissions_are_namespace_scoped():

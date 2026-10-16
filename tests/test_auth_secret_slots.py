@@ -9,9 +9,9 @@ DEX_PATH = "secrets/re8ch-auth-broker-client-dex.sops.yaml"
 
 
 def test_broker_client_secrets_are_encrypted_and_connector_stays_disabled():
-    kustomization = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert AUTH_PATH in kustomization["resources"]
-    assert DEX_PATH not in kustomization["resources"]
+    kustomization = yaml.safe_load((ROOT / "clusters/re8ch/domains/identity-access/source/kustomization.yaml").read_text())
+    assert "../../../" + AUTH_PATH in kustomization["resources"]
+    assert "../../../" + DEX_PATH not in kustomization["resources"]
 
     auth = yaml.safe_load((ROOT / "clusters/re8ch" / AUTH_PATH).read_text())
     dex = yaml.safe_load((ROOT / "clusters/re8ch" / DEX_PATH).read_text())

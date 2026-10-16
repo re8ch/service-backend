@@ -21,6 +21,11 @@ violations = []
 for path in ROOT.rglob("*"):
     if not path.is_file() or {".git", ".venv", "__pycache__"} & set(path.parts) or path.suffix not in {".yaml", ".yml", ".json", ".py", ".md"}:
         continue
+    # Domain bundles are deterministic renderings of source files that are
+    # scanned separately. Kustomize serializes ConfigMap source code into YAML
+    # strings, which creates false-positive credential-like code fragments.
+    if path.name == "resources.yaml" and path.parent.parent == ROOT / "clusters/re8ch/domains":
+        continue
     for number, line in enumerate(path.read_text(errors="ignore").splitlines(), 1):
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):

@@ -12,6 +12,12 @@ def documents(path):
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
 
 
+def domain_resources(name):
+    return yaml.safe_load(
+        (ROOT / f"clusters/re8ch/domains/{name}/source/kustomization.yaml").read_text()
+    )["resources"]
+
+
 def test_auth_host_routes_prefixed_login_actions_to_the_broker():
     resources = documents(ROOT / "clusters/re8ch/components/auth/user-center.yaml")
     route = next(
@@ -65,7 +71,7 @@ def test_single_replica_tenant_route_bypasses_the_mcp_session_router():
 
 def test_live_nodes_receive_optional_mihomos_placement():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/egress-fabric/live-node-egress-labels.yaml" in root["resources"]
+    assert "../../../components/egress-fabric/live-node-egress-labels.yaml" in domain_resources("networking")
     # Harbor is infrastructure and K3s/containerd must reach it directly.
     # Do not deploy a privileged host installer or couple K3s to Mihomo.
     assert "components/registry-authority/node-installer.yaml" not in root["resources"]
@@ -112,7 +118,7 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
     assert "gateway.networking.k8s.io" not in api_groups
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/public-exposure/external-dns-cloudflare.yaml" in root["resources"]
+    assert "../../../components/public-exposure/external-dns-cloudflare.yaml" in domain_resources("networking")
     assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
 
     retirement = documents(ROOT / "clusters/re8ch/retire-legacy-mcp.patch.yaml")
@@ -248,14 +254,14 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/proxy-scheduling-policy.yaml" not in root["resources"]
     assert "components/toolhive/legacy-session-redis.yaml" not in root["resources"]
-    assert "components/toolhive/retire-legacy-session-redis.yaml" in root["resources"]
-    assert "components/toolhive/vmcp-external-publication.yaml" in root["resources"]
-    assert "components/toolhive/external-observe-publication.yaml" in root["resources"]
-    assert "components/toolhive/external-privileged-publication.yaml" in root["resources"]
+    assert "../../../components/toolhive/retire-legacy-session-redis.yaml" in domain_resources("agent-runtime")
+    assert "../../../components/toolhive/vmcp-external-publication.yaml" in domain_resources("agent-runtime")
+    assert "../../../components/toolhive/external-observe-publication.yaml" in domain_resources("agent-runtime")
+    assert "../../../components/toolhive/external-privileged-publication.yaml" in domain_resources("agent-runtime")
     assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
-    assert "components/toolhive/operator-release.yaml" in root["resources"]
-    assert "components/plugin-runtime/runtime.yaml" in root["resources"]
-    assert "components/plugin-runtime/rbac.yaml" in root["resources"]
+    assert "../../../components/toolhive/operator-release.yaml" in domain_resources("agent-runtime")
+    assert "../../../components/plugin-runtime/runtime.yaml" in domain_resources("agent-runtime")
+    assert "../../../components/plugin-runtime/rbac.yaml" in domain_resources("agent-runtime")
 
     redis_retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-legacy-session-redis.yaml").read_text()
     assert "retire-toolhive-session-redis-v3" in redis_retirement
@@ -593,7 +599,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert router["bundleDirectory"] == "/state"
     assert "upstreams" not in router and "axfrPrimary" not in router
     root_kustomization = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "secrets/routeros-authority-bundle-key.sops.yaml" in root_kustomization["resources"]
+    assert "../../../secrets/routeros-authority-bundle-key.sops.yaml" in domain_resources("networking")
     authorities = {item["id"]: item for item in values["discovery"]["externalAuthorities"]}
     assert authorities["routeros-r640"]["enabled"] is False
     assert {"tencent-domain-ex", "aliyun-muaya-lightweight", "tencent-suxunji", "tencent-zan"} <= authorities.keys()
@@ -666,7 +672,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
 def test_public_edge_owns_capacity_inventory_without_creating_nodes():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/regional-routing/public-edge-node-metadata.yaml" not in root["resources"]
-    assert "components/rook-ceph/storage-node-labels.yaml" in root["resources"]
+    assert "../../../components/rook-ceph/storage-node-labels.yaml" in domain_resources("data-storage")
     assert not (ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml").exists()
     regional = yaml.safe_load((ROOT / "clusters/re8ch/components/regional-routing/kustomization.yaml").read_text())
     assert "public-edge-node-metadata.yaml" not in regional["resources"]
@@ -698,7 +704,7 @@ def test_public_edge_owns_capacity_inventory_without_creating_nodes():
         name: (item["capacityMbps"], item["region"]) for name, item in nodes.items()
     }
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/cluster-inventory/configmap.yaml" in root["resources"]
+    assert "../../../components/cluster-inventory/configmap.yaml" in domain_resources("networking")
     renderer = runpy.run_path(str(ROOT / "operations/network/scripts/render-cluster-node-inventory.py"))
     assert (ROOT / "clusters/re8ch/components/cluster-inventory/configmap.yaml").read_text() == renderer["render"]()
 

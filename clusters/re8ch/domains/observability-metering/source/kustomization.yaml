@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../secrets/globalping-adoption.sops.yaml
+- ../../../secrets/incidentrelay-config.sops.yaml
+- ../../../secrets/incidentrelay-db-bootstrap.sops.yaml
+- ../../../secrets/incidentrelay-bootstrap-admin.sops.yaml
+- ../../../secrets/incidentrelay-alertmanager-tokens.sops.yaml
+- ../../../components/opencost/ui-nginx-config.yaml
+- ../../../components/observability/retire-legacy-qianwen-grafana.yaml
+- ../../../components/ops/kube-state-metrics-stable.yaml
+- ../../../components/synthetic-monitoring
+- ../../../../../platform/incidentrelay
+- ../../../../../platform/birfucate-metering
+- ../../../../../platform/observability/bootstrap
+- ../../../../../platform/observability/opencost-recovery
+- ../../../../../platform/observability/production
+

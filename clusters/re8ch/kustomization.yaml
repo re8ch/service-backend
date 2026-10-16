@@ -1,8 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- components/pigsty-external/pg-re8ch-services.yaml
-- ../../operations/plugin-capabilities
 - namespaces.yaml
 - flux-system/gotk-components.yaml
 - flux-system/verification-keys.yaml
@@ -18,120 +16,31 @@ resources:
 - flux-system/github-control-plane.yaml
 - flux-system/github-webhook-route.yaml
 - flux-system/controller-ha.yaml
-- secrets/stalwart-recovery-admin.sops.yaml
-- secrets/stalwart-idp-recovery.sops.yaml
-- secrets/stalwart-idp-oidc-keys.sops.yaml
-- secrets/among-clusters-hub-admin.sops.yaml
-- secrets/hyperswitch-runtime-values.sops.yaml
-- secrets/hyperswitch-bootstrap-admin.sops.yaml
-- secrets/tenant-claim-internal-auth.sops.yaml
-- secrets/api-conformance-github-app.sops.yaml
-- secrets/re8ch-auth-broker-client-auth.sops.yaml
-- secrets/cloud-disk-oidc-client-auth.sops.yaml
-- secrets/cloud-disk-edge.sops.yaml
-- secrets/cloud-disk-mcp-internal.sops.yaml
-- secrets/ghcr-re8ch-cloud-disk.sops.yaml
-- secrets/ghcr-re8ch-auth.sops.yaml
-- secrets/tenant-registry-supply-chain.sops.yaml
-- secrets/admin-vmcp-backend-auth-toolhive.sops.yaml
-- secrets/admin-vmcp-backend-auth-tenant.sops.yaml
-- secrets/cloudflare-advfab-dns-token.sops.yaml
-- secrets/routeros-authority-bundle-key.sops.yaml
-- secrets/public-edge-route-snapshot-signing.sops.yaml
-- secrets/globalping-adoption.sops.yaml
-- secrets/incidentrelay-config.sops.yaml
-- secrets/incidentrelay-db-bootstrap.sops.yaml
-- secrets/incidentrelay-bootstrap-admin.sops.yaml
-- secrets/incidentrelay-alertmanager-tokens.sops.yaml
-- secrets/ontology-microscope-db.sops.yaml
-- secrets/ontology-microscope-evaluation.sops.yaml
-- secrets/zerotier-planet-env.sops.yaml
-- secrets/cloud-disk-credentials.sops.yaml
-- secrets/commerce-wechat-app-identities.sops.yaml
-- secrets/commerce-ruiqi-merchant-certificate.sops.yaml
-- secrets/commerce-ruiqi-api-v3.sops.yaml
-- secrets/commerce-ruiqi-platform-certificate.sops.yaml
-- secrets/ledger-wechat-app-identities.sops.yaml
-- components/cilium/gateway-api-canary.yaml
-- components/aesthete/native-api-route.yaml
-- components/cluster-inventory/configmap.yaml
-- components/cilium/service-zone-wave-15.yaml
-- components/cilium/advfab-worker-node-ips.yaml
-- components/cilium/native-routing-rollout.yaml
-- components/farseer/public-web.yaml
-- components/farseer/tenant-web.yaml
-- components/cilium/r640-policy-update-budget.yaml
-- components/ai-operations/platform.yaml
-- components/ai-operations/stagehand-service.yaml
-- components/anycam/market-demo.yaml
-- components/codex-conversation-archive/storage.yaml
-- components/ai-operations/sandbox-trials
-- components/tenancy/re8ch-managed-business-namespaces.yaml
-- components/auth/deployments/auth-postgrest.yaml
-- components/auth/deployments/re8ch-auth-gateway.yaml
-- components/auth/deployments/re8ch-auth-gateway-pdb.yaml
-- components/auth/dependency-policy.yaml
-- components/auth/services/re8ch-auth-gateway.yaml
-- components/auth/user-center.yaml
-- ../../operations/supabase-identity
-- ../../operations/supabase-billing
-- components/egress-fabric/identity-egress.yaml
-- components/egress-fabric/live-node-egress-labels.yaml
-- components/egress-fabric/mihomo-node-labeler
-- components/egress-fabric/rbac.yaml
-- components/egress-fabric/path-controller.yaml
-- components/public-exposure/external-dns-cloudflare.yaml
-- components/public-exposure/external-dns-advfab.yaml
-- components/public-exposure/gateway-dns-authorities.yaml
-- components/public-exposure/grafana-dns-authority.yaml
-- components/public-exposure/operate-tools-dns-authority.yaml
-- components/public-exposure/operate-tools-http-route.yaml
-- components/public-exposure/legacy-special-http-routes.yaml
-- components/opencost/ui-nginx-config.yaml
-- components/observability/retire-legacy-qianwen-grafana.yaml
-- components/observable/postgrest-ha.yaml
-- components/supabase-pg-re8ch/supabase-rest-runtime.yaml
-- components/payments/credits-runtime.yaml
-- components/payments/commerce-runtime.yaml
-- components/regional-routing/cert-manager-bootstrap.yaml
-- components/regional-routing/service-http01-issuer.yaml
-- components/mcp-registry/registry.yaml
-- components/toolhive/external-observe-publication.yaml
-- components/toolhive/external-observe-rbac.yaml
-- components/toolhive/external-privileged-publication.yaml
-- components/toolhive/platform-restart-rbac.yaml
-- components/toolhive/ops-admin-postgres-rbac.yaml
-# ConnecTool aggregates these private ToolHive workloads on stable workers.
-- components/toolhive/vmcp-external-publication.yaml
-- components/toolhive/runtime-child-tolerations.yaml
-- components/toolhive/retire-legacy-session-redis.yaml
-- components/toolhive/registry.yaml
-- components/toolhive/operator-release.yaml
-- components/rook-ceph/releases.yaml
-- components/cloud-disk
-- components/rook-ceph/storage-node-labels.yaml
-- components/ops/cloudbeaver.yaml
-- components/ops/zerotier-planet.yaml
-- components/ops/kube-state-metrics-stable.yaml
-- components/ops/paralus-helmrelease-retirement.yaml
-- components/plugin-runtime/runtime.yaml
-- components/plugin-runtime/rbac.yaml
-- ../../platform/observability-source
-- components/synthetic-monitoring
-- ../../operations/api-conformance
-- ../../platform/incidentrelay
 - flux-system/gitops-oci-reader.sops.yaml
 - domain-sources
-- components/studio-toolkit/runtime.yaml
-- secrets/studio-config.sops.yaml
-- secrets/studio-db-bootstrap.sops.yaml
-- secrets/studio-registry-reader-studio-toolkit.sops.yaml
-- secrets/studio-registry-reader-supabase-pg-re8ch.sops.yaml
-- secrets/studio-retention.sops.yaml
-- secrets/studio-worker.sops.yaml
-patchesStrategicMerge:
-- retire-legacy-mcp.patch.yaml
+- ../../platform/observability-source
+- flux-system/domain-reconcilers.yaml
 patches:
+- target:
+    group: kustomize.toolkit.fluxcd.io
+    version: v1
+    kind: Kustomization
+    name: domain-.*
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/suspend
+      value: true
+- target:
+    group: kustomize.toolkit.fluxcd.io
+    version: v1
+    kind: Kustomization
+    name: observability-.*
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/suspend
+      value: true
 - target:
     version: v1
     kind: Namespace
@@ -385,46 +294,3 @@ patches:
     kind: Deployment
     name: source-controller
     namespace: flux-system
-configMapGenerator:
-- name: pg-re8ch-topology
-  namespace: pigsty-external
-  files:
-  - topology.json=components/pigsty-external/pg-re8ch-topology.json
-- name: route-path-controller-code
-  namespace: egress-fabric
-  files:
-  - path-controller.py=components/egress-fabric/controller/path_controller.py
-- name: re8ch-geodb-snapshot
-  namespace: egress-fabric
-  files:
-  - geodb.json.gz=components/egress-fabric/geodb/geodb.json.gz
-- name: rook-ceph-operator-values
-  namespace: flux-system
-  files:
-  - values.yaml=components/rook-ceph/operator-values.yaml
-- name: rook-ceph-csi-values
-  namespace: flux-system
-  files:
-  - values.yaml=components/rook-ceph/csi-drivers-values.yaml
-- name: rook-ceph-cluster-values
-  namespace: flux-system
-  files:
-  - values.yaml=components/rook-ceph/cluster-values.yaml
-- name: rook-ceph-production-overlay
-  namespace: flux-system
-  files:
-  - values.yaml=components/rook-ceph/cluster-values-production-encrypted.yaml
-- name: ops-mcp-server-code
-  namespace: toolhive-system
-  files:
-  - app.py=components/ops/ops-mcp-server-app.py
-- name: re8ch-plugin-definitions
-  namespace: toolhive-system
-  files:
-  - advanced-fabrics.json=components/plugin-runtime/plugins/advanced-fabrics.json
-  - cilium.json=components/plugin-runtime/plugins/cilium.json
-  - mihomos-cluster.json=components/plugin-runtime/plugins/mihomos-cluster.json
-  - public-edge.json=components/plugin-runtime/plugins/public-edge.json
-  - rook-ceph.json=components/plugin-runtime/plugins/rook-ceph.json
-generatorOptions:
-  disableNameSuffixHash: true

@@ -6,9 +6,9 @@ import yaml
 ROOT = Path(__file__).parents[1]
 
 
-def test_observable_postgrest_is_owned_by_root_gitops():
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/observable/postgrest-ha.yaml" in root["resources"]
+def test_observable_postgrest_is_owned_by_data_storage_domain():
+    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/data-storage/source/kustomization.yaml").read_text())
+    assert "../../../components/observable/postgrest-ha.yaml" in domain["resources"]
 
 
 def test_observable_postgrest_stays_on_database_route_verified_nodes():
