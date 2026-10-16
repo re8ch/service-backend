@@ -58,15 +58,16 @@ def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:
     assert rw_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert ro_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert all("readinessProbe" in container and "livenessProbe" in container for container in (rw, ro))
-    assert all(
-        container[probe] == {
-            "tcpSocket": {"port": "http"},
-            "periodSeconds": 5 if probe == "startupProbe" else 10 if probe == "readinessProbe" else 30,
-            **({"failureThreshold": 24} if probe == "startupProbe" else {"failureThreshold": 3} if probe == "livenessProbe" else {}),
+    for container in (rw, ro):
+        env = {item["name"]: item for item in container["env"]}
+        assert env["PGRST_ADMIN_SERVER_PORT"]["value"] == "3001"
+        assert {port["name"]: port["containerPort"] for port in container["ports"]} == {
+            "http": 3000,
+            "admin": 3001,
         }
-        for container in (rw, ro)
-        for probe in ("startupProbe", "readinessProbe", "livenessProbe")
-    )
+        assert container["startupProbe"]["httpGet"] == {"path": "/ready", "port": "admin"}
+        assert container["readinessProbe"]["httpGet"] == {"path": "/ready", "port": "admin"}
+        assert container["livenessProbe"]["httpGet"] == {"path": "/live", "port": "admin"}
 
 
 def test_billing_realtime_allows_slow_first_boot() -> None:
