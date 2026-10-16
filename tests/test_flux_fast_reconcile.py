@@ -17,9 +17,8 @@ def test_root_frequency_and_local_sync():
     assert docs[1]['spec']['timeout'] == '20m'
     assert docs[0]['spec']['url'] == 'ssh://git@ssh.github.com:443/re8ch/service-backend.git'
     assert docs[0]['spec']['secretRef']['name'] == 'service-backend-github-ssh'
-    assert docs[0]['spec']['proxySecretRef'] == {'name': 'service-backend-github-socks'}
-    proxy = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-socks.yaml').read_text())
-    assert proxy['stringData'] == {'address': 'socks5://192.0.2.48:1080'}
+    assert 'proxySecretRef' not in docs[0]['spec']
+    assert not (ROOT / 'clusters/re8ch/flux-system/service-backend-github-socks.yaml').exists()
     assert docs[0]['spec']['verify']['mode'] == 'HEAD'
     secret = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-ssh.sops.yaml').read_text())
     assert secret['stringData']['identity'].startswith('ENC[')
