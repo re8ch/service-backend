@@ -11,7 +11,7 @@ def _docs(name: str) -> list[dict]:
     return [doc for doc in yaml.safe_load_all((BASE / name).read_text()) if doc]
 
 
-def test_billing_stack_is_isolated_and_staged() -> None:
+def test_billing_stack_is_isolated_and_activated() -> None:
     docs = _docs("billing-stack.yaml")
     assert all(
         doc["metadata"].get("namespace") == "supabase-billing"
@@ -39,7 +39,7 @@ def test_billing_stack_is_isolated_and_staged() -> None:
     assert pvc["spec"]["resources"]["requests"]["storage"] == "20Gi"
 
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "../../operations/supabase-billing" not in root["resources"]
+    assert "../../operations/supabase-billing" in root["resources"]
 
 
 def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:

@@ -75,6 +75,7 @@ resources:
 - components/auth/services/re8ch-auth-gateway.yaml
 - components/auth/user-center.yaml
 - ../../operations/supabase-identity
+- ../../operations/supabase-billing
 - components/egress-fabric/identity-egress.yaml
 - components/egress-fabric/live-node-egress-labels.yaml
 - components/egress-fabric/mihomo-node-labeler
