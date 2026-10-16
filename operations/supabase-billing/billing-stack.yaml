@@ -466,7 +466,7 @@ spec:
             - { name: KONG_DECLARATIVE_CONFIG, value: /usr/local/kong/kong.yml }
             - { name: KONG_ROUTER_FLAVOR, value: expressions }
             - { name: KONG_NGINX_WORKER_PROCESSES, value: "1" }
-            - { name: KONG_DNS_ORDER, value: LAST,A,CNAME }
+            - { name: KONG_DNS_ORDER, value: "LAST,A,CNAME" }
             - { name: KONG_DNS_NOT_FOUND_TTL, value: "1" }
             - { name: KONG_PLUGINS, value: bundled }
             - { name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE, value: 160k }
