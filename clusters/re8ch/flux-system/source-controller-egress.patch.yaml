@@ -12,21 +12,14 @@ spec:
     type: Recreate
   template:
     spec:
-      # Use the pod network on the KL/restricted-node-6dc3f140f9 pair. Git transport still uses the
-      # declared SOCKS endpoint, while pod networking avoids collisions with
-      # node-local listeners such as KL's existing TCP/9090 process.
+      # Use the pod network on the KL/restricted-node-6dc3f140f9 pair. KL reaches GitHub directly;
+      # restricted-node-6dc3f140f9 fallback uses the cluster egress fabric instead of the legacy FLK
+      # SOCKS endpoint. Pod networking also avoids KL's TCP/9090 listener.
       hostNetwork: false
       dnsPolicy: ClusterFirst
       containers:
         - name: manager
           env:
-            # Flux's SSH transport reads ALL_PROXY; HTTP requests keep their
-            # existing routing and the SSH host/commit checks remain enabled.
-            - name: ALL_PROXY
-              valueFrom:
-                secretKeyRef:
-                  name: service-backend-github-socks
-                  key: address
             # restricted-node-6dc3f140f9 HAProxy health-checks A1, B1 and MUBAO and removes an
             # unhealthy API server without pinning Flux to one member.
             - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
