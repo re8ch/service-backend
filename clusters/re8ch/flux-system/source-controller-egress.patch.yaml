@@ -12,10 +12,11 @@ spec:
     type: Recreate
   template:
     spec:
-      # Run public source delivery on the KL/restricted-node-6dc3f140f9 active-standby pair while
-      # GitHub remains the desired-state source.
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      # Use the pod network on the KL/restricted-node-6dc3f140f9 pair. Git transport still uses the
+      # declared SOCKS endpoint, while pod networking avoids collisions with
+      # node-local listeners such as KL's existing TCP/9090 process.
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
       containers:
         - name: manager
           env:

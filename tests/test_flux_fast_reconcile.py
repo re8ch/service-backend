@@ -59,8 +59,8 @@ def test_rendered_controller_failover_and_source_cache_safety():
     source = deployments['source-controller']
     assert source['spec']['replicas'] == 1
     assert source['spec']['strategy']['type'] == 'Recreate'
-    assert source['spec']['template']['spec']['hostNetwork'] is True
-    assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirstWithHostNet'
+    assert source['spec']['template']['spec']['hostNetwork'] is False
+    assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirst'
     assert source['spec']['template']['spec']['nodeSelector'] == {
         'kubernetes.io/os': 'linux',
     }
