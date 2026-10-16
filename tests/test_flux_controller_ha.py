@@ -12,7 +12,8 @@ CORE_CONTROLLERS = {
     "notification-controller",
     "kustomize-controller",
 }
-DISRUPTION_BUDGETED = CORE_CONTROLLERS
+DISRUPTION_BUDGETED = CORE_CONTROLLERS | {"source-controller"}
+FAILOVER_NODES = ["overseas-kl", "restricted-node-6dc3f140f9"]
 
 
 def rendered_documents():
@@ -21,7 +22,7 @@ def rendered_documents():
     return list(yaml.safe_load_all(output))
 
 
-def test_flux_core_controllers_share_the_overseas_recovery_domain():
+def test_flux_core_controllers_use_kl_r640_active_standby():
     deployments = {
         item["metadata"]["name"]: item
         for item in rendered_documents()
@@ -29,12 +30,16 @@ def test_flux_core_controllers_share_the_overseas_recovery_domain():
     }
     for name in CORE_CONTROLLERS:
         deployment = deployments[name]
-        assert deployment["spec"]["replicas"] == 1
-        assert deployment["spec"]["strategy"]["type"] == "Recreate"
+        assert deployment["spec"]["replicas"] == 2
+        assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression["key"] == "kubernetes.io/hostname"
-        assert expression["values"] == ["overseas-flk"]
+        assert expression["values"] == FAILOVER_NODES
+        assert pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
+        preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
+        assert preferred[0]["weight"] == 100
+        assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
         assert pod.get("dnsPolicy", "ClusterFirst") == "ClusterFirst"
         env = {item["name"]: item for item in pod["containers"][0]["env"]}
         assert env["KUBERNETES_SERVICE_HOST"]["value"] == "192.0.2.179"
@@ -53,11 +58,11 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "kustomize-controller"
     )
-    assert deployment["spec"]["replicas"] == 1
-    assert deployment["spec"]["strategy"]["type"] == "Recreate"
+    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == ["overseas-flk"]
+    assert expression["values"] == FAILOVER_NODES
     env = {item["name"]: item["value"] for item in pod["containers"][0]["env"] if "value" in item}
     assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.179"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
@@ -68,7 +73,7 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     }
 
 
-def test_source_controller_is_single_active_on_verified_delivery_node():
+def test_source_controller_is_two_replica_single_active_on_kl_r640():
     documents = rendered_documents()
     deployment = next(
         item for item in documents
@@ -76,12 +81,13 @@ def test_source_controller_is_single_active_on_verified_delivery_node():
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "source-controller"
     )
-    assert deployment["spec"]["replicas"] == 1
-    assert deployment["spec"]["strategy"]["type"] == "Recreate"
+    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == ["overseas-flk"]
-    assert pod["nodeSelector"]["networking.re8ch.com/egress-policy"] == "direct"
+    assert expression["values"] == FAILOVER_NODES
+    assert pod["nodeSelector"] == {"kubernetes.io/os": "linux"}
+    assert pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
     assert pod["hostNetwork"] is True
     assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert "dnsConfig" not in pod
@@ -90,6 +96,7 @@ def test_source_controller_is_single_active_on_verified_delivery_node():
     assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.179"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     assert "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local." in manager["args"]
+    assert "--enable-leader-election" in manager["args"]
     assert all(item["name"] != "POD_IP" for item in manager.get("env", []))
     service = next(
         item for item in documents
