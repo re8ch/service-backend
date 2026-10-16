@@ -90,8 +90,8 @@ def test_source_controller_uses_kl_r640_scheduler_failover():
     preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
     assert preferred[0]["weight"] == 100
     assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
-    assert pod["hostNetwork"] is True
-    assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
+    assert pod["hostNetwork"] is False
+    assert pod["dnsPolicy"] == "ClusterFirst"
     assert "dnsConfig" not in pod
     manager = pod["containers"][0]
     env = {item["name"]: item.get("value") for item in manager["env"]}
