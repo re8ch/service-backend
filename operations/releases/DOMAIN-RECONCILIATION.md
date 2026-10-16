@@ -46,6 +46,35 @@ an account is entitled. Those decisions belong in an authenticated service API
 and its audited database. A platform brake may close a channel during an
 incident, but normal operators must not need a Git commit to reopen it.
 
+That is only the first split. `runtime-authority.yaml` is the reviewed authority
+ledger for workloads themselves. An externally consumed product with a high
+change cadence belongs to a product-owned release publisher, not to Flux. The
+initial migration set is commerce/payment, the user-facing identity runtime,
+and ConnecTool. Flux keeps their slow-moving platform guardrails: namespaces,
+quota, NetworkPolicy, bounded RBAC, Secret material and references, shared edge
+and certificate authority, database routing and an emergency brake.
+
+The ledger deliberately distinguishes target authority from current authority.
+It is unsafe to remove an active reconciler before a short-lived authenticated
+publisher has deployed the same immutable signed revision and passed a canary.
+Until that gate is met, `publisher-required` entries remain on their current
+owner; this is a migration state, not permission for new product behavior to be
+added to Flux.
+
+### Authority selection rule
+
+| Workload characteristic | Authority |
+| --- | --- |
+| External users and high change cadence | product release publisher |
+| Ordinary business state | authenticated application API and audited database |
+| Shared infrastructure or security guardrail | Flux |
+
+Product publishers use a namespace and resource allowlist, server-side apply
+ownership, immutable signed artifacts and append-only release evidence. They do
+not receive Secret values, cluster-scoped RBAC, Gateway or certificate
+authority, or database administration. A long-lived kubeconfig is not an
+acceptable substitute for the publisher.
+
 The legacy `domain-*` OCI reconcilers and the three `observability-*`
 reconcilers are retained in a suspended state for rollback visibility. Do not
 resume one while its replacement `reconcile-*` owner is active.
