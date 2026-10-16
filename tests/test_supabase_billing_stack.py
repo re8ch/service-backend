@@ -85,6 +85,20 @@ def test_billing_realtime_allows_slow_first_boot() -> None:
     }
 
 
+def test_billing_studio_uses_dedicated_database_role() -> None:
+    docs = _docs("billing-stack.yaml")
+    deployment = next(
+        doc for doc in docs
+        if doc["kind"] == "Deployment"
+        and doc["metadata"]["name"] == "supabase-billing-studio"
+    )
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    env = {item["name"]: item for item in container["env"]}
+    assert env["POSTGRES_USER_READ_WRITE"]["value"] == "billing_studio_admin"
+    assert env["POSTGRES_PASSWORD"]["valueFrom"]["secretKeyRef"]["key"] == "BILLING_META_DB_PASSWORD"
+    assert env["PG_META_CRYPTO_KEY"]["valueFrom"]["secretKeyRef"]["key"] == "PG_META_CRYPTO_KEY"
+
+
 def test_billing_network_policy_tracks_selectorless_pigsty_service() -> None:
     policies = _docs("network-policy.yaml")
     runtime = next(

@@ -400,7 +400,7 @@ spec:
         app.kubernetes.io/component: studio
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
         - key: dedicated
           operator: Equal
@@ -420,7 +420,9 @@ spec:
             - { name: SUPABASE_ANON_KEY, valueFrom: { secretKeyRef: { name: supabase-billing-secrets, key: ANON_KEY } } }
             - { name: SUPABASE_SERVICE_KEY, valueFrom: { secretKeyRef: { name: supabase-billing-secrets, key: SERVICE_ROLE_KEY } } }
             - { name: AUTH_JWT_SECRET, valueFrom: { secretKeyRef: { name: supabase-billing-secrets, key: JWT_SECRET } } }
-            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: supabase-billing-secrets, key: BILLING_META_DB_PASSWORD_URLENCODED } } }
+            - { name: POSTGRES_USER_READ_WRITE, value: billing_studio_admin }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: supabase-billing-secrets, key: BILLING_META_DB_PASSWORD } } }
+            - { name: PG_META_CRYPTO_KEY, valueFrom: { secretKeyRef: { name: supabase-billing-secrets, key: PG_META_CRYPTO_KEY } } }
             - { name: DEFAULT_ORGANIZATION_NAME, valueFrom: { configMapKeyRef: { name: supabase-billing-env, key: STUDIO_DEFAULT_ORGANIZATION } } }
             - { name: DEFAULT_PROJECT_NAME, valueFrom: { configMapKeyRef: { name: supabase-billing-env, key: STUDIO_DEFAULT_PROJECT } } }
             - { name: ENABLED_FEATURES_LOGS_ALL, value: "false" }
@@ -451,7 +453,7 @@ spec:
         app.kubernetes.io/part-of: supabase-billing
         app.kubernetes.io/component: kong
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -507,7 +509,7 @@ spec:
         app.kubernetes.io/part-of: supabase-billing
         app.kubernetes.io/component: meta
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -550,7 +552,7 @@ spec:
         app.kubernetes.io/part-of: supabase-billing
         app.kubernetes.io/component: auth
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       imagePullSecrets: [{ name: supabase-billing-harbor-pull }]
@@ -610,7 +612,7 @@ spec:
         app.kubernetes.io/part-of: supabase-billing
         app.kubernetes.io/component: realtime
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -665,7 +667,7 @@ spec:
         app.kubernetes.io/part-of: supabase-billing
         app.kubernetes.io/component: storage
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
@@ -719,7 +721,7 @@ spec:
         app.kubernetes.io/part-of: supabase-billing
         app.kubernetes.io/component: imgproxy
     spec:
-      nodeSelector: { kubernetes.io/hostname: restricted-node-6dc3f140f9 }
+      nodeSelector: { kubernetes.io/hostname: r640 }
       tolerations:
         - { key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule }
       containers:
