@@ -31,7 +31,7 @@ documents a separate historical migration procedure if that decision changes.
    anonymous role with `billing_commerce_anon`; apply and verify it before the
    runtime uses that role. Before the GitOps runtime PR merges,
    run `provision_billing_secrets.py plan` and then `apply` through the
-   authenticated restricted-node-6dc3f140f9 administrator path. It creates new payment and Commerce
+   authenticated R640 administrator path. It creates new payment and Commerce
    Secrets for `re8ch_billing` from existing managed login credentials, with a
    read-only session option on each RO URI. It prints no credential values.
 2. The Ruiqi merchant certificate for merchant `1722340397` is encrypted in
@@ -69,6 +69,13 @@ documents a separate historical migration procedure if that decision changes.
    There is no implicit price. Publish a low-value package for the first real
    transaction; reconcile its WeChat transaction ID, exact amount, order and
    single credit entry before exposing the User Hub purchase UI to all users.
+   Browser WeChat Native checkout is enabled with
+   `COMMERCE_CHECKOUT_ENABLED=true`; the User Hub calls only
+   `https://api.re8ch.com/commerce/v1` and renders the returned `code_url`
+   locally. The Commerce API keeps database access server-side through
+   `https://db-rw.re8ch.com/commerce` and
+   `https://db-ro.re8ch.com/commerce`. Mini-program JSAPI checkout remains
+   disabled independently.
 5. Monitor failed callbacks and orders left pending beyond 15 minutes. Query
    WeChat by merchant order number before resolving an uncertain payment; never
    mark it paid from the browser redirect or a manual UI action.

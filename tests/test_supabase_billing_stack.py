@@ -170,3 +170,14 @@ def test_stable_db_host_is_path_split_without_cross_database_linking() -> None:
     assert "value: /commerce" in commerce
     assert "re8ch_identity" in readme and "re8ch_billing" in readme
     assert "no cross-database foreign key, fdw, dblink" in readme.lower()
+
+
+def test_browser_native_checkout_uses_api_gateway_and_split_postgrest() -> None:
+    commerce = (ROOT / "clusters/re8ch/components/payments/commerce-runtime.yaml").read_text()
+    assert 'name: COMMERCE_CHECKOUT_ENABLED, value: "true"' in commerce
+    assert 'name: COMMERCE_MINI_CHECKOUT_ENABLED, value: "false"' in commerce
+    assert 'name: COMMERCE_RW_URL, value: "https://db-rw.re8ch.com/commerce"' in commerce
+    assert 'name: COMMERCE_RO_URL, value: "https://db-ro.re8ch.com/commerce"' in commerce
+    assert 'name: WX_PAY_NOTIFY_URL, value: "https://api.re8ch.com/commerce/v1/webhooks/wechat"' in commerce
+    assert "hostnames: [api.re8ch.com]" in commerce
+    assert "value: /commerce" in commerce

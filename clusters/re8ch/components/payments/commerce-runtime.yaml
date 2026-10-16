@@ -127,7 +127,9 @@ spec:
             - {name: COMMERCE_RW_URL, value: "https://db-rw.re8ch.com/commerce"}
             - {name: COMMERCE_RO_URL, value: "https://db-ro.re8ch.com/commerce"}
             - {name: WX_PAY_NOTIFY_URL, value: "https://api.re8ch.com/commerce/v1/webhooks/wechat"}
-            - {name: COMMERCE_CHECKOUT_ENABLED, value: "false"}
+            # Native QR checkout is the browser payment path. Mini-program
+            # JSAPI checkout remains gated independently below.
+            - {name: COMMERCE_CHECKOUT_ENABLED, value: "true"}
             - {name: COMMERCE_MINI_CHECKOUT_ENABLED, value: "false"}
           readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
