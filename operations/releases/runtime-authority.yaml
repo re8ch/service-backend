@@ -1,0 +1,72 @@
+version: 1
+
+# Runtime authority is selected from product behavior, not from where its YAML
+# happens to live today.  Externally consumed, frequently changing products use
+# an authenticated release or business API.  Flux retains only platform
+# guardrails and slow-moving infrastructure.
+selectionPolicy:
+  externalAndFastChanging: product-runtime
+  platformInfrastructure: flux
+  businessState: application-api
+
+authorities:
+  commerce-billing:
+    externalUsers: true
+    changeCadence: high
+    targetAuthority: product-runtime
+    currentAuthority: split
+    migrationPhase: business-api-live
+    productRepositories: [re8ch/cloud-functions]
+    productOwned:
+      - commerce API image rollout
+      - payment-channel availability and catalog state
+      - checkout behavior and provider adapters
+    fluxOwned:
+      - namespace and workload security policy
+      - Secret references and emergency platform brake
+      - shared Gateway attachment and database routing
+    cutoverGate: authenticated product release publisher
+
+  identity:
+    externalUsers: true
+    changeCadence: high
+    targetAuthority: product-runtime
+    currentAuthority: flux
+    migrationPhase: publisher-required
+    productRepositories: [re8ch/cloud-functions, re8ch/user-hub]
+    productOwned:
+      - auth gateway and user-facing identity runtime releases
+      - provider enablement and user lifecycle business state
+      - User Hub release cadence
+    fluxOwned:
+      - namespace, quotas, NetworkPolicy and RBAC
+      - encrypted Secret material and Secret references
+      - shared Gateway, certificate and database authority
+    cutoverGate: authenticated product release publisher
+
+  connectool:
+    externalUsers: true
+    changeCadence: high
+    targetAuthority: product-runtime
+    currentAuthority: flux
+    migrationPhase: publisher-required
+    productRepositories: [among-clusters/connectool]
+    productOwned:
+      - signed chart and session-router releases
+      - MCP publication, distribution and compatibility contracts
+      - product-owned rollout and rollback
+    fluxOwned:
+      - namespace, quota, NetworkPolicy and bounded RBAC
+      - shared OIDC issuer, Gateway and certificate authority
+      - platform emergency brake
+    cutoverGate: authenticated product release publisher
+
+cutoverRules:
+  - Never suspend or remove the active Flux owner before the product publisher
+    has successfully deployed the same immutable revision and passed its canary.
+  - A product publisher must use short-lived identity, immutable signed
+    artifacts, a namespace/resource allowlist, server-side apply ownership and
+    append-only release evidence.
+  - Product release authority must not include Secret values, cluster-scoped
+    RBAC, Gateway ownership, certificate issuance or database administration.
+  - During handoff, exactly one controller may prune a given object.
