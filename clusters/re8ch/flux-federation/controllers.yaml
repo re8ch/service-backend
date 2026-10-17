@@ -225,6 +225,16 @@ spec:
         name: data
       - emptyDir: {}
         name: tmp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -335,6 +345,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -445,6 +465,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -581,6 +611,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -1486,6 +1526,16 @@ spec:
         name: data
       - emptyDir: {}
         name: tmp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -1596,6 +1646,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -1706,6 +1766,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -1842,6 +1912,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -2578,6 +2658,16 @@ spec:
         name: data
       - emptyDir: {}
         name: tmp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -2688,6 +2778,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -2798,6 +2898,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -2934,6 +3044,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -3654,6 +3774,16 @@ spec:
         name: data
       - emptyDir: {}
         name: tmp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -3764,6 +3894,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -3874,6 +4014,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -4010,6 +4160,16 @@ spec:
       volumes:
       - emptyDir: {}
         name: temp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: gitops.re8ch.com/domain
+                  operator: Exists
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
