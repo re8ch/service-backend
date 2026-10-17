@@ -1,0 +1,4918 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: allow-egress
+  namespace: flux-agent-system
+spec:
+  egress:
+  - {}
+  ingress:
+  - from:
+    - podSelector: {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: allow-scraping
+  namespace: flux-agent-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: allow-webhooks
+  namespace: flux-agent-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+  podSelector:
+    matchLabels:
+      app: notification-controller
+  policyTypes:
+  - Ingress
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: critical-pods-flux-agent-system
+  namespace: flux-agent-system
+spec:
+  hard:
+    pods: '1000'
+  scopeSelector:
+    matchExpressions:
+    - operator: In
+      scopeName: PriorityClass
+      values:
+      - system-node-critical
+      - system-cluster-critical
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: source-controller
+  namespace: flux-agent-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: agent-runtime
+  name: source-controller
+  namespace: flux-agent-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: source-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: agent-runtime
+  name: source-controller
+  namespace: flux-agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: source-controller
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: source-controller
+        gitops.re8ch.com/domain: agent-runtime
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-agent-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        - --storage-path=/data
+        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TUF_ROOT
+          value: /tmp/.sigstore
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: agent-runtime
+        image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: source-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: data
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: kustomize-controller
+  namespace: flux-agent-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: agent-runtime
+  name: kustomize-controller
+  namespace: flux-agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: kustomize-controller
+        gitops.re8ch.com/domain: agent-runtime
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-agent-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: agent-runtime
+        image: registry.re8ch.com/functions-shared/flux-kustomize-controller@sha256:4d55c681713596e8ad782a22d43087d744d89d8983cfe210d53efcc4b2c10cf1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: kustomize-controller
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: agent-runtime
+  name: helm-controller
+  namespace: flux-agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: helm-controller
+        gitops.re8ch.com/domain: agent-runtime
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-agent-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: agent-runtime
+        image: registry.re8ch.com/functions-shared/flux-helm-controller@sha256:3b723f60dccf097d7993b76db84d8ad16cd554b94ee5d24178ccb743a4508c5a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: helm-controller
+      terminationGracePeriodSeconds: 600
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: agent-runtime
+  name: notification-controller
+  namespace: flux-agent-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: agent-runtime
+  name: notification-controller
+  namespace: flux-agent-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: notification-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: agent-runtime
+  name: notification-controller
+  namespace: flux-agent-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: notification-controller
+        gitops.re8ch.com/domain: agent-runtime
+    spec:
+      containers:
+      - args:
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: agent-runtime
+        image: registry.re8ch.com/functions-shared/flux-notification-controller@sha256:066bf5fb13692ac11bee7445fd4c339c4b0482a098c1e1def4fd63c60d4f5728
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 9292
+          name: http-webhook
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: notification-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kustomize-controller
+  namespace: flux-agent-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-agent-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+rules:
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  - kustomize.toolkit.fluxcd.io
+  - helm.toolkit.fluxcd.io
+  - notification.toolkit.fluxcd.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  - configmaps
+  - serviceaccounts
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-agent-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-controller-runtime
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: notification-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: source-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-agent-runtime-namespaced
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - conformance.re8ch.com
+  resources:
+  - apiconformancetargets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - governance.re8ch.com
+  resources:
+  - gitaccounts
+  - gitworkspaces
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - kustomize.toolkit.fluxcd.io
+  resources:
+  - kustomizations
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - gitrepositories
+  - ocirepositories
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpexternalauthconfigs
+  - mcpgroups
+  - mcpservers
+  - mcptelemetryconfigs
+  - mcptoolconfigs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: ai-operations
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: anycam
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: api-conformance-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: auth
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: bench
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: codex-archive
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: codex-platform
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: credential-broker
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: cube-trial
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: flux-agent-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: flux-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: git-workspaces
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: ledger
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: llm-gateway
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: mcp-registry
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: observability-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: opensandbox-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: rook-ceph
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: supabase-pg-re8ch
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: tenant-infrastructure
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-namespaced
+  namespace: toolhive-system
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-agent-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: allow-egress
+  namespace: flux-identity-system
+spec:
+  egress:
+  - {}
+  ingress:
+  - from:
+    - podSelector: {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: allow-scraping
+  namespace: flux-identity-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: allow-webhooks
+  namespace: flux-identity-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+  podSelector:
+    matchLabels:
+      app: notification-controller
+  policyTypes:
+  - Ingress
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: critical-pods-flux-identity-system
+  namespace: flux-identity-system
+spec:
+  hard:
+    pods: '1000'
+  scopeSelector:
+    matchExpressions:
+    - operator: In
+      scopeName: PriorityClass
+      values:
+      - system-node-critical
+      - system-cluster-critical
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: source-controller
+  namespace: flux-identity-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: identity-access
+  name: source-controller
+  namespace: flux-identity-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: source-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: identity-access
+  name: source-controller
+  namespace: flux-identity-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: source-controller
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: source-controller
+        gitops.re8ch.com/domain: identity-access
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-identity-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        - --storage-path=/data
+        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TUF_ROOT
+          value: /tmp/.sigstore
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: identity-access
+        image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: source-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: data
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: kustomize-controller
+  namespace: flux-identity-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: identity-access
+  name: kustomize-controller
+  namespace: flux-identity-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: kustomize-controller
+        gitops.re8ch.com/domain: identity-access
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-identity-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: identity-access
+        image: registry.re8ch.com/functions-shared/flux-kustomize-controller@sha256:4d55c681713596e8ad782a22d43087d744d89d8983cfe210d53efcc4b2c10cf1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: kustomize-controller
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: identity-access
+  name: helm-controller
+  namespace: flux-identity-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: helm-controller
+        gitops.re8ch.com/domain: identity-access
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-identity-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: identity-access
+        image: registry.re8ch.com/functions-shared/flux-helm-controller@sha256:3b723f60dccf097d7993b76db84d8ad16cd554b94ee5d24178ccb743a4508c5a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: helm-controller
+      terminationGracePeriodSeconds: 600
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: identity-access
+  name: notification-controller
+  namespace: flux-identity-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: identity-access
+  name: notification-controller
+  namespace: flux-identity-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: notification-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: identity-access
+  name: notification-controller
+  namespace: flux-identity-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: notification-controller
+        gitops.re8ch.com/domain: identity-access
+    spec:
+      containers:
+      - args:
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: identity-access
+        image: registry.re8ch.com/functions-shared/flux-notification-controller@sha256:066bf5fb13692ac11bee7445fd4c339c4b0482a098c1e1def4fd63c60d4f5728
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 9292
+          name: http-webhook
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: notification-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kustomize-controller
+  namespace: flux-identity-system
+  labels:
+    gitops.re8ch.com/domain: identity-access
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-identity-system
+  labels:
+    gitops.re8ch.com/domain: identity-access
+rules:
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  - kustomize.toolkit.fluxcd.io
+  - helm.toolkit.fluxcd.io
+  - notification.toolkit.fluxcd.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  - configmaps
+  - serviceaccounts
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-identity-system
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-controller-runtime
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: notification-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: source-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-identity-access-namespaced
+  labels:
+    gitops.re8ch.com/domain: identity-access
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - resourcequotas
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - statefulsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  - referencegrants
+  - tcproutes
+  - tlsroutes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - workspace.re8ch.com
+  resources:
+  - agentsessions
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: ai-operations
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: auth
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: egress-fabric
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: git-workspaces
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: mail-system
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: opensandbox-system
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: qianwen-ops
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: re8ch-anysite
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: re8ch-dataspace
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: re8ch-ledger
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: re8ch-neo4j
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: re8ch-secretary
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: supabase-identity
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
+  namespace: tenant-infrastructure
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: allow-egress
+  namespace: flux-observability-system
+spec:
+  egress:
+  - {}
+  ingress:
+  - from:
+    - podSelector: {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: allow-scraping
+  namespace: flux-observability-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: allow-webhooks
+  namespace: flux-observability-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+  podSelector:
+    matchLabels:
+      app: notification-controller
+  policyTypes:
+  - Ingress
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: critical-pods-flux-observability-system
+  namespace: flux-observability-system
+spec:
+  hard:
+    pods: '1000'
+  scopeSelector:
+    matchExpressions:
+    - operator: In
+      scopeName: PriorityClass
+      values:
+      - system-node-critical
+      - system-cluster-critical
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: source-controller
+  namespace: flux-observability-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: observability-metering
+  name: source-controller
+  namespace: flux-observability-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: source-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: observability-metering
+  name: source-controller
+  namespace: flux-observability-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: source-controller
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: source-controller
+        gitops.re8ch.com/domain: observability-metering
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-observability-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        - --storage-path=/data
+        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TUF_ROOT
+          value: /tmp/.sigstore
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: observability-metering
+        image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: source-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: data
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: kustomize-controller
+  namespace: flux-observability-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: observability-metering
+  name: kustomize-controller
+  namespace: flux-observability-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: kustomize-controller
+        gitops.re8ch.com/domain: observability-metering
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-observability-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: observability-metering
+        image: registry.re8ch.com/functions-shared/flux-kustomize-controller@sha256:4d55c681713596e8ad782a22d43087d744d89d8983cfe210d53efcc4b2c10cf1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: kustomize-controller
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: observability-metering
+  name: helm-controller
+  namespace: flux-observability-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: helm-controller
+        gitops.re8ch.com/domain: observability-metering
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-observability-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: observability-metering
+        image: registry.re8ch.com/functions-shared/flux-helm-controller@sha256:3b723f60dccf097d7993b76db84d8ad16cd554b94ee5d24178ccb743a4508c5a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: helm-controller
+      terminationGracePeriodSeconds: 600
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: observability-metering
+  name: notification-controller
+  namespace: flux-observability-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: observability-metering
+  name: notification-controller
+  namespace: flux-observability-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: notification-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: observability-metering
+  name: notification-controller
+  namespace: flux-observability-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: notification-controller
+        gitops.re8ch.com/domain: observability-metering
+    spec:
+      containers:
+      - args:
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: observability-metering
+        image: registry.re8ch.com/functions-shared/flux-notification-controller@sha256:066bf5fb13692ac11bee7445fd4c339c4b0482a098c1e1def4fd63c60d4f5728
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 9292
+          name: http-webhook
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: notification-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kustomize-controller
+  namespace: flux-observability-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-observability-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+rules:
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  - kustomize.toolkit.fluxcd.io
+  - helm.toolkit.fluxcd.io
+  - notification.toolkit.fluxcd.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  - configmaps
+  - serviceaccounts
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-observability-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-controller-runtime
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: notification-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: source-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-observability-metering-namespaced
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - persistentvolumeclaims
+  - resourcequotas
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - opentelemetry.io
+  resources:
+  - opentelemetrycollectors
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vlagents
+  - vlsingles
+  - vmagents
+  - vmalertmanagers
+  - vmalerts
+  - vmauths
+  - vmclusters
+  - vmnodescrapes
+  - vmpodscrapes
+  - vmrules
+  - vmservicescrapes
+  - vmsingles
+  - vmstaticscrapes
+  - vtclusters
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmrepositories
+  - ocirepositories
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: credential-broker
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: flux-observability-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: flux-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: globalping-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: incidentrelay
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: kube-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: observability-system
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: opencost
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: qianwen-ops
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: supabase-pg-re8ch
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: synthetic-monitoring
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: tenant-infrastructure
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: allow-egress
+  namespace: flux-network-system
+spec:
+  egress:
+  - {}
+  ingress:
+  - from:
+    - podSelector: {}
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: allow-scraping
+  namespace: flux-network-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: allow-webhooks
+  namespace: flux-network-system
+spec:
+  ingress:
+  - from:
+    - namespaceSelector: {}
+  podSelector:
+    matchLabels:
+      app: notification-controller
+  policyTypes:
+  - Ingress
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  labels:
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: critical-pods-flux-network-system
+  namespace: flux-network-system
+spec:
+  hard:
+    pods: '1000'
+  scopeSelector:
+    matchExpressions:
+    - operator: In
+      scopeName: PriorityClass
+      values:
+      - system-node-critical
+      - system-cluster-critical
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: source-controller
+  namespace: flux-network-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: networking
+  name: source-controller
+  namespace: flux-network-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: source-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: source-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: networking
+  name: source-controller
+  namespace: flux-network-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: source-controller
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: source-controller
+        gitops.re8ch.com/domain: networking
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-network-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        - --storage-path=/data
+        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TUF_ROOT
+          value: /tmp/.sigstore
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: networking
+        image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - mountPath: /tmp
+          name: tmp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: source-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: data
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: kustomize-controller
+  namespace: flux-network-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: kustomize-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: networking
+  name: kustomize-controller
+  namespace: flux-network-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: kustomize-controller
+        gitops.re8ch.com/domain: networking
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-network-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: networking
+        image: registry.re8ch.com/functions-shared/flux-kustomize-controller@sha256:4d55c681713596e8ad782a22d43087d744d89d8983cfe210d53efcc4b2c10cf1
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: kustomize-controller
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: helm-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: networking
+  name: helm-controller
+  namespace: flux-network-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: helm-controller
+        gitops.re8ch.com/domain: networking
+    spec:
+      containers:
+      - args:
+        - --events-addr=http://notification-controller.flux-network-system.svc.cluster.local./
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: networking
+        image: registry.re8ch.com/functions-shared/flux-helm-controller@sha256:3b723f60dccf097d7993b76db84d8ad16cd554b94ee5d24178ccb743a4508c5a
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-cluster-critical
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: helm-controller
+      terminationGracePeriodSeconds: 600
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    gitops.re8ch.com/domain: networking
+  name: notification-controller
+  namespace: flux-network-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: networking
+  name: notification-controller
+  namespace: flux-network-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: notification-controller
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: notification-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    app.kubernetes.io/version: v2.6.1
+    control-plane: controller
+    gitops.re8ch.com/domain: networking
+  name: notification-controller
+  namespace: flux-network-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-controller
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: notification-controller
+        gitops.re8ch.com/domain: networking
+    spec:
+      containers:
+      - args:
+        - --watch-all-namespaces=false
+        - --log-level=info
+        - --log-encoding=json
+        - --enable-leader-election
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GOMAXPROCS
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.cpu
+        - name: GOMEMLIMIT
+          valueFrom:
+            resourceFieldRef:
+              containerName: manager
+              resource: limits.memory
+        - name: CONTROLLER_DOMAIN
+          value: networking
+        image: registry.re8ch.com/functions-shared/flux-notification-controller@sha256:066bf5fb13692ac11bee7445fd4c339c4b0482a098c1e1def4fd63c60d4f5728
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        - containerPort: 9292
+          name: http-webhook
+          protocol: TCP
+        - containerPort: 8080
+          name: http-prom
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp
+      nodeSelector:
+        kubernetes.io/os: linux
+      securityContext:
+        fsGroup: 1337
+      serviceAccountName: notification-controller
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - emptyDir: {}
+        name: temp
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kustomize-controller
+  namespace: flux-network-system
+  labels:
+    gitops.re8ch.com/domain: networking
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: kustomize-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-network-system
+  labels:
+    gitops.re8ch.com/domain: networking
+rules:
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  - kustomize.toolkit.fluxcd.io
+  - helm.toolkit.fluxcd.io
+  - notification.toolkit.fluxcd.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  - configmaps
+  - serviceaccounts
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-controller-runtime
+  namespace: flux-network-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-controller-runtime
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: notification-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: source-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-networking-namespaced
+  labels:
+    gitops.re8ch.com/domain: networking
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  - issuers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumgatewayclassconfigs
+  - ciliumnetworkpolicies
+  - ciliumnodeconfigs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - helm.cattle.io
+  resources:
+  - helmcharts
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmpodscrapes
+  - vmrules
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - authenticatedlinks
+  - managedaccessgrants
+  - peerpolicies
+  - peers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - ocirepositories
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: advfab-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: ai-operations
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: among-clusters
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: artchais
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: auth
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: byoc-pilot
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: cert-manager
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: codex-platform
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: credential-broker
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: cube-trial
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: dataspace
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: dex
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: egress-fabric
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: flux-network-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: flux-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: headlamp
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: image
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: kube-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: llm-gateway
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: mail-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: nuclio
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: observability-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: opensandbox-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: ops
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: payments
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: qianwen-ops
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: re8ch-dataspace
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: re8ch-neo4j
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: re8ch-secretary
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: regional-routing
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: supabase-pg-re8ch
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: toolhive-system
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-namespaced
+  namespace: voice-observability
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system

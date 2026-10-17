@@ -1,0 +1,1665 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: apiconformanceruns.conformance.re8ch.com
+spec:
+  group: conformance.re8ch.com
+  names:
+    kind: APIConformanceRun
+    plural: apiconformanceruns
+    shortNames:
+    - acr
+    singular: apiconformancerun
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.targetRef
+      name: Target
+      type: string
+    - jsonPath: .spec.mode
+      name: Mode
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              commit:
+                maxLength: 40
+                pattern: ^[a-f0-9]{40}$
+                type: string
+              imageDigest:
+                maxLength: 71
+                pattern: ^$|^sha256:[a-f0-9]{64}$
+                type: string
+              mode:
+                enum:
+                - read
+                - mutation
+                maxLength: 8
+                type: string
+              publication:
+                properties:
+                  branch:
+                    maxLength: 200
+                    pattern: ^[A-Za-z0-9_./-]+$
+                    type: string
+                  commit:
+                    maxLength: 40
+                    pattern: ^[a-f0-9]{40}$
+                    type: string
+                  imageDigest:
+                    maxLength: 71
+                    pattern: ^sha256:[a-f0-9]{64}$
+                    type: string
+                  installationId:
+                    maxLength: 30
+                    pattern: ^[0-9]+$
+                    type: string
+                  repository:
+                    maxLength: 200
+                    pattern: ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$
+                    type: string
+                  schemaSha256:
+                    maxLength: 64
+                    pattern: ^[a-f0-9]{64}$
+                    type: string
+                required:
+                - repository
+                - commit
+                - branch
+                - imageDigest
+                - schemaSha256
+                - installationId
+                type: object
+              targetRef:
+                maxLength: 253
+                minLength: 1
+                type: string
+              trigger:
+                enum:
+                - schedule
+                - deployment
+                - manual
+                maxLength: 10
+                type: string
+            required:
+            - targetRef
+            - mode
+            - trigger
+            - commit
+            type: object
+            x-kubernetes-validations:
+            - message: Run specifications are immutable; create a new run.
+              rule: self == oldSelf
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: apiconformancetargets.conformance.re8ch.com
+spec:
+  group: conformance.re8ch.com
+  names:
+    kind: APIConformanceTarget
+    plural: apiconformancetargets
+    shortNames:
+    - act
+    singular: apiconformancetarget
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - jsonPath: .status.lastResult
+      name: Result
+      type: string
+    - jsonPath: .status.lastRunRef
+      name: Run
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              authSecretRef:
+                properties:
+                  key:
+                    default: authorization
+                    type: string
+                  name:
+                    minLength: 1
+                    type: string
+                required:
+                - name
+                type: object
+              baseUrl:
+                pattern: ^https://
+                type: string
+              branch:
+                minLength: 1
+                type: string
+              canary:
+                properties:
+                  resourceRef:
+                    type: string
+                  tenantRef:
+                    pattern: ^schemathesis-canary[A-Za-z0-9_.-]*$
+                    type: string
+                type: object
+              checks:
+                properties:
+                  exclude:
+                    items:
+                      enum:
+                      - unsupported_method
+                      type: string
+                    maxItems: 1
+                    type: array
+                  rationale:
+                    minLength: 40
+                    type: string
+                type: object
+              commit:
+                pattern: ^[a-f0-9]{40}$
+                type: string
+              github:
+                properties:
+                  installationId:
+                    pattern: ^[0-9]+$
+                    type: string
+                required:
+                - installationId
+                type: object
+              imageDigest:
+                pattern: ^sha256:[a-f0-9]{64}$
+                type: string
+              lifecycle:
+                properties:
+                  cleanup:
+                    items:
+                      properties:
+                        body:
+                          x-kubernetes-preserve-unknown-fields: true
+                        capture:
+                          additionalProperties:
+                            pattern: ^\\$\\.
+                            type: string
+                          type: object
+                        expectedStatuses:
+                          items:
+                            maximum: 599
+                            minimum: 100
+                            type: integer
+                          minItems: 1
+                          type: array
+                        method:
+                          enum:
+                          - GET
+                          - POST
+                          - PUT
+                          - PATCH
+                          - DELETE
+                          type: string
+                        operationId:
+                          minLength: 1
+                          type: string
+                        path:
+                          pattern: ^/
+                          type: string
+                      required:
+                      - operationId
+                      - method
+                      - path
+                      - expectedStatuses
+                      type: object
+                    minItems: 1
+                    type: array
+                  reversal:
+                    items:
+                      properties:
+                        body:
+                          x-kubernetes-preserve-unknown-fields: true
+                        capture:
+                          additionalProperties:
+                            pattern: ^\\$\\.
+                            type: string
+                          type: object
+                        expectedStatuses:
+                          items:
+                            maximum: 599
+                            minimum: 100
+                            type: integer
+                          minItems: 1
+                          type: array
+                        method:
+                          enum:
+                          - GET
+                          - POST
+                          - PUT
+                          - PATCH
+                          - DELETE
+                          type: string
+                        operationId:
+                          minLength: 1
+                          type: string
+                        path:
+                          pattern: ^/
+                          type: string
+                      required:
+                      - operationId
+                      - method
+                      - path
+                      - expectedStatuses
+                      type: object
+                    type: array
+                  setup:
+                    items:
+                      properties:
+                        body:
+                          x-kubernetes-preserve-unknown-fields: true
+                        capture:
+                          additionalProperties:
+                            pattern: ^\\$\\.
+                            type: string
+                          type: object
+                        expectedStatuses:
+                          items:
+                            maximum: 599
+                            minimum: 100
+                            type: integer
+                          minItems: 1
+                          type: array
+                        method:
+                          enum:
+                          - GET
+                          - POST
+                          - PUT
+                          - PATCH
+                          - DELETE
+                          type: string
+                        operationId:
+                          minLength: 1
+                          type: string
+                        path:
+                          pattern: ^/
+                          type: string
+                      required:
+                      - operationId
+                      - method
+                      - path
+                      - expectedStatuses
+                      type: object
+                    type: array
+                type: object
+              limits:
+                properties:
+                  maxExamples:
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  maxRequests:
+                    maximum: 2000
+                    minimum: 1
+                    type: integer
+                  ratePerSecond:
+                    maximum: 5
+                    minimum: 1
+                    type: integer
+                  timeoutSeconds:
+                    maximum: 900
+                    minimum: 60
+                    type: integer
+                required:
+                - maxExamples
+                - maxRequests
+                - ratePerSecond
+                - timeoutSeconds
+                type: object
+              network:
+                properties:
+                  allowedHosts:
+                    items:
+                      pattern: ^[A-Za-z0-9.-]+$
+                      type: string
+                    minItems: 1
+                    type: array
+                  pinnedEgressEntity:
+                    enum:
+                    - host
+                    type: string
+                  pinnedEgressIPs:
+                    additionalProperties:
+                      format: ipv4
+                      type: string
+                    maxProperties: 4
+                    type: object
+                required:
+                - allowedHosts
+                type: object
+              operations:
+                properties:
+                  allowGeneratedMutations:
+                    default: false
+                    type: boolean
+                  mutationOperationIds:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                  readOperationIds:
+                    items:
+                      minLength: 1
+                      type: string
+                    type: array
+                required:
+                - readOperationIds
+                - mutationOperationIds
+                type: object
+              repository:
+                pattern: ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$
+                type: string
+              schedule:
+                properties:
+                  mutationSeconds:
+                    default: 86400
+                    minimum: 3600
+                    type: integer
+                  readSeconds:
+                    default: 21600
+                    minimum: 900
+                    type: integer
+                type: object
+              schema:
+                properties:
+                  sha256:
+                    pattern: ^[a-f0-9]{64}$
+                    type: string
+                  url:
+                    pattern: ^https://
+                    type: string
+                required:
+                - url
+                - sha256
+                type: object
+              serviceRef:
+                minLength: 1
+                type: string
+              suspend:
+                default: false
+                type: boolean
+            required:
+            - serviceRef
+            - repository
+            - commit
+            - branch
+            - baseUrl
+            - schema
+            - network
+            - operations
+            - limits
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gitaccounts.governance.re8ch.com
+spec:
+  group: governance.re8ch.com
+  names:
+    kind: GitAccount
+    plural: gitaccounts
+    shortNames:
+    - gacct
+    singular: gitaccount
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              collaboration:
+                properties:
+                  credentialSecretRef:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - namespace
+                    - name
+                    type: object
+                  endpoint:
+                    pattern: ^https://
+                    type: string
+                  protocols:
+                    items:
+                      enum:
+                      - email
+                      - calendar
+                      - contacts
+                      - webdav
+                      type: string
+                    minItems: 4
+                    type: array
+                    x-kubernetes-list-type: set
+                required:
+                - endpoint
+                - protocols
+                - credentialSecretRef
+                type: object
+              displayName:
+                minLength: 1
+                type: string
+              email:
+                pattern: ^[^@]+@phonaid\.com$
+                type: string
+              employeeType:
+                enum:
+                - human
+                - bot
+                type: string
+              googleWorkspace:
+                enum:
+                - eligible
+                - requested
+                - disabled
+                type: string
+              mailbox:
+                enum:
+                - stalwart
+                type: string
+              project:
+                type: string
+              provider:
+                enum:
+                - github
+                - gitlab
+                type: string
+              providerIdentity:
+                properties:
+                  installationRef:
+                    type: string
+                  username:
+                    pattern: ^[A-Za-z0-9_.-]+$
+                    type: string
+                required:
+                - username
+                type: object
+            required:
+            - email
+            - provider
+            - project
+            - mailbox
+            type: object
+            x-kubernetes-validations:
+            - message: Bot employees require displayName, providerIdentity and collaboration
+                access.
+              rule: '!has(self.employeeType) || self.employeeType != ''bot'' || (has(self.displayName)
+                && has(self.providerIdentity) && has(self.collaboration))'
+          status:
+            properties:
+              mailbox:
+                properties:
+                  observedAt:
+                    format: date-time
+                    type: string
+                  phase:
+                    enum:
+                    - Pending
+                    - Provisioned
+                    - Ready
+                    - Failed
+                    type: string
+                  provider:
+                    enum:
+                    - stalwart
+                    type: string
+                  reason:
+                    type: string
+                required:
+                - phase
+                type: object
+              ownership:
+                properties:
+                  approvalRef:
+                    type: string
+                  identityCommit:
+                    type: string
+                  phase:
+                    enum:
+                    - AwaitingMailbox
+                    - AwaitingOwnerReview
+                    - Ready
+                    type: string
+                type: object
+              providerIdentity:
+                properties:
+                  phase:
+                    enum:
+                    - Pending
+                    - Verified
+                    - Rejected
+                    type: string
+                  verifiedAt:
+                    format: date-time
+                    type: string
+                  verifiedUsername:
+                    type: string
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gitworkspaces.governance.re8ch.com
+spec:
+  group: governance.re8ch.com
+  names:
+    kind: GitWorkspace
+    plural: gitworkspaces
+    shortNames:
+    - gws
+    singular: gitworkspace
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              accountRef:
+                type: string
+              branchPrefix:
+                pattern: ^workspace/
+                type: string
+              folder:
+                type: string
+              projectRef:
+                type: string
+              repository:
+                type: string
+            required:
+            - accountRef
+            - projectRef
+            - repository
+            - folder
+            - branchPrefix
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ownerapprovals.governance.re8ch.com
+spec:
+  group: governance.re8ch.com
+  names:
+    kind: OwnerApproval
+    plural: ownerapprovals
+    shortNames:
+    - oapproval
+    singular: ownerapproval
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              accountRef:
+                type: string
+              codeOwner:
+                properties:
+                  pattern:
+                    minLength: 1
+                    type: string
+                  providerUsername:
+                    pattern: ^@?[A-Za-z0-9_.\/-]+$
+                    type: string
+                required:
+                - providerUsername
+                - pattern
+                type: object
+              identityCommit:
+                pattern: ^[0-9a-f]{40}$
+                type: string
+              pullRequest:
+                properties:
+                  merged:
+                    enum:
+                    - true
+                    type: boolean
+                  number:
+                    minimum: 1
+                    type: integer
+                  provider:
+                    enum:
+                    - github
+                    - gitlab
+                    type: string
+                  url:
+                    type: string
+                required:
+                - provider
+                - number
+                - url
+                - merged
+                type: object
+              repository:
+                type: string
+              reviewedAt:
+                format: date-time
+                type: string
+              reviewedBy:
+                minLength: 1
+                type: string
+            required:
+            - accountRef
+            - repository
+            - identityCommit
+            - pullRequest
+            - codeOwner
+            - reviewedBy
+            - reviewedAt
+            type: object
+            x-kubernetes-validations:
+            - message: OwnerApproval is immutable; publish a new verifier result.
+              rule: self == oldSelf
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: projectcapabilities.governance.re8ch.com
+spec:
+  group: governance.re8ch.com
+  names:
+    kind: ProjectCapability
+    plural: projectcapabilities
+    shortNames:
+    - pcap
+    singular: projectcapability
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              accountRef:
+                type: string
+              capabilities:
+                items:
+                  enum:
+                  - project-write
+                  - origin-branch
+                  - collaboration-read-write
+                  - edgeone-deploy
+                  type: string
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              projectRef:
+                type: string
+            required:
+            - accountRef
+            - projectRef
+            - capabilities
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: workcontracts.governance.re8ch.com
+spec:
+  group: governance.re8ch.com
+  names:
+    kind: WorkContract
+    plural: workcontracts
+    shortNames:
+    - wcontract
+    singular: workcontract
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              branch:
+                type: string
+              commit:
+                pattern: ^[0-9a-f]{40}$
+                type: string
+              pullRequest:
+                properties:
+                  merged:
+                    type: boolean
+                  number:
+                    minimum: 1
+                    type: integer
+                  provider:
+                    enum:
+                    - github
+                    - gitlab
+                    type: string
+                  state:
+                    enum:
+                    - open
+                    - closed
+                    type: string
+                  url:
+                    type: string
+                required:
+                - provider
+                - url
+                - number
+                - state
+                - merged
+                type: object
+              repository:
+                type: string
+              requiredEvidence:
+                items:
+                  enum:
+                  - monitoring
+                  - deploying
+                  - planning
+                  type: string
+                maxItems: 3
+                minItems: 3
+                type: array
+                x-kubernetes-list-type: set
+              workspaceRef:
+                type: string
+            required:
+            - workspaceRef
+            - repository
+            - commit
+            - branch
+            - pullRequest
+            - requiredEvidence
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: workevidences.governance.re8ch.com
+spec:
+  group: governance.re8ch.com
+  names:
+    kind: WorkEvidence
+    plural: workevidences
+    shortNames:
+    - wev
+    singular: workevidence
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              commit:
+                pattern: ^[0-9a-f]{40}$
+                type: string
+              contractRef:
+                type: string
+              observations:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    condition:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - namespace
+                  - name
+                  - condition
+                  type: object
+                minItems: 1
+                type: array
+              observedAt:
+                format: date-time
+                type: string
+              plane:
+                enum:
+                - monitoring
+                - deploying
+                - planning
+                type: string
+              producerServiceAccount:
+                pattern: ^(monitoring|deploying|planning)-evidence$
+                type: string
+              repository:
+                type: string
+              result:
+                enum:
+                - Verified
+                - Rejected
+                type: string
+            required:
+            - contractRef
+            - repository
+            - commit
+            - plane
+            - result
+            - producerServiceAccount
+            - observedAt
+            - observations
+            type: object
+            x-kubernetes-validations:
+            - message: WorkEvidence is immutable; publish a new evidence object.
+              rule: self == oldSelf
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: api-conformance-controller
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: credential-broker-secret-injector
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+  - create
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:ops-mcp-public-observe
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  - nodes
+  - pods
+  - services
+  - endpoints
+  - events
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  - networkpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - metrics.k8s.io
+  resources:
+  - nodes
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - nuclio.io
+  resources:
+  - nucliofunctions
+  - nucliofunctions/status
+  - nuclioapigateways
+  - nuclioprojects
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpservers
+  - mcpservers/status
+  - mcpremoteproxies
+  - mcpremoteproxies/status
+  - mcpgroups
+  - mcptoolconfigs
+  - mcpoidcconfigs
+  - virtualmcpservers
+  - virtualmcpservers/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - gitrepositories
+  - gitrepositories/status
+  - ocirepositories
+  - ocirepositories/status
+  - helmrepositories
+  - helmrepositories/status
+  - helmcharts
+  - helmcharts/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kustomize.toolkit.fluxcd.io
+  resources:
+  - kustomizations
+  - kustomizations/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases
+  - helmreleases/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - notification.toolkit.fluxcd.io
+  resources:
+  - receivers
+  - receivers/status
+  - providers
+  - providers/status
+  - alerts
+  - alerts/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - sandbox.opensandbox.io
+  resources:
+  - batchsandboxes
+  - batchsandboxes/status
+  - pools
+  - pools/status
+  - sandboxsnapshots
+  - sandboxsnapshots/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - anatomy.re8ch.com
+  resources:
+  - runtimeanalyses
+  - runtimeanalyses/status
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:plugin-advanced-fabrics
+rules:
+- apiGroups:
+  - networking.re8ch.com
+  resources:
+  - advancedfabrics
+  verbs:
+  - get
+  - list
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:plugin-cilium
+rules:
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumendpoints
+  - ciliumnetworkpolicies
+  - ciliumbgpclusterconfigs
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  verbs:
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:plugin-mihomos
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - nodes
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  - nodes
+  verbs:
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:plugin-public-edge
+rules:
+- apiGroups:
+  - networking.re8ch.com
+  resources:
+  - publicedges
+  verbs:
+  - get
+  - list
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - list
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:plugin-rook-ceph
+rules:
+- apiGroups:
+  - ceph.rook.io
+  resources:
+  - cephclusters
+  - cephfilesystems
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ceph.rook.io
+  resources:
+  - cephfilesystems
+  verbs:
+  - patch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csidrivers
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:plugin-runtime-impersonator
+rules:
+- apiGroups:
+  - ''
+  resourceNames:
+  - plugin-cilium
+  - plugin-rook-ceph
+  - plugin-mihomos-cluster
+  - plugin-public-edge
+  - plugin-advanced-fabrics
+  resources:
+  - serviceaccounts
+  verbs:
+  - impersonate
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: re8ch:toolhive-ceph-osd-node-read
+rules:
+- apiGroups:
+  - ''
+  resourceNames:
+  - restricted-node-1eb0570f74
+  - restricted-node-296f36f2fb
+  - restricted-node-6dc3f140f9
+  resources:
+  - nodes
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: api-conformance-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: api-conformance-controller
+subjects:
+- kind: ServiceAccount
+  name: api-conformance-controller
+  namespace: api-conformance-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:ops-mcp-public-observe
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:ops-mcp-public-observe
+subjects:
+- kind: ServiceAccount
+  name: ops-mcp-public
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:plugin-advanced-fabrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:plugin-advanced-fabrics
+subjects:
+- kind: ServiceAccount
+  name: plugin-advanced-fabrics
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:plugin-cilium
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:plugin-cilium
+subjects:
+- kind: ServiceAccount
+  name: plugin-cilium
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:plugin-mihomos
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:plugin-mihomos
+subjects:
+- kind: ServiceAccount
+  name: plugin-mihomos-cluster
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:plugin-public-edge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:plugin-public-edge
+subjects:
+- kind: ServiceAccount
+  name: plugin-public-edge
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:plugin-rook-ceph
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:plugin-rook-ceph
+subjects:
+- kind: ServiceAccount
+  name: plugin-rook-ceph
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:plugin-runtime-impersonator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:plugin-runtime-impersonator
+subjects:
+- kind: ServiceAccount
+  name: re8ch-plugin-runtime
+  namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: re8ch:toolhive-ceph-osd-node-read
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: re8ch:toolhive-ceph-osd-node-read
+subjects:
+- kind: ServiceAccount
+  name: ops-mcp-operate
+  namespace: toolhive-system
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mcp-registry-postgresql-r640
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 5Gi
+  hostPath:
+    path: /var/lib/re8ch/mcp-registry-postgresql
+    type: DirectoryOrCreate
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - restricted-node-6dc3f140f9
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual-r640
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: git-account-status-writers
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - governance.re8ch.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - UPDATE
+      resources:
+      - gitaccounts/status
+  validations:
+  - expression: ((!has(object.status) || !has(object.status.mailbox)) == (!has(oldObject.status)
+      || !has(oldObject.status.mailbox)) && ((!has(object.status) || !has(object.status.mailbox))
+      || object.status.mailbox == oldObject.status.mailbox)) || request.userInfo.username
+      == 'system:serviceaccount:mail-system:stalwart-mailbox-provisioner'
+    message: Only mailbox-provisioner may change mailbox readiness.
+  - expression: ((!has(object.status) || !has(object.status.ownership)) == (!has(oldObject.status)
+      || !has(oldObject.status.ownership)) && ((!has(object.status) || !has(object.status.ownership))
+      || object.status.ownership == oldObject.status.ownership)) || request.userInfo.username
+      == 'system:serviceaccount:' + request.namespace + ':git-workspace-controller'
+    message: Only git-workspace-controller may reconcile ownership readiness.
+  - expression: ((!has(object.status) || !has(object.status.providerIdentity)) ==
+      (!has(oldObject.status) || !has(oldObject.status.providerIdentity)) && ((!has(object.status)
+      || !has(object.status.providerIdentity)) || object.status.providerIdentity ==
+      oldObject.status.providerIdentity)) || request.userInfo.username == 'system:serviceaccount:'
+      + request.namespace + ':git-workspace-controller'
+    message: Only git-workspace-controller may verify provider identity.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: owner-approval-producer
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - governance.re8ch.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      resources:
+      - ownerapprovals
+  validations:
+  - expression: request.userInfo.username == 'system:serviceaccount:' + request.namespace
+      + ':owner-review-verifier'
+    message: OwnerApproval may only be published by the Git provider review verifier.
+  - expression: object.spec.pullRequest.merged == true
+    message: OwnerApproval requires a merged identity pull request.
+  - expression: object.spec.reviewedBy != object.spec.codeOwner.providerUsername
+    message: The bot identity being added cannot approve itself.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: project-capability-producer
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - governance.re8ch.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - projectcapabilities
+  validations:
+  - expression: request.userInfo.username == 'system:serviceaccount:' + request.namespace
+      + ':git-workspace-controller'
+    message: ProjectCapability is controller-owned and cannot be granted manually.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: work-evidence-producer
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - governance.re8ch.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      resources:
+      - workevidences
+  validations:
+  - expression: object.spec.producerServiceAccount == object.spec.plane + '-evidence'
+    message: The evidence plane must match its dedicated producer service account.
+  - expression: request.userInfo.username == 'system:serviceaccount:' + request.namespace
+      + ':' + object.spec.producerServiceAccount
+    message: WorkEvidence may only be created by its declared Kubernetes service account.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: git-account-status-writers
+spec:
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: git-workspaces
+  policyName: git-account-status-writers
+  validationActions:
+  - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: owner-approval-producer
+spec:
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: git-workspaces
+  policyName: owner-approval-producer
+  validationActions:
+  - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: project-capability-producer
+spec:
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: git-workspaces
+  policyName: project-capability-producer
+  validationActions:
+  - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: work-evidence-producer
+spec:
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: git-workspaces
+  policyName: work-evidence-producer
+  validationActions:
+  - Deny
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: re8ch-toolhive-child-tolerations
+spec:
+  admission: true
+  background: true
+  generateExisting: true
+  rules:
+  - match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          - StatefulSet
+          namespaces:
+          - toolhive-system
+          selector:
+            matchLabels:
+              toolhive: 'true'
+    mutate:
+      patchStrategicMerge:
+        spec:
+          template:
+            spec:
+              tolerations:
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/control-plane
+                operator: Exists
+              - effect: NoSchedule
+                key: scheduling.re8ch.com/capacity-window
+                operator: Equal
+                value: closed
+    name: add-r640-capacity-tolerations
+  - generate:
+      apiVersion: v1
+      clone:
+        name: harbor-functions-shared-pull
+        namespace: anycam
+      kind: Secret
+      name: harbor-functions-shared-pull
+      namespace: toolhive-system
+      synchronize: true
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          names:
+          - toolhive-system
+    name: project-functions-shared-pull-secret
+  - match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+          namespaces:
+          - toolhive-system
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: session-router
+    mutate:
+      patchStrategicMerge:
+        spec:
+          template:
+            spec:
+              imagePullSecrets:
+              - name: harbor-functions-shared-pull
+    name: add-session-router-image-pull-secret
+  validationFailureAction: Audit

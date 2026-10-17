@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespaces.yaml
+  - controllers.yaml
+  - registrations.yaml
+  - secrets/agent-github-ssh.sops.yaml
+  - secrets/identity-github-ssh.sops.yaml
+  - secrets/observability-github-ssh.sops.yaml
+  - secrets/network-github-ssh.sops.yaml
