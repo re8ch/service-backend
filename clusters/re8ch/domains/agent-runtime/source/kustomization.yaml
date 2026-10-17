@@ -43,4 +43,17 @@ configMapGenerator:
   - public-edge.json=../../../components/plugin-runtime/plugins/public-edge.json
   - rook-ceph.json=../../../components/plugin-runtime/plugins/rook-ceph.json
 generatorOptions: {disableNameSuffixHash: true}
+patches:
+  - target: {group: source.toolkit.fluxcd.io, version: v1, kind: OCIRepository, name: connectool, namespace: flux-system}
+    patch: |-
+      apiVersion: source.toolkit.fluxcd.io/v1
+      kind: OCIRepository
+      metadata: {name: connectool, namespace: flux-system}
+      $patch: delete
+  - target: {group: helm.toolkit.fluxcd.io, version: v2, kind: HelmRelease, name: connectool, namespace: flux-system}
+    patch: |-
+      apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      metadata: {name: connectool, namespace: flux-system}
+      $patch: delete
 
