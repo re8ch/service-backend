@@ -609,6 +609,8 @@ modules:
       digest: sha256:8a86009ad794d66f6722f928b9e2e1864747ad51de1406fb9cf7c3e49978b4ae
     - codename: cygnus
       digest: sha256:85e78b114c862a2e8b483adcaef303ef3be9ec3e45db94e3538efd9ac50ce3b3
+    - codename: lyra
+      digest: sha256:29f06e615c2a0cab0ba89db35ee8910386864463709c35c5c57d531474a54874
   platform/workspace-controller:
     releases:
     - codename: andromeda
@@ -1138,6 +1140,8 @@ modules:
       digest: sha256:fb4b6fdd79cd0e5dc56092b8e843a9059c4cc518fa6686ce93970b7e81a5251c
     - codename: confluence-amethyst
       digest: sha256:86036e96f4a80147e833a8dd25647384aab168ea5bbef9e68827e6b04204cae8
+    - codename: eddy-amethyst
+      digest: sha256:88653d2c1890abcc9a6b6cf5188f6627d0c43854c13576f6517686aea5c6380c
   platform/hyperswitch:
     releases:
     - codename: anchor
