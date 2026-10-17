@@ -3,8 +3,20 @@ kind: Kustomization
 resources:
   - namespaces.yaml
   - controllers.yaml
+  - github-web-flow-key.yaml
   - registrations.yaml
   - secrets/agent-github-ssh.sops.yaml
   - secrets/identity-github-ssh.sops.yaml
   - secrets/observability-github-ssh.sops.yaml
   - secrets/network-github-ssh.sops.yaml
+replacements:
+  - source:
+      kind: ConfigMap
+      name: github-web-flow-verification-key
+      fieldPath: data.github-web-flow\.asc
+    targets:
+      - select:
+          kind: Secret
+          name: git-verification-keys
+        fieldPaths:
+          - stringData.github-web-flow\.asc

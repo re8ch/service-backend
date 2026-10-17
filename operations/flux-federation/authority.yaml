@@ -36,6 +36,9 @@ spec:
   sharedBootstrapSecrets:
     - sops-age
     - gitops-oci-reader
+  allowedSigningIdentities:
+    - Woomou GitHub SSH signing key
+    - GitHub web-flow merge signing key
   mainFluxOwns:
     - flux-crds
     - autonomous-controller-lifecycle
