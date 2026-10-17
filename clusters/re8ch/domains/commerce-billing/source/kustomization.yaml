@@ -12,4 +12,29 @@ resources:
 - ../../../components/payments/credits-runtime.yaml
 - ../../../components/payments/commerce-runtime.yaml
 - ../../../../../platform/hyperswitch
+patches:
+  - target: {group: apps, version: v1, kind: Deployment, name: commerce-api, namespace: payments}
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: commerce-api, namespace: payments}
+      $patch: delete
+  - target: {group: batch, version: v1, kind: CronJob, name: commerce-wechat-reconcile, namespace: payments}
+    patch: |-
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata: {name: commerce-wechat-reconcile, namespace: payments}
+      $patch: delete
+  - target: {group: apps, version: v1, kind: Deployment, name: nuclio-payment-registry-api, namespace: payments}
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: nuclio-payment-registry-api, namespace: payments}
+      $patch: delete
+  - target: {version: v1, kind: ConfigMap, name: nuclio-payment-registry-api, namespace: payments}
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: {name: nuclio-payment-registry-api, namespace: payments}
+      $patch: delete
 
