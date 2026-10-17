@@ -353,8 +353,20 @@ def deliver(config: dict[str, Any], outbox: Outbox) -> None:
         request = urllib.request.Request(sink["url"], data=json.dumps(event).encode(), headers=headers, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=int(sink.get("timeoutSeconds", 10))) as response:
-                if 200 <= response.status < 300:
-                    outbox.delivered(key)
+                if not 200 <= response.status < 300:
+                    break
+            billing = config.get("billingSink") or {}
+            if billing.get("enabled"):
+                mapping = next((item for item in billing.get("mappings", [])
+                    if item["serviceClass"] == event["serviceClass"] and item["meter"] == event["meter"]), None)
+                if mapping is None:
+                    raise RuntimeError("Catalog billing mapping missing for UsageEvent")
+                rated = {"event": event, "service_ref": mapping["serviceRef"], "meter_code": mapping["meterCode"]}
+                billing_request = urllib.request.Request(billing["url"], data=json.dumps(rated).encode(), headers=headers, method="POST")
+                with urllib.request.urlopen(billing_request, timeout=int(billing.get("timeoutSeconds", 10))) as response:
+                    if not 200 <= response.status < 300:
+                        break
+            outbox.delivered(key)
         except urllib.error.URLError:
             break
 
