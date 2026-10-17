@@ -705,7 +705,7 @@
     "kind": "agent-memory",
     "module": "bifurcate",
     "ref": "catalogs/platform/modules/bifurcate/MEMORY.md",
-    "sha256": "7f85c826ee2f7189860fa2cd274ea45764bf61d28a930e4e4ce620b33e2f99c9"
+    "sha256": "89f2df15d7b98f66c729613cc30fe2ebf3f118f2d2d80940091b1e0a72ed3a64"
   },
   {
     "module": "brand-assets",
@@ -745,7 +745,7 @@
     "kind": "agent-memory",
     "module": "catalog",
     "ref": "catalogs/platform/modules/catalog/MEMORY.md",
-    "sha256": "1a4344c7e7bc0ddcb77896d09071001855d7ee258b26cf80b2e9377c7605de73"
+    "sha256": "62ffa8e38b5051239947cc13009a2fc50a64a095c5e3311ac1f2a8d111777ec5"
   },
   {
     "module": "cloud-functions",
