@@ -12899,7 +12899,7 @@ spec:
   podTemplateSpec:
     metadata:
       annotations:
-        re8ch.com/code-revision: admin-postgres-sql-2026-10-10
+        re8ch.com/code-revision: flux-self-service-2026-10-18
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
@@ -13015,6 +13015,7 @@ spec:
     metadata:
       annotations:
         observability.re8ch.com/probe-revision: shared-observability-v1
+        re8ch.com/code-revision: flux-self-service-2026-10-18
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
@@ -13100,6 +13101,7 @@ spec:
   podTemplateSpec:
     metadata:
       annotations:
+        re8ch.com/code-revision: flux-self-service-2026-10-18
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
