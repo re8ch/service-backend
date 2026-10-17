@@ -53,6 +53,26 @@ def main() -> None:
     serialized = (FEDERATION / "controllers.yaml").read_text()
     require("cluster-admin" not in serialized, "federated controller references cluster-admin")
 
+    for domain in DOMAIN_BY_NAMESPACE.values():
+        namespaced_role = next(
+            doc for doc in controller_docs
+            if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == f"flux-{domain}-namespaced"
+        )
+        role_authority = next(
+            rule for rule in namespaced_role["rules"]
+            if rule.get("resources") == ["roles"] and set(rule.get("verbs", [])) == {"escalate", "bind"}
+        )
+        require(role_authority.get("resourceNames"), f"{domain} RBAC role authority must be name-scoped")
+        require("*" not in role_authority["resourceNames"], f"{domain} RBAC role authority contains a wildcard")
+    agent_role_authority = next(
+        rule for rule in next(
+            doc for doc in controller_docs
+            if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-agent-runtime-namespaced"
+        )["rules"]
+        if rule.get("resources") == ["roles"] and set(rule.get("verbs", [])) == {"escalate", "bind"}
+    )
+    require("api-conformance-controller" in agent_role_authority["resourceNames"], "Agent RBAC omits api-conformance role authority")
+
     registrations = documents(FEDERATION / "registrations.yaml")
     sources = [doc for doc in registrations if doc["kind"] == "GitRepository"]
     reconciliations = [doc for doc in registrations if doc["kind"] == "Kustomization"]

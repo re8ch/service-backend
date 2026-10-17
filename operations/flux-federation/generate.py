@@ -147,6 +147,24 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
         {"apiGroups": [group], "resources": sorted(values), "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}
         for group, values in sorted(groups.items())
     ]
+    namespaced_rules = rules(namespaced)
+    # Kubernetes rejects creation or mutation of an RBAC role when the caller
+    # does not already hold every permission that role grants. Give the domain
+    # reconciler escalation and binding rights only for the exact Role names in
+    # its compiled bundle, rather than broad workload permissions or wildcard
+    # RBAC authority.
+    managed_roles = sorted({
+        item["metadata"]["name"]
+        for item in documents
+        if item["apiVersion"] == "rbac.authorization.k8s.io/v1" and item["kind"] == "Role"
+    })
+    if managed_roles:
+        namespaced_rules.append({
+            "apiGroups": ["rbac.authorization.k8s.io"],
+            "resources": ["roles"],
+            "resourceNames": managed_roles,
+            "verbs": ["escalate", "bind"],
+        })
     role_name = f"flux-{domain}-namespaced"
     cluster_name = f"flux-{domain}-cluster"
     subjects = [
@@ -155,7 +173,7 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
     ]
     result = [{
         "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRole",
-        "metadata": {"name": role_name, "labels": {"gitops.re8ch.com/domain": domain}}, "rules": rules(namespaced),
+        "metadata": {"name": role_name, "labels": {"gitops.re8ch.com/domain": domain}}, "rules": namespaced_rules,
     }]
     for target in sorted(target_namespaces):
         result.append({

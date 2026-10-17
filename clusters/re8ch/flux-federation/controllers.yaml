@@ -871,6 +871,31 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  resourceNames:
+  - api-conformance-controller
+  - api-conformance-pull-source
+  - api-conformance-pull-target
+  - api-conformance-result-proxy
+  - credential-broker
+  - git-workspace-controller
+  - kyverno-toolhive-pull-secret-source
+  - kyverno-toolhive-pull-secret-target
+  - mailbox-provisioner
+  - ops-admin-postgres-credential
+  - owner-review-verifier
+  - re8ch:ops-mcp-ceph-observe
+  - re8ch:toolhive-ceph-osd-recovery
+  - re8ch:toolhive-platform-restart
+  - repo-pilot-bot-governance-reader
+  - retire-toolhive-session-redis
+  - work-evidence-publisher
+  verbs:
+  - escalate
+  - bind
+- apiGroups:
   - source.toolkit.fluxcd.io
   resources:
   - gitrepositories
@@ -2153,6 +2178,20 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  resourceNames:
+  - access-controller
+  - access-subscription
+  - access-telemetry
+  - stalwart-cloudflare-token-source
+  - stalwart-cloudflare-token-target
+  - stalwart-mailbox-provisioner-secrets
+  verbs:
+  - escalate
+  - bind
+- apiGroups:
   - workspace.re8ch.com
   resources:
   - agentsessions
@@ -3306,6 +3345,16 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  resourceNames:
+  - harbor-supply-chain-credentials
+  - retire-legacy-qianwen-grafana
+  verbs:
+  - escalate
+  - bind
+- apiGroups:
   - source.toolkit.fluxcd.io
   resources:
   - helmrepositories
@@ -4437,6 +4486,21 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  resourceNames:
+  - among-clusters-legacy-agent-cleanup
+  - control-dns-reachability
+  - host-network-controller
+  - mihomo-node-labeler-inventory
+  - path-controller
+  - read-cloudflare-dns-token
+  - write-cloudflare-dns-token
+  verbs:
+  - escalate
+  - bind
 - apiGroups:
   - source.toolkit.fluxcd.io
   resources:
