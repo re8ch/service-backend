@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/git-workspaces
-codename: cygnus
+codename: lyra
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-git-workspaces
-  digest: sha256:85e78b114c862a2e8b483adcaef303ef3be9ec3e45db94e3538efd9ac50ce3b3
+  digest: sha256:29f06e615c2a0cab0ba89db35ee8910386864463709c35c5c57d531474a54874
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

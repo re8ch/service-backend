@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/git-workspaces
-    delivery.re8ch.com/codename: cygnus
+    delivery.re8ch.com/codename: lyra
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-git-workspaces
   ref:
-    digest: sha256:85e78b114c862a2e8b483adcaef303ef3be9ec3e45db94e3538efd9ac50ce3b3
+    digest: sha256:29f06e615c2a0cab0ba89db35ee8910386864463709c35c5c57d531474a54874
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/git-workspaces
-    delivery.re8ch.com/codename: cygnus
+    delivery.re8ch.com/codename: lyra
 spec:
   interval: 1m
   retryInterval: 1m
