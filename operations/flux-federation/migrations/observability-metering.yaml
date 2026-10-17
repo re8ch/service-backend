@@ -1,0 +1,22 @@
+apiVersion: gitops.re8ch.com/v1alpha1
+kind: FluxDomainMigrationEvidence
+metadata:
+  name: observability-metering
+spec:
+  capturedAt: "2026-10-17T21:43:14+08:00"
+  oldOwner:
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    namespace: flux-system
+    name: reconcile-observability-metering
+    revision: main@sha1:661f574ec72e206e89b5405dddccd62e9f45b259
+    inventory:
+      entries: 122
+      sortedIdsSha256: 6e4299e1d2d20381b5a5ca8c3d708610320c9e78edc953d05106f9bed0ff707d
+    ready: true
+  newOwner:
+    namespace: flux-observability-system
+    name: domain
+    repositoryRevision: main@sha1:9ddb096b25ee9b1ab0d37f730c504b7b13bea626
+    initialPrune: false
+  rollback: suspend-new-before-resuming-old
