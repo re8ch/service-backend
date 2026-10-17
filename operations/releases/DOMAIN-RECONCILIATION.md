@@ -54,12 +54,22 @@ and ConnecTool. Flux keeps their slow-moving platform guardrails: namespaces,
 quota, NetworkPolicy, bounded RBAC, Secret material and references, shared edge
 and certificate authority, database routing and an emergency brake.
 
+The three product runtimes are excluded at render time from the domain
+bundles. `reconcile-commerce-billing`, `reconcile-identity-access`, and
+`reconcile-agent-runtime` continue to own their platform guardrails, but their
+inventories do not contain the Commerce or payment-registry Deployments, the
+auth-gateway or User Hub Deployments, or ConnecTool's release objects. During
+the interim `control-plane-direct` phase, reviewed control-plane operations are
+the sole runtime writer. The final state replaces that manual writer with each
+product repository's authenticated publisher; it does not put the runtime
+objects back under the service-backend Flux source.
+
 The ledger deliberately distinguishes target authority from current authority.
-It is unsafe to remove an active reconciler before a short-lived authenticated
-publisher has deployed the same immutable signed revision and passed a canary.
-Until that gate is met, `publisher-required` entries remain on their current
-owner; this is a migration state, not permission for new product behavior to be
-added to Flux.
+It is unsafe to remove an active reconciler without establishing an explicit
+replacement owner and a rollback point. Until the authenticated publisher is
+available, `control-plane-direct` entries use the audited control-plane path.
+This is a migration state, not permission for new product behavior to be added
+back to Flux.
 
 ### Authority selection rule
 

@@ -90,6 +90,63 @@ def test_flux_handoff_is_fail_closed_until_publisher_exists():
         if authority["currentAuthority"] in {"flux", "split"}:
             assert authority["migrationPhase"] in {"publisher-required", "business-api-live"}, name
             assert authority["cutoverGate"] == "authenticated product release publisher", name
+        elif authority["currentAuthority"] == "control-plane-direct":
+            assert authority["migrationPhase"] == "flux-detached", name
+            assert authority["cutoverGate"] == "authenticated product release publisher", name
         else:
             assert authority["currentAuthority"] == "product-runtime", name
             assert authority["migrationPhase"] == "complete", name
+
+
+def object_identities(domain: str) -> set[tuple[str, str, str, str]]:
+    return {
+        (
+            item.get("apiVersion", ""),
+            item.get("kind", ""),
+            item.get("metadata", {}).get("namespace", ""),
+            item.get("metadata", {}).get("name", ""),
+        )
+        for item in load_all(DOMAINS / domain / "resources.yaml")
+    }
+
+
+def test_product_runtime_objects_are_absent_from_flux_bundles():
+    excluded = {
+        "commerce-billing": {
+            ("apps/v1", "Deployment", "payments", "commerce-api"),
+            ("batch/v1", "CronJob", "payments", "commerce-wechat-reconcile"),
+            ("apps/v1", "Deployment", "payments", "nuclio-payment-registry-api"),
+            ("v1", "ConfigMap", "payments", "nuclio-payment-registry-api"),
+        },
+        "identity-access": {
+            ("apps/v1", "Deployment", "auth", "re8ch-auth-gateway"),
+            ("policy/v1", "PodDisruptionBudget", "auth", "re8ch-auth-gateway"),
+            ("apps/v1", "Deployment", "auth", "re8ch-user-center"),
+        },
+        "agent-runtime": {
+            ("source.toolkit.fluxcd.io/v1", "OCIRepository", "flux-system", "connectool"),
+            ("helm.toolkit.fluxcd.io/v2", "HelmRelease", "flux-system", "connectool"),
+        },
+    }
+    for domain, forbidden in excluded.items():
+        assert object_identities(domain).isdisjoint(forbidden), domain
+
+
+def test_flux_keeps_platform_edges_for_detached_products():
+    required = {
+        "commerce-billing": {
+            ("v1", "Service", "payments", "commerce-api"),
+            ("gateway.networking.k8s.io/v1", "HTTPRoute", "payments", "commerce-public-api"),
+            ("v1", "Service", "payments", "nuclio-payment-registry-api"),
+        },
+        "identity-access": {
+            ("v1", "Service", "auth", "re8ch-auth-gateway"),
+            ("v1", "Service", "auth", "re8ch-user-center"),
+            ("gateway.networking.k8s.io/v1", "HTTPRoute", "auth", "re8ch-user-center"),
+        },
+        "agent-runtime": {
+            ("gateway.networking.k8s.io/v1", "HTTPRoute", "toolhive-system", "connectool-cloud-mcp"),
+        },
+    }
+    for domain, expected in required.items():
+        assert expected <= object_identities(domain), domain

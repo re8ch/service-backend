@@ -14,8 +14,8 @@ authorities:
     externalUsers: true
     changeCadence: high
     targetAuthority: product-runtime
-    currentAuthority: split
-    migrationPhase: business-api-live
+    currentAuthority: control-plane-direct
+    migrationPhase: flux-detached
     productRepositories: [re8ch/cloud-functions]
     productOwned:
       - commerce API image rollout
@@ -31,8 +31,8 @@ authorities:
     externalUsers: true
     changeCadence: high
     targetAuthority: product-runtime
-    currentAuthority: flux
-    migrationPhase: publisher-required
+    currentAuthority: control-plane-direct
+    migrationPhase: flux-detached
     productRepositories: [re8ch/cloud-functions, re8ch/user-hub]
     productOwned:
       - auth gateway and user-facing identity runtime releases
@@ -48,8 +48,8 @@ authorities:
     externalUsers: true
     changeCadence: high
     targetAuthority: product-runtime
-    currentAuthority: flux
-    migrationPhase: publisher-required
+    currentAuthority: control-plane-direct
+    migrationPhase: flux-detached
     productRepositories: [among-clusters/connectool]
     productOwned:
       - signed chart and session-router releases
@@ -62,11 +62,15 @@ authorities:
     cutoverGate: authenticated product release publisher
 
 cutoverRules:
-  - Never suspend or remove the active Flux owner before the product publisher
-    has successfully deployed the same immutable revision and passed its canary.
+  - Never suspend or remove an active Flux owner before an explicit replacement
+    owner has adopted the same immutable revision and a rollback point exists.
   - A product publisher must use short-lived identity, immutable signed
     artifacts, a namespace/resource allowlist, server-side apply ownership and
     append-only release evidence.
   - Product release authority must not include Secret values, cluster-scoped
     RBAC, Gateway ownership, certificate issuance or database administration.
   - During handoff, exactly one controller may prune a given object.
+  - >-
+    control-plane-direct is an explicit temporary owner; product runtime
+    objects are outside every Flux inventory and are changed only through the
+    audited control-plane path until the product publisher replaces it.
