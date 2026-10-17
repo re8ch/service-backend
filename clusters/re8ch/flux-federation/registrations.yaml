@@ -28,7 +28,7 @@ metadata: {name: domain, namespace: flux-agent-system}
 spec:
   interval: 30s
   timeout: 2m
-  suspend: true
+  suspend: false
   url: ssh://git@ssh.github.com:443/re8ch-ai/agent-gitops.git
   ref: {branch: main}
   secretRef: {name: agent-github-ssh}
@@ -54,7 +54,7 @@ metadata: {name: domain, namespace: flux-identity-system}
 spec:
   interval: 30s
   timeout: 2m
-  suspend: true
+  suspend: false
   url: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
   ref: {branch: main}
   secretRef: {name: identity-github-ssh}
@@ -80,7 +80,7 @@ metadata: {name: domain, namespace: flux-observability-system}
 spec:
   interval: 30s
   timeout: 2m
-  suspend: true
+  suspend: false
   url: ssh://git@ssh.github.com:443/siren-observer/observability-gitops.git
   ref: {branch: main}
   secretRef: {name: observability-github-ssh}
@@ -106,7 +106,7 @@ metadata: {name: domain, namespace: flux-network-system}
 spec:
   interval: 30s
   timeout: 2m
-  suspend: true
+  suspend: false
   url: ssh://git@ssh.github.com:443/pillars-infra/network-gitops.git
   ref: {branch: main}
   secretRef: {name: network-github-ssh}
