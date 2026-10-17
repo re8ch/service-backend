@@ -120,7 +120,9 @@ jobs:
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
       - name: Verify compiled domain bundles
-        run: python operations/releases/compile_domain_bundles.py --check
+        run: |
+          python operations/releases/compile_domain_bundles.py --check
+          python operations/flux-federation/validate.py
       - name: Render only affected deployable roots
         env: {ROOTS: "${{ needs.impact.outputs.roots }}"}
         run: |

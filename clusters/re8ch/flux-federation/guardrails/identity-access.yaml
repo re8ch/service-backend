@@ -1,0 +1,88 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: access-subscription-nodes
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: identity-dependency-volume-reader
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumes
+  verbs:
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secretary-cluster-observer
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: access-subscription-nodes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: access-subscription-nodes
+subjects:
+- kind: ServiceAccount
+  name: access-subscription
+  namespace: egress-fabric
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: identity-dependency-volume-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: identity-dependency-volume-reader
+subjects:
+- kind: ServiceAccount
+  name: tenant-control-controller
+  namespace: tenant-infrastructure
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: secretary-cluster-observer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: secretary-cluster-observer
+subjects:
+- kind: ServiceAccount
+  name: secretary-cluster-observer
+  namespace: re8ch-secretary
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantNamespace
+metadata:
+  labels:
+    app.kubernetes.io/part-of: secretary-system
+    tenancy.re8ch.com/tenant: re8ch
+  name: re8ch-secretary
+spec:
+  namespaceName: re8ch-secretary
+  operation: EnsurePresent
+  tenantRef: re8ch

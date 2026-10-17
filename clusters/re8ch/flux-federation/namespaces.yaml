@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-agent-system
+  labels: {gitops.re8ch.com/domain: agent-runtime, scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-identity-system
+  labels: {gitops.re8ch.com/domain: identity-access, scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-observability-system
+  labels: {gitops.re8ch.com/domain: observability-metering, scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flux-network-system
+  labels: {gitops.re8ch.com/domain: networking, scheduling.re8ch.com/control-plane-allowed: "true"}

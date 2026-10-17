@@ -20,7 +20,18 @@ resources:
 - domain-sources
 - ../../platform/observability-source
 - flux-system/domain-reconcilers.yaml
+- flux-federation
 patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: (source-controller|kustomize-controller|helm-controller|notification-controller)
+    namespace: flux-system
+  patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/args/1
+      value: --watch-all-namespaces=false
 - target:
     group: kustomize.toolkit.fluxcd.io
     version: v1

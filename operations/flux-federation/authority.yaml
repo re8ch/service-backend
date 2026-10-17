@@ -1,0 +1,46 @@
+apiVersion: gitops.re8ch.com/v1alpha1
+kind: FluxFederationAuthority
+metadata:
+  name: re8ch
+spec:
+  migrationOrder:
+    - observability-metering
+    - agent-runtime
+    - identity-access
+    - networking
+  domains:
+    observability-metering:
+      organization: siren-observer
+      repository: ssh://git@ssh.github.com:443/siren-observer/observability-gitops.git
+      controllerNamespace: flux-observability-system
+      lock: 9ddb096b25ee9b1ab0d37f730c504b7b13bea626
+      state: staged
+    agent-runtime:
+      organization: re8ch-ai
+      repository: ssh://git@ssh.github.com:443/re8ch-ai/agent-gitops.git
+      controllerNamespace: flux-agent-system
+      lock: 663aef9587fb4d9df61edcf6a30dfa64d40b1647
+      state: staged
+    identity-access:
+      organization: re8ch
+      repository: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
+      controllerNamespace: flux-identity-system
+      lock: 04dcbe952d261f533bbc179a5c2767e7280b3cb2
+      state: staged
+    networking:
+      organization: pillars-infra
+      repository: ssh://git@ssh.github.com:443/pillars-infra/network-gitops.git
+      controllerNamespace: flux-network-system
+      lock: 76957adfa5d8cb7c9571c4edb7b83dd24b37a551
+      state: staged
+  sharedBootstrapSecrets:
+    - sops-age
+    - gitops-oci-reader
+  mainFluxOwns:
+    - flux-crds
+    - autonomous-controller-lifecycle
+    - namespaces
+    - global-rbac
+    - shared-gateway-authority
+    - secret-and-policy-boundaries
+  controllerVersion: v2.6.1

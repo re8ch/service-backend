@@ -42,12 +42,15 @@ domains:
       - clusters/re8ch/components/codex-app-server-console/**
       - clusters/re8ch/components/ai-operations/sandbox-trials/**
       - clusters/re8ch/domains/agent-runtime/**
+      - clusters/re8ch/flux-federation/**
+      - operations/flux-federation/**
     roots:
       - platform/workspace-controller
       - platform/git-workspaces
       - clusters/re8ch/components/codex-app-server-console
       - clusters/re8ch/components/ai-operations/sandbox-trials
       - clusters/re8ch/domains/agent-runtime
+      - clusters/re8ch/flux-federation
     tests:
       - tests/test_github_policy_reviewer.py
       - tests/test_workspace_controller.py

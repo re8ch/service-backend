@@ -1,20 +1,25 @@
 # Flux domain reconciliation
 
 The cluster root is a bootstrap and coordination boundary, not the owner of
-product workloads. Nine business domains reconcile independently from the
-verified `service-backend` Git source:
+product workloads. Five business domains still reconcile independently from
+the verified `service-backend` Git source. Four domains are being transferred
+to independent Flux controller stacks and private desired-state repositories:
 
 | Domain | Runtime owner |
 | --- | --- |
-| networking | `Kustomization/reconcile-networking` |
-| identity-access | `Kustomization/reconcile-identity-access` |
 | data-storage | `Kustomization/reconcile-data-storage` |
 | commerce-billing | `Kustomization/reconcile-commerce-billing` |
-| agent-runtime | `Kustomization/reconcile-agent-runtime` |
-| observability-metering | `Kustomization/reconcile-observability-metering` |
 | operations-ui | `Kustomization/reconcile-operations-ui` |
 | delivery-products | `Kustomization/reconcile-delivery-products` |
 | tenant-runtime | `Kustomization/reconcile-tenant-runtime` |
+
+During bootstrap, `networking`, `identity-access`, `agent-runtime`, and
+`observability-metering` retain their active old owner. At each cutover that
+old declaration is suspended and retained as a rollback record. Their
+repositories, controller namespaces, locks, and current state are
+authoritative in `operations/flux-federation/authority.yaml`. The staged
+bootstrap does not change ownership: autonomous sources and Kustomizations
+start suspended with pruning disabled.
 
 The reconcilers have no `dependsOn` edge to `Kustomization/service-backend`.
 Once bootstrapped, a render or apply failure in one domain does not prevent a
