@@ -220,8 +220,28 @@
     "ref": "kubectl"
   },
   {
+    "module": "bifurcate",
+    "ref": "python"
+  },
+  {
+    "module": "bifurcate",
+    "ref": "pytest"
+  },
+  {
+    "module": "bifurcate",
+    "ref": "docker"
+  },
+  {
     "module": "brand-assets",
     "ref": "git-lfs"
+  },
+  {
+    "module": "catalog",
+    "ref": "go"
+  },
+  {
+    "module": "catalog",
+    "ref": "docker"
   },
   {
     "module": "cloud-functions",

@@ -233,3 +233,11 @@
 	path = catalogs/platform/modules/user-hub/source
 	url = https://github.com/re8ch/user-hub.git
 	branch = main
+[submodule "platform/catalog"]
+	path = catalogs/platform/modules/catalog/source
+	url = https://github.com/re8ch-business/catalog.git
+	branch = main
+[submodule "platform/bifurcate"]
+	path = catalogs/platform/modules/bifurcate/source
+	url = https://github.com/bifurcate-systems/bifurcate.git
+	branch = main

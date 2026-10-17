@@ -11145,6 +11145,18 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitAccount
 metadata:
+  name: bifurcate-maintain
+  namespace: git-workspaces
+spec:
+  email: bifurcate-maintain@phonaid.com
+  googleWorkspace: eligible
+  mailbox: stalwart
+  project: bifurcate
+  provider: github
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
   name: brand-assets-maintain
   namespace: git-workspaces
 spec:
@@ -11164,6 +11176,18 @@ spec:
   googleWorkspace: eligible
   mailbox: stalwart
   project: career-ops
+  provider: github
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata:
+  name: catalog-maintain
+  namespace: git-workspaces
+spec:
+  email: catalog-maintain@phonaid.com
+  googleWorkspace: eligible
+  mailbox: stalwart
+  project: catalog
   provider: github
 ---
 apiVersion: governance.re8ch.com/v1alpha1
@@ -11767,6 +11791,18 @@ spec:
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitWorkspace
 metadata:
+  name: bifurcate-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: bifurcate-maintain
+  branchPrefix: workspace/bifurcate-maintain/
+  folder: catalogs/platform/modules/bifurcate/source
+  projectRef: bifurcate
+  repository: https://github.com/bifurcate-systems/bifurcate.git
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
   name: brand-assets-maintain
   namespace: git-workspaces
 spec:
@@ -11787,6 +11823,18 @@ spec:
   folder: catalogs/career-ops/modules/career-ops/source
   projectRef: career-ops
   repository: https://github.com/Woomou/career-ops.git
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata:
+  name: catalog-maintain
+  namespace: git-workspaces
+spec:
+  accountRef: catalog-maintain
+  branchPrefix: workspace/catalog-maintain/
+  folder: catalogs/platform/modules/catalog/source
+  projectRef: catalog
+  repository: https://github.com/re8ch-business/catalog.git
 ---
 apiVersion: governance.re8ch.com/v1alpha1
 kind: GitWorkspace

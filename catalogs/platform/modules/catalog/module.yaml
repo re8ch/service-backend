@@ -1,0 +1,15 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: catalog, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: 'https://github.com/re8ch-business/catalog.git', defaultBranch: main, owner: re8ch-business}
+  projectType: static-web-application
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [go, docker]
+  dependencies: [user-hub, bifurcate, connectool, among-clusters]
+  deployments: [kubernetes/catalog/re8ch-catalog]
+  source: {kind: submodule, path: source, metadataPolicy: in-repository}
+  identity: {maintainerAddress: catalog-maintain@phonaid.com, accountClass: project-maintainer}

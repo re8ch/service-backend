@@ -138,6 +138,19 @@ usageSink:
   timeoutSeconds: 10
   allowedTenants: []
 
+# Optional Catalog rating gateway. Raw UsageEvents are delivered first and are
+# never rewritten; this second hop sends a derived service_ref + meter_code
+# envelope. An event is acknowledged only after both idempotent sinks accept it.
+billingSink:
+  enabled: false
+  url: http://billing-usage-gateway.billing.svc.cluster.local/v1/usage-events
+  timeoutSeconds: 10
+  mappings: []
+  # - serviceClass: ai.model-gateway.v1
+  #   meter: usage.tool-calls
+  #   serviceRef: platform/ai-model-gateway
+  #   meterCode: tool_call
+
 outbox:
   enabled: true
   storageClassName: rbd-r640
