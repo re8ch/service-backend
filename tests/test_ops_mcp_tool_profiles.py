@@ -286,11 +286,32 @@ class ToolProfileTests(unittest.TestCase):
             "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/gitrepositories",
         )
         self.assertEqual(
-            module.resource_path("fluxkustomizations"),
-            "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-system/kustomizations",
+            module.resource_path("fluxkustomizations", "flux-agent-system"),
+            "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-agent-system/kustomizations",
         )
+        with self.assertRaisesRegex(ValueError, "unsupported Flux namespace"):
+            module.resource_path("fluxkustomizations", "tenant-a")
         with self.assertRaises(ValueError):
             module.resource_path("flux-system/secrets")
+
+    def test_platform_observe_can_aggregate_autonomous_flux_namespaces(self):
+        module = load_profile("observe")
+        requested = []
+
+        def fake_request(_method, path, _body=None, _content_type="application/json"):
+            requested.append(path)
+            namespace = path.split("/namespaces/", 1)[1].split("/", 1)[0]
+            return {"items": [{"kind": "Kustomization", "metadata": {"name": "domain", "namespace": namespace}}]}
+
+        module.kube_request = fake_request
+        result = module.list_resources("fluxkustomizations", "all")
+        self.assertEqual(result["namespace"], "all")
+        self.assertEqual(result["count"], 5)
+        self.assertEqual({item["namespace"] for item in result["items"]}, set(module.FLUX_NAMESPACES))
+        self.assertEqual(len(requested), 5)
+
+        with self.assertRaisesRegex(ValueError, "only for fixed Flux"):
+            module.list_resources("pods", "all")
 
     def test_metrics_summaries_expose_only_cpu_and_memory_usage(self):
         module = load_profile("observe")

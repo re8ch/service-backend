@@ -206,20 +206,27 @@ RESOURCE_PATHS = {
 }
 
 # Explicit cluster-control reads for the platform observe profile. These aliases
-# avoid accepting an arbitrary namespace or API path from the caller while still
-# exposing the Flux reconciliation state needed for GitHub-first operations.
+# avoid accepting an arbitrary API path from the caller while still exposing the
+# Flux reconciliation state needed for GitHub-first operations.
+FLUX_NAMESPACES = (
+    "flux-system",
+    "flux-agent-system",
+    "flux-identity-system",
+    "flux-observability-system",
+    "flux-network-system",
+)
 PLATFORM_RESOURCE_PATHS = {
-    "fluxdeployments": "/apis/apps/v1/namespaces/flux-system/deployments",
-    "fluxgitrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/gitrepositories",
-    "fluxocirepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/ocirepositories",
-    "fluxhelmrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/helmrepositories",
-    "fluxhelmcharts": "/apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/helmcharts",
-    "fluxkustomizations": "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-system/kustomizations",
-    "fluxhelmreleases": "/apis/helm.toolkit.fluxcd.io/v2/namespaces/flux-system/helmreleases",
-    "fluxevents": "/api/v1/namespaces/flux-system/events",
-    "fluxreceivers": "/apis/notification.toolkit.fluxcd.io/v1/namespaces/flux-system/receivers",
-    "fluxproviders": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/flux-system/providers",
-    "fluxalerts": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/flux-system/alerts",
+    "fluxdeployments": "/apis/apps/v1/namespaces/%s/deployments",
+    "fluxgitrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/%s/gitrepositories",
+    "fluxocirepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/%s/ocirepositories",
+    "fluxhelmrepositories": "/apis/source.toolkit.fluxcd.io/v1/namespaces/%s/helmrepositories",
+    "fluxhelmcharts": "/apis/source.toolkit.fluxcd.io/v1/namespaces/%s/helmcharts",
+    "fluxkustomizations": "/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/%s/kustomizations",
+    "fluxhelmreleases": "/apis/helm.toolkit.fluxcd.io/v2/namespaces/%s/helmreleases",
+    "fluxevents": "/api/v1/namespaces/%s/events",
+    "fluxreceivers": "/apis/notification.toolkit.fluxcd.io/v1/namespaces/%s/receivers",
+    "fluxproviders": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/%s/providers",
+    "fluxalerts": "/apis/notification.toolkit.fluxcd.io/v1beta3/namespaces/%s/alerts",
 }
 
 RESOURCE_KINDS = {
@@ -809,7 +816,7 @@ def postgres_admin_sql(args=None):
             except Exception:
                 pass
 
-def resource_path(kind):
+def resource_path(kind, namespace=None):
     if kind == "nodes":
         return "/api/v1/nodes"
     if kind == "nodemetrics":
@@ -817,7 +824,12 @@ def resource_path(kind):
     if kind in PLATFORM_RESOURCE_PATHS:
         if OPS_TOOL_PROFILE not in ("observe", "admin"):
             raise PermissionError("Flux control-plane reads require the platform observe profile")
-        return PLATFORM_RESOURCE_PATHS[kind]
+        namespace = namespace or "flux-system"
+        if namespace not in FLUX_NAMESPACES:
+            raise ValueError("unsupported Flux namespace: %s" % namespace)
+        return PLATFORM_RESOURCE_PATHS[kind] % namespace
+    if namespace is not None:
+        raise ValueError("namespace is accepted only for fixed Flux resource kinds")
     if kind not in RESOURCE_PATHS:
         raise ValueError("unsupported kind: %s" % kind)
     return RESOURCE_PATHS[kind] % current_namespace()
@@ -899,11 +911,20 @@ def simplify_resource(item, default_kind=None):
         out["status"] = status if status else None
     return out
 
-def list_resources(kind):
-    doc = kube_request("GET", resource_path(kind))
-    items = doc.get("items", [])
+def list_resources(kind, namespace=None):
+    if namespace == "all":
+        if kind not in PLATFORM_RESOURCE_PATHS:
+            raise ValueError("namespace=all is accepted only for fixed Flux resource kinds")
+        namespaces = FLUX_NAMESPACES
+    else:
+        namespaces = (namespace,)
+    items = []
+    for selected_namespace in namespaces:
+        doc = kube_request("GET", resource_path(kind, selected_namespace))
+        items.extend(doc.get("items", []))
     default_kind = RESOURCE_KINDS.get(kind)
-    return {"kind": kind, "tenant": current_tenant(), "namespace": current_namespace(), "count": len(items), "items": [simplify_resource(x, default_kind) for x in items]}
+    selected = "all" if namespace == "all" else (namespace or ("flux-system" if kind in PLATFORM_RESOURCE_PATHS else current_namespace()))
+    return {"kind": kind, "tenant": current_tenant(), "namespace": selected, "count": len(items), "items": [simplify_resource(x, default_kind) for x in items]}
 
 def get_secret_token(secret_name):
     doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (current_namespace(), secret_name))
@@ -4221,7 +4242,7 @@ def mcp_tools(include_admin=False):
         {"name": "get_usage_guide", "description": "Return the Ops usage guide.", "inputSchema": schema()},
         {"name": "get_tenant_context", "description": "Return the authenticated tenant endpoints and safety boundaries.", "inputSchema": schema()},
         {"name": "get_kubeconfig", "description": "Return the authenticated tenant operator kubeconfig for CLI automation.", "inputSchema": schema()},
-        {"name": "list_k8s_resources", "description": "List tenant Kubernetes resources or read-only nodes. Platform observe also accepts fluxgitrepositories, fluxocirepositories, fluxhelmrepositories, fluxhelmcharts, fluxkustomizations, fluxhelmreleases, fluxevents, fluxdeployments, fluxreceivers, fluxproviders and fluxalerts in flux-system; results contain sanitized status only.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}})},
+        {"name": "list_k8s_resources", "description": "List tenant Kubernetes resources or read-only nodes. Platform observe also accepts sanitized Flux resources in the main and four autonomous Flux namespaces; pass namespace=all to aggregate them.", "inputSchema": schema({"kind": {"type": "string", "default": "pods"}, "namespace": {"type": "string", "enum": list(FLUX_NAMESPACES) + ["all"]}})},
         {"name": "restart_deployment", "description": "Restart one Deployment in the authenticated tenant namespace.", "inputSchema": schema({"deployment": {"type": "string"}}, ["deployment"])},
         {"name": "get_registry_info", "description": "Return Harbor registry information for authenticated tenant images.", "inputSchema": schema()},
         {"name": "get_tenant_resource_catalog", "description": "Return the tenant resource name catalog. Normal token returns this tenant; admin token can pass allTenants=true.", "inputSchema": schema({"allTenants": {"type": "boolean", "default": False}})},
@@ -4341,7 +4362,7 @@ def call_tool(name, args, admin=False):
     if name == "get_kubeconfig":
         return build_kubeconfig()
     if name == "list_k8s_resources":
-        return list_resources(args.get("kind", "pods"))
+        return list_resources(args.get("kind", "pods"), args.get("namespace"))
     if name == "restart_deployment":
         return restart_deployment(args.get("deployment"))
     if name == "get_registry_info":
