@@ -6,6 +6,7 @@ resources:
   - github-web-flow-key.yaml
   - registrations.yaml
   - guardrails/observability-metering.yaml
+  - guardrails/agent-runtime.yaml
   - secrets/agent-github-ssh.sops.yaml
   - secrets/identity-github-ssh.sops.yaml
   - secrets/observability-github-ssh.sops.yaml

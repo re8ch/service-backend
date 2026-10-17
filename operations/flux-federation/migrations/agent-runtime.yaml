@@ -1,0 +1,22 @@
+apiVersion: gitops.re8ch.com/v1alpha1
+kind: FluxDomainMigrationEvidence
+metadata:
+  name: agent-runtime
+spec:
+  capturedAt: "2026-10-17T22:00:00+08:00"
+  oldOwner:
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    namespace: flux-system
+    name: reconcile-agent-runtime
+    revision: main@sha1:80e40d6285a59b0bcf2442d9fd30d9b1a717e5f3
+    inventory:
+      entries: 296
+      sortedIdsSha256: 093d78c46e5b0e382386d3199e72225131d01538f38d65de9835076e426bc1bc
+    ready: true
+  newOwner:
+    namespace: flux-agent-system
+    name: domain
+    repositoryRevision: main@sha1:663aef9587fb4d9df61edcf6a30dfa64d40b1647
+    initialPrune: false
+  rollback: suspend-new-before-resuming-old
