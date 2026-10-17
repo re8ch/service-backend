@@ -82,6 +82,23 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
             ]
             container.setdefault("env", []).append({"name": "CONTROLLER_DOMAIN", "value": domain})
             obj["spec"]["replicas"] = 1
+            pod_spec = obj["spec"]["template"]["spec"]
+            pod_spec["affinity"] = {
+                "podAntiAffinity": {
+                    "preferredDuringSchedulingIgnoredDuringExecution": [{
+                        "weight": 100,
+                        "podAffinityTerm": {
+                            "topologyKey": "kubernetes.io/hostname",
+                            "labelSelector": {
+                                "matchExpressions": [{
+                                    "key": "gitops.re8ch.com/domain",
+                                    "operator": "Exists",
+                                }],
+                            },
+                        },
+                    }],
+                },
+            }
         selected.append(obj)
     selected.append({
         "apiVersion": "policy/v1", "kind": "PodDisruptionBudget",
