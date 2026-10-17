@@ -14,7 +14,7 @@ spec:
       repository: ssh://git@ssh.github.com:443/siren-observer/observability-gitops.git
       controllerNamespace: flux-observability-system
       lock: 9ddb096b25ee9b1ab0d37f730c504b7b13bea626
-      state: cutover-verification
+      state: autonomous
     agent-runtime:
       organization: re8ch-ai
       repository: ssh://git@ssh.github.com:443/re8ch-ai/agent-gitops.git
