@@ -57,6 +57,17 @@
       "type": "object", "required": ["enabled", "url"],
       "properties": {"enabled": {"type": "boolean"}, "url": {"type": "string", "pattern": "^https?://"}, "allowedTenants": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
     },
+    "billingSink": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "url", "timeoutSeconds", "mappings"],
+      "properties": {
+        "enabled": {"type": "boolean"}, "url": {"type": "string", "pattern": "^https?://"},
+        "timeoutSeconds": {"type": "integer", "minimum": 1, "maximum": 60},
+        "mappings": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+          "required": ["serviceClass", "meter", "serviceRef", "meterCode"],
+          "properties": {"serviceClass": {"type": "string", "minLength": 1}, "meter": {"type": "string", "minLength": 1},
+            "serviceRef": {"type": "string", "minLength": 1}, "meterCode": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{1,63}$"}}}}
+      }
+    },
     "pricing": {
       "type": "object", "additionalProperties": false, "required": ["enabled", "currency", "rateCardRef"],
       "properties": {"enabled": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "rateCardRef": {"type": "string", "minLength": 1}}

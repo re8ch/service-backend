@@ -67,6 +67,15 @@ def test_usage_sink_renders_projected_identity_and_private_receiver():
     assert role["rules"] == [{"apiGroups": ["authentication.k8s.io"], "resources": ["tokenreviews"], "verbs": ["create"]}]
 
 
+def test_catalog_billing_sink_is_explicit_and_disabled_by_default():
+    values = yaml.safe_load((CHART / "values.yaml").read_text())
+    assert values["billingSink"]["enabled"] is False
+    assert values["billingSink"]["mappings"] == []
+    rendered = subprocess.run(["helm", "template", "birfucate", str(CHART)], check=True, capture_output=True, text=True).stdout
+    config = next(item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "ConfigMap" and "config.json" in item.get("data", {}))
+    assert json.loads(config["data"]["config.json"])["billingSink"]["enabled"] is False
+
+
 def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     values = yaml.safe_load((CHART / "values.yaml").read_text())
     assert values["opencost"]["enabled"] is True

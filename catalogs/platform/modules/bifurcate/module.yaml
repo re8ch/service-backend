@@ -1,0 +1,14 @@
+apiVersion: workspace.re8ch.com/v1alpha2
+kind: WorkspaceModule
+metadata: {name: bifurcate, catalog: platform}
+spec:
+  ownership: owned
+  lifecycle: active
+  repository: {provider: github, url: 'https://github.com/bifurcate-systems/bifurcate.git', defaultBranch: main, owner: bifurcate-systems}
+  projectType: metering-api
+  writePolicy: github-pr
+  knowledge: [README.md]
+  tools: [python, pytest, docker]
+  deployments: [kubernetes/observability-ai/birfucate-metering]
+  source: {kind: submodule, path: source, metadataPolicy: in-repository}
+  identity: {maintainerAddress: bifurcate-maintain@phonaid.com, accountClass: project-maintainer}
