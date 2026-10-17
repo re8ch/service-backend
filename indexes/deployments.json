@@ -24,6 +24,14 @@
     "ref": "advanced-fabric"
   },
   {
+    "module": "bifurcate",
+    "ref": "kubernetes/observability-ai/birfucate-metering"
+  },
+  {
+    "module": "catalog",
+    "ref": "kubernetes/catalog/re8ch-catalog"
+  },
+  {
     "module": "cloud-functions",
     "ref": "nuclio/re8ch-functions"
   },

@@ -688,6 +688,26 @@
     "sha256": "5d2865ccc7940441a2cea4e248d33e201932cca35a272aa36f774a53a2f0a088"
   },
   {
+    "module": "bifurcate",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "bifurcate",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "bifurcate",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "bifurcate",
+    "ref": "catalogs/platform/modules/bifurcate/MEMORY.md",
+    "sha256": "7f85c826ee2f7189860fa2cd274ea45764bf61d28a930e4e4ce620b33e2f99c9"
+  },
+  {
     "module": "brand-assets",
     "ref": "README.md"
   },
@@ -706,6 +726,26 @@
     "module": "brand-assets",
     "ref": "catalogs/platform/modules/brand-assets/MEMORY.md",
     "sha256": "a0f552a6f115419f37a5b847cc149ae281b31609ba57ccb3e58a36fde3a48b17"
+  },
+  {
+    "module": "catalog",
+    "ref": "README.md"
+  },
+  {
+    "kind": "catalog-context-index",
+    "module": "catalog",
+    "ref": "catalogs/platform/knowledge/resources.yaml"
+  },
+  {
+    "kind": "shared-platform-context",
+    "module": "catalog",
+    "ref": "catalogs/_shared/backend-platform-context.md"
+  },
+  {
+    "kind": "agent-memory",
+    "module": "catalog",
+    "ref": "catalogs/platform/modules/catalog/MEMORY.md",
+    "sha256": "1a4344c7e7bc0ddcb77896d09071001855d7ee258b26cf80b2e9377c7605de73"
   },
   {
     "module": "cloud-functions",

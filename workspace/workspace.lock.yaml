@@ -25,6 +25,11 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/among-clusters/among-clusters.git
+  bifurcate:
+    commit: 88380eefc7d7d561105629ba787312c4e56188b9
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/bifurcate-systems/bifurcate.git
   anycam:
     commit: 51151cc9d7d4395d47fcdf27b32c015ac2d34e31
     defaultBranch: main
@@ -89,6 +94,15 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/brand-assets.git
+  catalog:
+    commit: b2f862bf5c9d82fec9c82642944b3ff77ebda51b
+    defaultBranch: main
+    dependencies:
+    - user-hub
+    - bifurcate
+    - connectool
+    - among-clusters
+    repository: https://github.com/re8ch-business/catalog.git
   career-ops:
     commit: 99cb01e7cc7c47061a2cdbd48097b6ecd553470b
     defaultBranch: main

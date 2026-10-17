@@ -307,12 +307,30 @@
   },
   {
     "catalog": "platform",
+    "commit": "88380eefc7d7d561105629ba787312c4e56188b9",
+    "id": "bifurcate",
+    "ownership": "owned",
+    "projectType": "metering-api",
+    "repository": "https://github.com/bifurcate-systems/bifurcate.git",
+    "source": "catalogs/platform/modules/bifurcate/source"
+  },
+  {
+    "catalog": "platform",
     "commit": "e1fd190fefd8e8535dfd1410327e901afde873c2",
     "id": "brand-assets",
     "ownership": "owned",
     "projectType": "brand-assets",
     "repository": "https://github.com/re8ch/brand-assets.git",
     "source": "catalogs/platform/modules/brand-assets/source"
+  },
+  {
+    "catalog": "platform",
+    "commit": "b2f862bf5c9d82fec9c82642944b3ff77ebda51b",
+    "id": "catalog",
+    "ownership": "owned",
+    "projectType": "static-web-application",
+    "repository": "https://github.com/re8ch-business/catalog.git",
+    "source": "catalogs/platform/modules/catalog/source"
   },
   {
     "catalog": "platform",

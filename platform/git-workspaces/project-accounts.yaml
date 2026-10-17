@@ -1053,3 +1053,33 @@ spec:
   repository: https://github.com/re8ch-business/user-hub.git
   folder: catalogs/platform/modules/user-hub/source
   branchPrefix: workspace/user-hub-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: bifurcate-maintain, namespace: git-workspaces}
+spec: {email: bifurcate-maintain@phonaid.com, provider: github, project: bifurcate, mailbox: stalwart, googleWorkspace: eligible}
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata: {name: bifurcate-maintain, namespace: git-workspaces}
+spec:
+  accountRef: bifurcate-maintain
+  projectRef: bifurcate
+  repository: https://github.com/bifurcate-systems/bifurcate.git
+  folder: catalogs/platform/modules/bifurcate/source
+  branchPrefix: workspace/bifurcate-maintain/
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitAccount
+metadata: {name: catalog-maintain, namespace: git-workspaces}
+spec: {email: catalog-maintain@phonaid.com, provider: github, project: catalog, mailbox: stalwart, googleWorkspace: eligible}
+---
+apiVersion: governance.re8ch.com/v1alpha1
+kind: GitWorkspace
+metadata: {name: catalog-maintain, namespace: git-workspaces}
+spec:
+  accountRef: catalog-maintain
+  projectRef: catalog
+  repository: https://github.com/re8ch-business/catalog.git
+  folder: catalogs/platform/modules/catalog/source
+  branchPrefix: workspace/catalog-maintain/
