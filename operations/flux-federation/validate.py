@@ -53,8 +53,10 @@ def main() -> None:
     require(len(sources) == len(reconciliations) == 4, "expected four sources and four Kustomizations")
     for item in sources + reconciliations:
         require(item["metadata"]["namespace"] in NAMESPACES, "registration outside autonomous namespace")
-        require(item["spec"].get("suspend") is True, "bootstrap registration must be suspended")
+    for item in sources:
+        require(item["spec"].get("suspend") is False, "bootstrap source must be active for read-only verification")
     for item in reconciliations:
+        require(item["spec"].get("suspend") is True, "bootstrap registration must be suspended")
         require(item["spec"].get("prune") is False, "bootstrap Kustomization must not prune")
 
     kustomization = yaml.safe_load((FEDERATION / "kustomization.yaml").read_text())

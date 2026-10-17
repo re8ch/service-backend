@@ -5,10 +5,10 @@ four autonomous controller stacks. `authority.yaml` is the machine-readable
 ledger. The generated cluster manifests live under
 `clusters/re8ch/flux-federation`.
 
-The bootstrap is intentionally inert: repositories and domain
-Kustomizations are suspended and `prune` is false. Merging the bootstrap only
-installs isolated controllers and credentials; it does not transfer workload
-ownership.
+The initial bootstrap is intentionally inert. After its controllers and
+credentials are verified, repositories become active for read-only artifact
+fetching while domain Kustomizations stay suspended and `prune` remains false.
+Neither phase transfers workload ownership.
 
 ## Bootstrap
 
