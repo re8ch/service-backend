@@ -7,6 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 DOMAINS = ROOT / "clusters/re8ch/domains"
 RECONCILERS = ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml"
 AUTHORITY = ROOT / "operations/releases/runtime-authority.yaml"
+FEDERATION_AUTHORITY = ROOT / "operations/flux-federation/authority.yaml"
+FEDERATION_REGISTRATIONS = ROOT / "clusters/re8ch/flux-federation/registrations.yaml"
 
 
 def load_all(path: Path) -> list[dict]:
@@ -16,17 +18,35 @@ def load_all(path: Path) -> list[dict]:
 def test_every_domain_has_one_independent_reconciler():
     domain_names = sorted(path.name for path in DOMAINS.iterdir() if path.is_dir())
     reconcilers = load_all(RECONCILERS)
+    legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers}
+    federation = yaml.safe_load(FEDERATION_AUTHORITY.read_text())["spec"]["domains"]
+    registrations = {
+        item["metadata"]["namespace"]: item
+        for item in load_all(FEDERATION_REGISTRATIONS)
+        if item.get("kind") == "Kustomization"
+    }
 
-    assert len(reconcilers) == len(domain_names)
-    assert sorted(item["metadata"]["name"].removeprefix("reconcile-") for item in reconcilers) == domain_names
-    for item in reconcilers:
+    assert set(legacy) | set(federation) == set(domain_names)
+    for domain, item in legacy.items():
         spec = item["spec"]
-        domain = item["metadata"]["name"].removeprefix("reconcile-")
         assert spec["path"] == f"./clusters/re8ch/domains/{domain}"
         assert spec["sourceRef"] == {"kind": "GitRepository", "name": "service-backend"}
         assert spec["prune"] is True
         assert spec["wait"] is False
         assert "dependsOn" not in spec
+    for domain, authority in federation.items():
+        state = authority["state"]
+        autonomous = registrations[authority["controllerNamespace"]]["spec"]
+        if state == "staged":
+            assert domain in legacy and legacy[domain]["spec"].get("suspend", False) is False
+            assert autonomous["suspend"] is True and autonomous["prune"] is False
+        elif state == "cutover-verification":
+            assert legacy[domain]["spec"]["suspend"] is True
+            assert autonomous["suspend"] is False and autonomous["prune"] is False
+        else:
+            assert state == "autonomous"
+            assert domain not in legacy
+            assert autonomous["suspend"] is False and autonomous["prune"] is True
 
 
 def test_domain_bundles_are_local_and_secrets_have_one_owner():

@@ -19,4 +19,16 @@ spec:
     name: domain
     repositoryRevision: main@sha1:9ddb096b25ee9b1ab0d37f730c504b7b13bea626
     initialPrune: false
+    verifiedInventory:
+      entries: 116
+      commonWithOld: 107
+      expectedOldOnly:
+        mainOwnedNamespaces: 4
+        mainOwnedClusterGuardrails: 2
+        relocatedFluxObjects: 9
+      unexpectedDifferences: 0
+    ready: true
+  finalized:
+    prune: true
+    oldDeclaration: removed-from-active-manifest
   rollback: suspend-new-before-resuming-old
