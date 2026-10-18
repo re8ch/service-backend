@@ -73,6 +73,17 @@ def main() -> None:
     )
     require("api-conformance-controller" in agent_role_authority["resourceNames"], "Agent RBAC omits api-conformance role authority")
 
+    network_namespaced_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-networking-namespaced"
+    )
+    network_role_authority = next(
+        rule for rule in network_namespaced_role["rules"]
+        if rule.get("resources") == ["roles"] and set(rule.get("verbs", [])) == {"escalate", "bind"}
+    )
+    require("advanced-fabric-controller-lease" in network_role_authority["resourceNames"],
+            "Network Helm RBAC omits Advanced Fabric lease role authority")
+
     network_cluster_role = next(
         doc for doc in controller_docs
         if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-networking-cluster"

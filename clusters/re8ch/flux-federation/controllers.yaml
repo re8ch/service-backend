@@ -4492,6 +4492,7 @@ rules:
   resources:
   - roles
   resourceNames:
+  - advanced-fabric-controller-lease
   - among-clusters-legacy-agent-cleanup
   - control-dns-reachability
   - host-network-controller
