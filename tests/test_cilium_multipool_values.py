@@ -21,7 +21,7 @@ def test_multi_pool_overlay_keeps_physical_egress_masqueraded():
     }
     assert component["extraConfig"]["ipam-default-ip-pool"] == "tenant-apps"
     assert component["k8s"]["requireIPv4PodCIDR"] is False
-    assert component["ipv4NativeRoutingCIDR"] == "192.0.2.183/8"
+    assert component["ipv4NativeRoutingCIDR"] == "10.0.0.0/8"
     assert component["bpf"]["masquerade"] is False
     assert component["egressMasqueradeInterfaces"] == "eth0"
     assert component["rollOutCiliumPods"] is True
@@ -32,6 +32,6 @@ def test_r640_overrides_egress_masquerade_interface():
     component = list(yaml.safe_load_all(R640_COMPONENT.read_text()))
 
     assert operational == component
-    restricted-node-6dc3f140f9 = next(item for item in component if item["metadata"]["name"] == "r640-xdp-native")
-    assert restricted-node-6dc3f140f9["spec"]["defaults"]["egress-masquerade-interfaces"] == ""
-    assert restricted-node-6dc3f140f9["spec"]["defaults"]["enable-bpf-masquerade"] == "true"
+    r640 = next(item for item in component if item["metadata"]["name"] == "r640-xdp-native")
+    assert r640["spec"]["defaults"]["egress-masquerade-interfaces"] == "eno2np1"
+    assert r640["spec"]["defaults"]["enable-bpf-masquerade"] == "false"

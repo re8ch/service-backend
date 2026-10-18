@@ -6,21 +6,18 @@ metadata:
 spec:
   nodeSelector:
     matchLabels:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
   defaults:
-    # restricted-node-6dc3f140f9's public traffic enters the Mellanox mlx5 interface behind RouterOS.
+    # R640's public traffic enters the Mellanox mlx5 interface behind RouterOS.
     # Restrict device selection so native XDP is not attached to ZeroTier or WG.
     devices: eno2np1
     direct-routing-device: eno2np1
-    # BPF masquerade rejects the iptables-only selector when it is non-empty.
-    # Device selection below remains the single BPF attachment authority.
-    egress-masquerade-interfaces: ""
-    # restricted-node-6dc3f140f9 also originates the 192.0.2.179 control-plane VIP. The generic
-    # iptables MASQUERADE rule rewrites that host traffic on its LAN return
-    # path; BPF masquerade stays scoped to endpoint traffic on this exact NIC.
-    enable-bpf-masquerade: "true"
+    # Keep R640 on the proven per-interface iptables path. BPF host routing
+    # prevented remote controller Pods from reaching the local API endpoint.
+    egress-masquerade-interfaces: eno2np1
+    enable-bpf-masquerade: "false"
     bpf-lb-acceleration: native
-    # restricted-node-6dc3f140f9 has no ordinary ZeroTier /24 interface: RouterOS owns its node
+    # R640 has no ordinary ZeroTier /24 interface: RouterOS owns its node
     # identity and FRR learns remote PodCIDRs from the dedicated boundary peer.
     # Do not let the generic worker auto-direct fallback shadow those BGP routes.
     auto-direct-node-routes: "false"

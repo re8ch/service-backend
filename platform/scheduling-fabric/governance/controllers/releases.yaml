@@ -93,7 +93,7 @@ spec:
             patch: |-
               - op: add
                 path: /spec/internalTrafficPolicy
-                value: Local
+                value: Cluster
   values:
     crds:
       # This values-only rollout keeps chart 3.9.1 and CRDs unchanged. Its
@@ -104,8 +104,8 @@ spec:
     admissionController:
       replicas: 3
       podDisruptionBudget: {enabled: true, minAvailable: 2}
-      # The API-server-facing Service uses internalTrafficPolicy: Local.
-      # Put one webhook endpoint on each Ready control-plane node.
+      # Admission must remain reachable when an API endpoint has no local
+      # webhook Pod, so the API-server-facing Service uses Cluster routing.
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       tolerations:

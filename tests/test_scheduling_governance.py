@@ -56,6 +56,12 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
         "scheduler-system",
     }
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
+    kyverno_service_patch = yaml.safe_load(
+        releases["kyverno"]["spec"]["postRenderers"][0]["kustomize"]["patches"][0]["patch"]
+    )
+    assert kyverno_service_patch == [
+        {"op": "add", "path": "/spec/internalTrafficPolicy", "value": "Cluster"}
+    ]
     assert releases["kueue"]["spec"]["chart"]["spec"] == {
         "chart": "platform/scheduling-fabric/vendor/kueue",
         "reconcileStrategy": "ChartVersion",
