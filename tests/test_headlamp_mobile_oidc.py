@@ -10,6 +10,29 @@ def load_documents(path: str):
     return list(yaml.safe_load_all((ROOT / path).read_text()))
 
 
+def test_control_plane_helpers_tolerate_hard_control_plane_taint():
+    expected = {
+        "key": "node-role.kubernetes.io/control-plane",
+        "operator": "Equal",
+        "value": "true",
+        "effect": "NoSchedule",
+    }
+
+    for path, deployment_name in (
+        ("platform/headlamp/active-elector.yaml", "headlamp-active-elector"),
+        ("platform/headlamp/controlled-cluster-relay.yaml", "controlled-cluster-relay"),
+    ):
+        documents = load_documents(path)
+        deployment = next(
+            doc
+            for doc in documents
+            if doc
+            and doc.get("kind") == "Deployment"
+            and doc["metadata"]["name"] == deployment_name
+        )
+        assert expected in deployment["spec"]["template"]["spec"]["tolerations"]
+
+
 def test_mobile_oidc_landing_is_same_origin_and_routes_back_to_cluster():
     documents = load_documents("platform/headlamp/oidc-landing.yaml")
     config = next(doc for doc in documents if doc["kind"] == "ConfigMap")
