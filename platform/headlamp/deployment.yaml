@@ -273,6 +273,10 @@ spec:
             # Headlamp adds openid itself when building the authorization URL.
             - -oidc-scopes=profile,email,offline_access
             - -oidc-use-pkce
+            # GoTrue's access token carries aud=authenticated and the scoped
+            # client_id claim trusted by the API server. Headlamp otherwise
+            # forwards the client-audience ID token by default.
+            - -oidc-use-access-token
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
           env:

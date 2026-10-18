@@ -32,4 +32,5 @@ def test_headlamp_direct_api_context_uses_supabase_issuer():
     assert "-in-cluster" in container["args"]
     assert "-oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1" in container["args"]
     assert "-oidc-use-pkce" in container["args"]
+    assert "-oidc-use-access-token" in container["args"]
     assert not any(arg.startswith("-oidc-client-secret=") for arg in container["args"])

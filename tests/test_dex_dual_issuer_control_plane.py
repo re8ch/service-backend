@@ -36,6 +36,7 @@ def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     assert '-oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1' in container['args']
     assert '-oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24' in container['args']
     assert '-oidc-scopes=profile,email,offline_access' in container['args']
+    assert '-oidc-use-access-token' in container['args']
     assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
     assert aliases['db-rw.re8ch.com'] == '192.0.2.209'
