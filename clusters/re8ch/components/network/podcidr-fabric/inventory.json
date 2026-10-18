@@ -131,6 +131,7 @@
     {
       "name": "muaya-ecs",
       "internalIp": "192.0.2.203",
+      "kubernetesNodeIp": "192.0.2.46",
       "podCIDR": "192.0.2.99/24",
       "acceleratedIp": "192.0.2.46",
       "asn": 4200000095,

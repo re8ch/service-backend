@@ -1,7 +1,7 @@
 {
   "node": "restricted-node-abb3f27a69",
   "scope": "control-transit-peer",
-  "revision": "be5cfd2d6d7f600b3bd39af05013406dc40d72a38db52a94875ae4254f2ffd45",
+  "revision": "27b3acac1c884ae606b4a09128791f951a515fbd9740ab6a31ee0788bb031303",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-cp-mubao",
