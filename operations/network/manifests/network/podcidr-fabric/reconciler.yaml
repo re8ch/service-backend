@@ -674,7 +674,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: r640-b1-podcidr-authority-v10
+        networking.re8ch.com/config-revision: multipool-inventory-nodes-v11
     spec:
       hostPID: true
       hostNetwork: true
@@ -686,13 +686,32 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: networking.re8ch.com/podcidr-fabric
-                    operator: In
-                    values: [enabled]
-              - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+                    # Every in-cluster route-server or spoke must advertise
+                    # each /24 allocated to it by Cilium Multi-Pool. Keep the
+                    # relay out of this DaemonSet: restricted-node-6dc3f140f9 owns its separate BGP
+                    # handoff through reconcile_relay_nodes(). Names absent
+                    # from this cluster are harmless scheduler non-matches.
+                    values:
+                      - restricted-node-1eb0570f74
+                      - restricted-node-296f36f2fb
+                      - restricted-node-6dc3f140f9
+                      - amdwsl-zt
+                      - overseas-edge-50
+                      - overseas-flk
+                      - overseas-kl
+                      - overseas-la
+                      - overseas-la-2
+                      - suxunji
+                      - muaya-lightweight
+                      - muaya-ecs
+                      - zan
+                      - domain-ex
+                      - qwen-1
+                      - qwen-2
+                      - qwen-3
+                      - vm-20-12-ubuntu
       containers:
         - name: reconciler
           image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
