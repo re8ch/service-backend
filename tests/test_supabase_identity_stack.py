@@ -36,12 +36,19 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     assert pod["imagePullSecrets"] == [{"name": "supabase-identity-harbor-pull"}]
     network = json.loads((ROOT / "operations/network/manifests/network/public-mesh/inventory.json").read_text())
     public_ip = next(node["publicIp"] for node in network["nodes"] if node["name"] == "restricted-node-6dc3f140f9")
-    assert pod["hostAliases"] == [{"ip": public_ip, "hostnames": ["id.re8ch.com"]}]
+    assert pod["hostAliases"] == [
+        {"ip": public_ip, "hostnames": ["id.re8ch.com"]},
+        {
+            "ip": "192.0.2.85",
+            "hostnames": ["pg-re8ch-primary.pigsty-external.svc.cluster.local"],
+        },
+    ]
     assert pod["containers"][0]["image"].startswith("registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:")
     env = {item["name"]: item for item in pod["containers"][0]["env"]}
     assert env["GOTRUE_OAUTH_SERVER_ENABLED"]["value"] == "true"
     assert env["GOTRUE_OAUTH_SERVER_ALLOW_DYNAMIC_REGISTRATION"]["value"] == "true"
     assert env["GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH"]["value"] == "/"
+    assert env["GOTRUE_API_MAX_REQUEST_DURATION"]["value"] == "30s"
     assert env["GOTRUE_JWT_KEYS"]["valueFrom"]["secretKeyRef"]["name"] == "supabase-identity-secrets"
     assert env["GOTRUE_DISABLE_SIGNUP"]["valueFrom"]["configMapKeyRef"]["key"] == "DISABLE_SIGNUP"
     assert config["data"]["DISABLE_SIGNUP"] == "false"
@@ -64,6 +71,12 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
             assert env[f"GOTRUE_EXTERNAL_{provider}_{suffix}"]["valueFrom"]["secretKeyRef"]["key"] == key
     assert env["HTTPS_PROXY"]["value"] == env["HTTP_PROXY"]["value"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
     assert ".svc" in env["NO_PROXY"]["value"]
+    auth_container = pod["containers"][0]
+    assert auth_container["startupProbe"]["httpGet"] == {"path": "/health", "port": "http"}
+    assert auth_container["readinessProbe"]["httpGet"] == {"path": "/health", "port": "http"}
+    assert auth_container["livenessProbe"]["httpGet"] == {"path": "/health", "port": "http"}
+    assert auth_container["resources"]["requests"]["cpu"] == "100m"
+    assert auth_container["resources"]["limits"]["cpu"] == "500m"
     for name, key in (
         ("GOTRUE_EXTERNAL_GITHUB_CLIENT_ID", "GITHUB_OAUTH_CLIENT_ID"),
         ("GOTRUE_EXTERNAL_GITHUB_SECRET", "GITHUB_OAUTH_CLIENT_SECRET"),
