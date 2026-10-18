@@ -7924,6 +7924,8 @@ spec:
           value: 0.0.0.0
         - name: GOTRUE_API_PORT
           value: "9999"
+        - name: GOTRUE_API_MAX_REQUEST_DURATION
+          value: 30s
         - name: HTTPS_PROXY
           value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
         - name: HTTP_PROXY
@@ -8084,21 +8086,45 @@ spec:
             name: supabase-identity-secrets
         image: registry.re8ch.com/auth/supabase-auth:v2.196.0@sha256:1ac1f43d16100d8c89ad39462e3e1d9e25fb121ccdd6748f2766b34cd0edf1c2
         imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 20
+          timeoutSeconds: 2
         name: auth
         ports:
         - containerPort: 9999
           name: http
+        readinessProbe:
+          failureThreshold: 2
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 2
         resources:
           limits:
-            cpu: 100m
+            cpu: 500m
             memory: 384Mi
           requests:
-            cpu: 50m
+            cpu: 100m
             memory: 128Mi
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /health
+            port: http
+          periodSeconds: 2
+          timeoutSeconds: 1
       hostAliases:
       - hostnames:
         - id.re8ch.com
         ip: 192.0.2.138
+      - hostnames:
+        - pg-re8ch-primary.pigsty-external.svc.cluster.local
+        ip: 192.0.2.202
       imagePullSecrets:
       - name: supabase-identity-harbor-pull
       nodeSelector:

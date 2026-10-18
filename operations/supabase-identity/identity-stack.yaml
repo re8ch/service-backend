@@ -304,7 +304,7 @@ metadata:
   name: supabase-identity-rest
   namespace: supabase-identity
 spec:
-  clusterIP: 192.0.2.93
+  clusterIP: 10.43.201.43
   selector:
     app.kubernetes.io/component: rest
   ports:
@@ -331,7 +331,7 @@ spec:
         app.kubernetes.io/component: studio
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - key: dedicated
         operator: Equal
@@ -421,7 +421,7 @@ spec:
         app.kubernetes.io/component: kong
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - key: dedicated
         operator: Equal
@@ -512,7 +512,7 @@ spec:
         app.kubernetes.io/component: meta
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - key: dedicated
         operator: Equal
@@ -595,10 +595,15 @@ spec:
       # GoTrue requires a public IP for custom OIDC SSRF validation, so use
       # the inventory-declared RouterOS public authority and its DNAT path.
       hostAliases:
-      - ip: 192.0.2.138
+      - ip: 223.159.210.222
         hostnames: [id.re8ch.com]
+      # Keep the identity bootstrap path independent of the degraded cluster
+      # DNS plane. This is the stable ClusterIP of the GitOps-managed primary
+      # database Service, not a PostgreSQL member address.
+      - ip: 10.43.141.120
+        hostnames: [pg-re8ch-primary.pigsty-external.svc.cluster.local]
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - key: dedicated
         operator: Equal
@@ -618,14 +623,18 @@ spec:
           value: 0.0.0.0
         - name: GOTRUE_API_PORT
           value: '9999'
-        # restricted-node-6dc3f140f9 cannot reach GitHub directly; use the established identity
+        # A transient database-path stall must not turn a completed refresh
+        # rotation into a client-visible 504 at GoTrue's 10-second default.
+        - name: GOTRUE_API_MAX_REQUEST_DURATION
+          value: 30s
+        # R640 cannot reach GitHub directly; use the established identity
         # egress proxy for OAuth code exchange and profile requests.
         - name: HTTPS_PROXY
           value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
         - name: HTTP_PROXY
           value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
         - name: NO_PROXY
-          value: localhost,127.0.0.1,::1,.svc,.cluster.local,id.re8ch.com,192.0.2.183/8,192.0.2.33/12,192.0.2.136/16
+          value: localhost,127.0.0.1,::1,.svc,.cluster.local,id.re8ch.com,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
         - name: GOTRUE_DB_DRIVER
           value: postgres
         - name: GOTRUE_DB_DATABASE_URL
@@ -772,12 +781,27 @@ spec:
         ports:
         - name: http
           containerPort: 9999
+        startupProbe:
+          httpGet: {path: /health, port: http}
+          failureThreshold: 30
+          periodSeconds: 2
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet: {path: /health, port: http}
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+        livenessProbe:
+          httpGet: {path: /health, port: http}
+          periodSeconds: 20
+          timeoutSeconds: 2
+          failureThreshold: 3
         resources:
           requests:
-            cpu: 50m
+            cpu: 100m
             memory: 128Mi
           limits:
-            cpu: 100m
+            cpu: 500m
             memory: 384Mi
 ---
 apiVersion: apps/v1
@@ -801,7 +825,7 @@ spec:
         app.kubernetes.io/component: rest
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - key: dedicated
         operator: Equal
