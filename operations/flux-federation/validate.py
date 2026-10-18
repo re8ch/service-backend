@@ -96,6 +96,41 @@ def main() -> None:
         ),
         "Network cluster authority is not bound to the autonomous controller namespace",
     )
+    advanced_fabric_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-networking-helm-advanced-fabric"
+    )
+    crd_rule = next(
+        rule for rule in advanced_fabric_role["rules"]
+        if rule.get("apiGroups") == ["apiextensions.k8s.io"]
+        and rule.get("resources") == ["customresourcedefinitions"]
+    )
+    require(
+        set(crd_rule.get("resourceNames", [])) == {
+            "advancedfabrics.networking.advfab.org",
+            "networkinterventions.networking.advfab.org",
+            "networkobservationepisodes.networking.advfab.org",
+            "networkpathassessments.networking.advfab.org",
+            "networktradeoffestimates.networking.advfab.org",
+            "routerosnodes.networking.advfab.org",
+            "tradeofftriangles.networking.advfab.org",
+        },
+        "Network Helm CRD authority must be limited to the Advanced Fabric API",
+    )
+    require("create" not in crd_rule["verbs"] and "delete" not in crd_rule["verbs"],
+            "Network Helm must not create or delete cluster CRDs")
+    require(
+        any(
+            doc["kind"] == "ClusterRoleBinding"
+            and doc["metadata"]["name"] == "flux-networking-helm-advanced-fabric"
+            and doc["roleRef"]["name"] == "flux-networking-helm-advanced-fabric"
+            and doc["subjects"] == [{
+                "kind": "ServiceAccount", "name": "helm-controller", "namespace": "flux-network-system"
+            }]
+            for doc in controller_docs
+        ),
+        "Advanced Fabric cluster authority must be bound only to the Network Helm controller",
+    )
 
     registrations = documents(FEDERATION / "registrations.yaml")
     sources = [doc for doc in registrations if doc["kind"] == "GitRepository"]
