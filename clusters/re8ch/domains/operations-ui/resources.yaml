@@ -2855,6 +2855,10 @@ spec:
         kubernetes.io/hostname: restricted-node-1eb0570f74
       priorityClassName: system-cluster-critical
       tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Equal
+        value: "true"
       - effect: PreferNoSchedule
         key: node-role.kubernetes.io/control-plane
         operator: Equal
@@ -3321,6 +3325,10 @@ spec:
       priorityClassName: system-cluster-critical
       serviceAccountName: headlamp-active-elector
       tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Equal
+        value: "true"
       - effect: PreferNoSchedule
         key: node-role.kubernetes.io/control-plane
         operator: Equal

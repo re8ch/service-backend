@@ -8,7 +8,7 @@ data:
     import socket
     import threading
 
-    RELAYS = ((16443, "192.0.2.125", 6443), (26443, "192.0.2.154", 6443))
+    RELAYS = ((16443, "10.181.22.68", 6443), (26443, "10.181.22.24", 6443))
 
     def copy(source, target):
         try:
@@ -63,9 +63,10 @@ spec:
         scheduling.re8ch.com/control-plane-allowed: "true"
     spec:
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-1eb0570f74
+        kubernetes.io/hostname: a1-wsl-zt
       priorityClassName: system-cluster-critical
       tolerations:
+        - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
         - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       containers:
@@ -121,10 +122,10 @@ spec:
         - {protocol: TCP, port: 26443}
   egress:
     - to:
-        - ipBlock: {cidr: 192.0.2.125/32}
+        - ipBlock: {cidr: 10.181.22.68/32}
       ports:
         - {protocol: TCP, port: 6443}
     - to:
-        - ipBlock: {cidr: 192.0.2.154/32}
+        - ipBlock: {cidr: 10.181.22.24/32}
       ports:
         - {protocol: TCP, port: 6443}
