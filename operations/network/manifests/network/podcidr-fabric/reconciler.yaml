@@ -448,6 +448,7 @@ data:
       host vtysh <"${commands}"
       rm -f "${commands}"
       reconcile_wireguard_allowed_ips
+      reconcile_rr_interconnect_transit_sources
       reconcile_control_api_spoke_symmetry
       reconcile_public_mesh_allowed_ips
       reconcile_control_plane_identity_routes
@@ -457,6 +458,7 @@ data:
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
         reconcile_wireguard_allowed_ips
+        reconcile_rr_interconnect_transit_sources || exit 1
         reconcile_control_api_spoke_symmetry
         host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || exit 1
       done
@@ -709,7 +711,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: multipool-rr-allowedips-v13
+        networking.re8ch.com/config-revision: multipool-rr-interconnect-v14
     spec:
       hostPID: true
       hostNetwork: true
