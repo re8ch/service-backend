@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: starfire-umber
+codename: torch-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:e2da5ebf41b9340b7e4357d5c78bfd7faabeb3db23a3168d90ce48fe2b8f1a98
+  digest: sha256:afa4fad542ca82b75c58783633faaa1bb2c44797d56f904a63a1355e60844c3e
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
