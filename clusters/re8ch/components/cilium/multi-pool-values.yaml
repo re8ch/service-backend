@@ -15,6 +15,6 @@ ipv4NativeRoutingCIDR: 192.0.2.203/8
 # portable SNAT authority during the Multi-Pool migration.
 bpf:
   masquerade: false
-egressMasqueradeInterfaces: eth+,eno+,ens+,enp+
+egressMasqueradeInterfaces: eth0,eno2np1
 
 rollOutCiliumPods: true

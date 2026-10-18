@@ -28,3 +28,9 @@ routing device set contains the point-to-point WireGuard interfaces, while
 customer and overseas nodes use heterogeneous physical interfaces for Internet
 egress; BPF masquerade on the routing device set would leave that traffic
 without SNAT.
+
+The interface selector intentionally names the two reviewed default-route
+interfaces (`eth0` on virtual/customer nodes and `eno2np1` on R640). This
+Cilium development build does not reliably expand prefix selectors such as
+`eth+`; add a new exact interface to the inventory before onboarding a node
+whose default route uses a different device name.
