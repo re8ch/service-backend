@@ -12,7 +12,9 @@ spec:
     # Restrict device selection so native XDP is not attached to ZeroTier or WG.
     devices: eno2np1
     direct-routing-device: eno2np1
-    egress-masquerade-interfaces: eno2np1
+    # BPF masquerade rejects the iptables-only selector when it is non-empty.
+    # Device selection below remains the single BPF attachment authority.
+    egress-masquerade-interfaces: ""
     # restricted-node-6dc3f140f9 also originates the 192.0.2.205 control-plane VIP. The generic
     # iptables MASQUERADE rule rewrites that host traffic on its LAN return
     # path; BPF masquerade stays scoped to endpoint traffic on this exact NIC.
