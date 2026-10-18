@@ -2185,6 +2185,7 @@ rules:
   - access-controller
   - access-subscription
   - access-telemetry
+  - mailbox-provisioner
   - stalwart-cloudflare-token-source
   - stalwart-cloudflare-token-target
   - stalwart-mailbox-provisioner-secrets

@@ -9,6 +9,7 @@ RECONCILERS = ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml"
 AUTHORITY = ROOT / "operations/releases/runtime-authority.yaml"
 FEDERATION_AUTHORITY = ROOT / "operations/flux-federation/authority.yaml"
 FEDERATION_REGISTRATIONS = ROOT / "clusters/re8ch/flux-federation/registrations.yaml"
+FEDERATION_CONTROLLERS = ROOT / "clusters/re8ch/flux-federation/controllers.yaml"
 
 
 def load_all(path: Path) -> list[dict]:
@@ -87,6 +88,21 @@ def test_root_reconcile_stays_non_pruning_during_ownership_handoff():
     root = next(item for item in sync if item.get("kind") == "Kustomization")
     assert root["metadata"]["name"] == "service-backend"
     assert root["spec"]["prune"] is False
+
+
+def test_identity_controller_can_bind_shared_mailbox_role():
+    identity_role = next(
+        item for item in load_all(FEDERATION_CONTROLLERS)
+        if item.get("kind") == "ClusterRole"
+        and item["metadata"]["name"] == "flux-identity-access-namespaced"
+    )
+    bind_rule = next(
+        rule for rule in identity_role["rules"]
+        if rule.get("apiGroups") == ["rbac.authorization.k8s.io"]
+        and rule.get("resources") == ["roles"]
+        and "bind" in rule.get("verbs", [])
+    )
+    assert "mailbox-provisioner" in bind_rule["resourceNames"]
 
 
 def test_external_fast_changing_products_target_product_runtime():
