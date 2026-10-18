@@ -4572,6 +4572,7 @@ rules:
   - networktradeoffestimates.networking.advfab.org
   - routerosnodes.networking.advfab.org
   - tradeofftriangles.networking.advfab.org
+  - trafficpolicies.networking.advfab.org
   verbs:
   - get
   - update
@@ -4586,6 +4587,7 @@ rules:
   - networktradeoffestimates
   - routerosnodes
   - tradeofftriangles
+  - trafficpolicies
   verbs:
   - get
   - list

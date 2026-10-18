@@ -114,6 +114,7 @@ def main() -> None:
             "networktradeoffestimates.networking.advfab.org",
             "routerosnodes.networking.advfab.org",
             "tradeofftriangles.networking.advfab.org",
+            "trafficpolicies.networking.advfab.org",
         },
         "Network Helm CRD authority must be limited to the Advanced Fabric API",
     )
