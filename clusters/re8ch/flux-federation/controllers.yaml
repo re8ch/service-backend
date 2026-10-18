@@ -4390,6 +4390,7 @@ rules:
   resources:
   - gateways
   - httproutes
+  - referencegrants
   verbs:
   - get
   - list
@@ -4495,11 +4496,13 @@ rules:
   resourceNames:
   - advanced-fabric-controller-lease
   - among-clusters-agent-identity
+  - among-clusters-credential-broker
   - among-clusters-legacy-agent-cleanup
   - control-dns-reachability
   - host-network-controller
   - mihomo-node-labeler-inventory
   - path-controller
+  - public-edge-manager-cloudflare
   - public-edge-manager-cli
   - read-cloudflare-dns-token
   - write-cloudflare-dns-token

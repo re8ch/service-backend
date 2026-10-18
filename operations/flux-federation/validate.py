@@ -85,6 +85,10 @@ def main() -> None:
             "Network Helm RBAC omits Advanced Fabric lease role authority")
     require("among-clusters-agent-identity" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Among Clusters agent identity role authority")
+    require("among-clusters-credential-broker" in network_role_authority["resourceNames"],
+            "Network Helm RBAC omits Among Clusters credential broker role authority")
+    require("public-edge-manager-cloudflare" in network_role_authority["resourceNames"],
+            "Network Helm RBAC omits Public Edge Cloudflare role authority")
     require("public-edge-manager-cli" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Public Edge CLI role authority")
     network_apps_rule = next(
@@ -93,6 +97,12 @@ def main() -> None:
     )
     require("replicasets" in network_apps_rule["resources"],
             "Network Helm RBAC omits ReplicaSet inspection authority")
+    network_gateway_rule = next(
+        rule for rule in network_namespaced_role["rules"]
+        if rule.get("apiGroups") == ["gateway.networking.k8s.io"]
+    )
+    require("referencegrants" in network_gateway_rule["resources"],
+            "Network Helm RBAC omits cross-namespace ReferenceGrant authority")
 
     network_cluster_role = next(
         doc for doc in controller_docs

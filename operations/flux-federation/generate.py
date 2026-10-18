@@ -38,6 +38,16 @@ EXTERNAL_CLUSTER_AUTHORITY = {
 EXTERNAL_NAMESPACED_AUTHORITY = {
     "networking": {
         "apps": {"replicasets"},
+        "gateway.networking.k8s.io": {"referencegrants"},
+    },
+}
+
+# Name-scoped escalation/binding for Roles rendered inside product Helm charts.
+# These do not appear as top-level objects in the compiled domain bundle.
+EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
+    "networking": {
+        "among-clusters-credential-broker",
+        "public-edge-manager-cloudflare",
     },
 }
 
@@ -245,7 +255,7 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
         item["metadata"]["name"]
         for item in documents
         if item["apiVersion"] == "rbac.authorization.k8s.io/v1" and item["kind"] == "Role"
-    })
+    } | EXTERNAL_NAMESPACED_ROLE_AUTHORITY.get(domain, set()))
     if managed_roles:
         namespaced_rules.append({
             "apiGroups": ["rbac.authorization.k8s.io"],
