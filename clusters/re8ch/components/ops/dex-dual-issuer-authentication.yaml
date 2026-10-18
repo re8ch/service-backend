@@ -3,6 +3,13 @@ kind: AuthenticationConfiguration
 jwt:
   - issuer:
       url: https://db-rw.re8ch.com/auth/v1
-      audiences: [ed4e0331-7522-59f8-8a72-2d558844dc24]
+      # GoTrue OAuth access tokens keep the project audience and identify the
+      # OAuth client separately. Headlamp forwards this access token to the
+      # API server; the ID token's client audience is not used for Kubernetes
+      # requests.
+      audiences: [authenticated]
+    claimValidationRules:
+      - expression: "claims.client_id == 'ed4e0331-7522-59f8-8a72-2d558844dc24'"
+        message: token must have been issued to the Headlamp OAuth client
     claimMappings:
       username: {claim: email, prefix: 'oidc:'}

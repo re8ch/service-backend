@@ -15,4 +15,11 @@ done
 ip -4 addr show dev wg-pt-mubao | grep -q '172\.31\.95\.30/' || {
   echo 'MUBAO gate: WireGuard transport address absent' >&2; exit 1;
 }
+
+# The WSL NAT resolver returns a public address that is not hairpin-reachable
+# from MUBAO. The API server must reach OIDC discovery while loading its
+# AuthenticationConfiguration, so use the declared internal Cilium Gateway.
+if ! grep -qE '^[[:space:]]*10\.251\.0\.4[[:space:]].*db-rw\.re8ch\.com([[:space:]]|$)' /etc/hosts; then
+  printf '\n10.251.0.4 db-rw.re8ch.com # RE8CH OIDC discovery via authoritative Cilium Gateway\n' >>/etc/hosts
+fi
 exit 0
