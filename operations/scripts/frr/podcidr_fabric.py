@@ -18,8 +18,8 @@ def validate(inventory):
     native = ipaddress.ip_network(inventory["nativeRoutingCIDR"])
     accelerated = ipaddress.ip_network(inventory["acceleratedCIDR"])
     service = ipaddress.ip_network(inventory["serviceCIDR"])
-    if native != ipaddress.ip_network("192.0.2.57/16"):
-        raise ValueError("nativeRoutingCIDR must remain 192.0.2.57/16")
+    if native != ipaddress.ip_network("10.42.0.0/16"):
+        raise ValueError("nativeRoutingCIDR must remain 10.42.0.0/16")
     seen_names, seen_pods, seen_asns = set(), set(), set()
     for node in inventory["routeServers"] + inventory["nodes"]:
         name, asn = node["name"], int(node["asn"])
@@ -64,9 +64,10 @@ def render_spoke(inventory, node):
     lines = [
         "configure terminal",
         "no ip prefix-list POD-FABRIC-IN",
-        "ip prefix-list POD-FABRIC-IN seq 10 permit 192.0.2.57/16 ge 24 le 24",
-        "ip prefix-list POD-FABRIC-IN seq 20 permit 192.0.2.65/24 ge 32 le 32",
-        "ip prefix-list POD-FABRIC-IN seq 30 permit 192.0.2.121/24 ge 32 le 32",
+        "ip prefix-list POD-FABRIC-IN seq 10 permit 10.42.0.0/16 ge 24 le 24",
+        "ip prefix-list POD-FABRIC-IN seq 15 permit 10.64.0.0/12 ge 24 le 24",
+        "ip prefix-list POD-FABRIC-IN seq 20 permit 10.250.0.0/24 ge 32 le 32",
+        "ip prefix-list POD-FABRIC-IN seq 30 permit 10.251.0.0/24 ge 32 le 32",
         "ip prefix-list POD-FABRIC-IN seq 1000 deny any",
         "no ip prefix-list POD-FABRIC-SELF",
         f"ip prefix-list POD-FABRIC-SELF seq 10 permit {node['podCIDR']}",
@@ -116,12 +117,12 @@ def expected(inventory):
 def control_plane_identity_routes(node_name):
     """Return the protected control-plane identity exceptions.
 
-    restricted-node-6dc3f140f9 is not an ordinary ZeroTier L2 node. A1 and B1 each have a direct
-    public-underlay WireGuard path to restricted-node-6dc3f140f9, while restricted-node-6dc3f140f9 must retain its
+    R640 is not an ordinary ZeroTier L2 node. A1 and B1 each have a direct
+    public-underlay WireGuard path to R640, while R640 must retain its
     RouterOS/WG boundary routes.
     """
-    if node_name == "restricted-node-1eb0570f74":
-        return ["ip route 192.0.2.178/32 wg-pt-a1 5"]
+    if node_name == "a1-wsl-zt":
+        return ["ip route 10.181.22.128/32 wg-pt-a1 5"]
     return []
 
 
