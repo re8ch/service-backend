@@ -24,6 +24,15 @@ TOOLKIT_GROUPS = [
     "notification.toolkit.fluxcd.io",
 ]
 
+# Cluster-scoped resources that are intentionally published by an autonomous
+# domain repository after the initial inventory split. Keep this list explicit:
+# it is the reviewed authority boundary, not a wildcard escape hatch.
+EXTERNAL_CLUSTER_AUTHORITY = {
+    "networking": {
+        "cilium.io": {"ciliumpodippools"},
+    },
+}
+
 
 def load_documents(path: Path) -> list[dict]:
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
@@ -143,6 +152,8 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
         bucket.setdefault(group, set()).add(resource)
         if is_namespaced:
             target_namespaces.add(item.get("metadata", {}).get("namespace", "default"))
+    for group, resource_names in EXTERNAL_CLUSTER_AUTHORITY.get(domain, {}).items():
+        cluster.setdefault(group, set()).update(resource_names)
     rules = lambda groups: [
         {"apiGroups": [group], "resources": sorted(values), "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}
         for group, values in sorted(groups.items())
