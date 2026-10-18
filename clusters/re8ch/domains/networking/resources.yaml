@@ -83,6 +83,12 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: podcidr-fabric-reconciler
+  namespace: kube-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
   name: external-dns-cloudflare
   namespace: qianwen-ops
 ---
@@ -283,6 +289,20 @@ rules:
   - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: podcidr-fabric-reconciler-ciliumnodes
+rules:
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnodes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cert-manager-write-cloudflare-dns-token
@@ -434,6 +454,19 @@ subjects:
 - kind: ServiceAccount
   name: mihomo-node-labeler
   namespace: egress-fabric
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: podcidr-fabric-reconciler-ciliumnodes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: podcidr-fabric-reconciler-ciliumnodes
+subjects:
+- kind: ServiceAccount
+  name: podcidr-fabric-reconciler
+  namespace: kube-system
 ---
 apiVersion: v1
 data:
@@ -18163,6 +18196,14 @@ data:
       nsenter -t 1 -n chroot /host "$@"
     }
 
+    local_pod_cidrs() {
+      {
+        printf '%s\n' "${pod_cidr}"
+        /tools/kubectl get ciliumnode "${NODE_NAME}" -o json 2>/dev/null |
+          jq -r '.spec.ipam.pools.allocated[]?.cidrs[]?'
+      } | awk 'NF && !seen[$0]++'
+    }
+
     reconcile_host_source_identity() {
       source_policy="$(jq -c --arg n "${NODE_NAME}" '.hostSourceIdentity[$n] // empty' /config/inventory.json)"
       binding="$(host vtysh -c 'show running-config' | sed -n 's/^ip protocol bgp route-map //p')"
@@ -18607,6 +18648,7 @@ data:
       transport_ip="$(printf '%s' "${route_server}" | jq -r .transportIp)"
       rr_interconnect_ip="$(printf '%s' "${route_server}" | jq -r .rrInterconnectIp)"
       transport_octet="$(printf '%s' "${route_server}" | jq -r '.transportIp | split(".")[2]')"
+      owned_pod_cidrs="$(local_pod_cidrs)"
       commands="$(mktemp)"
       {
         echo 'configure terminal'
@@ -18614,11 +18656,12 @@ data:
         jq -r '.routeServers[], .nodes[] | .podCIDR' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " NR * 10 " permit " $0}'
         jq -r '.routeServers[], .nodes[] | .acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 300 + NR * 10 " permit " $0}'
         jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 600 + NR * 10 " permit " $0}'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 850 permit 192.0.2.156/12 ge 24 le 24'
         echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 192.0.2.121/24 ge 32 le 32'
         echo 'ip prefix-list POD-FABRIC-OUT seq 1000 deny any'
         echo 'no ip prefix-list POD-FABRIC-RR-SELF'
-        echo "ip prefix-list POD-FABRIC-RR-SELF seq 10 permit ${pod_cidr}"
-        echo "ip prefix-list POD-FABRIC-RR-SELF seq 20 permit ${accelerated_ip}/32"
+        printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip prefix-list POD-FABRIC-RR-SELF seq " NR * 10 " permit " $0}'
+        echo "ip prefix-list POD-FABRIC-RR-SELF seq 200 permit ${accelerated_ip}/32"
         echo 'ip prefix-list POD-FABRIC-RR-SELF seq 1000 deny any'
         # Route reflectors are control-plane only. Never attract reflected
         # traffic by rewriting its next hop to the RR identity/transit IP.
@@ -18642,7 +18685,7 @@ data:
         echo 'match ip address prefix-list POD-FABRIC-OUT'
         echo 'exit'
         echo 'no ip route 192.0.2.6/24 Null0 254'
-        echo "ip route ${pod_cidr} Null0 254"
+        printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip route " $0 " Null0 254"}'
         echo "router bgp ${asn}"
         jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
           spoke_asn="$(printf '%s' "${spoke}" | jq -r .asn)"
@@ -18673,7 +18716,7 @@ data:
         done
         echo 'address-family ipv4 unicast'
         echo 'no network 192.0.2.6/24'
-        echo "network ${pod_cidr}"
+        printf '%s\n' "${owned_pod_cidrs}" | awk '{print "network " $0}'
         echo "network ${accelerated_ip}/32"
         jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
           mode="$(printf '%s' "${spoke}" | jq -r .peerMode)"
@@ -18783,9 +18826,13 @@ data:
     fi
     a1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-1eb0570f74") | .asn' /config/inventory.json)"
     b1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .asn' /config/inventory.json)"
+    owned_pod_cidrs="$(local_pod_cidrs)"
 
     apply_fabric() {
-      relay_prefix_lines="$(jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-SELF seq " 200 + NR * 10 " permit " $0}')"
+      owned_prefix_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip prefix-list POD-FABRIC-SELF seq " NR * 10 " permit " $0}')"
+      owned_route_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip route " $0 " Null0 254"}')"
+      owned_network_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "network " $0}')"
+      relay_prefix_lines="$(jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-SELF seq " 300 + NR * 10 " permit " $0}')"
       host vtysh <<EOF
     configure terminal
     no ip prefix-list POD-FABRIC-IN
@@ -18795,8 +18842,8 @@ data:
     ip prefix-list POD-FABRIC-IN seq 30 permit 192.0.2.121/24 ge 32 le 32
     ip prefix-list POD-FABRIC-IN seq 1000 deny any
     no ip prefix-list POD-FABRIC-SELF
-    ip prefix-list POD-FABRIC-SELF seq 10 permit ${pod_cidr}
-    ip prefix-list POD-FABRIC-SELF seq 20 permit ${accelerated_ip}/32
+    ${owned_prefix_lines}
+    ip prefix-list POD-FABRIC-SELF seq 200 permit ${accelerated_ip}/32
     ${relay_prefix_lines}
     ip prefix-list POD-FABRIC-SELF seq 1000 deny any
     route-map POD-FABRIC-SELF-NH-A1 permit 10
@@ -18807,7 +18854,7 @@ data:
     match ip address prefix-list POD-FABRIC-SELF
     set ip next-hop ${b1_update_source}
     exit
-    ip route ${pod_cidr} Null0 254
+    ${owned_route_lines}
     router bgp ${asn}
     bgp ebgp-requires-policy
     bgp bestpath as-path multipath-relax
@@ -18821,7 +18868,7 @@ data:
     neighbor ${b1_peer} update-source ${b1_update_source}
     neighbor ${b1_peer} disable-connected-check
     address-family ipv4 unicast
-    network ${pod_cidr}
+    ${owned_network_lines}
     network ${accelerated_ip}/32
     neighbor ${a1_peer} activate
     neighbor ${a1_peer} prefix-list POD-FABRIC-IN in
@@ -20786,12 +20833,35 @@ spec:
         - mountPath: /host
           name: host-root
           readOnly: false
+        - mountPath: /tools
+          name: tools
+          readOnly: true
       hostNetwork: true
       hostPID: true
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - cp /bin/kubectl /tools/kubectl
+        image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
+        name: install-kubectl
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+        volumeMounts:
+        - mountPath: /tools
+          name: tools
       priorityClassName: system-node-critical
+      serviceAccountName: podcidr-fabric-reconciler
       tolerations:
       - operator: Exists
       volumes:
+      - emptyDir: {}
+        name: tools
       - name: config
         projected:
           sources:
