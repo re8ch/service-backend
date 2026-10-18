@@ -241,6 +241,26 @@ def outputs(model):
                                 rules.append(rule)
                                 rules.append({"source": destination, "destination": source,
                                               "inInterface": interface, "outInterface": entry["relayInterface"]})
+                multi_pool = entry.get("multiPoolCIDR")
+                if multi_pool != "192.0.2.38/12":
+                    raise ValueError("unreviewed transit Multi-Pool authority")
+                relay_identity = nodes[entry["relayNode"]]["acceleratedIp"] + "/32"
+                for interface in entry["fabricInterfaces"]:
+                    for source, destination in (
+                        (relay_identity, multi_pool),
+                        (multi_pool, relay_identity),
+                        (multi_pool, multi_pool),
+                    ):
+                        if source == relay_identity:
+                            in_interface, out_interface = entry["relayInterface"], interface
+                        elif destination == relay_identity:
+                            in_interface, out_interface = interface, entry["relayInterface"]
+                        else:
+                            in_interface, out_interface = entry["relayInterface"], interface
+                        rules.append({"source": source, "destination": destination,
+                                      "inInterface": in_interface, "outInterface": out_interface})
+                    rules.append({"source": multi_pool, "destination": multi_pool,
+                                  "inInterface": interface, "outInterface": entry["relayInterface"]})
                 section["transitForwarding"][entry["node"]] = rules
         if section_name == "routerosControlMesh":
             intent = model["routeIntent"]

@@ -129,7 +129,7 @@ class AdvancedFabricTests(unittest.TestCase):
 
         self.assertIn("refresh_cilium_nodes()", reconciler)
         self.assertIn("refresh_cilium_nodes_or_reload()", reconciler)
-        self.assertEqual(reconciler.count("refresh_cilium_nodes_or_reload\n"), 2)
+        self.assertEqual(reconciler.count("refresh_cilium_nodes_or_reload\n"), 3)
         self.assertIn('mv "${candidate}" "${cilium_nodes}"', reconciler)
         self.assertIn("retaining last-known-good allocations", reconciler)
         self.assertIn('exec /bin/sh /config/reconcile.sh', reconciler)
@@ -139,7 +139,7 @@ class AdvancedFabricTests(unittest.TestCase):
             daemonset["spec"]["template"]["metadata"]["annotations"][
                 "networking.re8ch.com/config-revision"
             ],
-            "muaya-advfab-multipool-v16",
+            "multipool-relay-v17",
         )
 
     def test_control_plane_readiness_requires_both_route_servers_and_fib(self):
@@ -180,7 +180,7 @@ class AdvancedFabricTests(unittest.TestCase):
             expression["key"] == "kubernetes.io/hostname"
             and expression["operator"] == "In"
             and set(expression["values"]) == {
-                "restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "overseas-flk", "overseas-kl",
+                "restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69", "overseas-flk", "overseas-kl",
                 "overseas-la", "overseas-la-2"
             }
             for term in terms for expression in term["matchExpressions"]

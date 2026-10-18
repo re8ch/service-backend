@@ -1,7 +1,7 @@
 {
   "node": "overseas-flk",
   "scope": "public-mesh-peers",
-  "revision": "27b3acac1c884ae606b4a09128791f951a515fbd9740ab6a31ee0788bb031303",
+  "revision": "54d1ec3aaa108cfbb5e2e43c7f45d346ebfda4eb14a99b9085689fc06c7757ba",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-public-mesh",

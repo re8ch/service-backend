@@ -17,7 +17,8 @@ data:
 
     node="$(jq -c --arg name "${NODE_NAME}" '.nodes[] | select(.name == $name)' /config/inventory.json)"
     route_server="$(jq -c --arg name "${NODE_NAME}" '.routeServers[] | select(.name == $name)' /config/inventory.json)"
-    test -n "${node}${route_server}"
+    relay="$(jq -c --arg name "${NODE_NAME}" '.relayNodes[]? | select(.name == $name)' /config/inventory.json)"
+    test -n "${node}${route_server}${relay}"
 
     host() {
       nsenter -t 1 -n chroot /host "$@"
@@ -118,7 +119,7 @@ data:
           printf '%s' "${summary}" | jq -e --argjson asn "${asn}" --arg peer "${rr_peer}" \
             '.as == $asn and .peers[$peer].state == "Established"' >/dev/null && peers_ready=true
         elif [ "${control_plane_node}" = true ]; then
-          # restricted-node-6dc3f140f9 must retain both A1 and B1 sessions.  A single surviving RR is
+          # R640 must retain both A1 and B1 sessions.  A single surviving RR is
           # degraded service, not a completed reconciliation.
           printf '%s' "${summary}" | jq -e --argjson asn "${asn}" --arg a1 "${a1_peer}" --arg b1 "${b1_peer}" \
             '.as == $asn and .peers[$a1].state == "Established" and .peers[$b1].state == "Established"' >/dev/null && peers_ready=true
@@ -194,7 +195,7 @@ data:
         host ip link show "${iface}" >/dev/null 2>&1 || continue
         # ECMP can send a socket sourced from either tunnel across this iface.
         for source_fabric in 93 94; do
-          for api_ip in 192.0.2.220 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+          for api_ip in 10.250.0.1 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
             rule="ip saddr 172.31.${source_fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
             host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
               host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${source_fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
@@ -205,24 +206,24 @@ data:
 
     reconcile_control_api_spoke_symmetry() {
       [ -n "${route_server}" ] || return 0
-      if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then cp_iface=wg-cp-a1; else cp_iface=wg-cp-b1; fi
+      if [ "${NODE_NAME}" = a1-wsl-zt ]; then cp_iface=wg-cp-a1; else cp_iface=wg-cp-b1; fi
       host ip link show "${cp_iface}" >/dev/null 2>&1 || return 0
       local_ip="$(printf '%s' "${route_server}" | jq -r '.acceleratedIp')"
       for relay_ip in $(jq -r '.relayNodes[]? | .acceleratedIp' /config/inventory.json); do
-        for spoke_ip in $(jq -r '.nodes[] | select(.peerMode == "transport" and .name != "restricted-node-6dc3f140f9") | .acceleratedIp' /config/inventory.json); do
+        for spoke_ip in $(jq -r '.nodes[] | select(.peerMode == "transport" and .name != "r640") | .acceleratedIp' /config/inventory.json); do
           host ip rule show | grep -Fq "from ${spoke_ip} to ${relay_ip} ipproto tcp dport 6443 lookup 15300" ||
             host ip rule add pref 11519 from "${spoke_ip}/32" to "${relay_ip}/32" ipproto tcp dport 6443 lookup 15300
           host ip rule show | grep -Fq "to ${spoke_ip} iif ${cp_iface} lookup main" ||
             host ip rule add pref 11522 iif "${cp_iface}" to "${spoke_ip}/32" lookup main
-          for reply_ip in "${local_ip}" 192.0.2.220; do
+          for reply_ip in "${local_ip}" 10.250.0.1; do
             host ip rule show | grep -Fq "from ${reply_ip} to ${spoke_ip} ipproto tcp sport 6443 lookup main" ||
               host ip rule add pref 11522 from "${reply_ip}/32" to "${spoke_ip}/32" ipproto tcp sport 6443 lookup main
           done
         done
       done
       for node_ip in $(jq -r '.nodes[].acceleratedIp' /config/inventory.json); do
-        host ip rule show | grep -Fq "from 192.0.2.220 to ${node_ip} ipproto tcp sport 6443 lookup main" ||
-          host ip rule add pref 11522 from 192.0.2.220/32 to "${node_ip}/32" ipproto tcp sport 6443 lookup main
+        host ip rule show | grep -Fq "from 10.250.0.1 to ${node_ip} ipproto tcp sport 6443 lookup main" ||
+          host ip rule add pref 11522 from 10.250.0.1/32 to "${node_ip}/32" ipproto tcp sport 6443 lookup main
       done
     }
 
@@ -244,7 +245,7 @@ data:
             host vtysh -c 'configure terminal' -c "ip route ${other_transport_cidr} ${other_interconnect} wg-wsl-lan 5" -c end
           done
         fi
-        if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
+        if [ "${NODE_NAME}" = a1-wsl-zt ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
         host ip link show "${iface}" >/dev/null 2>&1 || return 0
         jq -c '.nodes[] | select(.peerMode == "transport")' /config/inventory.json | while read -r spoke; do
           last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
@@ -254,7 +255,7 @@ data:
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
           case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
         done
-        # Relayed identities use restricted-node-6dc3f140f9's existing tunnel, never a direct A/B peer.
+        # Relayed identities use R640's existing tunnel, never a direct A/B peer.
         r640_peer="$(host wg show "${iface}" allowed-ips | awk -v transit="172.31.${fabric_octet}.128/32" '{ for (i=2; i<=NF; i++) if ($i == transit) { print $1; exit } }')"
         if [ -n "${r640_peer}" ]; then
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${r640_peer}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
@@ -273,9 +274,9 @@ data:
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
         remote_pods="$(jq -r --arg own "${pod_cidr}" '.routeServers[], .relayNodes[]?, .nodes[] | .podCIDR | select(. != $own)' /config/inventory.json | paste -sd, -)"
-        relay_identities="192.0.2.220/32,$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
+        relay_identities="10.250.0.1/32,$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
         if [ "${peer_mode}" = transport ]; then
-          if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=192.0.2.160/24; else transport_cidr=192.0.2.90/24; fi
+          if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=172.31.93.0/24; else transport_cidr=172.31.94.0/24; fi
           case ",${allowed}," in *",${transport_cidr},"*) : ;; *) allowed="${allowed},${transport_cidr}" ;; esac
           host vtysh -c 'configure terminal' -c "ip route ${transport_cidr} ${iface} 5" -c end
         fi
@@ -332,7 +333,7 @@ data:
     }
 
     reconcile_transit_forwarding() {
-      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      [ "${NODE_NAME}" = r640 ] || return 0
       chain=RE8CH-FABRIC-FORWARD
       if ! jq -e --arg node "${NODE_NAME}" '.transitForwarding[$node] | length > 0' /config/inventory.json >/dev/null; then
         if host iptables -w -S "${chain}" >/dev/null 2>&1; then
@@ -359,14 +360,14 @@ data:
     }
 
     reconcile_r640_identity_transit_nat() {
-      [ "${NODE_NAME}" = restricted-node-1eb0570f74 ] || return 0
+      [ "${NODE_NAME}" = a1-wsl-zt ] || return 0
       host ip link show wg-pt-a1 >/dev/null 2>&1 || return 0
       host nft list table ip re8ch_fabric >/dev/null 2>&1 || host nft add table ip re8ch_fabric
       host nft list chain ip re8ch_fabric postrouting >/dev/null 2>&1 ||
         host nft 'add chain ip re8ch_fabric postrouting { type nat hook postrouting priority srcnat; policy accept; }'
       jq -r '.nodes[] | select(.peerMode == "identity") | .podCIDR' /config/inventory.json | while read -r peer_pods; do
         host nft list chain ip re8ch_fabric postrouting | grep -Fq "ip daddr ${peer_pods}" ||
-          host nft add rule ip re8ch_fabric postrouting ip saddr 192.0.2.231/32 ip daddr "${peer_pods}" masquerade
+          host nft add rule ip re8ch_fabric postrouting ip saddr 172.31.93.128/32 ip daddr "${peer_pods}" masquerade
       done
     }
 
@@ -394,17 +395,17 @@ data:
 
     cleanup_retired_panel_api_dnat() {
       [ "${NODE_NAME}" = vm-20-12-ubuntu ] || return 0
-      # This bootstrap-only redirect makes a connection addressed to restricted-node-6dc3f140f9
+      # This bootstrap-only redirect makes a connection addressed to R640
       # register its K3s remotedialer session on A1 instead. Remove only the
       # exact historical rule; do not alter any other OUTPUT NAT policy.
       while host iptables -t nat -C OUTPUT \
-        -d 192.0.2.183/32 -p tcp --dport 6443 \
+        -d 10.181.22.128/32 -p tcp --dport 6443 \
         -m comment --comment 'RE8CH panel K3s API recovery via A1' \
-        -j DNAT --to-destination 192.0.2.18:6443 2>/dev/null; do
+        -j DNAT --to-destination 10.181.22.147:6443 2>/dev/null; do
         host iptables -t nat -D OUTPUT \
-          -d 192.0.2.183/32 -p tcp --dport 6443 \
+          -d 10.181.22.128/32 -p tcp --dport 6443 \
           -m comment --comment 'RE8CH panel K3s API recovery via A1' \
-          -j DNAT --to-destination 192.0.2.18:6443
+          -j DNAT --to-destination 10.181.22.147:6443
       done
     }
 
@@ -414,14 +415,14 @@ data:
       # order is not routing authority.
       identity_iface="$(host ip -o -4 addr show | awk -v own="${internal_ip}" '$4 ~ ("^" own "/") {print $2; exit}')"
       # Control-plane identities are certificate and etcd authorities, not a
-      # generic optimization domain. restricted-node-6dc3f140f9 has no ordinary Linux ZeroTier L2
+      # generic optimization domain. R640 has no ordinary Linux ZeroTier L2
       # endpoint: B1 reaches it directly through wg-pt-b1, while A1 reaches it
       # directly through wg-pt-a1 over the public underlay. Never overwrite those paths with a
-      # 192.0.2.183/32 route via the ZeroTier interface.
+      # 10.181.22.128/32 route via the ZeroTier interface.
       # Identity-mode BGP speakers preserve their Kubernetes InternalIP as the
       # next hop. Pin those /32 identities to the interface which owns this
       # node's InternalIP so a broad underlay/default route cannot capture
-      # recursive BGP next-hop resolution. This must run before the restricted-node-6dc3f140f9/B1
+      # recursive BGP next-hop resolution. This must run before the R640/B1
       # control-plane exception below.
       if [ -n "${identity_iface}" ]; then
         jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshIdentityPeers // []) as $mesh | $root.nodes[] | select(.name != $own and .peerMode == "identity" and (.name as $name | $mesh | index($name) | not)) | .internalIp' /config/inventory.json | while read -r peer_ip; do
@@ -431,11 +432,11 @@ data:
           host vtysh -c 'configure terminal' -c "no ip route ${peer_ip}/32 ${identity_iface} 5" -c end
         done
       fi
-      # restricted-node-6dc3f140f9's ZeroTier membership cannot currently reach the Qwen identity
+      # R640's ZeroTier membership cannot currently reach the Qwen identity
       # peers directly, while its private A1 transit is healthy and already
       # authorizes every remote PodCIDR. Resolve identity-mode leaf PodCIDRs
       # through that transit so the public edge can reach their workloads.
-      if [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] && host ip link show wg-pt-a1 >/dev/null 2>&1; then
+      if [ "${NODE_NAME}" = r640 ] && host ip link show wg-pt-a1 >/dev/null 2>&1; then
         jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshPodCIDRPeers // []) as $mesh | $root.nodes[] | select(.name != $own and .peerMode == "identity" and (.name as $name | $mesh | index($name) | not)) | .podCIDR' /config/inventory.json | while read -r peer_pods; do
           host vtysh -c 'configure terminal' -c "ip route ${peer_pods} wg-pt-a1 5" -c end
         done
@@ -443,14 +444,14 @@ data:
           host vtysh -c 'configure terminal' -c "no ip route ${peer_pods} wg-pt-a1 5" -c end
         done
       fi
-      if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then
+      if [ "${NODE_NAME}" = a1-wsl-zt ]; then
         host vtysh -c 'configure terminal' \
-          -c "no ip route 192.0.2.183/32 ${identity_iface} 5" \
-          -c 'ip route 192.0.2.183/32 wg-pt-a1 5' \
+          -c "no ip route 10.181.22.128/32 ${identity_iface} 5" \
+          -c 'ip route 10.181.22.128/32 wg-pt-a1 5' \
           -c end
         return 0
       fi
-      if [ "${NODE_NAME}" = restricted-node-296f36f2fb ] || [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ]; then
+      if [ "${NODE_NAME}" = b1-wsl-zt ] || [ "${NODE_NAME}" = r640 ]; then
         return 0
       fi
       [ -n "${identity_iface}" ] || return 0
@@ -466,6 +467,88 @@ data:
         fi
       done
     }
+
+    reconcile_relay_fabric() {
+      [ -n "${relay}" ] || return 0
+      asn="$(printf '%s' "${relay}" | jq -r .asn)"
+      identity="$(printf '%s' "${relay}" | jq -r .acceleratedIp)"
+      pod_cidr="$(printf '%s' "${relay}" | jq -r .podCIDR)"
+      local_transport="$(printf '%s' "${relay}" | jq -r .transportIp)"
+      r640_transport="$(printf '%s' "${relay}" | jq -r .relayIp)"
+      owned_pod_cidrs="$(local_pod_cidrs)"
+      owned_prefix_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip prefix-list MUBAO-SELF-OUT seq " NR * 10 " permit " $0}')"
+      owned_route_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip route " $0 " Null0 254"}')"
+      owned_network_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "network " $0}')"
+      host vtysh <<EOF
+    configure terminal
+    no ip prefix-list MUBAO-R640-IN
+    ip prefix-list MUBAO-R640-IN seq 10 permit 10.250.0.128/32
+    ip prefix-list MUBAO-R640-IN seq 15 permit 10.250.0.1/32
+    ip prefix-list MUBAO-R640-IN seq 20 permit 10.250.0.147/32
+    ip prefix-list MUBAO-R640-IN seq 30 permit 10.250.0.125/32
+    ip prefix-list MUBAO-R640-IN seq 40 permit 10.42.0.0/16 ge 24 le 24
+    ip prefix-list MUBAO-R640-IN seq 50 permit 10.64.0.0/12 ge 24 le 24
+    ip prefix-list MUBAO-R640-IN seq 1000 deny any
+    no ip prefix-list MUBAO-SELF-OUT
+    ${owned_prefix_lines}
+    ip prefix-list MUBAO-SELF-OUT seq 300 permit ${identity}/32
+    ip prefix-list MUBAO-SELF-OUT seq 310 permit 10.250.0.1/32
+    ip prefix-list MUBAO-SELF-OUT seq 1000 deny any
+    no ip prefix-list ROS-CP-FIB-PEERS
+    ip prefix-list ROS-CP-FIB-PEERS seq 10 permit 10.250.0.147/32
+    ip prefix-list ROS-CP-FIB-PEERS seq 20 permit 10.250.0.125/32
+    ip prefix-list ROS-CP-FIB-PEERS seq 30 permit 10.64.0.0/12 ge 24 le 24
+    route-map ROS-CP-FIB-SRC permit 10
+    match ip address prefix-list ROS-CP-FIB-PEERS
+    set src ${identity}
+    exit
+    route-map ROS-CP-FIB-SRC permit 100
+    exit
+    ip protocol bgp route-map ROS-CP-FIB-SRC
+    ${owned_route_lines}
+    ip route ${identity}/32 Null0 254
+    router bgp ${asn}
+    bgp ebgp-requires-policy
+    no bgp default ipv4-unicast
+    neighbor ${r640_transport} remote-as 4200000128
+    neighbor ${r640_transport} update-source ${local_transport}
+    neighbor ${r640_transport} disable-connected-check
+    neighbor ${r640_transport} timers 3 9
+    address-family ipv4 unicast
+    ${owned_network_lines}
+    network ${identity}/32
+    network 10.250.0.1/32
+    neighbor ${r640_transport} activate
+    neighbor ${r640_transport} prefix-list MUBAO-R640-IN in
+    neighbor ${r640_transport} prefix-list MUBAO-SELF-OUT out
+    neighbor ${r640_transport} maximum-prefix 128 90 restart 5
+    exit-address-family
+    end
+    write memory
+    clear bgp ${r640_transport}
+    EOF
+      for iface in wg-pt-mubao wg-cp-mubao; do
+        peer_key="$(host wg show "${iface}" allowed-ips | awk 'NR == 1 { print $1 }')"
+        [ -n "${peer_key}" ] || return 1
+        allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
+        case ",${allowed}," in *",10.64.0.0/12,"*) : ;; *) allowed="${allowed},10.64.0.0/12" ;; esac
+        host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
+      done
+      sleep 4
+      host vtysh -c 'show bgp ipv4 unicast summary json' | jq -e --arg peer "${r640_transport}" '.peers[$peer].state == "Established"' >/dev/null
+      touch /run/podcidr-fabric-ready
+      echo "${NODE_NAME}: declarative Multi-Pool relay policy reconciled"
+      while sleep 60; do
+        reload_if_changed
+        refresh_cilium_nodes_or_reload
+        host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || exit 1
+      done
+    }
+
+    if [ -n "${relay}" ]; then
+      reconcile_relay_fabric
+      exit 0
+    fi
 
     if [ -n "${route_server}" ]; then
       asn="$(printf '%s' "${route_server}" | jq -r .asn)"
@@ -483,8 +566,8 @@ data:
         jq -r '.routeServers[], .nodes[] | .podCIDR' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " NR * 10 " permit " $0}'
         jq -r '.routeServers[], .nodes[] | .acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 300 + NR * 10 " permit " $0}'
         jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 600 + NR * 10 " permit " $0}'
-        echo 'ip prefix-list POD-FABRIC-OUT seq 850 permit 192.0.2.38/12 ge 24 le 24'
-        echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 192.0.2.215/24 ge 32 le 32'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 850 permit 10.64.0.0/12 ge 24 le 24'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 10.251.0.0/24 ge 32 le 32'
         echo 'ip prefix-list POD-FABRIC-OUT seq 1000 deny any'
         echo 'no ip prefix-list POD-FABRIC-RR-SELF'
         printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip prefix-list POD-FABRIC-RR-SELF seq " NR * 10 " permit " $0}'
@@ -511,7 +594,7 @@ data:
         echo 'route-map POD-FABRIC-RR-TRANSPORT-OUT permit 20'
         echo 'match ip address prefix-list POD-FABRIC-OUT'
         echo 'exit'
-        echo 'no ip route 192.0.2.52/24 Null0 254'
+        echo 'no ip route 10.42.9.0/24 Null0 254'
         printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip route " $0 " Null0 254"}'
         echo "router bgp ${asn}"
         jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
@@ -542,7 +625,7 @@ data:
           echo "neighbor ${peer} disable-connected-check"
         done
         echo 'address-family ipv4 unicast'
-        echo 'no network 192.0.2.52/24'
+        echo 'no network 10.42.9.0/24'
         printf '%s\n' "${owned_pod_cidrs}" | awk '{print "network " $0}'
         echo "network ${accelerated_ip}/32"
         jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
@@ -636,23 +719,23 @@ data:
     internal_ip="$(printf '%s' "${node}" | jq -r .internalIp)"
     peer_mode="$(printf '%s' "${node}" | jq -r .peerMode)"
     if [ "${peer_mode}" = transport ]; then
-      a1_peer=192.0.2.183
-      b1_peer=192.0.2.20
-      stale_a1_peer=192.0.2.18
-      stale_b1_peer=192.0.2.208
+      a1_peer=172.31.93.147
+      b1_peer=172.31.94.125
+      stale_a1_peer=10.181.22.147
+      stale_b1_peer=10.181.22.125
       last="$(printf '%s' "${internal_ip}" | awk -F. '{print $4}')"
       a1_update_source="172.31.93.${last}"
       b1_update_source="172.31.94.${last}"
     else
-      a1_peer=192.0.2.18
-      b1_peer=192.0.2.208
-      stale_a1_peer=192.0.2.183
-      stale_b1_peer=192.0.2.20
+      a1_peer=10.181.22.147
+      b1_peer=10.181.22.125
+      stale_a1_peer=172.31.93.147
+      stale_b1_peer=172.31.94.125
       a1_update_source="${internal_ip}"
       b1_update_source="${internal_ip}"
     fi
-    a1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-1eb0570f74") | .asn' /config/inventory.json)"
-    b1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .asn' /config/inventory.json)"
+    a1_asn="$(jq -r '.routeServers[] | select(.name == "a1-wsl-zt") | .asn' /config/inventory.json)"
+    b1_asn="$(jq -r '.routeServers[] | select(.name == "b1-wsl-zt") | .asn' /config/inventory.json)"
     owned_pod_cidrs="$(local_pod_cidrs)"
 
     apply_fabric() {
@@ -663,10 +746,10 @@ data:
       host vtysh <<EOF
     configure terminal
     no ip prefix-list POD-FABRIC-IN
-    ip prefix-list POD-FABRIC-IN seq 10 permit 192.0.2.224/16 ge 24 le 24
-    ip prefix-list POD-FABRIC-IN seq 15 permit 192.0.2.38/12 ge 24 le 24
-    ip prefix-list POD-FABRIC-IN seq 20 permit 192.0.2.106/24 ge 32 le 32
-    ip prefix-list POD-FABRIC-IN seq 30 permit 192.0.2.215/24 ge 32 le 32
+    ip prefix-list POD-FABRIC-IN seq 10 permit 10.42.0.0/16 ge 24 le 24
+    ip prefix-list POD-FABRIC-IN seq 15 permit 10.64.0.0/12 ge 24 le 24
+    ip prefix-list POD-FABRIC-IN seq 20 permit 10.250.0.0/24 ge 32 le 32
+    ip prefix-list POD-FABRIC-IN seq 30 permit 10.251.0.0/24 ge 32 le 32
     ip prefix-list POD-FABRIC-IN seq 1000 deny any
     no ip prefix-list POD-FABRIC-SELF
     ${owned_prefix_lines}
@@ -717,26 +800,27 @@ data:
     }
 
     reconcile_relay_nodes() {
-      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      [ "${NODE_NAME}" = r640 ] || return 0
       jq -c '.relayNodes[]?' /config/inventory.json | while read -r relay; do
         peer="$(printf '%s' "${relay}" | jq -r .transportIp)"
         relay_ip="$(printf '%s' "${relay}" | jq -r .relayIp)"
         relay_asn="$(printf '%s' "${relay}" | jq -r .asn)"
         identity="$(printf '%s' "${relay}" | jq -r .acceleratedIp)"
         pod_prefix="$(printf '%s' "${relay}" | jq -r .podCIDR)"
-        [ "$(printf '%s' "${relay}" | jq -r .name)" = restricted-node-abb3f27a69 ] || { echo "unsupported relay node" >&2; return 1; }
-        [ "${relay_ip}" = 192.0.2.111 ] || { echo "unsupported relay source: ${relay_ip}" >&2; return 1; }
+        [ "$(printf '%s' "${relay}" | jq -r .name)" = mubao-wsl ] || { echo "unsupported relay node" >&2; return 1; }
+        [ "${relay_ip}" = 172.31.95.128 ] || { echo "unsupported relay source: ${relay_ip}" >&2; return 1; }
         host vtysh <<EOF
     configure terminal
     ip prefix-list MUBAO-IN seq 10 permit ${identity}/32
     ip prefix-list MUBAO-IN seq 20 permit ${pod_prefix}
+    ip prefix-list MUBAO-IN seq 30 permit 10.64.0.0/12 ge 24 le 24
     ip prefix-list MUBAO-IN seq 1000 deny any
-    ip prefix-list MUBAO-OUT seq 10 permit 192.0.2.205/32
-    ip prefix-list MUBAO-OUT seq 15 permit 192.0.2.220/32
-    ip prefix-list MUBAO-OUT seq 20 permit 192.0.2.173/32
-    ip prefix-list MUBAO-OUT seq 30 permit 192.0.2.213/32
-    ip prefix-list MUBAO-OUT seq 40 permit 192.0.2.224/16 ge 24 le 24
-    ip prefix-list MUBAO-OUT seq 50 permit 192.0.2.38/12 ge 24 le 24
+    ip prefix-list MUBAO-OUT seq 10 permit 10.250.0.128/32
+    ip prefix-list MUBAO-OUT seq 15 permit 10.250.0.1/32
+    ip prefix-list MUBAO-OUT seq 20 permit 10.250.0.147/32
+    ip prefix-list MUBAO-OUT seq 30 permit 10.250.0.125/32
+    ip prefix-list MUBAO-OUT seq 40 permit 10.42.0.0/16 ge 24 le 24
+    ip prefix-list MUBAO-OUT seq 50 permit 10.64.0.0/12 ge 24 le 24
     ip prefix-list MUBAO-OUT seq 1000 deny any
     router bgp ${asn}
     neighbor ${peer} remote-as ${relay_asn}
@@ -747,7 +831,7 @@ data:
     neighbor ${peer} activate
     neighbor ${peer} prefix-list MUBAO-IN in
     neighbor ${peer} prefix-list MUBAO-OUT out
-    neighbor ${peer} maximum-prefix 2 90 restart 5
+    neighbor ${peer} maximum-prefix 128 90 restart 5
     exit-address-family
     end
     write memory
@@ -756,7 +840,24 @@ data:
         peer_key="$(host wg show wg-pt-mubao allowed-ips | awk -v transit="${peer}/32" '{ for (i=2; i<=NF; i++) if ($i == transit) { print $1; exit } }')"
         [ -n "${peer_key}" ] || { echo "missing MUBAO WireGuard peer" >&2; return 1; }
         allowed="$(host wg show wg-pt-mubao allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
-        case ",${allowed}," in *",${pod_prefix},"*) : ;; *) host wg set wg-pt-mubao peer "${peer_key}" allowed-ips "${allowed},${pod_prefix}" ;; esac
+        existing_allowed="${allowed}"
+        relay_name="$(printf '%s' "${relay}" | jq -r .name)"
+        for prefix in $(pod_cidrs_for_node "${relay_name}"); do
+          case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+        done
+        [ "${allowed}" = "${existing_allowed}" ] || host wg set wg-pt-mubao peer "${peer_key}" allowed-ips "${allowed}"
+        host nft list table ip re8ch_multipool_relay >/dev/null 2>&1 || host nft add table ip re8ch_multipool_relay
+        host nft list chain ip re8ch_multipool_relay postrouting >/dev/null 2>&1 ||
+          host nft 'add chain ip re8ch_multipool_relay postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+        for spec in 'wg-pt-a1 172.31.93.128' 'wg-pt-b1 172.31.94.128'; do
+          set -- ${spec}
+          iface="$1"
+          source="$2"
+          rule="ip saddr ${identity} ip daddr 10.64.0.0/12 oifname \"${iface}\" snat to ${source}"
+          host nft list chain ip re8ch_multipool_relay postrouting | grep -Fq "${rule}" ||
+            host nft add rule ip re8ch_multipool_relay postrouting ip saddr "${identity}/32" \
+              ip daddr 10.64.0.0/12 oifname "${iface}" snat to "${source}"
+        done
       done
     }
 
@@ -788,15 +889,15 @@ data:
     }
 
     reconcile_r640_b1_podcidr_authority() {
-      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
-      prefix="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .podCIDR' /config/inventory.json)"
+      [ "${NODE_NAME}" = r640 ] || return 0
+      prefix="$(jq -r '.routeServers[] | select(.name == "b1-wsl-zt") | .podCIDR' /config/inventory.json)"
       [ -n "${prefix}" ] || return 1
       # A historical low-metric route through RouterOS can override the valid
       # FRR path and blackhole B1 DNS while its Pod remains locally Ready.
       host vtysh -c "show bgp ipv4 unicast ${prefix} json" 2>/dev/null |
         jq -e '[.paths[]? | select(.valid == true)] | length > 0' >/dev/null || return 1
       while host ip -4 route show exact "${prefix}" | grep -Eq 'via 192\.168\.88\.1 dev eno2np1'; do
-        host ip route del "${prefix}" via 192.0.2.131 dev eno2np1 || return 1
+        host ip route del "${prefix}" via 192.168.88.1 dev eno2np1 || return 1
       done
       host ip -4 route show exact "${prefix}" | grep -Eq 'dev wg-pt-(a1|b1)' || return 1
     }
@@ -865,7 +966,7 @@ spec:
     type: RollingUpdate
     # Multiple remote edges may already be unavailable for unrelated underlay
     # faults. Keep one bounded rollout slot at the current 12-node scale so
-    # that stale edge state cannot block policy delivery to A1/B1/restricted-node-6dc3f140f9.
+    # that stale edge state cannot block policy delivery to A1/B1/R640.
     rollingUpdate: {maxUnavailable: 25%}
   template:
     metadata:
@@ -874,7 +975,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: kl-source-identity-v2
+        networking.re8ch.com/config-revision: multipool-relay-v17
     spec:
       hostPID: true
       hostNetwork: true
@@ -895,7 +996,7 @@ spec:
                     # LA1 must reconcile both route-server AllowedIPs after a
                     # WireGuard restart so BGP ECMP cannot hash into a peer
                     # that rejects the selected PodCIDR.
-                    values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, overseas-flk, overseas-kl, overseas-la, overseas-la-2]
+                    values: [r640, a1-wsl-zt, b1-wsl-zt, mubao-wsl, overseas-flk, overseas-kl, overseas-la, overseas-la-2]
       containers:
         - name: reconciler
           image: quay.io/cilium/cilium-ci:latest@sha256:19ff540fa2927047d4935d5c1b173818225cc288c20a55d0bdb8748ea8adbb26
