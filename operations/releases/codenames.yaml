@@ -222,6 +222,10 @@ modules:
       digest: sha256:b632a8d1cd8fa8688a658817af67f0b75699868a3825f803a9d21578abeffb70
     - codename: mistral-umber
       digest: sha256:9fda81aa4f381669fb23bf23f2b6cbfa54c2b0c835b078c3163caba629c9ce41
+    - codename: sirocco-umber
+      digest: sha256:be8040facbd9019fb915a01c3d04f650602e776d8518dd0893edf0ba23a3abd1
+    - codename: tramontane-umber
+      digest: sha256:467e6f46f7e8419844fe11af9678e6dbe57bc971dcce32c1383ff1cff753bfac
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
