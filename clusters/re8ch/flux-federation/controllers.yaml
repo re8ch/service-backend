@@ -4493,11 +4493,13 @@ rules:
   - roles
   resourceNames:
   - advanced-fabric-controller-lease
+  - among-clusters-agent-identity
   - among-clusters-legacy-agent-cleanup
   - control-dns-reachability
   - host-network-controller
   - mihomo-node-labeler-inventory
   - path-controller
+  - public-edge-manager-cli
   - read-cloudflare-dns-token
   - write-cloudflare-dns-token
   verbs:
@@ -4642,6 +4644,159 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: flux-networking-helm-advanced-fabric
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-networking-helm-among-clusters
+  labels:
+    gitops.re8ch.com/domain: networking
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  resourceNames:
+  - authenticatedlinks.peering.re8ch.com
+  - clusteridentities.peering.re8ch.com
+  - importedservices.peering.re8ch.com
+  - managedaccessgrants.peering.re8ch.com
+  - peerpolicies.peering.re8ch.com
+  - peers.peering.re8ch.com
+  - serviceadvertisements.peering.re8ch.com
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - authenticatedlinks
+  - clusteridentities
+  - importedservices
+  - managedaccessgrants
+  - peerpolicies
+  - peers
+  - serviceadvertisements
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - among-clusters-agent-observer
+  - among-clusters-credential-broker-auth-review
+  - among-clusters-hub
+  - among-clusters-view
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - among-clusters-agent-observer
+  - among-clusters-credential-broker-auth-review
+  - among-clusters-hub
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-networking-helm-among-clusters
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-helm-among-clusters
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-networking-helm-public-edge
+  labels:
+    gitops.re8ch.com/domain: networking
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  resourceNames:
+  - publicedges.networking.re8ch.com
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - networking.re8ch.com
+  resources:
+  - publicedges
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - public-edge-manager
+  - public-edge-manager-cli-read
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - public-edge-manager
+  - public-edge-manager-cli-read
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-networking-helm-public-edge
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-helm-public-edge
 subjects:
 - kind: ServiceAccount
   name: helm-controller

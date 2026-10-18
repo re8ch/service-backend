@@ -33,6 +33,67 @@ EXTERNAL_CLUSTER_AUTHORITY = {
     },
 }
 
+# Helm charts may own cluster-scoped objects that are absent from the compiled
+# domain bundle. Grant the Helm controller only the exact existing objects each
+# product release is allowed to upgrade. CRD creation/deletion remains a main
+# Flux guardrail responsibility.
+NETWORK_HELM_PRODUCT_AUTHORITY = {
+    "advanced-fabric": {
+        "crds": {
+            "advancedfabrics.networking.advfab.org",
+            "networkinterventions.networking.advfab.org",
+            "networkobservationepisodes.networking.advfab.org",
+            "networkpathassessments.networking.advfab.org",
+            "networktradeoffestimates.networking.advfab.org",
+            "routerosnodes.networking.advfab.org",
+            "tradeofftriangles.networking.advfab.org",
+            "trafficpolicies.networking.advfab.org",
+        },
+        "apiGroup": "networking.advfab.org",
+        "resources": {
+            "advancedfabrics", "networkinterventions", "networkobservationepisodes",
+            "networkpathassessments", "networktradeoffestimates", "routerosnodes",
+            "tradeofftriangles", "trafficpolicies",
+        },
+        "clusterroles": {"advanced-fabric", "advanced-fabric-dns"},
+        "clusterrolebindings": {"advanced-fabric", "advanced-fabric-dns"},
+        "extraRules": [{
+            "apiGroups": ["networking.k8s.io"],
+            "resources": ["ingressclasses"],
+            "resourceNames": ["advanced-fabric"],
+            "verbs": ["get", "update", "patch"],
+        }],
+    },
+    "among-clusters": {
+        "crds": {
+            "authenticatedlinks.peering.re8ch.com", "clusteridentities.peering.re8ch.com",
+            "importedservices.peering.re8ch.com", "managedaccessgrants.peering.re8ch.com",
+            "peerpolicies.peering.re8ch.com", "peers.peering.re8ch.com",
+            "serviceadvertisements.peering.re8ch.com",
+        },
+        "apiGroup": "peering.re8ch.com",
+        "resources": {
+            "authenticatedlinks", "clusteridentities", "importedservices",
+            "managedaccessgrants", "peerpolicies", "peers", "serviceadvertisements",
+        },
+        "clusterroles": {
+            "among-clusters-agent-observer", "among-clusters-credential-broker-auth-review",
+            "among-clusters-hub", "among-clusters-view",
+        },
+        "clusterrolebindings": {
+            "among-clusters-agent-observer", "among-clusters-credential-broker-auth-review",
+            "among-clusters-hub",
+        },
+    },
+    "public-edge": {
+        "crds": {"publicedges.networking.re8ch.com"},
+        "apiGroup": "networking.re8ch.com",
+        "resources": {"publicedges"},
+        "clusterroles": {"public-edge-manager", "public-edge-manager-cli-read"},
+        "clusterrolebindings": {"public-edge-manager", "public-edge-manager-cli-read"},
+    },
+}
+
 
 def load_documents(path: Path) -> list[dict]:
     return [item for item in yaml.safe_load_all(path.read_text()) if item]
@@ -209,6 +270,53 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
     return result
 
 
+def network_helm_product_rbac(namespace: str) -> list[dict]:
+    """Render exact cluster authority for Network-owned Helm products."""
+    result = []
+    for product, authority in NETWORK_HELM_PRODUCT_AUTHORITY.items():
+        role_name = f"flux-networking-helm-{product}"
+        rules = [
+            {
+                "apiGroups": ["apiextensions.k8s.io"],
+                "resources": ["customresourcedefinitions"],
+                "resourceNames": sorted(authority["crds"]),
+                "verbs": ["get", "update", "patch"],
+            },
+            {
+                "apiGroups": [authority["apiGroup"]],
+                "resources": sorted(authority["resources"]),
+                "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"],
+            },
+            *authority.get("extraRules", []),
+            {
+                "apiGroups": ["rbac.authorization.k8s.io"],
+                "resources": ["clusterroles"],
+                "resourceNames": sorted(authority["clusterroles"]),
+                "verbs": ["get", "update", "patch", "escalate", "bind"],
+            },
+            {
+                "apiGroups": ["rbac.authorization.k8s.io"],
+                "resources": ["clusterrolebindings"],
+                "resourceNames": sorted(authority["clusterrolebindings"]),
+                "verbs": ["get", "update", "patch"],
+            },
+        ]
+        result.extend([
+            {
+                "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRole",
+                "metadata": {"name": role_name, "labels": {"gitops.re8ch.com/domain": "networking"}},
+                "rules": rules,
+            },
+            {
+                "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRoleBinding",
+                "metadata": {"name": role_name, "labels": {"gitops.re8ch.com/domain": "networking"}},
+                "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": role_name},
+                "subjects": [{"kind": "ServiceAccount", "name": "helm-controller", "namespace": namespace}],
+            },
+        ])
+    return result
+
+
 def relocate_flux_objects(documents: list[dict], namespace: str) -> list[dict]:
     """Keep all Flux custom resources in the namespace watched by their controller stack."""
     relocated = []
@@ -263,6 +371,8 @@ def main() -> None:
         controllers.extend(controller_objects(args.root, namespace, domain))
         controllers.extend(internal_rbac(namespace, domain))
         controllers.extend(application_rbac(domain, namespace, external, resources))
+        if domain == "networking":
+            controllers.extend(network_helm_product_rbac(namespace))
     dump_documents(args.root / "clusters/re8ch/flux-federation/controllers.yaml", controllers)
     guardrail_root = args.root / "clusters/re8ch/flux-federation/guardrails"
     for domain, documents in guardrails.items():

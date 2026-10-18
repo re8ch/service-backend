@@ -83,6 +83,10 @@ def main() -> None:
     )
     require("advanced-fabric-controller-lease" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Advanced Fabric lease role authority")
+    require("among-clusters-agent-identity" in network_role_authority["resourceNames"],
+            "Network Helm RBAC omits Among Clusters agent identity role authority")
+    require("public-edge-manager-cli" in network_role_authority["resourceNames"],
+            "Network Helm RBAC omits Public Edge CLI role authority")
 
     network_cluster_role = next(
         doc for doc in controller_docs
@@ -143,6 +147,73 @@ def main() -> None:
         ),
         "Advanced Fabric cluster authority must be bound only to the Network Helm controller",
     )
+
+    product_helm_roles = {
+        "flux-networking-helm-among-clusters": {
+            "crds": {
+                "authenticatedlinks.peering.re8ch.com",
+                "clusteridentities.peering.re8ch.com",
+                "importedservices.peering.re8ch.com",
+                "managedaccessgrants.peering.re8ch.com",
+                "peerpolicies.peering.re8ch.com",
+                "peers.peering.re8ch.com",
+                "serviceadvertisements.peering.re8ch.com",
+            },
+            "clusterroles": {
+                "among-clusters-agent-observer",
+                "among-clusters-credential-broker-auth-review",
+                "among-clusters-hub",
+                "among-clusters-view",
+            },
+            "clusterrolebindings": {
+                "among-clusters-agent-observer",
+                "among-clusters-credential-broker-auth-review",
+                "among-clusters-hub",
+            },
+        },
+        "flux-networking-helm-public-edge": {
+            "crds": {"publicedges.networking.re8ch.com"},
+            "clusterroles": {"public-edge-manager", "public-edge-manager-cli-read"},
+            "clusterrolebindings": {"public-edge-manager", "public-edge-manager-cli-read"},
+        },
+    }
+    for role_name, expected in product_helm_roles.items():
+        product_role = next(
+            doc for doc in controller_docs
+            if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == role_name
+        )
+        product_crd_rule = next(
+            rule for rule in product_role["rules"]
+            if rule.get("apiGroups") == ["apiextensions.k8s.io"]
+            and rule.get("resources") == ["customresourcedefinitions"]
+        )
+        require(set(product_crd_rule.get("resourceNames", [])) == expected["crds"],
+                f"{role_name} CRD authority is not exactly product-scoped")
+        require("create" not in product_crd_rule["verbs"] and "delete" not in product_crd_rule["verbs"],
+                f"{role_name} must not create or delete cluster CRDs")
+        for resource_kind, expected_names in (
+            ("clusterroles", expected["clusterroles"]),
+            ("clusterrolebindings", expected["clusterrolebindings"]),
+        ):
+            product_rbac_rule = next(
+                rule for rule in product_role["rules"]
+                if rule.get("apiGroups") == ["rbac.authorization.k8s.io"]
+                and rule.get("resources") == [resource_kind]
+            )
+            require(set(product_rbac_rule.get("resourceNames", [])) == expected_names,
+                    f"{role_name} {resource_kind} authority is not exactly product-scoped")
+        require(
+            any(
+                doc["kind"] == "ClusterRoleBinding"
+                and doc["metadata"]["name"] == role_name
+                and doc["roleRef"]["name"] == role_name
+                and doc["subjects"] == [{
+                    "kind": "ServiceAccount", "name": "helm-controller", "namespace": "flux-network-system"
+                }]
+                for doc in controller_docs
+            ),
+            f"{role_name} authority must be bound only to the Network Helm controller",
+        )
 
     registrations = documents(FEDERATION / "registrations.yaml")
     sources = [doc for doc in registrations if doc["kind"] == "GitRepository"]
