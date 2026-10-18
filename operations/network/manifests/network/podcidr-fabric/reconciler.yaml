@@ -10,7 +10,8 @@ data:
 
     node="$(jq -c --arg name "${NODE_NAME}" '.nodes[] | select(.name == $name)' /config/inventory.json)"
     route_server="$(jq -c --arg name "${NODE_NAME}" '.routeServers[] | select(.name == $name)' /config/inventory.json)"
-    test -n "${node}${route_server}"
+    relay="$(jq -c --arg name "${NODE_NAME}" '.relayNodes[]? | select(.name == $name)' /config/inventory.json)"
+    test -n "${node}${route_server}${relay}"
 
     host() {
       nsenter -t 1 -n chroot /host "$@"
@@ -363,6 +364,87 @@ data:
       done
     }
 
+    reconcile_relay_fabric() {
+      [ -n "${relay}" ] || return 0
+      asn="$(printf '%s' "${relay}" | jq -r .asn)"
+      identity="$(printf '%s' "${relay}" | jq -r .acceleratedIp)"
+      pod_cidr="$(printf '%s' "${relay}" | jq -r .podCIDR)"
+      local_transport="$(printf '%s' "${relay}" | jq -r .transportIp)"
+      r640_transport="$(printf '%s' "${relay}" | jq -r .relayIp)"
+      owned_pod_cidrs="$(local_pod_cidrs)"
+      owned_prefix_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip prefix-list MUBAO-SELF-OUT seq " NR * 10 " permit " $0}')"
+      owned_route_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip route " $0 " Null0 254"}')"
+      owned_network_lines="$(printf '%s\n' "${owned_pod_cidrs}" | awk '{print "network " $0}')"
+      host vtysh <<EOF
+    configure terminal
+    no ip prefix-list MUBAO-R640-IN
+    ip prefix-list MUBAO-R640-IN seq 10 permit 192.0.2.179/32
+    ip prefix-list MUBAO-R640-IN seq 15 permit 192.0.2.116/32
+    ip prefix-list MUBAO-R640-IN seq 20 permit 192.0.2.242/32
+    ip prefix-list MUBAO-R640-IN seq 30 permit 192.0.2.1/32
+    ip prefix-list MUBAO-R640-IN seq 40 permit 192.0.2.57/16 ge 24 le 24
+    ip prefix-list MUBAO-R640-IN seq 50 permit 192.0.2.156/12 ge 24 le 24
+    ip prefix-list MUBAO-R640-IN seq 1000 deny any
+    no ip prefix-list MUBAO-SELF-OUT
+    ${owned_prefix_lines}
+    ip prefix-list MUBAO-SELF-OUT seq 300 permit ${identity}/32
+    ip prefix-list MUBAO-SELF-OUT seq 310 permit 192.0.2.116/32
+    ip prefix-list MUBAO-SELF-OUT seq 1000 deny any
+    no ip prefix-list ROS-CP-FIB-PEERS
+    ip prefix-list ROS-CP-FIB-PEERS seq 10 permit 192.0.2.242/32
+    ip prefix-list ROS-CP-FIB-PEERS seq 20 permit 192.0.2.1/32
+    ip prefix-list ROS-CP-FIB-PEERS seq 30 permit 192.0.2.156/12 ge 24 le 24
+    route-map ROS-CP-FIB-SRC permit 10
+    match ip address prefix-list ROS-CP-FIB-PEERS
+    set src ${identity}
+    exit
+    route-map ROS-CP-FIB-SRC permit 100
+    exit
+    ip protocol bgp route-map ROS-CP-FIB-SRC
+    ${owned_route_lines}
+    ip route ${identity}/32 Null0 254
+    router bgp ${asn}
+    bgp ebgp-requires-policy
+    no bgp default ipv4-unicast
+    neighbor ${r640_transport} remote-as 4200000128
+    neighbor ${r640_transport} update-source ${local_transport}
+    neighbor ${r640_transport} disable-connected-check
+    neighbor ${r640_transport} timers 3 9
+    address-family ipv4 unicast
+    ${owned_network_lines}
+    network ${identity}/32
+    network 192.0.2.116/32
+    neighbor ${r640_transport} activate
+    neighbor ${r640_transport} prefix-list MUBAO-R640-IN in
+    neighbor ${r640_transport} prefix-list MUBAO-SELF-OUT out
+    neighbor ${r640_transport} maximum-prefix 128 90 restart 5
+    exit-address-family
+    end
+    write memory
+    clear bgp ${r640_transport}
+    EOF
+      for iface in wg-pt-mubao wg-cp-mubao; do
+        peer_key="$(host wg show "${iface}" allowed-ips | awk 'NR == 1 { print $1 }')"
+        [ -n "${peer_key}" ] || return 1
+        allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
+        case ",${allowed}," in *",192.0.2.156/12,"*) : ;; *) allowed="${allowed},192.0.2.156/12" ;; esac
+        host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
+      done
+      sleep 4
+      host vtysh -c 'show bgp ipv4 unicast summary json' | jq -e --arg peer "${r640_transport}" '.peers[$peer].state == "Established"' >/dev/null
+      touch /run/podcidr-fabric-ready
+      echo "${NODE_NAME}: declarative Multi-Pool relay policy reconciled"
+      while sleep 60; do
+        refresh_cilium_nodes_or_reload
+        host vtysh -c 'show bgp ipv4 unicast summary' >/dev/null || exit 1
+      done
+    }
+
+    if [ -n "${relay}" ]; then
+      reconcile_relay_fabric
+      exit 0
+    fi
+
     if [ -n "${route_server}" ]; then
       asn="$(printf '%s' "${route_server}" | jq -r .asn)"
       pod_cidr="$(printf '%s' "${route_server}" | jq -r .podCIDR)"
@@ -603,6 +685,7 @@ data:
     ip prefix-list MUBAO-IN seq 10 permit ${identity}/32
     ip prefix-list MUBAO-IN seq 15 permit 192.0.2.116/32
     ip prefix-list MUBAO-IN seq 20 permit ${pod_prefix}
+    ip prefix-list MUBAO-IN seq 30 permit 192.0.2.156/12 ge 24 le 24
     ip prefix-list MUBAO-IN seq 1000 deny any
     ip prefix-list MUBAO-OUT seq 10 permit 192.0.2.179/32
     ip prefix-list MUBAO-OUT seq 15 permit 192.0.2.116/32
@@ -620,7 +703,7 @@ data:
     neighbor ${peer} activate
     neighbor ${peer} prefix-list MUBAO-IN in
     neighbor ${peer} prefix-list MUBAO-OUT out
-    neighbor ${peer} maximum-prefix 3 90 restart 5
+    neighbor ${peer} maximum-prefix 128 90 restart 5
     exit-address-family
     end
     write memory
@@ -630,10 +713,23 @@ data:
         [ -n "${peer_key}" ] || { echo "missing MUBAO WireGuard peer" >&2; return 1; }
         allowed="$(host wg show wg-pt-mubao allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
         existing_allowed="${allowed}"
-        for prefix in "${pod_prefix}" 192.0.2.116/32; do
+        relay_name="$(printf '%s' "${relay}" | jq -r .name)"
+        for prefix in $(pod_cidrs_for_node "${relay_name}") 192.0.2.116/32; do
           case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
         done
         [ "${allowed}" = "${existing_allowed}" ] || host wg set wg-pt-mubao peer "${peer_key}" allowed-ips "${allowed}"
+        host nft list table ip re8ch_multipool_relay >/dev/null 2>&1 || host nft add table ip re8ch_multipool_relay
+        host nft list chain ip re8ch_multipool_relay postrouting >/dev/null 2>&1 ||
+          host nft 'add chain ip re8ch_multipool_relay postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+        for spec in 'wg-pt-a1 192.0.2.86' 'wg-pt-b1 192.0.2.77'; do
+          set -- ${spec}
+          iface="$1"
+          source="$2"
+          rule="ip saddr ${identity} ip daddr 192.0.2.156/12 oifname \"${iface}\" snat to ${source}"
+          host nft list chain ip re8ch_multipool_relay postrouting | grep -Fq "${rule}" ||
+            host nft add rule ip re8ch_multipool_relay postrouting ip saddr "${identity}/32" \
+              ip daddr 192.0.2.156/12 oifname "${iface}" snat to "${source}"
+        done
       done
     }
 
@@ -749,7 +845,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: muaya-advfab-multipool-v16
+        networking.re8ch.com/config-revision: multipool-relay-v17
     spec:
       hostPID: true
       hostNetwork: true
@@ -771,6 +867,7 @@ spec:
                     values:
                       - restricted-node-1eb0570f74
                       - restricted-node-296f36f2fb
+                      - restricted-node-abb3f27a69
                       - restricted-node-6dc3f140f9
                       - amdwsl-zt
                       - overseas-edge-50

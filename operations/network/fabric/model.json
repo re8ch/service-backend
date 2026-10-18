@@ -934,6 +934,7 @@
           "wg-pt-a1",
           "wg-pt-b1"
         ],
+        "multiPoolCIDR": "192.0.2.156/12",
         "relayServiceVIPs": [
           "192.0.2.116/32"
         ]
