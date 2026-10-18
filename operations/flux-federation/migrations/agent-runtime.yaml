@@ -3,20 +3,33 @@ kind: FluxDomainMigrationEvidence
 metadata:
   name: agent-runtime
 spec:
-  capturedAt: "2026-10-17T22:00:00+08:00"
+  capturedAt: "2026-10-18T11:38:00+08:00"
   oldOwner:
     apiVersion: kustomize.toolkit.fluxcd.io/v1
     kind: Kustomization
     namespace: flux-system
     name: reconcile-agent-runtime
-    revision: main@sha1:80e40d6285a59b0bcf2442d9fd30d9b1a717e5f3
+    revision: main@sha1:e88d5af156146b8662741cff0a6f47480083f362
     inventory:
       entries: 296
-      sortedIdsSha256: 093d78c46e5b0e382386d3199e72225131d01538f38d65de9835076e426bc1bc
+      sortedIdsSha256: 87773b913043f3ef5c9d4153c2f410f56960544cd7573d1e6c5c6053fa623b99
     ready: true
   newOwner:
     namespace: flux-agent-system
     name: domain
-    repositoryRevision: main@sha1:663aef9587fb4d9df61edcf6a30dfa64d40b1647
+    repositoryRevision: main@sha1:fe9cae9809804832433c73decdd9dc9fceddcbee
     initialPrune: false
+    verifiedInventory:
+      entries: 254
+      sortedIdsSha256: 6e91264273768ac88b0d1173132ac193bfb2e5c955d296ca3fc60fa953fc6118
+      commonWithOld: 249
+      expectedOldOnly:
+        mainOwnedNamespaces: 5
+        mainOwnedClusterGuardrails: 37
+        relocatedFluxObjects: 5
+      unexpectedDifferences: 0
+    ready: true
+  finalized:
+    prune: true
+    oldDeclaration: removed-from-active-manifest
   rollback: suspend-new-before-resuming-old
