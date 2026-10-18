@@ -47,7 +47,13 @@ EXTERNAL_NAMESPACED_AUTHORITY = {
 EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
     "networking": {
         "among-clusters-credential-broker",
+        "cilium-bgp-control-plane-secrets",
+        "cilium-config-agent",
         "cilium-gateway-secrets",
+        "cilium-operator-gateway-secrets",
+        "cilium-operator-tlsinterception-secrets",
+        "cilium-operator-ztunnel",
+        "cilium-tlsinterception-secrets",
         "public-edge-manager-cloudflare",
     },
 }
