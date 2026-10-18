@@ -749,7 +749,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: multipool-rr-interconnect-v14
+        networking.re8ch.com/config-revision: multipool-live-refresh-v15
     spec:
       hostPID: true
       hostNetwork: true
