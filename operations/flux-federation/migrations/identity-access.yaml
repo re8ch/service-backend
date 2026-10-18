@@ -1,0 +1,22 @@
+apiVersion: gitops.re8ch.com/v1alpha1
+kind: FluxDomainMigrationEvidence
+metadata:
+  name: identity-access
+spec:
+  capturedAt: "2026-10-18T11:53:00+08:00"
+  oldOwner:
+    apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    namespace: flux-system
+    name: reconcile-identity-access
+    revision: main@sha1:0719733a94b9258348f45a5ad3acce12bb39b730
+    inventory:
+      entries: 265
+      sortedIdsSha256: 140ab86b1959d7d98c9716e07c6f999d872dd19ef7fdbe1302e0e6d6f42b0b87
+    ready: true
+  newOwner:
+    namespace: flux-identity-system
+    name: domain
+    repositoryRevision: main@sha1:04dcbe952d261f533bbc179a5c2767e7280b3cb2
+    initialPrune: false
+  rollback: suspend-new-before-resuming-old
