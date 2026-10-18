@@ -3,19 +3,6 @@
 # the root grants ownership, while each domain owns its own failure and rollout.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
-metadata: {name: reconcile-networking, namespace: flux-system}
-spec:
-  interval: 1m
-  retryInterval: 1m
-  timeout: 15m
-  path: ./clusters/re8ch/domains/networking
-  prune: true
-  wait: false
-  sourceRef: {kind: GitRepository, name: service-backend}
-  decryption: {provider: sops, secretRef: {name: sops-age}}
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
 metadata: {name: reconcile-identity-access, namespace: flux-system}
 spec:
   interval: 1m
