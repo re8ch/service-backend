@@ -21,4 +21,5 @@ def test_multi_pool_overlay_keeps_physical_egress_masqueraded():
     assert component["k8s"]["requireIPv4PodCIDR"] is False
     assert component["ipv4NativeRoutingCIDR"] == "192.0.2.203/8"
     assert component["bpf"]["masquerade"] is False
+    assert component["egressMasqueradeInterfaces"] == "eth+,eno+,ens+,enp+"
     assert component["rollOutCiliumPods"] is True
