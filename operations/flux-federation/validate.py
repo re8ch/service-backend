@@ -73,6 +73,30 @@ def main() -> None:
     )
     require("api-conformance-controller" in agent_role_authority["resourceNames"], "Agent RBAC omits api-conformance role authority")
 
+    network_cluster_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-networking-cluster"
+    )
+    network_cluster_rules = {
+        (tuple(rule.get("apiGroups", [])), tuple(rule.get("resources", [])), tuple(rule.get("verbs", [])))
+        for rule in network_cluster_role["rules"]
+    }
+    require(
+        (("cilium.io",), ("ciliumpodippools",), ("get", "list", "watch", "create", "update", "patch", "delete"))
+        in network_cluster_rules,
+        "Network RBAC omits CiliumPodIPPool authority",
+    )
+    require(
+        any(
+            doc["kind"] == "ClusterRoleBinding"
+            and doc["metadata"]["name"] == "flux-networking-cluster"
+            and doc["roleRef"]["name"] == "flux-networking-cluster"
+            and {subject["namespace"] for subject in doc["subjects"]} == {"flux-network-system"}
+            for doc in controller_docs
+        ),
+        "Network cluster authority is not bound to the autonomous controller namespace",
+    )
+
     registrations = documents(FEDERATION / "registrations.yaml")
     sources = [doc for doc in registrations if doc["kind"] == "GitRepository"]
     reconciliations = [doc for doc in registrations if doc["kind"] == "Kustomization"]

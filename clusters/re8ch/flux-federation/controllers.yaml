@@ -4515,6 +4515,44 @@ rules:
   - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-networking-cluster
+  labels:
+    gitops.re8ch.com/domain: networking
+rules:
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumpodippools
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-networking-cluster
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-networking-cluster
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: flux-networking-namespaced
