@@ -129,6 +129,27 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
     )
 
 
+def test_catalog_dns_targets_edgeone_without_cloudflare_proxying():
+    resources = documents(
+        ROOT / "clusters/re8ch/components/public-exposure/catalog-edgeone-dns.yaml"
+    )
+    assert len(resources) == 1
+    ingress = resources[0]
+    assert ingress["kind"] == "Ingress"
+    assert ingress["metadata"]["labels"] == {
+        "networking.re8ch.com/dns-authority": "public-edge"
+    }
+    annotations = ingress["metadata"]["annotations"]
+    assert annotations["external-dns.alpha.kubernetes.io/hostname"] == "catalog.re8ch.com"
+    assert annotations["external-dns.alpha.kubernetes.io/target"] == (
+        "catalog.re8ch.com.eo.dnse1.com"
+    )
+    assert annotations["external-dns.alpha.kubernetes.io/cloudflare-proxied"] == "false"
+    assert "../../../components/public-exposure/catalog-edgeone-dns.yaml" in domain_resources(
+        "networking"
+    )
+
+
 def test_tools_dns_writer_remains_active_for_legacy_mcp_clients():
     platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
     route = next(
