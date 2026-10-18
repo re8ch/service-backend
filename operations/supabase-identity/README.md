@@ -53,7 +53,7 @@ authenticate the GitHub account.
 GoTrue's outbound OAuth provider calls use the existing node-local
 `mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891` service. Its
 GitHub authorization-code exchange must not depend on one hardcoded overseas
-node address: `192.0.2.29:17893` reset the connection in the October 2
+node address: `10.250.0.104:17893` reset the connection in the October 2
 login recovery. TLS verification remains end to end; private and cluster
 requests retain the existing NO_PROXY exclusions.
 
@@ -108,7 +108,9 @@ the client UUID as the separate `client_id` claim. Kubernetes therefore trusts
 the `authenticated` audience only when its AuthenticationConfiguration also
 validates that exact `client_id`; Headlamp is explicitly configured with
 `-oidc-use-access-token` to forward that access token, rather than its default
-client-audience ID token, to the API server.
+client-audience ID token, to the API server. Headlamp v0.45 also receives
+`-oidc-validator-client-id=authenticated` because it verifies the forwarded
+token against its configured validator audience before storing the auth cookie.
 MUBAO's K3s start gate also resolves this issuer through the declared internal
 Cilium Gateway because its WSL NAT resolver's public answer is not
 hairpin-reachable from that control-plane host.
@@ -202,7 +204,7 @@ its new HTTPRoute and triggers while keeping GoTrue and REST available.
 The `auth` Harbor project uses Cosign signatures held in the cluster Registry
 workflow. Do not use an interactive Sigstore device login for an auth gateway
 release. Build and push the immutable image digest, then run a short-lived
-Cosign Job on restricted-node-6dc3f140f9 in the `auth` namespace. Mount
+Cosign Job on R640 in the `auth` namespace. Mount
 `auth/re8ch-auth-gateway-cosign-signing-key` for `cosign.key`,
 `cosign.password`, and `cosign.pub`; mount `auth/harbor-auth-admin` as the
 container's Docker config. Sign the digest with the private key and
