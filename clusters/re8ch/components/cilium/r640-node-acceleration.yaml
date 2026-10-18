@@ -13,6 +13,10 @@ spec:
     devices: eno2np1
     direct-routing-device: eno2np1
     egress-masquerade-interfaces: eno2np1
+    # restricted-node-6dc3f140f9 also originates the 192.0.2.179 control-plane VIP. The generic
+    # iptables MASQUERADE rule rewrites that host traffic on its LAN return
+    # path; BPF masquerade stays scoped to endpoint traffic on this exact NIC.
+    enable-bpf-masquerade: "true"
     bpf-lb-acceleration: native
     # restricted-node-6dc3f140f9 has no ordinary ZeroTier /24 interface: RouterOS owns its node
     # identity and FRR learns remote PodCIDRs from the dedicated boundary peer.

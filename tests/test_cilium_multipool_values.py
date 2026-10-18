@@ -34,3 +34,4 @@ def test_r640_overrides_egress_masquerade_interface():
     assert operational == component
     restricted-node-6dc3f140f9 = next(item for item in component if item["metadata"]["name"] == "r640-xdp-native")
     assert restricted-node-6dc3f140f9["spec"]["defaults"]["egress-masquerade-interfaces"] == "eno2np1"
+    assert restricted-node-6dc3f140f9["spec"]["defaults"]["enable-bpf-masquerade"] == "true"
