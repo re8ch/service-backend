@@ -2918,6 +2918,7 @@ spec:
         - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
         - -oidc-scopes=profile,email,offline_access
         - -oidc-use-pkce
+        - -oidc-use-access-token
         - -oidc-use-cookie
         - -plugins-dir=/headlamp/plugins
         env:

@@ -106,7 +106,8 @@ client. Its fixed client ID is `ed4e0331-7522-59f8-8a72-2d558844dc24`.
 GoTrue keeps `aud=authenticated` on that client's OAuth access token and adds
 the client UUID as the separate `client_id` claim. Kubernetes therefore trusts
 the `authenticated` audience only when its AuthenticationConfiguration also
-validates that exact `client_id`; Headlamp forwards the access token, not the
+validates that exact `client_id`; Headlamp is explicitly configured with
+`-oidc-use-access-token` to forward that access token, rather than its default
 client-audience ID token, to the API server.
 MUBAO's K3s start gate also resolves this issuer through the declared internal
 Cilium Gateway because its WSL NAT resolver's public answer is not
