@@ -22,11 +22,11 @@ PROFILES = ("fastest", "balanced", "greedy")
 DEFAULT_TABLES = {"fastest": 201, "balanced": 202, "greedy": 203}
 DEFAULT_MARKS = {"fastest": 42241, "balanced": 42242, "greedy": 42243}
 ALLOWED_PREFIXES = (
-    ipaddress.ip_network("192.0.2.224/16"),
-    ipaddress.ip_network("192.0.2.106/24"),
-    ipaddress.ip_network("192.0.2.215/24"),
+    ipaddress.ip_network("10.42.0.0/16"),
+    ipaddress.ip_network("10.250.0.0/24"),
+    ipaddress.ip_network("10.251.0.0/24"),
 )
-PROTECTED_NODE_CIDR = ipaddress.ip_network("192.0.2.253/24")
+PROTECTED_NODE_CIDR = ipaddress.ip_network("10.181.22.0/24")
 
 
 def validate_fabric(spec):
@@ -38,7 +38,7 @@ def validate_fabric(spec):
     networks = [ipaddress.ip_network(spec[key]) for key in
                 ("nativeRoutingCIDR", "acceleratedCIDR", "serviceCIDR")]
     if networks[0] != ALLOWED_PREFIXES[0]:
-        errors.append("nativeRoutingCIDR must remain 192.0.2.224/16")
+        errors.append("nativeRoutingCIDR must remain 10.42.0.0/16")
     if any(a.overlaps(b) for index, a in enumerate(networks) for b in networks[index + 1:]):
         errors.append("fabric address domains overlap")
     names, asns, pods, accelerators = set(), set(), set(), set()
@@ -152,9 +152,10 @@ def render_frr(node, fabric, phase="final"):
     spines = [item for item in fabric["nodes"] if item["role"] == "spine" and item["name"] != node["name"]]
     lines = [
         "! BEGIN RE8CH ADVANCED FABRIC",
-        "ip prefix-list AF-IN seq 10 permit 192.0.2.224/16 ge 24 le 24",
-        "ip prefix-list AF-IN seq 20 permit 192.0.2.106/24 ge 32 le 32",
-        "ip prefix-list AF-IN seq 30 permit 192.0.2.215/24 ge 32 le 32",
+        "ip prefix-list AF-IN seq 10 permit 10.42.0.0/16 ge 24 le 24",
+        "ip prefix-list AF-IN seq 15 permit 10.64.0.0/12 ge 24 le 24",
+        "ip prefix-list AF-IN seq 20 permit 10.250.0.0/24 ge 32 le 32",
+        "ip prefix-list AF-IN seq 30 permit 10.251.0.0/24 ge 32 le 32",
         "ip prefix-list AF-IN seq 1000 deny any",
         f"ip prefix-list AF-SELF seq 10 permit {node['podCIDR']}",
         f"ip prefix-list AF-SELF seq 20 permit {node['acceleratedIP']}/32",
@@ -182,7 +183,7 @@ def render_frr(node, fabric, phase="final"):
                   f"  neighbor {peer['acceleratedIP']} maximum-prefix 64 90 restart 5"]
     lines += ["  maximum-paths 7", " exit-address-family", "! END RE8CH ADVANCED FABRIC"]
     output = "\n".join(lines) + "\n"
-    if "0.0.0.0/0" in output or "192.0.2.253/24" in output:
+    if "0.0.0.0/0" in output or "10.181.22.0/24" in output:
         raise ValueError("renderer attempted to emit a forbidden prefix")
     return output
 

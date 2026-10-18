@@ -18790,6 +18790,7 @@ data:
     configure terminal
     no ip prefix-list POD-FABRIC-IN
     ip prefix-list POD-FABRIC-IN seq 10 permit 192.0.2.224/16 ge 24 le 24
+    ip prefix-list POD-FABRIC-IN seq 15 permit 192.0.2.38/12 ge 24 le 24
     ip prefix-list POD-FABRIC-IN seq 20 permit 192.0.2.106/24 ge 32 le 32
     ip prefix-list POD-FABRIC-IN seq 30 permit 192.0.2.215/24 ge 32 le 32
     ip prefix-list POD-FABRIC-IN seq 1000 deny any
@@ -18861,6 +18862,7 @@ data:
     ip prefix-list MUBAO-OUT seq 20 permit 192.0.2.173/32
     ip prefix-list MUBAO-OUT seq 30 permit 192.0.2.213/32
     ip prefix-list MUBAO-OUT seq 40 permit 192.0.2.224/16 ge 24 le 24
+    ip prefix-list MUBAO-OUT seq 50 permit 192.0.2.38/12 ge 24 le 24
     ip prefix-list MUBAO-OUT seq 1000 deny any
     router bgp ${asn}
     neighbor ${peer} remote-as ${relay_asn}
