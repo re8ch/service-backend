@@ -26,7 +26,7 @@ spec:
       repository: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
       controllerNamespace: flux-identity-system
       lock: 04dcbe952d261f533bbc179a5c2767e7280b3cb2
-      state: staged
+      state: cutover-verification
     networking:
       organization: pillars-infra
       repository: ssh://git@ssh.github.com:443/pillars-infra/network-gitops.git
