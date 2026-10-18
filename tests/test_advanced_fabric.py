@@ -133,6 +133,14 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertIn('mv "${candidate}" "${cilium_nodes}"', reconciler)
         self.assertIn("retaining last-known-good allocations", reconciler)
         self.assertIn('exec /bin/sh /config/reconcile.sh', reconciler)
+        resources = [item for item in yaml.safe_load_all(reconciler) if item]
+        daemonset = next(item for item in resources if item["kind"] == "DaemonSet")
+        self.assertEqual(
+            daemonset["spec"]["template"]["metadata"]["annotations"][
+                "networking.re8ch.com/config-revision"
+            ],
+            "multipool-live-refresh-v15",
+        )
 
     def test_control_plane_readiness_requires_both_route_servers_and_fib(self):
         root = pathlib.Path(__file__).parents[1]
