@@ -356,6 +356,8 @@ modules:
       digest: sha256:a30458e85fc20d6c86fd789fd04eb6bd16cf77348cdedda655a5330fb6fbd72f
     - codename: lantern-umber
       digest: sha256:178eed37df77ef447524714cad933a3d3b908ada8258902422d012bc65e4fdbd
+    - codename: lighthouse-umber
+      digest: sha256:8b09539888b688f529cab23be2cefd18379d4d4a8da2c8163ebd8905466e6b48
   platform/among-clusters:
     releases:
     - codename: bora
