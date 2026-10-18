@@ -16,7 +16,7 @@ data:
       nsenter -t 1 -n chroot /host "$@"
     }
 
-    get_cilium_node() {
+    get_cilium_nodes() {
       token_file=/var/run/secrets/kubernetes.io/serviceaccount/token
       ca_file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
       response="$(mktemp)"
@@ -24,7 +24,7 @@ data:
       {
         # HTTP/1.0 makes the API server close-delimit the body. This avoids
         # teaching the small host-network reconciler to decode HTTP chunks.
-        printf 'GET /apis/cilium.io/v2/ciliumnodes/%s HTTP/1.0\r\n' "${NODE_NAME}"
+        printf 'GET /apis/cilium.io/v2/ciliumnodes HTTP/1.0\r\n'
         printf 'Host: kubernetes.default.svc\r\n'
         printf 'Authorization: Bearer %s\r\n' "${token}"
         printf 'Accept: application/json\r\n'
@@ -42,12 +42,23 @@ data:
       rm -f "${response}"
     }
 
-    local_pod_cidrs() {
+    cilium_nodes=/tmp/cilium-nodes.json
+    get_cilium_nodes >"${cilium_nodes}" || printf '{"items":[]}\n' >"${cilium_nodes}"
+
+    pod_cidrs_for_node() {
+      target_node="$1"
       {
-        printf '%s\n' "${pod_cidr}"
-        get_cilium_node 2>/dev/null |
-          jq -r '.spec.ipam.pools.allocated[]?.cidrs[]?'
+        jq -r --arg name "${target_node}" \
+          '.routeServers[], .nodes[], .relayNodes[]? | select(.name == $name) | .podCIDR // empty' \
+          /config/inventory.json
+        jq -r --arg name "${target_node}" \
+          '.items[]? | select(.metadata.name == $name) | .spec.ipam.pools.allocated[]?.cidrs[]?' \
+          "${cilium_nodes}"
       } | awk 'NF && !seen[$0]++'
+    }
+
+    local_pod_cidrs() {
+      pod_cidrs_for_node "${NODE_NAME}"
     }
 
     wait_for_bgp() {
@@ -179,19 +190,28 @@ data:
         host ip link show "${iface}" >/dev/null 2>&1 || return 0
         jq -c '.nodes[] | select(.peerMode == "transport")' /config/inventory.json | while read -r spoke; do
           last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
-          prefix="$(printf '%s' "${spoke}" | jq -r .podCIDR)"
+          spoke_name="$(printf '%s' "${spoke}" | jq -r .name)"
           peer_key="$(host wg show "${iface}" allowed-ips | awk -v needle="172.31.${fabric_octet}.${last}/32" '$0 ~ needle {print $1; exit}')"
           [ -n "${peer_key}" ] || continue
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
-          case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
+          for prefix in $(pod_cidrs_for_node "${spoke_name}"); do
+            case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+          done
+          current="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
+          [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
         done
         # Relayed identities use restricted-node-6dc3f140f9's existing tunnel, never a direct A/B peer.
         r640_peer="$(host wg show "${iface}" allowed-ips | awk -v transit="172.31.${fabric_octet}.128/32" '{ for (i=2; i<=NF; i++) if ($i == transit) { print $1; exit } }')"
         if [ -n "${r640_peer}" ]; then
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${r640_peer}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
           current="${allowed}"
-          for prefix in $(jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json); do
+          for prefix in $(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json); do
             case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+          done
+          for relay_name in $(jq -r '.relayNodes[]?.name' /config/inventory.json); do
+            for prefix in $(pod_cidrs_for_node "${relay_name}"); do
+              case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+            done
           done
           [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${r640_peer}" allowed-ips "${allowed}"
         fi
@@ -203,7 +223,7 @@ data:
         peer_key="$(host wg show "${iface}" peers | awk 'NR == 1 {print; exit}')"
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
-        remote_pods="$(jq -r --arg own "${pod_cidr}" '.routeServers[], .relayNodes[]?, .nodes[] | .podCIDR | select(. != $own)' /config/inventory.json | paste -sd, -)"
+        remote_pods="$(for remote_name in $(jq -r --arg own "${NODE_NAME}" '.routeServers[], .relayNodes[]?, .nodes[] | select(.name != $own) | .name' /config/inventory.json); do pod_cidrs_for_node "${remote_name}"; done | paste -sd, -)"
         relay_identities="192.0.2.220/32,$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
         if [ "${peer_mode}" = transport ]; then
           if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=192.0.2.160/24; else transport_cidr=192.0.2.90/24; fi
@@ -252,13 +272,17 @@ data:
       jq -c --arg own "${NODE_NAME}" '.routeServers[], .nodes[] | select(.name != $own)' /config/inventory.json | while read -r remote; do
         last="$(printf '%s' "${remote}" | jq -r '.internalIp | split(".")[3]')"
         accelerated="$(printf '%s' "${remote}" | jq -r .acceleratedIp)"
-        prefix="$(printf '%s' "${remote}" | jq -r .podCIDR)"
+        remote_name="$(printf '%s' "${remote}" | jq -r .name)"
         peer_key="$(host wg show "${iface}" allowed-ips | awk -v accel="${accelerated}/32" -v mesh="172.31.92.${last}/32" '
           { for (i=2; i<=NF; i++) if ($i == accel || $i == mesh) { print $1; exit } }
         ')"
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
-        case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
+        current="${allowed}"
+        for prefix in $(pod_cidrs_for_node "${remote_name}"); do
+          case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+        done
+        [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
       done
     }
 
@@ -475,9 +499,13 @@ data:
     ip prefix-list POD-FABRIC-SELF seq 200 permit ${accelerated_ip}/32
     ${relay_prefix_lines}
     ip prefix-list POD-FABRIC-SELF seq 1000 deny any
-    route-map POD-FABRIC-SELF-NH permit 10
+    route-map POD-FABRIC-SELF-NH-A1 permit 10
     match ip address prefix-list POD-FABRIC-SELF
-    set ip next-hop ${internal_ip}
+    set ip next-hop ${a1_update_source}
+    exit
+    route-map POD-FABRIC-SELF-NH-B1 permit 10
+    match ip address prefix-list POD-FABRIC-SELF
+    set ip next-hop ${b1_update_source}
     exit
     ${owned_route_lines}
     router bgp ${asn}
@@ -498,12 +526,12 @@ data:
     neighbor ${a1_peer} activate
     neighbor ${a1_peer} prefix-list POD-FABRIC-IN in
     neighbor ${a1_peer} prefix-list POD-FABRIC-SELF out
-    neighbor ${a1_peer} route-map POD-FABRIC-SELF-NH out
+    neighbor ${a1_peer} route-map POD-FABRIC-SELF-NH-A1 out
     neighbor ${a1_peer} maximum-prefix 64 90 restart 5
     neighbor ${b1_peer} activate
     neighbor ${b1_peer} prefix-list POD-FABRIC-IN in
     neighbor ${b1_peer} prefix-list POD-FABRIC-SELF out
-    neighbor ${b1_peer} route-map POD-FABRIC-SELF-NH out
+    neighbor ${b1_peer} route-map POD-FABRIC-SELF-NH-B1 out
     neighbor ${b1_peer} maximum-prefix 64 90 restart 5
     maximum-paths 2
     exit-address-family
@@ -674,7 +702,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: multipool-inventory-nodes-v11
+        networking.re8ch.com/config-revision: multipool-wireguard-v12
     spec:
       hostPID: true
       hostNetwork: true
