@@ -87,8 +87,18 @@ def main() -> None:
             "Network Helm RBAC omits Among Clusters agent identity role authority")
     require("among-clusters-credential-broker" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Among Clusters credential broker role authority")
-    require("cilium-gateway-secrets" in network_role_authority["resourceNames"],
-            "Network Helm RBAC omits the exact Cilium Gateway secrets role authority")
+    require(
+        {
+            "cilium-bgp-control-plane-secrets",
+            "cilium-config-agent",
+            "cilium-gateway-secrets",
+            "cilium-operator-gateway-secrets",
+            "cilium-operator-tlsinterception-secrets",
+            "cilium-operator-ztunnel",
+            "cilium-tlsinterception-secrets",
+        }.issubset(set(network_role_authority["resourceNames"])),
+        "Network Helm RBAC omits exact roles rendered by the adopted Cilium chart",
+    )
     require("public-edge-manager-cloudflare" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Public Edge Cloudflare role authority")
     require("public-edge-manager-cli" in network_role_authority["resourceNames"],

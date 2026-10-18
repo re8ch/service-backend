@@ -4498,7 +4498,13 @@ rules:
   - among-clusters-agent-identity
   - among-clusters-credential-broker
   - among-clusters-legacy-agent-cleanup
+  - cilium-bgp-control-plane-secrets
+  - cilium-config-agent
   - cilium-gateway-secrets
+  - cilium-operator-gateway-secrets
+  - cilium-operator-tlsinterception-secrets
+  - cilium-operator-ztunnel
+  - cilium-tlsinterception-secrets
   - control-dns-reachability
   - host-network-controller
   - mihomo-node-labeler-inventory
