@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: lantern-umber
+codename: lighthouse-umber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:178eed37df77ef447524714cad933a3d3b908ada8258902422d012bc65e4fdbd
+  digest: sha256:8b09539888b688f529cab23be2cefd18379d4d4a8da2c8163ebd8905466e6b48
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
