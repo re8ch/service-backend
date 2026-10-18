@@ -3,13 +3,13 @@ kind: FluxDomainMigrationEvidence
 metadata:
   name: identity-access
 spec:
-  capturedAt: "2026-10-18T11:53:00+08:00"
+  capturedAt: "2026-10-18T13:10:13+08:00"
   oldOwner:
     apiVersion: kustomize.toolkit.fluxcd.io/v1
     kind: Kustomization
     namespace: flux-system
     name: reconcile-identity-access
-    revision: main@sha1:0719733a94b9258348f45a5ad3acce12bb39b730
+    revision: main@sha1:b392a0dc9a97db9e79ff3e680988586d9367064c
     inventory:
       entries: 265
       sortedIdsSha256: 140ab86b1959d7d98c9716e07c6f999d872dd19ef7fdbe1302e0e6d6f42b0b87
@@ -19,4 +19,17 @@ spec:
     name: domain
     repositoryRevision: main@sha1:04dcbe952d261f533bbc179a5c2767e7280b3cb2
     initialPrune: false
+    verifiedInventory:
+      entries: 252
+      sortedIdsSha256: e42148ef950c11402df16c9464071573025437d475fd4262eaac79ae41c11f40
+      commonWithOld: 252
+      expectedOldOnly:
+        mainOwnedNamespaces: 6
+        mainOwnedClusterGuardrails: 6
+        mainOwnedTenantNamespaces: 1
+      unexpectedDifferences: 0
+    ready: true
+  finalized:
+    prune: true
+    oldDeclaration: removed-from-active-manifest
   rollback: suspend-new-before-resuming-old
