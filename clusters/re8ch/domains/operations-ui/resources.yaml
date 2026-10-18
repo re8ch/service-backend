@@ -579,9 +579,17 @@ data:
       listen 8080;
       server_name _;
 
-      location = /proxy-healthz {
+      location = /livez {
         access_log off;
         return 200 "ok\n";
+      }
+
+      location = /readyz {
+        access_log off;
+        proxy_pass http://headlamp-origin/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
       }
 
       location = /auth {
@@ -602,6 +610,21 @@ data:
         proxy_set_header Connection $connection_upgrade;
         proxy_buffering off;
       }
+    }
+  nginx.conf: |
+    worker_processes 2;
+    pid /var/run/nginx.pid;
+
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      access_log /var/log/nginx/access.log;
+      error_log /var/log/nginx/error.log notice;
+      sendfile on;
+      keepalive_timeout 65;
+      include /etc/nginx/conf.d/*.conf;
     }
 kind: ConfigMap
 metadata:
@@ -2711,6 +2734,7 @@ spec:
     targetPort: oidc-landing
   selector:
     app.kubernetes.io/name: headlamp
+    traffic.re8ch.com/headlamp-active: "true"
 ---
 apiVersion: v1
 kind: Service
@@ -2725,6 +2749,7 @@ spec:
     targetPort: http
   selector:
     app.kubernetes.io/name: headlamp
+    traffic.re8ch.com/headlamp-active: "true"
 ---
 apiVersion: v1
 kind: Service
@@ -3323,6 +3348,8 @@ spec:
       app.kubernetes.io/name: headlamp-gateway-proxy
   template:
     metadata:
+      annotations:
+        operations.re8ch.com/config-revision: 2026-10-19-upstream-resilience
       labels:
         app.kubernetes.io/name: headlamp-gateway-proxy
     spec:
@@ -3330,7 +3357,7 @@ spec:
       - image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
         livenessProbe:
           httpGet:
-            path: /proxy-healthz
+            path: /livez
             port: http
           initialDelaySeconds: 10
           periodSeconds: 20
@@ -3340,23 +3367,33 @@ spec:
           name: http
         readinessProbe:
           httpGet:
-            path: /proxy-healthz
+            path: /readyz
             port: http
           initialDelaySeconds: 2
           periodSeconds: 10
         resources:
           limits:
             cpu: 100m
-            memory: 64Mi
+            memory: 128Mi
           requests:
             cpu: 5m
             memory: 16Mi
         volumeMounts:
-        - mountPath: /etc/nginx/conf.d
+        - mountPath: /etc/nginx/nginx.conf
           name: config
           readOnly: true
+          subPath: nginx.conf
+        - mountPath: /etc/nginx/conf.d/default.conf
+          name: config
+          readOnly: true
+          subPath: conf.d/default.conf
       volumes:
       - configMap:
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+          - key: default.conf
+            path: conf.d/default.conf
           name: headlamp-gateway-proxy
         name: config
 ---
