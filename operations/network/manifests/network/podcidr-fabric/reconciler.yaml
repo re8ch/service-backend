@@ -16,10 +16,36 @@ data:
       nsenter -t 1 -n chroot /host "$@"
     }
 
+    get_cilium_node() {
+      token_file=/var/run/secrets/kubernetes.io/serviceaccount/token
+      ca_file=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      response="$(mktemp)"
+      token="$(cat "${token_file}")"
+      {
+        # HTTP/1.0 makes the API server close-delimit the body. This avoids
+        # teaching the small host-network reconciler to decode HTTP chunks.
+        printf 'GET /apis/cilium.io/v2/ciliumnodes/%s HTTP/1.0\r\n' "${NODE_NAME}"
+        printf 'Host: kubernetes.default.svc\r\n'
+        printf 'Authorization: Bearer %s\r\n' "${token}"
+        printf 'Accept: application/json\r\n'
+        printf '\r\n'
+      } | timeout 10 openssl s_client \
+        -connect "${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS}" \
+        -servername kubernetes.default.svc \
+        -CAfile "${ca_file}" \
+        -quiet 2>/dev/null | tr -d '\r' >"${response}" || return 1
+      if ! head -1 "${response}" | grep -Eq '^HTTP/1\.[01] 200 '; then
+        rm -f "${response}"
+        return 1
+      fi
+      awk 'body { print } /^$/ { body=1 }' "${response}"
+      rm -f "${response}"
+    }
+
     local_pod_cidrs() {
       {
         printf '%s\n' "${pod_cidr}"
-        /tools/kubectl get ciliumnode "${NODE_NAME}" -o json 2>/dev/null |
+        get_cilium_node 2>/dev/null |
           jq -r '.spec.ipam.pools.allocated[]?.cidrs[]?'
       } | awk 'NF && !seen[$0]++'
     }
@@ -648,7 +674,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: r640-b1-podcidr-authority-v9
+        networking.re8ch.com/config-revision: r640-b1-podcidr-authority-v10
     spec:
       hostPID: true
       hostNetwork: true
@@ -683,16 +709,7 @@ spec:
           volumeMounts:
             - {name: config, mountPath: /config, readOnly: true}
             - {name: host-root, mountPath: /host, readOnly: false}
-            - {name: tools, mountPath: /tools, readOnly: true}
-      initContainers:
-        - name: install-kubectl
-          image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
-          command: [sh, -c, 'cp /bin/kubectl /tools/kubectl']
-          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: false, runAsUser: 0, capabilities: {drop: [ALL]}}
-          volumeMounts: [{name: tools, mountPath: /tools}]
       volumes:
-        - name: tools
-          emptyDir: {}
         - name: config
           projected:
             sources:
