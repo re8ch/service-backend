@@ -220,6 +220,8 @@ modules:
       digest: sha256:00a7293c2071ad8f607d630ef77e1aabedbcfc4f2a84466d8ab0b3482b471fb7
     - codename: etesian-umber
       digest: sha256:b632a8d1cd8fa8688a658817af67f0b75699868a3825f803a9d21578abeffb70
+    - codename: mistral-umber
+      digest: sha256:9fda81aa4f381669fb23bf23f2b6cbfa54c2b0c835b078c3163caba629c9ce41
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
