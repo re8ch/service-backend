@@ -25536,6 +25536,32 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/hostname: catalog.re8ch.com
+    external-dns.alpha.kubernetes.io/target: catalog.re8ch.com.eo.dnse1.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+  labels:
+    networking.re8ch.com/dns-authority: public-edge
+  name: catalog-edgeone-dns-authority
+  namespace: regional-routing
+spec:
+  ingressClassName: external-dns-only
+  rules:
+  - host: catalog.re8ch.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: public-edge-manager
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: operate.tools.re8ch.com
     external-dns.alpha.kubernetes.io/target: 192.0.2.79
     external-dns.alpha.kubernetes.io/ttl: "60"

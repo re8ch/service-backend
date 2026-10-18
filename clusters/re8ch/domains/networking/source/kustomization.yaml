@@ -18,6 +18,7 @@ resources:
 - ../../../components/egress-fabric/rbac.yaml
 - ../../../components/egress-fabric/path-controller.yaml
 - ../../../components/public-exposure/external-dns-cloudflare.yaml
+- ../../../components/public-exposure/catalog-edgeone-dns.yaml
 - ../../../components/public-exposure/external-dns-advfab.yaml
 - ../../../components/public-exposure/gateway-dns-authorities.yaml
 - ../../../components/public-exposure/grafana-dns-authority.yaml
