@@ -2915,6 +2915,7 @@ spec:
         - -enable-dynamic-clusters
         - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
         - -oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24
+        - -oidc-validator-client-id=authenticated
         - -oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1
         - -oidc-ca-file=/etc/ssl/certs/ca-certificates.crt
         - -oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback
