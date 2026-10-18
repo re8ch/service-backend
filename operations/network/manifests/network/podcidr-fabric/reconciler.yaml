@@ -43,7 +43,43 @@ data:
     }
 
     cilium_nodes=/tmp/cilium-nodes.json
-    get_cilium_nodes >"${cilium_nodes}" || printf '{"items":[]}\n' >"${cilium_nodes}"
+    refresh_cilium_nodes() {
+      candidate="$(mktemp)"
+      if get_cilium_nodes >"${candidate}" &&
+        jq -e '.items | type == "array"' "${candidate}" >/dev/null 2>&1; then
+        mv "${candidate}" "${cilium_nodes}"
+        return 0
+      fi
+      rm -f "${candidate}"
+      # Keep the last valid allocation map during a transient API outage. An
+      # empty map is safe only during first boot, before any snapshot exists.
+      if ! jq -e '.items | type == "array"' "${cilium_nodes}" >/dev/null 2>&1; then
+        printf '{"items":[]}\n' >"${cilium_nodes}"
+      fi
+      return 1
+    }
+
+    cilium_allocations_hash() {
+      jq -Sc '[.items[]? | {
+        name: .metadata.name,
+        cidrs: [.spec.ipam.pools.allocated[]?.cidrs[]?] | sort
+      }] | sort_by(.name)' "${cilium_nodes}" | sha256sum | awk '{print $1}'
+    }
+
+    refresh_cilium_nodes || echo "${NODE_NAME}: CiliumNode inventory unavailable; retaining last-known-good allocations" >&2
+    loaded_cilium_allocations_hash="$(cilium_allocations_hash)"
+
+    refresh_cilium_nodes_or_reload() {
+      refresh_cilium_nodes || {
+        echo "${NODE_NAME}: CiliumNode refresh failed; retaining last-known-good allocations" >&2
+        return 0
+      }
+      current_hash="$(cilium_allocations_hash)"
+      if [ "${current_hash}" != "${loaded_cilium_allocations_hash}" ]; then
+        echo "${NODE_NAME}: Cilium Multi-Pool allocations changed; reloading fabric owner"
+        exec /bin/sh /config/reconcile.sh
+      fi
+    }
 
     pod_cidrs_for_node() {
       target_node="$1"
@@ -457,6 +493,7 @@ data:
       touch /run/podcidr-fabric-ready
       echo "${NODE_NAME}: declarative PodCIDR route-server policy reconciled"
       while sleep 60; do
+        refresh_cilium_nodes_or_reload
         reconcile_wireguard_allowed_ips
         reconcile_rr_interconnect_transit_sources || exit 1
         reconcile_control_api_spoke_symmetry
@@ -655,6 +692,7 @@ data:
     touch /run/podcidr-fabric-ready
     echo "${NODE_NAME}: declarative PodCIDR fabric reconciled"
     while sleep 60; do
+      refresh_cilium_nodes_or_reload
       reconcile_r640_b1_podcidr_authority || {
         rm -f /run/podcidr-fabric-ready
         exit 1
