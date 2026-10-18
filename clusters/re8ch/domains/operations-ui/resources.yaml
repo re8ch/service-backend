@@ -166,7 +166,9 @@ data:
     namespace = os.environ.get("POD_NAMESPACE", "headlamp")
     token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
     ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-    base = "https://kubernetes.default.svc"
+    api_host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
+    api_port = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    base = f"https://{api_host}:{api_port}"
     selector = urllib.parse.quote("app.kubernetes.io/name=headlamp")
     context = ssl.create_default_context(cafile=ca_path)
 
@@ -3302,6 +3304,11 @@ spec:
       - command:
         - python3
         - /runtime/elector.py
+        env:
+        - name: KUBERNETES_SERVICE_HOST
+          value: 127.0.0.1
+        - name: KUBERNETES_SERVICE_PORT_HTTPS
+          value: "6443"
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         name: elector
         resources:
@@ -3321,6 +3328,8 @@ spec:
         - mountPath: /runtime
           name: runtime
           readOnly: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       priorityClassName: system-cluster-critical

@@ -33,6 +33,21 @@ def test_control_plane_helpers_tolerate_hard_control_plane_taint():
         assert expected in deployment["spec"]["template"]["spec"]["tolerations"]
 
 
+def test_headlamp_active_elector_uses_local_control_plane_api():
+    documents = load_documents("platform/headlamp/active-elector.yaml")
+    config = next(doc for doc in documents if doc["kind"] == "ConfigMap")
+    deployment = next(doc for doc in documents if doc["kind"] == "Deployment")
+    pod = deployment["spec"]["template"]["spec"]
+    container = pod["containers"][0]
+    env = {item["name"]: item["value"] for item in container["env"]}
+
+    assert pod["hostNetwork"] is True
+    assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
+    assert env["KUBERNETES_SERVICE_HOST"] == "127.0.0.1"
+    assert env["KUBERNETES_SERVICE_PORT_HTTPS"] == "6443"
+    assert 'os.environ.get("KUBERNETES_SERVICE_HOST"' in config["data"]["elector.py"]
+
+
 def test_mobile_oidc_landing_is_same_origin_and_routes_back_to_cluster():
     documents = load_documents("platform/headlamp/oidc-landing.yaml")
     config = next(doc for doc in documents if doc["kind"] == "ConfigMap")

@@ -45,7 +45,9 @@ data:
     namespace = os.environ.get("POD_NAMESPACE", "headlamp")
     token_path = "/var/run/secrets/kubernetes.io/serviceaccount/token"
     ca_path = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-    base = "https://kubernetes.default.svc"
+    api_host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
+    api_port = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    base = f"https://{api_host}:{api_port}"
     selector = urllib.parse.quote("app.kubernetes.io/name=headlamp")
     context = ssl.create_default_context(cafile=ca_path)
 
@@ -92,11 +94,11 @@ data:
         try:
             pods = request(f"/api/v1/namespaces/{namespace}/pods?labelSelector={selector}")["items"]
             # Prefer the R640-local backend for PublicEdge. Cross-node traffic
-            # to domain-ex remains the automatic fallback when restricted-node-6dc3f140f9 is absent.
+            # to domain-ex remains the automatic fallback when R640 is absent.
             healthy = sorted(
                 (pod for pod in pods if ready(pod)),
                 key=lambda pod: (
-                    pod.get("spec", {}).get("nodeName") != "restricted-node-6dc3f140f9",
+                    pod.get("spec", {}).get("nodeName") != "r640",
                     pod["metadata"]["name"],
                 ),
             )
@@ -104,7 +106,7 @@ data:
                 pod for pod in healthy
                 if pod["metadata"].get("labels", {}).get("traffic.re8ch.com/headlamp-active") == "true"
             ]
-            preferred = [pod for pod in healthy if pod.get("spec", {}).get("nodeName") == "restricted-node-6dc3f140f9"]
+            preferred = [pod for pod in healthy if pod.get("spec", {}).get("nodeName") == "r640"]
             selected = preferred[0] if preferred else (current[0] if current else (healthy[0] if healthy else None))
             for pod in pods:
                 set_active(pod, selected is not None and pod["metadata"]["uid"] == selected["metadata"]["uid"])
@@ -131,6 +133,11 @@ spec:
         scheduling.re8ch.com/control-plane-allowed: "true"
     spec:
       serviceAccountName: headlamp-active-elector
+      # The elector must remain able to select the only serving Headlamp pod
+      # when a control-plane node's Cluster DNS or service dataplane is down.
+      # Use the local K3s API listener, matching the Headlamp backend itself.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       priorityClassName: system-cluster-critical
@@ -142,6 +149,9 @@ spec:
         - name: elector
           image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
           command: ["python3", "/runtime/elector.py"]
+          env:
+            - {name: KUBERNETES_SERVICE_HOST, value: "127.0.0.1"}
+            - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
           resources:
             requests: {cpu: 5m, memory: 16Mi}
             limits: {cpu: 50m, memory: 64Mi}
