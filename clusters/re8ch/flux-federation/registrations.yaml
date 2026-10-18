@@ -51,7 +51,7 @@ spec:
   timeout: 15m
   suspend: false
   path: ./clusters/re8ch
-  prune: false
+  prune: true
   wait: false
   sourceRef: {kind: GitRepository, name: domain}
   decryption: {provider: sops, secretRef: {name: sops-age}}

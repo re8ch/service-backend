@@ -19,8 +19,8 @@ spec:
       organization: re8ch-ai
       repository: ssh://git@ssh.github.com:443/re8ch-ai/agent-gitops.git
       controllerNamespace: flux-agent-system
-      lock: 663aef9587fb4d9df61edcf6a30dfa64d40b1647
-      state: cutover-verification
+      lock: fe9cae9809804832433c73decdd9dc9fceddcbee
+      state: autonomous
     identity-access:
       organization: re8ch
       repository: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
