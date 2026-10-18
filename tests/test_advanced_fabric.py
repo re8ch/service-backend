@@ -121,6 +121,19 @@ class AdvancedFabricTests(unittest.TestCase):
         self.assertIn('[ "${peer_mode}" = transport ]', reconciler)
         self.assertIn('ip route ${transport_cidr} ${iface} 5', reconciler)
 
+    def test_podcidr_fabric_refreshes_multi_pool_allocations_without_losing_last_good(self):
+        root = pathlib.Path(__file__).parents[1]
+        reconciler = (
+            root / "operations/network/manifests/network/podcidr-fabric/reconciler.yaml"
+        ).read_text()
+
+        self.assertIn("refresh_cilium_nodes()", reconciler)
+        self.assertIn("refresh_cilium_nodes_or_reload()", reconciler)
+        self.assertEqual(reconciler.count("refresh_cilium_nodes_or_reload\n"), 2)
+        self.assertIn('mv "${candidate}" "${cilium_nodes}"', reconciler)
+        self.assertIn("retaining last-known-good allocations", reconciler)
+        self.assertIn('exec /bin/sh /config/reconcile.sh', reconciler)
+
     def test_control_plane_readiness_requires_both_route_servers_and_fib(self):
         root = pathlib.Path(__file__).parents[1]
         inventory = json.loads(
