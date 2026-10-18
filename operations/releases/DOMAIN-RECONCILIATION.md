@@ -2,8 +2,7 @@
 
 The cluster root is a bootstrap and coordination boundary, not the owner of
 product workloads. Five business domains still reconcile independently from
-the verified `service-backend` Git source. Four domains are being transferred
-to independent Flux controller stacks and private desired-state repositories:
+the verified `service-backend` Git source:
 
 | Domain | Runtime owner |
 | --- | --- |
@@ -13,13 +12,13 @@ to independent Flux controller stacks and private desired-state repositories:
 | delivery-products | `Kustomization/reconcile-delivery-products` |
 | tenant-runtime | `Kustomization/reconcile-tenant-runtime` |
 
-During bootstrap, `networking`, `identity-access`, `agent-runtime`, and
-`observability-metering` retain their active old owner. At each cutover that
-old declaration is suspended and retained as a rollback record. Their
-repositories, controller namespaces, locks, and current state are
-authoritative in `operations/flux-federation/authority.yaml`. The staged
-bootstrap does not change ownership: autonomous sources and Kustomizations
-start suspended with pruning disabled.
+`networking`, `identity-access`, `agent-runtime`, and
+`observability-metering` have completed their transfer to independent Flux
+controller stacks and private desired-state repositories. Their repositories,
+controller namespaces, locks, and current `autonomous` state are authoritative
+in `operations/flux-federation/authority.yaml`. Frozen legacy declarations are
+rollback evidence only and must not be resumed while an autonomous owner is
+active.
 
 The reconcilers have no `dependsOn` edge to `Kustomization/service-backend`.
 Once bootstrapped, a render or apply failure in one domain does not prevent a
@@ -103,3 +102,23 @@ resume one while its replacement `reconcile-*` owner is active.
 
 Because the root does not prune, a root failure cannot garbage-collect domain
 workloads. Rollback remains a reviewed, signed Git change.
+
+## CNI and node availability rule
+
+Network Flux owns the existing `kube-system/cilium` Helm release; it must never
+install a second release. The vendored chart and runtime images are immutable
+and digest locked. Chart reconciliation follows `ChartVersion`, not every Git
+revision, and an unrelated Network GitOps commit must not roll all Cilium
+agents.
+
+Cilium is node-level infrastructure, so a deliberately offline or failed
+worker is a node-health incident, not a reason to roll back already converged
+cluster-wide CNI resources. Helm upgrades therefore do not wait for every
+DaemonSet pod and do not retry a cluster-wide rollback loop. Per-node readiness
+remains visible through Kubernetes and observability alerts.
+
+Gateway readiness is not accepted from `Programmed=True` alone. Production
+validation must include a TLS/HTTP probe through both the service VIP and the
+declared public authority path. The October 2026 R640 recovery and its durable
+checks are recorded in
+[`operations/network/docs/r640-cilium-gateway-recovery-2026-10-19.md`](../network/docs/r640-cilium-gateway-recovery-2026-10-19.md).
