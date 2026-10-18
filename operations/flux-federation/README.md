@@ -1,27 +1,37 @@
-# Flux federation migration
+# Flux federation operating model
 
 This directory records the reviewed authority split between the main Flux and
 four autonomous controller stacks. `authority.yaml` is the machine-readable
 ledger. The generated cluster manifests live under
 `clusters/re8ch/flux-federation`.
 
-The initial bootstrap is intentionally inert. After its controllers and
-credentials are verified, repositories become active for read-only artifact
-fetching while domain Kustomizations stay suspended and `prune` remains false.
-Neither phase transfers workload ownership.
+All four domain controller stacks are active and autonomous. The main Flux
+continues to install their controllers, namespaces, baseline NetworkPolicy and
+bounded RBAC, but it does not reconcile their domain repositories or workload
+inventories. A main Flux source or Kustomization failure must not stop an
+already running autonomous stack.
 
-## Bootstrap
+The current authorities are:
 
-1. Merge the four domain repository bootstrap pull requests and replace each
-   staged lock with the resulting `main` SHA.
-2. Merge the service-backend bootstrap after CI passes. Verify four controller
-   Deployments in each domain namespace and confirm every registration remains
-   suspended.
+| Domain | Namespace | Repository |
+| --- | --- | --- |
+| Agent | `flux-agent-system` | `re8ch-ai/agent-gitops` |
+| Identity | `flux-identity-system` | `re8ch/identity-gitops` |
+| Observability | `flux-observability-system` | `siren-observer/observability-gitops` |
+| Network | `flux-network-system` | `pillars-infra/network-gitops` |
+
+## Bootstrap and replacement
+
+1. Merge a domain repository bootstrap pull request and record the resulting
+   `main` SHA in `authority.yaml`.
+2. Merge the service-backend bootstrap after CI passes. Verify the four
+   controller Deployments in the domain namespace before activating its
+   registration.
 3. Through the audited control-plane path, run
    `bootstrap-shared-secrets.sh`. It copies the existing SOPS private key and
    OCI reader Secret without placing plaintext in Git.
-4. Unsuspend only each domain's `GitRepository` and verify signature, revision
-   and artifact fetch. Keep its new Kustomization suspended until cutover.
+4. Unsuspend only the domain `GitRepository` and verify signature, revision and
+   artifact fetch. Keep its Kustomization suspended until the ownership cutover.
 
 ## Per-domain cutover
 
@@ -46,6 +56,20 @@ contain more than one domain cutover.
 Identity and Agent product Deployments already owned by their publishers or
 `control-plane-direct` remain excluded. The autonomous repositories own only
 their compiled platform guardrails and allowed shared runtime components.
+
+## Steady-state rules
+
+- Each domain controller watches only its own controller namespace.
+- An object has at most one active `prune: true` owner.
+- Git and OCI credentials are domain scoped; shared SOPS/OCI reader material is
+  copied into each controller namespace without entering Git.
+- Main Flux may suspend a domain as an emergency brake, but cannot silently
+  become its workload owner.
+- Network Flux receives named, audited cluster-scoped permissions. It cannot
+  create or delete arbitrary admission policies or escalate unrelated RBAC.
+- Emergency live objects are temporary incident controls. Durable state must be
+  reviewed in the owning GitOps repository, and the temporary object must be
+  removed after verification.
 
 ## Verification and rollback
 

@@ -31,7 +31,7 @@ spec:
       organization: pillars-infra
       repository: ssh://git@ssh.github.com:443/pillars-infra/network-gitops.git
       controllerNamespace: flux-network-system
-      lock: 78c690d5958aeb90f86d6d256fef14cdf9004e90
+      lock: 1fdda9a16730d0b440b8cce1a0ba528df07a7af8
       state: autonomous
   sharedBootstrapSecrets:
     - sops-age

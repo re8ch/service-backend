@@ -17,6 +17,26 @@ repository.
 - `scripts`: FRR, PodCIDR, policy-routing, RouterOS and economics tooling.
 - `docs`: historical decisions, performance checkpoints and runbooks.
 
+## Cilium and Gateway authority
+
+Network runtime desired state is owned by the autonomous
+`flux-network-system` stack sourcing `pillars-infra/network-gitops`. This
+repository retains the public authority inventory, controller lifecycle,
+bounded cluster RBAC, and cross-domain policy boundary. Do not reintroduce a
+second Cilium Helm owner under the main Flux.
+
+R640 retains native XDP and uses eBPF masquerading on `eno2np1`. Its node
+configuration must explicitly clear the chart-wide legacy
+`egress-masquerade-interfaces` value; omission inherits `eth0` and makes the
+Cilium agent fail closed. `Gateway Programmed=True` proves only control-plane
+acceptance and address allocation, so every public recovery must also probe
+TLS/HTTP through `10.251.0.4` and `223.159.210.222`.
+
+See
+[`docs/r640-cilium-gateway-recovery-2026-10-19.md`](docs/r640-cilium-gateway-recovery-2026-10-19.md)
+for the incident evidence, permanent GitOps changes, verification commands and
+rollback boundary.
+
 ## Public/private boundary
 
 The public chart contains CRDs, controllers, schemas and a sanitized example.
