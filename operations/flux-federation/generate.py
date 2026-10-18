@@ -33,6 +33,14 @@ EXTERNAL_CLUSTER_AUTHORITY = {
     },
 }
 
+# Namespaced workload resources Helm needs to inspect even when they are
+# controller-created and therefore absent as top-level objects in the bundle.
+EXTERNAL_NAMESPACED_AUTHORITY = {
+    "networking": {
+        "apps": {"replicasets"},
+    },
+}
+
 # Helm charts may own cluster-scoped objects that are absent from the compiled
 # domain bundle. Grant the Helm controller only the exact existing objects each
 # product release is allowed to upgrade. CRD creation/deletion remains a main
@@ -70,6 +78,12 @@ NETWORK_HELM_PRODUCT_AUTHORITY = {
             "importedservices.peering.re8ch.com", "managedaccessgrants.peering.re8ch.com",
             "peerpolicies.peering.re8ch.com", "peers.peering.re8ch.com",
             "serviceadvertisements.peering.re8ch.com",
+        },
+        "crdLookups": {
+            "collaborationclusters.collaboration.re8ch.com",
+            "collaborationevents.collaboration.re8ch.com",
+            "collaborationrelationships.collaboration.re8ch.com",
+            "publishedservices.collaboration.re8ch.com",
         },
         "apiGroup": "peering.re8ch.com",
         "resources": {
@@ -215,6 +229,8 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
             target_namespaces.add(item.get("metadata", {}).get("namespace", "default"))
     for group, resource_names in EXTERNAL_CLUSTER_AUTHORITY.get(domain, {}).items():
         cluster.setdefault(group, set()).update(resource_names)
+    for group, resource_names in EXTERNAL_NAMESPACED_AUTHORITY.get(domain, {}).items():
+        namespaced.setdefault(group, set()).update(resource_names)
     rules = lambda groups: [
         {"apiGroups": [group], "resources": sorted(values), "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}
         for group, values in sorted(groups.items())
@@ -282,6 +298,12 @@ def network_helm_product_rbac(namespace: str) -> list[dict]:
                 "resourceNames": sorted(authority["crds"]),
                 "verbs": ["get", "update", "patch"],
             },
+            *([{
+                "apiGroups": ["apiextensions.k8s.io"],
+                "resources": ["customresourcedefinitions"],
+                "resourceNames": sorted(authority["crdLookups"]),
+                "verbs": ["get"],
+            }] if authority.get("crdLookups") else []),
             {
                 "apiGroups": [authority["apiGroup"]],
                 "resources": sorted(authority["resources"]),

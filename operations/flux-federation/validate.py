@@ -87,6 +87,12 @@ def main() -> None:
             "Network Helm RBAC omits Among Clusters agent identity role authority")
     require("public-edge-manager-cli" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Public Edge CLI role authority")
+    network_apps_rule = next(
+        rule for rule in network_namespaced_role["rules"]
+        if rule.get("apiGroups") == ["apps"]
+    )
+    require("replicasets" in network_apps_rule["resources"],
+            "Network Helm RBAC omits ReplicaSet inspection authority")
 
     network_cluster_role = next(
         doc for doc in controller_docs
@@ -170,6 +176,12 @@ def main() -> None:
                 "among-clusters-credential-broker-auth-review",
                 "among-clusters-hub",
             },
+            "crdLookups": {
+                "collaborationclusters.collaboration.re8ch.com",
+                "collaborationevents.collaboration.re8ch.com",
+                "collaborationrelationships.collaboration.re8ch.com",
+                "publishedservices.collaboration.re8ch.com",
+            },
         },
         "flux-networking-helm-public-edge": {
             "crds": {"publicedges.networking.re8ch.com"},
@@ -191,6 +203,15 @@ def main() -> None:
                 f"{role_name} CRD authority is not exactly product-scoped")
         require("create" not in product_crd_rule["verbs"] and "delete" not in product_crd_rule["verbs"],
                 f"{role_name} must not create or delete cluster CRDs")
+        if expected.get("crdLookups"):
+            lookup_rule = next(
+                rule for rule in product_role["rules"]
+                if rule.get("apiGroups") == ["apiextensions.k8s.io"]
+                and rule.get("resources") == ["customresourcedefinitions"]
+                and rule.get("verbs") == ["get"]
+            )
+            require(set(lookup_rule.get("resourceNames", [])) == expected["crdLookups"],
+                    f"{role_name} legacy CRD lookup authority is not exact or read-only")
         for resource_kind, expected_names in (
             ("clusterroles", expected["clusterroles"]),
             ("clusterrolebindings", expected["clusterrolebindings"]),
