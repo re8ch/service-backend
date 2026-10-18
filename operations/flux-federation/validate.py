@@ -87,10 +87,22 @@ def main() -> None:
             "Network Helm RBAC omits Among Clusters agent identity role authority")
     require("among-clusters-credential-broker" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Among Clusters credential broker role authority")
+    require("cilium-gateway-secrets" in network_role_authority["resourceNames"],
+            "Network Helm RBAC omits the exact Cilium Gateway secrets role authority")
     require("public-edge-manager-cloudflare" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Public Edge Cloudflare role authority")
     require("public-edge-manager-cli" in network_role_authority["resourceNames"],
             "Network Helm RBAC omits Public Edge CLI role authority")
+    require(
+        any(
+            doc["kind"] == "RoleBinding"
+            and doc["metadata"]["name"] == "flux-networking-namespaced"
+            and doc["metadata"].get("namespace") == "cilium-secrets"
+            and doc["roleRef"]["name"] == "flux-networking-namespaced"
+            for doc in controller_docs
+        ),
+        "Network Helm namespaced authority is not bound in cilium-secrets",
+    )
     network_apps_rule = next(
         rule for rule in network_namespaced_role["rules"]
         if rule.get("apiGroups") == ["apps"]

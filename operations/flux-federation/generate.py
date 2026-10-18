@@ -47,8 +47,16 @@ EXTERNAL_NAMESPACED_AUTHORITY = {
 EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
     "networking": {
         "among-clusters-credential-broker",
+        "cilium-gateway-secrets",
         "public-edge-manager-cloudflare",
     },
+}
+
+# Namespaces created by an adopted Helm release are not necessarily present as
+# top-level objects in the compiled domain bundle. Keep these bindings explicit
+# so a chart cannot expand Network Flux into arbitrary namespaces.
+EXTERNAL_TARGET_NAMESPACES = {
+    "networking": {"cilium-secrets"},
 }
 
 # Helm charts may own cluster-scoped objects that are absent from the compiled
@@ -274,6 +282,7 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
         cluster.setdefault(group, set()).update(resource_names)
     for group, resource_names in EXTERNAL_NAMESPACED_AUTHORITY.get(domain, {}).items():
         namespaced.setdefault(group, set()).update(resource_names)
+    target_namespaces.update(EXTERNAL_TARGET_NAMESPACES.get(domain, set()))
     rules = lambda groups: [
         {"apiGroups": [group], "resources": sorted(values), "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}
         for group, values in sorted(groups.items())
