@@ -1,5 +1,5 @@
 # Transitional Multi-Pool overlay. Keep the broad native-routing CIDR until
-# every workload has moved from the legacy 192.0.2.224/16 allocation.
+# every workload has moved from the legacy 10.42.0.0/16 allocation.
 ipam:
   mode: multi-pool
   multiPoolPreAllocation: tenant-apps=8
@@ -7,7 +7,7 @@ extraConfig:
   ipam-default-ip-pool: tenant-apps
 k8s:
   requireIPv4PodCIDR: false
-ipv4NativeRoutingCIDR: 192.0.2.203/8
+ipv4NativeRoutingCIDR: 10.0.0.0/8
 
 # The cluster selects the point-to-point WireGuard devices for native routing.
 # BPF masquerade therefore attaches only to those devices and misses Internet
@@ -15,6 +15,8 @@ ipv4NativeRoutingCIDR: 192.0.2.203/8
 # portable SNAT authority during the Multi-Pool migration.
 bpf:
   masquerade: false
-egressMasqueradeInterfaces: eth0,eno2np1
+# This Cilium build treats this value as one exact interface name. R640
+# overrides it to eno2np1 through its CiliumNodeConfig.
+egressMasqueradeInterfaces: eth0
 
 rollOutCiliumPods: true

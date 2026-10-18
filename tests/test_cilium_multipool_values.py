@@ -6,6 +6,8 @@ import yaml
 ROOT = Path(__file__).parents[1]
 OPERATIONAL = ROOT / "operations/network/manifests/cilium/multi-pool-values.yaml"
 COMPONENT = ROOT / "clusters/re8ch/components/cilium/multi-pool-values.yaml"
+R640_OPERATIONAL = ROOT / "operations/network/manifests/cilium/r640-node-acceleration.yaml"
+R640_COMPONENT = ROOT / "clusters/re8ch/components/cilium/r640-node-acceleration.yaml"
 
 
 def test_multi_pool_overlay_keeps_physical_egress_masqueraded():
@@ -21,5 +23,14 @@ def test_multi_pool_overlay_keeps_physical_egress_masqueraded():
     assert component["k8s"]["requireIPv4PodCIDR"] is False
     assert component["ipv4NativeRoutingCIDR"] == "192.0.2.203/8"
     assert component["bpf"]["masquerade"] is False
-    assert component["egressMasqueradeInterfaces"] == "eth0,eno2np1"
+    assert component["egressMasqueradeInterfaces"] == "eth0"
     assert component["rollOutCiliumPods"] is True
+
+
+def test_r640_overrides_egress_masquerade_interface():
+    operational = list(yaml.safe_load_all(R640_OPERATIONAL.read_text()))
+    component = list(yaml.safe_load_all(R640_COMPONENT.read_text()))
+
+    assert operational == component
+    restricted-node-6dc3f140f9 = next(item for item in component if item["metadata"]["name"] == "r640-xdp-native")
+    assert restricted-node-6dc3f140f9["spec"]["defaults"]["egress-masquerade-interfaces"] == "eno2np1"
