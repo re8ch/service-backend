@@ -246,6 +246,41 @@ def main() -> None:
             f"{role_name} authority must be bound only to the Network Helm controller",
         )
 
+    cilium_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-networking-helm-cilium"
+    )
+    cilium_rules = {
+        (tuple(rule.get("apiGroups", [])), tuple(rule.get("resources", []))): rule
+        for rule in cilium_role["rules"]
+    }
+    expected_cilium_names = {
+        (("admissionregistration.k8s.io",), ("validatingadmissionpolicies",)): {"gateway.cilium.io"},
+        (("admissionregistration.k8s.io",), ("validatingadmissionpolicybindings",)): {"gateway.cilium.io"},
+        (("gateway.networking.k8s.io",), ("gatewayclasses",)): {"cilium"},
+        (("",), ("namespaces",)): {"cilium-secrets"},
+        (("rbac.authorization.k8s.io",), ("clusterroles",)): {"cilium", "cilium-operator", "hubble-ui"},
+        (("rbac.authorization.k8s.io",), ("clusterrolebindings",)): {"cilium", "cilium-operator", "hubble-ui"},
+    }
+    for key, names in expected_cilium_names.items():
+        rule = cilium_rules[key]
+        require(set(rule.get("resourceNames", [])) == names,
+                f"Network Cilium Helm authority is not exact for {key}")
+        require("create" not in rule["verbs"] and "delete" not in rule["verbs"],
+                f"Network Cilium Helm authority may not create or delete {key}")
+    require(
+        any(
+            doc["kind"] == "ClusterRoleBinding"
+            and doc["metadata"]["name"] == "flux-networking-helm-cilium"
+            and doc["roleRef"]["name"] == "flux-networking-helm-cilium"
+            and doc["subjects"] == [{
+                "kind": "ServiceAccount", "name": "helm-controller", "namespace": "flux-network-system"
+            }]
+            for doc in controller_docs
+        ),
+        "Cilium cluster authority must be bound only to the Network Helm controller",
+    )
+
     registrations = documents(FEDERATION / "registrations.yaml")
     sources = [doc for doc in registrations if doc["kind"] == "GitRepository"]
     reconciliations = [doc for doc in registrations if doc["kind"] == "Kustomization"]

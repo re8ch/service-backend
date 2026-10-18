@@ -109,6 +109,39 @@ NETWORK_HELM_PRODUCT_AUTHORITY = {
             "among-clusters-hub",
         },
     },
+    "cilium": {
+        # These cluster-scoped objects already exist. Network Flux may adopt
+        # and upgrade the release, but it cannot create or delete global
+        # policy, RBAC, namespaces, or GatewayClasses.
+        "clusterroles": {"cilium", "cilium-operator", "hubble-ui"},
+        "clusterrolebindings": {"cilium", "cilium-operator", "hubble-ui"},
+        "extraRules": [
+            {
+                "apiGroups": ["admissionregistration.k8s.io"],
+                "resources": ["validatingadmissionpolicies"],
+                "resourceNames": ["gateway.cilium.io"],
+                "verbs": ["get", "update", "patch"],
+            },
+            {
+                "apiGroups": ["admissionregistration.k8s.io"],
+                "resources": ["validatingadmissionpolicybindings"],
+                "resourceNames": ["gateway.cilium.io"],
+                "verbs": ["get", "update", "patch"],
+            },
+            {
+                "apiGroups": ["gateway.networking.k8s.io"],
+                "resources": ["gatewayclasses"],
+                "resourceNames": ["cilium"],
+                "verbs": ["get", "update", "patch"],
+            },
+            {
+                "apiGroups": [""],
+                "resources": ["namespaces"],
+                "resourceNames": ["cilium-secrets"],
+                "verbs": ["get", "update", "patch"],
+            },
+        ],
+    },
     "public-edge": {
         "crds": {"publicedges.networking.re8ch.com"},
         "apiGroup": "networking.re8ch.com",
@@ -302,23 +335,23 @@ def network_helm_product_rbac(namespace: str) -> list[dict]:
     for product, authority in NETWORK_HELM_PRODUCT_AUTHORITY.items():
         role_name = f"flux-networking-helm-{product}"
         rules = [
-            {
+            *([{
                 "apiGroups": ["apiextensions.k8s.io"],
                 "resources": ["customresourcedefinitions"],
                 "resourceNames": sorted(authority["crds"]),
                 "verbs": ["get", "update", "patch"],
-            },
+            }] if authority.get("crds") else []),
             *([{
                 "apiGroups": ["apiextensions.k8s.io"],
                 "resources": ["customresourcedefinitions"],
                 "resourceNames": sorted(authority["crdLookups"]),
                 "verbs": ["get"],
             }] if authority.get("crdLookups") else []),
-            {
+            *([{
                 "apiGroups": [authority["apiGroup"]],
                 "resources": sorted(authority["resources"]),
                 "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"],
-            },
+            }] if authority.get("resources") else []),
             *authority.get("extraRules", []),
             {
                 "apiGroups": ["rbac.authorization.k8s.io"],
