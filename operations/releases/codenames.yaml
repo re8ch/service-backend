@@ -358,6 +358,8 @@ modules:
       digest: sha256:178eed37df77ef447524714cad933a3d3b908ada8258902422d012bc65e4fdbd
     - codename: lighthouse-umber
       digest: sha256:8b09539888b688f529cab23be2cefd18379d4d4a8da2c8163ebd8905466e6b48
+    - codename: signal-umber
+      digest: sha256:c62c56610b8f505fb905a46b4814ee253e910ce58819a6908cbe24590482641e
   platform/among-clusters:
     releases:
     - codename: bora
