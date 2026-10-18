@@ -12,7 +12,11 @@ def test_all_control_planes_share_supabase_authentication():
     assert auth['kind'] == 'AuthenticationConfiguration'
     assert [item['issuer']['url'] for item in auth['jwt']] == ['https://db-rw.re8ch.com/auth/v1']
     headlamp_supabase = auth['jwt'][0]
-    assert headlamp_supabase['issuer']['audiences'] == ['ed4e0331-7522-59f8-8a72-2d558844dc24']
+    assert headlamp_supabase['issuer']['audiences'] == ['authenticated']
+    assert headlamp_supabase['claimValidationRules'] == [{
+        'expression': "claims.client_id == 'ed4e0331-7522-59f8-8a72-2d558844dc24'",
+        'message': 'token must have been issued to the Headlamp OAuth client',
+    }]
     assert headlamp_supabase['claimMappings'] == {
         'username': {'claim': 'email', 'prefix': 'oidc:'}
     }
@@ -35,3 +39,11 @@ def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
     assert aliases['db-rw.re8ch.com'] == '192.0.2.209'
+
+
+def test_mubao_k3s_start_gate_keeps_oidc_discovery_on_internal_gateway():
+    gate = (
+        ROOT.parents[3] / 'operations/network/scripts/mubao-k3s-start-gate.sh'
+    ).read_text()
+    assert '192.0.2.209 db-rw.re8ch.com' in gate
+    assert 'OIDC discovery via authoritative Cilium Gateway' in gate
