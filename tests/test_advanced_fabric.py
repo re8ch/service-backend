@@ -139,7 +139,7 @@ class AdvancedFabricTests(unittest.TestCase):
             daemonset["spec"]["template"]["metadata"]["annotations"][
                 "networking.re8ch.com/config-revision"
             ],
-            "multipool-live-refresh-v15",
+            "muaya-advfab-multipool-v16",
         )
 
     def test_control_plane_readiness_requires_both_route_servers_and_fib(self):

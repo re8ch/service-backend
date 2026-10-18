@@ -11839,7 +11839,7 @@ data:
     {
       "node": "restricted-node-abb3f27a69",
       "scope": "control-transit-peer",
-      "revision": "be5cfd2d6d7f600b3bd39af05013406dc40d72a38db52a94875ae4254f2ffd45",
+      "revision": "27b3acac1c884ae606b4a09128791f951a515fbd9740ab6a31ee0788bb031303",
       "timeout": 180,
       "wireguard": {
         "interface": "wg-cp-mubao",
@@ -12006,7 +12006,7 @@ data:
     WantedBy=timers.target
 kind: ConfigMap
 metadata:
-  name: control-transit-controller-98df2kft25
+  name: control-transit-controller-tbchb88k72
   namespace: kube-system
 ---
 apiVersion: v1
@@ -13164,7 +13164,7 @@ data:
           "controlPodRoutePolicy": []
         }
       },
-      "modelDigest": "sha256:be5cfd2d6d7f600b3bd39af05013406dc40d72a38db52a94875ae4254f2ffd45",
+      "modelDigest": "sha256:27b3acac1c884ae606b4a09128791f951a515fbd9740ab6a31ee0788bb031303",
       "transitPaths": {
         "sources": [
           "192.0.2.147/32",
@@ -15296,7 +15296,7 @@ data:
     {
       "node": "overseas-flk",
       "scope": "public-mesh-peers",
-      "revision": "be5cfd2d6d7f600b3bd39af05013406dc40d72a38db52a94875ae4254f2ffd45",
+      "revision": "27b3acac1c884ae606b4a09128791f951a515fbd9740ab6a31ee0788bb031303",
       "timeout": 180,
       "wireguard": {
         "interface": "wg-public-mesh",
@@ -15422,7 +15422,7 @@ data:
     WantedBy=timers.target
 kind: ConfigMap
 metadata:
-  name: host-network-controller-679588ggt2
+  name: host-network-controller-22ftfh7ttk
   namespace: kube-system
 ---
 apiVersion: v1
@@ -15571,6 +15571,7 @@ data:
         {
           "name": "muaya-ecs",
           "internalIp": "192.0.2.74",
+          "kubernetesNodeIp": "192.0.2.32",
           "podCIDR": "192.0.2.237/24",
           "acceleratedIp": "192.0.2.32",
           "asn": 4200000095,
@@ -20695,7 +20696,7 @@ spec:
       - operator: Exists
       volumes:
       - configMap:
-          name: control-transit-controller-98df2kft25
+          name: control-transit-controller-tbchb88k72
         name: config
       - hostPath:
           path: /
@@ -20755,7 +20756,7 @@ spec:
       - operator: Exists
       volumes:
       - configMap:
-          name: host-network-controller-679588ggt2
+          name: host-network-controller-22ftfh7ttk
         name: config
       - hostPath:
           path: /
