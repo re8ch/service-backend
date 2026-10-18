@@ -19,5 +19,12 @@ Example upgrade:
 helm upgrade cilium ./vendor/cilium-1.21.0-dev.tgz \
   --namespace kube-system \
   -f values-migration.yaml \
-  -f values-cutover.yaml
+  -f values-cutover.yaml \
+  -f multi-pool-values.yaml
 ```
+
+The Multi-Pool overlay deliberately uses netfilter masquerade. The native
+routing device set contains the point-to-point WireGuard interfaces, while
+customer and overseas nodes use heterogeneous physical interfaces for Internet
+egress; BPF masquerade on the routing device set would leave that traffic
+without SNAT.

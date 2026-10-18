@@ -1,0 +1,19 @@
+# Transitional Multi-Pool overlay. Keep the broad native-routing CIDR until
+# every workload has moved from the legacy 192.0.2.57/16 allocation.
+ipam:
+  mode: multi-pool
+  multiPoolPreAllocation: tenant-apps=8
+extraConfig:
+  ipam-default-ip-pool: tenant-apps
+k8s:
+  requireIPv4PodCIDR: false
+ipv4NativeRoutingCIDR: 192.0.2.183/8
+
+# The cluster selects the point-to-point WireGuard devices for native routing.
+# BPF masquerade therefore attaches only to those devices and misses Internet
+# traffic leaving heterogeneous physical NICs. Netfilter masquerade is the
+# portable SNAT authority during the Multi-Pool migration.
+bpf:
+  masquerade: false
+
+rollOutCiliumPods: true
