@@ -263,6 +263,13 @@ data:
       for prefix in $(jq -r '.nodes[].acceleratedIp + "/32", (.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty))' /config/inventory.json); do
         case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
       done
+      # A route-server advertises its own PodCIDRs with its identity next hop.
+      # The interconnect peer must therefore accept those destination prefixes
+      # in addition to the RR /32, including Cilium Multi-Pool allocations.
+      other_rr_name="$(jq -r --arg own "${NODE_NAME}" '.routeServers[] | select(.name != $own) | .name' /config/inventory.json)"
+      for prefix in $(pod_cidrs_for_node "${other_rr_name}"); do
+        case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
+      done
       [ "${allowed}" = "${current}" ] || host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
     }
 
@@ -702,7 +709,7 @@ spec:
         # The script and inventory use stable ConfigMap names. Bump this value
         # whenever either contract changes so GitOps performs a controlled
         # DaemonSet rollout instead of leaving agents on stale mounted data.
-        networking.re8ch.com/config-revision: multipool-wireguard-v12
+        networking.re8ch.com/config-revision: multipool-rr-allowedips-v13
     spec:
       hostPID: true
       hostNetwork: true
