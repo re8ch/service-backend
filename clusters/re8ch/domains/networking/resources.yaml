@@ -20850,8 +20850,8 @@ spec:
           capabilities:
             drop:
             - ALL
-          runAsNonRoot: true
-          runAsUser: 65532
+          runAsNonRoot: false
+          runAsUser: 0
         volumeMounts:
         - mountPath: /tools
           name: tools

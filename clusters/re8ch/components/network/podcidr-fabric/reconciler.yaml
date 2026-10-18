@@ -917,7 +917,7 @@ spec:
         - name: install-kubectl
           image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
           command: [sh, -c, 'cp /bin/kubectl /tools/kubectl']
-          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: true, runAsUser: 65532, capabilities: {drop: [ALL]}}
+          securityContext: {allowPrivilegeEscalation: false, runAsNonRoot: false, runAsUser: 0, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: tools, mountPath: /tools}]
       volumes:
         - name: tools
