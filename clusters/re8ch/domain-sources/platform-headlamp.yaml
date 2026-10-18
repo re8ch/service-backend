@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: signal-umber
+    delivery.re8ch.com/codename: starfire-umber
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:c62c56610b8f505fb905a46b4814ee253e910ce58819a6908cbe24590482641e
+    digest: sha256:e2da5ebf41b9340b7e4357d5c78bfd7faabeb3db23a3168d90ce48fe2b8f1a98
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: signal-umber
+    delivery.re8ch.com/codename: starfire-umber
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
