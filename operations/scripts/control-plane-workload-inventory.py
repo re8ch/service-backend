@@ -17,13 +17,7 @@ SYSTEM_NAMESPACES = {
     "cert-manager",
     "flux-system",
     "kube-system",
-    "kueue-system",
-    "kyverno",
-    "observability-system",
-    "opentelemetry-operator",
     "rook-ceph",
-    "scheduler-system",
-    "scheduling-system",
 }
 ALLOW_LABEL = "scheduling.re8ch.com/control-plane-allowed"
 MANAGED_LABEL = "scheduling.re8ch.com/placement-managed"
