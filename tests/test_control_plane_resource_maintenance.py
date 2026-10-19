@@ -22,9 +22,12 @@ def test_control_plane_maintenance_is_bounded_and_never_prunes_runtime_state():
     assert "CPUQuota=5%" in service
     assert "MemoryMax=128M" in service
     assert "EnvironmentFile=-/etc/re8ch-control-plane-resource-maintenance.env" in service
-    assert "--archive-and-vacuum" in service
+    assert "ExecStart=/usr/local/sbin/re8ch-control-plane-resource-maintenance --vacuum-journal" in service
+    assert "--archive-and-vacuum" not in service
+    assert "TimeoutStartSec=5min" in service
     assert "IOSchedulingClass=idle" in service
-    assert "RandomizedDelaySec=45m" in timer
-    assert "Persistent=true" in timer
+    assert "RandomizedDelaySec=6h" in timer
+    assert "FixedRandomDelay=true" in timer
+    assert "Persistent=false" in timer
     assert "JOURNAL_ARCHIVE_MAX_USE=4G" in archive_example
     assert "JOURNAL_ARCHIVE_MAX_DAYS=14" in archive_example

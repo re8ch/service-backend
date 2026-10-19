@@ -3,8 +3,10 @@ Description=Daily bounded RE8CH control-plane resource maintenance
 
 [Timer]
 OnCalendar=*-*-* 03:20:00
-RandomizedDelaySec=45m
-Persistent=true
+RandomizedDelaySec=6h
+FixedRandomDelay=true
+# Never replay maintenance during WSL/k3s startup after a missed window.
+Persistent=false
 Unit=re8ch-control-plane-resource-maintenance.service
 
 [Install]
