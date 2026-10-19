@@ -64,6 +64,18 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert kyverno_values["admissionController"]["nodeSelector"] == {
         "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
     }
+    assert kyverno_values["admissionController"]["replicas"] == 1
+    assert kyverno_values["admissionController"]["podDisruptionBudget"] == {
+        "enabled": True,
+        "minAvailable": 1,
+    }
+    assert kyverno_values["admissionController"]["hostNetwork"] is True
+    assert kyverno_values["admissionController"]["dnsPolicy"] == "ClusterFirstWithHostNet"
+    assert kyverno_values["admissionController"]["updateStrategy"] == {
+        "type": "Recreate",
+        "rollingUpdate": None,
+    }
+    assert "topologySpreadConstraints" not in kyverno_values["admissionController"]
     assert kyverno_values["backgroundController"]["nodeSelector"] == {
         "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
     }
