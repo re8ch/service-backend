@@ -306,9 +306,38 @@ def main() -> None:
     require(
         {
             "otel-operator-opentelemetry-operator-leader-election",
+            "tenant-api-credential-read",
+            "tenant-native-platform-tool-read",
+            "tenant-platform-tool-upstream-read",
+            "tenant-provider-credential-write",
+            "tenant-provider-database-metrics-anysite",
+            "tenant-provider-database-metrics-secretary",
+            "tenant-provider-grafana-read",
+            "tenant-provider-harbor-read",
             "victoria-metrics-operator",
         }.issubset(observability_role_authority),
-        "Observability Helm lacks exact leader-election Role authority",
+        "Observability Helm lacks exact chart-rendered Role authority",
+    )
+    birfucate_target_namespaces = {
+        "ai-operations",
+        "artchais",
+        "credential-broker",
+        "ledger",
+        "observability-system",
+        "re8ch-anysite",
+        "re8ch-secretary",
+        "tenant-infrastructure",
+        "toolhive-system",
+    }
+    observability_bound_namespaces = {
+        doc["metadata"].get("namespace")
+        for doc in controller_docs
+        if doc["kind"] == "RoleBinding"
+        and doc["metadata"]["name"] == "flux-observability-metering-namespaced"
+    }
+    require(
+        birfucate_target_namespaces.issubset(observability_bound_namespaces),
+        "Observability Helm is not bound in every Birfucate target namespace",
     )
     victoria_rbac = {
         name

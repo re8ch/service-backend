@@ -3456,6 +3456,14 @@ rules:
   - harbor-supply-chain-credentials
   - otel-operator-opentelemetry-operator-leader-election
   - retire-legacy-qianwen-grafana
+  - tenant-api-credential-read
+  - tenant-native-platform-tool-read
+  - tenant-platform-tool-upstream-read
+  - tenant-provider-credential-write
+  - tenant-provider-database-metrics-anysite
+  - tenant-provider-database-metrics-secretary
+  - tenant-provider-grafana-read
+  - tenant-provider-harbor-read
   - victoria-metrics-operator
   verbs:
   - escalate
@@ -3473,6 +3481,44 @@ rules:
   - update
   - patch
   - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: ai-operations
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: artchais
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -3592,6 +3638,25 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: flux-observability-metering-namespaced
+  namespace: ledger
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
   namespace: observability-system
   labels:
     gitops.re8ch.com/domain: observability-metering
@@ -3649,6 +3714,44 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: flux-observability-metering-namespaced
+  namespace: re8ch-anysite
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: re8ch-secretary
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
   namespace: supabase-pg-re8ch
   labels:
     gitops.re8ch.com/domain: observability-metering
@@ -3669,6 +3772,25 @@ kind: RoleBinding
 metadata:
   name: flux-observability-metering-namespaced
   namespace: synthetic-monitoring
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: toolhive-system
   labels:
     gitops.re8ch.com/domain: observability-metering
 roleRef:
