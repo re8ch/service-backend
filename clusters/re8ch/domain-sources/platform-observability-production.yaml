@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/production
-    delivery.re8ch.com/codename: prism-pearl
+    delivery.re8ch.com/codename: spectrum-pearl
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-production
   ref:
-    digest: sha256:1aa4faa5ee9e811bb9250eb15849fc7da5f65caaf74c5b7077778a9651782134
+    digest: sha256:0b932abfbd1998a41435997c1501a5d16f7ea007fff24274d8ce0362a49df358
   verify:
     provider: cosign
     matchOIDCIdentity:
