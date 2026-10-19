@@ -4,18 +4,20 @@ import pytest
 import yaml
 
 BASE = Path(__file__).parents[1] / "operations/api-conformance"
+BOUNDARIES = Path(__file__).parents[1] / "clusters/re8ch/flux-federation/guardrails/agent-runtime.yaml"
 
 
 def test_runner_bootstrap_has_no_app_secrets_or_generation_policy():
     docs = list(yaml.safe_load_all((BASE / "runner-bootstrap/resources.yaml").read_text()))
     assert not any(d["kind"] in {"Secret", "Deployment", "Job"} for d in docs)
-    assert not any("generate" in rule for d in docs if d["kind"] == "ClusterPolicy" for rule in d["spec"]["rules"])
+    assert not any(d["kind"] in {"Namespace", "ClusterPolicy"} for d in docs)
     assert all(d["metadata"].get("namespace", "api-conformance-runners") == "api-conformance-runners" for d in docs)
     role = next(d for d in docs if d["kind"] == "Role" and d["metadata"]["name"] == "api-conformance-controller")
     assert all("secrets" not in rule["resources"] for rule in role["rules"])
     network = next(d for d in docs if d["kind"] == "CiliumNetworkPolicy")
     assert network["spec"] == {"endpointSelector": {}, "ingress": [], "egress": []}
-    policy = next(d for d in docs if d["kind"] == "ClusterPolicy")
+    policy = next(d for d in yaml.safe_load_all(BOUNDARIES.read_text())
+                  if d["kind"] == "ClusterPolicy" and d["metadata"]["name"] == "api-conformance-runner-secret-boundary")
     assert policy["spec"]["validationFailureAction"] == "Enforce"
     rule = policy["spec"]["rules"][0]
     assert rule["match"]["any"][0]["resources"]["namespaces"] == ["api-conformance-runners"]
@@ -70,7 +72,7 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
     c = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(c)
     monkeypatch.setattr(c, "RUNNER_NAMESPACE", "api-conformance-runners")
-    monkeypatch.setattr(c, "HOST_IDENTITY_EGRESS_IPS", {"192.0.2.79"})
+    monkeypatch.setattr(c, "HOST_IDENTITY_EGRESS_IPS", {"223.159.210.222"})
     monkeypatch.setattr(c, "patch_status", lambda *a: None)
     calls = []
     def request(method, path, body, content_type="application/json"):
@@ -80,24 +82,24 @@ def test_pinned_public_ip_is_confined_to_the_run_policy(monkeypatch):
     target = {"metadata": {"name": "target"}, "spec": {
         "repository": "re8ch/cloud-functions", "baseUrl": "https://api.re8ch.com/commerce",
         "schema": {"url": "https://api.re8ch.com/commerce/v1/openapi.yaml", "sha256": "0" * 64},
-        "network": {"allowedHosts": ["api.re8ch.com"], "pinnedEgressIPs": {"api.re8ch.com": "192.0.2.79"},
+        "network": {"allowedHosts": ["api.re8ch.com"], "pinnedEgressIPs": {"api.re8ch.com": "223.159.210.222"},
                     "pinnedEgressEntity": "host"},
         "limits": {"timeoutSeconds": 180},
     }}
     c.create_run(target, "read", "manual", "test-run")
     pod = calls[0][1]["spec"]["template"]["spec"]
-    assert pod["hostAliases"] == [{"ip": "192.0.2.79", "hostnames": ["api.re8ch.com"]}]
+    assert pod["hostAliases"] == [{"ip": "223.159.210.222", "hostnames": ["api.re8ch.com"]}]
     policy = calls[1][1]
     assert policy["spec"]["endpointSelector"]["matchLabels"] == {"conformance.re8ch.com/run": "test-run"}
     assert policy["spec"]["egress"] == [{
         "toEntities": ["host"],
         "toPorts": [{"ports": [{"port": "443", "protocol": "TCP"}]}],
     }]
-    target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "192.0.2.209"}
+    target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "10.251.0.4"}
     with pytest.raises(c.ContractError, match="public IPv4"):
         c.create_run(target, "read", "manual", "test-run")
     assert len(calls) == 3
-    target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "192.0.2.101"}
+    target["spec"]["network"]["pinnedEgressIPs"] = {"api.re8ch.com": "2.28.106.230"}
     with pytest.raises(c.ContractError, match="not approved"):
         c.create_run(target, "read", "manual", "test-run")
     assert len(calls) == 3

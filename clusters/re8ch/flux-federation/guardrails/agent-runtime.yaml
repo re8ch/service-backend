@@ -1288,9 +1288,9 @@ rules:
 - apiGroups:
   - ''
   resourceNames:
-  - restricted-node-1eb0570f74
-  - restricted-node-296f36f2fb
-  - restricted-node-6dc3f140f9
+  - a1-wsl-zt
+  - b1-wsl-zt
+  - r640
   resources:
   - nodes
   verbs:
@@ -1432,7 +1432,7 @@ spec:
         - key: kubernetes.io/hostname
           operator: In
           values:
-          - restricted-node-6dc3f140f9
+          - r640
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual-r640
 ---
@@ -1663,3 +1663,43 @@ spec:
               - name: harbor-functions-shared-pull
     name: add-session-router-image-pull-secret
   validationFailureAction: Audit
+---
+# Cluster-scoped policy boundaries remain main-Flux authority. The autonomous
+# Agent domain owns only the namespaced runner implementation.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: api-conformance-runner-secret-boundary}
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+  - name: only-reviewed-registry-pull-secret
+    match:
+      any:
+      - resources: {kinds: [Secret], namespaces: [api-conformance-runners]}
+    validate:
+      message: Runner namespace accepts only the reviewed registry pull Secret; service and App credentials belong outside it.
+      pattern:
+        metadata: {name: harbor-functions-shared-pull}
+        type: kubernetes.io/dockerconfigjson
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: {name: api-conformance-runner-pull}
+spec:
+  admission: true
+  background: true
+  generateExisting: true
+  validationFailureAction: Audit
+  rules:
+  - name: project-shared-runtime-pull
+    match:
+      any:
+      - resources: {kinds: [Namespace], names: [api-conformance-runners]}
+    generate:
+      apiVersion: v1
+      kind: Secret
+      name: harbor-functions-shared-pull
+      namespace: api-conformance-runners
+      synchronize: true
+      clone: {namespace: toolhive-system, name: harbor-functions-shared-pull}
