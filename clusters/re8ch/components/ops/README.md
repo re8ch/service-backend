@@ -12,14 +12,14 @@ ToolHive is the final publication and policy layer. Its manifests are in
 `../toolhive/`. The raw endpoint remains an upstream compatibility endpoint and
 must not be added directly to new Agents.
 
-The embedded-etcd control plane has three voters: `192.0.2.178` (restricted-node-6dc3f140f9),
-`192.0.2.176` (A1), and `192.0.2.4` (B1). These are member addresses,
+The embedded-etcd control plane has three voters: `10.181.22.128` (R640),
+`10.181.22.147` (A1), and `10.181.22.125` (B1). These are member addresses,
 not a shared API VIP. As of 2026-08-15, A1 and B1 pass the Kubernetes
-`/readyz` check from the operator network; validate restricted-node-6dc3f140f9 routing independently
+`/readyz` check from the operator network; validate R640 routing independently
 before selecting it as a client endpoint. `KUBE_SERVER_PUBLIC` uses A1.
 
-`192.0.2.192` belongs to the `vm-20-12-ubuntu` worker and is a retired K3s API
-endpoint. The historical `k3s-api.internal.re8ch.com -> 192.0.2.192` record and
+`10.181.22.73` belongs to the `vm-20-12-ubuntu` worker and is a retired K3s API
+endpoint. The historical `k3s-api.internal.re8ch.com -> 10.181.22.73` record and
 locally generated `icp-k3s-direct` kubeconfigs must not be used for cluster
 management. A kubeconfig error returning HTTP 404 during API discovery usually
 means the client reached a non-apiserver listener on this old node, not that the
@@ -30,11 +30,11 @@ The server code is stored in Kubernetes as ConfigMap `ops/ops-mcp-server-code` a
 ## Control-plane resource maintenance
 
 `control-plane-resource-maintenance`, its service unit and timer are
-host-managed templates for A1, B1 and restricted-node-6dc3f140f9. The timer runs daily with a random
-delay, a 5% CPU cap and idle I/O priority. It records root-disk and journal
-usage, exports the previous 24 hours when a reviewed archive target is
-configured, then caps journald at 512 MiB. Archive failure never prevents the
-vacuum.
+host-managed templates for A1, B1 and R640. The timer runs daily with a stable
+host-specific random delay, a five-minute hard timeout, a 5% CPU cap and idle
+I/O priority. It records root-disk and journal usage and caps journald at
+512 MiB. The timer is not persistent, so a missed window is never replayed
+during WSL, k3s or etcd startup.
 
 It deliberately does **not** remove CRI/containerd records or images, K3s,
 etcd, kubelet or Ceph data. Kubelet image GC is configured through its reviewed
@@ -44,19 +44,23 @@ the three files atomically on one healthy follower at a time, run
 re8ch-control-plane-resource-maintenance.timer`. Verify the initial
 `--check` before enabling the timer. Do not restart K3s to install this timer.
 
-### Optional low-priority journal archive
+### Optional operator-triggered journal archive
 
-Use `control-plane-resource-maintenance.archive.env.example` as the host-only
-environment file `/etc/re8ch-control-plane-resource-maintenance.env`. The
-approved archive destinations are intentionally separate from all K3s, etcd,
-containerd and Ceph devices:
+The daily timer never exports journal history. When incident evidence requires
+an archive, an operator may use
+`control-plane-resource-maintenance.archive.env.example` as the host-only
+environment file `/etc/re8ch-control-plane-resource-maintenance.env` and invoke
+`re8ch-control-plane-resource-maintenance --archive-and-vacuum` explicitly on
+one healthy follower at a time. The approved archive destinations are
+intentionally separate from all K3s, etcd, containerd and Ceph devices:
 
-- A1: `/mnt/d/RE8CH-journal-archive/restricted-node-1eb0570f74`
-- B1: `/mnt/d/RE8CH-journal-archive/restricted-node-296f36f2fb`
-- restricted-node-6dc3f140f9: `/srv/nas/re8ch-journal-archive/restricted-node-6dc3f140f9`
+- A1: `/mnt/d/RE8CH-journal-archive/a1-wsl-zt`
+- B1: `/mnt/d/RE8CH-journal-archive/b1-wsl-zt`
+- R640: `/srv/nas/re8ch-journal-archive/r640`
 
 The archive is gzip-compressed, keeps at most 14 days and 4 GiB per host, and
-deletes only its own oldest `*.journal.gz` files. Never configure an OSD device,
+deletes only its own oldest `*.journal.gz` files. Never archive concurrently on
+multiple voters. Never configure an OSD device,
 `/var/lib/rancher`, `/var/lib/kubelet`, `/var/lib/k3s`, or the root filesystem
 as an archive target. After adding the environment file, run `systemctl
 daemon-reload` and invoke the maintenance service once; do not restart K3s.

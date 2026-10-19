@@ -8,7 +8,10 @@ ConditionPathExists=/etc/rancher/k3s/config.yaml
 [Service]
 Type=oneshot
 EnvironmentFile=-/etc/re8ch-control-plane-resource-maintenance.env
-ExecStart=/usr/local/sbin/re8ch-control-plane-resource-maintenance --archive-and-vacuum
+# Automatic maintenance must remain bounded on an embedded-etcd voter. Journal
+# export is an explicit operator action; the timer only rotates local storage.
+ExecStart=/usr/local/sbin/re8ch-control-plane-resource-maintenance --vacuum-journal
+TimeoutStartSec=5min
 Nice=19
 CPUQuota=5%
 MemoryMax=128M
