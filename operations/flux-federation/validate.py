@@ -55,6 +55,10 @@ def main() -> None:
         }
         if metadata["namespace"] in {"flux-agent-system", "flux-observability-system"}:
             require(
+                item["spec"]["template"]["spec"].get("nodeSelector", {}).get("kubernetes.io/hostname") == "restricted-node-6dc3f140f9",
+                f"controller is not pinned to the restricted-node-6dc3f140f9 service plane: {metadata}",
+            )
+            require(
                 env.get("KUBERNETES_SERVICE_HOST", {}).get("valueFrom", {}).get("fieldRef", {}).get("fieldPath")
                 == "status.hostIP",
                 f"controller does not use its node-local API endpoint: {metadata}",

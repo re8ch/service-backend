@@ -221,6 +221,7 @@ spec:
           name: tmp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -349,6 +350,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -475,6 +477,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -628,6 +631,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       securityContext:
         fsGroup: 1337
       serviceAccountName: notification-controller
@@ -2719,6 +2723,7 @@ spec:
           name: tmp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -2847,6 +2852,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -2973,6 +2979,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -3126,6 +3133,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       securityContext:
         fsGroup: 1337
       serviceAccountName: notification-controller
