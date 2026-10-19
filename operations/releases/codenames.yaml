@@ -1624,3 +1624,5 @@ modules:
       digest: sha256:54131b4106518c8761591bd642f1c55c9dce22018e50979b067f0daa42182fa9
     - codename: prism-pearl
       digest: sha256:1aa4faa5ee9e811bb9250eb15849fc7da5f65caaf74c5b7077778a9651782134
+    - codename: spectrum-pearl
+      digest: sha256:0b932abfbd1998a41435997c1501a5d16f7ea007fff24274d8ce0362a49df358
