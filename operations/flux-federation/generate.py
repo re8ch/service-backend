@@ -36,6 +36,7 @@ EXTERNAL_CLUSTER_AUTHORITY = {
 # Namespaced workload resources Helm needs to inspect even when they are
 # controller-created and therefore absent as top-level objects in the bundle.
 EXTERNAL_NAMESPACED_AUTHORITY = {
+    "observability-metering": {"apps": {"replicasets"}},
     "networking": {
         "apps": {"replicasets"},
         "gateway.networking.k8s.io": {"referencegrants"},
@@ -162,6 +163,54 @@ NETWORK_HELM_PRODUCT_AUTHORITY = {
         "resources": {"publicedges"},
         "clusterroles": {"public-edge-manager", "public-edge-manager-cli-read"},
         "clusterrolebindings": {"public-edge-manager", "public-edge-manager-cli-read"},
+    },
+}
+
+DOMAIN_HELM_PRODUCT_AUTHORITY = {
+    "agent-runtime": {
+        "toolhive": {
+            "clusterroles": {"toolhive-operator-manager-role"},
+            "clusterrolebindings": {"toolhive-operator-manager-rolebinding"},
+        },
+    },
+    "observability-metering": {
+        "kube-state-metrics": {
+            "clusterroles": {"re8ch-kube-state-metrics"},
+            "clusterrolebindings": {"re8ch-kube-state-metrics"},
+        },
+        "opentelemetry": {
+            "crds": {
+                "instrumentations.opentelemetry.io", "opampbridges.opentelemetry.io",
+                "opentelemetrycollectors.opentelemetry.io", "targetallocators.opentelemetry.io",
+            },
+            "clusterroles": {
+                "otel-operator-opentelemetry-operator-manager",
+                "otel-operator-opentelemetry-operator-metrics",
+            },
+            "clusterrolebindings": {"otel-operator-opentelemetry-operator-manager"},
+        },
+        "victoria-metrics": {
+            "crds": {
+                "vlagents.operator.victoriametrics.com", "vlclusters.operator.victoriametrics.com",
+                "vldistributed.operator.victoriametrics.com", "vlogs.operator.victoriametrics.com",
+                "vlsingles.operator.victoriametrics.com", "vmagents.operator.victoriametrics.com",
+                "vmalertmanagerconfigs.operator.victoriametrics.com", "vmalertmanagers.operator.victoriametrics.com",
+                "vmalerts.operator.victoriametrics.com", "vmanomalies.operator.victoriametrics.com",
+                "vmanomalyconfigs.operator.victoriametrics.com", "vmauths.operator.victoriametrics.com",
+                "vmclusters.operator.victoriametrics.com", "vmdistributed.operator.victoriametrics.com",
+                "vmnodescrapes.operator.victoriametrics.com", "vmpodscrapes.operator.victoriametrics.com",
+                "vmprobes.operator.victoriametrics.com", "vmrules.operator.victoriametrics.com",
+                "vmscrapeconfigs.operator.victoriametrics.com", "vmservicescrapes.operator.victoriametrics.com",
+                "vmsingles.operator.victoriametrics.com", "vmstaticscrapes.operator.victoriametrics.com",
+                "vmusers.operator.victoriametrics.com", "vtclusters.operator.victoriametrics.com",
+                "vtsingles.operator.victoriametrics.com",
+            },
+            "clusterroles": {
+                "victoria-metrics-operator", "victoria-metrics-operator-victoriametrics-admin",
+                "victoria-metrics-operator-victoriametrics-view",
+            },
+            "clusterrolebindings": {"victoria-metrics-operator"},
+        },
     },
 }
 
@@ -397,6 +446,37 @@ def network_helm_product_rbac(namespace: str) -> list[dict]:
     return result
 
 
+def domain_helm_product_rbac(domain: str, namespace: str) -> list[dict]:
+    """Grant a domain Helm controller mutation rights only to named chart objects."""
+    result = []
+    for product, authority in DOMAIN_HELM_PRODUCT_AUTHORITY.get(domain, {}).items():
+        role_name = f"flux-{domain}-helm-{product}"
+        rules = []
+        if authority.get("crds"):
+            rules.append({
+                "apiGroups": ["apiextensions.k8s.io"], "resources": ["customresourcedefinitions"],
+                "resourceNames": sorted(authority["crds"]), "verbs": ["get", "update", "patch"],
+            })
+        for resource, names in (("clusterroles", authority.get("clusterroles")),
+                                ("clusterrolebindings", authority.get("clusterrolebindings"))):
+            if names:
+                rules.append({
+                    "apiGroups": ["rbac.authorization.k8s.io"], "resources": [resource],
+                    "resourceNames": sorted(names),
+                    "verbs": ["get", "update", "patch", "escalate", "bind"] if resource == "clusterroles" else ["get", "update", "patch"],
+                })
+        result.extend([{
+            "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRole",
+            "metadata": {"name": role_name, "labels": {"gitops.re8ch.com/domain": domain}}, "rules": rules,
+        }, {
+            "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRoleBinding",
+            "metadata": {"name": role_name, "labels": {"gitops.re8ch.com/domain": domain}},
+            "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": role_name},
+            "subjects": [{"kind": "ServiceAccount", "name": "helm-controller", "namespace": namespace}],
+        }])
+    return result
+
+
 def relocate_flux_objects(documents: list[dict], namespace: str) -> list[dict]:
     """Keep all Flux custom resources in the namespace watched by their controller stack."""
     relocated = []
@@ -451,6 +531,7 @@ def main() -> None:
         controllers.extend(controller_objects(args.root, namespace, domain))
         controllers.extend(internal_rbac(namespace, domain))
         controllers.extend(application_rbac(domain, namespace, external, resources))
+        controllers.extend(domain_helm_product_rbac(domain, namespace))
         if domain == "networking":
             controllers.extend(network_helm_product_rbac(namespace))
     dump_documents(args.root / "clusters/re8ch/flux-federation/controllers.yaml", controllers)
