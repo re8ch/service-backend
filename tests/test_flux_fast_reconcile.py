@@ -55,7 +55,7 @@ def test_rendered_controller_failover_and_source_cache_safety():
         item['name']: item.get('value')
         for item in kustomize['spec']['template']['spec']['containers'][0]['env']
     }
-    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.179'
+    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.116'
     # Source artifacts use pod-local storage and a non-leader replica does not
     # become ready, so scheduler failover is safer than an empty standby cache.
     source = deployments['source-controller']

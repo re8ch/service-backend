@@ -20,9 +20,9 @@ spec:
       containers:
         - name: manager
           env:
-            # restricted-node-6dc3f140f9 HAProxy health-checks A1, B1 and MUBAO and removes an
-            # unhealthy API server without pinning Flux to one member.
-            - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
+            # Use the health-checked API service VIP instead of restricted-node-6dc3f140f9's local
+            # k3s supervisor, whose backend reconnects cause correlated EOFs.
+            - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.116"}
             - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
             - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
       nodeSelector:

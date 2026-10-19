@@ -232,7 +232,7 @@ patches:
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     - op: add
       path: /spec/template/spec/containers/0/env/-
-      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
+      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.116"}
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
@@ -291,7 +291,7 @@ patches:
       value: --concurrent=1
     - op: add
       path: /spec/template/spec/containers/0/env/-
-      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.179"}
+      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.116"}
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
