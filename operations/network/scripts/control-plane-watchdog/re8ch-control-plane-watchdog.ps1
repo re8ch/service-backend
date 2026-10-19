@@ -42,7 +42,7 @@ function Test-LocalWsl {
         $observed = [DateTimeOffset]::FromUnixTimeSeconds([long]$heartbeat.unixSeconds)
         $age = ([DateTimeOffset]::UtcNow - $observed).TotalSeconds
         return $age -ge 0 -and $age -le 180 -and
-            $heartbeat.nodeName -eq 'restricted-node-296f36f2fb' -and
+            $heartbeat.nodeName -eq $config.wslNodeName -and
             $heartbeat.controlPlaneReady -eq $true
     } catch {
         return $false
