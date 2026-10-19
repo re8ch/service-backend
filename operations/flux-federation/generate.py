@@ -56,6 +56,14 @@ EXTERNAL_NAMESPACED_AUTHORITY = {
 # These do not appear as top-level objects in the compiled domain bundle.
 EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
     "observability-metering": {
+        "tenant-api-credential-read",
+        "tenant-native-platform-tool-read",
+        "tenant-platform-tool-upstream-read",
+        "tenant-provider-credential-write",
+        "tenant-provider-database-metrics-anysite",
+        "tenant-provider-database-metrics-secretary",
+        "tenant-provider-grafana-read",
+        "tenant-provider-harbor-read",
         "otel-operator-opentelemetry-operator-leader-election",
         "victoria-metrics-operator",
     },
@@ -76,7 +84,16 @@ EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
 # top-level objects in the compiled domain bundle. Keep these bindings explicit
 # so a chart cannot expand Network Flux into arbitrary namespaces.
 EXTERNAL_TARGET_NAMESPACES = {
-    "observability-metering": {"observability-ai", "opentelemetry-operator"},
+    "observability-metering": {
+        "ai-operations",
+        "artchais",
+        "ledger",
+        "observability-ai",
+        "opentelemetry-operator",
+        "re8ch-anysite",
+        "re8ch-secretary",
+        "toolhive-system",
+    },
     "networking": {"cilium-secrets"},
 }
 
