@@ -210,6 +210,15 @@ def main() -> None:
         ),
         "Observability Helm release storage is not bound in observability-ai",
     )
+    require(
+        any(
+            doc["kind"] == "RoleBinding"
+            and doc["metadata"]["name"] == "flux-observability-metering-namespaced"
+            and doc["metadata"].get("namespace") == "opentelemetry-operator"
+            for doc in controller_docs
+        ),
+        "OpenTelemetry Helm target namespace is not bound",
+    )
     victoria_role = next(
         doc for doc in controller_docs
         if doc["kind"] == "ClusterRole"
