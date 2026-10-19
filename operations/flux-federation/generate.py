@@ -214,6 +214,48 @@ DOMAIN_HELM_PRODUCT_AUTHORITY = {
                 "tenantresourceclaims.tenancy.re8ch.com", "tenantserviceinstances.tenancy.re8ch.com",
                 "tenants.finops.re8ch.com", "tenants.tenancy.re8ch.com",
             },
+            "clusterResources": {
+                "finops.re8ch.com": {
+                    "consumables": {
+                        "ai-model-gateway", "compute-workload", "database-postgresql-shared",
+                        "network-among-clusters", "network-tenant", "observability-managed",
+                        "registry-harbor", "sandbox-runtime", "storage-bucket", "storage-volume",
+                    },
+                    "tenants": {
+                        "admin", "artchais", "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38",
+                        "personal-standard", "re8ch", "tenant-ci",
+                    },
+                },
+                "tenancy.re8ch.com": {
+                    "tenants": {
+                        "admin", "artchais", "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38",
+                        "personal-standard", "re8ch", "tenant-ci",
+                    },
+                    "tenantidentitybindings": {
+                        "admin-github-k8s-admins", "admin-github-k8s-admins-auth",
+                        "admin-vmcp-service", "admin-vmcp-service-auth",
+                        "artchais-dex-external-operator-v2", "artchais-github-admins",
+                        "artchais-github-members", "artchais-github-operators",
+                        "artchais-github-viewers", "re8ch-auth-admins", "re8ch-auth-billing",
+                        "re8ch-auth-operators", "re8ch-auth-woomou-subject-operator",
+                        "re8ch-dex-woomou-subject-operator",
+                        "re8ch-github-k8s-admins-as-operators",
+                        "re8ch-github-k8s-admins-as-operators-auth",
+                        "re8ch-tenant-admins-as-operators",
+                        "re8ch-tenant-admins-as-operators-auth", "tenant-ci-github-actions",
+                    },
+                    "tenantnamespaces": {
+                        "artchais-5fc63c403b8e8eff",
+                        "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38-9d95c3998f7a3adb",
+                        "personal-standard-8c4ce4f0e48a9db1", "re8ch-051dc66f5b3b5e90",
+                        "re8ch-0ebcf50c181340ba", "re8ch-2417027baeb6d005",
+                        "re8ch-2a0d2434fd138800", "re8ch-316ffc6fb7c4a822",
+                        "re8ch-40b6628f0a5e08ef", "re8ch-66da3fb26238b2cb",
+                        "re8ch-867c561a96f9de2f", "re8ch-a63905b113ca9169",
+                        "re8ch-dbd837096de449de", "tenant-ci-4d8e6b2e153260b9",
+                    },
+                },
+            },
         },
         "kube-state-metrics": {
             "clusterroles": {"re8ch-kube-state-metrics"},
@@ -527,6 +569,12 @@ def domain_helm_product_rbac(domain: str, namespace: str) -> list[dict]:
                 "apiGroups": ["apiextensions.k8s.io"], "resources": ["customresourcedefinitions"],
                 "resourceNames": sorted(authority["crds"]), "verbs": ["get", "update", "patch"],
             })
+        for api_group_name, resources in authority.get("clusterResources", {}).items():
+            for resource, names in resources.items():
+                rules.append({
+                    "apiGroups": [api_group_name], "resources": [resource],
+                    "resourceNames": sorted(names), "verbs": ["get", "update", "patch"],
+                })
         for resource, names in (("clusterroles", authority.get("clusterroles")),
                                 ("clusterrolebindings", authority.get("clusterrolebindings"))):
             if names:

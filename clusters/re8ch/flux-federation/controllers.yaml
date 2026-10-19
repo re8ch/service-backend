@@ -6184,6 +6184,106 @@ rules:
   - update
   - patch
 - apiGroups:
+  - finops.re8ch.com
+  resources:
+  - consumables
+  resourceNames:
+  - ai-model-gateway
+  - compute-workload
+  - database-postgresql-shared
+  - network-among-clusters
+  - network-tenant
+  - observability-managed
+  - registry-harbor
+  - sandbox-runtime
+  - storage-bucket
+  - storage-volume
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - finops.re8ch.com
+  resources:
+  - tenants
+  resourceNames:
+  - admin
+  - artchais
+  - personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38
+  - personal-standard
+  - re8ch
+  - tenant-ci
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - tenancy.re8ch.com
+  resources:
+  - tenants
+  resourceNames:
+  - admin
+  - artchais
+  - personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38
+  - personal-standard
+  - re8ch
+  - tenant-ci
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - tenancy.re8ch.com
+  resources:
+  - tenantidentitybindings
+  resourceNames:
+  - admin-github-k8s-admins
+  - admin-github-k8s-admins-auth
+  - admin-vmcp-service
+  - admin-vmcp-service-auth
+  - artchais-dex-external-operator-v2
+  - artchais-github-admins
+  - artchais-github-members
+  - artchais-github-operators
+  - artchais-github-viewers
+  - re8ch-auth-admins
+  - re8ch-auth-billing
+  - re8ch-auth-operators
+  - re8ch-auth-woomou-subject-operator
+  - re8ch-dex-woomou-subject-operator
+  - re8ch-github-k8s-admins-as-operators
+  - re8ch-github-k8s-admins-as-operators-auth
+  - re8ch-tenant-admins-as-operators
+  - re8ch-tenant-admins-as-operators-auth
+  - tenant-ci-github-actions
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - tenancy.re8ch.com
+  resources:
+  - tenantnamespaces
+  resourceNames:
+  - artchais-5fc63c403b8e8eff
+  - personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38-9d95c3998f7a3adb
+  - personal-standard-8c4ce4f0e48a9db1
+  - re8ch-051dc66f5b3b5e90
+  - re8ch-0ebcf50c181340ba
+  - re8ch-2417027baeb6d005
+  - re8ch-2a0d2434fd138800
+  - re8ch-316ffc6fb7c4a822
+  - re8ch-40b6628f0a5e08ef
+  - re8ch-66da3fb26238b2cb
+  - re8ch-867c561a96f9de2f
+  - re8ch-a63905b113ca9169
+  - re8ch-dbd837096de449de
+  - tenant-ci-4d8e6b2e153260b9
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterroles

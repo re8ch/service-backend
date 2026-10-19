@@ -273,6 +273,11 @@ def main() -> None:
         if doc["kind"] == "ClusterRole"
         and doc["metadata"]["name"] == "flux-observability-metering-helm-victoria-metrics"
     )
+    birfucate_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole"
+        and doc["metadata"]["name"] == "flux-observability-metering-helm-birfucate-metering"
+    )
     observability_namespaced_role = next(
         doc for doc in controller_docs
         if doc["kind"] == "ClusterRole"
@@ -339,6 +344,42 @@ def main() -> None:
         birfucate_target_namespaces.issubset(observability_bound_namespaces),
         "Observability Helm is not bound in every Birfucate target namespace",
     )
+    expected_birfucate_cluster_resources = {
+        ("finops.re8ch.com", "consumables"): {
+            "ai-model-gateway", "compute-workload", "database-postgresql-shared",
+            "network-among-clusters", "network-tenant", "observability-managed",
+            "registry-harbor", "sandbox-runtime", "storage-bucket", "storage-volume",
+        },
+        ("finops.re8ch.com", "tenants"): {
+            "admin", "artchais", "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38",
+            "personal-standard", "re8ch", "tenant-ci",
+        },
+        ("tenancy.re8ch.com", "tenants"): {
+            "admin", "artchais", "personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38",
+            "personal-standard", "re8ch", "tenant-ci",
+        },
+    }
+    for (api_group_name, resource), names in expected_birfucate_cluster_resources.items():
+        matching_rules = [
+            rule for rule in birfucate_role["rules"]
+            if rule.get("apiGroups") == [api_group_name]
+            and rule.get("resources") == [resource]
+        ]
+        require(len(matching_rules) == 1, f"Birfucate lacks exact {api_group_name}/{resource} authority")
+        require(set(matching_rules[0].get("resourceNames", [])) == names,
+                f"Birfucate {api_group_name}/{resource} authority is not name-scoped")
+        require(set(matching_rules[0].get("verbs", [])) == {"get", "update", "patch"},
+                f"Birfucate {api_group_name}/{resource} authority has unsafe verbs")
+    for resource in ("tenantidentitybindings", "tenantnamespaces"):
+        matching_rules = [
+            rule for rule in birfucate_role["rules"]
+            if rule.get("apiGroups") == ["tenancy.re8ch.com"]
+            and rule.get("resources") == [resource]
+        ]
+        require(len(matching_rules) == 1 and matching_rules[0].get("resourceNames"),
+                f"Birfucate lacks name-scoped tenancy.re8ch.com/{resource} authority")
+        require(set(matching_rules[0].get("verbs", [])) == {"get", "update", "patch"},
+                f"Birfucate tenancy.re8ch.com/{resource} authority has unsafe verbs")
     victoria_rbac = {
         name
         for rule in victoria_role["rules"]
