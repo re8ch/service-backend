@@ -12,7 +12,7 @@ def test_auth_gateway_uses_stable_cluster_dns_service():
     )
     pod = deployment["spec"]["template"]["spec"]
     assert pod["dnsPolicy"] == "None"
-    assert pod["dnsConfig"]["nameservers"] == ["192.0.2.131"]
+    assert pod["dnsConfig"]["nameservers"] == ["10.43.0.10"]
     assert pod["dnsConfig"]["searches"] == [
         "auth.svc.cluster.local",
         "svc.cluster.local",
@@ -23,10 +23,10 @@ def test_auth_gateway_uses_stable_cluster_dns_service():
     assert env["HTTPS_PROXY"] == "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"
 
 
-def test_auth_gateway_rollout_preserves_capacity_and_local_session_verification():
+def test_auth_gateway_rollout_isolates_degraded_local_podcidr_and_preserves_session_verification():
     deployment = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
     spec = deployment["spec"]
-    assert spec["replicas"] == 2
+    assert spec["replicas"] == 1
     assert spec["strategy"] == {"type": "RollingUpdate", "rollingUpdate": {"maxSurge": 1, "maxUnavailable": 0}}
     pod = spec["template"]["spec"]
     assert pod["terminationGracePeriodSeconds"] > 30

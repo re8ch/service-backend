@@ -12,7 +12,10 @@ metadata:
     saas.re8ch.com/layer: prod
     saas.re8ch.com/function: gateway
 spec:
-  replicas: 2
+  # Temporary single replica while R640 local Cilium traffic between the
+  # 10.68.14 and 10.68.9 PodCIDR shards is repaired. Both HA replicas were on
+  # R640, but the 10.68.14 gateway intermittently timed out reaching GoTrue.
+  replicas: 1
   minReadySeconds: 5
   revisionHistoryLimit: 3
   selector:
@@ -41,7 +44,7 @@ spec:
       # Service has all healthy DNS backends and is stable across node moves.
       dnsPolicy: None
       dnsConfig:
-        nameservers: [192.0.2.131]
+        nameservers: [10.43.0.10]
         searches: [auth.svc.cluster.local, svc.cluster.local, cluster.local]
         options: [{name: ndots, value: "5"}]
       nodeSelector:
@@ -79,7 +82,7 @@ spec:
             - name: HTTP_PROXY
               value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
             - name: NO_PROXY
-              value: localhost,127.0.0.1,::1,.svc,.cluster.local,192.0.2.203/8,192.0.2.179/12,192.0.2.148/16,api.re8ch.com,db-rw.re8ch.com,db-ro.re8ch.com
+              value: localhost,127.0.0.1,::1,.svc,.cluster.local,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,api.re8ch.com,db-rw.re8ch.com,db-ro.re8ch.com
             - name: API_BASE_URL
               value: https://api.re8ch.com/auth
             - name: PUBLIC_API_BASE_URL
