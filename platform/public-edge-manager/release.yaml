@@ -221,34 +221,24 @@ spec:
       headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
       aesthete.service.re8ch.com.: {service: aesthete-native-api, class: service-pilot, probePath: /api/auth/challenge, acceptedStatuses: [200]}
       grafana.service.re8ch.com.: {service: grafana-service, class: service-pilot, probePath: /grafana/api/health}
-      browser.service.re8ch.com.: {service: browser-service, class: service-pilot, probePath: /}
-      cube.service.re8ch.com.: {service: cube-service, class: service-pilot, probePath: /}
       supabase.service.re8ch.com.: {service: supabase-service, class: service-pilot, probePath: /}
       opensandbox.service.re8ch.com.: {service: opensandbox-service, class: service-pilot, probePath: /}
-      storage.service.re8ch.com.: {service: storage-service, class: service-pilot, probePath: /healthz, acceptedStatuses: [200]}
       cloud-disk.service.re8ch.com.: {service: cloud-disk-service, class: service-pilot, probePath: /, acceptedStatuses: [302]}
       phonycenter.service.re8ch.com.: {service: phonycenter-service, class: service-pilot, probePath: /}
-      neo4j.service.re8ch.com.: {service: neo4j-service, class: service-pilot, probePath: /}
       litellm.service.re8ch.com.: {service: litellm-service, class: service-pilot, probePath: /health/readiness}
       # The primary Tenant entry must survive an optional Cloud vMCP outage.
       tools.service.re8ch.com.: {service: tools-service, class: service-pilot, probePath: /.well-known/oauth-protected-resource/tenant-native/mcp, acceptedStatuses: [200]}
       dbgui.service.re8ch.com.: {service: dbgui-service, class: service-pilot, probePath: /}
-      marketplace.service.re8ch.com.: {service: marketplace-service, class: service-pilot, probePath: /install, acceptedStatuses: [200, 302, 307, 401, 404]}
       admin.service.re8ch.com.: {service: admin-service, class: service-pilot, probePath: /mcp, acceptedStatuses: [200, 400, 401, 405, 406]}
       agent.service.re8ch.com.: {service: agent-service, class: service-pilot, probePath: /v1/mobile/control, acceptedStatuses: [200, 400, 401, 403, 405]}
       among-clusters.service.re8ch.com.: {service: among-clusters-service, class: service-pilot, probePath: /healthz, acceptedStatuses: [200]}
-      auth.service.re8ch.com.: {service: auth-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307]}
       codex.service.re8ch.com.: {service: codex-service, class: service-pilot, probePath: /ui, acceptedStatuses: [200, 302, 307, 401]}
-      decision.service.re8ch.com.: {service: decision-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 401, 403]}
-      dex.service.re8ch.com.: {service: dex-service, class: service-pilot, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       hooks.service.re8ch.com.: {service: hooks-service, class: service-pilot, probePath: /hook/, acceptedStatuses: [400, 404]}
-      image.service.re8ch.com.: {service: image-service, class: service-pilot, probePath: /image, acceptedStatuses: [200, 400, 401, 403, 404, 405]}
       ledger-decisions.service.re8ch.com.: {service: ledger-decisions-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307, 401, 403]}
       mail.service.re8ch.com.: {service: mail-service, class: service-pilot, probePath: /, acceptedStatuses: [200, 302, 307]}
       stalwart-admin.service.re8ch.com.: {service: stalwart-admin, class: service-pilot, probePath: /admin, acceptedStatuses: [200, 302]}
       pay.service.re8ch.com.: {service: pay-service, class: service-overseas, probePath: /, acceptedStatuses: [200, 302, 307, 401]}
       pay-api.service.re8ch.com.: {service: pay-api, class: service-overseas, probePath: /health, acceptedStatuses: [200, 401, 404]}
-      dex.re8ch.com.: {service: dex, class: web, probePath: /.well-known/openid-configuration, acceptedStatuses: [200]}
       dbgui.re8ch.com.: {service: dbgui, class: web, probePath: /}
       collab.tools.re8ch.com.: {service: collab, class: web, probePath: /.well-known/jmap, acceptedStatuses: [200, 307]}
       mail.re8ch.com.: {service: mail, class: web, probePath: /api/health, acceptedStatuses: [200]}
