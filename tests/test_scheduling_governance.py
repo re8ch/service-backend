@@ -56,6 +56,23 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
         "scheduler-system",
     }
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
+    kyverno_values = releases["kyverno"]["spec"]["values"]
+    assert kyverno_values["global"]["extraEnvVars"] == [
+        {"name": "KUBERNETES_SERVICE_HOST", "value": "192.0.2.220"},
+        {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
+    ]
+    assert kyverno_values["admissionController"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
+    assert kyverno_values["backgroundController"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
+    assert kyverno_values["cleanupController"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
+    assert kyverno_values["reportsController"]["nodeSelector"] == {
+        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+    }
     kyverno_service_patch = yaml.safe_load(
         releases["kyverno"]["spec"]["postRenderers"][0]["kustomize"]["patches"][0]["patch"]
     )
