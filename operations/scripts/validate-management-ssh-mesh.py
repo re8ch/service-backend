@@ -6,6 +6,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY = ROOT / "operations/host-ops/management-ssh-mesh/inventory.json"
+INSTALLER = ROOT / "operations/host-ops/windows/install-re8ch-control-plane-host.ps1"
+WATCHDOGS = (
+    ROOT / "operations/host-ops/windows/re8ch-control-plane-watchdog.ps1",
+    ROOT / "operations/network/scripts/control-plane-watchdog/re8ch-control-plane-watchdog.ps1",
+)
 
 
 def main() -> None:
@@ -76,6 +81,18 @@ def main() -> None:
         raise SystemExit("Windows OpenSSH must use the automatic sshd service")
     if set(openssh["authorizedKeysAclPrincipals"]) != {"SYSTEM", "Administrators"}:
         raise SystemExit("administrator authorized keys ACL must be restricted")
+
+    installer = INSTALLER.read_text()
+    if "wslNodeName = $node[0].wsl.nodeName" not in installer:
+        raise SystemExit("watchdog installer must bind the expected WSL node name from inventory")
+    if "Unregister-ScheduledTask -TaskName $legacyTaskName" not in installer:
+        raise SystemExit("watchdog installer must retire the legacy WSL health watchdog")
+    for path in WATCHDOGS:
+        watchdog_script = path.read_text()
+        if "$heartbeat.nodeName -eq $config.wslNodeName" not in watchdog_script:
+            raise SystemExit(f"{path.relative_to(ROOT)} must validate its inventory-bound WSL node name")
+        if "$heartbeat.nodeName -eq 'restricted-node-296f36f2fb'" in watchdog_script:
+            raise SystemExit(f"{path.relative_to(ROOT)} must not hard-code the B1 heartbeat identity")
     print("management SSH mesh inventory validated")
 
 
