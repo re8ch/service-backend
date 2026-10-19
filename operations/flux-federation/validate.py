@@ -173,6 +173,31 @@ def main() -> None:
     )
     require("create" not in crd_rule["verbs"] and "delete" not in crd_rule["verbs"],
             "Network Helm must not create or delete cluster CRDs")
+
+    require(
+        any(
+            doc["kind"] == "RoleBinding"
+            and doc["metadata"]["name"] == "flux-observability-metering-namespaced"
+            and doc["metadata"].get("namespace") == "observability-ai"
+            for doc in controller_docs
+        ),
+        "Observability Helm release storage is not bound in observability-ai",
+    )
+    victoria_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole"
+        and doc["metadata"]["name"] == "flux-observability-metering-helm-victoria-metrics"
+    )
+    victoria_rbac = {
+        name
+        for rule in victoria_role["rules"]
+        if rule.get("apiGroups") == ["rbac.authorization.k8s.io"]
+        for name in rule.get("resourceNames", [])
+    }
+    require(
+        "observability-system-victoria-metrics-operator" in victoria_rbac,
+        "VictoriaMetrics Helm RBAC does not match the rendered release name",
+    )
     require(
         any(
             doc["kind"] == "ClusterRoleBinding"

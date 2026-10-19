@@ -5754,9 +5754,9 @@ rules:
   resources:
   - clusterroles
   resourceNames:
-  - victoria-metrics-operator
-  - victoria-metrics-operator-victoriametrics-admin
-  - victoria-metrics-operator-victoriametrics-view
+  - observability-system-victoria-metrics-operator
+  - observability-system-victoria-metrics-operator-victoriametrics-admin
+  - observability-system-victoria-metrics-operator-victoriametrics-view
   verbs:
   - get
   - update
@@ -5768,7 +5768,7 @@ rules:
   resources:
   - clusterrolebindings
   resourceNames:
-  - victoria-metrics-operator
+  - observability-system-victoria-metrics-operator
   verbs:
   - get
   - update
@@ -5785,6 +5785,25 @@ roleRef:
   kind: ClusterRole
   name: flux-observability-metering-helm-victoria-metrics
 subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: observability-ai
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
 - kind: ServiceAccount
   name: helm-controller
   namespace: flux-observability-system
