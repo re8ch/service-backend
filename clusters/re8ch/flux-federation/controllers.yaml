@@ -145,13 +145,13 @@ spec:
     spec:
       containers:
       - args:
-        - --events-addr=http://notification-controller.flux-agent-system.svc.cluster.local./
+        - --events-addr=http://192.0.2.205:18292/
         - --watch-all-namespaces=false
         - --log-level=info
         - --log-encoding=json
         - --enable-leader-election
         - --storage-path=/data
-        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        - --storage-adv-addr=192.0.2.205:18090
         env:
         - name: RUNTIME_NAMESPACE
           valueFrom:
@@ -186,6 +186,7 @@ spec:
         name: manager
         ports:
         - containerPort: 9090
+          hostPort: 18090
           name: http
           protocol: TCP
         - containerPort: 8080
@@ -606,6 +607,7 @@ spec:
           name: http
           protocol: TCP
         - containerPort: 9292
+          hostPort: 18292
           name: http-webhook
           protocol: TCP
         - containerPort: 8080
@@ -2655,13 +2657,13 @@ spec:
     spec:
       containers:
       - args:
-        - --events-addr=http://notification-controller.flux-observability-system.svc.cluster.local./
+        - --events-addr=http://192.0.2.205:28292/
         - --watch-all-namespaces=false
         - --log-level=info
         - --log-encoding=json
         - --enable-leader-election
         - --storage-path=/data
-        - --storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local.
+        - --storage-adv-addr=192.0.2.205:28090
         env:
         - name: RUNTIME_NAMESPACE
           valueFrom:
@@ -2696,6 +2698,7 @@ spec:
         name: manager
         ports:
         - containerPort: 9090
+          hostPort: 28090
           name: http
           protocol: TCP
         - containerPort: 8080
@@ -3116,6 +3119,7 @@ spec:
           name: http
           protocol: TCP
         - containerPort: 9292
+          hostPort: 28292
           name: http-webhook
           protocol: TCP
         - containerPort: 8080
