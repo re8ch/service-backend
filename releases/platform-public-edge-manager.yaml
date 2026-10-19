@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: mistral-opal
+codename: sirocco-opal
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:6dccf91dba59eaba27cffae48d7398cacea2211b88e58bb06cc1e48962994d2d
+  digest: sha256:199774f84268bf8cc24770bae7f8c6ec6a8c9a832cbbbf70afdeb8d06f6911d4
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
