@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: eddy-amethyst
+codename: gulfstream-amethyst
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:88653d2c1890abcc9a6b6cf5188f6627d0c43854c13576f6517686aea5c6380c
+  digest: sha256:eefad0ffc16b1c50fdf1739a3ffe7c85204c42a9c6da7654e27ef6b67a65f7ef
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

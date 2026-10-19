@@ -1156,6 +1156,8 @@ modules:
       digest: sha256:86036e96f4a80147e833a8dd25647384aab168ea5bbef9e68827e6b04204cae8
     - codename: eddy-amethyst
       digest: sha256:88653d2c1890abcc9a6b6cf5188f6627d0c43854c13576f6517686aea5c6380c
+    - codename: gulfstream-amethyst
+      digest: sha256:eefad0ffc16b1c50fdf1739a3ffe7c85204c42a9c6da7654e27ef6b67a65f7ef
   platform/hyperswitch:
     releases:
     - codename: anchor
