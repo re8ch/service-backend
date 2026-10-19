@@ -78,17 +78,17 @@ def test_retention_and_r640_storage_placement_are_explicit():
     assert traces["spec"]["storage"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
 
 
-def test_stateless_metrics_and_traces_can_fail_over_when_b1_is_down():
+def test_metrics_are_temporarily_colocated_while_traces_can_fail_over():
     resources = yaml_documents(OBSERVABILITY / "production" / "storage.yaml")
     metrics = next(doc for doc in resources if doc["kind"] == "VMCluster")
     traces = next(doc for doc in resources if doc["kind"] == "VTCluster")
 
-    for component in (
-        metrics["spec"]["vmselect"],
-        metrics["spec"]["vminsert"],
-        traces["spec"]["select"],
-        traces["spec"]["insert"],
-    ):
+    for name in ("vmselect", "vminsert"):
+        component = metrics["spec"][name]
+        assert component["replicaCount"] == 1
+        assert component["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+
+    for component in (traces["spec"]["select"], traces["spec"]["insert"]):
         expression = component["affinity"]["nodeAffinity"][
             "requiredDuringSchedulingIgnoredDuringExecution"
         ]["nodeSelectorTerms"][0]["matchExpressions"][0]

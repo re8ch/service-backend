@@ -8,7 +8,7 @@ spec:
   retentionPeriod: "90d"
   vmstorage:
     replicaCount: 1
-    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    nodeSelector: {kubernetes.io/hostname: r640}
     extraArgs: {dedup.minScrapeInterval: 15s}
     storageDataPath: /vm-data
     storage:
@@ -21,43 +21,18 @@ spec:
       requests: {cpu: "2", memory: 4Gi}
       limits: {cpu: "2", memory: 4Gi}
   vmselect:
-    replicaCount: 2
+    # Cross-node PodCIDR access to the single R640 VMStorage is currently
+    # unavailable. Keep query traffic colocated until the fabric repair is
+    # independently verified; the storage PVC and data remain unchanged.
+    replicaCount: 1
+    nodeSelector: {kubernetes.io/hostname: r640}
     extraArgs: {dedup.minScrapeInterval: 15s}
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels: {app.kubernetes.io/name: vmselect}
-              topologyKey: kubernetes.io/hostname
-    tolerations:
-      - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
     resources:
       requests: {cpu: 500m, memory: 1Gi}
       limits: {cpu: "2", memory: 2Gi}
   vminsert:
-    replicaCount: 2
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels: {app.kubernetes.io/name: vminsert}
-              topologyKey: kubernetes.io/hostname
-    tolerations:
-      - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+    replicaCount: 1
+    nodeSelector: {kubernetes.io/hostname: r640}
     resources:
       requests: {cpu: 250m, memory: 256Mi}
       limits: {cpu: "1", memory: 1Gi}
@@ -70,7 +45,7 @@ metadata:
   labels: {app.kubernetes.io/part-of: re8ch-observability}
 spec:
   retentionPeriod: "180d"
-  nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+  nodeSelector: {kubernetes.io/hostname: r640}
   storage:
     accessModes: [ReadWriteOnce]
     storageClassName: rbd-r640
@@ -93,7 +68,7 @@ spec:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+                - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt, r640]}
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
@@ -112,7 +87,7 @@ spec:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]}
+                - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt, r640]}
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
@@ -127,7 +102,7 @@ spec:
   storage:
     replicaCount: 1
     retentionPeriod: "30d"
-    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    nodeSelector: {kubernetes.io/hostname: r640}
     storage:
       volumeClaimTemplate:
         spec:

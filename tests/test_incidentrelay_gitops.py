@@ -29,12 +29,12 @@ def test_upstream_chart_is_digest_pinned_and_production_workers_are_enabled():
         assert ".cluster.local" in env["NO_PROXY"]
     for component in ("web", "scheduler"):
         expression = values[component]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-        assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["restricted-node-6dc3f140f9"]}
+        assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["r640"]}
     telegram_expression = values["telegram"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert telegram_expression == {
         "key": "kubernetes.io/hostname",
-        "operator": "In",
-        "values": ["vm-20-12-ubuntu"],
+        "operator": "NotIn",
+        "values": ["r640"],
     }
     rendered_patches = str(release["spec"]["postRenderers"])
     assert "ghcr.io/roxy-wi/incidentrelay@sha256:" in rendered_patches
@@ -47,7 +47,7 @@ def test_publication_uses_existing_gateway_and_declared_r640_authority():
     assert https_route["spec"]["hostnames"] == ["oncall.tools.re8ch.com"]
     assert https_route["spec"]["parentRefs"][0]["sectionName"] == "tools-wildcard-https"
     dns = next(item for item in resources if item["kind"] == "Ingress")
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
     assert dns["spec"]["ingressClassName"] == "external-dns-only"
 
 
@@ -74,8 +74,8 @@ def test_telegram_proxy_egress_is_limited_to_the_egress_fabric_namespace():
                 "matchLabels": {"kubernetes.io/metadata.name": "egress-fabric"}
             }
         },
-        {"ipBlock": {"cidr": "192.0.2.20/24"}},
-        {"ipBlock": {"cidr": "192.0.2.65/16"}},
+        {"ipBlock": {"cidr": "10.181.22.0/24"}},
+        {"ipBlock": {"cidr": "10.250.0.0/16"}},
     ]
     host_policy = next(
         item
@@ -88,6 +88,13 @@ def test_telegram_proxy_egress_is_limited_to_the_egress_fabric_namespace():
         "toEntities": ["host"],
         "toPorts": [{"ports": [{"port": "17891", "protocol": "TCP"}]}],
     }]
+    database_policy = next(
+        item for item in policies if item["metadata"]["name"] == "incidentrelay-pigsty"
+    )
+    assert database_policy["spec"]["egress"][0]["toServices"] == [{
+        "k8sService": {"serviceName": "pg-re8ch-primary", "namespace": "pigsty-external"}
+    }]
+    assert database_policy["spec"]["egress"][1]["toEntities"] == ["host"]
 
 
 def test_secrets_are_sops_encrypted_and_referenced_from_root():
@@ -139,4 +146,4 @@ def test_database_bootstrap_has_quota_headroom_and_avoids_unhealthy_r640_runtime
     for name in ("database-bootstrap.yaml", "bootstrap-admin.yaml"):
         job = yaml.safe_load((PLATFORM / name).read_text())
         expression = job["spec"]["template"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-        assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["restricted-node-6dc3f140f9"]}
+        assert expression == {"key": "kubernetes.io/hostname", "operator": "NotIn", "values": ["r640"]}
