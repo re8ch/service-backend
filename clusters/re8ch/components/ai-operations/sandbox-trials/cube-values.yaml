@@ -1,6 +1,5 @@
-# CubeSandbox qualification runtime. The chart source is pinned by
-# cube-source.yaml; credentials are injected from cube-trial-secret by the
-# HelmRelease and must never be added here.
+# Retained CubeSandbox rollback values. New R640 tenant instances use the
+# Birfucate control path; credentials must never be added here.
 global:
   timezone: Asia/Shanghai
 
@@ -11,12 +10,12 @@ persistence:
 placement:
   controlPlane:
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
       cube.tencent.com/cube-control: "true"
     tolerations: []
   compute:
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
       cube.tencent.com/cube-node: "true"
     tolerations: []
   # Kept deliberately unmatched. The trial must never install a host kernel.
@@ -33,7 +32,7 @@ cubeNode:
     enabled: false
   network:
     # Separate from the K3s 10.42/16 Pod and 10.43/16 Service ranges.
-    cidr: 192.0.2.179/18
+    cidr: 172.16.0.0/18
     # v0.6.0 does not expose cube-router as a native Helm value. Apply
     # cube-router-daemonset.patch.yaml after each Helm install or upgrade.
 
@@ -74,14 +73,14 @@ controlPlane:
         wait "$filter_pid" || true
         exit "$status"
     env:
-      - {name: HTTP_PROXY, value: "http://192.0.2.183:17891"}
-      - {name: HTTPS_PROXY, value: "http://192.0.2.183:17891"}
-      - {name: http_proxy, value: "http://192.0.2.183:17891"}
-      - {name: https_proxy, value: "http://192.0.2.183:17891"}
+      - {name: HTTP_PROXY, value: "http://10.181.22.128:17891"}
+      - {name: HTTPS_PROXY, value: "http://10.181.22.128:17891"}
+      - {name: http_proxy, value: "http://10.181.22.128:17891"}
+      - {name: https_proxy, value: "http://10.181.22.128:17891"}
       - name: NO_PROXY
-        value: "127.0.0.1,localhost,::1,.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16"
+        value: "127.0.0.1,localhost,::1,.re8ch.com,.svc,.svc.cluster.local,.cluster.local,10.0.0.0/8,10.42.0.0/16,10.43.0.0/16,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
       - name: no_proxy
-        value: "127.0.0.1,localhost,::1,.re8ch.com,.svc,.svc.cluster.local,.cluster.local,192.0.2.203/8,192.0.2.224/16,192.0.2.232/16,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16"
+        value: "127.0.0.1,localhost,::1,.re8ch.com,.svc,.svc.cluster.local,.cluster.local,10.0.0.0/8,10.42.0.0/16,10.43.0.0/16,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
     resources:
       requests: {cpu: 100m, memory: 256Mi}
       limits: {cpu: 2, memory: 2Gi}

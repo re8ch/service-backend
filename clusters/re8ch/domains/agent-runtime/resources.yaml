@@ -3703,9 +3703,8 @@ metadata:
 apiVersion: v1
 data:
   values.yaml: |
-    # CubeSandbox qualification runtime. The chart source is pinned by
-    # cube-source.yaml; credentials are injected from cube-trial-secret by the
-    # HelmRelease and must never be added here.
+    # Retained CubeSandbox rollback values. New restricted-node-6dc3f140f9 tenant instances use the
+    # Birfucate control path; credentials must never be added here.
     global:
       timezone: Asia/Shanghai
 
@@ -12892,30 +12891,6 @@ spec:
       - cloud-disk-mcp
   policyTypes:
   - Ingress
----
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: GitRepository
-metadata:
-  labels:
-    app.kubernetes.io/part-of: cube-sandbox
-  name: cubesandbox
-  namespace: flux-system
-spec:
-  ignore: |
-    /*
-    !/deploy/
-    /deploy/*
-    !/deploy/kubernetes/
-    /deploy/kubernetes/*
-    !/deploy/kubernetes/chart/
-    !/deploy/kubernetes/chart/**
-  interval: 144m
-  proxySecretRef:
-    name: service-backend-control-plane-proxy
-  ref:
-    commit: 8721dd151971ce3c2966482bbd32904ad98f378e
-  timeout: 5m
-  url: https://github.com/tencentcloud/CubeSandbox.git
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
