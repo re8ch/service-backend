@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/scheduling-fabric
-codename: wetland-umber
+codename: atoll-violet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
-  digest: sha256:1dfc64d956d44b8e8f8a4e259d5971929376ac96db2d250a291f8d09f1df28a0
+  digest: sha256:d871293a5cf72aedec6b5ce6eae1f2f3c665fd40f02749706d6be08a9711e14b
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
