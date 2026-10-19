@@ -5558,3 +5558,233 @@ subjects:
 - kind: ServiceAccount
   name: helm-controller
   namespace: flux-network-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-agent-runtime-helm-toolhive
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - toolhive-operator-manager-role
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - toolhive-operator-manager-rolebinding
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-agent-runtime-helm-toolhive
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-agent-runtime-helm-toolhive
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-observability-metering-helm-kube-state-metrics
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - re8ch-kube-state-metrics
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - re8ch-kube-state-metrics
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-observability-metering-helm-kube-state-metrics
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-helm-kube-state-metrics
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-observability-metering-helm-opentelemetry
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  resourceNames:
+  - instrumentations.opentelemetry.io
+  - opampbridges.opentelemetry.io
+  - opentelemetrycollectors.opentelemetry.io
+  - targetallocators.opentelemetry.io
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - otel-operator-opentelemetry-operator-manager
+  - otel-operator-opentelemetry-operator-metrics
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - otel-operator-opentelemetry-operator-manager
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-observability-metering-helm-opentelemetry
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-helm-opentelemetry
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-observability-metering-helm-victoria-metrics
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  resourceNames:
+  - vlagents.operator.victoriametrics.com
+  - vlclusters.operator.victoriametrics.com
+  - vldistributed.operator.victoriametrics.com
+  - vlogs.operator.victoriametrics.com
+  - vlsingles.operator.victoriametrics.com
+  - vmagents.operator.victoriametrics.com
+  - vmalertmanagerconfigs.operator.victoriametrics.com
+  - vmalertmanagers.operator.victoriametrics.com
+  - vmalerts.operator.victoriametrics.com
+  - vmanomalies.operator.victoriametrics.com
+  - vmanomalyconfigs.operator.victoriametrics.com
+  - vmauths.operator.victoriametrics.com
+  - vmclusters.operator.victoriametrics.com
+  - vmdistributed.operator.victoriametrics.com
+  - vmnodescrapes.operator.victoriametrics.com
+  - vmpodscrapes.operator.victoriametrics.com
+  - vmprobes.operator.victoriametrics.com
+  - vmrules.operator.victoriametrics.com
+  - vmscrapeconfigs.operator.victoriametrics.com
+  - vmservicescrapes.operator.victoriametrics.com
+  - vmsingles.operator.victoriametrics.com
+  - vmstaticscrapes.operator.victoriametrics.com
+  - vmusers.operator.victoriametrics.com
+  - vtclusters.operator.victoriametrics.com
+  - vtsingles.operator.victoriametrics.com
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - victoria-metrics-operator
+  - victoria-metrics-operator-victoriametrics-admin
+  - victoria-metrics-operator-victoriametrics-view
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - victoria-metrics-operator
+  verbs:
+  - get
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: flux-observability-metering-helm-victoria-metrics
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-helm-victoria-metrics
+subjects:
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
