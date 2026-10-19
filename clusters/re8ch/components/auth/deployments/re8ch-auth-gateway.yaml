@@ -86,6 +86,8 @@ spec:
               value: https://api.re8ch.com/auth
             - name: IDENTITY_AUTH_URL
               value: https://db-rw.re8ch.com/auth/v1
+            - name: IDENTITY_AUTH_INTERNAL_URL
+              value: http://supabase-identity-auth.supabase-identity.svc.cluster.local:9999
             - name: IDENTITY_USER_URL
               value: http://supabase-identity-auth.supabase-identity.svc.cluster.local:9999/user
             - name: IDENTITY_RO_URL
