@@ -17,6 +17,7 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m
+  suspend: true
   timeout: 3m
   releaseName: incidentrelay
   targetNamespace: incidentrelay
@@ -91,7 +92,7 @@ spec:
       extraEnv:
         - {name: HTTP_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
         - {name: HTTPS_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
-        - {name: NO_PROXY, value: ".svc,.cluster.local,192.0.2.203/8,192.0.2.225/10"}
+        - {name: NO_PROXY, value: ".svc,.cluster.local,10.0.0.0/8,100.64.0.0/10"}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -99,7 +100,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: NotIn
-                    values: [restricted-node-6dc3f140f9]
+                    values: [r640]
       resources:
         requests: {cpu: 100m, memory: 256Mi}
         limits: {cpu: "1", memory: 1Gi}
@@ -109,7 +110,7 @@ spec:
       extraEnv:
         - {name: HTTP_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
         - {name: HTTPS_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
-        - {name: NO_PROXY, value: ".svc,.cluster.local,192.0.2.203/8,192.0.2.225/10"}
+        - {name: NO_PROXY, value: ".svc,.cluster.local,10.0.0.0/8,100.64.0.0/10"}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -117,7 +118,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: NotIn
-                    values: [restricted-node-6dc3f140f9]
+                    values: [r640]
       resources:
         requests: {cpu: 100m, memory: 256Mi}
         limits: {cpu: "1", memory: 1Gi}
@@ -127,7 +128,7 @@ spec:
       extraEnv:
         - {name: HTTP_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
         - {name: HTTPS_PROXY, value: "http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891"}
-        - {name: NO_PROXY, value: ".svc,.cluster.local,192.0.2.203/8,192.0.2.225/10"}
+        - {name: NO_PROXY, value: ".svc,.cluster.local,10.0.0.0/8,100.64.0.0/10"}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -135,7 +136,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: NotIn
-                    values: [restricted-node-6dc3f140f9]
+                    values: [r640]
       resources:
         requests: {cpu: 50m, memory: 128Mi}
         limits: {cpu: 500m, memory: 512Mi}

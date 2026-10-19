@@ -3645,6 +3645,7 @@ spec:
   rollback:
     cleanupOnFail: true
   storageNamespace: incidentrelay
+  suspend: true
   targetNamespace: incidentrelay
   timeout: 3m
   upgrade:
