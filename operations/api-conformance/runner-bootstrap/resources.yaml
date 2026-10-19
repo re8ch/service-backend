@@ -1,12 +1,5 @@
 # Execution credentials never share a namespace with the GitHub App private key.
 # Bootstrap RBAC first; admit the Kyverno clone policy only after Flux applies it.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: api-conformance-runners
-  labels:
-    pod-security.kubernetes.io/enforce: restricted
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: api-conformance-controller, namespace: api-conformance-runners}
@@ -57,21 +50,3 @@ spec:
   endpointSelector: {}
   ingress: []
   egress: []
----
-# Enforce the isolation assumption before introducing any credential projection.
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata: {name: api-conformance-runner-secret-boundary}
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-  - name: only-reviewed-registry-pull-secret
-    match:
-      any:
-      - resources: {kinds: [Secret], namespaces: [api-conformance-runners]}
-    validate:
-      message: Runner namespace accepts only the reviewed registry pull Secret; service and App credentials belong outside it.
-      pattern:
-        metadata: {name: harbor-functions-shared-pull}
-        type: kubernetes.io/dockerconfigjson

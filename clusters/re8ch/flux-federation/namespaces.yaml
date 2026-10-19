@@ -21,3 +21,11 @@ kind: Namespace
 metadata:
   name: flux-network-system
   labels: {gitops.re8ch.com/domain: networking, scheduling.re8ch.com/control-plane-allowed: "true"}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: api-conformance-runners
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    gitops.re8ch.com/authority: flux-system-policy-boundary
