@@ -284,6 +284,14 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
                 for arg in container.get("args", [])
             ]
             container.setdefault("env", []).append({"name": "CONTROLLER_DOMAIN", "value": domain})
+            if domain in {"agent-runtime", "observability-metering"}:
+                container["env"].extend([
+                    {
+                        "name": "KUBERNETES_SERVICE_HOST",
+                        "valueFrom": {"fieldRef": {"fieldPath": "status.hostIP"}},
+                    },
+                    {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
+                ])
             obj["spec"]["replicas"] = 1
             pod_spec = obj["spec"]["template"]["spec"]
             pod_spec["affinity"] = {

@@ -49,6 +49,18 @@ def main() -> None:
         args = item["spec"]["template"]["spec"]["containers"][0].get("args", [])
         require("--watch-all-namespaces=false" in args, f"controller watches outside its namespace: {metadata}")
         require(all("watch-all-namespaces=true" not in arg for arg in args), f"all-namespace watch enabled: {metadata}")
+        env = {
+            entry["name"]: entry
+            for entry in item["spec"]["template"]["spec"]["containers"][0].get("env", [])
+        }
+        if metadata["namespace"] in {"flux-agent-system", "flux-observability-system"}:
+            require(
+                env.get("KUBERNETES_SERVICE_HOST", {}).get("valueFrom", {}).get("fieldRef", {}).get("fieldPath")
+                == "status.hostIP",
+                f"controller does not use its node-local API endpoint: {metadata}",
+            )
+            require(env.get("KUBERNETES_SERVICE_PORT", {}).get("value") == "6443",
+                    f"controller local API port is not explicit: {metadata}")
 
     serialized = (FEDERATION / "controllers.yaml").read_text()
     require("cluster-admin" not in serialized, "federated controller references cluster-admin")
