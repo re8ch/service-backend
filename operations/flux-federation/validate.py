@@ -128,6 +128,16 @@ def main() -> None:
     agent_apps_rule = next(rule for rule in agent_namespaced_role["rules"] if rule.get("apiGroups") == ["apps"])
     require("replicasets" in agent_apps_rule["resources"],
             "Agent Helm RBAC omits ReplicaSet inspection authority")
+    require(
+        any(
+            doc["kind"] == "RoleBinding"
+            and doc["metadata"]["name"] == "flux-agent-runtime-namespaced"
+            and doc["metadata"].get("namespace") == "cosyvoice"
+            and doc["roleRef"]["name"] == "flux-agent-runtime-namespaced"
+            for doc in controller_docs
+        ),
+        "Agent Flux is not bound in the adopted CosyVoice namespace",
+    )
     agent_runner_role = next(
         doc for doc in controller_docs
         if doc["kind"] == "Role"
