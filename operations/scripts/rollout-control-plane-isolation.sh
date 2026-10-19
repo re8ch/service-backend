@@ -3,7 +3,10 @@ set -euo pipefail
 
 mode="${1:-observe}"
 apply="${2:-}"
-nodes=(restricted-node-296f36f2fb restricted-node-1eb0570f74 restricted-node-6dc3f140f9)
+# A1/B1 are embedded-etcd control-plane voters. R640 is the large worker and
+# ToolHive anchor; it must remain schedulable when the voter guardrail is
+# enforced.
+nodes=(b1-wsl-zt a1-wsl-zt)
 taint_key="node-role.kubernetes.io/control-plane"
 
 if [[ ! "$mode" =~ ^(observe|prefer|enforce|rollback)$ ]]; then
