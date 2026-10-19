@@ -453,22 +453,6 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: {name: browser-service-public, namespace: ai-operations}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [browser.service.re8ch.com]
-  rules: [{backendRefs: [{name: oauth2-proxy-steel, port: 4180}]}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: cube-service-public, namespace: cube-trial}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [cube.service.re8ch.com]
-  rules: [{backendRefs: [{name: oauth2-proxy-cube, port: 4180}]}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
 metadata: {name: supabase-service-public, namespace: supabase-pg-re8ch}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
@@ -485,27 +469,11 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: {name: storage-service-public, namespace: re8ch-dataspace}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [storage.service.re8ch.com]
-  rules: [{backendRefs: [{name: dataspace-gateway, port: 8080}]}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
 metadata: {name: phonycenter-service-public, namespace: voice-observability}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
   hostnames: [phonycenter.service.re8ch.com]
   rules: [{backendRefs: [{name: homer-ui, port: 80}]}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: neo4j-service-public, namespace: re8ch-neo4j}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [neo4j.service.re8ch.com]
-  rules: [{backendRefs: [{name: neo4j, port: 7474}]}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -591,13 +559,3 @@ spec:
   hostnames: [dbgui.service.re8ch.com]
   rules:
     - backendRefs: [{name: cloudbeaver, port: 8978}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: marketplace-service-public, namespace: ai-operations}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [marketplace.service.re8ch.com]
-  rules:
-    - matches: [{path: {type: PathPrefix, value: /install}}]
-      backendRefs: [{name: agent-orchestra-collab, port: 80}]

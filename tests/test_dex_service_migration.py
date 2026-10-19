@@ -103,12 +103,10 @@ def test_parallel_dex_config_preserves_old_issuer_and_client_credentials():
     assert any(path.endswith("/deployments/dex-service") for _, path in created)
 
 
-def test_new_hostname_targets_only_parallel_dex_service():
+def test_retired_service_hostname_has_no_public_route():
     routes = list(yaml.safe_load_all((ROOT / "clusters/re8ch/components/cilium/service-zone-wave-15.yaml").read_text()))
     dex_routes = [item for item in routes if item and item.get("spec", {}).get("hostnames") == ["dex.service.re8ch.com"]]
-    backends = [backend["name"] for item in dex_routes for rule in item["spec"]["rules"]
-                for backend in rule.get("backendRefs", [])]
-    assert backends == ["dex-service", "dex-service"]
+    assert dex_routes == []
     old = list(yaml.safe_load_all((ROOT / "clusters/re8ch/components/auth/dex/dex-ha-deployment.yaml").read_text()))
     assert next(item for item in old if item["kind"] == "Deployment")["metadata"]["name"] == "dex"
     new = list(yaml.safe_load_all((ROOT / "clusters/re8ch/components/auth/dex/dex-service-deployment.yaml").read_text()))

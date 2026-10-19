@@ -22494,44 +22494,6 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: browser-service-public
-  namespace: ai-operations
-spec:
-  hostnames:
-  - browser.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - name: oauth2-proxy-steel
-      port: 4180
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: marketplace-service-public
-  namespace: ai-operations
-spec:
-  hostnames:
-  - marketplace.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - name: agent-orchestra-collab
-      port: 80
-    matches:
-    - path:
-        type: PathPrefix
-        value: /install
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
   name: service-zone-among-clusters-among-clusters-ingest
   namespace: among-clusters
 spec:
@@ -22590,30 +22552,6 @@ spec:
     - path:
         type: Exact
         value: /healthz
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: service-zone-auth-authentik-server-advfab
-  namespace: auth
-spec:
-  hostnames:
-  - auth.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: authentik-server
-      port: 80
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -22705,111 +22643,6 @@ spec:
     - path:
         type: PathPrefix
         value: /ui
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: cube-service-public
-  namespace: cube-trial
-spec:
-  hostnames:
-  - cube.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - name: oauth2-proxy-cube
-      port: 4180
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: service-zone-dex-dex-http-redirect
-  namespace: dex
-spec:
-  hostnames:
-  - dex.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - filters:
-    - requestRedirect:
-        scheme: https
-        statusCode: 308
-      type: RequestRedirect
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: service-zone-dex-dex-oauth-authorization-server-discovery
-  namespace: dex
-spec:
-  hostnames:
-  - dex.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: dex-service
-      port: 80
-      weight: 1
-    filters:
-    - type: URLRewrite
-      urlRewrite:
-        path:
-          replaceFullPath: /.well-known/openid-configuration
-          type: ReplaceFullPath
-    - responseHeaderModifier:
-        set:
-        - name: X-Re8ch-OAuth-Discovery
-          value: rfc8414-via-oidc
-      type: ResponseHeaderModifier
-    matches:
-    - path:
-        type: Exact
-        value: /.well-known/oauth-authorization-server
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: service-zone-dex-dex-public
-  namespace: dex
-spec:
-  hostnames:
-  - dex.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: dex-service
-      port: 80
-      weight: 1
-    filters:
-    - responseHeaderModifier:
-        set:
-        - name: X-Re8ch-Gateway
-          value: cilium
-      type: ResponseHeaderModifier
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -23013,70 +22846,6 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: service-zone-image-registry-image-control-api-advfab
-  namespace: image
-spec:
-  hostnames:
-  - image.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: nuclio-registry-image-control-api
-      port: 8080
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: nuclio-registry-image-control-api
-      port: 8080
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /image
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: nuclio-registry-image-control-api
-      port: 8080
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /image
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: nuclio-registry-image-control-api
-      port: 8080
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /image
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: nuclio-registry-image-control-api
-      port: 8080
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /image
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
   annotations:
     networking.re8ch.com/dns-authority: llm-gateway/litellm-dns-authority
   name: litellm-public
@@ -23276,30 +23045,6 @@ spec:
     - path:
         type: PathPrefix
         value: /ledger/decision-analysis
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: service-zone-decision-ledger-decision-analysis-advfab
-  namespace: nuclio
-spec:
-  hostnames:
-  - decision.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - group: ""
-      kind: Service
-      name: ledger-decision-analysis
-      port: 80
-      weight: 1
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -23525,40 +23270,6 @@ spec:
     - path:
         type: PathPrefix
         value: /
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: storage-service-public
-  namespace: re8ch-dataspace
-spec:
-  hostnames:
-  - storage.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - name: dataspace-gateway
-      port: 8080
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: neo4j-service-public
-  namespace: re8ch-neo4j
-spec:
-  hostnames:
-  - neo4j.service.re8ch.com
-  parentRefs:
-  - name: re8ch-gateway-canary
-    namespace: kube-system
-    sectionName: service-wildcard-https
-  rules:
-  - backendRefs:
-    - name: neo4j
-      port: 7474
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -25271,18 +24982,6 @@ spec:
         class: web
         probePath: /
         service: auth
-      auth.service.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        - 302
-        - 307
-        class: service-pilot
-        probePath: /
-        service: auth-service
-      browser.service.re8ch.com.:
-        class: service-pilot
-        probePath: /
-        service: browser-service
       cloud-disk.service.re8ch.com.:
         acceptedStatuses:
         - 302
@@ -25305,10 +25004,6 @@ spec:
         class: web
         probePath: /.well-known/jmap
         service: collab
-      cube.service.re8ch.com.:
-        class: service-pilot
-        probePath: /
-        service: cube-service
       db-ro.re8ch.com.:
         acceptedStatuses:
         - 200
@@ -25329,26 +25024,6 @@ spec:
         class: service-pilot
         probePath: /
         service: dbgui-service
-      decision.service.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        - 401
-        - 403
-        class: service-pilot
-        probePath: /
-        service: decision-service
-      dex.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        class: web
-        probePath: /.well-known/openid-configuration
-        service: dex
-      dex.service.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        class: service-pilot
-        probePath: /.well-known/openid-configuration
-        service: dex-service
       grafana.service.re8ch.com.:
         class: service-pilot
         probePath: /grafana/api/health
@@ -25377,17 +25052,6 @@ spec:
         class: web
         probePath: /.well-known/openid-configuration
         service: stalwart
-      image.service.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        - 400
-        - 401
-        - 403
-        - 404
-        - 405
-        class: service-pilot
-        probePath: /image
-        service: image-service
       ledger-decisions.service.re8ch.com.:
         acceptedStatuses:
         - 200
@@ -25416,20 +25080,6 @@ spec:
         class: service-pilot
         probePath: /
         service: mail-service
-      marketplace.service.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        - 302
-        - 307
-        - 401
-        - 404
-        class: service-pilot
-        probePath: /install
-        service: marketplace-service
-      neo4j.service.re8ch.com.:
-        class: service-pilot
-        probePath: /
-        service: neo4j-service
       opensandbox.service.re8ch.com.:
         class: service-pilot
         probePath: /
@@ -25466,12 +25116,6 @@ spec:
         class: service-pilot
         probePath: /admin
         service: stalwart-admin
-      storage.service.re8ch.com.:
-        acceptedStatuses:
-        - 200
-        class: service-pilot
-        probePath: /healthz
-        service: storage-service
       supabase.service.re8ch.com.:
         class: service-pilot
         probePath: /
