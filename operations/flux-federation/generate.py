@@ -52,6 +52,18 @@ EXTERNAL_NAMESPACED_AUTHORITY = {
     },
 }
 
+# Namespaced custom resources rendered by an adopted chart but absent from the
+# compiled domain bundle. Keep these rules object-name scoped as well as bound
+# only in the explicit target namespaces below.
+EXTERNAL_NAMESPACED_NAMED_AUTHORITY = {
+    "observability-metering": {
+        "toolhive.stacklok.dev": {
+            "mcpexternalauthconfigs": {"admin-vmcp-backend-auth", "tenant-vmcp-backend-auth"},
+            "mcpserverentries": {"admin-api-backend", "tenant-api-backend"},
+        },
+    },
+}
+
 # Name-scoped escalation/binding for Roles rendered inside product Helm charts.
 # These do not appear as top-level objects in the compiled domain bundle.
 EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
@@ -455,6 +467,13 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
         for group, values in sorted(groups.items())
     ]
     namespaced_rules = rules(namespaced)
+    for api_group_name, resources in EXTERNAL_NAMESPACED_NAMED_AUTHORITY.get(domain, {}).items():
+        for resource, names in resources.items():
+            namespaced_rules.append({
+                "apiGroups": [api_group_name], "resources": [resource],
+                "resourceNames": sorted(names),
+                "verbs": ["get", "update", "patch"],
+            })
     # Kubernetes rejects creation or mutation of an RBAC role when the caller
     # does not already hold every permission that role grants. Give the domain
     # reconciler escalation and binding rights only for the exact Role names in

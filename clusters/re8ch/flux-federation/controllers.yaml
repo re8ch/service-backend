@@ -3449,6 +3449,28 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpexternalauthconfigs
+  resourceNames:
+  - admin-vmcp-backend-auth
+  - tenant-vmcp-backend-auth
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpserverentries
+  resourceNames:
+  - admin-api-backend
+  - tenant-api-backend
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - roles
