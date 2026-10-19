@@ -592,6 +592,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     source = next(item for item in resources if item["kind"] == "OCIRepository")
     release = next(item for item in resources if item["kind"] == "HelmRelease")
     assert source["spec"]["url"] == "oci://ghcr.io/public-edge/charts/public-edge-manager"
+    assert release["spec"]["suspend"] is True
     assert release["spec"]["upgrade"]["timeout"] == "15m"
     assert source["spec"]["ref"] == {"digest": "sha256:d9105b985f675ac6d7d78f3cb8ea1c2e5397572d4bf2d89929f08dd502a40d64"}
     values = release["spec"]["values"]
@@ -608,7 +609,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
     assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.220:6443", "https://192.0.2.183:6443"]
     assert values["workload"]["maxUnavailable"] == 2
-    assert values["discovery"]["excludedNodeNames"] == ["overseas-la", "overseas-la-2"]
+    assert values["discovery"]["excludedNodeNames"] == ["overseas-kl", "overseas-la", "overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
     assert values["discovery"]["requiredAddressNames"] == ["headlamp.service.re8ch.com"]
     assert values["discovery"]["authorityQualifiedLabel"] == "networking.re8ch.com/public-edge-authority-qualified"

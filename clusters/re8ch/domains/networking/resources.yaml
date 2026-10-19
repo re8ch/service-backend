@@ -24398,6 +24398,7 @@ spec:
   rollback:
     cleanupOnFail: true
   storageNamespace: regional-routing
+  suspend: true
   targetNamespace: regional-routing
   upgrade:
     cleanupOnFail: true
@@ -24476,6 +24477,7 @@ spec:
       - zan
       - overseas-la-2
       excludedNodeNames:
+      - overseas-kl
       - overseas-la
       - overseas-la-2
       externalAuthorities:
