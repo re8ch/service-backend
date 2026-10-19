@@ -4041,6 +4041,7 @@ data:
     import urllib.error
     import urllib.parse
     import urllib.request
+    from datetime import datetime, timezone
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
     OPS_TOOL_PROFILE = os.getenv("OPS_TOOL_PROFILE", "legacy").lower()
@@ -4071,6 +4072,14 @@ data:
     HARBOR_HEALTH_URL = os.getenv(
         "HARBOR_HEALTH_URL",
         "http://core.harbor.svc.cluster.local:8080/api/v2.0/health",
+    )
+    PUBLIC_EDGE_STATUS_URL = os.getenv(
+        "PUBLIC_EDGE_STATUS_URL",
+        "http://public-edge-manager.regional-routing.svc.cluster.local:8080/v1/status",
+    )
+    ADVANCED_FABRIC_STATUS_URL = os.getenv(
+        "ADVANCED_FABRIC_STATUS_URL",
+        "http://advanced-fabric-observation-api.kube-system.svc.cluster.local:8080/v1/status",
     )
     GRAFANA_INTERNAL = os.getenv("GRAFANA_INTERNAL", "http://192.0.2.67:3001/ui")
     HARBOR_URL = os.getenv("HARBOR_URL", REGISTRY_PUBLIC).rstrip("/")
@@ -4951,6 +4960,105 @@ data:
         default_kind = RESOURCE_KINDS.get(kind)
         selected = "all" if namespace == "all" else (namespace or ("flux-system" if kind in PLATFORM_RESOURCE_PATHS else current_namespace()))
         return {"kind": kind, "tenant": current_tenant(), "namespace": selected, "count": len(items), "items": [simplify_resource(x, default_kind) for x in items]}
+
+    FLUX_AUTHORITY_DOMAINS = {
+        "flux-agent-system": "agent-runtime",
+        "flux-identity-system": "identity-access",
+        "flux-observability-system": "observability-metering",
+        "flux-network-system": "networking",
+    }
+
+    def _condition(status, condition_type):
+        return next((item for item in status.get("conditions", []) if item.get("type") == condition_type), {})
+
+    def platform_flux_status():
+        """Return an authority-aware, sanitized Flux control-plane snapshot."""
+        if OPS_TOOL_PROFILE not in ("observe", "admin"):
+            raise PermissionError("Flux control-plane reads require the platform observe profile")
+        observed_at = datetime.now(timezone.utc).isoformat()
+        resources = []
+        helm_owners = {}
+        kinds = (
+            ("fluxgitrepositories", "GitRepository"),
+            ("fluxocirepositories", "OCIRepository"),
+            ("fluxkustomizations", "Kustomization"),
+            ("fluxhelmreleases", "HelmRelease"),
+        )
+        for namespace in FLUX_NAMESPACES:
+            for resource_kind, default_kind in kinds:
+                for item in kube_request("GET", resource_path(resource_kind, namespace)).get("items", []):
+                    metadata = item.get("metadata", {})
+                    spec = item.get("spec", {})
+                    status = item.get("status", {})
+                    ready = _condition(status, "Ready")
+                    reconciling = _condition(status, "Reconciling")
+                    stalled = _condition(status, "Stalled")
+                    suspended = bool(spec.get("suspend", False))
+                    authoritative = namespace in FLUX_AUTHORITY_DOMAINS or namespace == "flux-system"
+                    owner_state = "authoritative" if authoritative else "rollback-only"
+                    if suspended:
+                        owner_state = "migration-frozen"
+                    row = {
+                        "domain": FLUX_AUTHORITY_DOMAINS.get(namespace, "platform-bootstrap"),
+                        "kind": item.get("kind") or default_kind,
+                        "namespace": namespace,
+                        "name": metadata.get("name"),
+                        "ownerState": owner_state,
+                        "ready": ready.get("status") == "True",
+                        "reconciling": reconciling.get("status") == "True",
+                        "stalled": stalled.get("status") == "True",
+                        "observedGeneration": status.get("observedGeneration"),
+                        "generation": metadata.get("generation"),
+                        "revision": status.get("lastAppliedRevision") or status.get("artifact", {}).get("revision"),
+                        "freshness": "current" if status.get("observedGeneration") in (None, metadata.get("generation")) else "stale",
+                        "rootCause": ready.get("message") if ready.get("status") == "False" else stalled.get("message"),
+                    }
+                    resources.append(row)
+                    if row["kind"] == "HelmRelease" and not suspended:
+                        key = (
+                            spec.get("storageNamespace") or namespace,
+                            spec.get("releaseName") or metadata.get("name"),
+                            spec.get("targetNamespace") or namespace,
+                        )
+                        helm_owners.setdefault(key, []).append(row)
+        conflicts = []
+        for key, owners in helm_owners.items():
+            if len(owners) < 2:
+                continue
+            for owner in owners:
+                owner["ownerState"] = "conflict"
+            conflicts.append({
+                "storageNamespace": key[0], "releaseName": key[1], "targetNamespace": key[2],
+                "owners": [{"namespace": item["namespace"], "name": item["name"]} for item in owners],
+            })
+        active = [item for item in resources if item["ownerState"] not in ("migration-frozen", "rollback-only")]
+        return {
+            "apiVersion": "status.platform.re8ch.com/v1",
+            "observedAt": observed_at,
+            "source": "flux-standard-conditions",
+            "summary": {
+                "authoritative": len(active),
+                "ready": sum(1 for item in active if item["ready"]),
+                "failed": sum(1 for item in active if not item["ready"] and not item["reconciling"]),
+                "reconciling": sum(1 for item in active if item["reconciling"]),
+                "frozen": sum(1 for item in resources if item["ownerState"] == "migration-frozen"),
+                "ownershipConflicts": len(conflicts),
+            },
+            "conflicts": conflicts,
+            "resources": resources,
+        }
+
+    def _platform_service_status(name, url):
+        request = urllib.request.Request(url, headers={"User-Agent": "re8ch-platform-status/1.0"})
+        observed_at = datetime.now(timezone.utc).isoformat()
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            return {"apiVersion": "status.platform.re8ch.com/v1", "observedAt": observed_at,
+                    "source": name, "availability": "available", "status": payload}
+        except Exception as exc:
+            return {"apiVersion": "status.platform.re8ch.com/v1", "observedAt": observed_at,
+                    "source": name, "availability": "unavailable", "error": type(exc).__name__}
 
     def get_secret_token(secret_name):
         doc = kube_request("GET", "/api/v1/namespaces/%s/secrets/%s" % (current_namespace(), secret_name))
@@ -8648,6 +8756,15 @@ data:
                 elif parsed.path == "/api/metrics/summary":
                     if self.require_auth():
                         self.send_json(get_tenant_metrics_summary())
+                elif parsed.path == "/api/platform/status/v1/flux":
+                    if self.require_auth():
+                        self.send_json(platform_flux_status())
+                elif parsed.path == "/api/platform/status/v1/public-edge":
+                    if self.require_auth():
+                        self.send_json(_platform_service_status("public-edge-manager", PUBLIC_EDGE_STATUS_URL))
+                elif parsed.path == "/api/platform/status/v1/advanced-fabric":
+                    if self.require_auth():
+                        self.send_json(_platform_service_status("advanced-fabric-observation-api", ADVANCED_FABRIC_STATUS_URL))
                 elif parsed.path == "/api/secrets/refs":
                     if self.require_auth():
                         params = urllib.parse.parse_qs(parsed.query)

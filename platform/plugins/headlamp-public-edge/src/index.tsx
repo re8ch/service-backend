@@ -168,6 +168,7 @@ function Dashboard() {
   const nameserversInUse = nameserversFrom(nameserversConfigMap);
   const authorityMetadata = jsonDataFrom(nameserversConfigMap, 'authorities.json', {
     authorities: [],
+    migrationPhase: 'legacy',
   });
   const globalpingQuality = jsonDataFrom(qualityConfigMap, 'quality.json', {
     candidates: {},
@@ -245,7 +246,11 @@ function Dashboard() {
     const authority = (authorityMetadata.authorities || []).find(
       (item: any) => item.ip === publicIp
     );
-    const nameserver = authority?.slotNs || authority?.legacyNs || '-';
+    const migrationPhase = authorityMetadata.migrationPhase || 'legacy';
+    const nameserver =
+      migrationPhase === 'slot'
+        ? authority?.slotNs || authority?.legacyNs || '-'
+        : authority?.legacyNs || authority?.slotNs || '-';
     const inUse = selectedNameservers.has(normalizedDnsName(nameserver));
     const restarts = (pod.status?.containerStatuses || []).reduce(
       (total: number, container: any) => total + (container.restartCount || 0),
