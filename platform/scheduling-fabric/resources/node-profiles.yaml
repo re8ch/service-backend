@@ -11,11 +11,11 @@ data:
       enforceNodeAllocatable: [pods]
       evictionHard: {memory.available: 4Gi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
     control-small:
-      maxPods: 256
-      kubeReserved: {cpu: 500m, memory: 1Gi, ephemeral-storage: 2Gi, pid: "2048"}
-      systemReserved: {cpu: 500m, memory: 1Gi, ephemeral-storage: 2Gi, pid: "2048"}
+      maxPods: 128
+      kubeReserved: {cpu: "2", memory: 2Gi, ephemeral-storage: 2Gi, pid: "2048"}
+      systemReserved: {cpu: "1", memory: 2Gi, ephemeral-storage: 2Gi, pid: "2048"}
       enforceNodeAllocatable: [pods]
-      evictionHard: {memory.available: 10%, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+      evictionHard: {memory.available: 2Gi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
     control-wsl:
       maxPods: 32
       kubeReserved: {cpu: 500m, memory: 768Mi, ephemeral-storage: 2Gi, pid: "1024"}

@@ -39,11 +39,11 @@ spec:
     - {namespace: re8ch-ontology-microscope, kind: Deployment, name: ontology-microscope-evaluation-worker, placementClass: batch-opportunistic, authority: gitops}
     - {namespace: regional-routing, kind: DaemonSet, name: regional-edge-tls-proxy, placementClass: node-serving-agent, authority: gitops}
     - {namespace: rook-ceph, kind: Deployment, name: rook-ceph-exporter-a1-wsl-zt, placementClass: node-serving-agent, authority: gitops-generated}
-    - {namespace: toolhive-system, kind: Deployment, name: ops-admin-vmcp-internal, placementClass: service-core-ab, authority: gitops}
-    - {namespace: toolhive-system, kind: Deployment, name: ops-operate-vmcp-internal, placementClass: service-core-ab, authority: gitops}
+    - {namespace: toolhive-system, kind: Deployment, name: ops-admin-vmcp-internal, placementClass: service-core-r640, authority: gitops}
+    - {namespace: toolhive-system, kind: Deployment, name: ops-operate-vmcp-internal, placementClass: service-core-r640, authority: gitops}
     - {namespace: toolhive-system, kind: Deployment, name: re8ch-admin-vmcp, placementClass: service-core-r640, authority: gitops-generated}
     - {namespace: toolhive-system, kind: Deployment, name: re8ch-admin-vmcp-session-router, placementClass: service-core-r640, authority: gitops-generated}
     - {namespace: toolhive-system, kind: Deployment, name: re8ch-tools-vmcp-session-router, placementClass: service-core-r640, authority: gitops-generated}
     - {namespace: toolhive-system, kind: Deployment, name: tenant-vmcp, placementClass: service-core-r640, authority: gitops-generated}
     - {namespace: toolhive-system, kind: Deployment, name: tenant-vmcp-session-router, placementClass: service-core-r640, authority: gitops-generated}
-    - {namespace: toolhive-system, kind: StatefulSet, name: ops-admin-vmcp-internal, placementClass: service-core-ab, authority: gitops}
+    - {namespace: toolhive-system, kind: StatefulSet, name: ops-admin-vmcp-internal, placementClass: service-core-r640, authority: gitops}
