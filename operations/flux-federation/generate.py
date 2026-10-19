@@ -100,7 +100,7 @@ EXTERNAL_TARGET_NAMESPACES = {
     # NAS and therefore are intentionally absent from the legacy compiled
     # service-backend bundle. Agent Flux still needs a namespace-scoped binding
     # before it can reconcile the authoritative agent-gitops declaration.
-    "agent-runtime": {"cosyvoice"},
+    "agent-runtime": {"catalog", "cosyvoice"},
     "observability-metering": {
         "ai-operations",
         "artchais",

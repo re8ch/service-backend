@@ -31,3 +31,11 @@ metadata:
   labels:
     app.kubernetes.io/part-of: aesthete
     pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: catalog
+  labels:
+    app.kubernetes.io/part-of: catalog
+    pod-security.kubernetes.io/enforce: restricted
