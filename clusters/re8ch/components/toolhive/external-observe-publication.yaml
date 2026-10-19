@@ -50,7 +50,7 @@ metadata:
     app.kubernetes.io/name: toolhive-cloud-ui
     app.kubernetes.io/part-of: toolhive
 spec:
-  replicas: 2
+  replicas: 1
   selector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
   template:
     metadata:
@@ -60,16 +60,14 @@ spec:
     spec:
       automountServiceAccountToken: false
       imagePullSecrets: [{name: ghcr-re8ch}]
+      nodeSelector:
+        kubernetes.io/hostname: r640
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app.kubernetes.io/name: toolhive-cloud-ui}}
-              topologyKey: kubernetes.io/hostname
       tolerations:
         - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
@@ -131,7 +129,7 @@ metadata:
   labels: {networking.re8ch.com/dns-authority: migrated-to-service-zone}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: tools.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/provider: public-edge-manager

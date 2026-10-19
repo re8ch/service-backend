@@ -348,17 +348,20 @@ def test_mcp_registry_database_is_ab_only():
     assert pdb["spec"]["minAvailable"] == 1
 
 
-def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
+def test_toolhive_controls_and_plugin_runtime_are_r640_local():
     operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
     source = next(item for item in operator if item["kind"] == "OCIRepository")
     release = next(item for item in operator if item["kind"] == "HelmRelease")
     assert source["spec"]["ref"] == {"digest": "sha256:4881731dd7ceaf0fefcdecdb23b1c87d16b1f60fe8aa5ee75304fd33f4fa4d22"}
     values = release["spec"]["values"]["operator"]
-    assert values["replicaCount"] == 2
+    assert values["replicaCount"] == 1
     assert values["image"] == "ghcr.io/stacklok/toolhive/operator@sha256:7998095e6b998d2ae50f93393fa8c969d41a1422457d1775aef81c81dfa24b67"
     assert values["toolhiveRunnerImage"] == "ghcr.io/stacklok/toolhive/proxyrunner@sha256:1ee5a4d66763180fdfdb95c4da9afb7112946e90531516fb9a1fd279f2c9cd29"
     assert values["vmcpImage"] == "ghcr.io/stacklok/toolhive/vmcp@sha256:22b6bb5c642c45e913afef0ea0ca696b1f12cd7dd26d74a8e8cb0b794cd2774c"
-    assert values["nodeSelector"] == {}
+    assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    env = {item["name"]: item["value"] for item in values["env"]}
+    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.179"
+    assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
     assert expressions == [
         {
@@ -397,7 +400,7 @@ def test_toolhive_controls_and_plugin_runtime_are_worker_ha():
     deployment = next(item for item in runtime if item["kind"] == "Deployment")
     service = next(item for item in runtime if item["kind"] == "Service")
     pdb = next(item for item in runtime if item["kind"] == "PodDisruptionBudget")
-    assert deployment["spec"]["replicas"] == 2
+    assert deployment["spec"]["replicas"] == 1
     assert deployment["spec"]["progressDeadlineSeconds"] == 180
     assert service["spec"]["trafficDistribution"] == "PreferSameNode"
     assert pdb["spec"]["minAvailable"] == 1
