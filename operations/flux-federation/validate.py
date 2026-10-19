@@ -27,6 +27,10 @@ CONTROLLERS = {
     "helm-controller",
     "notification-controller",
 }
+R640_LOCAL_ENDPOINTS = {
+    "flux-agent-system": {"artifacts": 18090, "events": 18292},
+    "flux-observability-system": {"artifacts": 28090, "events": 28292},
+}
 
 
 def documents(path: Path) -> list[dict]:
@@ -67,10 +71,33 @@ def main() -> None:
                     f"controller local API port is not explicit: {metadata}")
             if metadata["name"] == "source-controller":
                 pod_spec = item["spec"]["template"]["spec"]
+                endpoints = R640_LOCAL_ENDPOINTS[metadata["namespace"]]
+                ports = {
+                    port["name"]: port
+                    for port in item["spec"]["template"]["spec"]["containers"][0]["ports"]
+                }
+                require(
+                    f"--storage-adv-addr=192.0.2.179:{endpoints['artifacts']}" in args,
+                    f"source artifacts still depend on the cluster Service path: {metadata}",
+                )
+                require(
+                    f"--events-addr=http://192.0.2.179:{endpoints['events']}/" in args,
+                    f"source events still depend on cluster DNS: {metadata}",
+                )
+                require(ports["http"].get("hostPort") == endpoints["artifacts"],
+                        f"source artifact host port is not published: {metadata}")
                 require(pod_spec.get("dnsPolicy") == "None",
                         f"source controller still depends on cross-node cluster DNS: {metadata}")
                 require(pod_spec.get("dnsConfig", {}).get("nameservers") == ["1.1.1.1", "8.8.8.8"],
                         f"source controller DNS fallback is not explicit: {metadata}")
+            if metadata["name"] == "notification-controller":
+                endpoints = R640_LOCAL_ENDPOINTS[metadata["namespace"]]
+                ports = {
+                    port["name"]: port
+                    for port in item["spec"]["template"]["spec"]["containers"][0]["ports"]
+                }
+                require(ports["http-webhook"].get("hostPort") == endpoints["events"],
+                        f"notification event host port is not published: {metadata}")
 
     serialized = (FEDERATION / "controllers.yaml").read_text()
     require("cluster-admin" not in serialized, "federated controller references cluster-admin")

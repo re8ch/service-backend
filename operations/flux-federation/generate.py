@@ -17,6 +17,10 @@ DOMAINS = {
     "networking": ("flux-network-system", "pillars-infra/network-gitops"),
 }
 CONTROLLERS = {"source-controller", "kustomize-controller", "helm-controller", "notification-controller"}
+R640_LOCAL_ENDPOINTS = {
+    "agent-runtime": {"artifacts": 18090, "events": 18292},
+    "observability-metering": {"artifacts": 28090, "events": 28292},
+}
 TOOLKIT_GROUPS = [
     "source.toolkit.fluxcd.io",
     "kustomize.toolkit.fluxcd.io",
@@ -291,6 +295,18 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
                 arg.replace("notification-controller.flux-system.svc.cluster.local", f"notification-controller.{namespace}.svc.cluster.local")
                 for arg in container.get("args", [])
             ]
+            local_endpoints = R640_LOCAL_ENDPOINTS.get(domain)
+            if local_endpoints and name == "source-controller":
+                container["args"] = [
+                    f"--storage-adv-addr=192.0.2.179:{local_endpoints['artifacts']}"
+                    if arg.startswith("--storage-adv-addr=") else
+                    f"--events-addr=http://192.0.2.179:{local_endpoints['events']}/"
+                    if arg.startswith("--events-addr=") else arg
+                    for arg in container["args"]
+                ]
+                next(port for port in container["ports"] if port["name"] == "http")["hostPort"] = local_endpoints["artifacts"]
+            if local_endpoints and name == "notification-controller":
+                next(port for port in container["ports"] if port["name"] == "http-webhook")["hostPort"] = local_endpoints["events"]
             container.setdefault("env", []).append({"name": "CONTROLLER_DOMAIN", "value": domain})
             if domain in {"agent-runtime", "observability-metering"}:
                 container["env"].extend([
