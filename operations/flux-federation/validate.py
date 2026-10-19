@@ -246,6 +246,43 @@ def main() -> None:
         if doc["kind"] == "ClusterRole"
         and doc["metadata"]["name"] == "flux-observability-metering-helm-victoria-metrics"
     )
+    observability_namespaced_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole"
+        and doc["metadata"]["name"] == "flux-observability-metering-namespaced"
+    )
+    require(
+        any(
+            rule.get("apiGroups") == ["coordination.k8s.io"]
+            and rule.get("resources") == ["leases"]
+            and {"create", "get", "update"}.issubset(rule.get("verbs", []))
+            for rule in observability_namespaced_role["rules"]
+        ),
+        "Observability Helm cannot manage namespaced leader-election leases",
+    )
+    require(
+        any(
+            rule.get("apiGroups") == ["cert-manager.io"]
+            and set(rule.get("resources", [])) == {"certificates", "issuers"}
+            for rule in observability_namespaced_role["rules"]
+        ),
+        "Observability Helm cannot manage OpenTelemetry serving certificates",
+    )
+    observability_role_authority = {
+        name
+        for rule in observability_namespaced_role["rules"]
+        if rule.get("apiGroups") == ["rbac.authorization.k8s.io"]
+        and rule.get("resources") == ["roles"]
+        and "escalate" in rule.get("verbs", [])
+        for name in rule.get("resourceNames", [])
+    }
+    require(
+        {
+            "otel-operator-opentelemetry-operator-leader-election",
+            "victoria-metrics-operator",
+        }.issubset(observability_role_authority),
+        "Observability Helm lacks exact leader-election Role authority",
+    )
     victoria_rbac = {
         name
         for rule in victoria_role["rules"]
