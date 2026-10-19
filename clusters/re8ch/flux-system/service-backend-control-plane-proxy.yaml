@@ -7,6 +7,6 @@ type: Opaque
 stringData:
   # This contains only the non-secret in-cluster proxy endpoint. Provider and
   # GitHub credentials remain in their SOPS-managed Secrets.
-  # Source delivery runs on restricted-node-6dc3f140f9. Use its managed egress proxy, which selects
-  # overseas exits rather than relying on unreliable direct GitHub access.
-  address: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
+  # Source delivery runs on R640. Use the proxy's R640 host port so the
+  # source-controller does not need cluster DNS or a cross-node Service path.
+  address: http://10.250.0.128:17891
