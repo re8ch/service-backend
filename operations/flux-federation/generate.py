@@ -36,6 +36,7 @@ EXTERNAL_CLUSTER_AUTHORITY = {
 # Namespaced workload resources Helm needs to inspect even when they are
 # controller-created and therefore absent as top-level objects in the bundle.
 EXTERNAL_NAMESPACED_AUTHORITY = {
+    "agent-runtime": {"apps": {"replicasets"}},
     "observability-metering": {"apps": {"replicasets"}},
     "networking": {
         "apps": {"replicasets"},
@@ -489,6 +490,62 @@ def domain_helm_product_rbac(domain: str, namespace: str) -> list[dict]:
     return result
 
 
+def agent_runtime_scoped_rbac(namespace: str) -> list[dict]:
+    """Grant Agent controllers only the namespaced authority their charts render."""
+    labels = {"gitops.re8ch.com/domain": "agent-runtime"}
+    return [
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role",
+            "metadata": {
+                "name": "flux-agent-runtime-helm-toolhive-leader-election",
+                "namespace": "toolhive-system", "labels": labels,
+            },
+            "rules": [
+                {"apiGroups": [""], "resources": ["configmaps"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+                {"apiGroups": ["coordination.k8s.io"], "resources": ["leases"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+                {"apiGroups": ["events.k8s.io"], "resources": ["events"], "verbs": ["create", "patch"]},
+            ],
+        },
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding",
+            "metadata": {
+                "name": "flux-agent-runtime-helm-toolhive-leader-election",
+                "namespace": "toolhive-system", "labels": labels,
+            },
+            "roleRef": {
+                "apiGroup": "rbac.authorization.k8s.io", "kind": "Role",
+                "name": "flux-agent-runtime-helm-toolhive-leader-election",
+            },
+            "subjects": [{"kind": "ServiceAccount", "name": "helm-controller", "namespace": namespace}],
+        },
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role",
+            "metadata": {
+                "name": "flux-agent-runtime-kustomize-api-conformance",
+                "namespace": "api-conformance-runners", "labels": labels,
+            },
+            "rules": [
+                {"apiGroups": [""], "resources": ["configmaps", "secrets", "pods", "pods/log"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+                {"apiGroups": ["batch"], "resources": ["jobs"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+                {"apiGroups": ["cilium.io"], "resources": ["ciliumnetworkpolicies"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
+                {"apiGroups": ["rbac.authorization.k8s.io"], "resources": ["roles", "rolebindings"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete", "escalate", "bind"]},
+            ],
+        },
+        {
+            "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding",
+            "metadata": {
+                "name": "flux-agent-runtime-kustomize-api-conformance",
+                "namespace": "api-conformance-runners", "labels": labels,
+            },
+            "roleRef": {
+                "apiGroup": "rbac.authorization.k8s.io", "kind": "Role",
+                "name": "flux-agent-runtime-kustomize-api-conformance",
+            },
+            "subjects": [{"kind": "ServiceAccount", "name": "kustomize-controller", "namespace": namespace}],
+        },
+    ]
+
+
 def relocate_flux_objects(documents: list[dict], namespace: str) -> list[dict]:
     """Keep all Flux custom resources in the namespace watched by their controller stack."""
     relocated = []
@@ -544,6 +601,8 @@ def main() -> None:
         controllers.extend(internal_rbac(namespace, domain))
         controllers.extend(application_rbac(domain, namespace, external, resources))
         controllers.extend(domain_helm_product_rbac(domain, namespace))
+        if domain == "agent-runtime":
+            controllers.extend(agent_runtime_scoped_rbac(namespace))
         if domain == "networking":
             controllers.extend(network_helm_product_rbac(namespace))
     dump_documents(args.root / "clusters/re8ch/flux-federation/controllers.yaml", controllers)

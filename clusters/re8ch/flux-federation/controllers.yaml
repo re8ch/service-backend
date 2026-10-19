@@ -738,6 +738,7 @@ rules:
   - apps
   resources:
   - deployments
+  - replicasets
   verbs:
   - get
   - list
@@ -5637,6 +5638,43 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: helm-controller
+  namespace: flux-agent-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-agent-runtime-kustomize-api-conformance
+  namespace: api-conformance-runners
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+rules:
+- apiGroups: [""]
+  resources: [configmaps, secrets, pods, pods/log]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [batch]
+  resources: [jobs]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [cilium.io]
+  resources: [ciliumnetworkpolicies]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [roles, rolebindings]
+  verbs: [get, list, watch, create, update, patch, delete, escalate, bind]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-agent-runtime-kustomize-api-conformance
+  namespace: api-conformance-runners
+  labels:
+    gitops.re8ch.com/domain: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-agent-runtime-kustomize-api-conformance
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
   namespace: flux-agent-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
