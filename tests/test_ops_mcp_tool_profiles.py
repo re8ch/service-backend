@@ -163,6 +163,38 @@ class ToolProfileTests(unittest.TestCase):
         self.assertIsNone(result["placementGroups"]["clean"])
         self.assertFalse(result["metricsFresh"])
 
+    def test_platform_flux_status_separates_frozen_and_conflicting_owners(self):
+        module = load_profile("observe")
+        releases = [
+            {"kind": "HelmRelease", "metadata": {"name": "demo", "namespace": "flux-system", "generation": 2},
+             "spec": {"releaseName": "demo", "targetNamespace": "demo", "storageNamespace": "demo", "suspend": True},
+             "status": {"observedGeneration": 2, "conditions": [{"type": "Ready", "status": "False", "message": "Suspended"}]}},
+            {"kind": "HelmRelease", "metadata": {"name": "demo", "namespace": "flux-agent-system", "generation": 2},
+             "spec": {"releaseName": "demo", "targetNamespace": "demo", "storageNamespace": "demo"},
+             "status": {"observedGeneration": 2, "conditions": [{"type": "Ready", "status": "True"}]}},
+        ]
+        module.kube_request = lambda method, path: {"items": [
+            row for row in releases
+            if path.endswith("/helmreleases") and "/namespaces/%s/" % row["metadata"]["namespace"] in path
+        ]}
+        result = module.platform_flux_status()
+        self.assertEqual(result["summary"]["failed"], 0)
+        self.assertEqual(result["summary"]["frozen"], 1)
+        self.assertEqual(result["summary"]["ownershipConflicts"], 0)
+
+        releases[0]["spec"]["suspend"] = False
+        result = module.platform_flux_status()
+        self.assertEqual(result["summary"]["ownershipConflicts"], 1)
+        self.assertEqual({row["ownerState"] for row in result["resources"]}, {"conflict"})
+
+    def test_platform_status_upstream_failure_is_not_reported_as_zero_healthy(self):
+        module = load_profile("observe")
+        module.urllib.request.urlopen = lambda *_args, **_kwargs: (_ for _ in ()).throw(TimeoutError())
+        result = module._platform_service_status("example", "http://example.invalid/v1/status")
+        self.assertEqual(result["availability"], "unavailable")
+        self.assertNotIn("status", result)
+        self.assertNotIn("url", json.dumps(result).lower())
+
     def test_each_profile_advertises_dex_oidc_scope(self):
         for profile in ("observe", "operate", "admin"):
             for tool in self.tools(profile).values():
