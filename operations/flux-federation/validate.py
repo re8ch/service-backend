@@ -65,6 +65,12 @@ def main() -> None:
             )
             require(env.get("KUBERNETES_SERVICE_PORT", {}).get("value") == "6443",
                     f"controller local API port is not explicit: {metadata}")
+            if metadata["name"] == "source-controller":
+                pod_spec = item["spec"]["template"]["spec"]
+                require(pod_spec.get("dnsPolicy") == "None",
+                        f"source controller still depends on cross-node cluster DNS: {metadata}")
+                require(pod_spec.get("dnsConfig", {}).get("nameservers") == ["1.1.1.1", "8.8.8.8"],
+                        f"source controller DNS fallback is not explicit: {metadata}")
 
     serialized = (FEDERATION / "controllers.yaml").read_text()
     require("cluster-admin" not in serialized, "federated controller references cluster-admin")

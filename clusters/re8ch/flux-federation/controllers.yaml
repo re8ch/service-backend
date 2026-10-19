@@ -222,6 +222,14 @@ spec:
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/hostname: restricted-node-6dc3f140f9
+      dnsConfig:
+        nameservers:
+        - 1.1.1.1
+        - 8.8.8.8
+        options:
+        - name: ndots
+          value: '1'
+      dnsPolicy: None
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -2724,6 +2732,14 @@ spec:
       nodeSelector:
         kubernetes.io/os: linux
         kubernetes.io/hostname: restricted-node-6dc3f140f9
+      dnsConfig:
+        nameservers:
+        - 1.1.1.1
+        - 8.8.8.8
+        options:
+        - name: ndots
+          value: '1'
+      dnsPolicy: None
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337

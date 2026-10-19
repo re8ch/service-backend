@@ -296,6 +296,12 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
             pod_spec = obj["spec"]["template"]["spec"]
             if domain in {"agent-runtime", "observability-metering"}:
                 pod_spec.setdefault("nodeSelector", {})["kubernetes.io/hostname"] = "restricted-node-6dc3f140f9"
+                if name == "source-controller":
+                    pod_spec["dnsPolicy"] = "None"
+                    pod_spec["dnsConfig"] = {
+                        "nameservers": ["1.1.1.1", "8.8.8.8"],
+                        "options": [{"name": "ndots", "value": "1"}],
+                    }
             pod_spec["affinity"] = {
                 "podAntiAffinity": {
                     "preferredDuringSchedulingIgnoredDuringExecution": [{
