@@ -72,6 +72,33 @@ def main() -> None:
         if rule.get("resources") == ["roles"] and set(rule.get("verbs", [])) == {"escalate", "bind"}
     )
     require("api-conformance-controller" in agent_role_authority["resourceNames"], "Agent RBAC omits api-conformance role authority")
+    agent_namespaced_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "ClusterRole" and doc["metadata"]["name"] == "flux-agent-runtime-namespaced"
+    )
+    agent_apps_rule = next(rule for rule in agent_namespaced_role["rules"] if rule.get("apiGroups") == ["apps"])
+    require("replicasets" in agent_apps_rule["resources"],
+            "Agent Helm RBAC omits ReplicaSet inspection authority")
+    agent_runner_role = next(
+        doc for doc in controller_docs
+        if doc["kind"] == "Role"
+        and doc["metadata"]["name"] == "flux-agent-runtime-kustomize-api-conformance"
+    )
+    require(agent_runner_role["metadata"]["namespace"] == "api-conformance-runners",
+            "Agent runner reconciliation authority escaped its namespace")
+    require(
+        any(
+            doc["kind"] == "RoleBinding"
+            and doc["metadata"]["name"] == "flux-agent-runtime-kustomize-api-conformance"
+            and doc["metadata"]["namespace"] == "api-conformance-runners"
+            and doc["subjects"] == [{
+                "kind": "ServiceAccount", "name": "kustomize-controller",
+                "namespace": "flux-agent-system",
+            }]
+            for doc in controller_docs
+        ),
+        "Agent runner authority is not bound to the autonomous kustomize-controller",
+    )
 
     network_namespaced_role = next(
         doc for doc in controller_docs
