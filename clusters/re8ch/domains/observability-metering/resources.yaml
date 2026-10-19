@@ -3097,6 +3097,29 @@ spec:
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
 metadata:
+  name: incidentrelay-pigsty
+  namespace: incidentrelay
+spec:
+  egress:
+  - toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+    toServices:
+    - k8sService:
+        namespace: pigsty-external
+        serviceName: pg-re8ch-primary
+  - toEntities:
+    - host
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+  endpointSelector: {}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
   name: re8ch-grafana-from-gateway
   namespace: observability-system
 spec:
@@ -3682,9 +3705,9 @@ spec:
             nodeSelectorTerms:
             - matchExpressions:
               - key: kubernetes.io/hostname
-                operator: In
+                operator: NotIn
                 values:
-                - vm-20-12-ubuntu
+                - restricted-node-6dc3f140f9
       enabled: true
       extraEnv:
       - name: HTTP_PROXY
@@ -3971,7 +3994,7 @@ spec:
       protocol: TCP
     to:
     - ipBlock:
-        cidr: 192.0.2.253/24
+        cidr: 192.0.2.205/32
   - ports:
     - port: 17891
       protocol: TCP
@@ -4834,26 +4857,9 @@ metadata:
 spec:
   retentionPeriod: 90d
   vminsert:
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-              - restricted-node-1eb0570f74
-              - restricted-node-296f36f2fb
-              - restricted-node-6dc3f140f9
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: vminsert
-            topologyKey: kubernetes.io/hostname
-          weight: 100
-    replicaCount: 2
+    nodeSelector:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
+    replicaCount: 1
     resources:
       limits:
         cpu: "1"
@@ -4861,33 +4867,12 @@ spec:
       requests:
         cpu: 250m
         memory: 256Mi
-    tolerations:
-    - effect: NoSchedule
-      key: node-role.kubernetes.io/control-plane
-      operator: Exists
   vmselect:
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-              - restricted-node-1eb0570f74
-              - restricted-node-296f36f2fb
-              - restricted-node-6dc3f140f9
-      podAntiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-        - podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: vmselect
-            topologyKey: kubernetes.io/hostname
-          weight: 100
     extraArgs:
       dedup.minScrapeInterval: 15s
-    replicaCount: 2
+    nodeSelector:
+      kubernetes.io/hostname: restricted-node-6dc3f140f9
+    replicaCount: 1
     resources:
       limits:
         cpu: "2"
@@ -4895,10 +4880,6 @@ spec:
       requests:
         cpu: 500m
         memory: 1Gi
-    tolerations:
-    - effect: NoSchedule
-      key: node-role.kubernetes.io/control-plane
-      operator: Exists
   vmstorage:
     extraArgs:
       dedup.minScrapeInterval: 15s

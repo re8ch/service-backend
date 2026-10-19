@@ -30,7 +30,7 @@ spec:
         - {protocol: UDP, port: 53}
         - {protocol: TCP, port: 53}
     - to:
-        - ipBlock: {cidr: 192.0.2.253/24}
+        - ipBlock: {cidr: 10.250.0.128/32}
       ports:
         - {protocol: TCP, port: 5432}
     - to:
@@ -38,8 +38,8 @@ spec:
             matchLabels: {kubernetes.io/metadata.name: egress-fabric}
         # The proxy DaemonSet publishes node-address EndpointSlices, so Cilium
         # sees the selected backend as a node CIDR rather than a namespaced Pod.
-        - ipBlock: {cidr: 192.0.2.253/24}
-        - ipBlock: {cidr: 192.0.2.106/16}
+        - ipBlock: {cidr: 10.181.22.0/24}
+        - ipBlock: {cidr: 10.250.0.0/16}
       ports:
         - {protocol: TCP, port: 17891}
     - to:
@@ -59,3 +59,24 @@ spec:
       toPorts:
         - ports:
             - {port: "17891", protocol: TCP}
+---
+# pg-re8ch-primary is selectorless and currently terminates on R640's host
+# identity. Match the Service and the translated host identity without granting
+# database egress to the full node network.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: incidentrelay-pigsty
+  namespace: incidentrelay
+spec:
+  endpointSelector: {}
+  egress:
+    - toServices:
+        - k8sService:
+            serviceName: pg-re8ch-primary
+            namespace: pigsty-external
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
+    - toEntities: [host]
+      toPorts:
+        - ports: [{port: "5432", protocol: TCP}]
