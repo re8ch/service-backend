@@ -9,6 +9,7 @@ resources:
 - oauth-clients-headlamp.yaml
 - oauth-clients-anycam.yaml
 - oauth-clients-access-subscription.yaml
+- oauth-clients-catalog.yaml
 - oauth-clients-tenant-mcp.yaml
 - tenant-runtime-memberships.yaml
 - tenant-runtime-contexts.yaml

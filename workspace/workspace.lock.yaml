@@ -95,7 +95,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/brand-assets.git
   catalog:
-    commit: 6f89b9677850e51418d77589418821e4f5dbd76e
+    commit: 0635a5c50f560abb2c4d18e58225519d93a1e096
     defaultBranch: main
     dependencies:
     - user-hub

@@ -325,7 +325,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "6f89b9677850e51418d77589418821e4f5dbd76e",
+    "commit": "0635a5c50f560abb2c4d18e58225519d93a1e096",
     "id": "catalog",
     "ownership": "owned",
     "projectType": "static-web-application",
