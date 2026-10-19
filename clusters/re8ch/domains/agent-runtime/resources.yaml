@@ -9900,7 +9900,7 @@ metadata:
   namespace: toolhive-system
 spec:
   progressDeadlineSeconds: 180
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: re8ch-plugin-runtime
@@ -9924,12 +9924,6 @@ spec:
                 operator: In
                 values:
                 - core
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: re8ch-plugin-runtime
-            topologyKey: kubernetes.io/hostname
       automountServiceAccountToken: true
       containers:
       - env:
@@ -9974,6 +9968,8 @@ spec:
           readOnly: true
         - mountPath: /tmp
           name: tmp
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       securityContext:
         runAsGroup: 10001
         runAsNonRoot: true
@@ -9998,7 +9994,7 @@ metadata:
   name: toolhive-cloud-ui
   namespace: toolhive-system
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: toolhive-cloud-ui
@@ -10017,12 +10013,6 @@ spec:
                 operator: In
                 values:
                 - core
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: toolhive-cloud-ui
-            topologyKey: kubernetes.io/hostname
       automountServiceAccountToken: false
       containers:
       - env:
@@ -10090,6 +10080,8 @@ spec:
           periodSeconds: 5
       imagePullSecrets:
       - name: ghcr-re8ch
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -12415,18 +12407,23 @@ spec:
                 app.kubernetes.io/name: toolhive-operator
             topologyKey: kubernetes.io/hostname
       env:
+      - name: KUBERNETES_SERVICE_HOST
+        value: 192.0.2.205
+      - name: KUBERNETES_SERVICE_PORT
+        value: "6443"
       - name: TOOLHIVE_SKIP_UPDATE_CHECK
         value: "true"
       features:
         experimental: false
         storageVersionMigrator: false
       image: ghcr.io/stacklok/toolhive/operator@sha256:7998095e6b998d2ae50f93393fa8c969d41a1422457d1775aef81c81dfa24b67
-      nodeSelector: {}
+      nodeSelector:
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       rbac:
         allowedNamespaces:
         - toolhive-system
         scope: namespace
-      replicaCount: 2
+      replicaCount: 1
       resources:
         limits:
           cpu: 500m

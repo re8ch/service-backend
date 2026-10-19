@@ -5,7 +5,7 @@ metadata:
   namespace: toolhive-system
   labels: {app.kubernetes.io/name: re8ch-plugin-runtime, app.kubernetes.io/part-of: toolhive}
 spec:
-  replicas: 2
+  replicas: 1
   progressDeadlineSeconds: 180
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 1, maxSurge: 0}}
   selector: {matchLabels: {app.kubernetes.io/name: re8ch-plugin-runtime}}
@@ -15,6 +15,8 @@ spec:
     spec:
       serviceAccountName: re8ch-plugin-runtime
       automountServiceAccountToken: true
+      nodeSelector:
+        kubernetes.io/hostname: r640
       securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
       affinity:
         nodeAffinity:
@@ -22,10 +24,6 @@ spec:
             nodeSelectorTerms:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {app.kubernetes.io/name: re8ch-plugin-runtime}}
-              topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
           image: registry.re8ch.com/functions-shared/re8ch-plugin-runtime:0.1.2@sha256:0bea8e03f713181d4f497283941d232607c6377f175c7cd1f2ad16613b5d0c54
