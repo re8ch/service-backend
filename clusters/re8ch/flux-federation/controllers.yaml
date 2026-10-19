@@ -5912,6 +5912,25 @@ subjects:
   namespace: flux-observability-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-observability-metering-namespaced
+  namespace: opentelemetry-operator
+  labels:
+    gitops.re8ch.com/domain: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-observability-metering-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: flux-observability-metering-helm-birfucate-metering
