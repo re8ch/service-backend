@@ -312,6 +312,7 @@ func (s *server) handler() http.Handler {
 				return
 			}
 			if errors.Is(err, errIdentityUnavailable) {
+				log.Printf("tenant MCP identity authority unavailable: %v", err)
 				writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
 				return
 			}

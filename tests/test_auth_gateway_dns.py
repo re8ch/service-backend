@@ -48,7 +48,7 @@ def test_session_calls_use_cluster_services_and_other_auth_calls_use_publicedge(
     assert {"api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"}.issubset(set(env["NO_PROXY"].split(",")))
     release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
     api = release["spec"]["values"]["tenantPlatform"]["tenantAPI"]
-    # Platform-admin enrichment must not sit on the ordinary tenant request
-    # path until the shared entitlement endpoint passes live tool calls.
-    assert api["platformSessionURL"] == ""
+    assert api["platformSessionURL"] == (
+        "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session"
+    )
     assert api["organizationsURL"] == "https://api.re8ch.com/auth/v2/organizations"

@@ -175,7 +175,7 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 	controlURL := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/")
 	secret := os.Getenv("TENANT_CLAIM_SERVICE_TOKEN")
 	if controlURL == "" || secret == "" {
-		return identity{}, errIdentityUnavailable
+		return identity{}, fmt.Errorf("%w: tenant authorizer configuration unavailable", errIdentityUnavailable)
 	}
 	payload, _ := json.Marshal(map[string]string{"tenantRef": selected, "accessToken": bearer})
 	resolve, err := http.NewRequestWithContext(ctx, http.MethodPost, controlURL+"/v1/resolve-supabase", strings.NewReader(string(payload)))
@@ -325,11 +325,11 @@ func verifyPlatformSession(ctx context.Context, endpoint, bearer string, claims 
 	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Do(req)
 	if err != nil {
-		return identity{}, errIdentityUnavailable
+		return identity{}, fmt.Errorf("%w: platform session authority request: %v", errIdentityUnavailable, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 500 || resp.StatusCode == 429 {
-		return identity{}, errIdentityUnavailable
+		return identity{}, fmt.Errorf("%w: platform session authority returned HTTP %d", errIdentityUnavailable, resp.StatusCode)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return identity{}, errors.New("session authority rejected bearer")

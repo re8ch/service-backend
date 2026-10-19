@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -60,6 +62,10 @@ func TestSessionAuthorityOutageDoesNotChallengeLogin(t *testing.T) {
 	claims, _ := json.Marshal(map[string]any{"iss": supabaseIssuer, "aud": "authenticated", "sub": "user", "session_id": "session", "exp": time.Now().Add(time.Hour).Unix()})
 	token := "header." + base64.RawURLEncoding.EncodeToString(claims) + ".signature"
 	s := testServer(t)
+	_, err := s.verifySupabase(context.Background(), token)
+	if !errors.Is(err, errIdentityUnavailable) || !strings.Contains(err.Error(), "platform session authority returned HTTP 503") {
+		t.Fatalf("session authority failure lost its safe source: %v", err)
+	}
 	req := httptest.NewRequest("POST", "/mcp", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	response := httptest.NewRecorder()
