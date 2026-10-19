@@ -19,6 +19,7 @@ $configPath = Join-Path $programDirectory 'control-plane-watchdog.json'
 $taskName = $inventory.spec.watchdog.taskName
 $config = [ordered]@{
     nodeName = $NodeName
+    wslNodeName = $node[0].wsl.nodeName
     distribution = $Distribution
     bootGraceSeconds = $inventory.spec.watchdog.bootGraceSeconds
     localWslProbeTimeoutSeconds = $inventory.spec.watchdog.localWslProbeTimeoutSeconds
@@ -85,6 +86,20 @@ if ($PSCmdlet.ShouldProcess($NodeName, 'install RE8CH control-plane host recover
     $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
     $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 4)
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger @($startup, $interval) -Principal $principal -Settings $settings -Force | Out-Null
+
+    # Retire the pre-quorum watchdog. It treated two transient k3s failures as
+    # authority to shut down all of WSL, which can remove an etcd voter while a
+    # peer is already unavailable. The reviewed watchdog above is the only
+    # recovery owner and checks peer quorum before requesting lifecycle work.
+    $legacyTaskName = 'RE8CH WSL Health Watchdog'
+    $legacyTask = Get-ScheduledTask -TaskName $legacyTaskName -ErrorAction SilentlyContinue
+    if ($null -ne $legacyTask) {
+        if ($legacyTask.State -eq 'Running') {
+            Stop-ScheduledTask -TaskName $legacyTaskName
+        }
+        Disable-ScheduledTask -TaskName $legacyTaskName | Out-Null
+        Unregister-ScheduledTask -TaskName $legacyTaskName -Confirm:$false
+    }
 }
 
 Get-ScheduledTask -TaskName $taskName | Select-Object TaskName, State
