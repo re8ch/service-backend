@@ -175,6 +175,16 @@ DOMAIN_HELM_PRODUCT_AUTHORITY = {
         },
     },
     "observability-metering": {
+        "birfucate-metering": {
+            "crds": {
+                "bifurcationpaths.finops.re8ch.com", "clusterconnections.finops.re8ch.com",
+                "clusterregistrations.finops.re8ch.com", "consumables.finops.re8ch.com",
+                "consumptionbindings.finops.re8ch.com", "serviceshards.finops.re8ch.com",
+                "tenantidentitybindings.tenancy.re8ch.com", "tenantnamespaces.tenancy.re8ch.com",
+                "tenantresourceclaims.tenancy.re8ch.com", "tenantserviceinstances.tenancy.re8ch.com",
+                "tenants.finops.re8ch.com", "tenants.tenancy.re8ch.com",
+            },
+        },
         "kube-state-metrics": {
             "clusterroles": {"re8ch-kube-state-metrics"},
             "clusterrolebindings": {"re8ch-kube-state-metrics"},
