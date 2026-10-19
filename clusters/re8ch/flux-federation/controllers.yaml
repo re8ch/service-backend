@@ -3358,6 +3358,31 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  - issuers
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
   - opentelemetry.io
   resources:
   - opentelemetrycollectors
@@ -3425,7 +3450,9 @@ rules:
   - roles
   resourceNames:
   - harbor-supply-chain-credentials
+  - otel-operator-opentelemetry-operator-leader-election
   - retire-legacy-qianwen-grafana
+  - victoria-metrics-operator
   verbs:
   - escalate
   - bind

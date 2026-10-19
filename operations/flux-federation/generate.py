@@ -37,7 +37,11 @@ EXTERNAL_CLUSTER_AUTHORITY = {
 # controller-created and therefore absent as top-level objects in the bundle.
 EXTERNAL_NAMESPACED_AUTHORITY = {
     "agent-runtime": {"apps": {"replicasets"}},
-    "observability-metering": {"apps": {"replicasets"}},
+    "observability-metering": {
+        "apps": {"replicasets"},
+        "cert-manager.io": {"certificates", "issuers"},
+        "coordination.k8s.io": {"leases"},
+    },
     "networking": {
         "apps": {"replicasets"},
         "gateway.networking.k8s.io": {"referencegrants"},
@@ -47,6 +51,10 @@ EXTERNAL_NAMESPACED_AUTHORITY = {
 # Name-scoped escalation/binding for Roles rendered inside product Helm charts.
 # These do not appear as top-level objects in the compiled domain bundle.
 EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
+    "observability-metering": {
+        "otel-operator-opentelemetry-operator-leader-election",
+        "victoria-metrics-operator",
+    },
     "networking": {
         "among-clusters-credential-broker",
         "cilium-bgp-control-plane-secrets",
