@@ -63,6 +63,7 @@ EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
 # top-level objects in the compiled domain bundle. Keep these bindings explicit
 # so a chart cannot expand Network Flux into arbitrary namespaces.
 EXTERNAL_TARGET_NAMESPACES = {
+    "observability-metering": {"observability-ai"},
     "networking": {"cilium-secrets"},
 }
 
@@ -206,10 +207,11 @@ DOMAIN_HELM_PRODUCT_AUTHORITY = {
                 "vtsingles.operator.victoriametrics.com",
             },
             "clusterroles": {
-                "victoria-metrics-operator", "victoria-metrics-operator-victoriametrics-admin",
-                "victoria-metrics-operator-victoriametrics-view",
+                "observability-system-victoria-metrics-operator",
+                "observability-system-victoria-metrics-operator-victoriametrics-admin",
+                "observability-system-victoria-metrics-operator-victoriametrics-view",
             },
-            "clusterrolebindings": {"victoria-metrics-operator"},
+            "clusterrolebindings": {"observability-system-victoria-metrics-operator"},
         },
     },
 }
