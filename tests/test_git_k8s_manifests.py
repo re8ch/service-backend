@@ -94,6 +94,13 @@ def test_live_nodes_receive_optional_mihomos_placement():
         assert "networking.re8ch.com/mihomo-exit" not in labels
 
 
+def test_control_plane_proxy_uses_the_r640_node_local_endpoint():
+    proxy = yaml.safe_load(
+        (ROOT / "clusters/re8ch/flux-system/service-backend-control-plane-proxy.yaml").read_text()
+    )
+    assert proxy["stringData"]["address"] == "http://192.0.2.205:17891"
+
+
 
 def test_retired_kagent_namespace_is_not_referenced_by_active_gitops_resources():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
