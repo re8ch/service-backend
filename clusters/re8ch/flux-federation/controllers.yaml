@@ -171,6 +171,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: agent-runtime
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -298,6 +304,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: agent-runtime
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-kustomize-controller@sha256:4d55c681713596e8ad782a22d43087d744d89d8983cfe210d53efcc4b2c10cf1
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -418,6 +430,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: agent-runtime
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-helm-controller@sha256:3b723f60dccf097d7993b76db84d8ad16cd554b94ee5d24178ccb743a4508c5a
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -559,6 +577,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: agent-runtime
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-notification-controller@sha256:066bf5fb13692ac11bee7445fd4c339c4b0482a098c1e1def4fd63c60d4f5728
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -2645,6 +2669,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: observability-metering
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-source-controller@sha256:c6c82b3182f48b833252c71aefa0741957ca18296612bc6d2b9b5fb276f926e4
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -2772,6 +2802,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: observability-metering
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-kustomize-controller@sha256:4d55c681713596e8ad782a22d43087d744d89d8983cfe210d53efcc4b2c10cf1
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -2892,6 +2928,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: observability-metering
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-helm-controller@sha256:3b723f60dccf097d7993b76db84d8ad16cd554b94ee5d24178ccb743a4508c5a
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -3033,6 +3075,12 @@ spec:
               resource: limits.memory
         - name: CONTROLLER_DOMAIN
           value: observability-metering
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        - name: KUBERNETES_SERVICE_PORT
+          value: '6443'
         image: registry.re8ch.com/functions-shared/flux-notification-controller@sha256:066bf5fb13692ac11bee7445fd4c339c4b0482a098c1e1def4fd63c60d4f5728
         imagePullPolicy: IfNotPresent
         livenessProbe:
