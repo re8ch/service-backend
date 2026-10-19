@@ -1438,6 +1438,8 @@ modules:
       digest: sha256:6dccf91dba59eaba27cffae48d7398cacea2211b88e58bb06cc1e48962994d2d
     - codename: sirocco-opal
       digest: sha256:199774f84268bf8cc24770bae7f8c6ec6a8c9a832cbbbf70afdeb8d06f6911d4
+    - codename: tramontane-opal
+      digest: sha256:144bd443916a63d11e71c5c2c02c36bd8a6c53b5ec9348ea22a9c9114a8b405e
   platform/adapter:
     releases:
     - codename: anchor
