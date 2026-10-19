@@ -323,6 +323,21 @@ def main() -> None:
         }.issubset(observability_role_authority),
         "Observability Helm lacks exact chart-rendered Role authority",
     )
+    expected_birfucate_toolhive_objects = {
+        "mcpexternalauthconfigs": {"admin-vmcp-backend-auth", "tenant-vmcp-backend-auth"},
+        "mcpserverentries": {"admin-api-backend", "tenant-api-backend"},
+    }
+    for resource, names in expected_birfucate_toolhive_objects.items():
+        matching_rules = [
+            rule for rule in observability_namespaced_role["rules"]
+            if rule.get("apiGroups") == ["toolhive.stacklok.dev"]
+            and rule.get("resources") == [resource]
+        ]
+        require(len(matching_rules) == 1, f"Birfucate lacks exact ToolHive {resource} authority")
+        require(set(matching_rules[0].get("resourceNames", [])) == names,
+                f"Birfucate ToolHive {resource} authority is not name-scoped")
+        require(set(matching_rules[0].get("verbs", [])) == {"get", "update", "patch"},
+                f"Birfucate ToolHive {resource} authority has unsafe verbs")
     birfucate_target_namespaces = {
         "ai-operations",
         "artchais",
