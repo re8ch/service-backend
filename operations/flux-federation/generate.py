@@ -96,6 +96,11 @@ EXTERNAL_NAMESPACED_ROLE_AUTHORITY = {
 # top-level objects in the compiled domain bundle. Keep these bindings explicit
 # so a chart cannot expand Network Flux into arbitrary namespaces.
 EXTERNAL_TARGET_NAMESPACES = {
+    # CosyVoice is an adopted ROCm workload whose private voice assets live on
+    # NAS and therefore are intentionally absent from the legacy compiled
+    # service-backend bundle. Agent Flux still needs a namespace-scoped binding
+    # before it can reconcile the authoritative agent-gitops declaration.
+    "agent-runtime": {"cosyvoice"},
     "observability-metering": {
         "ai-operations",
         "artchais",
