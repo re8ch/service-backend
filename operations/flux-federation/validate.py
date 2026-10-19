@@ -195,7 +195,7 @@ def main() -> None:
         for name in rule.get("resourceNames", [])
     }
     require(
-        "observability-system-victoria-metrics-operator" in victoria_rbac,
+        "victoria-metrics-operator" in victoria_rbac,
         "VictoriaMetrics Helm RBAC does not match the rendered release name",
     )
     require(

@@ -5693,6 +5693,26 @@ rules:
   - get
   - update
   - patch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  resourceNames:
+  - otel-operator-opentelemetry-operator-mutation
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  resourceNames:
+  - otel-operator-opentelemetry-operator-validation
+  verbs:
+  - get
+  - update
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -5755,9 +5775,9 @@ rules:
   resources:
   - clusterroles
   resourceNames:
-  - observability-system-victoria-metrics-operator
-  - observability-system-victoria-metrics-operator-victoriametrics-admin
-  - observability-system-victoria-metrics-operator-victoriametrics-view
+  - victoria-metrics-operator
+  - victoria-metrics-operator-victoriametrics-admin
+  - victoria-metrics-operator-victoriametrics-view
   verbs:
   - get
   - update
@@ -5769,7 +5789,17 @@ rules:
   resources:
   - clusterrolebindings
   resourceNames:
-  - observability-system-victoria-metrics-operator
+  - victoria-metrics-operator
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingwebhookconfigurations
+  resourceNames:
+  - victoria-metrics-operator-admission
   verbs:
   - get
   - update
@@ -5833,6 +5863,35 @@ rules:
   - tenants.finops.re8ch.com
   - tenants.tenancy.re8ch.com
   - tenantserviceinstances.tenancy.re8ch.com
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  resourceNames:
+  - birfucate-metering-discovery
+  - tenant-control-controller
+  - tenant-resource-provisioner
+  - tenant-provider-reconciler
+  - tenant-usage-token-reviewer
+  verbs:
+  - get
+  - update
+  - patch
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  resourceNames:
+  - birfucate-metering-discovery
+  - tenant-control-controller
+  - tenant-provider-reconciler
+  - tenant-usage-token-reviewer
   verbs:
   - get
   - update
