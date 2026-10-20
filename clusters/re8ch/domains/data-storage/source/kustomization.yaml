@@ -12,6 +12,7 @@ resources:
 - ../../../components/rook-ceph/releases.yaml
 - ../../../components/cloud-disk
 - ../../../components/rook-ceph/storage-node-labels.yaml
+- ../../../components/rook-ceph/local-storage-classes.yaml
 - ../../../components/rook-ceph/replicated-storage-whitelist-policy.yaml
 - ../../../components/ops/cloudbeaver.yaml
 configMapGenerator:

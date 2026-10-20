@@ -1,55 +1,57 @@
 # RE8CH Ceph storage
 
-This directory defines the production Rook/Ceph cluster across `restricted-node-6dc3f140f9`,
-`restricted-node-1eb0570f74`, and `restricted-node-296f36f2fb`. B1 is the sole Ceph coordinator; A1, B1 and restricted-node-6dc3f140f9
-each retain one explicit OSD. CephFS user data is a single-copy restricted-node-6dc3f140f9 working
-set and must be recoverable from an external backup.
+This directory defines a single-capacity-node Rook/Ceph cluster. B1 is the
+sole Ceph coordinator, R640 is the sole OSD host, and A1/B1 expose only
+node-local storage. All Ceph pools are single-copy R640 working sets and must
+be recoverable from an external backup.
 
 ## Safety boundary
 
 - Rook and Ceph are pinned to v1.20.3 and v20.2.2 respectively.
 - Only explicitly listed devices are eligible. Never enable `useAllDevices`.
-- A1, B1 and restricted-node-6dc3f140f9 each contribute one explicit 200 GiB OSD. restricted-node-6dc3f140f9's dedicated
-  LV was expanded from 20 GiB to 200 GiB after its free extents were verified.
+- Only R640 contributes an OSD. Its dedicated LV is the sole Ceph capacity
+  device; A1/B1 are explicitly ineligible for OSD discovery.
 - `cephfs-r640` is non-default, uses `Retain`, and is the only class for new
   CephFS claims. `cephfs-pilot` and `cephfs-re8ch` are migration-only and
   admission rejects new claims.
-- `storage.re8ch.com/ceph-pilot=true` identifies the three storage failure
-  domains. `storage.re8ch.com/ceph-client=true` independently enables the CSI
+- `storage.re8ch.com/ceph-pilot=true` identifies R640 as the only Ceph capacity
+  domain. `storage.re8ch.com/ceph-client=true` independently enables the CSI
   node client; a client label never authorizes disk discovery or OSD creation.
-- The CephFS metadata pool uses `size: 3`, `min_size: 2`, and host failure
-  domains. Its user-data pool uses the restricted-node-6dc3f140f9 device class with `size: 1`.
+- CephFS metadata and data pools use the R640 device class with `size: 1`.
+  Metadata redundancy is not claimed; loss of R640 makes the filesystem
+  unavailable even if MON/MGR/MDS on B1 remain running.
 - The legacy replicated data pool remains only while existing PVCs migrate. It
   must not be removed by the topology change itself.
-- A1/B1 use dedicated, dynamic 200 GiB VHDX files on their Windows `D:` volumes,
-  attached to WSL as raw disks. The VHDX files must never be placed on restricted-node-6dc3f140f9 NAS.
-- restricted-node-6dc3f140f9 uses a dedicated LVM logical volume from currently free extents. Existing
+- After their OSDs are safely removed, A1/B1 reuse their dedicated VHDX devices
+  as XFS node-local pools. `local-a1` and `local-b1` are static-PV classes with
+  `Retain`; every PV must pin itself to exactly one matching hostname.
+- R640 uses a dedicated LVM logical volume from currently free extents. Existing
   LVs and filesystems are not resized.
 
-## restricted-node-6dc3f140f9 edge topology
+## R640 edge topology
 
-restricted-node-6dc3f140f9 is not a ZeroTier endpoint. The MikroTik at `192.0.2.240` owns the
-`192.0.2.178/24` ZeroTier interface and the public/NAT edge. restricted-node-6dc3f140f9 itself has
-`192.0.2.169` on the LAN plus a dummy `192.0.2.178/32` used as its K3s
-node identity. Do not add a `192.0.2.20/24` route to restricted-node-6dc3f140f9 Linux; its correct
+R640 is not a ZeroTier endpoint. The MikroTik at `192.168.88.1` owns the
+`10.181.22.128/24` ZeroTier interface and the public/NAT edge. R640 itself has
+`192.168.88.251` on the LAN plus a dummy `10.181.22.128/32` used as its K3s
+node identity. Do not add a `10.181.22.0/24` route to R640 Linux; its correct
 return path is the MikroTik default gateway.
 
 Ceph host-network daemons bind the advertised `/32` identity. The edge therefore
 needs both of the following narrowly scoped translations:
 
 - MikroTik DNATs TCP `3300`, `6789`, `6800-7568`, and `9283` received for
-  `192.0.2.178` on `zt-re8ch-control` to `192.0.2.169`.
-- `re8ch-r640-ceph-edge.service` loads `r640-ceph-edge.nft` on restricted-node-6dc3f140f9 and restores
+  `10.181.22.128` on `zt-re8ch-control` to `192.168.88.251`.
+- `re8ch-r640-ceph-edge.service` loads `r640-ceph-edge.nft` on R640 and restores
   the destination from the LAN address to the local `/32` identity. The rule
-  matches only `eno2np1`, the restricted-node-6dc3f140f9 LAN address, and the Ceph port set.
+  matches only `eno2np1`, the R640 LAN address, and the Ceph port set.
 
 Before changing RouterOS, save a RouterOS export and system backup. Add three
-Ceph-only rules named `re8ch restricted-node-6dc3f140f9 ceph zt proxy dnat`, `re8ch restricted-node-6dc3f140f9 ceph zt
-proxy srcnat`, and `re8ch restricted-node-6dc3f140f9 ceph zt proxy forward`; keep the existing K3s
+Ceph-only rules named `re8ch r640 ceph zt proxy dnat`, `re8ch r640 ceph zt
+proxy srcnat`, and `re8ch r640 ceph zt proxy forward`; keep the existing K3s
 rules unchanged. Do not create a broad all-port forward and do not change
 public DNS. The initial installation backup is
 `pre-ceph-edge-20260808-0040` (both RouterOS export and system backup). Install
-the restricted-node-6dc3f140f9 files with:
+the R640 files with:
 
 ```sh
 sudo install -d -m 0755 /etc/rook-ceph
@@ -66,21 +68,22 @@ rollback.
 
 ## Device preparation
 
-On restricted-node-6dc3f140f9, create `/dev/ubuntu-vg/ceph_pilot_osd` with 20 GiB from free VG space.
+On R640, create `/dev/ubuntu-vg/ceph_pilot_osd` with 20 GiB from free VG space.
 On A1 and B1, run `prepare-wsl-ceph-vhd.ps1` as Windows Administrator to create
 `D:\RE8CH-Ceph\ceph-pilot-osd.vhdx` and attach it with
 `wsl --mount --vhd --bare`. Install/enable `rook-ceph-wsl-vhd.service` so the
 disk is attached before K3s after a WSL or Windows restart. Record the resulting
 Linux device and serial before updating `cluster-values.yaml`.
 
-The currently recorded pilot device identities are:
+The device identities retained for retirement and local-pool conversion are:
 
 - A1: `/dev/disk/by-id/scsi-360022480b66b60a8f0c873bb147edef8`
 - B1: `/dev/disk/by-id/scsi-36002248092fe886403f06a91bb13700e`
-- restricted-node-6dc3f140f9: `/dev/ubuntu-vg/ceph_pilot_osd`
+- R640: `/dev/ubuntu-vg/ceph_pilot_osd`
 
-Always confirm the three targets are new and contain no filesystem signature
-before installing Rook.
+Never format the A1/B1 devices until their OSDs are out, safe-to-destroy, and
+removed from the CRUSH map. Formatting is destructive and requires a verified
+external backup plus an exported Ceph inventory.
 
 The obsolete loop-image service is intentionally not part of this pilot. On A1
 and B1 its former unit is disabled, but the old host-side image is retained for
@@ -131,8 +134,8 @@ boundary and promotion gates.
 
 ## Acceptance
 
-1. Exactly one MON, one MGR and one active MDS run on B1; exactly three OSDs
-   are `up` and `in`.
+1. Exactly one MON, one MGR and one active MDS run on B1; only R640 OSD 0 is
+   `up` and `in`.
 2. All PGs are `active+clean` before and after each rollout phase.
 3. `cephfs-r640` exists, is non-default and advertises single-node/backup-required;
    new `cephfs-pilot` and `cephfs-re8ch` claims are denied.
@@ -141,8 +144,9 @@ boundary and promotion gates.
 6. Desired and observed CephFilesystem generations match and no standby MDS
    remains.
 7. CephFS subvolumegroup and subvolume listing complete without timeout.
-8. The legacy replicated data pool is deleted only in a later reviewed cleanup
-   after its consumer count is zero and the rollback window has elapsed.
+8. `local-a1` and `local-b1` have no dynamic provisioner. Every static PV uses
+   `Retain`, declares the correct node affinity, and is consumed only by a
+   workload intentionally bound to that node.
 
 The smoke namespace is disposable, but deleting its retained PV does not erase
 the CephFS subvolume automatically. Perform that cleanup only after explicitly

@@ -1,6 +1,6 @@
 # Rook v1.20.3 pilot settings for the RE8CH K3s v1.36 cluster.
-# All three OSDs use dedicated block devices (VHDX or LV); loop-backed images
-# are deliberately rejected.
+# R640 is the sole OSD host. A1/B1 disks are node-local pools and are never
+# eligible for Rook discovery; loop-backed images are deliberately rejected.
 allowLoopDevices: false
 
 nodeSelector:

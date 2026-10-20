@@ -28,20 +28,28 @@ def test_ceph_daemon_topology_and_pools():
 
     filesystem = values["cephFileSystems"][0]
     fs_spec = filesystem["spec"]
-    assert fs_spec["metadataPool"]["replicated"]["size"] == 3
+    assert fs_spec["metadataPool"]["deviceClass"] == "r640-hdd"
+    assert fs_spec["metadataPool"]["replicated"] == {
+        "size": 1,
+        "requireSafeReplicaSize": False,
+    }
     assert fs_spec["metadataServer"]["activeCount"] == 1
     assert fs_spec["metadataServer"]["activeStandby"] is False
     pools = {pool["name"]: pool for pool in fs_spec["dataPools"]}
-    assert pools["data0"]["replicated"]["size"] == 3
-    assert pools["restricted-node-6dc3f140f9"]["deviceClass"] == "r640-hdd"
-    assert pools["restricted-node-6dc3f140f9"]["replicated"] == {
+    assert pools["data0"]["deviceClass"] == "r640-hdd"
+    assert pools["data0"]["replicated"] == {
+        "size": 1,
+        "requireSafeReplicaSize": False,
+    }
+    assert pools["r640"]["deviceClass"] == "r640-hdd"
+    assert pools["r640"]["replicated"] == {
         "size": 1,
         "requireSafeReplicaSize": False,
     }
     assert filesystem["storageClass"]["name"] == "cephfs-pilot"
     assert filesystem["storageClass"]["labels"] == {
         "storage.re8ch.com/availability-class": "retired",
-        "storage.re8ch.com/replication": "3",
+        "storage.re8ch.com/replication": "1",
     }
     assert filesystem["storageClass"]["annotations"][
         "storage.re8ch.com/deprecated"
@@ -53,29 +61,49 @@ def test_explicit_devices_and_no_discovery():
     assert storage["useAllNodes"] is False
     assert storage["useAllDevices"] is False
     nodes = {node["name"]: node for node in storage["nodes"]}
-    assert set(nodes) == {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"}
+    assert set(nodes) == {"r640"}
     assert all(len(node["devices"]) == 1 for node in nodes.values())
+
+
+def test_a1_b1_are_static_node_local_pools():
+    classes = list(yaml.safe_load_all((ROOK / "local-storage-classes.yaml").read_text()))
+    by_name = {item["metadata"]["name"]: item for item in classes}
+    assert set(by_name) == {"local-a1", "local-b1"}
+    for name, node in (("local-a1", "a1-wsl-zt"), ("local-b1", "b1-wsl-zt")):
+        storage_class = by_name[name]
+        assert storage_class["provisioner"] == "kubernetes.io/no-provisioner"
+        assert storage_class["reclaimPolicy"] == "Retain"
+        assert storage_class["volumeBindingMode"] == "WaitForFirstConsumer"
+        assert storage_class["metadata"]["labels"][
+            "storage.re8ch.com/failure-domain"
+        ] == node
 
 
 def test_b1_is_the_tainted_storage_coordinator():
     nodes = list(yaml.safe_load_all((ROOK / "storage-node-labels.yaml").read_text()))
     by_name = {node["metadata"]["name"]: node for node in nodes}
-    assert by_name["restricted-node-296f36f2fb"]["metadata"]["labels"][
+    assert by_name["b1-wsl-zt"]["metadata"]["labels"][
         "storage.re8ch.com/coordinator"
     ] == "true"
-    assert by_name["restricted-node-296f36f2fb"]["spec"]["taints"] == [
+    assert by_name["b1-wsl-zt"]["spec"]["taints"] == [
         {
             "key": "storage.re8ch.com/coordinator",
             "value": "true",
             "effect": "NoSchedule",
         }
     ]
-    assert "storage.re8ch.com/coordinator" not in by_name["restricted-node-1eb0570f74"][
+    assert "storage.re8ch.com/coordinator" not in by_name["a1-wsl-zt"][
         "metadata"
     ]["labels"]
-    assert "storage.re8ch.com/coordinator" not in by_name["restricted-node-6dc3f140f9"]["metadata"][
+    assert "storage.re8ch.com/coordinator" not in by_name["r640"]["metadata"][
         "labels"
     ]
+    assert by_name["a1-wsl-zt"]["metadata"]["labels"][
+        "scheduling.re8ch.com/capability-storage-ceph-osd"
+    ] == "false"
+    assert by_name["b1-wsl-zt"]["metadata"]["labels"][
+        "scheduling.re8ch.com/capability-storage-ceph-osd"
+    ] == "false"
 
 
 def test_csi_controllers_are_singleton_on_b1_and_node_plugins_tolerate_b1():

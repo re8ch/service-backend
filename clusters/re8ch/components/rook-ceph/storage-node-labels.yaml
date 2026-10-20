@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-6dc3f140f9
+  name: r640
   labels:
     anatomy.re8ch.com/observer-allowed: "true"
     scheduling.re8ch.com/capability-storage-ceph-osd: "true"
@@ -16,11 +16,12 @@ metadata:
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-1eb0570f74
+  name: a1-wsl-zt
   labels:
-    scheduling.re8ch.com/capability-storage-ceph-osd: "true"
-    storage.re8ch.com/ceph-pilot: "true"
-    storage.re8ch.com/role: osd-control-plane
+    scheduling.re8ch.com/capability-storage-ceph-osd: "false"
+    storage.re8ch.com/ceph-pilot: "false"
+    storage.re8ch.com/local-pool: a1
+    storage.re8ch.com/role: local-control-plane
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-control: enabled
@@ -30,12 +31,13 @@ metadata:
 apiVersion: v1
 kind: Node
 metadata:
-  name: restricted-node-296f36f2fb
+  name: b1-wsl-zt
   labels:
-    scheduling.re8ch.com/capability-storage-ceph-osd: "true"
-    storage.re8ch.com/ceph-pilot: "true"
+    scheduling.re8ch.com/capability-storage-ceph-osd: "false"
+    storage.re8ch.com/ceph-pilot: "false"
     storage.re8ch.com/coordinator: "true"
-    storage.re8ch.com/role: coordinator-osd
+    storage.re8ch.com/local-pool: b1
+    storage.re8ch.com/role: coordinator-local
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-control: enabled

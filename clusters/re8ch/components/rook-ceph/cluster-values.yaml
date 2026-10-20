@@ -168,12 +168,6 @@ cephClusterSpec:
       - name: restricted-node-6dc3f140f9
         devices:
           - name: /dev/ubuntu-vg/ceph_pilot_osd
-      - name: restricted-node-1eb0570f74
-        devices:
-          - name: /dev/disk/by-id/scsi-360022480b66b60a8f0c873bb147edef8
-      - name: restricted-node-296f36f2fb
-        devices:
-          - name: /dev/disk/by-id/scsi-36002248092fe886403f06a91bb13700e
   disruptionManagement:
     managePodBudgets: true
     osdMaintenanceTimeout: 30
@@ -231,17 +225,19 @@ cephFileSystems:
     spec:
       metadataPool:
         failureDomain: host
+        deviceClass: r640-hdd
         replicated:
-          size: 3
-          requireSafeReplicaSize: true
+          size: 1
+          requireSafeReplicaSize: false
       dataPools:
         # Retained until every legacy PVC is migrated and the seven-day
         # rollback window has elapsed. A later reviewed cleanup removes it.
         - name: data0
           failureDomain: host
+          deviceClass: r640-hdd
           replicated:
-            size: 3
-            requireSafeReplicaSize: true
+            size: 1
+            requireSafeReplicaSize: false
         - name: restricted-node-6dc3f140f9
           failureDomain: host
           deviceClass: r640-hdd
@@ -278,7 +274,7 @@ cephFileSystems:
       pool: data0
       labels:
         storage.re8ch.com/availability-class: retired
-        storage.re8ch.com/replication: "3"
+        storage.re8ch.com/replication: "1"
       annotations:
         storage.re8ch.com/deprecated: "true"
         storage.re8ch.com/usage-policy: >-
