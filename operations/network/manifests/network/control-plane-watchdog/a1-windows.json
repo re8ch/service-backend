@@ -1,0 +1,13 @@
+{
+  "nodeName": "a1-windows",
+  "wslNodeName": "a1-wsl-zt",
+  "role": "active-server",
+  "serviceName": "k3s.service",
+  "distribution": "Ubuntu-24.04",
+  "bootGraceSeconds": 900,
+  "failureThreshold": 3,
+  "nodeReplyTimeoutSeconds": 600,
+  "hostRebootCooldownSeconds": 21600,
+  "hostRebootDelaySeconds": 600,
+  "lifecycleTaskName": "RE8CH WSL Lifecycle"
+}

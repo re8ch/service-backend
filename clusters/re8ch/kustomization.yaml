@@ -124,7 +124,7 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [restricted-node-1eb0570f74, restricted-node-abb3f27a69]
+                values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector: {}

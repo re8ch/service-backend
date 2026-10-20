@@ -22,10 +22,10 @@ RestartSec=5s
 ExecStartPre=/sbin/modprobe br_netfilter
 ExecStartPre=/sbin/modprobe overlay
 ExecStart=/usr/local/bin/k3s agent \
-  --server https://192.0.2.183:6443 \
+  --server https://192.0.2.220:6443 \
   --token-file /etc/rancher/k3s/agent-token \
   --node-name restricted-node-296f36f2fb \
-  --node-ip 192.0.2.208 \
+  --node-ip 192.0.2.213 \
   --data-dir /var/lib/rancher/k3s-agent-b1-wsl-zt \
   --node-label pigsty.cc/provider=openstack-wsl \
   --node-label pigsty.cc/region=openstack \
@@ -37,4 +37,10 @@ ExecStart=/usr/local/bin/k3s agent \
   --node-label re8ch.com/external-ip-mode=none \
   --node-label re8ch.com/network-level=4 \
   --node-label re8ch.com/public-control=none \
-  --node-label re8ch.com/public-ip=none
+  --node-label re8ch.com/public-ip=none \
+  --node-label scheduling.re8ch.com/node-profile=worker-small \
+  --kubelet-arg max-pods=128 \
+  --kubelet-arg kube-reserved=cpu=2,memory=2Gi,ephemeral-storage=2Gi,pid=2048 \
+  --kubelet-arg system-reserved=cpu=1,memory=2Gi,ephemeral-storage=2Gi,pid=2048 \
+  --kubelet-arg enforce-node-allocatable=pods \
+  --kubelet-arg eviction-hard=memory.available\<2Gi,nodefs.available\<10%,imagefs.available\<15%,pid.available\<10%

@@ -31,13 +31,13 @@ def test_release_consumes_signed_public_advanced_fabrics_chart():
 def test_control_plane_vip_keeps_r640_origin_during_route_repair():
     advanced = release_values()["advancedFabric"]
     api = advanced["controlPlaneApi"]
-    expected = {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69", "restricted-node-6dc3f140f9"}
+    expected = {"a1-wsl-zt", "r640"}
 
     assert advanced["mode"] == "guarded-apply"
     assert advanced["applyEnabled"] is True
     assert advanced["weightedEcmp"]["enabled"] is True
     assert api["enabled"] is True
-    assert api["vip"] == "192.0.2.220/32"
+    assert api["vip"] == "10.250.0.1/32"
     assert api["mode"] == "healthy-ecmp"
     assert set(api["eligibleNodes"]) == expected
     assert set(api["guardedNodes"]) == expected
@@ -56,8 +56,8 @@ def test_control_plane_vip_keeps_r640_origin_during_route_repair():
     for name, interfaces in consumers.items():
         assert operations[name]["wireguardInterfaces"] == interfaces
         assert operations[name]["wireguardAllowedPrefixes"] == [
-            "192.0.2.106/24",
-            "192.0.2.215/24",
+            "10.250.0.0/24",
+            "10.251.0.0/24",
         ]
 
     assert operations["overseas-kl"]["wireguardInterfaces"] == [
@@ -65,7 +65,7 @@ def test_control_plane_vip_keeps_r640_origin_during_route_repair():
         "wg-pt-b1",
     ]
     assert operations["overseas-kl"]["wireguardAllowedPrefixes"] == [
-        "192.0.2.220/32"
+        "10.250.0.1/32"
     ]
 
 
@@ -79,7 +79,7 @@ def test_controller_has_two_lease_fenced_recovery_domains():
     assert controller["replicas"] == 2
     assert controller["pdbMinAvailable"] == 1
     expressions = controller["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-    assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-296f36f2fb", "restricted-node-abb3f27a69"]}]
+    assert expressions == [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["a1-wsl-zt", "r640"]}]
     assert controller["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
 
 
@@ -92,7 +92,7 @@ def test_virtual_ingress_controller_is_ha_and_confined_to_a1_b1():
     assert host_match == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        "values": ["a1-wsl-zt", "b1-wsl-zt"],
     }
     anti = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
     assert anti["topologyKey"] == "kubernetes.io/hostname"

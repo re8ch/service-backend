@@ -1,14 +1,14 @@
-server: https://127.0.0.1:6443
+server: https://10.250.0.1:6443
 token-file: /etc/rancher/k3s/agent-token
-node-name: restricted-node-6dc3f140f9
-node-ip: 192.0.2.205
-node-external-ip: 192.0.2.79
+node-name: r640
+node-ip: 10.250.0.128
+node-external-ip: 223.159.210.222
 node-label:
   - pigsty.cc/workload=pg-re8ch
   - pigsty.cc/node-class=database
   - pigsty.cc/provider=onprem
   - pigsty.cc/region=r640-lan
-  - pigsty.cc/zt-ip=192.0.2.183
+  - pigsty.cc/zt-ip=10.181.22.128
   - re8ch.com/external-ip-mode=mikrotik-proxy
   - re8ch.com/public-ip=none
   - re8ch.com/numa-nodes=2

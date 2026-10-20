@@ -80,4 +80,4 @@ spec:
     matchLabels:
       kubernetes.io/hostname: domain-ex
   defaults:
-    k8s-api-server: https://192.0.2.18:6443
+    k8s-api-server: https://192.0.2.220:6443

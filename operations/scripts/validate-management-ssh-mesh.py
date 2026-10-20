@@ -42,7 +42,7 @@ def main() -> None:
                 raise SystemExit(f"{node['name']} must use the peer WSL recovery path")
             ipaddress.ip_address(path["jumpAddress"])
             ipaddress.ip_address(path["destinationAddress"])
-            peer_name = "restricted-node-296f36f2fb" if node["name"] == "a1-windows" else "restricted-node-1eb0570f74"
+            peer_name = "b1-wsl-zt" if node["name"] == "a1-windows" else "a1-wsl-zt"
             if path["jumpAddress"] != wsl_addresses[peer_name]:
                 raise SystemExit(f"{node['name']} jump address must match the peer WSL node address")
             if path["jumpAddress"] == node["wsl"]["nodeAddress"]:
@@ -51,6 +51,10 @@ def main() -> None:
                 raise SystemExit(f"{node['name']} destination must be a declared SSH address")
             for address in ssh.get("legacyDirectAddresses", []):
                 ipaddress.ip_address(address)
+            expected_role = "active-server" if node["name"] == "a1-windows" else "worker-standby"
+            expected_service = "k3s.service" if node["name"] == "a1-windows" else "k3s-agent.service"
+            if node.get("watchdog") != {"role": expected_role, "serviceName": expected_service}:
+                raise SystemExit(f"{node['name']} must use its reviewed single-control-plane watchdog role")
 
     if len(windows) != 2:
         raise SystemExit("exactly two Windows control-plane hosts are required")
@@ -64,10 +68,6 @@ def main() -> None:
         raise SystemExit("host reboot cooldown must be at least six hours")
     if watchdog["nodeReplyTimeoutSeconds"] < 300:
         raise SystemExit("node reply timeout must allow WSL and k3s to recover")
-    if not watchdog["peerQuorumRequired"]:
-        raise SystemExit("automatic host reboot must require a healthy etcd peer")
-    if watchdog["minimumHealthyPeers"] != 2:
-        raise SystemExit("automatic host reboot must require both other etcd voters")
     if watchdog["priorityDelaySeconds"] < 30:
         raise SystemExit("priority delay must create a meaningful stagger window")
 
@@ -85,14 +85,18 @@ def main() -> None:
     installer = INSTALLER.read_text()
     if "wslNodeName = $node[0].wsl.nodeName" not in installer:
         raise SystemExit("watchdog installer must bind the expected WSL node name from inventory")
+    if "role = $node[0].watchdog.role" not in installer or "serviceName = $node[0].watchdog.serviceName" not in installer:
+        raise SystemExit("watchdog installer must bind the reviewed node role and service")
     if "Unregister-ScheduledTask -TaskName $legacyTaskName" not in installer:
         raise SystemExit("watchdog installer must retire the legacy WSL health watchdog")
     for path in WATCHDOGS:
         watchdog_script = path.read_text()
         if "$heartbeat.nodeName -eq $config.wslNodeName" not in watchdog_script:
             raise SystemExit(f"{path.relative_to(ROOT)} must validate its inventory-bound WSL node name")
-        if "$heartbeat.nodeName -eq 'restricted-node-296f36f2fb'" in watchdog_script:
+        if "$heartbeat.nodeName -eq 'b1-wsl-zt'" in watchdog_script:
             raise SystemExit(f"{path.relative_to(ROOT)} must not hard-code the B1 heartbeat identity")
+        if "$heartbeat.role -eq $config.role" not in watchdog_script:
+            raise SystemExit(f"{path.relative_to(ROOT)} must validate the inventory-bound role")
     print("management SSH mesh inventory validated")
 
 

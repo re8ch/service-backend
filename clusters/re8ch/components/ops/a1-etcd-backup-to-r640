@@ -1,0 +1,54 @@
+#!/bin/sh
+set -eu
+
+: "${RE8CH_BACKUP_REMOTE_HOST:?missing backup host}"
+: "${RE8CH_BACKUP_REMOTE_DIR:?missing backup directory}"
+: "${RE8CH_BACKUP_AGE_RECIPIENT:?missing age recipient}"
+: "${RE8CH_K3S_DATA_DIR:?missing K3s data directory}"
+
+case "$RE8CH_BACKUP_REMOTE_DIR" in
+  /srv/re8ch-backup/k3s/a1) ;;
+  *) echo "refusing unreviewed backup directory" >&2; exit 2 ;;
+esac
+
+snapshot_directory="$RE8CH_K3S_DATA_DIR/server/db/snapshots"
+token_path="$RE8CH_K3S_DATA_DIR/server/token"
+snapshot=$(find "$snapshot_directory" -maxdepth 1 -type f \( -name '*.zip' -o -name 'etcd-snapshot-*' \) ! -name '*.json' | sort | tail -n 1)
+test -n "$snapshot"
+test -r "$snapshot"
+test -r "$token_path"
+
+now=$(date -u +%s)
+modified=$(stat -c %Y "$snapshot")
+if [ $((now - modified)) -gt 7200 ]; then
+  echo "latest etcd snapshot is older than two hours" >&2
+  exit 3
+fi
+
+work_directory=$(mktemp -d /var/tmp/re8ch-etcd-backup.XXXXXX)
+trap 'rm -rf "$work_directory"' EXIT HUP INT TERM
+snapshot_name=$(basename "$snapshot")
+snapshot_sha256=$(sha256sum "$snapshot" | awk '{print $1}')
+created_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+age -r "$RE8CH_BACKUP_AGE_RECIPIENT" -o "$work_directory/$snapshot_name.age" "$snapshot"
+age -r "$RE8CH_BACKUP_AGE_RECIPIENT" -o "$work_directory/server-token-$created_at.age" "$token_path"
+printf '{"createdAt":"%s","snapshot":"%s","sha256":"%s"}\n' \
+  "$created_at" "$snapshot_name" "$snapshot_sha256" > "$work_directory/$snapshot_name.json"
+
+ssh "$RE8CH_BACKUP_REMOTE_HOST" install -d -m 0700 "$RE8CH_BACKUP_REMOTE_DIR/.incoming" "$RE8CH_BACKUP_REMOTE_DIR/archive"
+scp "$work_directory/$snapshot_name.age" "$work_directory/server-token-$created_at.age" \
+  "$work_directory/$snapshot_name.json" "$RE8CH_BACKUP_REMOTE_HOST:$RE8CH_BACKUP_REMOTE_DIR/.incoming/"
+ssh "$RE8CH_BACKUP_REMOTE_HOST" sh -s -- "$RE8CH_BACKUP_REMOTE_DIR" "$snapshot_name" "$created_at" <<'REMOTE'
+set -eu
+directory=$1
+snapshot_name=$2
+created_at=$3
+umask 077
+mv "$directory/.incoming/$snapshot_name.age" "$directory/archive/$snapshot_name.age"
+mv "$directory/.incoming/$snapshot_name.json" "$directory/archive/$snapshot_name.json"
+mv "$directory/.incoming/server-token-$created_at.age" "$directory/archive/server-token-$created_at.age"
+ln -sfn "archive/$snapshot_name.age" "$directory/latest-snapshot.age"
+ln -sfn "archive/$snapshot_name.json" "$directory/latest-snapshot.json"
+ln -sfn "archive/server-token-$created_at.age" "$directory/latest-server-token.age"
+REMOTE

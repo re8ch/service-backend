@@ -1,0 +1,11 @@
+[Unit]
+Description=Copy the latest A1 etcd snapshot to R640 once per hour
+
+[Timer]
+OnCalendar=*-*-* *:12:00
+AccuracySec=2min
+Persistent=false
+Unit=a1-etcd-backup-to-r640.service
+
+[Install]
+WantedBy=timers.target
