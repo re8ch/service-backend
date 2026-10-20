@@ -1,166 +1,160 @@
 {
   "mtu": 1280,
-  "acceleratedPrefix": "192.0.2.106/24",
+  "acceleratedPrefix": "10.250.0.0/24",
   "fabrics": {
     "a1": {
       "interface": "wg-pt-a1",
-      "prefix": "192.0.2.160/24",
+      "prefix": "172.31.93.0/24",
       "port": 51889,
-      "gateway": "restricted-node-1eb0570f74"
+      "gateway": "a1-wsl-zt"
     },
     "b1": {
       "interface": "wg-pt-b1",
-      "prefix": "192.0.2.90/24",
+      "prefix": "172.31.94.0/24",
       "port": 51890,
-      "gateway": "restricted-node-296f36f2fb"
+      "gateway": "b1-wsl-zt"
     }
   },
   "gateways": [
     {
       "id": 147,
-      "name": "restricted-node-1eb0570f74",
-      "ztIp": "192.0.2.18",
-      "podCIDR": "192.0.2.109/24",
+      "name": "a1-wsl-zt",
+      "ztIp": "10.181.22.147",
+      "podCIDR": "10.42.10.0/24",
       "asn": 4200010147,
       "fabric": "a1",
-      "egressIp": "192.0.2.55"
+      "egressIp": "175.12.96.30"
     },
     {
       "id": 125,
-      "name": "restricted-node-296f36f2fb",
-      "ztIp": "192.0.2.208",
-      "podCIDR": "192.0.2.26/24",
+      "name": "b1-wsl-zt",
+      "ztIp": "10.181.22.125",
+      "podCIDR": "10.42.13.0/24",
       "asn": 4200010125,
       "fabric": "b1",
-      "egressIp": "192.0.2.55"
+      "egressIp": "175.12.96.30"
     }
   ],
   "workers": [
     {
       "id": 24,
       "name": "qianwen-prod-nuclio-3",
-      "ztIp": "192.0.2.115",
+      "ztIp": "10.181.22.24",
       "asn": 4200010024
     },
     {
       "id": 38,
       "name": "amdwsl-zt",
-      "ztIp": "192.0.2.249",
+      "ztIp": "10.181.22.38",
       "asn": 4200010038
     },
     {
       "id": 217,
       "name": "qianwen-test-nuclio-2",
-      "ztIp": "192.0.2.91",
+      "ztIp": "10.181.22.217",
       "asn": 4200010217
     }
   ],
-  "controlPlaneRelays": [
-    {
-      "name": "restricted-node-abb3f27a69",
-      "acceleratedIp": "192.0.2.114",
-      "podCIDR": "192.0.2.214/24"
-    }
-  ],
+  "controlPlaneRelays": [],
   "publicNodes": [
     {
       "id": 16,
       "name": "rancher-panel",
-      "ztIp": "192.0.2.79",
-      "publicIp": "192.0.2.67",
+      "ztIp": "10.181.22.16",
+      "publicIp": "1.14.174.244",
       "asn": 4200000016,
       "region": "guangzhou"
     },
     {
       "id": 50,
       "name": "overseas-edge-50",
-      "ztIp": "192.0.2.122",
-      "publicIp": "192.0.2.3",
+      "ztIp": "10.181.22.50",
+      "publicIp": "38.207.168.50",
       "asn": 4200000050,
       "region": "overseas"
     },
     {
       "id": 73,
       "name": "vm-20-12-ubuntu",
-      "ztIp": "192.0.2.67",
-      "publicIp": "192.0.2.99",
+      "ztIp": "10.181.22.73",
+      "publicIp": "42.194.130.91",
       "asn": 4200000073,
       "region": "shanghai"
     },
     {
       "id": 77,
       "name": "artchais-nuclio-1",
-      "ztIp": "192.0.2.143",
-      "publicIp": "192.0.2.231",
+      "ztIp": "10.181.22.77",
+      "publicIp": "101.34.217.95",
       "asn": 4200000077,
       "region": "shanghai"
     },
     {
       "id": 79,
       "name": "qianwen-nuclio-79",
-      "ztIp": "192.0.2.141",
-      "publicIp": "192.0.2.110",
+      "ztIp": "10.181.22.79",
+      "publicIp": "47.103.114.218",
       "asn": 4200000079,
       "region": "shanghai"
     },
     {
       "id": 89,
       "name": "overseas-kl",
-      "ztIp": "192.0.2.50",
-      "publicIp": "192.0.2.27",
-      "podCIDR": "192.0.2.55/24",
+      "ztIp": "10.181.22.89",
+      "publicIp": "198.20.153.89",
+      "podCIDR": "10.42.1.0/24",
       "asn": 4200000089,
       "region": "kuala-lumpur"
     },
     {
       "id": 95,
       "name": "harbor-registry",
-      "ztIp": "192.0.2.203",
-      "publicIp": "192.0.2.210",
+      "ztIp": "10.181.22.95",
+      "publicIp": "8.136.187.255",
       "asn": 4200000095,
       "region": "hangzhou"
     },
     {
       "id": 104,
       "name": "overseas-la",
-      "ztIp": "192.0.2.55",
-      "publicIp": "192.0.2.91",
-      "podCIDR": "192.0.2.15/24",
+      "ztIp": "10.181.22.104",
+      "publicIp": "179.255.126.104",
+      "podCIDR": "10.42.2.0/24",
       "asn": 4200000104,
       "region": "los-angeles"
     },
     {
       "id": 105,
       "name": "overseas-flk",
-      "ztIp": "192.0.2.61",
-      "publicIp": "192.0.2.101",
-      "podCIDR": "192.0.2.254/24",
+      "ztIp": "10.181.22.105",
+      "publicIp": "2.28.106.230",
+      "podCIDR": "10.42.4.0/24",
       "asn": 4200000105,
       "region": "overseas"
     },
     {
       "id": 128,
-      "name": "restricted-node-6dc3f140f9",
-      "ztIp": "192.0.2.183",
-      "publicIp": "192.0.2.79",
-      "podCIDR": "192.0.2.18/24",
+      "name": "r640",
+      "ztIp": "10.181.22.128",
+      "publicIp": "223.159.210.222",
+      "podCIDR": "10.42.6.0/24",
       "asn": 4200000128,
       "region": "r640-lan"
     },
     {
       "id": 186,
       "name": "pg-re8ch-replica-186",
-      "ztIp": "192.0.2.172",
-      "publicIp": "192.0.2.72",
+      "ztIp": "10.181.22.186",
+      "publicIp": "124.220.77.50",
       "asn": 4200000186,
       "region": "unknown"
     },
     {
       "id": 220,
       "name": "overseas-la-2",
-      "ztIp": "192.0.2.25",
-      "publicIp": "192.0.2.38",
-      "podCIDR": "192.0.2.184/24",
+      "ztIp": "10.181.22.220",
+      "publicIp": "179.253.231.159",
+      "podCIDR": "10.42.3.0/24",
       "asn": 4200000220,
       "region": "los-angeles"
     }

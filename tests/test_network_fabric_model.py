@@ -15,7 +15,7 @@ SPEC.loader.exec_module(FABRIC)
 
 def test_all_consumers_match_single_fabric_model():
     rendered = FABRIC.validate(FABRIC.load_model())
-    assert len(rendered) == 16
+    assert len(rendered) == 14
     for relative, expected in rendered.items():
         assert json.loads((ROOT / relative).read_text()) == expected
 
@@ -37,9 +37,9 @@ def test_unreviewed_public_authority_and_mesh_adjacency_are_rejected():
     with pytest.raises(ValueError, match="public Gateway authority"):
         FABRIC.validate(model)
     restricted-node-6dc3f140f9["publicAuthority"]["gatewayVIP"] = "192.0.2.209"
-    mubao = next(node for node in public if node["name"] == "restricted-node-abb3f27a69")
-    mubao["meshPeers"].remove("overseas-flk")
-    with pytest.raises(ValueError, match="cannot dial public spine"):
+    flk = next(node for node in public if node["name"] == "overseas-flk")
+    flk["meshPeers"].append("retired-node")
+    with pytest.raises(ValueError, match="non-reciprocal public mesh edge"):
         FABRIC.validate(model)
 
 
@@ -49,9 +49,7 @@ def test_host_contract_uses_runtime_node_names_and_has_stable_revision():
     assert first == FABRIC.host_contract(copy.deepcopy(model))
     assert "suxunji" in first["nodes"]
     assert "artchais-nuclio-1" not in first["nodes"]
-    assert first["nodes"]["restricted-node-abb3f27a69"]["applyEligible"] is True
-    assert {item["name"] for item in first["nodes"]["restricted-node-abb3f27a69"]["wireguard"]} == {
-        "wg-public-mesh", "wg-cp-mubao", "wg-pt-mubao"}
+    assert "restricted-node-abb3f27a69" not in first["nodes"]
     changed = copy.deepcopy(model)
     changed["hostNetwork"]["rollout"]["verificationTimeoutSeconds"] += 1
     assert FABRIC.host_contract(changed)["modelDigest"] != first["modelDigest"]
@@ -70,15 +68,15 @@ def test_host_contract_rejects_unsafe_activation(mutation, match):
         FABRIC.validate(model)
 
 
-def test_transit_receive_contract_covers_both_routeros_and_linux():
+def test_transit_receive_contract_excludes_retired_mubao():
     outputs = FABRIC.validate(FABRIC.load_model())
     contract = outputs[FABRIC.HOST_CONTRACT]["transitPaths"]
     policy = outputs["operations/network/manifests/network/private-transit/routeros-control-mesh.json"]["podRoutePolicy"]
     router = outputs["clusters/re8ch/components/network/host-network-controller/routeros-transit.json"]
     assert contract["sources"] == policy["transitSources"] == router["sources"]
-    assert {"192.0.2.254/24", "192.0.2.184/24"} <= set(contract["linuxReceivers"]["restricted-node-abb3f27a69"]["transitSources"])
+    assert "restricted-node-abb3f27a69" not in contract["linuxReceivers"]
     assert all(len(path["forward"]) == len(set(path["forward"])) for path in contract["paths"])
-    assert any(path["sourceNode"] == "overseas-flk" and path["destinationNode"] == "restricted-node-abb3f27a69"
+    assert all(path["sourceNode"] != "restricted-node-abb3f27a69" and path["destinationNode"] != "restricted-node-abb3f27a69"
                for path in contract["paths"])
 
 
@@ -90,24 +88,10 @@ def test_transit_duplicate_pod_ownership_rejected():
         FABRIC.transit_contract(model)
 
 
-def test_relay_return_forwarding_is_exact_and_bidirectional():
+def test_retired_relay_has_no_forwarding_allocation():
     outputs = FABRIC.validate(FABRIC.load_model())
-    rules = outputs["clusters/re8ch/components/network/podcidr-fabric/inventory.json"]["transitForwarding"]["restricted-node-6dc3f140f9"]
-    assert {"source": "192.0.2.214/24", "destination": "192.0.2.254/24",
-            "inInterface": "wg-pt-mubao", "outInterface": "wg-pt-b1"} in rules
-    for source in ("192.0.2.114/32", "192.0.2.220/32"):
-        assert {"source": source, "destination": "192.0.2.254/24",
-                "inInterface": "wg-pt-mubao", "outInterface": "wg-pt-b1"} in rules
-    assert {"source": "192.0.2.114/32", "destination": "192.0.2.38/12",
-            "inInterface": "wg-pt-mubao", "outInterface": "wg-pt-a1"} in rules
-    assert {"source": "192.0.2.38/12", "destination": "192.0.2.38/12",
-            "inInterface": "wg-pt-b1", "outInterface": "wg-pt-mubao"} in rules
-    for rule in rules:
-        assert {"source": rule["destination"], "destination": rule["source"],
-                "inInterface": rule["outInterface"], "outInterface": rule["inInterface"]} in rules
-        assert rule["source"].startswith(("10.42.", "10.64.", "10.250."))
-        assert rule["destination"].startswith(("10.42.", "10.64.", "10.250."))
-        assert "eth" not in rule["inInterface"] + rule["outInterface"]
+    forwarding = outputs["clusters/re8ch/components/network/podcidr-fabric/inventory.json"]["transitForwarding"]
+    assert forwarding == {}
 
 
 def test_host_sources_derive_only_declared_identity_and_remote_pod_destinations():
@@ -118,7 +102,7 @@ def test_host_sources_derive_only_declared_identity_and_remote_pod_destinations(
     assert policies["overseas-flk"]["source"] == "192.0.2.109"
     assert policies["overseas-kl"]["source"] == "192.0.2.42"
     assert "192.0.2.55/24" not in policies["overseas-kl"]["destinations"]
-    assert "192.0.2.214/24" in policies["overseas-flk"]["destinations"]
+    assert "192.0.2.214/24" not in policies["overseas-flk"]["destinations"]
     assert "192.0.2.254/24" not in policies["overseas-flk"]["destinations"]
     assert all(p.startswith("10.42.") for p in policies["overseas-flk"]["destinations"])
     assert policies["overseas-flk"]["prefixMatches"] == [

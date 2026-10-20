@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Converge the three WSL PodCIDRs over their existing RouterOS WG links.
+"""Converge the active WSL PodCIDRs over their existing RouterOS WG links.
 
 Run router actions on a control node with RouterOS REST access, and node
 actions locally on each WSL host. The original wg-quick configs are untouched.
@@ -17,9 +17,8 @@ from control_plane_mesh import RouterOS, comments, ensure
 
 
 PODS = {
-    "restricted-node-1eb0570f74": "192.0.2.109/24",
-    "restricted-node-296f36f2fb": "192.0.2.26/24",
-    "restricted-node-abb3f27a69": "192.0.2.214/24",
+    "a1-wsl-zt": "10.42.10.0/24",
+    "b1-wsl-zt": "10.42.13.0/24",
 }
 ROUTE_SUFFIX = " PodCIDR via WireGuard"
 RULE_SUFFIX = " PodCIDR forward "
@@ -30,11 +29,11 @@ def fallback_rule_priorities(pod, base):
 
 def load_inventory(path):
     data = json.loads(pathlib.Path(path).read_text())
-    if data.get("authority") != "RouterOS" or data.get("managementIp") != "192.0.2.131":
+    if data.get("authority") != "RouterOS" or data.get("managementIp") != "192.168.88.1":
         raise ValueError("unexpected RouterOS authority")
     links = {link["node"]: link for link in data["links"]}
     if set(links) != set(PODS):
-        raise ValueError("expected three WSL control nodes")
+        raise ValueError("expected active A1/B1 WSL nodes")
     for name, link in links.items():
         if link.get("podCIDR") != PODS[name]:
             raise ValueError(f"unexpected PodCIDR for {name}")
@@ -67,7 +66,7 @@ def router_stage(router, data, links):
     anchor = filters.get("defconf: fasttrack")
     if not anchor:
         raise RuntimeError("forward firewall anchor changed")
-    # Do not replace unrelated routes; these three exact prefixes are owned here.
+    # Do not replace unrelated routes; these exact prefixes are owned here.
     for name, link in links.items():
         route_name = data["commentPrefix"] + " " + name + ROUTE_SUFFIX
         existing = [row for row in router.rows("/ip/route")
@@ -151,7 +150,7 @@ def node_action(action, node, links, policy):
     for prefix in transit_sources:
         network = ipaddress.ip_network(prefix)
         if not any(network.subnet_of(ipaddress.ip_network(root)) for root in
-                   ("192.0.2.106/24", "192.0.2.224/16")):
+                   ("10.250.0.0/24", "10.42.0.0/16")):
             raise ValueError("transit source outside fabric authority")
     managed_sources = remote_pods + transit_sources
     direct_pairs = {tuple(pair) for pair in policy["directPairs"]}
@@ -171,9 +170,7 @@ def node_action(action, node, links, policy):
     for peer_name, pod in remote:
         direct_priority, fallback_priority = fallback_rule_priorities(pod, int(policy["ruleBase"]))
         if (node, peer_name) not in direct_pairs:
-            # MUBAO's alternative FRR paths currently reach the PodCIDRs
-            # through restricted-node-6dc3f140f9, but their cross-node forwarding is not healthy.
-            # Keep these four verified RouterOS paths until the underlying
+            # Keep the reviewed RouterOS fallback until the underlying direct
             # forwarding and return paths pass the remote DNS probes.
             subprocess.run(("ip", "rule", "del", "pref", str(direct_priority),
                             "to", pod, "lookup", "main", "suppress_prefixlength", "23"),
@@ -293,7 +290,7 @@ def main():
     else:
         if args.node:
             parser.error("--node is only valid for node actions")
-        router = RouterOS(data["managementIp"], "https://192.0.2.114:6443")
+        router = RouterOS(data["managementIp"], "https://10.250.0.29:6443")
         result = (router_stage(router, data, links) if args.action == "stage-router"
                   else router_rollback(router, data, links))
     print(json.dumps(result, sort_keys=True))

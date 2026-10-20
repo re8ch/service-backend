@@ -147,12 +147,13 @@
           "rollout": 7,
           "publicMode": "static",
           "podCIDR": "192.0.2.254/24",
-          "podCIDRPeers": ["restricted-node-6dc3f140f9", "restricted-node-abb3f27a69"],
+          "podCIDRPeers": [
+            "restricted-node-6dc3f140f9"
+          ],
           "meshPeers": [
             "restricted-node-6dc3f140f9",
             "overseas-la-2",
-            "overseas-la",
-            "restricted-node-abb3f27a69"
+            "overseas-la"
           ]
         },
         {
@@ -167,8 +168,7 @@
           "publicMode": "static",
           "meshPeers": [
             "restricted-node-6dc3f140f9",
-            "overseas-flk",
-            "restricted-node-abb3f27a69"
+            "overseas-flk"
           ]
         },
         {
@@ -182,7 +182,9 @@
           "rollout": 10,
           "publicMode": "static",
           "podCIDR": "192.0.2.15/24",
-          "podCIDRPeers": ["restricted-node-6dc3f140f9"],
+          "podCIDRPeers": [
+            "restricted-node-6dc3f140f9"
+          ],
           "apiVipVia": {
             "peer": "restricted-node-6dc3f140f9",
             "prefix": "192.0.2.220/32"
@@ -190,24 +192,6 @@
           "meshPeers": [
             "restricted-node-6dc3f140f9",
             "overseas-flk"
-          ]
-        },
-        {
-          "id": "29",
-          "name": "restricted-node-abb3f27a69",
-          "ztIp": "192.0.2.61",
-          "transportIp": "192.0.2.79",
-          "acceleratedIp": "192.0.2.114",
-          "publicIp": null,
-          "asn": 4200010029,
-          "rollout": 9,
-          "publicMode": "dial-only",
-          "mtu": 1120,
-          "podCIDR": "192.0.2.214/24",
-          "podCIDRPeers": ["overseas-flk"],
-          "meshPeers": [
-            "overseas-flk",
-            "overseas-la-2"
           ]
         }
       ]
@@ -269,13 +253,7 @@
           "asn": 4200010217
         }
       ],
-      "controlPlaneRelays": [
-        {
-          "name": "restricted-node-abb3f27a69",
-          "acceleratedIp": "192.0.2.114",
-          "podCIDR": "192.0.2.214/24"
-        }
-      ],
+      "controlPlaneRelays": [],
       "publicNodes": [
         {
           "id": 16,
@@ -395,16 +373,7 @@
         "restricted-node-296f36f2fb",
         "restricted-node-6dc3f140f9"
       ],
-      "relayNodes": [
-        {
-          "name": "restricted-node-abb3f27a69",
-          "transportIp": "192.0.2.246",
-          "relayIp": "192.0.2.111",
-          "acceleratedIp": "192.0.2.114",
-          "podCIDR": "192.0.2.214/24",
-          "asn": 4200010029
-        }
-      ],
+      "relayNodes": [],
       "routeServers": [
         {
           "name": "restricted-node-1eb0570f74",
@@ -610,9 +579,7 @@
           "peerAddress": "192.0.2.48/32",
           "identity": "192.0.2.173/32",
           "podCIDR": "192.0.2.109/24",
-          "fallbackIdentities": [
-            "192.0.2.114/32"
-          ],
+          "fallbackIdentities": [],
           "probeIdentity": "192.0.2.148/32",
           "asn": 4200010147,
           "peerPublicKey": "RyAp0lPekfg6w17DK7CbI6+YphPMlNhap+6dDMRqPiE=",
@@ -626,30 +593,11 @@
           "peerAddress": "192.0.2.158/32",
           "identity": "192.0.2.213/32",
           "podCIDR": "192.0.2.26/24",
-          "fallbackIdentities": [
-            "192.0.2.114/32"
-          ],
+          "fallbackIdentities": [],
           "probeIdentity": "192.0.2.122/32",
           "asn": 4200010125,
           "peerPublicKey": "jFAsQtg6M+QLqf3KNCzwZMXj7T9X5UBI4trTjLXY2V0=",
           "routerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk="
-        },
-        {
-          "node": "restricted-node-abb3f27a69",
-          "interface": "wg-cp-mubao",
-          "listenPort": 51895,
-          "routerAddress": "192.0.2.25/30",
-          "peerAddress": "192.0.2.183/32",
-          "identity": "192.0.2.114/32",
-          "podCIDR": "192.0.2.214/24",
-          "fallbackIdentities": [
-            "192.0.2.173/32",
-            "192.0.2.213/32"
-          ],
-          "probeIdentity": "192.0.2.6/32",
-          "asn": 4200010029,
-          "peerPublicKey": "mMWc4x4hIEtaG828eTBVhnNr/2EJfgs1PsvIxUU8Zjw=",
-          "routerPublicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
         }
       ]
     },
@@ -913,7 +861,6 @@
         "restricted-node-1eb0570f74"
       ]
     ],
-    "mubaoPodFallback": "RouterOS",
     "publicSpines": [
       "overseas-flk",
       "overseas-la-2"
@@ -925,21 +872,7 @@
       "restricted-node-1eb0570f74",
       "restricted-node-296f36f2fb"
     ],
-    "transitForwarding": [
-      {
-        "node": "restricted-node-6dc3f140f9",
-        "relayNode": "restricted-node-abb3f27a69",
-        "relayInterface": "wg-pt-mubao",
-        "fabricInterfaces": [
-          "wg-pt-a1",
-          "wg-pt-b1"
-        ],
-        "multiPoolCIDR": "192.0.2.38/12",
-        "relayServiceVIPs": [
-          "192.0.2.220/32"
-        ]
-      }
-    ],
+    "transitForwarding": [],
     "hostSourceIdentity": {
       "nodes": [
         "overseas-flk",
@@ -1041,8 +974,7 @@
       "boot": "last-known-good"
     },
     "adoptedNodes": [
-      "overseas-flk",
-      "restricted-node-abb3f27a69"
+      "overseas-flk"
     ],
     "controller": {
       "version": "v1-scoped-canary",
@@ -1069,10 +1001,6 @@
           {
             "ip": "192.0.2.213",
             "port": 6443
-          },
-          {
-            "ip": "192.0.2.114",
-            "port": 6443
           }
         ],
         "egressProxy": "http://192.0.2.205:17891",
@@ -1080,16 +1008,6 @@
         "sourceIdentity": "192.0.2.109"
       }
     },
-    "controlTransitControllers": [
-      {
-        "node": "restricted-node-abb3f27a69",
-        "scope": "control-transit-peer",
-        "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao",
-        "publicReceivePeers": {
-          "overseas-flk": "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
-          "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
-        }
-      }
-    ]
+    "controlTransitControllers": []
   }
 }

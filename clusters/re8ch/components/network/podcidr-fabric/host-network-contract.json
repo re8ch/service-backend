@@ -88,8 +88,7 @@
     "boot": "last-known-good"
   },
   "adoptedNodes": [
-    "overseas-flk",
-    "restricted-node-abb3f27a69"
+    "overseas-flk"
   ],
   "controller": {
     "version": "v1-scoped-canary",
@@ -116,10 +115,6 @@
         {
           "ip": "192.0.2.213",
           "port": 6443
-        },
-        {
-          "ip": "192.0.2.114",
-          "port": 6443
         }
       ],
       "egressProxy": "http://192.0.2.205:17891",
@@ -127,17 +122,7 @@
       "sourceIdentity": "192.0.2.109"
     }
   },
-  "controlTransitControllers": [
-    {
-      "node": "restricted-node-abb3f27a69",
-      "scope": "control-transit-peer",
-      "managementPath": "wg-pt-mubao-independent-of-wg-cp-mubao",
-      "publicReceivePeers": {
-        "overseas-flk": "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
-        "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
-      }
-    }
-  ],
+  "controlTransitControllers": [],
   "nodes": {
     "restricted-node-1eb0570f74": {
       "node": "restricted-node-1eb0570f74",
@@ -470,72 +455,6 @@
         "transactional-host-controller-required"
       ],
       "controlPodRoutePolicy": []
-    },
-    "restricted-node-abb3f27a69": {
-      "node": "restricted-node-abb3f27a69",
-      "identity": "192.0.2.114",
-      "podCIDR": "192.0.2.214/24",
-      "asn": 4200010029,
-      "mode": "canary",
-      "applyEligible": true,
-      "wireguard": [
-        {
-          "name": "wg-public-mesh",
-          "modelSection": "publicMesh",
-          "inventoryName": "restricted-node-abb3f27a69",
-          "transportIp": "192.0.2.79",
-          "mtu": 1120,
-          "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
-          "declaredWriters": [
-            "host-wg-quick",
-            "podcidr-fabric-reconciler"
-          ]
-        },
-        {
-          "name": "wg-cp-mubao",
-          "modelSection": "routerosControlMesh",
-          "declaredWriters": [
-            "host-wg-quick",
-            "re8ch-control-pod-mesh"
-          ]
-        },
-        {
-          "name": "wg-pt-mubao",
-          "modelSection": "podcidrFabric.relayNodes",
-          "declaredWriters": [
-            "host-wg-quick",
-            "podcidr-fabric-reconciler"
-          ]
-        }
-      ],
-      "frr": {
-        "path": "/etc/frr/frr.conf",
-        "replacement": "owned-scopes-only",
-        "modelSections": [
-          "podcidrFabric",
-          "publicMesh",
-          "routerosControlMesh"
-        ],
-        "declaredWriters": [
-          "podcidr-fabric-reconciler",
-          "host-frr-persisted-config"
-        ]
-      },
-      "adoptionBlockers": [
-        "live-writer-audit-required",
-        "transactional-host-controller-required"
-      ],
-      "controlPodRoutePolicy": [
-        [
-          "restricted-node-1eb0570f74",
-          "restricted-node-296f36f2fb"
-        ],
-        [
-          "restricted-node-296f36f2fb",
-          "restricted-node-1eb0570f74"
-        ]
-      ],
-      "adoptedScope": "control-transit-peer"
     },
     "overseas-edge-50": {
       "node": "overseas-edge-50",
@@ -940,14 +859,6 @@
             "host-wg-quick",
             "podcidr-fabric-reconciler"
           ]
-        },
-        {
-          "name": "wg-pt-mubao",
-          "modelSection": "podcidrFabric.relayNodes",
-          "declaredWriters": [
-            "host-wg-quick",
-            "podcidr-fabric-reconciler"
-          ]
         }
       ],
       "frr": {
@@ -1150,7 +1061,7 @@
       "controlPodRoutePolicy": []
     }
   },
-  "modelDigest": "sha256:54d1ec3aaa108cfbb5e2e43c7f45d346ebfda4eb14a99b9085689fc06c7757ba",
+  "modelDigest": "sha256:38c7f407aae44b4e1faf0e1c29ef5dddeac2680adb3f5888c1e62bdea6b05d71",
   "transitPaths": {
     "sources": [
       "192.0.2.29/32",
@@ -1232,50 +1143,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "restricted-node-6dc3f140f9",
-        "sourcePrefixes": [
-          "192.0.2.205/32",
-          "192.0.2.18/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "restricted-node-6dc3f140f9",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "restricted-node-6dc3f140f9",
-        "sourcePrefixes": [
-          "192.0.2.205/32",
-          "192.0.2.18/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "restricted-node-6dc3f140f9",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "amdwsl-zt",
         "sourcePrefixes": [
           "192.0.2.93/32",
@@ -1316,50 +1183,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "amdwsl-zt",
-        "sourcePrefixes": [
-          "192.0.2.93/32",
-          "192.0.2.238/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "amdwsl-zt",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "amdwsl-zt",
-        "sourcePrefixes": [
-          "192.0.2.93/32",
-          "192.0.2.238/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "amdwsl-zt",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -1408,50 +1231,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "overseas-edge-50",
-        "sourcePrefixes": [
-          "192.0.2.225/32",
-          "192.0.2.208/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-edge-50",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-edge-50",
-        "sourcePrefixes": [
-          "192.0.2.225/32",
-          "192.0.2.208/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-edge-50",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "overseas-flk",
         "sourcePrefixes": [
           "192.0.2.109/32",
@@ -1492,50 +1271,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-flk",
-        "sourcePrefixes": [
-          "192.0.2.109/32",
-          "192.0.2.254/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-flk",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-flk",
-        "sourcePrefixes": [
-          "192.0.2.109/32",
-          "192.0.2.254/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-flk",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -1584,50 +1319,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "overseas-kl",
-        "sourcePrefixes": [
-          "192.0.2.42/32",
-          "192.0.2.55/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-kl",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-kl",
-        "sourcePrefixes": [
-          "192.0.2.42/32",
-          "192.0.2.55/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-kl",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "overseas-la",
         "sourcePrefixes": [
           "192.0.2.29/32",
@@ -1668,50 +1359,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-la",
-        "sourcePrefixes": [
-          "192.0.2.29/32",
-          "192.0.2.15/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-la",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-la",
-        "sourcePrefixes": [
-          "192.0.2.29/32",
-          "192.0.2.15/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-la",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -1760,50 +1407,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "overseas-la-2",
-        "sourcePrefixes": [
-          "192.0.2.59/32",
-          "192.0.2.184/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-la-2",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "overseas-la-2",
-        "sourcePrefixes": [
-          "192.0.2.59/32",
-          "192.0.2.184/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "overseas-la-2",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "suxunji",
         "sourcePrefixes": [
           "192.0.2.145/32",
@@ -1844,50 +1447,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "suxunji",
-        "sourcePrefixes": [
-          "192.0.2.145/32",
-          "192.0.2.122/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "suxunji",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "suxunji",
-        "sourcePrefixes": [
-          "192.0.2.145/32",
-          "192.0.2.122/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "suxunji",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -1936,50 +1495,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "muaya-lightweight",
-        "sourcePrefixes": [
-          "192.0.2.24/32",
-          "192.0.2.172/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "muaya-lightweight",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "muaya-lightweight",
-        "sourcePrefixes": [
-          "192.0.2.24/32",
-          "192.0.2.172/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "muaya-lightweight",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "muaya-ecs",
         "sourcePrefixes": [
           "192.0.2.46/32",
@@ -2020,50 +1535,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "muaya-ecs",
-        "sourcePrefixes": [
-          "192.0.2.46/32",
-          "192.0.2.99/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "muaya-ecs",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "muaya-ecs",
-        "sourcePrefixes": [
-          "192.0.2.46/32",
-          "192.0.2.99/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "muaya-ecs",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -2112,50 +1583,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "zan",
-        "sourcePrefixes": [
-          "192.0.2.63/32",
-          "192.0.2.186/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "zan",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "zan",
-        "sourcePrefixes": [
-          "192.0.2.63/32",
-          "192.0.2.186/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "zan",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "domain-ex",
         "sourcePrefixes": [
           "192.0.2.31/32",
@@ -2196,50 +1623,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "domain-ex",
-        "sourcePrefixes": [
-          "192.0.2.31/32",
-          "192.0.2.26/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "domain-ex",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "domain-ex",
-        "sourcePrefixes": [
-          "192.0.2.31/32",
-          "192.0.2.26/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "domain-ex",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -2288,50 +1671,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "qwen-1",
-        "sourcePrefixes": [
-          "192.0.2.29/32",
-          "192.0.2.75/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "qwen-1",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "qwen-1",
-        "sourcePrefixes": [
-          "192.0.2.29/32",
-          "192.0.2.75/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "qwen-1",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "qwen-2",
         "sourcePrefixes": [
           "192.0.2.5/32",
@@ -2372,50 +1711,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "qwen-2",
-        "sourcePrefixes": [
-          "192.0.2.5/32",
-          "192.0.2.8/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "qwen-2",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "qwen-2",
-        "sourcePrefixes": [
-          "192.0.2.5/32",
-          "192.0.2.8/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "qwen-2",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       },
@@ -2464,50 +1759,6 @@
         "eligibility": "bidirectional-host-and-pod-probe"
       },
       {
-        "sourceNode": "qwen-3",
-        "sourcePrefixes": [
-          "192.0.2.16/32",
-          "192.0.2.52/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "qwen-3",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "qwen-3",
-        "sourcePrefixes": [
-          "192.0.2.16/32",
-          "192.0.2.52/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "qwen-3",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
         "sourceNode": "vm-20-12-ubuntu",
         "sourcePrefixes": [
           "192.0.2.114/32",
@@ -2548,50 +1799,6 @@
           "restricted-node-1eb0570f74",
           "RouterOS",
           "restricted-node-296f36f2fb"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "vm-20-12-ubuntu",
-        "sourcePrefixes": [
-          "192.0.2.114/32",
-          "192.0.2.224/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "vm-20-12-ubuntu",
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-1eb0570f74",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "eligibility": "bidirectional-host-and-pod-probe"
-      },
-      {
-        "sourceNode": "vm-20-12-ubuntu",
-        "sourcePrefixes": [
-          "192.0.2.114/32",
-          "192.0.2.224/24"
-        ],
-        "destinationNode": "restricted-node-abb3f27a69",
-        "destinationPrefix": "192.0.2.214/24",
-        "forward": [
-          "vm-20-12-ubuntu",
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
-        ],
-        "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-        "receivers": [
-          "restricted-node-296f36f2fb",
-          "RouterOS",
-          "restricted-node-abb3f27a69"
         ],
         "eligibility": "bidirectional-host-and-pod-probe"
       }
@@ -2638,44 +1845,6 @@
       "restricted-node-296f36f2fb": {
         "interface": "wg-cp-b1",
         "peerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk=",
-        "transitSources": [
-          "192.0.2.29/32",
-          "192.0.2.109/32",
-          "192.0.2.205/32",
-          "192.0.2.63/32",
-          "192.0.2.31/32",
-          "192.0.2.5/32",
-          "192.0.2.59/32",
-          "192.0.2.29/32",
-          "192.0.2.93/32",
-          "192.0.2.16/32",
-          "192.0.2.225/32",
-          "192.0.2.114/32",
-          "192.0.2.145/32",
-          "192.0.2.24/32",
-          "192.0.2.42/32",
-          "192.0.2.46/32",
-          "192.0.2.224/24",
-          "192.0.2.55/24",
-          "192.0.2.208/24",
-          "192.0.2.75/24",
-          "192.0.2.8/24",
-          "192.0.2.122/24",
-          "192.0.2.99/24",
-          "192.0.2.172/24",
-          "192.0.2.15/24",
-          "192.0.2.186/24",
-          "192.0.2.26/24",
-          "192.0.2.184/24",
-          "192.0.2.254/24",
-          "192.0.2.18/24",
-          "192.0.2.238/24",
-          "192.0.2.52/24"
-        ]
-      },
-      "restricted-node-abb3f27a69": {
-        "interface": "wg-cp-mubao",
-        "peerPublicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10=",
         "transitSources": [
           "192.0.2.29/32",
           "192.0.2.109/32",

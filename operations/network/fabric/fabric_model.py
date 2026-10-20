@@ -96,9 +96,6 @@ def host_contract(model):
         if name in {item["name"] for item in fabric["routeServers"]}:
             interfaces.append({"name": "wg-wsl-lan", "modelSection": "podcidrFabric",
                                "declaredWriters": ["host-wg-quick", "podcidr-fabric-reconciler"]})
-        if name in ("restricted-node-abb3f27a69", "restricted-node-6dc3f140f9"):
-            interfaces.append({"name": "wg-pt-mubao", "modelSection": "podcidrFabric.relayNodes",
-                               "declaredWriters": ["host-wg-quick", "podcidr-fabric-reconciler"]})
         interface_names = [item["name"] for item in interfaces]
         if len(interface_names) != len(set(interface_names)):
             raise ValueError(f"duplicate interface scope on {name}")
@@ -378,7 +375,7 @@ def validate(model):
     router = {item["node"]: item for item in model["sections"]["routerosControlMesh"]["links"]}
     policy = by_name(model["sections"]["advfabPolicy"]["targets"])
 
-    for name in ("restricted-node-6dc3f140f9", "overseas-flk", "overseas-la-2", "restricted-node-abb3f27a69"):
+    for name in ("restricted-node-6dc3f140f9", "overseas-flk", "overseas-la-2"):
         if name not in public or name not in pod or name not in private_names:
             raise ValueError(f"missing cross-fabric node {name}")
         identity = public[name].get("acceleratedIp", f'10.250.0.{public[name]["id"]}')
@@ -389,7 +386,7 @@ def validate(model):
             raise ValueError(f"conflicting accelerated identity for {name}")
         if "podCIDR" in private_names[name] and private_names[name]["podCIDR"] != pod[name]["podCIDR"]:
             raise ValueError(f"conflicting PodCIDR for {name}")
-    for name in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69"):
+    for name in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"):
         if router[name]["identity"] != pod[name]["acceleratedIp"] + "/32":
             raise ValueError(f"RouterOS identity mismatch for {name}")
         if router[name]["podCIDR"] != pod[name]["podCIDR"]:
@@ -406,20 +403,14 @@ def validate(model):
     if len(spines) != 2 or len(set(spines)) != 2:
         raise ValueError("two distinct public spines are required")
     for name in spines:
-        if not public[name]["publicIp"] or name not in public["restricted-node-abb3f27a69"]["meshPeers"]:
-            raise ValueError(f"MUBAO cannot dial public spine {name}")
-        if "restricted-node-abb3f27a69" not in public[name]["meshPeers"]:
-            raise ValueError(f"non-reciprocal MUBAO public mesh adjacency {name}")
+        if not public[name]["publicIp"]:
+            raise ValueError(f"public spine has no public endpoint: {name}")
         if policy[name]["address"] != pod[name]["acceleratedIp"]:
             raise ValueError(f"AdvFab target mismatch for {name}")
         if not policy[name].get("directRouteOnGateway"):
             raise ValueError(f"gateway must keep direct route to {name}")
-    if public["restricted-node-abb3f27a69"]["publicIp"] is not None:
-        raise ValueError("MUBAO is dial-only")
     if model["routeIntent"]["ecmpMode"] != "per-flow":
         raise ValueError("public mesh must keep per-flow ECMP")
-    if model["routeIntent"]["mubaoPodFallback"] != "RouterOS":
-        raise ValueError("unverified MUBAO PodCIDR alternative")
     if model["routeIntent"]["controlPodFallbackTable"] != 15425 or model["routeIntent"]["controlPodRuleBase"] != 11450:
         raise ValueError("unreviewed control PodCIDR policy table or priority")
     pairs = {tuple(pair) for pair in model["routeIntent"]["controlPodDirectPairs"]}

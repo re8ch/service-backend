@@ -1,7 +1,7 @@
 {
   "node": "overseas-flk",
   "scope": "public-mesh-peers",
-  "revision": "54d1ec3aaa108cfbb5e2e43c7f45d346ebfda4eb14a99b9085689fc06c7757ba",
+  "revision": "38c7f407aae44b4e1faf0e1c29ef5dddeac2680adb3f5888c1e62bdea6b05d71",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-public-mesh",
@@ -50,10 +50,6 @@
       },
       {
         "ip": "192.0.2.213",
-        "port": 6443
-      },
-      {
-        "ip": "192.0.2.114",
         "port": 6443
       }
     ],
