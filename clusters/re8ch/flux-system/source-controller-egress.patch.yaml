@@ -12,9 +12,9 @@ spec:
     type: Recreate
   template:
     spec:
-      # Use the pod network on the KL/restricted-node-6dc3f140f9 pair. KL reaches GitHub directly;
-      # restricted-node-6dc3f140f9 fallback uses the cluster egress fabric instead of the legacy FLK
-      # SOCKS endpoint. Pod networking also avoids KL's TCP/9090 listener.
+      # Use the pod network on the KL/restricted-node-6dc3f140f9 pair. restricted-node-6dc3f140f9 is preferred because the
+      # source controller must reach the Kubernetes API service VIP while it
+      # serves artifacts. KL remains a fallback after its API route recovers.
       hostNetwork: false
       dnsPolicy: ClusterFirst
       containers:
@@ -39,11 +39,11 @@ spec:
             - weight: 100
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
             - weight: 50
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
