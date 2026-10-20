@@ -15,13 +15,16 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20261003-la-preferred-de-fallback-1"
+SHADOWROCKET_PROFILE_REVISION = "20261020-r640-cn-direct-1"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
-# still recovering. Keep clients on the two independently reachable LA
-# listeners instead of allowing URL-test/fallback groups to flap across stale
-# routes. Re-enable KL only after its host and both protocols pass qualification.
-ACTIVE_PUBLICATION_IDS = frozenset({"direct-la-anytls", "direct-la-hysteria2"})
+# still recovering. Keep the two independently reachable LA listeners and the
+# verified restricted-node-6dc3f140f9 AnyTLS listener published. The restricted-node-6dc3f140f9 listener terminates the
+# mainland connection locally, then delegates destination-aware egress to the
+# node-local smart fabric: CN destinations stay direct and international
+# destinations use a healthy Global provider. Re-enable other candidates only
+# after their host and protocol pass qualification.
+ACTIVE_PUBLICATION_IDS = frozenset({"direct-la-anytls", "direct-la-hysteria2", "direct-cn-anytls"})
 
 # Keep critical mainland cloud consoles deterministic even when an upstream
 # community ruleset is incomplete or temporarily unavailable.
