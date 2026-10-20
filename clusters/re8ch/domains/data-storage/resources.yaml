@@ -1798,6 +1798,7 @@ spec:
     cleanupOnFail: true
   storageNamespace: rook-ceph
   targetNamespace: rook-ceph
+  timeout: 20m
   upgrade:
     cleanupOnFail: true
     disableTakeOwnership: false
