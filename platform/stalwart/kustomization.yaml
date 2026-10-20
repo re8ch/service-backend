@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - stalwart.yaml
+  - flk-migration.yaml
   - idp-pilot.yaml
   - unified-identity.yaml
   - desired-mail-domain.yaml

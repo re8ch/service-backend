@@ -5227,6 +5227,32 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: stalwart-flk-data
+  namespace: mail-system
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: rbd-r640
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stalwart-idp-flk-data
+  namespace: mail-system
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: rbd-r640
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   finalizers:
   - kubernetes.io/pvc-protection
   name: scale-cache
@@ -6697,7 +6723,7 @@ spec:
         - mountPath: /tmp
           name: tmp
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: overseas-flk
       securityContext:
         fsGroup: 1001
         runAsGroup: 1001
@@ -6705,6 +6731,15 @@ spec:
         runAsUser: 1001
         seccompProfile:
           type: RuntimeDefault
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
       volumes:
       - emptyDir: {}
         name: data
@@ -10029,7 +10064,7 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: stalwart
+  name: stalwart-flk
   namespace: mail-system
 spec:
   podManagementPolicy: OrderedReady
@@ -10133,8 +10168,27 @@ spec:
         - name: ndots
           value: "1"
       dnsPolicy: None
+      initContainers:
+      - args:
+        - |
+          until [ -f /var/lib/stalwart/.r640-migration-complete ]; do sleep 5; done
+          test -f /var/lib/stalwart/CURRENT
+        command:
+        - /bin/sh
+        - -ceu
+        image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+        name: wait-for-migration
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /var/lib/stalwart
+          name: data
+          readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: overseas-flk
       securityContext:
         fsGroup: 2000
         runAsGroup: 2000
@@ -10143,12 +10197,24 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       terminationGracePeriodSeconds: 120
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
       volumes:
       - configMap:
           name: stalwart-config
         name: config
       - emptyDir: {}
         name: tmp
+      - name: data
+        persistentVolumeClaim:
+          claimName: stalwart-flk-data
       - name: cloudflare-token
         secret:
           items:
@@ -10168,16 +10234,6 @@ spec:
           secretName: stalwart-idp-oidc-keys
   updateStrategy:
     type: RollingUpdate
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 20Gi
-      storageClassName: rbd-r640
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -10185,7 +10241,7 @@ metadata:
   labels:
     app.kubernetes.io/component: identity-provider
     app.kubernetes.io/name: stalwart-idp
-  name: stalwart-idp
+  name: stalwart-idp-flk
   namespace: mail-system
 spec:
   podManagementPolicy: OrderedReady
@@ -10256,8 +10312,27 @@ spec:
         - mountPath: /var/run/stalwart-idp
           name: oidc-keys
           readOnly: true
+      initContainers:
+      - args:
+        - |
+          until [ -f /var/lib/stalwart-idp/.r640-migration-complete ]; do sleep 5; done
+          test -f /var/lib/stalwart-idp/CURRENT
+        command:
+        - /bin/sh
+        - -ceu
+        image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+        name: wait-for-migration
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /var/lib/stalwart-idp
+          name: data
+          readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: overseas-flk
       securityContext:
         fsGroup: 2000
         runAsGroup: 2000
@@ -10266,27 +10341,29 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       terminationGracePeriodSeconds: 60
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
       volumes:
       - configMap:
           name: stalwart-idp-config
         name: config
       - emptyDir: {}
         name: tmp
+      - name: data
+        persistentVolumeClaim:
+          claimName: stalwart-idp-flk-data
       - name: oidc-keys
         secret:
           secretName: stalwart-idp-oidc-keys
   updateStrategy:
     type: RollingUpdate
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 5Gi
-      storageClassName: rbd-r640
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -10761,7 +10838,7 @@ spec:
               name: app
               readOnly: true
           nodeSelector:
-            kubernetes.io/hostname: restricted-node-6dc3f140f9
+            kubernetes.io/hostname: overseas-flk
           restartPolicy: OnFailure
           securityContext:
             runAsGroup: 65532
@@ -10770,6 +10847,15 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           serviceAccountName: stalwart-cloudflare-token-sync
+          tolerations:
+          - effect: NoSchedule
+            key: dedicated
+            operator: Equal
+            value: overseas-edge
+          - effect: NoSchedule
+            key: scheduling.re8ch.com/capacity-window
+            operator: Equal
+            value: closed
           volumes:
           - configMap:
               name: stalwart-cloudflare-token-sync
@@ -10831,7 +10917,7 @@ spec:
             - mountPath: /cache
               name: cache
           nodeSelector:
-            kubernetes.io/hostname: restricted-node-6dc3f140f9
+            kubernetes.io/hostname: overseas-flk
           restartPolicy: Never
           securityContext:
             runAsGroup: 65532
@@ -10840,6 +10926,15 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           serviceAccountName: stalwart-mailbox-provisioner
+          tolerations:
+          - effect: NoSchedule
+            key: dedicated
+            operator: Equal
+            value: overseas-edge
+          - effect: NoSchedule
+            key: scheduling.re8ch.com/capacity-window
+            operator: Equal
+            value: closed
           volumes:
           - configMap:
               name: stalwart-mailbox-provisioner
@@ -11245,6 +11340,75 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
+  name: stalwart-flk-migration-v1
+  namespace: mail-system
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      containers:
+      - args:
+        - |
+          find /destination -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a /source/. /destination/
+          test -f /destination/CURRENT
+          sync
+          touch /destination/.r640-migration-complete
+        command:
+        - /bin/sh
+        - -ceu
+        image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+        name: copy
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 25m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /source
+          name: source
+          readOnly: true
+        - mountPath: /destination
+          name: destination
+      nodeSelector:
+        kubernetes.io/hostname: overseas-flk
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 2000
+        runAsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
+      volumes:
+      - name: source
+        persistentVolumeClaim:
+          claimName: data-stalwart-0
+          readOnly: true
+      - name: destination
+        persistentVolumeClaim:
+          claimName: stalwart-flk-data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
   name: stalwart-harry-admin-alias-v1
   namespace: mail-system
 spec:
@@ -11380,6 +11544,75 @@ spec:
           reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
         name: cli
   ttlSecondsAfterFinished: 604800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-idp-flk-migration-v1
+  namespace: mail-system
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      containers:
+      - args:
+        - |
+          find /destination -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          cp -a /source/. /destination/
+          test -f /destination/CURRENT
+          sync
+          touch /destination/.r640-migration-complete
+        command:
+        - /bin/sh
+        - -ceu
+        image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+        name: copy
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 25m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /source
+          name: source
+          readOnly: true
+        - mountPath: /destination
+          name: destination
+      nodeSelector:
+        kubernetes.io/hostname: overseas-flk
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 2000
+        runAsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
+      volumes:
+      - name: source
+        persistentVolumeClaim:
+          claimName: data-stalwart-idp-0
+          readOnly: true
+      - name: destination
+        persistentVolumeClaim:
+          claimName: stalwart-idp-flk-data
 ---
 apiVersion: batch/v1
 kind: Job

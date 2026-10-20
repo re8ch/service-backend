@@ -297,7 +297,10 @@ spec:
         spec:
           serviceAccountName: stalwart-mailbox-provisioner
           restartPolicy: Never
-          nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+          nodeSelector: {kubernetes.io/hostname: overseas-flk}
+          tolerations:
+            - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+            - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
           securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
           containers:
             - name: provision
