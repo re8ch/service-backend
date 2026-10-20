@@ -10593,19 +10593,6 @@ data:
         legacyASN: 4200000128
         publicAuthority: true
         inventoryComplete: true
-      - name: restricted-node-abb3f27a69
-        region: cn-hunan
-        uplinkMbps: 100
-        role: leaf
-        class: C
-        failureDomain: mubao
-        provider: local-wsl
-        internalIP: 192.0.2.61
-        podCIDR: 192.0.2.214/24
-        acceleratedIP: 192.0.2.114
-        asn: 4200010029
-        publicAuthority: false
-        inventoryComplete: true
       - name: restricted-node-1eb0570f74
         region: cn-hunan
         uplinkMbps: 200
@@ -10790,7 +10777,7 @@ data:
         monthlyTrafficLimitGiB: 300
         publicAuthority: false
         inventoryComplete: true
-  nodes.json: '{"restricted-node-1eb0570f74":{"capacityMbps":200,"region":"cn-hunan"},"amdwsl-zt":{"capacityMbps":100,"region":"cn-hubei"},"restricted-node-296f36f2fb":{"capacityMbps":200,"region":"cn-hunan"},"domain-ex":{"capacityMbps":3,"region":"cn-shanghai"},"muaya-ecs":{"capacityMbps":3,"region":"cn-hangzhou"},"muaya-lightweight":{"capacityMbps":3,"region":"cn-shanghai"},"restricted-node-abb3f27a69":{"capacityMbps":100,"region":"cn-hunan"},"overseas-flk":{"capacityMbps":400,"region":"de-fsn"},"overseas-kl":{"capacityMbps":1000,"region":"my-kul"},"overseas-la":{"capacityMbps":1000,"region":"us-ca"},"overseas-la-2":{"capacityMbps":1000,"region":"us-ca"},"restricted-node-6dc3f140f9":{"capacityMbps":200,"region":"cn-hunan"},"suxunji":{"capacityMbps":3,"region":"cn-shanghai"},"vm-20-12-ubuntu":{"capacityMbps":3,"region":"cn-guangzhou"},"zan":{"capacityMbps":3,"region":"cn-guangzhou"}}'
+  nodes.json: '{"restricted-node-1eb0570f74":{"capacityMbps":200,"region":"cn-hunan"},"amdwsl-zt":{"capacityMbps":100,"region":"cn-hubei"},"restricted-node-296f36f2fb":{"capacityMbps":200,"region":"cn-hunan"},"domain-ex":{"capacityMbps":3,"region":"cn-shanghai"},"muaya-ecs":{"capacityMbps":3,"region":"cn-hangzhou"},"muaya-lightweight":{"capacityMbps":3,"region":"cn-shanghai"},"overseas-flk":{"capacityMbps":400,"region":"de-fsn"},"overseas-kl":{"capacityMbps":1000,"region":"my-kul"},"overseas-la":{"capacityMbps":1000,"region":"us-ca"},"overseas-la-2":{"capacityMbps":1000,"region":"us-ca"},"restricted-node-6dc3f140f9":{"capacityMbps":200,"region":"cn-hunan"},"suxunji":{"capacityMbps":3,"region":"cn-shanghai"},"vm-20-12-ubuntu":{"capacityMbps":3,"region":"cn-guangzhou"},"zan":{"capacityMbps":3,"region":"cn-guangzhou"}}'
 kind: ConfigMap
 metadata:
   labels:

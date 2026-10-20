@@ -48,16 +48,15 @@ items:
       transport: ssh
       address: 192.0.2.114
       credentialRef: node-ssh
-      capabilities: [k3s-control-plane, etcd]
+      capabilities: [k3s-retired-fenced]
       cluster:
-        membership: active
-        roles: [control-plane, etcd]
-        services: [k3s-server, etcd]
-        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: mubao-windows}
-        taints: [{key: node-role.kubernetes.io/control-plane, value: "true", effect: NoSchedule}]
+        membership: retired
+        roles: []
+        services: []
+        labels: {scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: retired, scheduling.re8ch.com/failure-domain: mubao-windows}
+        taints: []
         parameters: {cpu: 7, memoryKi: 10184560, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: loudi, controlRoute: advfab-relay, externalIPMode: none, networkLevel: 4, uplinkMbps: 100}
-        fabric: {role: leaf, class: C, failureDomain: mubao, provider: local-wsl, internalIP: 192.0.2.61, podCIDR: 192.0.2.214/24, acceleratedIP: 192.0.2.114, asn: 4200010029, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [], profiles: []}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
@@ -72,7 +71,7 @@ items:
         roles: [control-plane, etcd, observe]
         services: [k3s-server, etcd, observability, ceph-mon, ceph-mgr, ceph-mds, ceph-osd, ceph-csi]
         labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: a1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
-        taints: []
+        taints: [{key: node-role.kubernetes.io/control-plane, value: "true", effect: NoSchedule}]
         parameters: {cpu: 8, memoryKi: 12247672, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4, uplinkMbps: 200}
         fabric: {role: spine, class: B, failureDomain: a1, provider: local-wsl, internalIP: 192.0.2.18, podCIDR: 192.0.2.109/24, acceleratedIP: 192.0.2.173, asn: 65101, legacyASN: 4200010147, publicAuthority: false, inventoryComplete: true}
@@ -84,12 +83,12 @@ items:
       transport: ssh
       address: restricted-node-296f36f2fb
       credentialRef: node-ssh
-      capabilities: [k3s-control-plane, etcd]
+      capabilities: [k3s-worker, manual-control-plane-dr]
       cluster:
         membership: active
-        roles: [control-plane, etcd, observe]
-        services: [k3s-server, etcd, observability, ceph-mon, ceph-mds, ceph-osd, ceph-csi]
-        labels: {node-role.kubernetes.io/control-plane: "true", node-role.kubernetes.io/etcd: "true", node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: b1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "true"}
+        roles: [worker, manual-dr-standby, observe]
+        services: [k3s-agent, observability, ceph-mon, ceph-mds, ceph-csi]
+        labels: {node-role.kubernetes.io/observe: "true", scheduling.re8ch.com/provider: wsl, scheduling.re8ch.com/environment: workstation, scheduling.re8ch.com/reliability-class: variable, scheduling.re8ch.com/failure-domain: b1-windows, storage.re8ch.com/ceph-client: "true", storage.re8ch.com/ceph-pilot: "false"}
         taints: []
         parameters: {cpu: 8, memoryKi: 12247680, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.19-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: hunan, controlRoute: zerotier-primary, externalIPMode: none, networkLevel: 4, uplinkMbps: 200}

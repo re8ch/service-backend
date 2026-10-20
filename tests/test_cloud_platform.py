@@ -27,7 +27,7 @@ def test_active_cluster_nodes_have_scheduling_inventory():
     inventory = Inventory([ROOT / "inventory/nodes.yaml"])
     active = [item for item in inventory.targets.values() if item["spec"].get("cluster", {}).get("membership") == "active"]
 
-    assert len(active) == 15
+    assert len(active) == 14
     for item in active:
         cluster = item["spec"]["cluster"]
         assert cluster["roles"]
