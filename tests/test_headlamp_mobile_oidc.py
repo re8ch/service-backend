@@ -107,6 +107,10 @@ def test_gateway_backend_tracks_ready_headlamp_across_nodes():
     ]
     assert deployment["spec"]["replicas"] == 2
     assert deployment["spec"]["template"]["spec"].get("hostNetwork") is None
+    assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {
+        "scheduling.re8ch.com/pool-service-core-r640": "true",
+        "scheduling.re8ch.com/network-serving": "true",
+    }
     assert origin_names == {"headlamp-origin", "headlamp-oidc-origin"}
 
     nginx = config["data"]
@@ -120,7 +124,7 @@ def test_gateway_backend_tracks_ready_headlamp_across_nodes():
     assert container["livenessProbe"]["httpGet"]["path"] == "/livez"
     assert container["resources"]["limits"]["memory"] == "128Mi"
     assert deployment["spec"]["template"]["metadata"]["annotations"] == {
-        "operations.re8ch.com/config-revision": "2026-10-19-upstream-resilience"
+        "operations.re8ch.com/config-revision": "2026-10-21-r640-gateway-anchor"
     }
     assert container["volumeMounts"] == [
         {

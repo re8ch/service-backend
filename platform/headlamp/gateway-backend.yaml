@@ -79,8 +79,16 @@ spec:
       labels:
         app.kubernetes.io/name: headlamp-gateway-proxy
       annotations:
-        operations.re8ch.com/config-revision: "2026-10-19-upstream-resilience"
+        operations.re8ch.com/config-revision: "2026-10-21-r640-gateway-anchor"
     spec:
+      # The public Cilium Gateway is owned by the R640 delivery anchor. Keep
+      # this hop on the same reliable service pool so Headlamp availability
+      # does not depend on a workstation PodCIDR remaining reachable from the
+      # public edge. The active Headlamp origin remains selected independently
+      # and currently runs beside the sole A1 control-plane API.
+      nodeSelector:
+        scheduling.re8ch.com/pool-service-core-r640: "true"
+        scheduling.re8ch.com/network-serving: "true"
       containers:
         - name: proxy
           image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
