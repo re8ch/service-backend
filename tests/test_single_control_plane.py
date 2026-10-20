@@ -42,3 +42,20 @@ def test_advfab_controller_and_b1_data_plane_are_preserved() -> None:
     assert {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}.issubset(operations)
     assert "restricted-node-abb3f27a69" not in operations
     assert values["controlPlaneApi"]["eligibleNodes"] == ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74"]
+
+
+def test_b1_prefers_direct_hnsc_lan_path_without_removing_advfab_relay() -> None:
+    nodes = yaml.safe_load((ROOT / "inventory/platform/governance/nodes.yaml").read_text())["nodes"]
+    by_id = {node["id"]: node for node in nodes}
+    assert by_id["restricted-node-1eb0570f74"]["fabric"]["wslWireGuard"]["apiVipPaths"] == ["local-owner", "advfab-relay"]
+    assert by_id["restricted-node-296f36f2fb"]["fabric"]["wslWireGuard"]["apiVipPaths"] == ["hnsc-host-lan-direct", "advfab-relay"]
+
+    b1_route = (ROOT / "clusters/re8ch/components/ops/b1-wsl-lan-node-source-route.service.d-30-k3s-api-vip.conf").read_text()
+    assert "192.0.2.220/32 dev wg-wsl-lan src 192.0.2.213" in b1_route
+
+
+def test_b1_agent_ignores_server_config_and_has_valid_eviction_args() -> None:
+    text = (ROOT / "clusters/re8ch/components/ops/b1-wsl2-k3s-agent.service").read_text()
+    assert "--config /dev/null" in text
+    assert "memory.available<2Gi" in text
+    assert "memory.available\\<2Gi" not in text
