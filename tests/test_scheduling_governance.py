@@ -58,20 +58,20 @@ def test_controller_releases_are_pinned_and_initially_non_disruptive():
     assert releases["kyverno"]["spec"]["chart"]["spec"]["version"] == "3.9.1"
     kyverno_values = releases["kyverno"]["spec"]["values"]
     assert kyverno_values["global"]["extraEnvVars"] == [
-        {"name": "KUBERNETES_SERVICE_HOST", "value": "192.0.2.220"},
+        {"name": "KUBERNETES_SERVICE_HOST", "value": "10.250.0.1"},
         {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
     ]
     assert kyverno_values["admissionController"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+        "kubernetes.io/hostname": "r640"
     }
     assert kyverno_values["backgroundController"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+        "kubernetes.io/hostname": "r640"
     }
     assert kyverno_values["cleanupController"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+        "kubernetes.io/hostname": "r640"
     }
     assert kyverno_values["reportsController"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+        "kubernetes.io/hostname": "r640"
     }
     kyverno_service_patch = yaml.safe_load(
         releases["kyverno"]["spec"]["postRenderers"][0]["kustomize"]["patches"][0]["patch"]
@@ -240,12 +240,12 @@ def test_advanced_fabric_controller_spans_server_and_api_relay():
     controller = helm_release["spec"]["values"]["advancedFabric"]["controller"]
     assert controller["replicas"] == 2
     expressions = controller["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-    assert expressions[0]["values"] == ["restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"]
+    assert expressions[0]["values"] == ["a1-wsl-zt", "r640"]
     assert controller["pdbMinAvailable"] == 1
     assert not controller.get("nodeSelector")
     affinity = controller["affinity"]
     terms = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
-    assert terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"]}]}]
+    assert terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["a1-wsl-zt", "r640"]}]}]
     spread = affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
     assert spread == [{"labelSelector": {"matchLabels": {"app.kubernetes.io/name": "advanced-fabric-controller"}}, "topologyKey": "kubernetes.io/hostname"}]
 
@@ -343,6 +343,23 @@ def test_penrose_source_changes_roll_the_controller():
     )
     assert kustomization["configMapGenerator"][0]["name"] == "penrose-controller-source"
     assert not kustomization.get("generatorOptions", {}).get("disableNameSuffixHash", False)
+
+
+def test_penrose_controller_runs_on_r640_service_core_pool():
+    deployment = next(
+        item
+        for item in docs(ROOT / "platform/scheduling-fabric/resources/controller.yaml")
+        if item.get("kind") == "Deployment"
+        and item.get("metadata", {}).get("name") == "penrose-controller"
+    )
+    pod_spec = deployment["spec"]["template"]["spec"]
+    assert pod_spec["nodeSelector"] == {
+        "scheduling.re8ch.com/pool-service-core-r640": "true"
+    }
+    assert all(
+        toleration.get("key") != "node-role.kubernetes.io/control-plane"
+        for toleration in pod_spec.get("tolerations", [])
+    )
 
 
 def test_observability_rollouts_do_not_deadlock_on_hard_anti_affinity():
