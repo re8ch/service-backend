@@ -386,6 +386,10 @@ data:
               operator: Equal
               value: closed
               effect: NoSchedule
+            - key: dedicated
+              operator: Equal
+              value: overseas-edge
+              effect: NoSchedule
             - key: storage.re8ch.com/coordinator
               operator: Equal
               value: "true"

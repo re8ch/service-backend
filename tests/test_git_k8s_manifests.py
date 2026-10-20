@@ -439,14 +439,21 @@ def test_stalwart_management_is_internal_and_digest_pinned():
     image = stateful_set["spec"]["template"]["spec"]["containers"][0]["image"]
     assert service["spec"]["type"] == "ClusterIP"
     assert "@sha256:" in image
+    pod_spec = stateful_set["spec"]["template"]["spec"]
+    assert stateful_set["metadata"]["name"] == "stalwart-flk"
+    assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "overseas-flk"}
+    assert pod_spec["volumes"][2]["persistentVolumeClaim"]["claimName"] == "stalwart-flk-data"
 
 
 def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
     stateful_set = next(item for item in resources if item["kind"] == "StatefulSet")
-    assert stateful_set["metadata"]["name"] == "stalwart-idp"
+    assert stateful_set["metadata"]["name"] == "stalwart-idp-flk"
     assert stateful_set["spec"]["replicas"] == 1
-    assert stateful_set["spec"]["volumeClaimTemplates"][0]["metadata"]["name"] == "data"
+    pod_spec = stateful_set["spec"]["template"]["spec"]
+    assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "overseas-flk"}
+    data_volume = next(item for item in pod_spec["volumes"] if item["name"] == "data")
+    assert data_volume["persistentVolumeClaim"]["claimName"] == "stalwart-idp-flk-data"
     container = stateful_set["spec"]["template"]["spec"]["containers"][0]
     assert container["securityContext"]["capabilities"]["add"] == ["NET_BIND_SERVICE"]
     assert {item["name"]: item["value"] for item in container["env"]}["STALWART_PUBLIC_URL"] == (
@@ -833,7 +840,28 @@ def test_stalwart_provisioner_models_shared_groups_and_distribution_lists():
     assert 'admin@phonaid.com' not in script
     cronjob = next(item for item in resources if item["kind"] == "CronJob")
     pod_spec = cronjob["spec"]["jobTemplate"]["spec"]["template"]["spec"]
-    assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "overseas-flk"}
+
+
+def test_stalwart_flk_migration_uses_smaller_claims_and_retains_cold_sources():
+    resources = documents(ROOT / "platform/stalwart/flk-migration.yaml")
+    claims = {item["metadata"]["name"]: item for item in resources if item["kind"] == "PersistentVolumeClaim"}
+    assert claims["stalwart-flk-data"]["spec"]["resources"]["requests"]["storage"] == "2Gi"
+    assert claims["stalwart-idp-flk-data"]["spec"]["resources"]["requests"]["storage"] == "1Gi"
+    jobs = {item["metadata"]["name"]: item for item in resources if item["kind"] == "Job"}
+    assert set(jobs) == {"stalwart-flk-migration-v1", "stalwart-idp-flk-migration-v1"}
+    expected_sources = {
+        "stalwart-flk-migration-v1": "data-stalwart-0",
+        "stalwart-idp-flk-migration-v1": "data-stalwart-idp-0",
+    }
+    for name, job in jobs.items():
+        pod_spec = job["spec"]["template"]["spec"]
+        assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "overseas-flk"}
+        source = next(item for item in pod_spec["volumes"] if item["name"] == "source")
+        assert source["persistentVolumeClaim"] == {
+            "claimName": expected_sources[name],
+            "readOnly": True,
+        }
 
 
 def test_product_admin_mailbox_secret_retirement_is_name_scoped():

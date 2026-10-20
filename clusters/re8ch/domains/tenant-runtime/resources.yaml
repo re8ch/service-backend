@@ -2451,6 +2451,8 @@ spec:
     scheduling:
     - dynamic
     - egress
+    storage:
+    - ceph-client
     trafficQuotaAware: true
   failureDomains:
     host: overseas-flk

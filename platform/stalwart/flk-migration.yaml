@@ -1,0 +1,110 @@
+# One-shot cold copy from the retained restricted-node-6dc3f140f9 claims to smaller claims selected
+# for overseas-flk. The old StatefulSets are pruned in this reconciliation
+# because their replacements have new names. RWO attachment keeps these Jobs
+# Pending until the old pods have fully released their claims. Replacement
+# pods wait for the completion marker before starting Stalwart.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: stalwart-flk-data, namespace: mail-system}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: stalwart-idp-flk-data, namespace: mail-system}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: rbd-r640
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata: {name: stalwart-flk-migration-v1, namespace: mail-system}
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: copy
+          image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+          command: [/bin/sh, -ceu]
+          args:
+            - |
+              find /destination -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+              cp -a /source/. /destination/
+              test -f /destination/CURRENT
+              sync
+              touch /destination/.r640-migration-complete
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: source, mountPath: /source, readOnly: true}
+            - {name: destination, mountPath: /destination}
+      volumes:
+        - name: source
+          persistentVolumeClaim: {claimName: data-stalwart-0, readOnly: true}
+        - name: destination
+          persistentVolumeClaim: {claimName: stalwart-flk-data}
+---
+apiVersion: batch/v1
+kind: Job
+metadata: {name: stalwart-idp-flk-migration-v1, namespace: mail-system}
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        runAsGroup: 2000
+        fsGroup: 2000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: copy
+          image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+          command: [/bin/sh, -ceu]
+          args:
+            - |
+              find /destination -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+              cp -a /source/. /destination/
+              test -f /destination/CURRENT
+              sync
+              touch /destination/.r640-migration-complete
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: source, mountPath: /source, readOnly: true}
+            - {name: destination, mountPath: /destination}
+      volumes:
+        - name: source
+          persistentVolumeClaim: {claimName: data-stalwart-idp-0, readOnly: true}
+        - name: destination
+          persistentVolumeClaim: {claimName: stalwart-idp-flk-data}

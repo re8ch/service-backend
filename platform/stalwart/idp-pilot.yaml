@@ -20,7 +20,7 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: stalwart-idp
+  name: stalwart-idp-flk
   namespace: mail-system
   labels: {app.kubernetes.io/name: stalwart-idp, app.kubernetes.io/component: identity-provider}
 spec:
@@ -35,8 +35,24 @@ spec:
       annotations:
         governance.re8ch.com/identity-stage: github-kubernetes-rbac-pilot
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: wait-for-migration
+          image: alpine:3.23.3@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+          command: [/bin/sh, -ceu]
+          args:
+            - |
+              until [ -f /var/lib/stalwart-idp/.r640-migration-complete ]; do sleep 5; done
+              test -f /var/lib/stalwart-idp/CURRENT
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/stalwart-idp, readOnly: true}
       securityContext:
         runAsNonRoot: true
         runAsUser: 2000
@@ -77,13 +93,9 @@ spec:
       volumes:
         - {name: config, configMap: {name: stalwart-idp-config}}
         - {name: tmp, emptyDir: {}}
+        - name: data
+          persistentVolumeClaim: {claimName: stalwart-idp-flk-data}
         - {name: oidc-keys, secret: {secretName: stalwart-idp-oidc-keys}}
-  volumeClaimTemplates:
-    - metadata: {name: data}
-      spec:
-        accessModes: [ReadWriteOnce]
-        storageClassName: rbd-r640
-        resources: {requests: {storage: 5Gi}}
 ---
 apiVersion: v1
 kind: ConfigMap

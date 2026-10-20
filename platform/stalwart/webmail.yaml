@@ -12,7 +12,10 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: stalwart-webmail, app.kubernetes.io/component: webmail}
     spec:
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
