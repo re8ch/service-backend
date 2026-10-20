@@ -4,8 +4,8 @@ defaults:
   sshUser: re8ch-ai
   authentication: cloud-platform-permanent-jump-key
 nodes:
-  - {id: restricted-node-6dc3f140f9, roles: [worker, pg-re8ch], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
-  - {id: restricted-node-abb3f27a69, roles: [control-plane, etcd], sshTarget: restricted-node-abb3f27a69, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
+  - {id: restricted-node-6dc3f140f9, roles: [worker, pg-re8ch, api-relay], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
+  - {id: restricted-node-abb3f27a69, roles: [worker], sshTarget: restricted-node-abb3f27a69, operationPolicy: control-plane-two-person, managementState: fenced-retired-control-plane, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
   - id: restricted-node-1eb0570f74
     roles: [control-plane, etcd]
     sshTarget: null
@@ -30,8 +30,9 @@ nodes:
       hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
       wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.148/30, peer: restricted-node-296f36f2fb}
       r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 192.0.2.138, hubBackend: 192.0.2.169}
+    watchdog: {role: active-server, serviceName: k3s.service}
   - id: restricted-node-296f36f2fb
-    roles: [control-plane, etcd]
+    roles: [worker, manual-dr-standby]
     sshTarget: restricted-node-296f36f2fb
     operationPolicy: control-plane-two-person
     managementState: cloud-platform-managed
@@ -54,6 +55,7 @@ nodes:
       hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
       wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.12/30, peer: restricted-node-1eb0570f74}
       r640Transit: {interface: wg-pt-b1, port: 51890, hubPublicIp: 192.0.2.138, hubBackend: 192.0.2.169}
+    watchdog: {role: worker-standby, serviceName: k3s-agent.service}
   - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
   - {id: artchais-nuclio-1, roles: [nuclio], sshTarget: artchais, operationPolicy: worker-one-person}
   - {id: harbor-registry, roles: [platform], sshTarget: harbor, operationPolicy: worker-one-person}

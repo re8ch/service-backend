@@ -17,14 +17,14 @@ def selected_hosts(affinity):
     return expression["values"]
 
 
-def test_operator_stays_replicated_on_control_planes_without_r640():
+def test_operator_stays_replicated_on_a1_and_r640():
     deployment, pdb = yaml.safe_load_all(MANIFEST.read_text())
     values = yaml.safe_load(VALUES.read_text())["operator"]
     assert deployment["spec"]["replicas"] == values["replicas"] == 2
     assert selected_hosts(deployment["spec"]["template"]["spec"]["affinity"]) == [
-        "restricted-node-1eb0570f74", "restricted-node-abb3f27a69"
+        "a1-wsl-zt", "r640"
     ]
-    assert selected_hosts(values["affinity"]) == ["restricted-node-1eb0570f74", "restricted-node-abb3f27a69"]
+    assert selected_hosts(values["affinity"]) == ["a1-wsl-zt", "r640"]
     assert pdb["spec"]["minAvailable"] == 1
     assert deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"][
         "requiredDuringSchedulingIgnoredDuringExecution"

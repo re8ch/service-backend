@@ -4,10 +4,11 @@ clusters:
     distribution: k3s
     datastore: embedded-etcd
     transportNetwork: zerotier
-    controlPlaneNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-    backupPolicy: twice-daily-etcd-snapshot
+    controlPlaneNodes: [a1-wsl-zt]
+    warmStandbyNodes: [b1-wsl-zt]
+    backupPolicy: hourly-etcd-snapshot-encrypted-r640-copy
     publicRoutingAuthority: external-dns
     networkGateway:
       asset: mikrotik-rb4011
-      managedThrough: restricted-node-6dc3f140f9
+      managedThrough: r640
       directAiLogin: false

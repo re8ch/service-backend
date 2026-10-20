@@ -1,4 +1,6 @@
-server: https://192.0.2.178:6443
+# DR-only template. B1 normally runs b1-wsl2-k3s-agent.service. Do not start
+# this server config until A1 is fenced and a reviewed snapshot is restored.
+cluster-init: true
 token-file: /etc/rancher/k3s/server-token
 data-dir: /var/lib/rancher/k3s-server-b1-wsl-zt
 node-name: restricted-node-296f36f2fb
@@ -23,9 +25,7 @@ disable:
   - coredns
 embedded-registry: false
 kubelet-arg:
-  # B1 is a 12 GiB embedded-etcd control-plane voter, not a general worker.
-  # Leave room for a rolling ToolHive/ConnecTool cohort without advertising
-  # unbounded kubelet, CNI and API-server watch capacity.
+  # Keep the same reservations during a manual DR promotion.
   - "max-pods=128"
   - "kube-reserved=cpu=2,memory=2Gi,ephemeral-storage=2Gi,pid=2048"
   - "system-reserved=cpu=1,memory=2Gi,ephemeral-storage=2Gi,pid=2048"

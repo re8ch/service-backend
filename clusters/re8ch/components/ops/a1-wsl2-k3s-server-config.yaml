@@ -1,4 +1,4 @@
-server: https://192.0.2.178:6443
+cluster-init: true
 token-file: /etc/rancher/k3s/server-token
 data-dir: /var/lib/rancher/k3s-server-a1-wsl-zt
 node-name: restricted-node-1eb0570f74
@@ -22,6 +22,9 @@ disable:
   - servicelb
   - coredns
 embedded-registry: false
+etcd-snapshot-schedule-cron: "0 * * * *"
+etcd-snapshot-retention: 24
+etcd-snapshot-compress: true
 kubelet-arg:
   # A1 is a 12 GiB embedded-etcd control-plane voter, not a general worker.
   # Leave room for a rolling ToolHive/ConnecTool cohort without advertising

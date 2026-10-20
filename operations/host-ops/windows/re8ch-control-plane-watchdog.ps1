@@ -24,14 +24,6 @@ function Save-WatchdogState($State) {
     Move-Item -LiteralPath $temporaryPath -Destination $statePath -Force
 }
 
-function Test-TcpEndpoint([string] $Address, [int] $Port, [int] $TimeoutMilliseconds = 2000) {
-    $client = [System.Net.Sockets.TcpClient]::new()
-    try {
-        $task = $client.ConnectAsync($Address, $Port)
-        return $task.Wait($TimeoutMilliseconds) -and $client.Connected
-    } catch { return $false } finally { $client.Dispose() }
-}
-
 function Test-LocalWsl {
     # A SYSTEM scheduled task cannot reliably open Administrator's WSL
     # distribution. Read a bounded heartbeat written by that WSL instead.
@@ -43,7 +35,8 @@ function Test-LocalWsl {
         $age = ([DateTimeOffset]::UtcNow - $observed).TotalSeconds
         return $age -ge 0 -and $age -le 180 -and
             $heartbeat.nodeName -eq $config.wslNodeName -and
-            $heartbeat.controlPlaneReady -eq $true
+            $heartbeat.role -eq $config.role -and
+            $heartbeat.serviceReady -eq $true
     } catch {
         return $false
     }
@@ -78,13 +71,6 @@ if ($state.consecutiveFailures -lt [int] $config.failureThreshold) {
     exit 1
 }
 
-$healthyPeers = @($config.peerHealthEndpoints | Where-Object { Test-TcpEndpoint -Address $_.address -Port ([int] $_.port) })
-if ([bool] $config.peerQuorumRequired -and $healthyPeers.Count -lt [int] $config.minimumHealthyPeers) {
-    Save-WatchdogState $state
-    Write-WatchdogLog "action=hold reason=insufficient-healthy-peers healthyPeers=$($healthyPeers.Count) required=$($config.minimumHealthyPeers)"
-    exit 2
-}
-
 if (-not $state.PSObject.Properties['wslRecoveryRequestedAt'] -or -not $state.wslRecoveryRequestedAt) {
     $state | Add-Member -NotePropertyName wslRecoveryRequestedAt -NotePropertyValue (Get-Date).ToString('o') -Force
     $state.consecutiveFailures = 0
@@ -112,7 +98,7 @@ if ($secondsSinceLastRequest -lt [int] $config.hostRebootCooldownSeconds) {
 
 $state.lastHostRebootRequest = (Get-Date).ToString('o')
 Save-WatchdogState $state
-Write-WatchdogLog "action=host-reboot healthyPeers=$($healthyPeers.Count)"
+Write-WatchdogLog "action=host-reboot role=$($config.role) service=$($config.serviceName)"
 & "$env:SystemRoot\System32\shutdown.exe" /r /f /t 0 /d p:4:1 /c 'RE8CH control-plane node did not recover after WSL lifecycle restart'
 if ($LASTEXITCODE -ne 0) {
     Write-WatchdogLog "action=host-reboot-failed exitCode=$LASTEXITCODE"

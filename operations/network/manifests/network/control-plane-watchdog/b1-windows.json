@@ -1,22 +1,13 @@
 {
   "nodeName": "b1-windows",
+  "wslNodeName": "b1-wsl-zt",
+  "role": "worker-standby",
+  "serviceName": "k3s-agent.service",
   "distribution": "Ubuntu-24.04",
   "bootGraceSeconds": 900,
   "failureThreshold": 3,
   "nodeReplyTimeoutSeconds": 600,
   "hostRebootCooldownSeconds": 21600,
-  "peerQuorumRequired": true,
-  "minimumHealthyPeers": 2,
   "hostRebootDelaySeconds": 1200,
-  "lifecycleTaskName": "RE8CH WSL Lifecycle",
-  "peerHealthEndpoints": [
-    {
-      "address": "192.0.2.246",
-      "port": 22
-    },
-    {
-      "address": "192.0.2.138",
-      "port": 443
-    }
-  ]
+  "lifecycleTaskName": "RE8CH WSL Lifecycle"
 }

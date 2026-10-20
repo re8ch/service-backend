@@ -1,21 +1,22 @@
-# B1 Windows host recovery gate
+# A1 active-server and B1 worker-standby recovery gates
 
-`b1-windows.json` is the reviewed, nonsecret configuration installed at
+`a1-windows.json` and `b1-windows.json` are the reviewed, nonsecret
+configurations installed at
 `C:\ProgramData\RE8CH\control-plane-watchdog.json`. The task runs as SYSTEM
 every five minutes and reads the WSL heartbeat written by
-`re8ch-control-plane-heartbeat.timer`. A heartbeat is published when B1's
-k3s and SSH services are active; the host accepts it for 180 seconds.
+`re8ch-control-plane-heartbeat.timer`. A1 publishes health for `k3s.service`;
+B1 publishes health for `k3s-agent.service`. The environment file binds each
+installation to its reviewed node name, role, service and ZeroTier identity.
+The host accepts a matching heartbeat for 180 seconds.
 ZeroTier readiness is included as a diagnostic field but is not a host reboot
 gate: loss of a management overlay must not reboot a functioning control plane.
 This also avoids calling Administrator-owned WSL from SYSTEM.
 
-After three unhealthy checks, host recovery requires both independent
-signals: A1 Windows SSH on the `192.0.2.173/24` LAN and HTTPS at the
-RouterOS-owned public Gateway. Neither endpoint is restricted-node-6dc3f140f9's K3s API. These
-signals were tested from B1 Windows on 2026-10-03. They fence a host reboot;
-they do not claim that two etcd members are healthy. WSL lifecycle recovery
-is requested first, then the host watchdog waits another 600 + 1200 seconds
-before rebooting. A six-hour host reboot cooldown remains in force.
+After three unhealthy checks, WSL lifecycle recovery is requested first. The
+watchdog waits the role-specific stagger before rebooting and retains the
+six-hour host reboot cooldown. No peer is treated as quorum evidence: A1 is
+the sole etcd member, and B1 is a worker whose watchdog is not authorized to
+start or promote a K3s server.
 
 Install the JSON and PowerShell script from
 `operations/network/scripts/control-plane-watchdog/` together. Preserve the

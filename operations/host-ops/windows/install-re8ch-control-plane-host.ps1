@@ -26,14 +26,10 @@ $config = [ordered]@{
     failureThreshold = $inventory.spec.watchdog.failureThreshold
     nodeReplyTimeoutSeconds = $inventory.spec.watchdog.nodeReplyTimeoutSeconds
     hostRebootCooldownSeconds = $inventory.spec.watchdog.hostRebootCooldownSeconds
-    peerQuorumRequired = $inventory.spec.watchdog.peerQuorumRequired
-    minimumHealthyPeers = $inventory.spec.watchdog.minimumHealthyPeers
+    role = $node[0].watchdog.role
+    serviceName = $node[0].watchdog.serviceName
     hostRebootDelaySeconds = [int] $node[0].peerPriority * [int] $inventory.spec.watchdog.priorityDelaySeconds
     lifecycleTaskName = $inventory.spec.watchdog.lifecycleTaskName
-    peerHealthEndpoints = @(
-        [ordered]@{address = $peer[0].wsl.nodeAddress; port = 6443},
-        [ordered]@{address = '192.0.2.169'; port = 6443}
-    )
 }
 
 if ($PSCmdlet.ShouldProcess($NodeName, 'install RE8CH control-plane host recovery')) {
@@ -56,7 +52,7 @@ if ($PSCmdlet.ShouldProcess($NodeName, 'install RE8CH control-plane host recover
         ('autoMemoryReclaim={0}' -f $node[0].wsl.autoMemoryReclaim)
     ) | Set-Content -LiteralPath $wslConfigPath -Encoding ascii
     if (-not (Get-Service -Name sshd -ErrorAction SilentlyContinue)) {
-        $capability = Get-WindowsCapability -Online -Name 'OpenSSH.Server~~~~192.0.2.138'
+        $capability = Get-WindowsCapability -Online -Name 'OpenSSH.Server~~~~0.0.1.0'
         if ($capability.State -ne 'Installed') {
             Add-WindowsCapability -Online -Name $capability.Name | Out-Null
         }

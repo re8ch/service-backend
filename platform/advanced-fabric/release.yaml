@@ -139,8 +139,8 @@ spec:
         vip: 192.0.2.116/32
         port: 6443
         mode: healthy-ecmp
-        eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
-        guardedNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69]
+        eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74]
+        guardedNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74]
         nodeOperations:
           - name: restricted-node-6dc3f140f9
             localAsn: 4200000128
@@ -285,12 +285,12 @@ spec:
       weightedEcmp:
         enabled: true
       controller:
-        # The Lease fences status writes while B1 and MUBAO provide separate
-        # recovery domains for the NetworkPathAssessment freshness clock.
+        # The Lease fences status writes while A1 and the restricted-node-6dc3f140f9 API relay provide
+        # separate runtime domains for the NetworkPathAssessment freshness clock.
         replicas: 2
         pdbMinAvailable: 1
-        # Both eligible nodes run kube-apiserver. Reach the local instance
-        # directly so Lease renewal survives a cluster Service datapath fault.
+        # A1 runs kube-apiserver and restricted-node-6dc3f140f9 exposes the guarded HAProxy relay on
+        # the same local port, so both replicas retain a node-local API path.
         useNodeLocalAPI: true
         nodeLocalAPIPort: 6443
         tolerations:
@@ -301,7 +301,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-296f36f2fb, restricted-node-abb3f27a69]}
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]}
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:

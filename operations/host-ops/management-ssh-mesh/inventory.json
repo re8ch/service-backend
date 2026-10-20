@@ -12,7 +12,7 @@
       {
         "name": "mikrotik",
         "platform": "routeros",
-        "ssh": {"user": "admin", "addresses": ["192.0.2.240"], "port": 22, "hostKeyRef": "ssh-hostkeys/mikrotik-rb4011"},
+        "ssh": {"user": "admin", "addresses": ["192.168.88.1"], "port": 22, "hostKeyRef": "ssh-hostkeys/mikrotik-rb4011"},
         "recoveryOwner": "routeros",
         "rebootPolicy": "manual"
       },
@@ -21,33 +21,35 @@
         "platform": "windows-server-2022",
         "ssh": {
           "user": "Administrator",
-          "addresses": ["192.0.2.246"],
+          "addresses": ["192.168.254.69"],
           "port": 22,
           "hostKeyRef": "ssh-hostkeys/a1-windows",
-          "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.4", "destinationAddress": "192.0.2.246"},
-          "legacyDirectAddresses": ["192.0.2.17"]
+          "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "10.181.22.125", "destinationAddress": "192.168.254.69"},
+          "legacyDirectAddresses": ["10.181.22.239"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-1eb0570f74", "nodeAddress": "192.0.2.176", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "a1-wsl-zt", "nodeAddress": "10.181.22.147", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
         "recoveryOwner": "windows-scheduled-task",
-        "peerPriority": 10
+        "peerPriority": 10,
+        "watchdog": {"role": "active-server", "serviceName": "k3s.service"}
       },
       {
         "name": "b1-windows",
         "platform": "windows-server-2022",
         "ssh": {
           "user": "Administrator",
-          "addresses": ["192.0.2.35"],
+          "addresses": ["192.168.254.86"],
           "port": 22,
           "hostKeyRef": "ssh-hostkeys/b1-windows",
-          "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "192.0.2.176", "destinationAddress": "192.0.2.35"},
-          "legacyDirectAddresses": ["192.0.2.126"]
+          "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "10.181.22.147", "destinationAddress": "192.168.254.86"},
+          "legacyDirectAddresses": ["10.181.22.86"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "restricted-node-296f36f2fb", "nodeAddress": "192.0.2.4", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "b1-wsl-zt", "nodeAddress": "10.181.22.125", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
         "recoveryOwner": "windows-scheduled-task",
-        "peerPriority": 20
+        "peerPriority": 20,
+        "watchdog": {"role": "worker-standby", "serviceName": "k3s-agent.service"}
       }
     ],
-    "allowedSourceCidrs": ["192.0.2.20/24", "192.0.2.18/24", "192.0.2.173/24", "192.0.2.63/24", "192.0.2.208/24"],
+    "allowedSourceCidrs": ["10.181.22.0/24", "192.168.88.0/24", "192.168.254.0/24", "172.31.93.0/24", "172.31.94.0/24"],
     "watchdog": {
       "intervalSeconds": 300,
       "localWslProbeTimeoutSeconds": 30,
@@ -55,8 +57,6 @@
       "failureThreshold": 3,
       "nodeReplyTimeoutSeconds": 600,
       "hostRebootCooldownSeconds": 21600,
-      "peerQuorumRequired": true,
-      "minimumHealthyPeers": 2,
       "priorityDelaySeconds": 60,
       "taskName": "RE8CH Control Plane Host Watchdog",
       "lifecycleTaskName": "RE8CH WSL Lifecycle"
@@ -65,7 +65,7 @@
       "serviceName": "sshd",
       "startupType": "Automatic",
       "preferredProvider": "WindowsCapability",
-      "capabilityName": "OpenSSH.Server~~~~192.0.2.138",
+      "capabilityName": "OpenSSH.Server~~~~0.0.1.0",
       "approvedStandaloneInstallRoot": "C:\\Program Files\\OpenSSH",
       "administratorAuthorizedKeysPath": "C:\\ProgramData\\ssh\\administrators_authorized_keys",
       "authorizedKeysAclPrincipals": ["SYSTEM", "Administrators"]

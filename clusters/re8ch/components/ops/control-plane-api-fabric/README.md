@@ -1,23 +1,25 @@
 # Control-plane API fabric rollout
 
-`192.0.2.116/32` is the K3s fixed registration VIP. It belongs to the host
+`10.250.0.1/32` is the K3s fixed registration VIP. It belongs to the host
 loopback/FRR accelerated domain and must never be allocated by Cilium LB IPAM.
-restricted-node-6dc3f140f9, A1 and B1 are eligible anycast origins, but a node may originate the
-prefix only while its local `https://127.0.0.1:6443/readyz` check is healthy.
+R640 and A1 are the production anycast origins. A1 serves the sole K3s API;
+R640 serves the local HAProxy relay whose only enabled backend is A1. B1 is a
+manual DR target and must not originate or receive VIP traffic before promotion.
+A node may originate the prefix only while its local
+`https://127.0.0.1:6443/readyz` check is healthy.
 
-The checked-in server configs describe the final state. They are host-managed
-files, not resources that Flux applies automatically. Never copy all three at
-once. Execute the following gates in order:
+The checked-in configs are host-managed files, not resources that Flux applies
+automatically. Execute the following gates in order:
 
-1. Require all three Nodes Ready, every private WireGuard/BGP session
-   Established, and no continuing etcd raft/snapshot catch-up messages.
+1. Require A1 Ready, every required private WireGuard/BGP session Established,
+   and no continuing etcd raft/snapshot catch-up messages.
 2. Take and list a fresh etcd snapshot. Record `etcdctl endpoint status` and
-   `member list` from all three voters.
+   `member list` from all current voters.
 3. Deploy Advanced Fabric in `observe-only` mode. Require three consecutive
    healthy observations from each eligible node; no VIP or FRR mutation is
    permitted in this phase.
 4. Enable a checksum-bound guarded transaction on one follower. Add the VIP to
-   loopback and advertise only `192.0.2.116/32`; verify TLS and withdrawal before
+   loopback and advertise only `10.250.0.1/32`; verify TLS and withdrawal before
    enabling the other two origins.
 
 For the A1 network/TLS canary, install `a1-api-vip-tls-canary.yaml` as the
@@ -27,14 +29,14 @@ etcd migration.
 
 ### 2026-08-24 A1 canary result
 
-- With restricted-node-6dc3f140f9's `192.0.2.176/32` WG route withdrawn, a temporary route through
-  `192.0.2.240` (the MikroTik-managed ZT transport) carried ICMP and TCP
+- With R640's `10.181.22.147/32` WG route withdrawn, a temporary route through
+  `192.168.88.1` (the MikroTik-managed ZT transport) carried ICMP and TCP
   22/2379/2380/6443 successfully. The API and three-member control plane stayed
   healthy, and restoration selected `wg-pt-a1` again.
-- A1 originated `192.0.2.116/32` over its WG BGP session. restricted-node-6dc3f140f9 installed the
-  exact route through `192.0.2.178`, and an authenticated kubectl request to
+- A1 originated `10.250.0.1/32` over its WG BGP session. R640 installed the
+  exact route through `172.31.93.147`, and an authenticated kubectl request to
   the VIP returned `/readyz` successfully with normal CA verification.
-- Withdrawal removed the VIP from restricted-node-6dc3f140f9's BGP RIB and kernel FIB. The canary VIP,
+- Withdrawal removed the VIP from R640's BGP RIB and kernel FIB. The canary VIP,
   FRR network statement and temporary WG AllowedIPs entry were then removed.
 
 The experiment proves both transports and the VIP datapath, but does not make
@@ -44,19 +46,15 @@ the VIP in the eligible WG peers' AllowedIPs. The guarded transaction must bind
 and advertise the VIP only while the local authenticated API health check is
 passing; observe-only must leave no VIP state behind.
 
-The first guarded wave enables `restricted-node-1eb0570f74` only. It installs restricted-node-6dc3f140f9's metric-500
-fallback routes for A1/B1 through `192.0.2.240` and adds the VIP to the
+The single-control-plane guarded state enables A1 and the R640 relay. It installs R640's metric-500
+fallback routes for A1/B1 through `192.168.88.1` and adds the VIP to the
 declared single-peer WireGuard interfaces. Every node verifies the controller's
 canonical SHA-256 transaction before mutation. A1 requires three authenticated
-local `/readyz` successes to bind/advertise and withdraws after three failures;
-restricted-node-6dc3f140f9 and B1 remain ineligible for VIP ownership in this wave.
-5. Roll the K3s server configs one follower at a time and the leader last.
-   Confirm the Kubernetes EndpointSlice changes to the corresponding
-   `10.250.0.x` after every restart.
-6. Update each existing etcd member peer URL with `etcdctl member update` one
-   member at a time. Listening on a new address alone does not update stored
-   membership. Wait for full index convergence before continuing.
-7. Move one worker bootstrap to `https://192.0.2.116:6443`, then vm/zan, then the
+local `/readyz` successes to bind/advertise and withdraws after three failures.
+R640 applies the same local readiness gate to its relay; B1 remains ineligible.
+5. Follow `operations/network/docs/a1-single-control-plane-cutover.md` to reset
+   membership to A1 and convert B1 to an agent.
+6. Move one worker bootstrap to `https://10.250.0.1:6443`, then vm/zan, then the
    remaining agents. Change internal DNS only after the canary succeeds.
 
 Rollback stops at the current member. Restore its previous config and member
@@ -64,7 +62,7 @@ peer URL, then confirm quorum before any other action. Do not remove the
 `10.181.22.x` listeners or vm/zan MTU workaround during this rollout.
 
 The rollout is blocked whenever A1 is NotReady, any etcd member is catching up,
-or a protected aggregate (`192.0.2.20/24` or `192.0.2.57/16`) appears in FRR.
+or a protected aggregate (`10.181.22.0/24` or `10.42.0.0/16`) appears in FRR.
 
 ## A1/B1 WSL recovery contract
 

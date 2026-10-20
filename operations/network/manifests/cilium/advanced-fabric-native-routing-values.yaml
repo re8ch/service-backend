@@ -1,10 +1,10 @@
 # Apply only after every retained node has a complete FRR replacement RIB.
 routingMode: native
-ipv4NativeRoutingCIDR: 192.0.2.57/16
+ipv4NativeRoutingCIDR: 10.42.0.0/16
 autoDirectNodeRoutes: false
 directRoutingSkipUnreachable: false
 # Every K3s server/agent exposes its health-checked local control-plane load
-# balancer here.  Cilium must not bootstrap against the restricted-node-6dc3f140f9 voter directly.
+# balancer here.  Cilium must not bootstrap against the R640 voter directly.
 k8sServiceHost: 127.0.0.1
 k8sServicePort: 6444
 bgpControlPlane: {enabled: true}
@@ -18,7 +18,7 @@ operator:
           - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [restricted-node-1eb0570f74, restricted-node-abb3f27a69]
+                values: [a1-wsl-zt, r640]
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:

@@ -1,5 +1,5 @@
 [Unit]
-Description=Publish B1 WSL control-plane health every minute
+Description=Publish WSL K3s role health every minute
 
 [Timer]
 OnBootSec=2min

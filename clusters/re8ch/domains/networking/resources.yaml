@@ -21735,7 +21735,7 @@ metadata:
   namespace: kube-system
 spec:
   defaults:
-    k8s-api-server: https://192.0.2.176:6443
+    k8s-api-server: https://192.0.2.116:6443
   nodeSelector:
     matchLabels:
       kubernetes.io/hostname: domain-ex
@@ -23753,15 +23753,11 @@ spec:
         eligibleNodes:
         - restricted-node-6dc3f140f9
         - restricted-node-1eb0570f74
-        - restricted-node-296f36f2fb
-        - restricted-node-abb3f27a69
         enabled: true
         fallbackTransport: zerotier
         guardedNodes:
         - restricted-node-6dc3f140f9
         - restricted-node-1eb0570f74
-        - restricted-node-296f36f2fb
-        - restricted-node-abb3f27a69
         healthCheck:
           address: 127.0.0.1
           failureThreshold: 3
@@ -24023,8 +24019,8 @@ spec:
                 - key: kubernetes.io/hostname
                   operator: In
                   values:
-                  - restricted-node-296f36f2fb
-                  - restricted-node-abb3f27a69
+                  - restricted-node-1eb0570f74
+                  - restricted-node-6dc3f140f9
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:

@@ -10,10 +10,10 @@ spec:
     matchExpressions:
       - key: kubernetes.io/hostname
         operator: NotIn
-        values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        values: [a1-wsl-zt, b1-wsl-zt]
   defaults:
     routing-mode: native
-    ipv4-native-routing-cidr: 192.0.2.57/16
+    ipv4-native-routing-cidr: 10.42.0.0/16
     # FRR owns remote PodCIDR selection; Cilium owns the native-routing eBPF
     # service, policy and Gateway dataplane without installing competing routes.
     auto-direct-node-routes: "false"
@@ -33,10 +33,10 @@ spec:
     matchExpressions:
       - key: kubernetes.io/hostname
         operator: In
-        values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+        values: [a1-wsl-zt, b1-wsl-zt]
   defaults:
     routing-mode: native
-    ipv4-native-routing-cidr: 192.0.2.57/16
+    ipv4-native-routing-cidr: 10.42.0.0/16
     auto-direct-node-routes: "false"
     direct-routing-skip-unreachable: "false"
     direct-routing-device: zto5uhdriy
@@ -49,9 +49,9 @@ metadata:
   name: native-routing-rollout-order
   namespace: kube-system
 data:
-  order: dual-FRR/full-RIB -> workers -> restricted-node-6dc3f140f9 -> restricted-node-1eb0570f74,restricted-node-296f36f2fb
-  forbidden-advertisement: 192.0.2.20/24
-  pod-cidr: 192.0.2.57/16
+  order: dual-FRR/full-RIB -> workers -> r640 -> a1-wsl-zt,b1-wsl-zt
+  forbidden-advertisement: 10.181.22.0/24
+  pod-cidr: 10.42.0.0/16
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNodeConfig
@@ -63,4 +63,4 @@ spec:
     matchLabels:
       kubernetes.io/hostname: domain-ex
   defaults:
-    k8s-api-server: https://192.0.2.176:6443
+    k8s-api-server: https://10.250.0.1:6443
