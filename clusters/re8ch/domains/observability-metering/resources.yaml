@@ -3515,6 +3515,7 @@ spec:
           - re8ch-farseer
           - re8ch-incidentrelay
           - re8ch-payments
+          - re8ch-comfy-cloud
           defaultNamespace: re8ch-default
           maxNamespaces: 20
         nativeAccess: true

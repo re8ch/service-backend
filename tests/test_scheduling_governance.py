@@ -185,6 +185,7 @@ def test_policies_start_in_audit_and_kueue_is_explicit_opt_in():
     assert {(item["metadata"]["namespace"], item["metadata"]["name"]) for item in local_queues} == {
         ("tenant-qwen-runtime", "tenant-batch"),
         ("artchais-default", "tenant-batch"),
+            ("re8ch-comfy-cloud", "comfy-cloud-gpu"),
     }
 
     namespaces = docs(GOVERNANCE / "policies/namespace-labels.yaml")

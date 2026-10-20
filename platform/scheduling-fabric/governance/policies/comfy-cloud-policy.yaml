@@ -1,0 +1,35 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: comfy-cloud-runtime-boundary
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-tenant-runtime-identity
+      match:
+        any:
+          - resources: {kinds: [Pod], namespaces: [re8ch-comfy-cloud]}
+      validate:
+        message: Comfy Cloud Pods must be non-root, disable token mounting, and use the runtime service account.
+        pattern:
+          spec:
+            automountServiceAccountToken: false
+            serviceAccountName: comfy-cloud-runtime
+            securityContext:
+              runAsNonRoot: true
+              seccompProfile: {type: RuntimeDefault}
+    - name: forbid-host-access
+      match:
+        any:
+          - resources: {kinds: [Pod], namespaces: [re8ch-comfy-cloud]}
+      validate:
+        message: Tenant runtimes may not use privileged mode, host namespaces, or hostPath.
+        deny:
+          conditions:
+            any:
+              - {key: "{{ request.object.spec.hostNetwork || false }}", operator: Equals, value: true}
+              - {key: "{{ request.object.spec.hostPID || false }}", operator: Equals, value: true}
+              - {key: "{{ request.object.spec.hostIPC || false }}", operator: Equals, value: true}
+              - {key: "{{ request.object.spec.volumes[?hostPath] | length(@) }}", operator: GreaterThan, value: 0}
+              - {key: "{{ request.object.spec.containers[?securityContext.privileged == `true`] | length(@) }}", operator: GreaterThan, value: 0}
