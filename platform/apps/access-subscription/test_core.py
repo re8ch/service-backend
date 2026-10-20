@@ -85,9 +85,9 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_preferred_la_hosts_fail_over_to_germany_then_direct(self):
         dynamic = (
-            Node("edge-access-overseas-la", "LA 1", Publication("anytls", "192.0.2.91", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
-            Node("edge-access-overseas-la-2", "LA 2", Publication("anytls", "192.0.2.38", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
-            Node("edge-access-overseas-flk", "DE", Publication("anytls", "192.0.2.101", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
+            Node("edge-access-overseas-la", "LA 1", Publication("anytls", "179.255.126.104", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
+            Node("edge-access-overseas-la-2", "LA 2", Publication("anytls", "179.253.231.159", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
+            Node("edge-access-overseas-flk", "DE", Publication("anytls", "2.28.106.230", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
         )
         mihomo = mihomo_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
         self.assertIn("  - name: AUTO\n    type: fallback\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    proxies:\n      - LA-PREFERRED\n      - \"DE\"\n      - DIRECT", mihomo)
@@ -98,8 +98,8 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_second_la_discovery_keeps_first_la_publication_preferred(self):
         dynamic = (
-            Node("edge-access-overseas-la-2", "LA 2", Publication("anytls", "192.0.2.38", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
-            Node("edge-access-overseas-flk", "DE", Publication("anytls", "192.0.2.101", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
+            Node("edge-access-overseas-la-2", "LA 2", Publication("anytls", "179.253.231.159", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
+            Node("edge-access-overseas-flk", "DE", Publication("anytls", "2.28.106.230", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
         )
         shadowrocket = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
         self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 · AnyTLS, LA 2, 🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", shadowrocket)
@@ -133,8 +133,8 @@ class SubscriptionTests(unittest.TestCase):
         self.assertIn("AUTO = fallback, LA-PREFERRED, DIRECT", config)
         self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", config)
         self.assertIn("🤖 AI = select, CODEX-STABLE, PROXY, AUTO, DIRECT", config)
-        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20261020-r640-cn-direct-1", config)
-        self.assertIn("skip-proxy = 192.0.2.148/16", config)
+        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20261020-edge-discovery-2", config)
+        self.assertIn("skip-proxy = 192.168.0.0/16", config)
         self.assertIn("dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query", config)
         self.assertIn("fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query", config)
         self.assertIn("DOMAIN,auth.openai.com,🤖 AI", config)

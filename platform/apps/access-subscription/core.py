@@ -15,11 +15,11 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20261020-r640-cn-direct-1"
+SHADOWROCKET_PROFILE_REVISION = "20261020-edge-discovery-2"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
 # still recovering. Keep the two independently reachable LA listeners and the
-# verified restricted-node-6dc3f140f9 AnyTLS listener published. The restricted-node-6dc3f140f9 listener terminates the
+# verified R640 AnyTLS listener published. The R640 listener terminates the
 # mainland connection locally, then delegates destination-aware egress to the
 # node-local smart fabric: CN destinations stay direct and international
 # destinations use a healthy Global provider. Re-enable other candidates only
@@ -276,8 +276,8 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
         behavior = "ipcidr" if name.endswith("-ip") else "domain"
         out.extend([f"  {name}:", "    type: http", f"    behavior: {behavior}", "    format: mrs",
                     f"    url: {base_url}/r/{token}/current/{name}.mrs", f"    path: ./rules/{name}.mrs", "    interval: 86400"])
-    out.extend(["dns:", "  enable: true", "  ipv6: false", "  enhanced-mode: fake-ip", "  fake-ip-range: 192.0.2.198/16",
-                "  default-nameserver:", "    - 192.0.2.131", "    - 192.0.2.148",
+    out.extend(["dns:", "  enable: true", "  ipv6: false", "  enhanced-mode: fake-ip", "  fake-ip-range: 198.18.0.1/16",
+                "  default-nameserver:", "    - 223.5.5.5", "    - 119.29.29.29",
                 "  proxy-server-nameserver:", "    - https://dns.alidns.com/dns-query", "    - https://doh.pub/dns-query",
                 "  direct-nameserver:", "    - https://dns.alidns.com/dns-query", "    - https://doh.pub/dns-query",
                 "  nameserver:", "    - https://1.1.1.1/dns-query#PROXY", "    - https://dns.google/dns-query#PROXY",
@@ -321,8 +321,8 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     backup_names = [node.name for node in backup]
     config_url = f"{base_url}/s/{token}/shadowrocket.conf?v={SHADOWROCKET_PROFILE_REVISION}"
     lines = ["[General]", "bypass-system = true", "ipv6 = false", "prefer-ipv6 = false",
-             "skip-proxy = 192.0.2.148/16, 192.0.2.203/8, 192.0.2.179/12, 127.0.0.0/8, localhost, *.local, todesk.com, *.todesk.com",
-             "tun-excluded-routes = 192.0.2.203/8, 192.0.2.225/10, 127.0.0.0/8, 192.0.2.148/16, 192.0.2.179/12, 192.0.2.148/16, 224.0.0.0/4",
+             "skip-proxy = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, 127.0.0.0/8, localhost, *.local, todesk.com, *.todesk.com",
+             "tun-excluded-routes = 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4",
              "dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query",
              "fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query",
              "dns-direct-system = false", "dns-fallback-system = false",
