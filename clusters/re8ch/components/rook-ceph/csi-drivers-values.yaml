@@ -10,7 +10,7 @@ operatorConfig:
       priorityClassName: system-node-critical
     controllerPlugin:
       priorityClassName: system-cluster-critical
-      replicas: 2
+      replicas: 1
 
 drivers:
   rbd:
@@ -22,6 +22,10 @@ drivers:
           operator: Equal
           value: closed
           effect: NoSchedule
+        - key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -31,28 +35,24 @@ drivers:
                     operator: In
                     values: ["true"]
     controllerPlugin:
-      replicas: 2
+      replicas: 1
       tolerations:
         - key: scheduling.re8ch.com/capacity-window
           operator: Equal
           value: closed
+          effect: NoSchedule
+        - key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
           effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: kubernetes.io/hostname
+                  - key: storage.re8ch.com/coordinator
                     operator: In
-                    values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values: [rook-ceph.rbd.csi.ceph.com-ctrlplugin]
-              topologyKey: kubernetes.io/hostname
+                    values: ["true"]
   cephfs:
     enabled: true
     name: rook-ceph.cephfs.csi.ceph.com
@@ -65,6 +65,10 @@ drivers:
         - key: scheduling.re8ch.com/capacity-window
           operator: Equal
           value: closed
+          effect: NoSchedule
+        - key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
           effect: NoSchedule
         - key: dedicated
           operator: Equal
@@ -83,8 +87,7 @@ drivers:
                     operator: In
                     values: ["true"]
     controllerPlugin:
-      # Provisioning must survive one scheduled control-plane restart.
-      replicas: 2
+      replicas: 1
       # A1/B1 currently cannot reliably reach the Kubernetes Service VIP from
       # PodCIDR. Keep the CSI control plane independent of that service path.
       hostNetwork: true
@@ -93,22 +96,18 @@ drivers:
           operator: Equal
           value: closed
           effect: NoSchedule
+        - key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: kubernetes.io/hostname
+                  - key: storage.re8ch.com/coordinator
                     operator: In
-                    values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values: [rook-ceph.cephfs.csi.ceph.com-ctrlplugin]
-              topologyKey: kubernetes.io/hostname
+                    values: ["true"]
   nfs:
     enabled: false
     name: rook-ceph.nfs.csi.ceph.com

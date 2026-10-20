@@ -6,6 +6,7 @@ metadata:
     anatomy.re8ch.com/observer-allowed: "true"
     scheduling.re8ch.com/capability-storage-ceph-osd: "true"
     storage.re8ch.com/ceph-pilot: "true"
+    storage.re8ch.com/role: capacity-compute-osd
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-exit-cn: enabled
@@ -19,6 +20,7 @@ metadata:
   labels:
     scheduling.re8ch.com/capability-storage-ceph-osd: "true"
     storage.re8ch.com/ceph-pilot: "true"
+    storage.re8ch.com/role: osd-control-plane
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-control: enabled
@@ -32,8 +34,15 @@ metadata:
   labels:
     scheduling.re8ch.com/capability-storage-ceph-osd: "true"
     storage.re8ch.com/ceph-pilot: "true"
+    storage.re8ch.com/coordinator: "true"
+    storage.re8ch.com/role: coordinator-osd
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/mihomo-control: enabled
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
+spec:
+  taints:
+    - key: storage.re8ch.com/coordinator
+      value: "true"
+      effect: NoSchedule

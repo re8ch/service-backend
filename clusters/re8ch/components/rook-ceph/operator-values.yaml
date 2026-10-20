@@ -4,12 +4,16 @@
 allowLoopDevices: false
 
 nodeSelector:
-  kubernetes.io/hostname: restricted-node-6dc3f140f9
+  storage.re8ch.com/coordinator: "true"
 
 tolerations:
   - key: scheduling.re8ch.com/capacity-window
     operator: Equal
     value: closed
+    effect: NoSchedule
+  - key: storage.re8ch.com/coordinator
+    operator: Equal
+    value: "true"
     effect: NoSchedule
 
 resources:

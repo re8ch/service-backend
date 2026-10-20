@@ -18,12 +18,12 @@ cephClusterSpec:
   skipUpgradeChecks: false
   continueUpgradeAfterChecksEvenIfNotHealthy: false
   mon:
-    count: 3
+    # Deliberate fault-isolation topology: B1 is the sole Ceph coordinator.
+    # Data durability is provided by explicit backups, not MON quorum.
+    count: 1
     allowMultiplePerNode: false
   mgr:
-    # Keep a standby manager on a different storage host so a scheduled
-    # control-plane restart does not remove the only manager daemon.
-    count: 2
+    count: 1
     allowMultiplePerNode: false
   dashboard:
     enabled: false
@@ -64,6 +64,10 @@ cephClusterSpec:
           operator: Equal
           value: closed
           effect: NoSchedule
+        - key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
@@ -82,6 +86,10 @@ cephClusterSpec:
           operator: Equal
           value: closed
           effect: NoSchedule
+        - key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
@@ -89,15 +97,16 @@ cephClusterSpec:
                 - key: scheduling.re8ch.com/capability-storage-ceph-osd
                   operator: In
                   values: ["true"]
-    mgr:
-      podAntiAffinity:
+    mon:
+      nodeAffinity: &b1CoordinatorAffinity
         requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-                - key: app
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: storage.re8ch.com/coordinator
                   operator: In
-                  values: [rook-ceph-mgr]
-            topologyKey: kubernetes.io/hostname
+                  values: ["true"]
+    mgr:
+      nodeAffinity: *b1CoordinatorAffinity
   resources:
     mon:
       limits:
@@ -226,6 +235,8 @@ cephFileSystems:
           size: 3
           requireSafeReplicaSize: true
       dataPools:
+        # Retained until every legacy PVC is migrated and the seven-day
+        # rollback window has elapsed. A later reviewed cleanup removes it.
         - name: data0
           failureDomain: host
           replicated:
@@ -239,23 +250,20 @@ cephFileSystems:
             requireSafeReplicaSize: false
       metadataServer:
         activeCount: 1
-        activeStandby: true
+        activeStandby: false
         placement:
+          tolerations:
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - key: kubernetes.io/hostname
+                    - key: storage.re8ch.com/coordinator
                       operator: In
-                      values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-          podAntiAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              - labelSelector:
-                  matchExpressions:
-                    - key: app
-                      operator: In
-                      values: [rook-ceph-mds]
-                topologyKey: kubernetes.io/hostname
+                      values: ["true"]
         resources:
           limits:
             memory: 1Gi
@@ -268,6 +276,14 @@ cephFileSystems:
       isDefault: false
       name: cephfs-pilot
       pool: data0
+      labels:
+        storage.re8ch.com/availability-class: retired
+        storage.re8ch.com/replication: "3"
+      annotations:
+        storage.re8ch.com/deprecated: "true"
+        storage.re8ch.com/usage-policy: >-
+          Retired replicated CephFS class. Existing claims remain readable;
+          admission rejects new claims while owners migrate to cephfs-r640.
       reclaimPolicy: Retain
       allowVolumeExpansion: true
       volumeBindingMode: Immediate

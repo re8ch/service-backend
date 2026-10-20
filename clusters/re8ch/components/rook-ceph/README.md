@@ -1,9 +1,9 @@
-# RE8CH CephFS pilot
+# RE8CH Ceph storage
 
-This directory defines the production Rook/CephFS cluster on `restricted-node-6dc3f140f9`,
-`restricted-node-1eb0570f74`, and `restricted-node-296f36f2fb`. It is for cluster coordination files and
-cross-node shared state. It does not replace Pigsty, Harbor storage, etcd, or
-existing `local-path` volumes.
+This directory defines the production Rook/Ceph cluster across `restricted-node-6dc3f140f9`,
+`restricted-node-1eb0570f74`, and `restricted-node-296f36f2fb`. B1 is the sole Ceph coordinator; A1, B1 and restricted-node-6dc3f140f9
+each retain one explicit OSD. CephFS user data is a single-copy restricted-node-6dc3f140f9 working
+set and must be recoverable from an external backup.
 
 ## Safety boundary
 
@@ -11,13 +11,16 @@ existing `local-path` volumes.
 - Only explicitly listed devices are eligible. Never enable `useAllDevices`.
 - A1, B1 and restricted-node-6dc3f140f9 each contribute one explicit 200 GiB OSD. restricted-node-6dc3f140f9's dedicated
   LV was expanded from 20 GiB to 200 GiB after its free extents were verified.
-- `cephfs-pilot` and the production `cephfs-re8ch` class are non-default and
-  use `Retain`.
+- `cephfs-r640` is non-default, uses `Retain`, and is the only class for new
+  CephFS claims. `cephfs-pilot` and `cephfs-re8ch` are migration-only and
+  admission rejects new claims.
 - `storage.re8ch.com/ceph-pilot=true` identifies the three storage failure
   domains. `storage.re8ch.com/ceph-client=true` independently enables the CSI
   node client; a client label never authorizes disk discovery or OSD creation.
-- Pools use `size: 3`, `min_size: 2` (Ceph safe default), with `host` failure
-  domains.
+- The CephFS metadata pool uses `size: 3`, `min_size: 2`, and host failure
+  domains. Its user-data pool uses the restricted-node-6dc3f140f9 device class with `size: 1`.
+- The legacy replicated data pool remains only while existing PVCs migrate. It
+  must not be removed by the topology change itself.
 - A1/B1 use dedicated, dynamic 200 GiB VHDX files on their Windows `D:` volumes,
   attached to WSL as raw disks. The VHDX files must never be placed on restricted-node-6dc3f140f9 NAS.
 - restricted-node-6dc3f140f9 uses a dedicated LVM logical volume from currently free extents. Existing
@@ -112,10 +115,10 @@ directly against these releases.
 Do not install the cluster chart until the operator deployment and discovery
 pods are healthy.
 
-The re8ch-files MDS placement is a required allowlist, not a preference.
-Metadata servers may run only on restricted-node-6dc3f140f9, restricted-node-1eb0570f74, or restricted-node-296f36f2fb. Tenant application
-nodes are business-function nodes and are not valid Ceph control-plane
-candidates. Pod anti-affinity must remain enabled in addition to node affinity.
+MON, MGR, MDS, the Rook operator and CSI controllers require
+`storage.re8ch.com/coordinator=true`, which is assigned only to B1. The B1
+coordinator taint excludes ordinary workloads; Ceph components explicitly
+tolerate it. CSI node plugins remain available on every labeled client node.
 
 `cluster-values-production-encrypted.yaml` is the applied production encryption
 overlay. It was rolled out only after all MONs, the manager and PGs were
@@ -128,17 +131,18 @@ boundary and promotion gates.
 
 ## Acceptance
 
-1. Three MONs are in quorum and exactly three OSDs are `up` and `in`.
-2. `ceph status` is `HEALTH_OK` before the smoke workload starts.
-3. `cephfs-pilot` and `cephfs-re8ch` exist and `local-path` remains the only
-   default class.
-4. The smoke DaemonSet has one pod on each pilot node and all three files are
-   visible from every pod.
+1. Exactly one MON, one MGR and one active MDS run on B1; exactly three OSDs
+   are `up` and `in`.
+2. All PGs are `active+clean` before and after each rollout phase.
+3. `cephfs-r640` exists, is non-default and advertises single-node/backup-required;
+   new `cephfs-pilot` and `cephfs-re8ch` claims are denied.
+4. A disposable `cephfs-r640` claim mounts and passes cross-node read/write.
 5. Existing tenant pods and public smoke endpoints remain healthy.
-6. Both MDS Pods run on distinct approved nodes; desired and observed
-   CephFilesystem generations match.
+6. Desired and observed CephFilesystem generations match and no standby MDS
+   remains.
 7. CephFS subvolumegroup and subvolume listing complete without timeout.
-8. A disposable cephfs-re8ch PVC can be provisioned and mounted on A1 and B1.
+8. The legacy replicated data pool is deleted only in a later reviewed cleanup
+   after its consumer count is zero and the rollback window has elapsed.
 
 The smoke namespace is disposable, but deleting its retained PV does not erase
 the CephFS subvolume automatically. Perform that cleanup only after explicitly
