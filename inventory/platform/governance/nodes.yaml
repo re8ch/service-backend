@@ -28,7 +28,7 @@ nodes:
       podCIDR: 192.0.2.48/24
       windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.139/30, peerPort: 51820}
       hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
-      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.148/30, peer: restricted-node-296f36f2fb}
+      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.148/30, peer: restricted-node-296f36f2fb, apiVipPaths: [local-owner, advfab-relay]}
       r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 192.0.2.138, hubBackend: 192.0.2.169}
     watchdog: {role: active-server, serviceName: k3s.service}
   - id: restricted-node-296f36f2fb
@@ -53,7 +53,7 @@ nodes:
       podCIDR: 192.0.2.234/24
       windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.90/30, peerPort: 51820}
       hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
-      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.12/30, peer: restricted-node-1eb0570f74}
+      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.12/30, peer: restricted-node-1eb0570f74, apiVipPaths: [hnsc-host-lan-direct, advfab-relay]}
       r640Transit: {interface: wg-pt-b1, port: 51890, hubPublicIp: 192.0.2.138, hubBackend: 192.0.2.169}
     watchdog: {role: worker-standby, serviceName: k3s-agent.service}
   - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
