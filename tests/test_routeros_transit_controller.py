@@ -46,19 +46,19 @@ def spec():
 def test_complete_transit_sources_and_idempotence():
     s=spec();r=Router(s)
     first=a.reconcile(r,s)
-    assert first['forwardRules']==4
+    assert first['forwardRules']==2
     for peer in r.tables['/interface/wireguard/peers'][:2]:
-        assert {'192.0.2.48/32','192.0.2.165/24','192.0.2.148/32'} <= set(peer['allowed-address'].split(','))
+        assert {'10.250.0.105/32','10.42.4.0/24','10.250.0.220/32'} <= set(peer['allowed-address'].split(','))
     assert a.reconcile(r,s)['changes']==0
     assert all('/route' not in path and '/nat' not in path for path,_,_ in r.calls)
 
 
 def test_removing_source_preserves_control_baseline():
     s=spec();r=Router(s);a.reconcile(r,s)
-    s['sources'].remove('192.0.2.48/32');a.reconcile(r,s)
+    s['sources'].remove('10.250.0.105/32');a.reconcile(r,s)
     for i,peer in enumerate(r.tables['/interface/wireguard/peers'][:2]):
         allowed=set(peer['allowed-address'].split(','))
-        assert '192.0.2.48/32' not in allowed
+        assert '10.250.0.105/32' not in allowed
         assert s['links'][i]['identity'] in allowed
         assert s['links'][i]['podCIDR'] in allowed
 

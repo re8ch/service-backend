@@ -16,28 +16,27 @@ def test_advanced_fabric_is_the_fixed_cluster_dns_authority():
     dns = release["spec"]["values"]["advancedFabric"]["dns"]
 
     assert dns["enabled"] is True
-    assert dns["replicas"] == 4
-    assert dns["pdbMinAvailable"] == 3
-    assert dns["testNodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert dns["replicas"] == 3
+    assert dns["pdbMinAvailable"] == 2
+    assert dns["testNodeSelector"] == {"kubernetes.io/hostname": "r640"}
     hostnames = dns["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert hostnames == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69", "restricted-node-6dc3f140f9"],
+        "values": ["a1-wsl-zt", "b1-wsl-zt", "r640"],
     }
     anti_affinity = dns["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"][0]
     assert anti_affinity["topologyKey"] == "kubernetes.io/hostname"
     assert anti_affinity["labelSelector"]["matchLabels"] == {
         "app.kubernetes.io/name": "advanced-fabric-doh"
     }
-    assert dns["service"] == {"name": "advanced-fabric-dns", "clusterIP": "192.0.2.149"}
+    assert dns["service"] == {"name": "advanced-fabric-dns", "clusterIP": "10.43.65.40"}
     assert dns["kubernetesApiEndpoints"] == [
-        "https://192.0.2.242:6443",
-        "https://192.0.2.1:6443",
-        "https://192.0.2.223:6443",
+        "https://10.250.0.147:6443",
+        "https://10.250.0.125:6443",
     ]
     assert dns["conditionalForwarders"]["zt.re8ch.com"] == [
-        "192.0.2.192", "192.0.2.138", "192.0.2.74"
+        "10.181.22.73", "10.181.22.16", "10.181.22.95"
     ]
     assert release["spec"]["upgrade"]["preserveValues"] is False
     assert release["spec"]["test"] == {"enable": True, "ignoreFailures": True}
@@ -60,7 +59,7 @@ def test_every_managed_server_uses_fixed_cluster_dns():
     assert len(configs) == 3
     for config in configs:
         rendered = yaml.safe_load(config.read_text())
-        assert rendered["cluster-dns"] == "192.0.2.149"
+        assert rendered["cluster-dns"] == "10.43.65.40"
         assert "coredns" in rendered["disable"]
 
 

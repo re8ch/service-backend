@@ -39,5 +39,6 @@ def test_advfab_controller_and_b1_data_plane_are_preserved() -> None:
     assert values["controller"]["replicas"] == 2
     assert values["controller"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"]
     operations = {item["name"] for item in values["controlPlaneApi"]["nodeOperations"]}
-    assert {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69"}.issubset(operations)
+    assert {"restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}.issubset(operations)
+    assert "restricted-node-abb3f27a69" not in operations
     assert values["controlPlaneApi"]["eligibleNodes"] == ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74"]

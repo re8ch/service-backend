@@ -149,27 +149,16 @@ spec:
             frrImportPrefixLists: [SELF]
             frrNeighborPolicies:
               - {neighbor: 192.0.2.4, maximumPrefixes: 8}
-              - {neighbor: 192.0.2.135, maximumPrefixes: 3}
             frrPrefixEntries:
               - {list: POD-FABRIC-SELF, sequence: 30, prefix: 192.0.2.4/32}
-              - {list: MUBAO-IN, sequence: 15, prefix: 192.0.2.116/32}
             frrNetworks: [192.0.2.4/32]
             forwardRules:
               - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 192.0.2.4/32, destination: 192.0.2.116/32, protocol: tcp, port: 6443}
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
             wireguardAllowedPrefixes: [192.0.2.65/24, 192.0.2.121/24]
-            wireguardPeerPolicies:
-              - interface: wg-pt-mubao
-                peer: VVuXaxa2ZsblzpqhbzrjjZk/F22ilnz6QeL0DdYDlwA=
-                allowedPrefixes: [192.0.2.116/32]
             sourceIdentityRules:
               - {source: 192.0.2.179, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.179, destination: 192.0.2.65/24}
-            # Forwarded peer TLS must retain the A1/B1 identity before the
-            # restricted-node-6dc3f140f9 source-identity SNAT catches traffic to MUBAO.
-            sourceIdentityPreserveRules:
-              - {source: 192.0.2.242/32, destination: 192.0.2.223/32, protocol: tcp, port: "2379-2380"}
-              - {source: 192.0.2.1/32, destination: 192.0.2.223/32, protocol: tcp, port: "2379-2380"}
             fallbackRoutes:
               - {destination: 192.0.2.176/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
               - {destination: 192.0.2.4/32, via: 192.0.2.240, dev: eno2np1, src: 192.0.2.178, metric: 500}
@@ -215,11 +204,6 @@ spec:
             sourceIdentityRules:
               - {source: 192.0.2.1, destination: 192.0.2.65/24, protocol: tcp, port: 2380}
               - {source: 192.0.2.1, destination: 192.0.2.65/24}
-          - name: restricted-node-abb3f27a69
-            localAsn: 4200010029
-            vipInterface: lo
-            frrExportPrefixLists: [MUBAO-SELF-OUT]
-            wireguardInterfaces: []
           # Non-origin consumers never announce the API VIP. Their guarded=false
           # transactions only authorize cryptokey routing for the ECMP prefix.
           - name: overseas-la
@@ -342,8 +326,8 @@ spec:
         # Keep one replica on each control plane. Retain restricted-node-6dc3f140f9's local DNS
         # endpoint for worker traffic while removing its API authority.
         # Hard anti-affinity prevents replica co-location.
-        replicas: 4
-        pdbMinAvailable: 3
+        replicas: 3
+        pdbMinAvailable: 2
         # Run the blocking Helm test beside the restricted-node-6dc3f140f9 DNS replica. A control-plane
         # Service-path fault must remain observable, but must not leave the
         # already-upgraded fabric release permanently Stalled and block all
@@ -353,7 +337,6 @@ spec:
         kubernetesApiEndpoints:
           - https://192.0.2.242:6443
           - https://192.0.2.1:6443
-          - https://192.0.2.223:6443
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -361,7 +344,7 @@ spec:
                 - matchExpressions:
                     - key: kubernetes.io/hostname
                       operator: In
-                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-abb3f27a69, restricted-node-6dc3f140f9]
+                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:

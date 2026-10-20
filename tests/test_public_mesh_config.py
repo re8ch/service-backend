@@ -123,21 +123,3 @@ def test_la1_api_vip_is_reachable_only_through_r640_peer():
     assert "TO-104 seq 30 permit 192.0.2.116/32" in r640_frr
     assert "neighbor 192.0.2.188 prefix-list TO-104 out" in r640_frr
     assert "neighbor 192.0.2.188 timers 3 9" in r640_frr
-
-
-def test_mubao_dials_two_public_spines_without_advertising_zerotier():
-    data = inventory()
-    PUBLIC_MESH.validate(data)
-    keys = {node["id"]: f'key-{node["id"]}' for node in data["nodes"]}
-    mubao = PUBLIC_MESH.select(data, "restricted-node-abb3f27a69")
-    flk = PUBLIC_MESH.select(data, "overseas-flk")
-    mubao_wg = PUBLIC_MESH.render_wireguard(data, mubao, keys, stage=9)
-    flk_wg = PUBLIC_MESH.render_wireguard(data, flk, keys, stage=9)
-    mubao_frr = PUBLIC_MESH.render_frr(data, mubao, stage=9)
-    assert "MTU = 1120" in mubao_wg
-    assert "Endpoint = 192.0.2.38:51888" in mubao_wg
-    assert "Endpoint = 192.0.2.146:51888" in mubao_wg
-    assert "Endpoint = None" not in flk_wg
-    assert "AllowedIPs = 192.0.2.138/32, 192.0.2.223/32" in flk_wg
-    assert "network 192.0.2.223/32" in mubao_frr
-    assert "network 192.0.2.39/32" not in mubao_frr

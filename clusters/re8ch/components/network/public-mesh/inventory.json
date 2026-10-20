@@ -121,14 +121,12 @@
       "publicMode": "static",
       "podCIDR": "192.0.2.165/24",
       "podCIDRPeers": [
-        "restricted-node-6dc3f140f9",
-        "restricted-node-abb3f27a69"
+        "restricted-node-6dc3f140f9"
       ],
       "meshPeers": [
         "restricted-node-6dc3f140f9",
         "overseas-la-2",
-        "overseas-la",
-        "restricted-node-abb3f27a69"
+        "overseas-la"
       ]
     },
     {
@@ -143,8 +141,7 @@
       "publicMode": "static",
       "meshPeers": [
         "restricted-node-6dc3f140f9",
-        "overseas-flk",
-        "restricted-node-abb3f27a69"
+        "overseas-flk"
       ]
     },
     {
@@ -168,26 +165,6 @@
       "meshPeers": [
         "restricted-node-6dc3f140f9",
         "overseas-flk"
-      ]
-    },
-    {
-      "id": "29",
-      "name": "restricted-node-abb3f27a69",
-      "ztIp": "192.0.2.39",
-      "transportIp": "192.0.2.138",
-      "acceleratedIp": "192.0.2.223",
-      "publicIp": null,
-      "asn": 4200010029,
-      "rollout": 9,
-      "publicMode": "dial-only",
-      "mtu": 1120,
-      "podCIDR": "192.0.2.113/24",
-      "podCIDRPeers": [
-        "overseas-flk"
-      ],
-      "meshPeers": [
-        "overseas-flk",
-        "overseas-la-2"
       ]
     }
   ]

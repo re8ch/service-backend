@@ -9,17 +9,17 @@ import urllib.request
 
 
 def validate(spec):
-    if spec['managementIp'] != '192.0.2.240' or spec['publicEndpoint'] != '192.0.2.138':
+    if spec['managementIp'] != '192.168.88.1' or spec['publicEndpoint'] != '223.159.210.222':
         raise ValueError('RouterOS authority differs')
     if spec['addressList'] != 're8ch-fabric-transit-sources' or spec['commentPrefix'] != 'RE8CH FABRIC TRANSIT':
         raise ValueError('ownership prefix differs')
     links = {x['node']: x for x in spec['links']}
-    if set(links) != {'restricted-node-1eb0570f74','restricted-node-296f36f2fb','restricted-node-abb3f27a69'} or set(spec['ingressNodes']) != {'restricted-node-1eb0570f74','restricted-node-296f36f2fb'}:
+    if set(links) != {'a1-wsl-zt','b1-wsl-zt'} or set(spec['ingressNodes']) != {'a1-wsl-zt','b1-wsl-zt'}:
         raise ValueError('unexpected transit topology')
     for prefix in spec['sources']:
         n = ipaddress.ip_network(prefix)
-        if not (n.subnet_of(ipaddress.ip_network('192.0.2.65/24')) and n.prefixlen == 32 or
-                n.subnet_of(ipaddress.ip_network('192.0.2.57/16')) and n.prefixlen == 24):
+        if not (n.subnet_of(ipaddress.ip_network('10.250.0.0/24')) and n.prefixlen == 32 or
+                n.subnet_of(ipaddress.ip_network('10.42.0.0/16')) and n.prefixlen == 24):
             raise ValueError('source outside cluster authority')
     if not spec['sources']:
         raise ValueError('empty transit source declaration')

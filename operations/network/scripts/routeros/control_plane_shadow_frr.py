@@ -20,7 +20,7 @@ def main():
         raise SystemExit("run as root")
     desired = json.loads(pathlib.Path(args.inventory).read_text(encoding="utf-8"))
     links = {link["node"]: link for link in desired["links"]}
-    if set(links) != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-abb3f27a69"} or args.node not in links:
+    if set(links) != {"a1-wsl-zt", "b1-wsl-zt"} or args.node not in links:
         raise RuntimeError("unexpected node inventory")
     link = links[args.node]
     router_ip = str(ipaddress.ip_interface(link["routerAddress"]).ip)
