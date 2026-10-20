@@ -17,6 +17,10 @@ kind: HelmRelease
 metadata: {name: rook-ceph, namespace: flux-system}
 spec:
   interval: 1m
+  # Cross-node operator rollouts can outlive Flux's 10 minute default while
+  # the control plane or restricted-node-6dc3f140f9 is recovering. A spec generation bump also
+  # gives a previously stalled, successfully rolled-back release a clean retry.
+  timeout: 20m
   releaseName: rook-ceph
   targetNamespace: rook-ceph
   storageNamespace: rook-ceph
