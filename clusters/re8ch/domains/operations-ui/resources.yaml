@@ -3368,7 +3368,7 @@ spec:
   template:
     metadata:
       annotations:
-        operations.re8ch.com/config-revision: 2026-10-19-upstream-resilience
+        operations.re8ch.com/config-revision: 2026-10-21-r640-gateway-anchor
       labels:
         app.kubernetes.io/name: headlamp-gateway-proxy
     spec:
@@ -3406,6 +3406,9 @@ spec:
           name: config
           readOnly: true
           subPath: conf.d/default.conf
+      nodeSelector:
+        scheduling.re8ch.com/network-serving: "true"
+        scheduling.re8ch.com/pool-service-core-r640: "true"
       volumes:
       - configMap:
           items:
