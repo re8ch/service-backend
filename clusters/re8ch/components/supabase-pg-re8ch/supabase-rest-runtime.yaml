@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       annotations:
-        re8ch.com/recovery-rollout: "2026-10-21-schema-cache"
+        re8ch.com/recovery-rollout: "2026-10-21-search-path"
       labels:
         app.kubernetes.io/part-of: supabase-pg-re8ch
         app.kubernetes.io/component: rest
@@ -32,6 +32,9 @@ spec:
             # pg_graphql is not installed in pg-re8ch. Referencing its absent
             # graphql_public schema keeps PostgREST in a schema-cache retry loop.
             - { name: PGRST_DB_SCHEMAS, value: "public,storage" }
+            # The shared PostgreSQL database also has no dedicated extensions
+            # schema; installed extensions resolve through public here.
+            - { name: PGRST_DB_EXTRA_SEARCH_PATH, value: "public" }
             - { name: PGRST_DB_ANON_ROLE, value: anon }
             - { name: PGRST_ADMIN_SERVER_PORT, value: "3001" }
             - { name: PGRST_ADMIN_SERVER_HOST, value: 127.0.0.1 }
