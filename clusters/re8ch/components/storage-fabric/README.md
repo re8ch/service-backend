@@ -2,13 +2,11 @@
 
 ## Cluster authority
 
-The storage control plane is the three-voter K3s cluster on restricted-node-6dc3f140f9
-(`192.0.2.178`), A1 (`192.0.2.176`), and B1 (`192.0.2.4`). These are
-member addresses rather than an HA VIP. Never run this chart through the old
-`192.0.2.192:6443` endpoint: that address now belongs to the
-`vm-20-12-ubuntu` worker and no longer serves the Kubernetes API. Before any
-storage mutation, verify the selected member with `/readyz`, node readiness,
-Rook/Ceph health, and an approved tenant-independent smoke endpoint.
+The Kubernetes API authority is the stable VIP `10.250.0.1:6443`; A1 is its
+sole active K3s server. B1 is a K3s agent/manual DR standby and the sole Ceph
+coordinator. R640 remains a worker/API relay and the single-copy CephFS/RBD
+capacity host. Before any storage mutation, verify VIP `/readyz`, node
+readiness, Rook/Ceph health and an approved tenant-independent smoke endpoint.
 
 This chart inventories visible Alibaba OSS and Tencent COS buckets and can
 install the rclone CSI driver. It keeps object stores parallel to CephFS:
@@ -27,10 +25,9 @@ rclone VFS caches do not provide coherent distributed locking.
 ## Managed local datasets and fallback
 
 When `managedDatasets.enabled=true`, the chart creates one CephFS PVC and one
-additive synchronization CronJob per restricted-node-6dc3f140f9 dataset. R640-backed Ceph pools are
-intentionally single-copy: Kubernetes and the Ceph control plane remain HA,
-but these datasets follow the physical restricted-node-6dc3f140f9 disk and are unavailable while the
-host is down.
+additive synchronization CronJob per R640 dataset. R640-backed Ceph pools are
+intentionally single-copy and unavailable while the host is down. Ceph MON,
+MGR and MDS are also intentionally single-instance on B1; neither layer is HA.
 
 The current data placement is:
 
@@ -40,15 +37,15 @@ The current data placement is:
   pgBackRest repositories and logical dumps are mirrored into managed CephFS.
 - Neo4j live data PVCs use `rbd-r640`; the released local-path PVs are retained
   during the rollback window, and logical Cypher exports are mirrored to CephFS.
-- model assets are mirrored into the managed restricted-node-6dc3f140f9 CephFS data pool.
+- model assets are mirrored into the managed R640 CephFS data pool.
 
-restricted-node-6dc3f140f9 installs `systemd/re8ch-postgres-stack-start` and its service/timer. The
+R640 installs `systemd/re8ch-postgres-stack-start` and its service/timer. The
 timer retries after boot until Ceph can map and mount the dedicated RBD; it
 never promotes either `nofailover` replica. Patroni starts only after the
 expected `PG_VERSION` exists on the mounted filesystem.
 
 Fallback is deliberately one-way and single-writer. It is a recovery copy, not
-an automatic dual-writer failover. Install the units in `systemd/` on restricted-node-6dc3f140f9;
+an automatic dual-writer failover. Install the units in `systemd/` on R640;
 `re8ch-nas-fallback-bind.service` makes the local view private before the CephFS
 primary mount, preventing mount propagation from hiding the fallback copy.
 
@@ -59,7 +56,7 @@ node-side `rclone` container also has a scoped unconfined setting; the host
 AppArmor profile remains enabled.
 
 Ubuntu 26 additionally confines the setuid `fusermount3` helper independently
-of the container. On restricted-node-6dc3f140f9, install `host-apparmor/r640-fusermount3` as
+of the container. On r640, install `host-apparmor/r640-fusermount3` as
 `/etc/apparmor.d/local/fusermount3` and reload `/etc/apparmor.d/fusermount3`.
 The rule admits only `fuse.rclone` mounts below rclone CSI PV paths; it does not
 disable the distro profile.

@@ -82,11 +82,11 @@ mounts: []
 
 placementClasses:
   durableLarge:
-    nodes: [restricted-node-6dc3f140f9]
+    nodes: [r640]
     description: Device-bound large data; temporary unavailability is allowed.
   cephService:
-    nodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-    description: Small HA control daemons only; no automatic disk discovery.
+    nodes: [b1-wsl-zt]
+    description: Single Ceph coordinator; MON, MGR, MDS, operator and CSI controllers only.
   objectCache:
     label: storage.re8ch.com/object-cache
     description: Node-local disposable cache for object-backed datasets.
@@ -101,21 +101,21 @@ r640Allocations:
     deviceClass: r640-hdd
     crushRule: r640-local
     availabilityClass: single-node
-    failureDomain: restricted-node-6dc3f140f9
+    failureDomain: r640
     ha: false
     rbdPool: {name: r640-rbd, replicas: 1}
     cephfsDataPool: {name: re8ch-files-r640, replicas: 1}
     hostImages:
       - {name: pigsty-r640, capacity: 256Gi, mount: /data/pigsty, fallback: /srv/nas/fallback/pigsty}
 
-# restricted-node-6dc3f140f9 remains the active local working set. Each dataset receives a
+# r640 remains the active local working set. Each dataset receives a
 # cluster-visible CephFS managed copy. Synchronization is additive: source
 # files are never deleted, which is the local-disk fallback when Ceph is down.
 managedDatasets:
   enabled: false
   storageClassName: cephfs-r640
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/hostname: r640
   image: docker.io/library/busybox:1.36
   datasets:
     - name: nas-shared
