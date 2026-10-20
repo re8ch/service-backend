@@ -226,6 +226,8 @@ modules:
       digest: sha256:be8040facbd9019fb915a01c3d04f650602e776d8518dd0893edf0ba23a3abd1
     - codename: tramontane-umber
       digest: sha256:467e6f46f7e8419844fe11af9678e6dbe57bc971dcce32c1383ff1cff753bfac
+    - codename: zephyr-umber
+      digest: sha256:1170189c9d888ff22e21a3bf40ce2f5ec7c8634c089ae28b3ce3f65099bc6cd9
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
@@ -617,6 +619,8 @@ modules:
       digest: sha256:29eb6e893ae3697d3a484fac083d093c024116a3637edacb5395fdc5ee8ae6ed
     - codename: etesian-pearl
       digest: sha256:570862ce67ac74dc7e6d4a2f6e715bf8bf3d622c55876a5d615964f2370f1995
+    - codename: mistral-pearl
+      digest: sha256:75a995307d41564662999ca83c043c379f7041690c6687611c5f9eb631640200
   platform/git-workspaces:
     releases:
     - codename: andromeda
