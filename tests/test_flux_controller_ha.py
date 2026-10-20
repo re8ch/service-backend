@@ -89,7 +89,8 @@ def test_source_controller_uses_kl_r640_scheduler_failover():
     assert pod["nodeSelector"] == {"kubernetes.io/os": "linux"}
     preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
     assert preferred[0]["weight"] == 100
-    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
+    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
+    assert preferred[1]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
     assert pod["hostNetwork"] is False
     assert pod["dnsPolicy"] == "ClusterFirst"
     assert "dnsConfig" not in pod
