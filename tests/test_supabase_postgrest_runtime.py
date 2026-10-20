@@ -26,4 +26,7 @@ def test_supabase_postgrest_uses_reproducible_public_image_and_oom_headroom():
     assert container["image"] == POSTGREST_IMAGE
     assert container["resources"]["requests"]["memory"] == "128Mi"
     assert container["resources"]["limits"]["memory"] == "512Mi"
-    assert annotations["re8ch.com/recovery-rollout"] == "2026-10-14-postgrest"
+    assert annotations["re8ch.com/recovery-rollout"] == "2026-10-21-schema-cache"
+
+    env = {item["name"]: item for item in container["env"]}
+    assert env["PGRST_DB_SCHEMAS"]["value"] == "public,storage"

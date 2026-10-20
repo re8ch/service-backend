@@ -1358,7 +1358,7 @@ spec:
   template:
     metadata:
       annotations:
-        re8ch.com/recovery-rollout: 2026-10-14-postgrest
+        re8ch.com/recovery-rollout: 2026-10-21-schema-cache
       labels:
         app.kubernetes.io/component: rest
         app.kubernetes.io/part-of: supabase-pg-re8ch
@@ -1370,6 +1370,8 @@ spec:
             secretKeyRef:
               key: PGRST_DB_URI
               name: supabase-pg-re8ch-secrets
+        - name: PGRST_DB_SCHEMAS
+          value: public,storage
         - name: PGRST_DB_ANON_ROLE
           value: anon
         - name: PGRST_ADMIN_SERVER_PORT
