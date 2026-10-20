@@ -39,8 +39,11 @@ def test_billing_stack_is_isolated_and_activated() -> None:
     assert pvc["spec"]["storageClassName"] == "rbd-r640"
     assert pvc["spec"]["resources"]["requests"]["storage"] == "20Gi"
 
-    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/commerce-billing/source/kustomization.yaml").read_text())
-    assert "../../../../../operations/supabase-billing" in domain["resources"]
+    identity = yaml.safe_load((ROOT / "clusters/re8ch/domains/identity-access/source/kustomization.yaml").read_text())
+    commerce = yaml.safe_load((ROOT / "clusters/re8ch/domains/commerce-billing/source/kustomization.yaml").read_text())
+    resource = "../../../../../operations/supabase-billing"
+    assert resource in identity["resources"]
+    assert resource not in commerce["resources"]
 
 
 def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:
@@ -120,7 +123,7 @@ def test_billing_network_policy_tracks_selectorless_pigsty_service() -> None:
         "toEntities": ["host"],
         "toPorts": [{"ports": [{"port": "5432", "protocol": "TCP"}]}],
     }
-    assert "192.0.2.205/32" not in (BASE / "network-policy.yaml").read_text()
+    assert "10.250.0.128/32" not in (BASE / "network-policy.yaml").read_text()
 
 
 def test_billing_network_policy_allows_gateway_identity_to_kong_only() -> None:

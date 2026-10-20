@@ -2495,6 +2495,25 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: flux-identity-access-namespaced
+  namespace: supabase-billing
+  labels:
+    gitops.re8ch.com/domain: identity-access
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: flux-identity-access-namespaced
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-identity-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-identity-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-identity-access-namespaced
   namespace: supabase-identity
   labels:
     gitops.re8ch.com/domain: identity-access
