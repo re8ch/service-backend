@@ -1126,14 +1126,17 @@ data:
     json\nimport secrets\nimport time\nfrom dataclasses import asdict, dataclass\nfrom
     datetime import datetime, timezone\nfrom urllib.parse import quote, urlencode\n\nMONTHLY_SOFT_LIMIT
     = 300 * 1024**3\nAUTH_MAX_STALE_SECONDS = 24 * 60 * 60\nPROFILE_TITLE = \"access
-    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261003-la-preferred-de-fallback-1\"\n\n#
+    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261020-r640-cn-direct-1\"\n\n#
     Emergency publication gate: overseas-edge-50 is retired and overseas-kl is\n#
-    still recovering. Keep clients on the two independently reachable LA\n# listeners
-    instead of allowing URL-test/fallback groups to flap across stale\n# routes. Re-enable
-    KL only after its host and both protocols pass qualification.\nACTIVE_PUBLICATION_IDS
-    = frozenset({\"direct-la-anytls\", \"direct-la-hysteria2\"})\n\n# Keep critical
-    mainland cloud consoles deterministic even when an upstream\n# community ruleset
-    is incomplete or temporarily unavailable.\nCN_CLOUD_DIRECT_DOMAINS = (\n    \"cloud.tencent.com\",\n
+    still recovering. Keep the two independently reachable LA listeners and the\n#
+    verified restricted-node-6dc3f140f9 AnyTLS listener published. The restricted-node-6dc3f140f9 listener terminates the\n# mainland
+    connection locally, then delegates destination-aware egress to the\n# node-local
+    smart fabric: CN destinations stay direct and international\n# destinations use
+    a healthy Global provider. Re-enable other candidates only\n# after their host
+    and protocol pass qualification.\nACTIVE_PUBLICATION_IDS = frozenset({\"direct-la-anytls\",
+    \"direct-la-hysteria2\", \"direct-cn-anytls\"})\n\n# Keep critical mainland cloud
+    consoles deterministic even when an upstream\n# community ruleset is incomplete
+    or temporarily unavailable.\nCN_CLOUD_DIRECT_DOMAINS = (\n    \"cloud.tencent.com\",\n
     \   \"tencentcloud.com\",\n    \"tencentcloudapi.com\",\n    \"qcloud.com\",\n
     \   \"myqcloud.com\",\n    \"qcloudcdn.com\",\n    \"aliyun.com\",\n    \"aliyuncs.com\",\n
     \   \"alicdn.com\",\n    \"huaweicloud.com\",\n    \"huaweicloudapis.com\",\n
@@ -1727,7 +1730,7 @@ data:
             time.sleep(5)
 kind: ConfigMap
 metadata:
-  name: access-subscription-code-9b5k4f4ddb
+  name: access-subscription-code-k4m47g785f
   namespace: egress-fabric
 ---
 apiVersion: v1
@@ -5660,7 +5663,7 @@ spec:
       serviceAccountName: access-controller
       volumes:
       - configMap:
-          name: access-subscription-code-9b5k4f4ddb
+          name: access-subscription-code-k4m47g785f
         name: code
       - name: hmac
         secret:
@@ -5727,7 +5730,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: access-subscription-code-9b5k4f4ddb
+          name: access-subscription-code-k4m47g785f
         name: code
       - name: rules
         persistentVolumeClaim:
@@ -5825,7 +5828,7 @@ spec:
       serviceAccountName: access-subscription
       volumes:
       - configMap:
-          name: access-subscription-code-9b5k4f4ddb
+          name: access-subscription-code-k4m47g785f
         name: code
       - name: hmac
         secret:
@@ -6289,7 +6292,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-9b5k4f4ddb
+          name: access-subscription-code-k4m47g785f
         name: app-code
       - name: controller
         secret:
@@ -6462,7 +6465,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-9b5k4f4ddb
+          name: access-subscription-code-k4m47g785f
         name: app-code
       - name: controller
         secret:
