@@ -1,0 +1,33 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-a1
+  labels:
+    storage.re8ch.com/availability-class: node-local
+    storage.re8ch.com/failure-domain: a1-wsl-zt
+    storage.re8ch.com/replication: "1"
+  annotations:
+    storage.re8ch.com/ha: "false"
+    storage.re8ch.com/usage-policy: >-
+      A1-only local storage for node-owned, rebuildable or externally backed
+      state. Static PVs must enforce node affinity to a1-wsl-zt.
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-b1
+  labels:
+    storage.re8ch.com/availability-class: node-local
+    storage.re8ch.com/failure-domain: b1-wsl-zt
+    storage.re8ch.com/replication: "1"
+  annotations:
+    storage.re8ch.com/ha: "false"
+    storage.re8ch.com/usage-policy: >-
+      B1-only local storage for node-owned, rebuildable or externally backed
+      state. Static PVs must enforce node affinity to b1-wsl-zt.
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer

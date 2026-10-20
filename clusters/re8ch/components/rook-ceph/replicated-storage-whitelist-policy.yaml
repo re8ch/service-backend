@@ -2,6 +2,8 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
   name: replicated-storage-whitelist.re8ch.com
+  annotations:
+    storage.re8ch.com/purpose: block-new-legacy-cephfs-claims
 spec:
   failurePolicy: Fail
   matchConstraints:
@@ -13,12 +15,11 @@ spec:
   validations:
     - expression: >-
         !has(object.spec.storageClassName) ||
-        !(object.spec.storageClassName in ['cephfs-re8ch', 'cephfs-pilot']) ||
-        (has(object.metadata.labels) &&
-         object.metadata.labels['storage.re8ch.com/replicated-approved'] == 'true')
+        !(object.spec.storageClassName in ['cephfs-re8ch', 'cephfs-pilot'])
       message: >-
-        Replicated Ceph storage is deny-by-default. Use cephfs-r640, rbd-r640,
-        or local-path, unless this PVC is explicitly replication-approved.
+        cephfs-re8ch and cephfs-pilot are retired for new claims. Use
+        cephfs-r640 for externally backed-up shared data, rbd-r640 for
+        application-consistent block data, or local-path for rebuildable data.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

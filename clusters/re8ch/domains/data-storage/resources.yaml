@@ -12,6 +12,38 @@ kind: Namespace
 metadata:
   name: observable
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    storage.re8ch.com/ha: "false"
+    storage.re8ch.com/usage-policy: A1-only local storage for node-owned, rebuildable
+      or externally backed state. Static PVs must enforce node affinity to restricted-node-1eb0570f74.
+  labels:
+    storage.re8ch.com/availability-class: node-local
+    storage.re8ch.com/failure-domain: restricted-node-1eb0570f74
+    storage.re8ch.com/replication: "1"
+  name: local-a1
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    storage.re8ch.com/ha: "false"
+    storage.re8ch.com/usage-policy: B1-only local storage for node-owned, rebuildable
+      or externally backed state. Static PVs must enforce node affinity to restricted-node-296f36f2fb.
+  labels:
+    storage.re8ch.com/availability-class: node-local
+    storage.re8ch.com/failure-domain: restricted-node-296f36f2fb
+    storage.re8ch.com/replication: "1"
+  name: local-b1
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
 apiVersion: v1
 automountServiceAccountToken: false
 kind: ServiceAccount
@@ -42,12 +74,12 @@ data:
       skipUpgradeChecks: false
       continueUpgradeAfterChecksEvenIfNotHealthy: false
       mon:
-        count: 3
+        # Deliberate fault-isolation topology: B1 is the sole Ceph coordinator.
+        # Data durability is provided by explicit backups, not MON quorum.
+        count: 1
         allowMultiplePerNode: false
       mgr:
-        # Keep a standby manager on a different storage host so a scheduled
-        # control-plane restart does not remove the only manager daemon.
-        count: 2
+        count: 1
         allowMultiplePerNode: false
       dashboard:
         enabled: false
@@ -88,6 +120,10 @@ data:
               operator: Equal
               value: closed
               effect: NoSchedule
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
@@ -106,6 +142,10 @@ data:
               operator: Equal
               value: closed
               effect: NoSchedule
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
@@ -113,15 +153,16 @@ data:
                     - key: scheduling.re8ch.com/capability-storage-ceph-osd
                       operator: In
                       values: ["true"]
-        mgr:
-          podAntiAffinity:
+        mon:
+          nodeAffinity: &b1CoordinatorAffinity
             requiredDuringSchedulingIgnoredDuringExecution:
-              - labelSelector:
-                  matchExpressions:
-                    - key: app
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: storage.re8ch.com/coordinator
                       operator: In
-                      values: [rook-ceph-mgr]
-                topologyKey: kubernetes.io/hostname
+                      values: ["true"]
+        mgr:
+          nodeAffinity: *b1CoordinatorAffinity
       resources:
         mon:
           limits:
@@ -183,12 +224,6 @@ data:
           - name: restricted-node-6dc3f140f9
             devices:
               - name: /dev/ubuntu-vg/ceph_pilot_osd
-          - name: restricted-node-1eb0570f74
-            devices:
-              - name: /dev/disk/by-id/scsi-360022480b66b60a8f0c873bb147edef8
-          - name: restricted-node-296f36f2fb
-            devices:
-              - name: /dev/disk/by-id/scsi-36002248092fe886403f06a91bb13700e
       disruptionManagement:
         managePodBudgets: true
         osdMaintenanceTimeout: 30
@@ -246,15 +281,19 @@ data:
         spec:
           metadataPool:
             failureDomain: host
+            deviceClass: r640-hdd
             replicated:
-              size: 3
-              requireSafeReplicaSize: true
+              size: 1
+              requireSafeReplicaSize: false
           dataPools:
+            # Retained until every legacy PVC is migrated and the seven-day
+            # rollback window has elapsed. A later reviewed cleanup removes it.
             - name: data0
               failureDomain: host
+              deviceClass: r640-hdd
               replicated:
-                size: 3
-                requireSafeReplicaSize: true
+                size: 1
+                requireSafeReplicaSize: false
             - name: restricted-node-6dc3f140f9
               failureDomain: host
               deviceClass: r640-hdd
@@ -263,23 +302,20 @@ data:
                 requireSafeReplicaSize: false
           metadataServer:
             activeCount: 1
-            activeStandby: true
+            activeStandby: false
             placement:
+              tolerations:
+                - key: storage.re8ch.com/coordinator
+                  operator: Equal
+                  value: "true"
+                  effect: NoSchedule
               nodeAffinity:
                 requiredDuringSchedulingIgnoredDuringExecution:
                   nodeSelectorTerms:
                     - matchExpressions:
-                        - key: kubernetes.io/hostname
+                        - key: storage.re8ch.com/coordinator
                           operator: In
-                          values: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74, restricted-node-296f36f2fb]
-              podAntiAffinity:
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  - labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values: [rook-ceph-mds]
-                    topologyKey: kubernetes.io/hostname
+                          values: ["true"]
             resources:
               limits:
                 memory: 1Gi
@@ -292,6 +328,14 @@ data:
           isDefault: false
           name: cephfs-pilot
           pool: data0
+          labels:
+            storage.re8ch.com/availability-class: retired
+            storage.re8ch.com/replication: "1"
+          annotations:
+            storage.re8ch.com/deprecated: "true"
+            storage.re8ch.com/usage-policy: >-
+              Retired replicated CephFS class. Existing claims remain readable;
+              admission rejects new claims while owners migrate to cephfs-r640.
           reclaimPolicy: Retain
           allowVolumeExpansion: true
           volumeBindingMode: Immediate
@@ -330,7 +374,7 @@ data:
           priorityClassName: system-node-critical
         controllerPlugin:
           priorityClassName: system-cluster-critical
-          replicas: 2
+          replicas: 1
 
     drivers:
       rbd:
@@ -342,6 +386,10 @@ data:
               operator: Equal
               value: closed
               effect: NoSchedule
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
           affinity:
             nodeAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
@@ -351,28 +399,24 @@ data:
                         operator: In
                         values: ["true"]
         controllerPlugin:
-          replicas: 2
+          replicas: 1
           tolerations:
             - key: scheduling.re8ch.com/capacity-window
               operator: Equal
               value: closed
+              effect: NoSchedule
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
               effect: NoSchedule
           affinity:
             nodeAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
                 nodeSelectorTerms:
                   - matchExpressions:
-                      - key: kubernetes.io/hostname
+                      - key: storage.re8ch.com/coordinator
                         operator: In
-                        values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
-            podAntiAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                - labelSelector:
-                    matchExpressions:
-                      - key: app
-                        operator: In
-                        values: [rook-ceph.rbd.csi.ceph.com-ctrlplugin]
-                  topologyKey: kubernetes.io/hostname
+                        values: ["true"]
       cephfs:
         enabled: true
         name: rook-ceph.cephfs.csi.ceph.com
@@ -385,6 +429,10 @@ data:
             - key: scheduling.re8ch.com/capacity-window
               operator: Equal
               value: closed
+              effect: NoSchedule
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
               effect: NoSchedule
             - key: dedicated
               operator: Equal
@@ -403,8 +451,7 @@ data:
                         operator: In
                         values: ["true"]
         controllerPlugin:
-          # Provisioning must survive one scheduled control-plane restart.
-          replicas: 2
+          replicas: 1
           # A1/B1 currently cannot reliably reach the Kubernetes Service VIP from
           # PodCIDR. Keep the CSI control plane independent of that service path.
           hostNetwork: true
@@ -413,22 +460,18 @@ data:
               operator: Equal
               value: closed
               effect: NoSchedule
+            - key: storage.re8ch.com/coordinator
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
           affinity:
             nodeAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
                 nodeSelectorTerms:
                   - matchExpressions:
-                      - key: kubernetes.io/hostname
+                      - key: storage.re8ch.com/coordinator
                         operator: In
-                        values: ["restricted-node-6dc3f140f9", "restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
-            podAntiAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-                - labelSelector:
-                    matchExpressions:
-                      - key: app
-                        operator: In
-                        values: [rook-ceph.cephfs.csi.ceph.com-ctrlplugin]
-                  topologyKey: kubernetes.io/hostname
+                        values: ["true"]
       nfs:
         enabled: false
         name: rook-ceph.nfs.csi.ceph.com
@@ -444,17 +487,21 @@ apiVersion: v1
 data:
   values.yaml: |
     # Rook v1.20.3 pilot settings for the RE8CH K3s v1.36 cluster.
-    # All three OSDs use dedicated block devices (VHDX or LV); loop-backed images
-    # are deliberately rejected.
+    # restricted-node-6dc3f140f9 is the sole OSD host. A1/B1 disks are node-local pools and are never
+    # eligible for Rook discovery; loop-backed images are deliberately rejected.
     allowLoopDevices: false
 
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      storage.re8ch.com/coordinator: "true"
 
     tolerations:
       - key: scheduling.re8ch.com/capacity-window
         operator: Equal
         value: closed
+        effect: NoSchedule
+      - key: storage.re8ch.com/coordinator
+        operator: Equal
+        value: "true"
         effect: NoSchedule
 
     resources:
@@ -1434,6 +1481,40 @@ spec:
     matchLabels:
       app.kubernetes.io/name: observable-postgrest
 ---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  annotations:
+    storage.re8ch.com/purpose: block-new-legacy-cephfs-claims
+  name: replicated-storage-whitelist.re8ch.com
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - persistentvolumeclaims
+  validations:
+  - expression: '!has(object.spec.storageClassName) || !(object.spec.storageClassName
+      in [''cephfs-re8ch'', ''cephfs-pilot''])'
+    message: cephfs-re8ch and cephfs-pilot are retired for new claims. Use cephfs-r640
+      for externally backed-up shared data, rbd-r640 for application-consistent block
+      data, or local-path for rebuildable data.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: replicated-storage-whitelist.re8ch.com
+spec:
+  policyName: replicated-storage-whitelist.re8ch.com
+  validationActions:
+  - Deny
+---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -1883,8 +1964,10 @@ metadata:
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/mihomo-control: enabled
-    scheduling.re8ch.com/capability-storage-ceph-osd: "true"
-    storage.re8ch.com/ceph-pilot: "true"
+    scheduling.re8ch.com/capability-storage-ceph-osd: "false"
+    storage.re8ch.com/ceph-pilot: "false"
+    storage.re8ch.com/local-pool: a1
+    storage.re8ch.com/role: local-control-plane
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
   name: restricted-node-1eb0570f74
@@ -1896,11 +1979,19 @@ metadata:
     networking.re8ch.com/egress-policy: auto
     networking.re8ch.com/firewall: cn
     networking.re8ch.com/mihomo-control: enabled
-    scheduling.re8ch.com/capability-storage-ceph-osd: "true"
-    storage.re8ch.com/ceph-pilot: "true"
+    scheduling.re8ch.com/capability-storage-ceph-osd: "false"
+    storage.re8ch.com/ceph-pilot: "false"
+    storage.re8ch.com/coordinator: "true"
+    storage.re8ch.com/local-pool: b1
+    storage.re8ch.com/role: coordinator-local
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
   name: restricted-node-296f36f2fb
+spec:
+  taints:
+  - effect: NoSchedule
+    key: storage.re8ch.com/coordinator
+    value: "true"
 ---
 apiVersion: v1
 kind: Node
@@ -1912,6 +2003,7 @@ metadata:
     networking.re8ch.com/mihomo-exit-cn: enabled
     scheduling.re8ch.com/capability-storage-ceph-osd: "true"
     storage.re8ch.com/ceph-pilot: "true"
+    storage.re8ch.com/role: capacity-compute-osd
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
   name: restricted-node-6dc3f140f9

@@ -4,57 +4,59 @@ defaults:
   sshUser: re8ch-ai
   authentication: cloud-platform-permanent-jump-key
 nodes:
-  - {id: restricted-node-6dc3f140f9, roles: [worker, pg-re8ch, api-relay], sshTarget: restricted-node-6dc3f140f9, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
-  - {id: restricted-node-abb3f27a69, roles: [], sshTarget: null, operationPolicy: control-plane-two-person, managementState: fenced-retired-offline, firewall: none, egressPolicy: disabled, mihomoNode: disabled}
-  - id: restricted-node-1eb0570f74
+  - {id: r640, roles: [worker, pg-re8ch, api-relay], sshTarget: r640, operationPolicy: control-plane-two-person, firewall: cn, egressPolicy: auto, mihomoNode: enabled, cephStorage: true, cephClient: true}
+  - {id: mubao-wsl, roles: [], sshTarget: null, operationPolicy: control-plane-two-person, managementState: fenced-retired-offline, firewall: none, egressPolicy: disabled, mihomoNode: disabled}
+  - id: a1-wsl-zt
     roles: [control-plane, etcd]
     sshTarget: null
     operationPolicy: control-plane-two-person
     managementState: unverified
     firewall: cn
     egressPolicy: auto
-    cephStorage: true
+    cephStorage: false
     cephClient: true
+    localStorageClass: local-a1
     host:
       platform: Windows Server 2022 / WSL2 NAT
       cloudPlatformNode: a1-windows
-      sshTarget: Administrator@192.0.2.145
-      windowsLanIp: 192.0.2.145
-      wslNatCidr: 192.0.2.56/20
-      peerHost: restricted-node-296f36f2fb
-      peerWindowsLanIp: 192.0.2.253
+      sshTarget: Administrator@192.168.254.69
+      windowsLanIp: 192.168.254.69
+      wslNatCidr: 172.28.32.0/20
+      peerHost: b1-wsl-zt
+      peerWindowsLanIp: 192.168.254.86
     fabric:
-      nodeIdentity: 192.0.2.18
-      podCIDR: 192.0.2.109/24
-      windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.41/30, peerPort: 51820}
+      nodeIdentity: 10.181.22.147
+      podCIDR: 10.42.10.0/24
+      windowsWireGuard: {interface: re8ch-wsl-lan, address: 172.31.250.1/30, peerPort: 51820}
       hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
-      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.59/30, peer: restricted-node-296f36f2fb, apiVipPaths: [local-owner, advfab-relay]}
-      r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 192.0.2.79, hubBackend: 192.0.2.97}
+      wslWireGuard: {interface: wg-wsl-lan, address: 172.31.251.1/30, peer: b1-wsl-zt, apiVipPaths: [local-owner, advfab-relay]}
+      r640Transit: {interface: wg-pt-a1, port: 51889, hubPublicIp: 223.159.210.222, hubBackend: 192.168.88.251}
     watchdog: {role: active-server, serviceName: k3s.service}
-  - id: restricted-node-296f36f2fb
+  - id: b1-wsl-zt
     roles: [worker, manual-dr-standby]
-    sshTarget: restricted-node-296f36f2fb
+    sshTarget: b1-wsl-zt
     operationPolicy: control-plane-two-person
     managementState: cloud-platform-managed
     firewall: cn
     egressPolicy: auto
-    cephStorage: true
+    cephStorage: false
     cephClient: true
+    localStorageClass: local-b1
     host:
       platform: Windows Server 2022 / WSL2 NAT
       cloudPlatformNode: b1-windows
-      sshTarget: Administrator@192.0.2.253
-      windowsLanIp: 192.0.2.253
-      wslNatCidr: 192.0.2.216/20
-      peerHost: restricted-node-1eb0570f74
-      peerWindowsLanIp: 192.0.2.145
+      sshTarget: Administrator@192.168.254.86
+      windowsLanIp: 192.168.254.86
+      wslNatCidr: 172.18.144.0/20
+      peerHost: a1-wsl-zt
+      peerWindowsLanIp: 192.168.254.69
     fabric:
-      nodeIdentity: 192.0.2.208
-      podCIDR: 192.0.2.26/24
-      windowsWireGuard: {interface: re8ch-wsl-lan, address: 192.0.2.165/30, peerPort: 51820}
+      nodeIdentity: 10.181.22.125
+      podCIDR: 10.42.13.0/24
+      windowsWireGuard: {interface: re8ch-wsl-lan, address: 172.31.250.2/30, peerPort: 51820}
       hnscForward: {protocol: udp, hostPort: 51821, guestPort: 51821}
-      wslWireGuard: {interface: wg-wsl-lan, address: 192.0.2.163/30, peer: restricted-node-1eb0570f74, apiVipPaths: [hnsc-host-lan-direct, advfab-relay]}
-      r640Transit: {interface: wg-pt-b1, port: 51890, hubPublicIp: 192.0.2.79, hubBackend: 192.0.2.97}
+      wslWireGuard: {interface: wg-wsl-lan, address: 172.31.251.2/30, peer: a1-wsl-zt, apiVipPaths: [hnsc-host-lan-direct, advfab-relay]}
+      r640Transit: {interface: wg-pt-b1, port: 51890, hubPublicIp: 223.159.210.222, hubBackend: 192.168.88.251}
     watchdog: {role: worker-standby, serviceName: k3s-agent.service}
   - {id: amdwsl-zt, roles: [gpu], sshTarget: amdwsl-zt, operationPolicy: worker-one-person, managementState: unverified, firewall: cn, egressPolicy: auto, mihomoNode: enabled}
   - {id: artchais-nuclio-1, roles: [nuclio], sshTarget: artchais, operationPolicy: worker-one-person}
