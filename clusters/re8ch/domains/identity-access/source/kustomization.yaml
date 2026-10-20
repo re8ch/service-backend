@@ -14,6 +14,7 @@ resources:
 - ../../../components/auth/services/re8ch-auth-gateway.yaml
 - ../../../components/auth/user-center.yaml
 - ../../../../../operations/supabase-identity
+- ../../../../../operations/supabase-billing
 - ../../../components/re8ch-business-namespaces
 - ../../../components/personal-access
 - ../../../../../platform/agent-onboarding-runtime

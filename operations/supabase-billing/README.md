@@ -4,9 +4,16 @@ This directory defines a complete Supabase runtime dedicated to the existing
 `re8ch_billing` database. It never targets `re8ch_identity` and does not reuse
 Identity JWT, database, Storage, Realtime, dashboard, or service-role secrets.
 
-The stack is intentionally not referenced by `clusters/re8ch/kustomization.yaml`
-until the database and Secret gates below are complete. Activating workloads
-before those gates would create failing Pods and an unaudited public surface.
+The Identity Flux domain owns this runtime's lifecycle because Billing is
+currently administered with User Hub organizations and identity policy. This
+is controller ownership only: Billing keeps its separate database, schema,
+service accounts, JWT signer, Secrets, and public contracts. Agent Flux owns
+Catalog/Bifurcate and must not reconcile Billing objects.
+
+The manifests are declared in the Identity domain, but rollout remains gated
+on the database and Secret preflight below. Missing preflight material is a
+hard stop; it must not be replaced with GitHub registry credentials or shared
+Identity service-role keys.
 
 ## Authority and public contracts
 
@@ -72,9 +79,9 @@ Every database URI must name `re8ch_billing`. Storage uses its own 20 GiB
 
 ## Activation and rollout
 
-After preflight, add `../../operations/supabase-billing` to the cluster root in
-a separate signed activation commit. Verify restricted-node-6dc3f140f9 allocatable resources and
-current requests before merge. Flux must apply the signed main revision.
+After preflight, verify restricted-node-6dc3f140f9 allocatable resources and current requests, then
+allow Identity Flux to roll out the already-declared Billing resources. Flux
+must apply the signed autonomous Identity repository revision.
 
 Run internal component health and auth federation first. Then expose the two
 DNS names and run REST RW/RO denial tests, cross-user Storage denial, private

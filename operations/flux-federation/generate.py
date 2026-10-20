@@ -101,6 +101,10 @@ EXTERNAL_TARGET_NAMESPACES = {
     # service-backend bundle. Agent Flux still needs a namespace-scoped binding
     # before it can reconcile the authoritative agent-gitops declaration.
     "agent-runtime": {"catalog", "cosyvoice"},
+    # Billing remains a separate database/runtime boundary, but its lifecycle
+    # is governed alongside User Hub and organization identity until a
+    # dedicated Billing Flux domain is introduced.
+    "identity-access": {"supabase-billing"},
     "observability-metering": {
         "ai-operations",
         "artchais",

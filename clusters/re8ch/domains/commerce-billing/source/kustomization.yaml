@@ -8,7 +8,6 @@ resources:
 - ../../../secrets/commerce-ruiqi-api-v3.sops.yaml
 - ../../../secrets/commerce-ruiqi-platform-certificate.sops.yaml
 - ../../../secrets/ledger-wechat-app-identities.sops.yaml
-- ../../../../../operations/supabase-billing
 - ../../../components/payments/credits-runtime.yaml
 - ../../../components/payments/commerce-runtime.yaml
 - ../../../../../platform/hyperswitch
