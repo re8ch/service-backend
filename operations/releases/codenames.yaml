@@ -709,6 +709,8 @@ modules:
       digest: sha256:c640dab9314c2b0c8199588a78ad1598234d3db9c84b9b43f60427409be6ddb7
     - codename: citadel-amber
       digest: sha256:0051f9d4008df784a1544858fc9c7d4d1057d20be4ceb96b0fc3a24061c39f79
+    - codename: sentinel-amber
+      digest: sha256:ad66afd423b5bebee1c20e8fd5bb765d71457350c5b613bf396a9341d642b37c
   platform/connectool:
     releases:
     - codename: anchor
