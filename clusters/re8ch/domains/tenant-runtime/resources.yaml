@@ -2067,6 +2067,63 @@ spec:
   timeout: 5m
   wait: true
 ---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: comfy-cloud-runtime-boundary
+spec:
+  background: true
+  rules:
+  - match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+          namespaces:
+          - re8ch-comfy-cloud
+    name: require-tenant-runtime-identity
+    validate:
+      message: Comfy Cloud Pods must be non-root, disable token mounting, and use
+        the runtime service account.
+      pattern:
+        spec:
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: comfy-cloud-runtime
+  - match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+          namespaces:
+          - re8ch-comfy-cloud
+    name: forbid-host-access
+    validate:
+      deny:
+        conditions:
+          any:
+          - key: '{{ request.object.spec.hostNetwork || false }}'
+            operator: Equals
+            value: true
+          - key: '{{ request.object.spec.hostPID || false }}'
+            operator: Equals
+            value: true
+          - key: '{{ request.object.spec.hostIPC || false }}'
+            operator: Equals
+            value: true
+          - key: '{{ request.object.spec.volumes[?hostPath] | length(@) }}'
+            operator: GreaterThan
+            value: 0
+          - key: '{{ request.object.spec.containers[?securityContext.privileged ==
+              `true`] | length(@) }}'
+            operator: GreaterThan
+            value: 0
+      message: Tenant runtimes may not use privileged mode, host namespaces, or hostPath.
+  validationFailureAction: Enforce
+---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
 metadata:

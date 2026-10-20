@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - resources
   - governance/controllers.yaml
+  - governance/policies/comfy-cloud-policy.yaml
