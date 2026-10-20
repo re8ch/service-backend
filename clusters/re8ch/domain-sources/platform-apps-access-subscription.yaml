@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: citadel-amber
+    delivery.re8ch.com/codename: sentinel-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
   ref:
-    digest: sha256:0051f9d4008df784a1544858fc9c7d4d1057d20be4ceb96b0fc3a24061c39f79
+    digest: sha256:ad66afd423b5bebee1c20e8fd5bb765d71457350c5b613bf396a9341d642b37c
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: citadel-amber
+    delivery.re8ch.com/codename: sentinel-amber
 spec:
   interval: 1m
   retryInterval: 1m
