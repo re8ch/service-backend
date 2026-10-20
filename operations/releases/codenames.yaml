@@ -615,6 +615,8 @@ modules:
       digest: sha256:0c2aab4176f88165bf6a0a3899bab3f91a2da5ffcad0295b6e25367343ce52d9
     - codename: chinook-pearl
       digest: sha256:29eb6e893ae3697d3a484fac083d093c024116a3637edacb5395fdc5ee8ae6ed
+    - codename: etesian-pearl
+      digest: sha256:570862ce67ac74dc7e6d4a2f6e715bf8bf3d622c55876a5d615964f2370f1995
   platform/git-workspaces:
     releases:
     - codename: andromeda
