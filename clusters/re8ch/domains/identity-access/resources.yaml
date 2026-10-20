@@ -542,10 +542,10 @@ data:
   app.py: "#!/usr/bin/env python3\n\"\"\"Auth Gateway-fronted Store, admin API and
     device-scoped subscription service.\"\"\"\n\nfrom __future__ import annotations\n\nimport
     hashlib\nimport hmac\nimport ipaddress\nimport json\nimport mimetypes\nimport
-    os\nimport secrets\nimport socket\nimport ssl\nimport time\nimport urllib.error\nimport
-    urllib.request\nfrom http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\nfrom
-    pathlib import Path\nfrom urllib.parse import parse_qs, quote, urlencode, urlparse\n\nfrom
-    core import (DEFAULT_NODES, Node, Publication, RuntimeTarget, authorization, canonical_subject,
+    os\nimport secrets\nimport ssl\nimport time\nimport urllib.error\nimport urllib.request\nfrom
+    http.server import BaseHTTPRequestHandler, ThreadingHTTPServer\nfrom pathlib import
+    Path\nfrom urllib.parse import parse_qs, quote, urlencode, urlparse\n\nfrom core
+    import (DEFAULT_NODES, Node, Publication, RuntimeTarget, authorization, canonical_subject,
     clash_meta_import_url, issue_token, mihomo_config, proxy_password,\n                  public_node,
     shadowrocket_config, shadowrocket_import_url, SHADOWROCKET_PROFILE_REVISION, subscription_body,\n
     \                 subscription_headers, v2box_subscription_body, v2box_subscription_import_url,
@@ -630,40 +630,39 @@ data:
     \"Content-Type\": content_type})\n    context = ssl.create_default_context(cafile=\"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt\")\n
     \   with urllib.request.urlopen(request, context=context, timeout=5) as response:\n
     \       return json.load(response) if response.length != 0 else {}\n\n\ndef edge_access_nodes(nodes:
-    list[dict], pods: list[dict], probe) -> tuple[Node, ...]:\n    ready_pods = {\n
-    \       pod.get(\"spec\", {}).get(\"nodeName\")\n        for pod in pods\n        if
-    pod.get(\"metadata\", {}).get(\"labels\", {}).get(\"app.kubernetes.io/name\")
-    == \"edge-access-anytls\"\n        and any(item.get(\"type\") == \"Ready\" and
-    item.get(\"status\") == \"True\"\n                for item in pod.get(\"status\",
-    {}).get(\"conditions\", []))\n    }\n    discovered = []\n    for node in nodes:\n
-    \       metadata = node.get(\"metadata\", {})\n        name = metadata.get(\"name\",
-    \"\")\n        if name not in ready_pods or metadata.get(\"labels\", {}).get(\"networking.re8ch.com/edge-access-anytls\")
+    list[dict], pods: list[dict]) -> tuple[Node, ...]:\n    ready_pods = {\n        pod.get(\"spec\",
+    {}).get(\"nodeName\")\n        for pod in pods\n        if pod.get(\"metadata\",
+    {}).get(\"labels\", {}).get(\"app.kubernetes.io/name\") == \"edge-access-anytls\"\n
+    \       and any(item.get(\"type\") == \"Ready\" and item.get(\"status\") == \"True\"\n
+    \               for item in pod.get(\"status\", {}).get(\"conditions\", []))\n
+    \   }\n    discovered = []\n    for node in nodes:\n        metadata = node.get(\"metadata\",
+    {})\n        name = metadata.get(\"name\", \"\")\n        if name not in ready_pods
+    or metadata.get(\"labels\", {}).get(\"networking.re8ch.com/edge-access-anytls\")
     != \"enabled\":\n            continue\n        if not any(item.get(\"type\") ==
     \"Ready\" and item.get(\"status\") == \"True\"\n                   for item in
     node.get(\"status\", {}).get(\"conditions\", [])):\n            continue\n        addresses
     = [item.get(\"address\", \"\") for item in node.get(\"status\", {}).get(\"addresses\",
     [])\n                     if item.get(\"type\") == \"ExternalIP\"]\n        public_ip
-    = next((ip for ip in addresses if _global_ipv4(ip)), \"\")\n        if not public_ip
-    or not probe(public_ip):\n            continue\n        capacity = int(metadata.get(\"annotations\",
-    {}).get(\"networking.re8ch.com/capacity-mbps\", \"0\"))\n        if capacity <
-    100:\n            continue\n        region = metadata.get(\"labels\", {}).get(\"topology.kubernetes.io/region\",
-    \"global\")\n        labels = {(\"overseas-la-2\", \"us-ca\"): \"\U0001F1FA\U0001F1F8
-    洛杉矶 2 · EdgeAccess\",\n                  (\"overseas-flk\", \"de-fsn\"): \"\U0001F1E9\U0001F1EA
-    德国 Falkenstein · EdgeAccess\"}\n        discovered.append(Node(f\"edge-access-{name}\",
+    = next((ip for ip in addresses if _global_ipv4(ip)), \"\")\n        if not public_ip:\n
+    \           continue\n        capacity = int(metadata.get(\"annotations\", {}).get(\"networking.re8ch.com/capacity-mbps\",
+    \"0\"))\n        if capacity < 100:\n            continue\n        region = metadata.get(\"labels\",
+    {}).get(\"topology.kubernetes.io/region\", \"global\")\n        labels = {(\"overseas-la-2\",
+    \"us-ca\"): \"\U0001F1FA\U0001F1F8 洛杉矶 2 · EdgeAccess\",\n                  (\"overseas-flk\",
+    \"de-fsn\"): \"\U0001F1E9\U0001F1EA 德国 Falkenstein · EdgeAccess\"}\n        discovered.append(Node(f\"edge-access-{name}\",
     labels.get((name, region), f\"\U0001F310 EdgeAccess · {name}\"),\n                               Publication(\"anytls\",
     public_ip, 24443, \"access.re8ch.com\"),\n                               RuntimeTarget(\"edge-access-anytls\",
     \"edge-access-anytls\", region, capacity)))\n    return tuple(sorted(discovered,
     key=lambda node: node.node_id))\n\n\ndef _global_ipv4(value: str) -> bool:\n    try:\n
     \       address = ipaddress.ip_address(value)\n        return address.version
     == 4 and address.is_global\n    except ValueError:\n        return False\n\n\ndef
-    _edge_tls_ready(address: str) -> bool:\n    try:\n        with socket.create_connection((address,
-    24443), timeout=2) as connection:\n            with ssl.create_default_context().wrap_socket(connection,
-    server_hostname=\"access.re8ch.com\"):\n                return True\n    except
-    (OSError, ssl.SSLError):\n        return False\n\n\ndef subscription_nodes() ->
-    tuple[Node, ...]:\n    try:\n        nodes = kube_request(\"GET\", \"/api/v1/nodes\").get(\"items\",
-    [])\n        pods = kube_request(\"GET\", f\"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector=app.kubernetes.io%2Fname%3Dedge-access-anytls\").get(\"items\",
-    [])\n        return DEFAULT_NODES + edge_access_nodes(nodes, pods, _edge_tls_ready)\n
-    \   except (OSError, ValueError, KeyError) as exc:\n        print(json.dumps({\"level\":
+    subscription_nodes() -> tuple[Node, ...]:\n    try:\n        nodes = kube_request(\"GET\",
+    \"/api/v1/nodes\").get(\"items\", [])\n        pods = kube_request(\"GET\", f\"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector=app.kubernetes.io%2Fname%3Dedge-access-anytls\").get(\"items\",
+    [])\n        # The EdgeAccess Pod readiness probe and the reviewed node capacity
+    are\n        # the in-cluster publication gates. Do not probe the node's public
+    IP\n        # from restricted-node-6dc3f140f9 here: RouterOS does not provide that cross-edge hairpin,
+    so\n        # a healthy public listener would be incorrectly removed from every\n
+    \       # generated subscription.\n        return DEFAULT_NODES + edge_access_nodes(nodes,
+    pods)\n    except (OSError, ValueError, KeyError) as exc:\n        print(json.dumps({\"level\":
     \"warning\", \"event\": \"edge-access-discovery-failed\", \"error\": type(exc).__name__}),
     flush=True)\n        return DEFAULT_NODES\n\n\ndef configmap(name: str) -> tuple[dict,
     dict]:\n    item = kube_request(\"GET\", f\"/api/v1/namespaces/{NAMESPACE}/configmaps/{name}\")\n
@@ -1126,7 +1125,7 @@ data:
     json\nimport secrets\nimport time\nfrom dataclasses import asdict, dataclass\nfrom
     datetime import datetime, timezone\nfrom urllib.parse import quote, urlencode\n\nMONTHLY_SOFT_LIMIT
     = 300 * 1024**3\nAUTH_MAX_STALE_SECONDS = 24 * 60 * 60\nPROFILE_TITLE = \"access
-    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261020-r640-cn-direct-1\"\n\n#
+    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261020-edge-discovery-2\"\n\n#
     Emergency publication gate: overseas-edge-50 is retired and overseas-kl is\n#
     still recovering. Keep the two independently reachable LA listeners and the\n#
     verified restricted-node-6dc3f140f9 AnyTLS listener published. The restricted-node-6dc3f140f9 listener terminates the\n# mainland
@@ -1730,7 +1729,7 @@ data:
             time.sleep(5)
 kind: ConfigMap
 metadata:
-  name: access-subscription-code-k4m47g785f
+  name: access-subscription-code-8c2hkd44c2
   namespace: egress-fabric
 ---
 apiVersion: v1
@@ -5663,7 +5662,7 @@ spec:
       serviceAccountName: access-controller
       volumes:
       - configMap:
-          name: access-subscription-code-k4m47g785f
+          name: access-subscription-code-8c2hkd44c2
         name: code
       - name: hmac
         secret:
@@ -5730,7 +5729,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: access-subscription-code-k4m47g785f
+          name: access-subscription-code-8c2hkd44c2
         name: code
       - name: rules
         persistentVolumeClaim:
@@ -5828,7 +5827,7 @@ spec:
       serviceAccountName: access-subscription
       volumes:
       - configMap:
-          name: access-subscription-code-k4m47g785f
+          name: access-subscription-code-8c2hkd44c2
         name: code
       - name: hmac
         secret:
@@ -6292,7 +6291,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-k4m47g785f
+          name: access-subscription-code-8c2hkd44c2
         name: app-code
       - name: controller
         secret:
@@ -6465,7 +6464,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-k4m47g785f
+          name: access-subscription-code-8c2hkd44c2
         name: app-code
       - name: controller
         secret:

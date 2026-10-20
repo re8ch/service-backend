@@ -18,28 +18,28 @@ with tempfile.TemporaryDirectory() as directory:
 
 
 class EdgeAccessDiscoveryTests(unittest.TestCase):
-    def test_only_ready_public_edge_with_tls_probe_is_published(self):
+    def test_only_ready_qualified_public_edge_is_published(self):
         nodes = [
             {"metadata": {"name": "overseas-flk", "labels": {"networking.re8ch.com/edge-access-anytls": "enabled",
                            "topology.kubernetes.io/region": "de-fsn"},
                           "annotations": {"networking.re8ch.com/capacity-mbps": "400"}},
-             "status": {"addresses": [{"type": "ExternalIP", "address": "192.0.2.38"}],
+             "status": {"addresses": [{"type": "ExternalIP", "address": "2.28.106.230"}],
                         "conditions": [{"type": "Ready", "status": "True"}]}},
             {"metadata": {"name": "overseas-la-2", "labels": {"networking.re8ch.com/edge-access-anytls": "enabled"},
                           "annotations": {"networking.re8ch.com/capacity-mbps": "1000"}},
-             "status": {"addresses": [{"type": "ExternalIP", "address": "192.0.2.146"}],
+             "status": {"addresses": [{"type": "ExternalIP", "address": "179.253.231.159"}],
                         "conditions": [{"type": "Ready", "status": "False"}]}},
         ]
         pods = [{"metadata": {"labels": {"app.kubernetes.io/name": "edge-access-anytls"}},
                  "spec": {"nodeName": name}, "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
                 for name in ("overseas-flk", "overseas-la-2")]
-        active = edge_access_nodes(nodes, pods, lambda ip: ip == "192.0.2.38")
+        active = edge_access_nodes(nodes, pods)
         self.assertEqual([node.node_id for node in active], ["edge-access-overseas-flk"])
         self.assertEqual(active[0].name, "🇩🇪 德国 Falkenstein · EdgeAccess")
         raw = base64.b64decode(subscription_body("device-password", active)).decode()
-        self.assertIn("anytls://device-password@192.0.2.38:24443", raw)
+        self.assertIn("anytls://device-password@2.28.106.230:24443", raw)
         self.assertIn("sni=access.re8ch.com", raw)
-        self.assertNotIn("192.0.2.146", raw)
+        self.assertNotIn("179.253.231.159", raw)
 
     def test_live_region_labels_name_both_publications(self):
         nodes = [
@@ -48,12 +48,12 @@ class EdgeAccessDiscoveryTests(unittest.TestCase):
                           "annotations": {"networking.re8ch.com/capacity-mbps": "400"}},
              "status": {"addresses": [{"type": "ExternalIP", "address": address}],
                         "conditions": [{"type": "Ready", "status": "True"}]}}
-            for name, region, address in (("overseas-la-2", "us-ca", "192.0.2.146"),
-                                          ("overseas-flk", "de-fsn", "192.0.2.38"))]
+            for name, region, address in (("overseas-la-2", "us-ca", "179.253.231.159"),
+                                          ("overseas-flk", "de-fsn", "2.28.106.230"))]
         pods = [{"metadata": {"labels": {"app.kubernetes.io/name": "edge-access-anytls"}},
                  "spec": {"nodeName": name}, "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
                 for name in ("overseas-flk", "overseas-la-2")]
-        active = edge_access_nodes(nodes, pods, lambda _ip: True)
+        active = edge_access_nodes(nodes, pods)
         self.assertEqual({node.node_id: node.name for node in active}, {
             "edge-access-overseas-la-2": "🇺🇸 洛杉矶 2 · EdgeAccess",
             "edge-access-overseas-flk": "🇩🇪 德国 Falkenstein · EdgeAccess",
