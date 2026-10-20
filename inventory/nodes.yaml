@@ -57,7 +57,6 @@ items:
         taints: []
         parameters: {cpu: 7, memoryKi: 10184560, ephemeralStorageKi: 1055762868, osImage: Ubuntu 24.04 LTS, kernelVersion: 192.0.2.141-microsoft-standard-WSL2}
         network: {region: cn-hunan, zone: loudi, controlRoute: advfab-relay, externalIPMode: none, networkLevel: 4, uplinkMbps: 100}
-        fabric: {role: leaf, class: C, failureDomain: mubao, provider: local-wsl, internalIP: 192.0.2.39, podCIDR: 192.0.2.113/24, acceleratedIP: 192.0.2.223, asn: 4200010029, publicAuthority: false, inventoryComplete: true}
         storage: {csiDrivers: [], profiles: []}
       commands: {read: [hostname, uptime], write: [], rollback: []}
 
