@@ -48,7 +48,7 @@ items:
       transport: ssh
       address: 192.0.2.223
       credentialRef: node-ssh
-      capabilities: []
+      capabilities: [k3s-retired-fenced]
       cluster:
         membership: retired
         roles: []
