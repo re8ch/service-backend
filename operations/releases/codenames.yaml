@@ -507,6 +507,10 @@ modules:
       digest: sha256:1dfc64d956d44b8e8f8a4e259d5971929376ac96db2d250a291f8d09f1df28a0
     - codename: atoll-violet
       digest: sha256:d871293a5cf72aedec6b5ce6eae1f2f3c665fd40f02749706d6be08a9711e14b
+    - codename: canopy-violet
+      digest: sha256:d2f79b8d00d2cd21de7970bb66f260d24207e50a668a2873ff09ddc774bd3115
+    - codename: delta-violet
+      digest: sha256:a09e69c3ba4f68a80f174f765d93d5ad266454ed403ae08c303fd5ddeab830ef
   platform/cloud-platform:
     releases:
     - codename: atoll
@@ -695,6 +699,8 @@ modules:
       digest: sha256:461081c6e85742bb51341de9f0dfb171be84951b160247adfa74f31427ec33db
     - codename: flare-indigo
       digest: sha256:dc25f725f92990897d30491d61e81ca61e6acc112cf3d7398e7a3596f999a1bb
+    - codename: lantern-indigo
+      digest: sha256:7ad767c236226946a63c88537a8194077b2ea0345a7e281802357246e9a58ef6
   platform/apps/access-subscription:
     releases:
     - codename: aegis
