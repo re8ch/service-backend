@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: flare-indigo
+codename: lantern-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:dc25f725f92990897d30491d61e81ca61e6acc112cf3d7398e7a3596f999a1bb
+  digest: sha256:7ad767c236226946a63c88537a8194077b2ea0345a7e281802357246e9a58ef6
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

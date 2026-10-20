@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-violet
+    delivery.re8ch.com/codename: delta-violet
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:d871293a5cf72aedec6b5ce6eae1f2f3c665fd40f02749706d6be08a9711e14b
+    digest: sha256:a09e69c3ba4f68a80f174f765d93d5ad266454ed403ae08c303fd5ddeab830ef
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: atoll-violet
+    delivery.re8ch.com/codename: delta-violet
 spec:
   interval: 1m
   retryInterval: 1m
