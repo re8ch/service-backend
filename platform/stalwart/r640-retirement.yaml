@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: stalwart-r640-retirement, namespace: mail-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: stalwart-r640-retirement, namespace: mail-system}
+rules:
+  - apiGroups: [apps]
+    resources: [statefulsets]
+    resourceNames: [stalwart, stalwart-idp]
+    verbs: [get, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: stalwart-r640-retirement, namespace: mail-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-r640-retirement}
+subjects: [{kind: ServiceAccount, name: stalwart-r640-retirement, namespace: mail-system}]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-r640-retirement-v1
+  namespace: mail-system
+  annotations:
+    governance.re8ch.com/change: retire-r640-stalwart-before-cold-copy
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata: {labels: {app.kubernetes.io/name: stalwart-r640-retirement}}
+    spec:
+      serviceAccountName: stalwart-r640-retirement
+      restartPolicy: OnFailure
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: retire
+          image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
+          command: [/bin/sh, -ceu]
+          args:
+            - |
+              kubectl --namespace mail-system delete statefulset stalwart stalwart-idp --ignore-not-found=true --wait=false
+              kubectl --namespace mail-system wait --for=delete pod/stalwart-0 pod/stalwart-idp-0 --timeout=300s
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
