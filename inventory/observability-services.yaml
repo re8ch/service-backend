@@ -11,9 +11,9 @@ spec:
     excludedWorkloads: [completed-jobs, explicitly-scaled-to-zero]
     exclusionsRemainInventoried: true
   nodes:
-    - {name: restricted-node-6dc3f140f9, ready: true, zone: hunan, cpu: "80", memory: 259312228Ki, roles: [control-plane, etcd, storage, nuclio, database]}
-    - {name: restricted-node-1eb0570f74, ready: true, zone: hunan, cpu: "8", memory: 12247672Ki, roles: [control-plane, etcd, observability-ingest, ceph]}
-    - {name: restricted-node-296f36f2fb, ready: true, zone: hunan, cpu: "8", memory: 12247680Ki, roles: [control-plane, etcd, observability-ingest, ceph]}
+    - {name: r640, ready: true, zone: hunan, cpu: "80", memory: 259312228Ki, roles: [worker, api-relay, storage, nuclio, database]}
+    - {name: a1-wsl-zt, ready: true, zone: hunan, cpu: "8", memory: 12247672Ki, roles: [control-plane, etcd, observability-ingest, ceph]}
+    - {name: b1-wsl-zt, ready: true, zone: hunan, cpu: "8", memory: 12247680Ki, roles: [worker, manual-dr-standby, observability-ingest, ceph]}
     - {name: amdwsl-zt, ready: true, zone: hubei, cpu: "8", memory: 24610916Ki, roles: [model-runtime]}
     - {name: domain-ex, ready: true, zone: shanghai, cpu: "4", memory: 3481048Ki, roles: [edge, pigsty]}
     - {name: muaya-ecs, ready: true, zone: zhejiang, cpu: "2", memory: 1646400Ki, roles: [edge]}
