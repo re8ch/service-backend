@@ -11,7 +11,7 @@ def test_observable_postgrest_is_owned_by_data_storage_domain():
     assert "../../../components/observable/postgrest-ha.yaml" in domain["resources"]
 
 
-def test_observable_postgrest_stays_on_database_route_verified_nodes():
+def test_observable_postgrest_stays_off_the_storage_coordinator():
     resources = [
         item
         for item in yaml.safe_load_all(
@@ -27,7 +27,7 @@ def test_observable_postgrest_stays_on_database_route_verified_nodes():
     assert expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        "values": ["restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"],
     }
     assert deployment["spec"]["replicas"] == 2
     assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 1

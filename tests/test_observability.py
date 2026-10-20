@@ -110,7 +110,7 @@ def test_vmalert_uses_ha_alertmanager_notifier():
     assert selector["labelSelector"]["matchLabels"]["usage"] == "re8ch-platform-alerting"
 
 
-def test_production_scrape_and_alerting_have_two_distinct_control_plane_replicas():
+def test_production_scrape_and_alerting_span_control_and_service_planes():
     resources = yaml_documents(OBSERVABILITY / "production" / "collectors.yaml")
     for kind in ("VMAgent", "VMAlert"):
         workload = next(doc for doc in resources if doc["kind"] == kind)
@@ -118,7 +118,7 @@ def test_production_scrape_and_alerting_have_two_distinct_control_plane_replicas
         affinity = workload["spec"]["affinity"]
         assert affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
         preferred = affinity["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
-        assert [entry["preference"]["matchExpressions"][0]["values"] for entry in preferred] == [["restricted-node-6dc3f140f9"], ["restricted-node-296f36f2fb"]]
+        assert [entry["preference"]["matchExpressions"][0]["values"] for entry in preferred] == [["restricted-node-6dc3f140f9"]]
 
 
 def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
