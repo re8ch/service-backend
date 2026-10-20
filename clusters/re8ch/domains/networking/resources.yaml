@@ -16899,7 +16899,7 @@ spec:
                 operator: In
                 values:
                 - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
+                - restricted-node-6dc3f140f9
       containers:
       - command:
         - python
@@ -17179,7 +17179,7 @@ spec:
                 operator: In
                 values:
                 - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
+                - restricted-node-6dc3f140f9
       containers:
       - args:
         - --source=ingress
@@ -20702,7 +20702,7 @@ spec:
                   operator: In
                   values:
                   - restricted-node-1eb0570f74
-                  - restricted-node-296f36f2fb
+                  - restricted-node-6dc3f140f9
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:

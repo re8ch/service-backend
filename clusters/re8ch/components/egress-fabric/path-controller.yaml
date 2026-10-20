@@ -24,7 +24,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

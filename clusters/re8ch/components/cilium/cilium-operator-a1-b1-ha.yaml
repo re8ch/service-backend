@@ -1,4 +1,5 @@
-# Two Cilium Operator replicas with one elected leader across independent control planes.
+# Two Cilium Operator replicas with one elected leader across the control and
+# service planes. B1 is reserved for storage coordination.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,16 +23,12 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [a1-wsl-zt, b1-wsl-zt, r640]
+                    values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [r640]}
-            - weight: 80
-              preference:
-                matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [b1-wsl-zt]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:

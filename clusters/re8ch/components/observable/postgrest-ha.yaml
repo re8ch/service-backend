@@ -43,7 +43,7 @@ spec:
                   # pg-re8ch-primary:5432 reachability gate.
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [a1-wsl-zt, b1-wsl-zt]
+                    values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname

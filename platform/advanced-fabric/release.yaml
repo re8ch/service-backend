@@ -295,8 +295,8 @@ spec:
         enabled: true
         replicas: 2
         pdbMinAvailable: 1
-        # Recovery-plane replicas must schedule on the two reviewed control
-        # nodes even while ordinary workload admission is closed.
+        # Recovery-plane replicas span A1 and the restricted-node-6dc3f140f9 service plane. B1 is
+        # reserved for storage coordination.
         tolerations:
           - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
@@ -305,7 +305,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]}
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
