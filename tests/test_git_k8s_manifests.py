@@ -849,10 +849,10 @@ def test_stalwart_flk_migration_uses_smaller_claims_and_retains_cold_sources():
     assert claims["stalwart-flk-data"]["spec"]["resources"]["requests"]["storage"] == "2Gi"
     assert claims["stalwart-idp-flk-data"]["spec"]["resources"]["requests"]["storage"] == "1Gi"
     jobs = {item["metadata"]["name"]: item for item in resources if item["kind"] == "Job"}
-    assert set(jobs) == {"stalwart-flk-migration-v1", "stalwart-idp-flk-migration-v1"}
+    assert set(jobs) == {"stalwart-flk-migration-v2", "stalwart-idp-flk-migration-v2"}
     expected_sources = {
-        "stalwart-flk-migration-v1": "data-stalwart-0",
-        "stalwart-idp-flk-migration-v1": "data-stalwart-idp-0",
+        "stalwart-flk-migration-v2": "data-stalwart-0",
+        "stalwart-idp-flk-migration-v2": "data-stalwart-idp-0",
     }
     for name, job in jobs.items():
         pod_spec = job["spec"]["template"]["spec"]

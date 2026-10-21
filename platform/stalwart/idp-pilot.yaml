@@ -46,7 +46,7 @@ spec:
           command: [/bin/sh, -ceu]
           args:
             - |
-              until [ -f /var/lib/stalwart-idp/.r640-migration-complete ]; do sleep 5; done
+              until [ -f /var/lib/stalwart-idp/.r640-migration-v2-complete ]; do sleep 5; done
               test -f /var/lib/stalwart-idp/CURRENT
           securityContext:
             allowPrivilegeEscalation: false
