@@ -1,0 +1,64 @@
+# Catalog release b5cdd0fc0d254320f1272f995c5e7466a3e05454.
+# Signed and scanned image from catalog Actions run 39615824278.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: re8ch-catalog
+  namespace: payments
+  labels: {app.kubernetes.io/name: re8ch-catalog, app.kubernetes.io/part-of: catalog}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: re8ch-catalog}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: re8ch-catalog, app.kubernetes.io/part-of: catalog}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: catalog
+          image: ghcr.io/re8ch-business/catalog@sha256:a2a54347d04d26eaa7392eb459d19fd8b1c31806f6c70b48d1dfbefa8e3152e5
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: IDENTITY_USER_URL, value: http://supabase-identity-auth.supabase-identity.svc:9999/user}
+            - {name: IDENTITY_REST_URL, value: http://supabase-identity-rest-ro.supabase-identity.svc:3000}
+            - {name: BILLING_RO_URL, value: http://payment-postgrest-ro.payments.svc:3000}
+            - {name: BILLING_RW_URL, value: http://payment-postgrest.payments.svc:3000}
+            - name: BILLING_JWT_SECRET
+              valueFrom: {secretKeyRef: {name: billing-payment-postgrest-secrets, key: PGRST_JWT_SECRET}}
+          readinessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
+          livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
+          resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: re8ch-catalog
+  namespace: payments
+  labels: {app.kubernetes.io/name: re8ch-catalog, app.kubernetes.io/part-of: catalog}
+spec:
+  selector: {app.kubernetes.io/name: re8ch-catalog}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: re8ch-catalog-public
+  namespace: payments
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-loudi, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-guangzhou, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-hangzhou-nuclio, namespace: kube-system, sectionName: api-https}
+    - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: api-https}
+  hostnames: [api.re8ch.com]
+  rules:
+    - matches: [{path: {type: PathPrefix, value: /catalog}}]
+      backendRefs: [{name: re8ch-catalog, port: 8080}]
