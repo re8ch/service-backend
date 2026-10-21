@@ -22,7 +22,10 @@ const identityColumns = [
 
 function Dashboard() {
   const [maps, error] = K8s.ResourceClasses.ConfigMap.useList({namespace:'egress-fabric'} as any);
-  const statuses = (maps || []).filter((x:any) => x.metadata?.labels?.['app.kubernetes.io/component'] === 'mihomos-node-status').map(parseStatus).filter(Boolean) as Status[];
+  const statuses = (maps || [])
+    .filter((x:any) => (x.jsonData || x).metadata?.labels?.['app.kubernetes.io/component'] === 'mihomos-node-status')
+    .map(parseStatus)
+    .filter(Boolean) as Status[];
   const stale = statuses.filter(x => Date.now()/1000-x.timestamp > 180).length;
   return <Box sx={{p:2}}>
     <Typography variant="h4">Mihomos Cluster</Typography>

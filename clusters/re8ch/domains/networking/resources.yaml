@@ -20292,6 +20292,27 @@ spec:
           - op: replace
             path: /spec/template/spec/containers/0/env/1/value
             value: "300"
+          # hostNetwork collectors cannot depend on the broken Kubernetes
+          # Service VIP during control-plane recovery. Use the active A1
+          # API endpoint until the guarded control-plane VIP is healthy.
+          - op: add
+            path: /spec/template/spec/containers/2/env/-
+            value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+          - op: add
+            path: /spec/template/spec/containers/2/env/-
+            value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
+          - op: add
+            path: /spec/template/spec/containers/3/env/-
+            value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+          - op: add
+            path: /spec/template/spec/containers/3/env/-
+            value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
+          - op: add
+            path: /spec/template/spec/containers/4/env/-
+            value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+          - op: add
+            path: /spec/template/spec/containers/4/env/-
+            value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
         target:
           group: apps
           kind: DaemonSet
@@ -20592,6 +20613,10 @@ spec:
           key: scheduling.re8ch.com/capacity-window
           operator: Equal
           value: closed
+        - effect: NoSchedule
+          key: storage.re8ch.com/coordinator
+          operator: Equal
+          value: "true"
         useNodeLocalAPI: true
       dns:
         affinity:
@@ -20941,6 +20966,25 @@ spec:
     remediation:
       retries: 3
   interval: 1m
+  postRenderers:
+  - kustomize:
+      patches:
+      - patch: |-
+          - op: add
+            path: /spec/template/spec/containers/0/env/-
+            value:
+              name: KUBERNETES_SERVICE_HOST
+              value: 192.0.2.242
+          - op: add
+            path: /spec/template/spec/containers/0/env/-
+            value:
+              name: KUBERNETES_SERVICE_PORT_HTTPS
+              value: "6443"
+        target:
+          group: apps
+          kind: DaemonSet
+          name: public-edge-manager
+          version: v1
   releaseName: public-edge-manager
   rollback:
     cleanupOnFail: true

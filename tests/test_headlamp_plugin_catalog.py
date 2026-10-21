@@ -16,7 +16,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     generators = {item["name"]: item for item in kustomization["configMapGenerator"]}
     expected = {
         "headlamp-public-edge-v032": "re8ch-headlamp-public-edge-0.3.2.bundle",
-        "headlamp-mihomos-cluster-v011": "re8ch-headlamp-mihomos-cluster-0.1.1.bundle",
+        "headlamp-mihomos-cluster-v012": "re8ch-headlamp-mihomos-cluster-0.1.2.bundle",
         "headlamp-secretary-v030": "re8ch-headlamp-secretary-0.3.0.bundle",
         "headlamp-runtime-anatomy-v020": "re8ch-headlamp-runtime-anatomy-0.2.0.bundle",
     }
@@ -72,6 +72,11 @@ def test_public_edge_lists_active_dns_authorities_with_candidates():
     assert "statusGlobalpingCandidates" in source
     assert "status.externalQuality" in source
     assert "ConfigMap 当前不可用" in source
+
+
+def test_mihomos_unwraps_headlamp_resource_objects_before_filtering():
+    source = (ROOT / "platform/plugins/headlamp-mihomos-cluster/src/index.tsx").read_text()
+    assert "(x.jsonData || x).metadata?.labels" in source
 
 
 def test_secretary_read_route_uses_the_active_headlamp_service_hostname():
