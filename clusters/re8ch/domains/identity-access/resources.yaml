@@ -11664,7 +11664,7 @@ kind: Job
 metadata:
   annotations:
     governance.re8ch.com/change: retire-r640-stalwart-before-cold-copy
-  name: stalwart-r640-retirement-v1
+  name: stalwart-r640-retirement-v2
   namespace: mail-system
 spec:
   backoffLimit: 3
@@ -11675,14 +11675,44 @@ spec:
     spec:
       containers:
       - args:
-        - |
-          kubectl --namespace mail-system delete statefulset stalwart stalwart-idp --ignore-not-found=true --wait=false
-          kubectl --namespace mail-system wait --for=delete pod/stalwart-0 pod/stalwart-idp-0 --timeout=300s
+        - --namespace
+        - mail-system
+        - wait
+        - --for=delete
+        - pod/stalwart-0
+        - pod/stalwart-idp-0
+        - --timeout=300s
         command:
-        - /bin/sh
-        - -ceu
+        - kubectl
         image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
-        name: retire
+        name: wait-for-pods
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      initContainers:
+      - args:
+        - --namespace
+        - mail-system
+        - delete
+        - statefulset
+        - stalwart
+        - stalwart-idp
+        - --ignore-not-found=true
+        - --wait=false
+        command:
+        - kubectl
+        image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
+        name: delete-statefulsets
         resources:
           limits:
             cpu: 100m
