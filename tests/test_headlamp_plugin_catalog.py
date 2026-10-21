@@ -22,6 +22,7 @@ def test_all_declared_sidebar_plugins_are_rendered_into_headlamp():
     }
     for configmap, filename in expected.items():
         assert generators[configmap]["files"] == [f"plugin.tar.gz=assets/{filename}"]
+        assert f"name: {configmap}" in deployment
         bundle = HEADLAMP / "assets" / filename
         digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
         assert f"echo '{digest}  /tmp/plugin.tar.gz'" in deployment
