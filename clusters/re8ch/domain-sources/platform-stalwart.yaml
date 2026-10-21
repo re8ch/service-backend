@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lighthouse-indigo
+    delivery.re8ch.com/codename: signal-indigo
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:63f4b890c71db9cb940c1fc125cc8704c86fc33ab3072beec5b7bc79b24330fa
+    digest: sha256:2320997ad38fb9d00f62af5d7baf2948def21085025e62c22546286dea9a0c56
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -26,7 +26,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lighthouse-indigo
+    delivery.re8ch.com/codename: signal-indigo
 spec:
   interval: 1m
   retryInterval: 1m
