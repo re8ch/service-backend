@@ -398,7 +398,7 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
                 ])
             obj["spec"]["replicas"] = 1
             pod_spec = obj["spec"]["template"]["spec"]
-            if domain in {"agent-runtime", "observability-metering"}:
+            if domain in {"agent-runtime", "identity-access", "observability-metering"}:
                 pod_spec.setdefault("nodeSelector", {})["kubernetes.io/hostname"] = "restricted-node-6dc3f140f9"
                 if name == "source-controller":
                     pod_spec["dnsPolicy"] = "None"
