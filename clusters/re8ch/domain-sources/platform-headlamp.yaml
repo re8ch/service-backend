@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: aurora-violet
+    delivery.re8ch.com/codename: flare-violet
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
   ref:
-    digest: sha256:cd17d0bcd4574e8f67d16c77554c15b24a320cfade064626e9f6aaa60e818770
+    digest: sha256:56ed5e2a642e03435b00d2ebd4edb70224e27845e8cc1b297df3943ab4b06106
   verify:
     provider: cosign
     matchOIDCIdentity:
@@ -27,7 +27,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/headlamp
-    delivery.re8ch.com/codename: aurora-violet
+    delivery.re8ch.com/codename: flare-violet
     delivery.re8ch.com/source-mode: git-fallback
 spec:
   interval: 1m
