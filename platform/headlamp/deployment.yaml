@@ -46,6 +46,10 @@ spec:
         - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
         - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: PreferNoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+        # Headlamp is the singleton inspection UI and must remain schedulable
+        # while a control-plane node is reporting memory pressure. This only
+        # tolerates admission; kubelet eviction policy remains authoritative.
+        - {key: node.kubernetes.io/memory-pressure, operator: Exists, effect: NoSchedule}
       # Use the selected control-plane node's local API listener. This removes
       # the single remote node/transit address from Headlamp's watch path.
       hostNetwork: true
