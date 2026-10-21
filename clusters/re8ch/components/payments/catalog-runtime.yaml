@@ -13,6 +13,7 @@ spec:
     metadata:
       labels: {app.kubernetes.io/name: re8ch-catalog, app.kubernetes.io/part-of: catalog}
     spec:
+      imagePullSecrets: [{name: ghcr-re8ch}]
       nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
