@@ -705,6 +705,8 @@ modules:
       digest: sha256:7ad767c236226946a63c88537a8194077b2ea0345a7e281802357246e9a58ef6
     - codename: lighthouse-indigo
       digest: sha256:63f4b890c71db9cb940c1fc125cc8704c86fc33ab3072beec5b7bc79b24330fa
+    - codename: signal-indigo
+      digest: sha256:2320997ad38fb9d00f62af5d7baf2948def21085025e62c22546286dea9a0c56
   platform/apps/access-subscription:
     releases:
     - codename: aegis
