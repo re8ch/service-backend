@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: flare-violet
+codename: lantern-violet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:56ed5e2a642e03435b00d2ebd4edb70224e27845e8cc1b297df3943ab4b06106
+  digest: sha256:48cc0c143079a776440b0d0e072d36733b8dc1537afee184dcad2c407c5566b8
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
