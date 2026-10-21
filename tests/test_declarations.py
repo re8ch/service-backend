@@ -45,8 +45,14 @@ def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
     assert pod_spec["priorityClassName"] == "system-cluster-critical"
     assert {item["key"] for item in pod_spec["tolerations"]} == {
         "node-role.kubernetes.io/control-plane",
+        "node.kubernetes.io/memory-pressure",
         "scheduling.re8ch.com/capacity-window",
     }
+    assert {
+        "key": "node.kubernetes.io/memory-pressure",
+        "operator": "Exists",
+        "effect": "NoSchedule",
+    } in pod_spec["tolerations"]
     assert pod_spec["hostNetwork"] is True
     assert pod_spec["dnsPolicy"] == "ClusterFirstWithHostNet"
     pod_anti_affinity = deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"]

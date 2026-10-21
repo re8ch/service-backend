@@ -3248,6 +3248,9 @@ spec:
         key: scheduling.re8ch.com/capacity-window
         operator: Equal
         value: closed
+      - effect: NoSchedule
+        key: node.kubernetes.io/memory-pressure
+        operator: Exists
       volumes:
       - emptyDir: {}
         name: plugins
