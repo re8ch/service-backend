@@ -368,6 +368,8 @@ modules:
       digest: sha256:afa4fad542ca82b75c58783633faaa1bb2c44797d56f904a63a1355e60844c3e
     - codename: aurora-violet
       digest: sha256:cd17d0bcd4574e8f67d16c77554c15b24a320cfade064626e9f6aaa60e818770
+    - codename: flare-violet
+      digest: sha256:56ed5e2a642e03435b00d2ebd4edb70224e27845e8cc1b297df3943ab4b06106
   platform/among-clusters:
     releases:
     - codename: bora
@@ -629,6 +631,8 @@ modules:
       digest: sha256:570862ce67ac74dc7e6d4a2f6e715bf8bf3d622c55876a5d615964f2370f1995
     - codename: mistral-pearl
       digest: sha256:75a995307d41564662999ca83c043c379f7041690c6687611c5f9eb631640200
+    - codename: sirocco-pearl
+      digest: sha256:aba280b10427bdf6d2fb4cf3c6c4250b0da93c10ecc1445c54aca3e6736276c1
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -1468,6 +1472,8 @@ modules:
       digest: sha256:199774f84268bf8cc24770bae7f8c6ec6a8c9a832cbbbf70afdeb8d06f6911d4
     - codename: tramontane-opal
       digest: sha256:144bd443916a63d11e71c5c2c02c36bd8a6c53b5ec9348ea22a9c9114a8b405e
+    - codename: zephyr-opal
+      digest: sha256:0d084a0f5db24f1fb26a8425afdc0fd3a29d0b1357c439d666d3acec09ba6df1
   platform/adapter:
     releases:
     - codename: anchor
