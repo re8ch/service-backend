@@ -648,7 +648,11 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["services"]["api.re8ch.com."] == {
         "service": "api", "class": "api", "probePath": "/auth/me", "acceptedStatuses": [200]
     }
-    assert "postRenderers" not in release["spec"]
+    patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
+    manager_patch = next(item for item in patches if item["target"]["name"] == "public-edge-manager")
+    assert "KUBERNETES_SERVICE_HOST" in manager_patch["patch"]
+    assert "192.0.2.173" in manager_patch["patch"]
+    assert "KUBERNETES_SERVICE_PORT_HTTPS" in manager_patch["patch"]
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
     assert values["discovery"]["minimumCapacityMbps"] == 100

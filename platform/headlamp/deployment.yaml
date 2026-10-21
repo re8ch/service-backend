@@ -104,7 +104,7 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/advanced-fabric-0.26.0
+              target=/headlamp/plugins/advanced-fabric-0.26.1
               lock=/headlamp/plugins/.advanced-fabric-install.lock
               if [ -f "$target/package.json" ]; then exit 0; fi
               rmdir "$lock" 2>/dev/null || true
@@ -114,9 +114,9 @@ spec:
               done
               trap 'rmdir "$lock" 2>/dev/null || true' EXIT
               archive=/tmp/plugin.tar.gz
-              stage=/headlamp/plugins/.advanced-fabric-0.26.0.new
+              stage=/headlamp/plugins/.advanced-fabric-0.26.1.new
               base64 -d /plugin/plugin.tar.gz.b64 > "$archive"
-              echo 'e6c9f7620330252913a21b3c9b5c3f1cb782694fdf709411ba028972779bb3d2  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'f2277c0899822f6b3d0a86e9c0443e9abb40e2ce62f62d3141cc271f60e4b74e  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$stage"
               mkdir -p "$stage"
               tar -xzf "$archive" -C "$stage" --strip-components=1
@@ -189,10 +189,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/mihomos-cluster-0.1.1
+              target=/headlamp/plugins/mihomos-cluster-0.1.2
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo 'c9cf279206f877433cb3800219c4938f4015cb5402b07f3cf2fa121754cfd75e  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo '356d030480f5623bd47bbb69793c664fb7dbc9628f85acfd31a8de358206ba21  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -349,7 +349,7 @@ spec:
             name: headlamp-birfucate-browser-v046
         - name: advanced-fabric-plugin
           configMap:
-            name: headlamp-advanced-fabric-v0260
+            name: headlamp-advanced-fabric-v0261
         - name: among-clusters-plugin
           configMap:
             name: headlamp-among-clusters-v0324
@@ -358,7 +358,7 @@ spec:
             name: headlamp-public-edge-v032
         - name: mihomos-cluster-plugin
           configMap:
-            name: headlamp-mihomos-cluster-v011
+            name: headlamp-mihomos-cluster-v012
         - name: secretary-plugin
           configMap:
             name: headlamp-secretary-v030

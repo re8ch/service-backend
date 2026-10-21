@@ -12,9 +12,9 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     assert "re8ch-headlamp-among-clusters-0.3.24.bundle" in kustomization
     assert "47d9658c3e8596e99a13dd86c9dd273078917176fe4529d35467d18d6c59ce4f" in deployment
     assert "among-clusters-onboarding-links.yaml" in kustomization
-    assert "headlamp-advanced-fabric-0.26.0.bundle.b64" in kustomization
-    assert "e6c9f7620330252913a21b3c9b5c3f1cb782694fdf709411ba028972779bb3d2" in deployment
-    assert "headlamp-advanced-fabric-v0260" in kustomization
+    assert "headlamp-advanced-fabric-0.26.1.bundle.b64" in kustomization
+    assert "f2277c0899822f6b3d0a86e9c0443e9abb40e2ce62f62d3141cc271f60e4b74e" in deployment
+    assert "headlamp-advanced-fabric-v0261" in kustomization
     assert "scheduling.re8ch.com/placement-class: control-plane-critical" in deployment
     assert 'node-role.kubernetes.io/control-plane: "true"' in deployment
     assert "github.com/re8ch/" not in deployment

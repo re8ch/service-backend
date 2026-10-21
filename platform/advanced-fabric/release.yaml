@@ -95,6 +95,27 @@ spec:
               - op: replace
                 path: /spec/template/spec/containers/0/env/1/value
                 value: "300"
+              # hostNetwork collectors cannot depend on the broken Kubernetes
+              # Service VIP during control-plane recovery. Use the active A1
+              # API endpoint until the guarded control-plane VIP is healthy.
+              - op: add
+                path: /spec/template/spec/containers/2/env/-
+                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.173"}
+              - op: add
+                path: /spec/template/spec/containers/2/env/-
+                value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
+              - op: add
+                path: /spec/template/spec/containers/3/env/-
+                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.173"}
+              - op: add
+                path: /spec/template/spec/containers/3/env/-
+                value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
+              - op: add
+                path: /spec/template/spec/containers/4/env/-
+                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.173"}
+              - op: add
+                path: /spec/template/spec/containers/4/env/-
+                value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
           # Both path-evidence controller replicas repeatedly OOM at 256Mi,
           # stopping NetworkPathAssessment refresh and all PublicEdge admission.
           # Allow headroom while tracking memory growth and evidence freshness.
@@ -280,6 +301,7 @@ spec:
         tolerations:
           - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: "true", effect: NoSchedule}
           - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+          - {key: storage.re8ch.com/coordinator, operator: Equal, value: "true", effect: NoSchedule}
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
