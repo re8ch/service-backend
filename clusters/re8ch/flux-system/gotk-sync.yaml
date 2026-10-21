@@ -7,7 +7,7 @@ spec:
   url: ssh://git@ssh.github.com:443/re8ch/service-backend.git
   ref: {branch: main}
   secretRef: {name: service-backend-github-ssh}
-  proxySecretRef: {name: service-backend-github-proxy}
+  proxySecretRef: {name: service-backend-github-socks}
   verify:
     mode: HEAD
     secretRef: {name: service-backend-verification-keys}
