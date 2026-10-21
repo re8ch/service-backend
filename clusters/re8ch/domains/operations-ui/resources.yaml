@@ -3264,7 +3264,7 @@ spec:
           name: headlamp-among-clusters-v0324-87kcf6499d
         name: among-clusters-plugin
       - configMap:
-          name: headlamp-public-edge-v032
+          name: headlamp-public-edge-v033-mb4t89f2c6
         name: public-edge-plugin
       - configMap:
           name: headlamp-mihomos-cluster-v013-kg28cgb9g9
