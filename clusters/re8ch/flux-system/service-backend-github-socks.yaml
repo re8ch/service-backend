@@ -5,8 +5,7 @@ metadata:
   namespace: flux-system
 type: Opaque
 stringData:
-  # Credential-free SOCKS5 endpoint for SSH Git transport. identity-egress uses
-  # host networking, so this is the stable internal address of overseas-la.
-  # The shared Service currently selects overseas-kl, which is unreachable from
-  # restricted-node-6dc3f140f9 even though its application-level readiness probe succeeds.
-  address: socks5://192.0.2.29:17893
+  # Use the node-local Mihomos consumer rather than pinning a provider node.
+  # On CN nodes it sends GitHub traffic through the GLOBAL fabric, whose
+  # Ready provider set is maintained by Mihomos Cluster.
+  address: socks5://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
