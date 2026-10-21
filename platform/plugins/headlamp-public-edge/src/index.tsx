@@ -247,11 +247,19 @@ function Dashboard() {
       (item: any) => item.ip === publicIp
     );
     const migrationPhase = authorityMetadata.migrationPhase || 'legacy';
-    const nameserver =
+    const preferredNameserver =
       migrationPhase === 'slot'
         ? authority?.slotNs || authority?.legacyNs || '-'
         : authority?.legacyNs || authority?.slotNs || '-';
-    const inUse = selectedNameservers.has(normalizedDnsName(nameserver));
+    // Election may update while the UI still holds the previous migration
+    // metadata. Treat either declared alias as authoritative and display the
+    // alias that is actually present in the controller-maintained set.
+    const electedNameserver = [authority?.legacyNs, authority?.slotNs].find(
+      (candidate: any) =>
+        typeof candidate === 'string' && selectedNameservers.has(normalizedDnsName(candidate))
+    );
+    const nameserver = electedNameserver || preferredNameserver;
+    const inUse = Boolean(electedNameserver);
     const restarts = (pod.status?.containerStatuses || []).reduce(
       (total: number, container: any) => total + (container.restartCount || 0),
       0

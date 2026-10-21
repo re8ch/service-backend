@@ -1,6 +1,6 @@
 {
   "name": "@re8ch/headlamp-public-edge",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Headlamp topology and health console for PublicEdgeManager",
   "scripts": {
     "build": "headlamp-plugin build",

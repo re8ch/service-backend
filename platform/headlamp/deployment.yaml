@@ -169,10 +169,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/public-edge-0.3.2
+              target=/headlamp/plugins/public-edge-0.3.3
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo '3423350aedbd846ab01e7f4a9e0fcde054028f558a1c11c636c5df29d073d269  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'f341ec73750f662549f7dce665c4f05940ec0be3cc0de76662aa2d2b720b1196  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
