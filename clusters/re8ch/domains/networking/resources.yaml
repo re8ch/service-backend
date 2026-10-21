@@ -20292,6 +20292,11 @@ spec:
           - op: replace
             path: /spec/template/spec/containers/0/env/1/value
             value: "300"
+          - op: replace
+            path: /spec/template/spec/containers/0/resources
+            value:
+              requests: {cpu: 10m, memory: 32Mi}
+              limits: {cpu: 250m, memory: 128Mi}
           # hostNetwork collectors cannot depend on the broken Kubernetes
           # Service VIP during control-plane recovery. Use the active A1
           # API endpoint until the guarded control-plane VIP is healthy.
@@ -22571,6 +22576,7 @@ spec:
   provider: generic
   ref:
     digest: sha256:50f1b59b98081f74e4cf51ad91ea2f7253b26cbd653674c1126907f3cd403819
+  suspend: true
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
   verify:
     matchOIDCIdentity:

@@ -4,6 +4,10 @@ metadata:
   name: advanced-fabric
   namespace: flux-system
 spec:
+  # The autonomous network domain owns the active release in
+  # flux-network-system. Keep this legacy object only as a suspended rollback
+  # declaration so it cannot continuously fail on namespace-local valuesFrom.
+  suspend: true
   interval: 3m
   provider: generic
   url: oci://ghcr.io/advanced-fabrics/charts/advanced-fabric
@@ -95,6 +99,11 @@ spec:
               - op: replace
                 path: /spec/template/spec/containers/0/env/1/value
                 value: "300"
+              - op: replace
+                path: /spec/template/spec/containers/0/resources
+                value:
+                  requests: {cpu: 10m, memory: 32Mi}
+                  limits: {cpu: 250m, memory: 128Mi}
               # hostNetwork collectors cannot depend on the broken Kubernetes
               # Service VIP during control-plane recovery. Use the active A1
               # API endpoint until the guarded control-plane VIP is healthy.
