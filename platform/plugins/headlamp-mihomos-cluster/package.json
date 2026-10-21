@@ -1,6 +1,6 @@
 {
   "name": "@re8ch/headlamp-mihomos-cluster",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Headlamp status console for Mihomos-Cluster",
   "scripts": {
     "build": "headlamp-plugin build",

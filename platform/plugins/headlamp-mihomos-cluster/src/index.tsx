@@ -21,9 +21,15 @@ const identityColumns = [
 ];
 
 function Dashboard() {
-  const [maps, error] = K8s.ResourceClasses.ConfigMap.useList({namespace:'egress-fabric'} as any);
+  // Headlamp 0.45 ignores the legacy namespace option for this hook and returns
+  // an empty list. List cluster-wide, then enforce the namespace locally.
+  const [maps, error] = K8s.ResourceClasses.ConfigMap.useList({} as any);
   const statuses = (maps || [])
-    .filter((x:any) => (x.jsonData || x).metadata?.labels?.['app.kubernetes.io/component'] === 'mihomos-node-status')
+    .filter((x:any) => {
+      const metadata = (x.jsonData || x).metadata;
+      return metadata?.namespace === 'egress-fabric'
+        && metadata?.labels?.['app.kubernetes.io/component'] === 'mihomos-node-status';
+    })
     .map(parseStatus)
     .filter(Boolean) as Status[];
   const stale = statuses.filter(x => Date.now()/1000-x.timestamp > 180).length;
