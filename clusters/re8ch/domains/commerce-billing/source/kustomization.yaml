@@ -10,6 +10,7 @@ resources:
 - ../../../secrets/ledger-wechat-app-identities.sops.yaml
 - ../../../components/payments/credits-runtime.yaml
 - ../../../components/payments/commerce-runtime.yaml
+- ../../../components/payments/catalog-runtime.yaml
 - ../../../../../platform/hyperswitch
 patches:
   - target: {group: apps, version: v1, kind: Deployment, name: commerce-api, namespace: payments}

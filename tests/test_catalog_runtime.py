@@ -1,0 +1,40 @@
+from pathlib import Path
+
+import yaml
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / "clusters/re8ch/components/payments/catalog-runtime.yaml"
+
+
+def objects():
+    return list(yaml.safe_load_all(MANIFEST.read_text()))
+
+
+def test_catalog_runtime_uses_signed_digest_and_existing_billing_secret():
+    docs = objects()
+    deployment = next(item for item in docs if item["kind"] == "Deployment")
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == (
+        "ghcr.io/re8ch-business/catalog@"
+        "sha256:a2a54347d04d26eaa7392eb459d19fd8b1c31806f6c70b48d1dfbefa8e3152e5"
+    )
+    env = {item["name"]: item for item in container["env"]}
+    assert env["BILLING_JWT_SECRET"]["valueFrom"]["secretKeyRef"] == {
+        "name": "billing-payment-postgrest-secrets",
+        "key": "PGRST_JWT_SECRET",
+    }
+    assert container["securityContext"]["readOnlyRootFilesystem"] is True
+    assert container["securityContext"]["allowPrivilegeEscalation"] is False
+
+
+def test_catalog_route_is_bound_to_api_catalog_prefix():
+    route = next(item for item in objects() if item["kind"] == "HTTPRoute")
+    assert route["spec"]["hostnames"] == ["api.re8ch.com"]
+    assert route["spec"]["rules"][0]["matches"][0]["path"] == {
+        "type": "PathPrefix",
+        "value": "/catalog",
+    }
+    assert route["spec"]["rules"][0]["backendRefs"] == [
+        {"name": "re8ch-catalog", "port": 8080}
+    ]
