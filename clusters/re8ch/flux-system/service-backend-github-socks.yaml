@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-backend-github-socks
+  namespace: flux-system
+type: Opaque
+stringData:
+  # Credential-free SOCKS5 endpoint for SSH Git transport. The Service exposes
+  # only ready identity-egress replicas instead of pinning one remote node.
+  address: socks5://identity-egress-gitops.egress-fabric.svc.cluster.local:17893
