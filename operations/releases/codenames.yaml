@@ -639,6 +639,8 @@ modules:
       digest: sha256:75a995307d41564662999ca83c043c379f7041690c6687611c5f9eb631640200
     - codename: sirocco-pearl
       digest: sha256:aba280b10427bdf6d2fb4cf3c6c4250b0da93c10ecc1445c54aca3e6736276c1
+    - codename: tramontane-pearl
+      digest: sha256:cb6627da8b156511bf860f966fa1e82e515c39e2e51316dc4757a96ccc49cc25
   platform/git-workspaces:
     releases:
     - codename: andromeda
