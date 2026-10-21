@@ -22,7 +22,7 @@ def test_root_frequency_and_local_sync():
         (ROOT / 'clusters/re8ch/flux-system/service-backend-github-socks.yaml').read_text()
     )
     assert proxy['stringData']['address'] == (
-        'socks5://192.0.2.147:17893'
+        'socks5://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891'
     )
     assert docs[0]['spec']['verify']['mode'] == 'HEAD'
     secret = yaml.safe_load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-ssh.sops.yaml').read_text())
