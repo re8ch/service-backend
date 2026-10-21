@@ -119,6 +119,18 @@ items:
       transport: ssh
       address: domain-ex
       credentialRef: node-ssh
+      cloud:
+        provider: tencent
+        product: lighthouse
+        account: domain-ex
+        cliProfile: domain-ex
+        regionId: ap-shanghai
+        zoneId: ap-shanghai-4
+        apiEndpoint: lighthouse.tencentcloudapi.com
+        instanceId: lhins-56emkp8o
+        instanceName: Ubuntu22.04-Docker26-OBpo
+        publicIp: 192.0.2.62
+      recovery: {cloudReboot: {enabled: true, trigger: ssh-and-kube-unreachable, force: true}}
       capabilities: [k3s-worker, pigsty]
       cluster:
         membership: active
@@ -137,6 +149,18 @@ items:
       transport: ssh
       address: zan
       credentialRef: node-ssh
+      cloud:
+        provider: tencent
+        product: lighthouse
+        account: zan
+        cliProfile: zan
+        regionId: ap-guangzhou
+        zoneId: ap-guangzhou-3
+        apiEndpoint: lighthouse.tencentcloudapi.com
+        instanceId: lhins-buoen5v3
+        instanceName: Ubuntu22.04-Docker26-BpSK
+        publicIp: 192.0.2.192
+      recovery: {cloudReboot: {enabled: true, trigger: ssh-and-kube-unreachable, force: true}}
       capabilities: [k3s-worker, pigsty]
       cluster:
         membership: active
@@ -166,6 +190,9 @@ items:
         instanceId: i-bp1auluadeyatron6lw4
         instanceName: iZbp1auluadeyatron6lw4Z
         publicIp: 192.0.2.185
+      recovery:
+        cloudReboot: {enabled: true, trigger: ssh-and-kube-unreachable, force: true}
+        k3sReregister: {server: "https://192.0.2.242:6443", resetNodePasswordOnMismatch: true}
       capabilities: [k3s-worker, public-edge]
       cluster:
         membership: active
@@ -194,6 +221,7 @@ items:
         instanceId: 727f083c912f43ef8fab274712529b39
         instanceName: Ubuntu-hjkt
         publicIp: 192.0.2.197
+      recovery: {cloudReboot: {enabled: true, trigger: ssh-and-kube-unreachable, force: true}}
       capabilities: [k3s-worker, public-edge]
       cluster:
         membership: active
@@ -299,6 +327,18 @@ items:
       transport: ssh
       address: suxunji
       credentialRef: node-ssh
+      cloud:
+        provider: tencent
+        product: lighthouse
+        account: suxunji
+        cliProfile: suxunji
+        regionId: ap-shanghai
+        zoneId: ap-shanghai-5
+        apiEndpoint: lighthouse.tencentcloudapi.com
+        instanceId: lhins-i42x83v0
+        instanceName: Ubuntu22.04-Docker26-6x1k
+        publicIp: 192.0.2.86
+      recovery: {cloudReboot: {enabled: true, trigger: ssh-and-kube-unreachable, force: true}}
       capabilities: [k3s-worker]
       cluster:
         membership: active
@@ -327,6 +367,7 @@ items:
         instanceId: lhins-buc3bkjt
         instanceName: Ubuntu-OCaA
         publicIp: 192.0.2.122
+      recovery: {cloudReboot: {enabled: true, trigger: ssh-and-kube-unreachable, force: true}}
       capabilities: [k3s-worker]
       cluster:
         membership: active
