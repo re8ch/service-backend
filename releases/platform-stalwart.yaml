@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: lighthouse-indigo
+codename: signal-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:63f4b890c71db9cb940c1fc125cc8704c86fc33ab3072beec5b7bc79b24330fa
+  digest: sha256:2320997ad38fb9d00f62af5d7baf2948def21085025e62c22546286dea9a0c56
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
