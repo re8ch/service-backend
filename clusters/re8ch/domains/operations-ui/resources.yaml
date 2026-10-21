@@ -637,49 +637,49 @@ metadata:
 apiVersion: v1
 binaryData:
   plugin.tar.gz: |
-    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
+    H4sIAAAAAAAAE+1Y4W8btxX3Z/8VHFEYdxtNnZzYDi47u62TZW3jJIgzbICgwdTds8T4RN
+    5Inm1NOiBNm2QItmUb0BZN8mFDNxQohnbDti5LW+SPWWQ7n/ovDLzTybIiu9maYQMafpDu
+    +B5/78fH9x7JawGLYtZOZtu8JdtSz4Zxqg2oytTza57nLc7Po/x/ofj35k4W/0VDU9X5uY
+    WFqndycXFhypvzvOoimpp/jhyObKk2TE15Xosp1REg/1OcciLl//9BG/Xp6PNoax21/m3G
+    Bb2qnwcPz/MWTp48av0XFhcXxte/emKuiqa852H8q9o3fP2djVSEhkvhaMLcrukkIDcQ7C
+    RSGR0EWDauQmjwzMxA0pZRGsN3cYqXmaPgJylX4GAFLDSVq3pnVqXC8DZglwyFL29ysSXj
+    zcow1pI4bXJRiXnjWfUqoWwnUoAw2j62pTg0sp3ySpsZUJzF2HX9AdkINriAIMDlJPHMTN
+    FHWTtaLh6d2gT65HjWx4snkCVjHOuEub6jgwHRZiwbLL7S4jr37MGrr3s9DfEGYY6mhYXz
+    vEEvW8Kvr/2IjHSOPtOV3OzKkMch4WrKVwdEXDdzHdPimhwKBBKR2O3iVAPSRvHQ4NOlGL
+    Uc6Xa3mEKGcKJOG9XpKjCpEuj1tYsXaMKUBsdxeOCYQNKrWoozzDA3CEQax8tbkkfI8w2N
+    nu7kNawNM6nOR+G62+s5jgrkJF01rutmITNhq+RidbNsSDpxuoW6L0lTyTTRvglqOLQrU3
+    gb1zO3G0qhDeLBxTzqKQijOGhH0kTJBuher5u5dIPHBpTj1FTdDZYM5SKM0wi0o1yXbsTM
+    rLLESglY+RgUuLSdiwUJrdjpNkH6igjWBl8QSmmYua57ejANO70dJ6avyh3S1Tt+N+I6iV
+    nHxxsx7GDSZIlP54l9+aFiiY+3FUtwRsIWjyMFwue5ORUslUgrLZ6QruY/BR/rNotjTEIZ
+    S+UrKjeXsU7DELTGPgalpMIkZg2I/fWXuopajhmyTzEzIMLOql5exrM4a+v1jOQqTZDZ7F
+    B33YZXVjg1DWpdmyugfHxBRoAJyy1J9QZ0fCxsV0aGKudAogq6DE2btUPV7wlfBkvrL3Ul
+    jSCMmYLoHMgMVZDtUrl2r2cprY9gXUobMQ/Ra5fGgYowHvjayeM1yXVfi0AYbjpPRS1P3A
+    J/BP5iQ4PaggjFMmRmAt+RbClM1Z7FVChTYVSHOPyrdPlg5iRPlmNVFQ256dTLGH5VyhiY
+    cOlVyYWDUQXhcn71g4xvOIPMqEli6gGjb5zS9DJomaoQVmKmNWi6IsUGb66yhKYaznNtnG
+    7mEh44ster1YdZAwN3hKeLsBCBA8Mi0evZ9ADDbMKXyyIOz0DkoaUTFoIbBAGGpgKtZzdY
+    Q/EQz8w4Thg8NSQPYj3mi7CGWZLQzbQBSoABTbk8KN24nsOXxyIbn7NFCcFZkcMtd9yNRA
+    V8ZKJnmAEq5LbjVqpwYhao3Vq0Ye1kqXrKc2kMomlah1Jdj+Z64s+NZHKtzOArnUQ2FUta
+    HWJdyZkwPm6dxAeqeLVgjVaKwxzOXDJpdJH42MCOoRpCKSKmOqM4l5Tc4hEo1L/z6/6Dt/
+    pv/qH/8O/9Ww/7dz748vOfr0ih07aV/vmdvd8/3P3kzuMHH+3fvr53/R9Prt3df3Rr9/4f
+    d+8/3P/w7f7P3n/82Qd7v7q5//GjJ+993L/3Rf/mjccPftm/98WT92/s3v9F//bv9u6+vf
+    vWjf7Nv/3z2nVL2MzMDF3ySgzKkK6GLVDcdIbF6cA5ePe93+7+5Z39Tz7r33l37/anu9fe
+    RMOQ/PLzu5isGcVF0zFuPXOJWvKOg99mSnDRHDWgCEbD6RUG9j+9sf/oFqqe8tDeh7/Zvf
+    /R7r2/7r77J7uTDNwd0TXIcyhfU8NNDP760KnOS93RcAHK9Yo4u8NNr2efz+X7kn0vQyVz
+    1w8YlRausEYMpGtTxn9GOFvx07bQfo1Smh5UMitESsagD5UwCJZqB2jLeOUCOptnHfYxJo
+    exl3HxPKJxVLUhCLujVbp0iz2NtViDx9x0xnkUk7YbWLGbQ7mbHyIYionMBhv9JErZKJMf
+    JBEzEI3bFrCNbEo7I4n87SqccKmR52XIYhiEmJvVM/f4GBimTh4Dz7q6R61biTbOOK+0go
+    SHTxMRXcudd94WxaEnHREADQdA7rfySjkzIyYfCoY0nXDSqDAfdRlY1ME+PiO3Bc7c0S1z
+    5QL6DhoEyr+13P+NdbI/LN9Cba1c4xE0mDpr916nmx/L8NjdGJNUxT6uPNXNQyl83I64z7
+    iyNyhMEqbA1ufyIDWpNB8YvyxTA043YaY1CV8X3CYQKniOY5PhbuY7bunNBunaWWeue3r6
+    mPt/wsJN1iz25q95Dz3+/l+tPn3/nztR9V7c/79uG/p0/uj7f3caIWyjB/sIv6zgVNiqHB
+    UTmFjlLVDaHnJ9hD1apSeK3gh0qHhiBpLvDyBQkbjIlggZA9qQCg2idHZlFLUYrbGPLCOE
+    cCPlcWShxi7YqBCQQivmwkxSyvsHOoNInqRWigaaRoeTtGz3NEJZTnQTOttSRZZprRhVqp
+    cohdfKt+J8Wr41Qc4qmRp7uJhGqJ5DxjwEoXOCryQsbMHsHPVKt26dgQREBCLkMOKeo74/
+    WJAfe7R6knoHnKPJEIe+SNhxi9QbGLZiW834RqeSfx3J5Qu5fAgrt0ApHo1i2u8ZxVLaAf
+    N0gc6VeNtWDZ+ic9UBxnQ2/T9LjRftRXvRXrRvfPsXZBsdpQAcAAA=
 kind: ConfigMap
 metadata:
-  name: headlamp-mihomos-cluster-v012-77mfbf8g52
+  name: headlamp-mihomos-cluster-v013-kg28cgb9g9
   namespace: headlamp
 ---
 apiVersion: v1
@@ -3146,10 +3146,10 @@ spec:
           readOnly: true
       - args:
         - |
-          target=/headlamp/plugins/mihomos-cluster-0.1.2
+          target=/headlamp/plugins/mihomos-cluster-0.1.3
           archive=/tmp/plugin.tar.gz
           cp /plugin/plugin.tar.gz "$archive"
-          echo '356d030480f5623bd47bbb69793c664fb7dbc9628f85acfd31a8de358206ba21  /tmp/plugin.tar.gz' | sha256sum -c -
+          echo 'ab979268603fff856cf070b3770638735b055f06bc1eb182ce7fc3bd1ab20295  /tmp/plugin.tar.gz' | sha256sum -c -
           rm -rf "$target.new"
           mkdir -p "$target.new"
           tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -3262,7 +3262,7 @@ spec:
           name: headlamp-public-edge-v032-d6bc8f9g2b
         name: public-edge-plugin
       - configMap:
-          name: headlamp-mihomos-cluster-v012-77mfbf8g52
+          name: headlamp-mihomos-cluster-v013-kg28cgb9g9
         name: mihomos-cluster-plugin
       - configMap:
           name: headlamp-secretary-v030-d9c9k67m67
