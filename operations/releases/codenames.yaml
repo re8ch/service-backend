@@ -707,6 +707,8 @@ modules:
       digest: sha256:63f4b890c71db9cb940c1fc125cc8704c86fc33ab3072beec5b7bc79b24330fa
     - codename: signal-indigo
       digest: sha256:2320997ad38fb9d00f62af5d7baf2948def21085025e62c22546286dea9a0c56
+    - codename: starfire-indigo
+      digest: sha256:696ec798a2a9dee130dd08f469031f616840460a8a94849a16dd75763b279f15
   platform/apps/access-subscription:
     releases:
     - codename: aegis
