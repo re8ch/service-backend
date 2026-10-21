@@ -5,6 +5,8 @@ metadata:
   namespace: flux-system
 type: Opaque
 stringData:
-  # Credential-free SOCKS5 endpoint for SSH Git transport. The Service exposes
-  # only ready identity-egress replicas instead of pinning one remote node.
-  address: socks5://identity-egress-gitops.egress-fabric.svc.cluster.local:17893
+  # Credential-free SOCKS5 endpoint for SSH Git transport. identity-egress uses
+  # host networking, so this is the stable internal address of overseas-la.
+  # The shared Service currently selects overseas-kl, which is unreachable from
+  # restricted-node-6dc3f140f9 even though its application-level readiness probe succeeds.
+  address: socks5://192.0.2.29:17893
