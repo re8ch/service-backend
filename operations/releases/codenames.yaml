@@ -372,6 +372,8 @@ modules:
       digest: sha256:56ed5e2a642e03435b00d2ebd4edb70224e27845e8cc1b297df3943ab4b06106
     - codename: lantern-violet
       digest: sha256:48cc0c143079a776440b0d0e072d36733b8dc1537afee184dcad2c407c5566b8
+    - codename: lighthouse-violet
+      digest: sha256:196c69f08b7becfd02b0d204dcf2098dc83c73b99c6e13655fd73a5fe59faf0e
   platform/among-clusters:
     releases:
     - codename: bora
