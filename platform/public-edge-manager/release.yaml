@@ -42,7 +42,7 @@ spec:
                 path: /spec/template/spec/containers/0/env/-
                 value:
                   name: KUBERNETES_SERVICE_HOST
-                  value: 192.0.2.242
+                  value: 10.250.0.147
               - op: add
                 path: /spec/template/spec/containers/0/env/-
                 value:
@@ -64,7 +64,7 @@ spec:
       # HE remains a secondary for service.re8ch.com. RouterOS consumes a
       # signed control-plane bundle and does not request AXFR from DNS peers.
       axfrZones: [auth.re8ch.com., service.re8ch.com., api.re8ch.com., db-ro.re8ch.com., db-rw.re8ch.com., functions.re8ch.com., test.re8ch.com.]
-      axfrAllowedCidrs: [192.0.2.192/32, 192.0.2.62/32, 192.0.2.197/32, 192.0.2.86/32, 192.0.2.192/32]
+      axfrAllowedCidrs: [216.218.133.2/32, 124.220.77.50/32, 47.103.114.218/32, 101.34.217.95/32, 1.14.174.244/32]
       # Shadow-only until the 0.7.x chart digest is pinned below. Enabling the
       # role before that artifact exists would turn a declaration into drift.
       transfer:
@@ -87,7 +87,7 @@ spec:
       # needed. The chart's externalCDN field is its static-record opt-in.
       externalRecords:
         hidden-primary.service.re8ch.com.:
-          - {type: A, value: 192.0.2.38, externalCDN: true, provider: public-edge-xot}
+          - {type: A, value: 2.28.106.230, externalCDN: true, provider: public-edge-xot}
         _dnsauth.auth.re8ch.com.:
           - {type: CNAME, value: auth.re8ch.com.eoacme0.com., externalCDN: true, provider: tencent-edgeone}
         aliyun.anycam.functions.re8ch.com.:
@@ -184,10 +184,8 @@ spec:
       # Unknown uplinks do not meet the public-edge minimum until measured.
       defaultCapacityMbps: 1
       minimumCapacityMbps: 100
-      # Shared inventory supplies capacity and region facts where present.
-      # Every live Node is considered; unlisted nodes can qualify with measured
-      # capacity annotations and the same public IP/path/listener probes.
-      clusterInventoryConfigMap: {namespace: flux-system, name: cluster-node-inventory, key: nodes.json}
+      # Node facts are confidential and no longer copied into a ConfigMap.
+      # Admission relies on measured capacity annotations and public path/listener probes.
       # Probe public DNS from independent overseas nodes; healthy candidates join automatically.
       maxNameservers: 5
       # A delegated authority must answer the Headlamp control GUI record,
@@ -196,20 +194,20 @@ spec:
       # PowerDNS nodes are independent of Public Edge ingress admission. Only
       # public UDP/TCP SOA and address probes can elect these external authorities.
       externalAuthorities:
-        - {id: routeros-r640, address: 192.0.2.138, nameserver: ns-routeros.re8ch.com., region: cn-hunan, enabled: false}
-        - {id: tencent-domain-ex, address: 192.0.2.62, nameserver: ns-domain-ex.re8ch.com., region: cn-shanghai, enabled: true}
-        - {id: aliyun-muaya-lightweight, address: 192.0.2.197, nameserver: ns-muaya-lightweight.re8ch.com., region: cn-shanghai, enabled: true}
-        - {id: tencent-suxunji, address: 192.0.2.86, nameserver: ns-suxunji.re8ch.com., region: cn-shanghai, enabled: true}
-        - {id: tencent-zan, address: 192.0.2.192, nameserver: ns-zan.re8ch.com., region: cn-guangdong, enabled: true}
+        - {id: routeros-r640, address: 223.159.210.222, nameserver: ns-routeros.re8ch.com., region: cn-hunan, enabled: false}
+        - {id: tencent-domain-ex, address: 124.220.77.50, nameserver: ns-domain-ex.re8ch.com., region: cn-shanghai, enabled: true}
+        - {id: aliyun-muaya-lightweight, address: 47.103.114.218, nameserver: ns-muaya-lightweight.re8ch.com., region: cn-shanghai, enabled: true}
+        - {id: tencent-suxunji, address: 101.34.217.95, nameserver: ns-suxunji.re8ch.com., region: cn-shanghai, enabled: true}
+        - {id: tencent-zan, address: 1.14.174.244, nameserver: ns-zan.re8ch.com., region: cn-guangdong, enabled: true}
       # LA-2 is billing-retired. LA must run DNS before its public UDP/TCP SOA
       # and API/DB A answers can qualify it for NS authority.
       # LA is currently NotReady. KL's redirector intermittently returns 503
-      # while forwarding to the canonical restricted-node-6dc3f140f9 Gateway VIP, so neither may be
+      # while forwarding to the canonical R640 Gateway VIP, so neither may be
       # published until live path qualification recovers.
       excludedNodeNames: [overseas-kl, overseas-la, overseas-la-2]
-      # Keep the embedded authority off restricted-node-6dc3f140f9 and the dedicated PowerDNS hosts.
-      # restricted-node-6dc3f140f9 remains independently eligible for Public Edge ingress.
-      excludedAuthorityNodeNames: [restricted-node-6dc3f140f9, domain-ex, muaya-lightweight, suxunji, zan, overseas-la-2]
+      # Keep the embedded authority off R640 and the dedicated PowerDNS hosts.
+      # R640 remains independently eligible for Public Edge ingress.
+      excludedAuthorityNodeNames: [r640, domain-ex, muaya-lightweight, suxunji, zan, overseas-la-2]
       probeNodeNames: [overseas-la, overseas-flk]
       tolerations:
         - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
@@ -274,7 +272,7 @@ spec:
       maxUnavailable: 2
       # Prefer the AdvFab API VIP; retain the reachable ZeroTier control-plane
       # member only as a secondary read path during WireGuard transit failures.
-      kubernetesApiFallbackUrls: [https://192.0.2.116:6443, https://192.0.2.178:6443]
+      kubernetesApiFallbackUrls: [https://10.250.0.1:6443, https://10.181.22.128:6443]
       tolerations:
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
         - {key: node.cilium.io/agent-not-ready, operator: Exists, effect: NoSchedule}
@@ -310,7 +308,7 @@ spec:
         - {hostname: db-rw.re8ch.com, path: /auth/ready, method: GET, acceptedStatuses: [200]}
       edgeHttpTargets:
         - {hostname: db-rw.re8ch.com, path: /auth/ready, method: GET, acceptedStatuses: [200]}
-      extraAuthorityAddresses: [192.0.2.62, 192.0.2.197, 192.0.2.86, 192.0.2.192]
+      extraAuthorityAddresses: [124.220.77.50, 47.103.114.218, 101.34.217.95, 1.14.174.244]
       resources:
         requests: {cpu: 10m, memory: 32Mi}
         limits: {cpu: 100m, memory: 96Mi}
@@ -331,34 +329,34 @@ spec:
       globalpingQualityMode: Shadow
       globalpingQualityMaxAgeSeconds: 2700
       resolverCidrs:
-        CN: [192.0.2.52/24, 192.0.2.208/24, 192.0.2.174/24]
-        US: [192.0.2.204/24, 192.0.2.89/24]
-        EU: [192.0.2.26/24, 192.0.2.202/24]
+        CN: [223.5.5.0/24, 119.29.29.0/24, 114.114.114.0/24]
+        US: [8.8.8.0/24, 8.8.4.0/24]
+        EU: [80.80.80.0/24, 9.9.9.0/24]
     routingPolicy:
       defaultRegion: default
-      trustedEcsPrefixes: [192.0.2.52/24, 192.0.2.208/24, 192.0.2.174/24, 192.0.2.204/24, 192.0.2.89/24, 192.0.2.26/24, 192.0.2.202/24]
+      trustedEcsPrefixes: [223.5.5.0/24, 119.29.29.0/24, 114.114.114.0/24, 8.8.8.0/24, 8.8.4.0/24, 80.80.80.0/24, 9.9.9.0/24]
       regions:
         CN:
-          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.138, region: CN}
-          - {id: overseas-flk, ip: 192.0.2.38, region: EU}
-          - {id: overseas-la, ip: 192.0.2.111, region: US}
+          - {id: r640, ip: 223.159.210.222, region: CN}
+          - {id: overseas-flk, ip: 2.28.106.230, region: EU}
+          - {id: overseas-la, ip: 179.255.126.104, region: US}
         US:
-          - {id: overseas-la, ip: 192.0.2.111, region: US}
-          - {id: overseas-flk, ip: 192.0.2.38, region: EU}
-          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.138, region: CN}
+          - {id: overseas-la, ip: 179.255.126.104, region: US}
+          - {id: overseas-flk, ip: 2.28.106.230, region: EU}
+          - {id: r640, ip: 223.159.210.222, region: CN}
         EU:
-          - {id: overseas-flk, ip: 192.0.2.38, region: EU}
-          - {id: overseas-la, ip: 192.0.2.111, region: US}
-          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.138, region: CN}
+          - {id: overseas-flk, ip: 2.28.106.230, region: EU}
+          - {id: overseas-la, ip: 179.255.126.104, region: US}
+          - {id: r640, ip: 223.159.210.222, region: CN}
         default:
-          - {id: restricted-node-6dc3f140f9, ip: 192.0.2.138, region: CN}
-          - {id: overseas-flk, ip: 192.0.2.38, region: EU}
-          - {id: overseas-la, ip: 192.0.2.111, region: US}
+          - {id: r640, ip: 223.159.210.222, region: CN}
+          - {id: overseas-flk, ip: 2.28.106.230, region: EU}
+          - {id: overseas-la, ip: 179.255.126.104, region: US}
     routeSnapshot:
       # Bootstrap over the declared FLK public address so transfer recovery does
       # not depend on the DNS service being repaired. TLS still authenticates
       # the dedicated hidden-primary certificate.
-      endpoint: https://192.0.2.38:8443/v1/route-snapshot
+      endpoint: https://2.28.106.230:8443/v1/route-snapshot
       publicKeyRef: public-edge-route-snapshot-public-key
       signingKeySecretRef: ""
       tlsSecretRef: ""

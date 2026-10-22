@@ -169,15 +169,15 @@ data:
       name, spec = obj["metadata"]["name"], obj["spec"]
       safety, errors = "Accepted", []
       local = ipaddress.ip_network(spec["localPodCIDR"], strict=True)
-      if str(local) != "192.0.2.140/24": errors.append("localPodCIDR must be 192.0.2.140/24")
+      if str(local) != "10.42.6.0/24": errors.append("localPodCIDR must be 10.42.6.0/24")
       seen = set()
       for route in spec["remotePodCIDRs"]:
         net = ipaddress.ip_network(route["cidr"], strict=True)
         hop = ipaddress.ip_address(route["nextHop"])
-        if net.prefixlen != 24 or not net.subnet_of(ipaddress.ip_network("192.0.2.57/16")):
+        if net.prefixlen != 24 or not net.subnet_of(ipaddress.ip_network("10.42.0.0/16")):
           errors.append(f"forbidden remote prefix {net}")
         if net == local: errors.append("local prefix present in remote set")
-        if hop not in ipaddress.ip_network("192.0.2.20/24"):
+        if hop not in ipaddress.ip_network("10.181.22.0/24"):
           errors.append(f"next hop outside node underlay: {hop}")
         seen.add(str(net))
       # Hard invariant: the controller has no code path that writes Node InternalIP routes.
@@ -226,7 +226,7 @@ spec:
     spec:
       serviceAccountName: routeros-node-controller
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       containers:
         - name: controller
           # Pin this to the mirrored digest after the observe canary is accepted.
@@ -252,13 +252,13 @@ kind: RouterOSNode
 metadata:
   name: r640-boundary
 spec:
-  nodeRef: restricted-node-6dc3f140f9
-  routerAddress: 192.0.2.240
+  nodeRef: r640
+  routerAddress: 192.168.88.1
   mode: Observe
   routerASN: 4200064001
   continuity:
     operatorWitness: macmini
-    mainDefaultGateway: 192.0.2.211
+    mainDefaultGateway: 223.159.210.221
     mainDefaultInterface: ether4
     requireExternalProbe: true
   credentialsSecretRef:
@@ -266,23 +266,23 @@ spec:
     name: mikrotik-routeros-admin
   apply: {enabled: false, checksum: ""}
   routeDomains:
-    - {name: re8ch-service-fast, fib: true, prefixes: [192.0.2.57/16, 192.0.2.121/24], fallbackTable: main}
-  protectedPrefixes: [0.0.0.0/0, 192.0.2.20/24, 192.0.2.54/24, 192.0.2.11/24, 192.0.2.212/23, 192.0.2.18/24, 192.0.2.38/24, 192.0.2.180/24, 192.0.2.135/24, 192.0.2.214/30]
-  fallbackNextHop: 192.0.2.169
+    - {name: re8ch-service-fast, fib: true, prefixes: [10.42.0.0/16, 10.251.0.0/24], fallbackTable: main}
+  protectedPrefixes: [0.0.0.0/0, 10.181.22.0/24, 192.168.1.0/24, 192.168.2.0/24, 192.168.10.0/23, 192.168.88.0/24, 192.168.89.0/24, 192.168.90.0/24, 192.168.96.0/24, 223.159.210.220/30]
+  fallbackNextHop: 192.168.88.251
   publicVIPs:
-    - {cidr: 192.0.2.213/32, owner: restricted-node-6dc3f140f9, fallbackDistance: 250, healthAuthority: GatewayServiceProbe}
+    - {cidr: 10.251.0.4/32, owner: r640, fallbackDistance: 250, healthAuthority: GatewayServiceProbe}
   publicEdge:
-    publicIP: 192.0.2.138
+    publicIP: 223.159.210.222
     authority: RouterOS
     deliveryMode: EBGPTransitAndDNAT
-    gatewayVIP: 192.0.2.213
+    gatewayVIP: 10.251.0.4
     gatewayRef: kube-system/re8ch-gateway-canary
     routingAuthority: AdvancedFabric
-    fallbackLanBackend: 192.0.2.169
-    requiredForwardPorts: [25, 53, 80, 443, 465, 587, 993, 4190]
+    fallbackLanBackend: 192.168.88.251
+    requiredForwardPorts: [25, 53, 80, 443, 6443, 465, 587, 993, 4190]
   peers:
-    # BFD remains disabled until the matching 192.0.2.240 peer is configured
-    # and verified in restricted-node-6dc3f140f9 FRR. The 10/30 BGP timers are the active failure gate.
-    - {name: re8ch-r640-public-origin-v2, role: r640-public-origin, address: 192.0.2.169/32, remoteASN: 4200000128, localAddress: 192.0.2.240, acceptedPrefixes: [192.0.2.140/24, 192.0.2.213/32], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
-    - {name: re8ch-pod-rs-a1-v2, role: cluster-route-server, address: 192.0.2.176/32, remoteASN: 4200010147, localAddress: 192.0.2.178, acceptedPrefixes: &remotePodCIDRs [192.0.2.57/24, 192.0.2.134/24, 192.0.2.6/24, 192.0.2.48/24, 192.0.2.4/24, 192.0.2.96/24, 192.0.2.234/24, 192.0.2.207/24, 192.0.2.79/24, 192.0.2.237/24, 192.0.2.89/24, 192.0.2.128/24, 192.0.2.94/24], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
-    - {name: re8ch-pod-rs-b1-v2, role: cluster-route-server, address: 192.0.2.4/32, remoteASN: 4200010125, localAddress: 192.0.2.178, acceptedPrefixes: *remotePodCIDRs, maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
+    # BFD remains disabled until the matching 192.168.88.1 peer is configured
+    # and verified in R640 FRR. The 10/30 BGP timers are the active failure gate.
+    - {name: re8ch-r640-public-origin-v2, role: r640-public-origin, address: 192.168.88.251/32, remoteASN: 4200000128, localAddress: 192.168.88.1, acceptedPrefixes: [10.42.6.0/24, 10.251.0.4/32], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
+    - {name: re8ch-pod-rs-a1-v2, role: cluster-route-server, address: 10.181.22.147/32, remoteASN: 4200010147, localAddress: 10.181.22.128, acceptedPrefixes: &remotePodCIDRs [10.42.0.0/24, 10.42.7.0/24, 10.42.9.0/24, 10.42.10.0/24, 10.42.11.0/24, 10.42.12.0/24, 10.42.13.0/24, 10.42.14.0/24, 10.42.16.0/24, 10.42.17.0/24, 10.42.19.0/24, 10.42.20.0/24, 10.42.21.0/24], maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}
+    - {name: re8ch-pod-rs-b1-v2, role: cluster-route-server, address: 10.181.22.125/32, remoteASN: 4200010125, localAddress: 10.181.22.128, acceptedPrefixes: *remotePodCIDRs, maxPrefixes: 64, routeDomain: re8ch-service-fast, useBFD: false, keepaliveTime: 10s, holdTime: 30s, gracefulRestartSeconds: 30, failurePolicy: WithdrawPeerOnly}

@@ -22,7 +22,7 @@ spec:
   values:
     image:
       repository: ghcr.io/re8ch/among-clusters
-      # restricted-node-6dc3f140f9 is amd64. Pin the platform manifest rather than the attestation
+      # R640 is amd64. Pin the platform manifest rather than the attestation
       # index so containerd pulls an executable image deterministically.
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
     replicaCount: 1
@@ -41,7 +41,7 @@ spec:
       replaceCollaborationCRDs: false
     hostname: among-clusters.re8ch.com
     publication:
-      bootstrapTarget: 192.0.2.138
+      bootstrapTarget: 223.159.210.222
       selectedEdge: loudi-r640
     onboarding:
       enabled: true
@@ -50,7 +50,7 @@ spec:
       providerSPIFFEID: spiffe://re8ch.internal/cluster/re8ch
       providerBundleDigest: sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8
       providerBundleSecret: among-clusters-agent-identity
-      providerQUICEndpoint: quic://192.0.2.138:8443
+      providerQUICEndpoint: quic://223.159.210.222:8443
       imageDigest: sha256:3a6b90956f55914d595a9e24d8382b1697a8ef0ad51a65e60b77faa76ed7b692
       chartVersion: 0.3.25
     ciliumPolicy: {enabled: true}
@@ -85,7 +85,7 @@ spec:
     # RouterOS public-IP hairpin from provider-side reconciliation traffic.
     # This is the Gateway Service ClusterIP, not a replacement authority.
     hostAliases:
-      - ip: 192.0.2.192
+      - ip: 10.43.158.127
         hostnames: [among-clusters.re8ch.com]
     image:
       repository: ghcr.io/re8ch/among-clusters
@@ -94,7 +94,7 @@ spec:
     apiServer:
       # Cilium may enforce before or after Service DNAT, so allow the stable
       # kubernetes Service IP and every current control-plane endpoint.
-      cidrs: [192.0.2.248/32, 192.0.2.4/32, 192.0.2.178/32, 192.0.2.176/32]
+      cidrs: [10.43.0.1/32, 10.181.22.125/32, 10.181.22.128/32, 10.181.22.147/32]
       port: 6443
     # The chart's Kubernetes NetworkPolicy already constrains API, DNS, HTTPS
     # and QUIC. Its optional Cilium rule only allows kube-apiserver and causes
@@ -105,24 +105,24 @@ spec:
       - {peerRef: re8ch-artc, bundleDigest: sha256:72dbab1a10af9585ff65e652c0a26240275f3a7cda3206d1aead6ebf5bf71a8e}
       - {peerRef: re8ch-sijie, bundleDigest: sha256:5b7c9a2eeb10e11420d73b2000e2e7b859003570a43131c3f2f63b2876e1990f}
     # BYOC peers originate sessions to the provider-owned public authority.
-    # Their observations drive link status; restricted-node-6dc3f140f9 never dials customer-private nodes.
+    # Their observations drive link status; R640 never dials customer-private nodes.
     linkObservations: []
     gateway:
       publicAuthority:
         ownership: provider
-        sourceRef: operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
-        publicIP: 192.0.2.138
+        sourceRef: operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority
+        publicIP: 223.159.210.222
         deliveryMode: mikrotik-ebgp-transit-dnat
         edgeType: RouterOS
-        gatewayVIP: 192.0.2.213
+        gatewayVIP: 10.251.0.4
         gatewayRef: kube-system/re8ch-gateway-canary
         routingAuthority: AdvancedFabric
-        fallbackLanBackend: 192.0.2.169
-        requiredForwardPorts: [25, 53, 80, 443, 465, 587, 993, 4190]
+        fallbackLanBackend: 192.168.88.251
+        requiredForwardPorts: [25, 53, 80, 443, 6443, 465, 587, 993, 4190]
         dnsProtocols: [udp, tcp]
       peerBundleSecret: among-clusters-peer-bundle
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
-      listener: {enabled: true, port: 8443, publicEndpoint: "quic://192.0.2.138:8443", hostPort: 8443}
+      nodeSelector: {kubernetes.io/hostname: r640}
+      listener: {enabled: true, port: 8443, publicEndpoint: "quic://223.159.210.222:8443", hostPort: 8443}
       peerIdentities:
         re8ch-qwen: ["spiffe://qwen.byoc/cluster/qwen"]
         re8ch-artc: ["spiffe://artc.byoc/cluster/artc"]

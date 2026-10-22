@@ -1,0 +1,121 @@
+name: NodeContract observer
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: node-contract-observer
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    name: NodeContract live parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: cluster-observation
+    permissions:
+      contents: read
+      id-token: write
+      checks: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with: {version: v1.33.1}
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - name: Materialize confidential contracts in runner temporary storage
+        env:
+          CONTRACT_BUNDLE: ${{ secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64 }}
+          KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
+        run: |
+          set -euo pipefail
+          install -d -m 0700 "$RUNNER_TEMP/infrastructure-contracts"
+          python - <<'PY'
+          import base64, io, os, pathlib, tarfile
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "infrastructure-contracts"
+          raw = base64.b64decode(os.environ["CONTRACT_BUNDLE"], validate=True)
+          with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+              members = archive.getmembers()
+              if any(member.name.startswith("/") or ".." in pathlib.PurePosixPath(member.name).parts for member in members):
+                  raise SystemExit("unsafe contract bundle member")
+              archive.extractall(root, members=members, filter="data")
+          (pathlib.Path(os.environ["RUNNER_TEMP"]) / "re8ch-ca.crt").write_text(os.environ["KUBE_API_CA"])
+          PY
+      - name: Exchange GitHub OIDC token and observe Nodes
+        id: parity
+        env:
+          OBSERVER_AUDIENCE: https://kube-api.re8ch.com/observer
+        run: |
+          set -euo pipefail
+          token_json="$RUNNER_TEMP/oidc.json"
+          kubeconfig="$RUNNER_TEMP/node-observer.kubeconfig"
+          observed="$RUNNER_TEMP/nodes.json"
+          evidence="$RUNNER_TEMP/node-contract-evidence.json"
+          cleanup() { rm -f "$token_json" "$kubeconfig" "$observed" "$RUNNER_TEMP/re8ch-ca.crt"; rm -rf "$RUNNER_TEMP/infrastructure-contracts"; }
+          trap cleanup EXIT
+          curl --fail-with-body --silent --show-error --get \
+            --header "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            --data-urlencode "audience=$OBSERVER_AUDIENCE" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$token_json"
+          oidc_token="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["value"])' "$token_json")"
+          echo "::add-mask::$oidc_token"
+          kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main \
+            --server=https://kube-api.re8ch.com:6443 \
+            --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" \
+            --embed-certs=true
+          kubectl config --kubeconfig "$kubeconfig" set-credentials node-observer --token="$oidc_token"
+          kubectl config --kubeconfig "$kubeconfig" set-context node-observer --cluster=re8ch-main --user=node-observer
+          kubectl config --kubeconfig "$kubeconfig" use-context node-observer
+          kubectl --kubeconfig "$kubeconfig" get nodes -o json > "$observed"
+          set +e
+          INFRASTRUCTURE_CONTRACT_DIR="$RUNNER_TEMP/infrastructure-contracts" \
+            python operations/infrastructure-contract/compiler.py observe-diff "$observed" > "$evidence"
+          parity_status=$?
+          set -e
+          cp "$evidence" node-contract-evidence.json
+          echo "status=$parity_status" >> "$GITHUB_OUTPUT"
+      - name: Upload sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: node-contract-evidence-${{ github.run_id }}
+          path: node-contract-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Enforce parity
+        if: always()
+        env: {PARITY_STATUS: "${{ steps.parity.outputs.status }}"}
+        run: |
+          if [[ -z "$PARITY_STATUS" ]]; then
+            echo "Observation failed before sanitized evidence was produced" >&2
+            exit 1
+          fi
+          exit "$PARITY_STATUS"
+
+  governance:
+    name: NodeContract governance
+    if: always() && needs.observe.result != 'cancelled'
+    needs: observe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: node-contract-evidence-${{ github.run_id }}
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: service-backend
+      - name: Reconcile deduplicated Issue and Project state
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITOPS_MAINTENANCE_PROJECT: "1"
+        run: python operations/github-maintenance/node_contract_governance.py node-contract-evidence.json

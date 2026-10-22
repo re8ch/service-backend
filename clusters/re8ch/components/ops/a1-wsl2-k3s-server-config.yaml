@@ -1,19 +1,20 @@
 cluster-init: true
 token-file: /etc/rancher/k3s/server-token
 data-dir: /var/lib/rancher/k3s-server-a1-wsl-zt
-node-name: restricted-node-1eb0570f74
-node-ip: 192.0.2.242
+node-name: a1-wsl-zt
+node-ip: 10.250.0.147
 node-taint:
   - "node-role.kubernetes.io/control-plane=true:NoSchedule"
-cluster-dns: 192.0.2.149
-advertise-address: 192.0.2.242
+cluster-dns: 10.43.65.40
+advertise-address: 10.250.0.147
 tls-san:
-  - 192.0.2.116
-  - 192.0.2.242
-  - 192.0.2.178
-  - 192.0.2.176
-  - 192.0.2.4
+  - 10.250.0.1
+  - 10.250.0.147
+  - 10.181.22.128
+  - 10.181.22.147
+  - 10.181.22.125
   - k3s-api.internal.re8ch.com
+  - kube-api.re8ch.com
 flannel-backend: none
 disable-network-policy: true
 disable-scheduler: false
@@ -39,7 +40,7 @@ node-label:
   - "pigsty.cc/region=openstack"
   - "pigsty.cc/node-class=control-plane"
   - "pigsty.cc/workload=control-plane"
-  - "pigsty.cc/zt-ip=192.0.2.176"
+  - "pigsty.cc/zt-ip=10.181.22.147"
   - "re8ch.com/cilium-migrate=true"
   - "re8ch.com/control-route=wireguard-primary-zerotier-fallback"
   - "re8ch.com/external-ip-mode=none"
@@ -54,7 +55,7 @@ kube-apiserver-arg:
 # use the node-owned AdvancedFabrics identity. The legacy client listener is
 # retained for diagnostics; peer rollback restores this file and restarts K3s.
 etcd-arg:
-  - "advertise-client-urls=https://192.0.2.242:2379"
-  - "initial-advertise-peer-urls=https://192.0.2.242:2380"
-  - "listen-client-urls=https://192.0.2.242:2379,https://192.0.2.176:2379,https://127.0.0.1:2379"
-  - "listen-peer-urls=https://192.0.2.242:2380,https://127.0.0.1:2380"
+  - "advertise-client-urls=https://10.250.0.147:2379"
+  - "initial-advertise-peer-urls=https://10.250.0.147:2380"
+  - "listen-client-urls=https://10.250.0.147:2379,https://10.181.22.147:2379,https://127.0.0.1:2379"
+  - "listen-peer-urls=https://10.250.0.147:2380,https://127.0.0.1:2380"

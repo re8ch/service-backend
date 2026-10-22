@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://re8ch.com/schemas/node-contract.schema.json",
+  "title": "NodeContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "operations.re8ch.com/v1alpha1"},
+    "kind": {"const": "NodeContract"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kubernetesName", "clusterRef", "lifecycle", "provider", "region", "zone", "failureDomain", "roles", "services", "capabilities", "transport", "network", "kubernetes", "host", "observation", "publishTo"],
+      "properties": {
+        "kubernetesName": {"$ref": "#/$defs/name"},
+        "clusterRef": {"const": "re8ch-main"},
+        "lifecycle": {"const": "active"},
+        "provider": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1},
+        "zone": {"type": "string", "minLength": 1},
+        "failureDomain": {"type": "string", "minLength": 1},
+        "roles": {"$ref": "#/$defs/stringArray"},
+        "services": {"$ref": "#/$defs/stringArray"},
+        "capabilities": {"$ref": "#/$defs/stringArray"},
+        "transport": {"$ref": "#/$defs/transport"},
+        "network": {
+          "type": "object", "additionalProperties": false,
+          "required": ["zeroTierIP", "kubeletInternalIP", "acceleratedIP", "podCIDR", "legacyNetwork", "fabric"],
+          "properties": {
+            "zeroTierIP": {"type": "string", "format": "ipv4"},
+            "kubeletInternalIP": {"type": "string", "format": "ipv4"},
+            "acceleratedIP": {"type": "string", "format": "ipv4"},
+            "podCIDR": {"type": "string", "pattern": "^[0-9.]+/[0-9]+$"},
+            "legacyNetwork": {"$ref": "#/$defs/legacyNetwork"},
+            "fabric": {"$ref": "#/$defs/fabric"},
+            "publicAuthorityRef": {"const": "operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority"}
+          }
+        },
+        "kubernetes": {
+          "type": "object", "additionalProperties": false,
+          "required": ["bootstrapLabels", "gitOpsOwnedLabels", "controllerDerivedLabelPrefixes", "taints", "nodeProfile"],
+          "properties": {
+            "bootstrapLabels": {"$ref": "#/$defs/stringMap"},
+            "gitOpsOwnedLabels": {"$ref": "#/$defs/stringMap"},
+            "controllerDerivedLabelPrefixes": {"$ref": "#/$defs/stringArray"},
+            "taints": {"type": "array", "items": {"$ref": "#/$defs/taint"}},
+            "nodeProfile": {"type": "string", "minLength": 1}
+          }
+        },
+        "host": {
+          "type": "object", "additionalProperties": false, "required": ["parameters"],
+          "properties": {
+            "parameters": {"$ref": "#/$defs/parameters"},
+            "storage": {"$ref": "#/$defs/storage"},
+            "k3sConfigRef": {"type": "string"},
+            "systemdUnitsRef": {"type": "string"},
+            "drConfigRef": {"type": "string"}
+          }
+        },
+        "observation": {
+          "type": "object", "additionalProperties": false, "required": ["nodeName", "nodeUID", "facts"],
+          "properties": {
+            "nodeName": {"$ref": "#/$defs/name"},
+            "nodeUID": {"type": "string", "format": "uuid"},
+            "facts": {"type": "array", "uniqueItems": true, "items": {"enum": ["addresses", "gitOpsOwnedLabels", "taints", "nodeUID", "conditions"]}}
+          }
+        },
+        "publishTo": {"type": "array", "uniqueItems": true, "items": {"enum": ["compatInventory", "clusterInventory", "advancedFabric", "aiOperations", "sshConfig"]}},
+        "aiOperations": {"$ref": "#/$defs/aiOperations"},
+        "sshConfig": {"$ref": "#/$defs/sshConfig"}
+      }
+    }
+  },
+  "$defs": {
+    "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
+    "metadata": {"type": "object", "additionalProperties": false, "required": ["name", "uid"], "properties": {"name": {"$ref": "#/$defs/name"}, "uid": {"type": "string", "format": "uuid"}}},
+    "stringArray": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "stringMap": {"type": "object", "additionalProperties": {"type": "string"}},
+    "commands": {"type": "object", "additionalProperties": false, "required": ["read", "write", "rollback"], "properties": {"read": {"$ref": "#/$defs/stringArray"}, "write": {"$ref": "#/$defs/stringArray"}, "rollback": {"$ref": "#/$defs/stringArray"}}},
+    "cloud": {
+      "type": "object", "additionalProperties": false, "required": ["provider", "product", "account", "cliProfile", "regionId", "apiEndpoint", "instanceId", "instanceName", "publicIp"],
+      "properties": {"provider": {"type": "string"}, "product": {"type": "string"}, "account": {"type": "string"}, "cliProfile": {"type": "string"}, "regionId": {"type": "string"}, "zoneId": {"type": "string"}, "apiEndpoint": {"type": "string"}, "instanceId": {"type": "string"}, "instanceName": {"type": "string"}, "publicIp": {"type": "string", "format": "ipv4"}}
+    },
+    "transport": {"type": "object", "additionalProperties": false, "required": ["type", "address", "credentialRef", "commands"], "properties": {"type": {"enum": ["ssh"]}, "address": {"type": "string", "minLength": 1}, "credentialRef": {"type": "string", "pattern": "^[a-z0-9][a-z0-9./-]*$"}, "commands": {"$ref": "#/$defs/commands"}, "cloud": {"$ref": "#/$defs/cloud"}}},
+    "legacyNetwork": {"type": "object", "additionalProperties": false, "required": ["region", "zone", "uplinkMbps"], "properties": {"region": {"type": "string"}, "zone": {"type": "string"}, "controlRoute": {"type": "string"}, "externalIPMode": {"type": "string"}, "networkLevel": {"type": "integer"}, "uplinkMbps": {"type": "integer", "minimum": 1}}},
+    "fabric": {"type": "object", "additionalProperties": false, "required": ["role", "class", "failureDomain", "provider", "internalIP", "podCIDR", "acceleratedIP", "asn", "publicAuthority", "inventoryComplete"], "properties": {"role": {"type": "string"}, "class": {"type": "string"}, "failureDomain": {"type": "string"}, "provider": {"type": "string"}, "internalIP": {"type": "string", "format": "ipv4"}, "podCIDR": {"type": "string"}, "acceleratedIP": {"type": "string", "format": "ipv4"}, "asn": {"type": "integer"}, "legacyASN": {"type": "integer"}, "monthlyTrafficLimitGiB": {"type": "integer"}, "publicAuthority": {"type": "boolean"}, "inventoryComplete": {"const": true}}},
+    "taint": {"type": "object", "additionalProperties": false, "required": ["key", "effect"], "properties": {"key": {"type": "string"}, "value": {"type": "string"}, "effect": {"enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]}}},
+    "parameters": {"type": "object", "additionalProperties": false, "required": ["cpu", "memoryKi", "ephemeralStorageKi", "osImage", "kernelVersion"], "properties": {"cpu": {"type": "integer"}, "memoryKi": {"type": "integer"}, "ephemeralStorageKi": {"type": "integer"}, "osImage": {"type": "string"}, "kernelVersion": {"type": "string"}}},
+    "storage": {"type": "object", "additionalProperties": false, "required": ["csiDrivers", "profiles"], "properties": {"csiDrivers": {"$ref": "#/$defs/stringArray"}, "profiles": {"$ref": "#/$defs/stringArray"}}},
+    "aiOperations": {"type": "object", "additionalProperties": false, "required": ["target", "roles", "enabled"], "properties": {"target": {"type": "string", "minLength": 1}, "roles": {"$ref": "#/$defs/stringArray"}, "enabled": {"type": "boolean"}}},
+    "sshConfig": {"type": "object", "additionalProperties": false, "required": ["aliases", "hostName", "user"], "properties": {"aliases": {"$ref": "#/$defs/stringArray"}, "hostName": {"type": "string"}, "user": {"type": "string"}, "proxyJump": {"type": "string"}}}
+  }
+}

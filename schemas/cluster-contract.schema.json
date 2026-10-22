@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://re8ch.com/schemas/cluster-contract.schema.json",
+  "title": "ClusterContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "operations.re8ch.com/v1alpha1"},
+    "kind": {"const": "ClusterContract"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expectedNodeCount", "k3s", "api", "publicAuthorityRef", "authenticationRef", "nodeContractsRef", "observationPolicyRef"],
+      "properties": {
+        "expectedNodeCount": {"type": "integer", "minimum": 1},
+        "k3s": {
+          "type": "object", "additionalProperties": false, "required": ["versionLockRef"],
+          "properties": {"versionLockRef": {"$ref": "#/$defs/repositoryRef"}}
+        },
+        "api": {
+          "type": "object", "additionalProperties": false,
+          "required": ["internalVIP", "publicFQDN", "publicPort", "caBundleRef"],
+          "properties": {
+            "internalVIP": {"type": "string", "format": "ipv4"},
+            "publicFQDN": {"const": "kube-api.re8ch.com"},
+            "publicPort": {"const": 6443},
+            "caBundleRef": {"$ref": "#/$defs/repositoryRef"}
+          }
+        },
+        "publicAuthorityRef": {"const": "operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority"},
+        "authenticationRef": {"$ref": "#/$defs/repositoryRef"},
+        "nodeContractsRef": {"$ref": "#/$defs/repositoryRef"},
+        "observationPolicyRef": {"$ref": "#/$defs/repositoryRef"}
+      }
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object", "additionalProperties": false, "required": ["name", "uid"],
+      "properties": {"name": {"const": "re8ch-main"}, "uid": {"type": "string", "format": "uuid"}}
+    },
+    "repositoryRef": {"type": "string", "minLength": 3, "pattern": "^[^/].+"}
+  }
+}

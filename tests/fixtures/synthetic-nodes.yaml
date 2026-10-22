@@ -1,0 +1,26 @@
+apiVersion: operations.re8ch.com/v1alpha1
+kind: InfrastructureTargetList
+items:
+  - metadata: {name: test-primary}
+    spec:
+      transport: ssh
+      address: test-primary.invalid
+      credentialRef: test-node-ssh
+      capabilities: [k3s-worker]
+      cluster:
+        membership: active
+        roles: [worker]
+        services: [k3s-agent]
+        labels: {example.test/profile: worker}
+        taints: []
+        parameters: {cpu: 2, memoryKi: 4096, ephemeralStorageKi: 8192, osImage: Test Linux, kernelVersion: 1.0.0}
+        network: {region: test-region, zone: test-zone, uplinkMbps: 100}
+        storage: {csiDrivers: [], profiles: []}
+      commands: {read: [hostname], write: [], rollback: []}
+  - metadata: {name: test-secondary}
+    spec:
+      transport: ssh
+      address: test-secondary.invalid
+      credentialRef: test-node-ssh
+      capabilities: [k3s-worker]
+      commands: {read: [hostname], write: [], rollback: []}

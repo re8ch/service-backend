@@ -6,7 +6,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: mihomo-node-labeler-inventory, namespace: flux-system}
 rules:
-  - {apiGroups: [""], resources: [configmaps], resourceNames: [cluster-node-inventory], verbs: [get]}
+  - {apiGroups: [""], resources: [secrets], resourceNames: [cluster-node-inventory], verbs: [get]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -36,7 +36,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: mihomo-node-labeler}}
     spec:
       serviceAccountName: mihomo-node-labeler
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: controller
