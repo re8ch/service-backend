@@ -51,20 +51,18 @@ def test_rendered_controller_failover_and_source_cache_safety():
         ]['nodeSelectorTerms'][0]['matchExpressions'][0]
         assert expression['values'] == ['overseas-kl', 'restricted-node-6dc3f140f9']
     kustomize = deployments['kustomize-controller']
-    assert kustomize['spec']['replicas'] == 2
+    assert kustomize['spec']['replicas'] == 1
     expression = kustomize['spec']['template']['spec']['affinity']['nodeAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'
     ]['nodeSelectorTerms'][0]['matchExpressions'][0]
-    assert expression['values'] == ['restricted-node-1eb0570f74', 'restricted-node-6dc3f140f9']
+    assert expression['values'] == ['restricted-node-296f36f2fb']
     kustomize_env = {
         item['name']: item.get('value')
         for item in kustomize['spec']['template']['spec']['containers'][0]['env']
     }
     assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.173'
     assert '--concurrent=4' in kustomize['spec']['template']['spec']['containers'][0]['args']
-    assert kustomize['spec']['template']['spec']['affinity']['podAntiAffinity'][
-        'preferredDuringSchedulingIgnoredDuringExecution'
-    ]
+    assert 'podAntiAffinity' not in kustomize['spec']['template']['spec']['affinity']
     # Source artifacts use pod-local storage and a non-leader replica does not
     # become ready, so scheduler failover is safer than an empty standby cache.
     source = deployments['source-controller']
