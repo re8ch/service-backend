@@ -160,7 +160,7 @@ def main() -> int:
     contract = yaml.safe_load(args.contract.read_text(encoding="utf-8"))
     archive, manifest = compile_bundle(contract, args.rendered.read_bytes())
     args.output.write_bytes(archive)
-    print(json.dumps({**manifest, "bundleDigest": digest(archive)}, sort_keys=True))
+    print(json.dumps({**manifest, "payloadDigest": digest(archive)}, sort_keys=True))
     return 0
 
 

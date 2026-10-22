@@ -1,0 +1,69 @@
+name: unified-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      contract:
+        description: Reviewed ReleaseContract path
+        type: string
+        default: contracts/releases/api-conformance-runner-projection.yaml
+
+permissions: {contents: read, id-token: write}
+concurrency: {group: unified-release-${{ inputs.contract }}, cancel-in-progress: false}
+
+jobs:
+  compile-sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-api-conformance
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {fetch-depth: 0}
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with: {version: v1.33.1}
+      - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+        with: {version: '2.9.5'}
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - name: Render and compile the reviewed contract
+        env: {CONTRACT: '${{ inputs.contract }}'}
+        run: |
+          set -euo pipefail
+          case "$CONTRACT" in contracts/releases/*.yaml) ;; *) echo 'contract path is not allowlisted' >&2; exit 1;; esac
+          renderer="$(python -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["spec"]["source"]["renderer"])' "$CONTRACT")"
+          source_path="$(python -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["spec"]["source"]["path"])' "$CONTRACT")"
+          release_id="$(python -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["metadata"]["name"])' "$CONTRACT")"
+          [[ "$renderer" == kustomize ]] || { echo "unsupported renderer in initial canary: $renderer" >&2; exit 1; }
+          [[ "$source_path" != /* && "$source_path" != *..* ]] || { echo 'unsafe source path' >&2; exit 1; }
+          kubectl kustomize "$source_path" > "$RUNNER_TEMP/rendered.yaml"
+          python operations/releases/unified_bundle.py --contract "$CONTRACT" \
+            --rendered "$RUNNER_TEMP/rendered.yaml" --output "$RUNNER_TEMP/release.bundle" \
+            | tee "$RUNNER_TEMP/bundle-metadata.json"
+          install -d "$RUNNER_TEMP/oci"
+          cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/oci/release.bundle"
+          cp "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/bundle-metadata.json"
+          reference="oci://registry.re8ch.com/gitops-release/${release_id}:run-${GITHUB_RUN_ID}"
+          flux push artifact "$reference" --path "$RUNNER_TEMP/oci" --reproducible \
+            --source "https://github.com/${GITHUB_REPOSITORY}" --revision "main@sha1:${GITHUB_SHA}" \
+            --annotations "delivery.re8ch.com/release-id=${release_id}" --output json \
+            > "$RUNNER_TEMP/oci-result.json"
+          immutable="$(jq -r '.repository + "@" + .digest' "$RUNNER_TEMP/oci-result.json")"
+          cosign sign --yes "$immutable"
+          cosign verify --certificate-identity \
+            'https://github.com/re8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
+          jq -n --arg reference "$immutable" --slurpfile bundle "$RUNNER_TEMP/bundle-metadata.json" \
+            '{reference:$reference,payloadDigest:$bundle[0].payloadDigest,verified:true}' \
+            > unified-release-evidence.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unified-release-${{ github.run_id }}
+          path: unified-release-evidence.json
+          retention-days: 30
+          if-no-files-found: error

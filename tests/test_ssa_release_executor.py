@@ -64,6 +64,7 @@ def prepare(tmp_path, sequence=1, operation_id=None, previous=None):
         "operationId": operation_id or str(uuid.uuid4()), "sequence": sequence,
         "releaseId": "demo", "target": "re8ch/demo", "contractDigest": digest(canonical(value)),
         "bundle": {"reference": "oci://registry.example/releases/demo", "digest": digest(archive),
+                   "payloadDigest": digest(archive),
                    "signer": "https://github.com/re8ch/service-backend/.github/workflows/release.yml@refs/heads/main",
                    "issuer": "https://token.actions.githubusercontent.com"},
         "inventoryDigest": manifest["inventoryDigest"],
