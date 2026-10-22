@@ -17,7 +17,7 @@
     "spec": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["target", "source", "authorization", "inventory", "lifecycle"],
+      "required": ["target", "source", "provenance", "authorization", "inventory", "lifecycle"],
       "properties": {
         "target": {
           "type": "object", "additionalProperties": false,
@@ -37,6 +37,19 @@
             "path": {"type": "string", "minLength": 1},
             "chart": {"type": "string", "minLength": 1},
             "version": {"type": "string", "minLength": 1}
+          }
+        },
+        "provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["repository", "workflow", "ref", "environment", "audience", "signer", "issuer"],
+          "properties": {
+            "repository": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+            "workflow": {"type": "string", "pattern": "^\\.github/workflows/[^/]+\\.ya?ml$"},
+            "ref": {"type": "string", "pattern": "^refs/heads/[A-Za-z0-9._/-]+$"},
+            "environment": {"type": "string", "minLength": 1},
+            "audience": {"type": "string", "format": "uri"},
+            "signer": {"type": "string", "minLength": 1},
+            "issuer": {"type": "string", "minLength": 1}
           }
         },
         "authorization": {
