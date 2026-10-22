@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ REPO = os.environ.get("GITHUB_REPOSITORY", "re8ch/service-backend")
 OWNER = REPO.split("/", 1)[0]
 PROJECT_NUMBER = os.environ.get("GITOPS_MAINTENANCE_PROJECT", "1")
 TITLE_PREFIX = "[NodeContract drift]"
+ACTIVE_TITLE = f"{TITLE_PREFIX} active reconciliation"
 
 
 def gh(*args: str) -> str:
@@ -26,24 +28,69 @@ def api(endpoint: str) -> Any:
     return json.loads(gh("api", endpoint))
 
 
-def persistent_threshold_met() -> bool:
+def historical_evidence() -> list[tuple[dt.datetime, dict[str, Any]]]:
+    """Return the uninterrupted history of prior, valid observer evidence.
+
+    A failed run without an evidence artifact breaks the streak. This prevents
+    transport, authentication, or workflow failures from being misclassified as
+    repeated declaration drift.
+    """
     current = str(os.environ.get("GITHUB_RUN_ID", ""))
-    result = api(f"repos/{REPO}/actions/workflows/node-contract-observer.yml/runs?branch=main&per_page=20")
+    result = api(f"repos/{REPO}/actions/workflows/node-contract-observer.yml/runs?branch=main&per_page=50")
     completed = [
         run for run in result.get("workflow_runs", [])
         if str(run.get("id")) != current and run.get("status") == "completed"
     ]
-    failure_streak: list[dict[str, Any]] = []
+    history: list[tuple[dt.datetime, dict[str, Any]]] = []
     for run in completed:
-        if run.get("conclusion") != "failure":
+        run_id = str(run["id"])
+        artifact_name = f"node-contract-evidence-{run_id}"
+        artifacts = api(f"repos/{REPO}/actions/runs/{run_id}/artifacts").get("artifacts", [])
+        if not any(item.get("name") == artifact_name and not item.get("expired") for item in artifacts):
             break
-        failure_streak.append(run)
-    consecutive = len(failure_streak) >= 2
-    now = dt.datetime.now(dt.timezone.utc)
-    continuous_24h = bool(failure_streak) and (
-        now - dt.datetime.fromisoformat(failure_streak[-1]["created_at"].replace("Z", "+00:00")) >= dt.timedelta(hours=24)
-    )
-    return consecutive or continuous_24h
+        with tempfile.TemporaryDirectory(prefix="node-contract-history-") as directory:
+            try:
+                gh("run", "download", run_id, "--repo", REPO, "--name", artifact_name, "--dir", directory)
+                evidence = json.loads((Path(directory) / "node-contract-evidence.json").read_text(encoding="utf-8"))
+            except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+                break
+        created_at = dt.datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
+        history.append((created_at, evidence))
+    return history
+
+
+def persistent_keys(
+    evidence: dict[str, Any],
+    history: list[tuple[dt.datetime, dict[str, Any]]],
+    *,
+    now: dt.datetime | None = None,
+) -> set[str]:
+    """Select drift keys seen in 3 valid observations or continuously for 24h."""
+    current = {
+        issue_key(item) for item in evidence["drift"]
+        if item["severity"] == "persistent"
+    }
+    if not current:
+        return set()
+    now = now or dt.datetime.now(dt.timezone.utc)
+    occurrences = {key: 1 for key in current}
+    oldest = {key: now for key in current}
+    candidates = set(current)
+    for created_at, previous in history:
+        previous_keys = {
+            issue_key(item) for item in previous.get("drift", [])
+            if item.get("severity") == "persistent"
+        }
+        candidates &= previous_keys
+        if not candidates:
+            break
+        for key in candidates:
+            occurrences[key] += 1
+            oldest[key] = created_at
+    return {
+        key for key in current
+        if occurrences[key] >= 3 or now - oldest[key] >= dt.timedelta(hours=24)
+    }
 
 
 def issue_key(drift: dict[str, Any]) -> str:
@@ -51,23 +98,30 @@ def issue_key(drift: dict[str, Any]) -> str:
     return ":".join(part for part in parts if part)
 
 
-def render_body(key: str, drift: dict[str, Any], evidence: dict[str, Any]) -> str:
-    safe = json.dumps(drift, indent=2, sort_keys=True)
+def render_body(actionable: list[dict[str, Any]], evidence: dict[str, Any]) -> str:
+    breakdown: dict[tuple[str, str], int] = {}
+    for drift in actionable:
+        key = (drift["severity"], drift["type"])
+        breakdown[key] = breakdown.get(key, 0) + 1
+    summary = "\n".join(
+        f"- `{severity}/{kind}`: {count}"
+        for (severity, kind), count in sorted(breakdown.items())
+    )
     return f"""## NodeContract reconciliation drift
-
-Deduplication key: `{key}`
 
 This issue was opened by the Maintenance App from sanitized observer evidence.
 It has no assignee and intentionally mentions no user.
 
-```json
-{safe}
-```
+Actionable drift count: `{len(actionable)}`
+
+{summary}
 
 Expected nodes: `{evidence['expectedNodeCount']}`
 
 Observed nodes: `{evidence['observedNodeCount']}`
 Observer run: `{os.environ.get('GITHUB_RUN_ID', 'unknown')}`
+
+Per-node details remain only in the access-controlled Actions artifact.
 
 Project status is governance metadata only and never grants Kubernetes access.
 """
@@ -81,28 +135,27 @@ def existing_issues() -> list[dict[str, Any]]:
 
 
 def publish(evidence: dict[str, Any]) -> None:
-    persistent_ready = persistent_threshold_met() if any(item["severity"] == "persistent" for item in evidence["drift"]) else False
-    actionable = {
-        issue_key(item): item for item in evidence["drift"]
-        if item["severity"] == "immediate" or persistent_ready
-    }
+    eligible = persistent_keys(evidence, historical_evidence())
+    actionable = [
+        item for item in evidence["drift"]
+        if item["severity"] == "immediate" or issue_key(item) in eligible
+    ]
     known = existing_issues()
     by_title = {item["title"]: item for item in known}
     active_titles: set[str] = set()
-    for key, drift in sorted(actionable.items()):
-        title = f"{TITLE_PREFIX} {key}"
-        active_titles.add(title)
-        body = render_body(key, drift, evidence)
-        old = by_title.get(title)
+    if actionable:
+        active_titles.add(ACTIVE_TITLE)
+        body = render_body(actionable, evidence)
+        old = by_title.get(ACTIVE_TITLE)
         if old:
             gh("api", "--method", "PATCH", f"repos/{REPO}/issues/{old['number']}", "-f", f"body={body}", "-f", "state=open")
-            continue
-        created = json.loads(gh(
-            "api", "--method", "POST", f"repos/{REPO}/issues",
-            "-f", f"title={title}", "-f", f"body={body}",
-            "-f", "labels[]=type/maintenance", "-f", "labels[]=actor/automation",
-        ))
-        gh("project", "item-add", PROJECT_NUMBER, "--owner", OWNER, "--url", created["html_url"])
+        else:
+            created = json.loads(gh(
+                "api", "--method", "POST", f"repos/{REPO}/issues",
+                "-f", f"title={ACTIVE_TITLE}", "-f", f"body={body}",
+                "-f", "labels[]=type/maintenance", "-f", "labels[]=actor/automation",
+            ))
+            gh("project", "item-add", PROJECT_NUMBER, "--owner", OWNER, "--url", created["html_url"])
     for old in known:
         if old.get("state") == "open" and old["title"] not in active_titles:
             gh("api", "--method", "PATCH", f"repos/{REPO}/issues/{old['number']}", "-f", "state=closed", "-f", "state_reason=completed")
