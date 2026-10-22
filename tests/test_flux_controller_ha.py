@@ -13,7 +13,8 @@ CORE_CONTROLLERS = {
     "kustomize-controller",
 }
 DISRUPTION_BUDGETED = CORE_CONTROLLERS
-FAILOVER_NODES = ["overseas-kl", "restricted-node-6dc3f140f9"]
+EDGE_FAILOVER_NODES = ["overseas-kl", "restricted-node-6dc3f140f9"]
+CONTROL_PLANE_FAILOVER_NODES = ["restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"]
 
 
 def rendered_documents():
@@ -28,14 +29,14 @@ def test_flux_core_controllers_use_kl_r640_active_standby():
         for item in rendered_documents()
         if item and item["kind"] == "Deployment" and item["metadata"].get("namespace") == "flux-system"
     }
-    for name in CORE_CONTROLLERS:
+    for name in {"helm-controller", "notification-controller"}:
         deployment = deployments[name]
         assert deployment["spec"]["replicas"] == 2
         assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
         assert expression["key"] == "kubernetes.io/hostname"
-        assert expression["values"] == FAILOVER_NODES
+        assert expression["values"] == EDGE_FAILOVER_NODES
         assert pod["affinity"]["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
         preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
         assert preferred[0]["weight"] == 100
@@ -62,13 +63,16 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == FAILOVER_NODES
+    assert expression["values"] == CONTROL_PLANE_FAILOVER_NODES
+    anti_affinity = pod["affinity"]["podAntiAffinity"]
+    assert "requiredDuringSchedulingIgnoredDuringExecution" not in anti_affinity
+    assert anti_affinity["preferredDuringSchedulingIgnoredDuringExecution"]
     env = {item["name"]: item["value"] for item in pod["containers"][0]["env"] if "value" in item}
-    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.116"
+    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.242"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
-    assert "--concurrent=1" in pod["containers"][0]["args"]
+    assert "--concurrent=4" in pod["containers"][0]["args"]
     assert {item.get("key") for item in pod["tolerations"]} == {
-        "dedicated",
+        "node-role.kubernetes.io/control-plane",
         "scheduling.re8ch.com/capacity-window",
     }
 
@@ -85,21 +89,22 @@ def test_source_controller_uses_kl_r640_scheduler_failover():
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == FAILOVER_NODES
+    assert expression["values"] == CONTROL_PLANE_FAILOVER_NODES
     assert pod["nodeSelector"] == {"kubernetes.io/os": "linux"}
     preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
     assert preferred[0]["weight"] == 100
-    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
-    assert preferred[1]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
+    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["restricted-node-1eb0570f74"]
+    assert preferred[1]["preference"]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
     assert pod["hostNetwork"] is False
     assert pod["dnsPolicy"] == "ClusterFirst"
     assert "dnsConfig" not in pod
     manager = pod["containers"][0]
     env = {item["name"]: item.get("value") for item in manager["env"]}
-    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.116"
+    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.242"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     assert "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local." in manager["args"]
     assert "--enable-leader-election" in manager["args"]
+    assert "--concurrent=4" in manager["args"]
     assert all(item["name"] != "POD_IP" for item in manager.get("env", []))
     service = next(
         item for item in documents

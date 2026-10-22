@@ -247,7 +247,9 @@ patches:
     name: kustomize-controller
     namespace: flux-system
   patch: |-
-    # Keep manifest rendering beside the active/standby source delivery pair.
+    # Keep manifest rendering on nodes that can reach the control-plane
+    # endpoint directly. The Kubernetes service VIP is not routed reliably
+    # from every worker, so controller bootstrap must not depend on it.
     - op: replace
       path: /spec/replicas
       value: 2
@@ -265,34 +267,36 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [overseas-kl, restricted-node-6dc3f140f9]
+                values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             preference:
               matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
-          - weight: 50
+              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
+          - weight: 80
             preference:
               matchExpressions:
               - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels: {app: kustomize-controller}
-            topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels: {app: kustomize-controller}
+              topologyKey: kubernetes.io/hostname
     - op: add
       path: /spec/template/spec/tolerations
       value:
-      - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+      - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     - op: add
       path: /spec/template/spec/containers/0/args/-
       # Bound cross-region Kubernetes API pressure so reconciliation does not
       # amplify an etcd/control-plane recovery event.
-      value: --concurrent=1
+      value: --concurrent=4
     - op: add
       path: /spec/template/spec/containers/0/env/-
-      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.116"}
+      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
@@ -306,3 +310,13 @@ patches:
     kind: Deployment
     name: source-controller
     namespace: flux-system
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: source-controller
+    namespace: flux-system
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --concurrent=4
