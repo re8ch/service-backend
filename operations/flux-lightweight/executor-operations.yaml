@@ -1,0 +1,93 @@
+apiVersion: gitops.re8ch.com/v1alpha1
+kind: KubernetesExecutorOperationCatalog
+metadata:
+  name: re8ch
+spec:
+  endpointRequirements:
+    independence:
+      - cluster-dns
+      - cni-service-routing
+      - gateway-api
+      - in-cluster-proxy
+    transport: tls
+    authentication:
+      preferred: short-lived-client-certificate-or-oidc
+      breakGlass: offline-kubeconfig-outside-github
+    auditCorrelationHeaders:
+      - change-id
+      - github-run-id
+      - operation-id
+
+  accessProfiles:
+    observer:
+      clusterWrite: false
+      allowedVerbs: [get, list, watch]
+      secretDataAccess: false
+    reconciler:
+      clusterWrite: true
+      allowedVerbs: [get, list, watch, patch]
+      secretDataAccess: false
+      constraints:
+        - named-resource-and-namespace-allowlist
+        - server-side-apply-field-manager
+        - protected-github-environment
+    emergency-admin:
+      clusterWrite: true
+      allowedVerbs: [get, list, watch, create, update, patch, delete]
+      secretDataAccess: exceptional
+      constraints:
+        - offline-credential
+        - human-break-glass
+        - time-bounded-session
+        - mandatory-audit-review
+
+  operations:
+    observe-resource:
+      profile: observer
+      mutation: false
+      input: [cluster, apiVersion, kind, namespace, name]
+    server-dry-run-bundle:
+      profile: reconciler
+      mutation: false
+      input: [cluster, bundleDigest, namespace, fieldManager]
+    request-flux-reconcile:
+      profile: reconciler
+      mutation: true
+      input: [cluster, controllerKind, namespace, name, requestedAt]
+      allowedKinds: [GitRepository, OCIRepository, Kustomization, HelmRelease]
+    suspend-flux-resource:
+      profile: reconciler
+      mutation: true
+      input: [cluster, controllerKind, namespace, name, reason, expiresAt]
+      allowedKinds: [GitRepository, OCIRepository, Kustomization, HelmRelease]
+    resume-flux-resource:
+      profile: reconciler
+      mutation: true
+      input: [cluster, controllerKind, namespace, name, approvedRevision]
+      allowedKinds: [GitRepository, OCIRepository, Kustomization, HelmRelease]
+    apply-approved-bundle:
+      profile: reconciler
+      mutation: true
+      input: [cluster, bundleDigest, authority, namespace, fieldManager, changeId]
+      requiredEvidence:
+        - signed-main-commit
+        - artifact-provenance
+        - authority-owner
+        - protected-environment-approval
+    rollback-approved-bundle:
+      profile: reconciler
+      mutation: true
+      input: [cluster, authority, currentDigest, priorApprovedDigest, changeId]
+      requiredEvidence:
+        - runtime-failure
+        - prior-digest-provenance
+        - rollback-approval
+
+  forbiddenInterfaces:
+    - arbitrary-shell
+    - raw-kubectl-arguments
+    - floating-git-reference
+    - plaintext-kubeconfig-in-repository
+    - user-supplied-bearer-token
+    - unbounded-resource-selector
+
