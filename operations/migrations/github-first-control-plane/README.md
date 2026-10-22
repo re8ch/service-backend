@@ -27,6 +27,11 @@ file with a versioned JSON Schema; webhook deliveries are normalized into the
 provider-neutral event envelope in `collaboration-contract.yaml`; Git mirrors,
 release bundles and audit exports are continuously verified.
 
+The proposed [unified CredentialContract](credential-contract-architecture.md)
+extends this portability boundary to workload identity. One public declaration
+compiles GitHub Actions OIDC trust, Kubernetes RBAC/workload identity, Broker
+issuance, credential lifecycle observations and GitHub Projects governance.
+
 ## Target topology
 
 ```text
