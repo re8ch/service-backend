@@ -1,0 +1,176 @@
+apiVersion: gitops.re8ch.com/v1alpha1
+kind: FluxControllerCapabilityCatalog
+metadata:
+  name: service-backend
+spec:
+  controllers:
+    source-controller:
+      upstreamVersion: v1.6.0
+      sourceReferences:
+        - https://github.com/fluxcd/source-controller/blob/v1.6.0/internal/controller/gitrepository_controller.go
+        - https://github.com/fluxcd/source-controller/blob/v1.6.0/internal/controller/ocirepository_controller.go
+      apiKinds:
+        - source.toolkit.fluxcd.io/GitRepository
+        - source.toolkit.fluxcd.io/OCIRepository
+        - source.toolkit.fluxcd.io/Bucket
+        - source.toolkit.fluxcd.io/HelmRepository
+        - source.toolkit.fluxcd.io/HelmChart
+      dynamicResponsibilities:
+        - remote-authentication
+        - source-polling
+        - signature-verification
+        - artifact-storage-and-serving
+        - revision-status
+      reconciliationTriggers:
+        - primary-resource-generation
+        - reconcile-request-annotation
+        - interval-with-jitter
+        - referenced-secret-or-config-change
+      deletionSemantics:
+        - finalizer-removes-stored-artifact
+      staticTargets:
+        - immutable-source-lock
+        - github-hosted-artifact-build
+        - ghcr-bundle-publication
+      minimumRuntimeRole: immutable-artifact-acquisition
+      disposition: reduce
+
+    kustomize-controller:
+      upstreamVersion: v1.6.0
+      sourceReferences:
+        - https://github.com/fluxcd/kustomize-controller/blob/v1.6.0/internal/controller/kustomization_controller.go
+        - https://github.com/fluxcd/kustomize-controller/blob/v1.6.0/internal/decryptor/decryptor.go
+      apiKinds:
+        - kustomize.toolkit.fluxcd.io/Kustomization
+      dynamicResponsibilities:
+        - kubernetes-discovery-and-admission
+        - server-side-apply
+        - field-ownership
+        - health-assessment
+        - inventory-and-prune
+        - finalization
+      reconciliationTriggers:
+        - primary-resource-generation
+        - reconcile-request-annotation
+        - indexed-source-revision-change
+        - dependency-requeue
+        - interval-with-jitter
+      deletionSemantics:
+        - finalizer-prunes-status-inventory-when-enabled
+        - finalizer-requires-live-api-and-rbac
+      staticTargets:
+        - kustomize-render
+        - schema-validation
+        - policy-validation
+        - normalized-diff
+      minimumRuntimeRole: apply-health-inventory-prune
+      disposition: retain-minimal
+
+    helm-controller:
+      upstreamVersion: v1.3.0
+      sourceReferences:
+        - https://github.com/fluxcd/helm-controller/blob/v1.3.0/internal/controller/helmrelease_controller.go
+        - https://github.com/fluxcd/helm-controller/tree/v1.3.0/internal/reconcile
+      apiKinds:
+        - helm.toolkit.fluxcd.io/HelmRelease
+      dynamicResponsibilities:
+        - helm-release-storage
+        - install-upgrade-test-hooks
+        - rollback-and-remediation
+        - uninstall-and-finalization
+        - runtime-health
+      reconciliationTriggers:
+        - primary-resource-generation
+        - reconcile-request-annotation
+        - chart-or-oci-source-revision-change
+        - dependency-requeue
+        - interval-with-jitter
+      deletionSemantics:
+        - finalizer-uninstalls-release-when-not-suspended
+        - finalizer-removes-generated-helmchart
+        - suspended-delete-skips-uninstall
+      staticTargets:
+        - chart-lock
+        - helm-render-and-lint
+        - values-schema-validation
+        - immutable-chart-publication
+      minimumRuntimeRole: qualified-release-lifecycle-only
+      disposition: qualify-per-release
+
+    notification-controller:
+      upstreamVersion: v1.6.0
+      sourceReferences:
+        - https://github.com/fluxcd/notification-controller/blob/v1.6.0/internal/controller/receiver_controller.go
+        - https://github.com/fluxcd/notification-controller/blob/v1.6.0/internal/controller/alert_controller.go
+      apiKinds:
+        - notification.toolkit.fluxcd.io/Alert
+        - notification.toolkit.fluxcd.io/Provider
+        - notification.toolkit.fluxcd.io/Receiver
+      dynamicResponsibilities:
+        - inbound-webhook-verification
+        - flux-event-filtering
+        - outbound-delivery-and-retry
+      reconciliationTriggers:
+        - receiver-http-request
+        - kubernetes-event
+        - primary-resource-generation
+      deletionSemantics:
+        - remove-runtime-routing-state
+      staticTargets:
+        - github-native-event-trigger
+        - event-routing-policy
+        - issue-project-workflow
+      minimumRuntimeRole: non-github-event-bridge-only
+      disposition: replace-after-event-gateway
+
+    image-reflector-controller:
+      upstreamVersion: v0.35.1
+      sourceReferences:
+        - https://github.com/fluxcd/image-reflector-controller/tree/v0.35.1/internal/controller
+      apiKinds:
+        - image.toolkit.fluxcd.io/ImageRepository
+        - image.toolkit.fluxcd.io/ImagePolicy
+      dynamicResponsibilities:
+        - registry-polling
+        - tag-metadata-cache
+        - image-policy-selection
+      staticTargets:
+        - producer-package-event
+        - digest-lock
+        - dependency-update-pr
+      minimumRuntimeRole: none-when-producer-events-cover-sources
+      disposition: keep-absent
+
+    image-automation-controller:
+      upstreamVersion: v0.41.0
+      sourceReferences:
+        - https://github.com/fluxcd/image-automation-controller/tree/v0.41.0/internal/controller
+      apiKinds:
+        - image.toolkit.fluxcd.io/ImageUpdateAutomation
+      dynamicResponsibilities:
+        - repository-checkout-and-write
+        - policy-marker-update
+        - git-commit-and-push
+      staticTargets:
+        - dependabot-or-github-app-pr
+        - ruleset-and-codeowner-review
+      minimumRuntimeRole: none
+      disposition: keep-absent
+
+    source-watcher:
+      upstreamVersion: not-bundled-in-flux-v2.6.1-default-install
+      sourceReferences:
+        - https://github.com/fluxcd/source-watcher
+      apiKinds:
+        - source.extensions.fluxcd.io/ArtifactGenerator
+      dynamicResponsibilities:
+        - source-composition
+        - source-decomposition
+        - path-sensitive-artifact-lifecycle
+      staticTargets:
+        - changed-path-matrix
+        - immutable-cross-repository-lock
+        - ghcr-bundle-index
+      minimumRuntimeRole: none-unless-runtime-composition-is-required
+      disposition: keep-absent
+
