@@ -21,6 +21,7 @@ resources:
 - domain-sources
 - ../../platform/observability-source
 - flux-system/domain-reconcilers.yaml
+- flux-system/retired-image-controllers.yaml
 - flux-federation
 - components/ops/github-actions-node-observer-rbac.yaml
 patches:
