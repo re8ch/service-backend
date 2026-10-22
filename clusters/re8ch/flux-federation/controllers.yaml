@@ -145,13 +145,13 @@ spec:
     spec:
       containers:
       - args:
-        - --events-addr=http://192.0.2.179:18292/
+        - --events-addr=http://10.250.0.128:18292/
         - --watch-all-namespaces=false
         - --log-level=info
         - --log-encoding=json
         - --enable-leader-election
         - --storage-path=/data
-        - --storage-adv-addr=192.0.2.179:18090
+        - --storage-adv-addr=10.250.0.128:18090
         env:
         - name: RUNTIME_NAMESPACE
           valueFrom:
@@ -222,7 +222,7 @@ spec:
           name: tmp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       dnsConfig:
         nameservers:
         - 1.1.1.1
@@ -359,7 +359,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -486,7 +486,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -641,7 +641,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 1337
       serviceAccountName: notification-controller
@@ -1598,7 +1598,7 @@ spec:
         - mountPath: /tmp
           name: tmp
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       securityContext:
@@ -1721,7 +1721,7 @@ spec:
         - mountPath: /tmp
           name: temp
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       securityContext:
@@ -1842,7 +1842,7 @@ spec:
         - mountPath: /tmp
           name: temp
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         kubernetes.io/os: linux
       priorityClassName: system-cluster-critical
       securityContext:
@@ -1990,7 +1990,7 @@ spec:
         - mountPath: /tmp
           name: temp
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         kubernetes.io/os: linux
       securityContext:
         fsGroup: 1337
@@ -2699,13 +2699,13 @@ spec:
     spec:
       containers:
       - args:
-        - --events-addr=http://192.0.2.179:28292/
+        - --events-addr=http://10.250.0.128:28292/
         - --watch-all-namespaces=false
         - --log-level=info
         - --log-encoding=json
         - --enable-leader-election
         - --storage-path=/data
-        - --storage-adv-addr=192.0.2.179:28090
+        - --storage-adv-addr=10.250.0.128:28090
         env:
         - name: RUNTIME_NAMESPACE
           valueFrom:
@@ -2776,7 +2776,7 @@ spec:
           name: tmp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       dnsConfig:
         nameservers:
         - 1.1.1.1
@@ -2913,7 +2913,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -3040,7 +3040,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 1337
@@ -3195,7 +3195,7 @@ spec:
           name: temp
       nodeSelector:
         kubernetes.io/os: linux
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 1337
       serviceAccountName: notification-controller
@@ -3293,6 +3293,15 @@ subjects:
 - kind: ServiceAccount
   name: helm-controller
   namespace: flux-observability-system
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: notification-controller
+  namespace: flux-observability-system
+- kind: ServiceAccount
+  name: source-controller
+  namespace: flux-observability-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -3312,15 +3321,6 @@ subjects:
 - kind: ServiceAccount
   name: helm-controller
   namespace: flux-agent-system
-- kind: ServiceAccount
-  name: kustomize-controller
-  namespace: flux-observability-system
-- kind: ServiceAccount
-  name: notification-controller
-  namespace: flux-observability-system
-- kind: ServiceAccount
-  name: source-controller
-  namespace: flux-observability-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
