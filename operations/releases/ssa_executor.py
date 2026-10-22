@@ -285,7 +285,16 @@ class Executor:
         rollback_digest = previous["appliedDigest"]
         rollback_path = store.cached_bundle(rollback_digest)
         if not rollback_path.exists():
-            raise Rejected("rollback bundle is unavailable")
+            with tempfile.TemporaryDirectory(prefix="re8ch-rollback-") as temporary:
+                self.command([
+                    "flux", "pull", "artifact",
+                    previous["bundleReference"].removeprefix("oci://") + "@" + rollback_digest,
+                    "--path", temporary,
+                ], timeout=300)
+                fetched = Path(temporary) / "release.bundle"
+                if not fetched.is_file() or digest(fetched.read_bytes()) != previous["payloadDigest"]:
+                    raise Rejected("rollback bundle payload is unavailable or has the wrong digest")
+                store.cache_bundle(fetched, rollback_digest)
         _, rollback_objects = load_archive(rollback_path)
         self.apply(rollback_objects, manager, dry_run=True)
         self.apply(rollback_objects, manager, dry_run=False)
@@ -343,7 +352,9 @@ class Executor:
             state = {
                 "schemaVersion": "delivery.re8ch.com/accepted-state/v1alpha1",
                 "releaseId": operation["releaseId"], "lastOperationId": operation["operationId"],
-                "requestDigest": request_digest, "appliedDigest": operation["bundle"]["digest"],
+                "requestDigest": request_digest, "bundleReference": operation["bundle"]["reference"],
+                "payloadDigest": operation["bundle"]["payloadDigest"],
+                "appliedDigest": operation["bundle"]["digest"],
                 "healthyDigest": operation["bundle"]["digest"], "inventoryDigest": manifest["inventoryDigest"],
                 "inventory": manifest["inventory"], "objectRefs": [object_ref(item) for item in objects],
                 "sequence": operation["sequence"], "updatedAt": self.now().isoformat(), "blocked": False,
