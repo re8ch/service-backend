@@ -1,0 +1,1108 @@
+apiVersion: re8ch.com/v1alpha1
+kind: HelmReleaseInventory
+source: git
+scanRoots:
+- clusters/re8ch
+- platform
+releaseCount: 22
+classificationComplete: true
+missingClassifications: []
+staleClassifications: []
+parseErrors: []
+releases:
+- id: helmrelease:cube-trial:cube-trial
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: cube-trial
+  name: cube-trial
+  releaseName: cube-trial
+  targetNamespace: cube-trial
+  storageNamespace: cube-trial
+  suspended: false
+  chart:
+    mode: template
+    chart: ./deploy/kubernetes/chart
+    version: null
+    sourceRef:
+      kind: GitRepository
+      name: cubesandbox
+      namespace: flux-system
+  values:
+    inlinePresent: false
+    inlineSha256: null
+    references:
+    - kind: ConfigMap
+      name: cube-trial-values
+      valuesKey: values.yaml
+      optional: false
+    - kind: Secret
+      name: cube-trial-secret
+      valuesKey: mysql-password
+      optional: false
+    - kind: Secret
+      name: cube-trial-secret
+      valuesKey: mysql-root-password
+      optional: false
+    - kind: Secret
+      name: cube-trial-secret
+      valuesKey: redis-password
+      optional: false
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback: {}
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:8cd6fbcaad4eab55f5a5dbf50380bd04aaa3aa1cd86dce5fba926980f588921d
+  occurrences:
+  - file: clusters/re8ch/components/ai-operations/sandbox-trials/cube-release.yaml
+    document: 1
+  classification:
+    id: helmrelease:cube-trial:cube-trial
+    disposition: blocked-pending-evidence
+    rollbackOwner: helm-controller release history
+    evidence: Git chart rendering uses runtime values and post-rendering; bundle equivalence
+      and orphan deletion are unproven.
+- id: helmrelease:flux-system:adapter
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: adapter
+  releaseName: adapter
+  targetNamespace: adapter
+  storageNamespace: adapter
+  suspended: false
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: adapter
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:caa39ba3c5a506592156626b9d208f1eff4ef8578e8dc22a3673418fce5a3082
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:03ebfcf9d57cdadd49da93a83ee1f157944ffb643f06f52f79a893255f4126f6
+  occurrences:
+  - file: clusters/re8ch/domains/delivery-products/resources.yaml
+    document: 41
+  - file: platform/adapter/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:adapter
+    disposition: blocked-pending-evidence
+    rollbackOwner: helm-controller release history
+    evidence: OCI input is locked, but rendered inventory, image digests, field ownership
+      and uninstall behavior are not recorded.
+- id: helmrelease:flux-system:advanced-fabric
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: advanced-fabric
+  releaseName: service-vip-fabric
+  targetNamespace: kube-system
+  storageNamespace: kube-system
+  suspended: false
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: advanced-fabric
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:0db37763f4dedecfc1e87d82135be07ea02cd97d47815ef24beaaa7ffb24375c
+    references:
+    - kind: Secret
+      name: cluster-node-inventory
+      valuesKey: advanced-fabric-values.yaml
+      optional: false
+  lifecycle:
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 3
+    upgrade:
+      crds: CreateReplace
+      cleanupOnFail: false
+      remediation:
+        retries: 0
+    rollback: {}
+    testsEnabled: true
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:3ecc0f0eb2c99c0b1dd853864d4b7fa4dc5da8f7150e3568220cde061848eb0c
+  occurrences:
+  - file: clusters/re8ch/domains/networking/resources.yaml
+    document: 160
+  - file: platform/advanced-fabric/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:advanced-fabric
+    disposition: retain-helm-lifecycle
+    rollbackOwner: network platform owner via helm-controller
+    evidence: Networking authority uses chart CRD replacement, Helm tests, secret
+      values and post-rendering; it is excluded from early canaries.
+- id: helmrelease:flux-system:among-clusters-agent
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: among-clusters-agent
+  releaseName: among-clusters-agent
+  targetNamespace: among-clusters
+  storageNamespace: among-clusters
+  suspended: false
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: among-clusters-agent
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:a6992b3b4e4fb396949557a4946fdd8ba313a00def34680948d10e7c3c8e0a0d
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 0
+    upgrade:
+      crds: null
+      cleanupOnFail: false
+      remediation:
+        remediateLastFailure: false
+        retries: 0
+    rollback: {}
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:cd50d7da52cbc0b32745914fba8b58371c8bec455cf89e8387b71687f68eb836
+  occurrences:
+  - file: clusters/re8ch/domains/networking/resources.yaml
+    document: 161
+  - file: platform/among-clusters/release.yaml
+    document: 4
+  classification:
+    id: helmrelease:flux-system:among-clusters-agent
+    disposition: retain-helm-lifecycle
+    rollbackOwner: cluster federation owner via helm-controller
+    evidence: Cluster connectivity and tenant-bound enrollment use release-specific
+      post-rendering and require a dedicated restore drill.
+- id: helmrelease:flux-system:among-clusters-hub
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: among-clusters-hub
+  releaseName: among-clusters-hub
+  targetNamespace: among-clusters
+  storageNamespace: among-clusters
+  suspended: false
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: among-clusters-hub
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:5867328fd3f47fad19564e337d0b69331b4dfb4abc104c92503fe5e4b9e06fbe
+    references: []
+  lifecycle:
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 0
+    upgrade:
+      crds: CreateReplace
+      cleanupOnFail: false
+      remediation:
+        remediateLastFailure: false
+        retries: 0
+    rollback: {}
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:71f225350564631f2dbd918f69347e04b3e87561e465fb4e3fb53910cbcb8468
+  occurrences:
+  - file: clusters/re8ch/domains/networking/resources.yaml
+    document: 162
+  - file: platform/among-clusters/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:among-clusters-hub
+    disposition: retain-helm-lifecycle
+    rollbackOwner: cluster federation owner via helm-controller
+    evidence: The hub manages federation CRDs and identity-bearing enrollment state;
+      equivalent ordered SSA lifecycle is not proven.
+- id: helmrelease:flux-system:birfucate-metering
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: birfucate-metering
+  releaseName: birfucate-metering
+  targetNamespace: observability-ai
+  storageNamespace: observability-ai
+  suspended: false
+  chart:
+    mode: template
+    chart: ./clusters/re8ch/charts/birfucate-metering
+    version: null
+    sourceRef:
+      kind: GitRepository
+      name: service-backend
+      namespace: flux-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:3cea88d0191983a18fe72c66084f836eebb23111996af8df1a7debeb04ea6bb7
+    references: []
+  lifecycle:
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 3
+    upgrade:
+      crds: CreateReplace
+      cleanupOnFail: false
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:b6fdcad3349090149b919c583d7e7c1ca6cbd0211cb8126997f000cf2da35e41
+  occurrences:
+  - file: clusters/re8ch/domains/observability-metering/resources.yaml
+    document: 72
+  - file: platform/birfucate-metering/release.yaml
+    document: 1
+  classification:
+    id: helmrelease:flux-system:birfucate-metering
+    disposition: retain-helm-lifecycle
+    rollbackOwner: metering platform owner via helm-controller
+    evidence: Chart-managed CRDs use CreateReplace and lack a rehearsed ordered SSA
+      replacement and rollback procedure.
+- id: helmrelease:flux-system:ceph-csi-drivers
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: ceph-csi-drivers
+  releaseName: ceph-csi-drivers
+  targetNamespace: rook-ceph
+  storageNamespace: rook-ceph
+  suspended: false
+  chart:
+    mode: template
+    chart: ceph-csi-drivers
+    version: 1.0.4
+    sourceRef:
+      kind: HelmRepository
+      name: ceph-csi-operator
+      namespace: null
+  values:
+    inlinePresent: false
+    inlineSha256: null
+    references:
+    - kind: ConfigMap
+      name: rook-ceph-csi-values
+      valuesKey: values.yaml
+      optional: false
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: false
+    dependsOn:
+    - name: rook-ceph
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:861fad1e36f63f89f9b4ee54960f581059277ad52bf5d327fa3ec82d380cdb11
+  occurrences:
+  - file: clusters/re8ch/components/rook-ceph/releases.yaml
+    document: 4
+  - file: clusters/re8ch/domains/data-storage/resources.yaml
+    document: 41
+  classification:
+    id: helmrelease:flux-system:ceph-csi-drivers
+    disposition: retain-helm-lifecycle
+    rollbackOwner: storage platform owner via helm-controller
+    evidence: CSI is storage authority and depends on Helm remediation and release
+      ordering; it is outside early migration cohorts.
+- id: helmrelease:flux-system:connectool
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: connectool
+  releaseName: connectool
+  targetNamespace: connectool
+  storageNamespace: connectool
+  suspended: false
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: connectool
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:2b80ef3e3f74a7a477ff12dfa66e612894d382fac3b766e7f35f7e8c9215471b
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:4937d360d8035ba03d3a08bd5f8d972e9f647097f876f85d813466175f7de1bb
+  occurrences:
+  - file: platform/connectool/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:connectool
+    disposition: blocked-pending-evidence
+    rollbackOwner: connectool owner via helm-controller
+    evidence: OCI input is locked, but post-rendered inventory, field managers and
+      safe orphan deletion have not been captured.
+- id: helmrelease:flux-system:descheduler
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: descheduler
+  releaseName: descheduler
+  targetNamespace: scheduling-system
+  storageNamespace: scheduling-system
+  suspended: false
+  chart:
+    mode: template
+    chart: descheduler
+    version: 0.36.0
+    sourceRef:
+      kind: HelmRepository
+      name: descheduler-official
+      namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:709380cd6702b40f25ade62737009a360134a4b734033d0226d9e04631165562
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 1
+    upgrade:
+      crds: null
+      cleanupOnFail: false
+      remediation:
+        retries: 1
+        remediateLastFailure: false
+    rollback: {}
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:9386898ea67f77e8afd6ccfcabaa473112a3ccbc34ccbee584a6bdf061d52e63
+  occurrences:
+  - file: platform/scheduling-fabric/governance/controllers/releases.yaml
+    document: 1
+  classification:
+    id: helmrelease:flux-system:descheduler
+    disposition: blocked-pending-evidence
+    rollbackOwner: scheduling platform owner via helm-controller
+    evidence: The chart version is declared but the HelmRepository artifact digest,
+      rendered inventory and ownership conflicts are unproven.
+- id: helmrelease:flux-system:hyperswitch
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: hyperswitch
+  releaseName: hyperswitch
+  targetNamespace: payments
+  storageNamespace: payments
+  suspended: false
+  chart:
+    mode: template
+    chart: hyperswitch-stack
+    version: 0.2.26
+    sourceRef:
+      kind: HelmRepository
+      name: hyperswitch
+      namespace: flux-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:7eff180b7e704a11bfd00d0751f701857d7ed1fd50760521a24f58f6eb5d99b4
+    references:
+    - kind: Secret
+      name: hyperswitch-runtime-values
+      valuesKey: values.yaml
+      optional: false
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:8dc83d8d38ab54345e3ded492c102eebdfa9c9ce54b7f21b948fbabb8650b6bd
+  occurrences:
+  - file: clusters/re8ch/domains/commerce-billing/resources.yaml
+    document: 41
+  - file: platform/hyperswitch/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:hyperswitch
+    disposition: retain-helm-lifecycle
+    rollbackOwner: commerce platform owner via helm-controller
+    evidence: Payment infrastructure consumes secret values and post-rendering; release-specific
+      rollback and deletion semantics must remain intact.
+- id: helmrelease:flux-system:incidentrelay
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: incidentrelay
+  releaseName: incidentrelay
+  targetNamespace: incidentrelay
+  storageNamespace: incidentrelay
+  suspended: true
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: incidentrelay
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:285c2fe65254886301c20621db394c98cbcb8875cbece738d98213c1f9bdd046
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:0af325dc8b7281fea58e7d890cbbfba980ee9e8f96f97b5d03ee582e7fa2b769
+  occurrences:
+  - file: clusters/re8ch/domains/observability-metering/resources.yaml
+    document: 73
+  - file: platform/incidentrelay/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:incidentrelay
+    disposition: blocked-pending-evidence
+    rollbackOwner: incident platform owner via helm-controller
+    evidence: The declaration is suspended, but suspension alone does not prove finalizer
+      or uninstall safety and runtime presence is unknown.
+- id: helmrelease:flux-system:kueue
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: kueue
+  releaseName: kueue
+  targetNamespace: kueue-system
+  storageNamespace: kueue-system
+  suspended: false
+  chart:
+    mode: template
+    chart: platform/scheduling-fabric/vendor/kueue
+    version: null
+    sourceRef:
+      kind: GitRepository
+      name: service-backend
+      namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:45fbf9c2200a7189bad61a88e8e190ea09c07864944a5f14a2f6a6a7c7f7488b
+    references: []
+  lifecycle:
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 1
+    upgrade:
+      crds: CreateReplace
+      cleanupOnFail: false
+      remediation:
+        retries: 1
+        remediateLastFailure: false
+    rollback: {}
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:d8f2087bf69049d250ab286205c8b65201d66b1bc42f78c0e91435349f9fc277
+  occurrences:
+  - file: platform/scheduling-fabric/governance/controllers/releases.yaml
+    document: 3
+  classification:
+    id: helmrelease:flux-system:kueue
+    disposition: retain-helm-lifecycle
+    rollbackOwner: scheduling platform owner via helm-controller
+    evidence: Chart-managed CRDs use CreateReplace and require an ordered CRD ownership
+      and rollback drill.
+- id: helmrelease:flux-system:kyverno
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: kyverno
+  releaseName: kyverno
+  targetNamespace: kyverno
+  storageNamespace: kyverno
+  suspended: false
+  chart:
+    mode: template
+    chart: kyverno
+    version: 3.9.1
+    sourceRef:
+      kind: HelmRepository
+      name: kyverno-official
+      namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:6d36d6ea4bc29636b6dc4fec213f53405c21b51fee111fc5e3af4e9072e6fbf3
+    references: []
+  lifecycle:
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 1
+    upgrade:
+      crds: CreateReplace
+      cleanupOnFail: false
+      remediation:
+        retries: 1
+        remediateLastFailure: false
+    rollback: {}
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:abec7e7909fd239aa1420083c47161b6016e3afb2cd7e65965b8f1a465740ef8
+  occurrences:
+  - file: platform/scheduling-fabric/governance/controllers/releases.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:kyverno
+    disposition: retain-helm-lifecycle
+    rollbackOwner: policy platform owner via helm-controller
+    evidence: Admission policy infrastructure manages CRDs and post-rendering; dual
+      ownership or failed rollback could block cluster writes.
+- id: helmrelease:flux-system:paralus
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: paralus
+  releaseName: paralus
+  targetNamespace: paralus
+  storageNamespace: paralus
+  suspended: false
+  chart:
+    mode: template
+    chart: ./platform/paralus/vendor/ztka
+    version: null
+    sourceRef:
+      kind: GitRepository
+      name: service-backend
+      namespace: flux-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:0707377eeee2178db19ef253d84c79b67683293ca3d984465d5c82b878ad9a1e
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:f79b652139e7414682902c0b5e917ec4254ac08d0fc7b6b68fc3aba9dc8cb9e1
+  occurrences:
+  - file: platform/paralus/release.yaml
+    document: 1
+  classification:
+    id: helmrelease:flux-system:paralus
+    disposition: retain-helm-lifecycle
+    rollbackOwner: identity platform owner via helm-controller
+    evidence: Cluster access and identity authority use release-specific post-rendering
+      and are excluded from early canaries.
+- id: helmrelease:flux-system:public-edge-manager
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: public-edge-manager
+  releaseName: public-edge-manager
+  targetNamespace: regional-routing
+  storageNamespace: regional-routing
+  suspended: true
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: public-edge-manager
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:132f558eacd2ec81d6cd12d4ff1240e68333f1eb590e20e384a40a91b2e222ca
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:7abc4d72824fa08ad731ace720bbe1f9b3d07fea7ad39dbabbd90e586d7e80eb
+  occurrences:
+  - file: clusters/re8ch/domains/networking/resources.yaml
+    document: 163
+  - file: platform/public-edge-manager/release.yaml
+    document: 2
+  classification:
+    id: helmrelease:flux-system:public-edge-manager
+    disposition: retain-helm-lifecycle
+    rollbackOwner: public edge owner via helm-controller
+    evidence: The suspended declaration governs public delivery; finalizer and restoration
+      semantics require a dedicated traffic-safe drill.
+- id: helmrelease:flux-system:rook-ceph
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: rook-ceph
+  releaseName: rook-ceph
+  targetNamespace: rook-ceph
+  storageNamespace: rook-ceph
+  suspended: false
+  chart:
+    mode: template
+    chart: rook-ceph
+    version: v1.20.3
+    sourceRef:
+      kind: HelmRepository
+      name: rook-release
+      namespace: null
+  values:
+    inlinePresent: false
+    inlineSha256: null
+    references:
+    - kind: ConfigMap
+      name: rook-ceph-operator-values
+      valuesKey: values.yaml
+      optional: false
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:75824f42bc29b2c03637c0da9a21b1162636e413d0437572285fcbf54f7f0ea5
+  occurrences:
+  - file: clusters/re8ch/components/rook-ceph/releases.yaml
+    document: 3
+  - file: clusters/re8ch/domains/data-storage/resources.yaml
+    document: 42
+  classification:
+    id: helmrelease:flux-system:rook-ceph
+    disposition: retain-helm-lifecycle
+    rollbackOwner: storage platform owner via helm-controller
+    evidence: Rook is storage control-plane infrastructure with Helm remediation and
+      history dependencies; it is outside early migration cohorts.
+- id: helmrelease:flux-system:rook-ceph-cluster
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: rook-ceph-cluster
+  releaseName: rook-ceph-cluster
+  targetNamespace: rook-ceph
+  storageNamespace: rook-ceph
+  suspended: false
+  chart:
+    mode: template
+    chart: rook-ceph-cluster
+    version: v1.20.3
+    sourceRef:
+      kind: HelmRepository
+      name: rook-release
+      namespace: null
+  values:
+    inlinePresent: false
+    inlineSha256: null
+    references:
+    - kind: ConfigMap
+      name: rook-ceph-cluster-values
+      valuesKey: values.yaml
+      optional: false
+    - kind: ConfigMap
+      name: rook-ceph-production-overlay
+      valuesKey: values.yaml
+      optional: false
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: false
+    dependsOn:
+    - name: rook-ceph
+    - name: ceph-csi-drivers
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:a2837bb3cc0f28bd23e632d947aad9cd92a8b7fc8aa721f0e0ebb9ad41c05c1e
+  occurrences:
+  - file: clusters/re8ch/components/rook-ceph/releases.yaml
+    document: 5
+  - file: clusters/re8ch/domains/data-storage/resources.yaml
+    document: 43
+  classification:
+    id: helmrelease:flux-system:rook-ceph-cluster
+    disposition: retain-helm-lifecycle
+    rollbackOwner: storage platform owner via helm-controller
+    evidence: The release owns persistent storage topology and depends on ordered
+      CSI and operator releases; static takeover is not qualified.
+- id: helmrelease:flux-system:runtime-anatomy
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: runtime-anatomy
+  releaseName: runtime-anatomy
+  targetNamespace: runtime-anatomy
+  storageNamespace: runtime-anatomy
+  suspended: false
+  chart:
+    mode: template
+    chart: ./clusters/re8ch/charts/runtime-anatomy
+    version: null
+    sourceRef:
+      kind: GitRepository
+      name: service-backend
+      namespace: flux-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:4eb1e82dd3f2a009dfdedc46f4b2eb105fbe8d82eb062525a21c7fe7400916a0
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 5
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:996649046f6bd55163f56d4dce965d2f41eb04b6942a7550cd18365a12571a9d
+  occurrences:
+  - file: clusters/re8ch/domains/tenant-runtime/resources.yaml
+    document: 31
+  - file: platform/runtime-anatomy/release.yaml
+    document: 1
+  classification:
+    id: helmrelease:flux-system:runtime-anatomy
+    disposition: blocked-pending-evidence
+    rollbackOwner: runtime governance owner via helm-controller
+    evidence: Local Git chart input is reviewable, but deterministic bundle, exact
+      inventory, images and field ownership evidence are absent.
+- id: helmrelease:flux-system:toolhive-operator
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: flux-system
+  name: toolhive-operator
+  releaseName: toolhive-operator
+  targetNamespace: toolhive-system
+  storageNamespace: toolhive-system
+  suspended: false
+  chart:
+    mode: chartRef
+    kind: OCIRepository
+    name: toolhive-operator
+    namespace: null
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:d4567aa38616a4b22a0227c493117d38d0a4e4d1247e5925d0003d6caf3ec683
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: true
+      remediation:
+        retries: 3
+        strategy: rollback
+    rollback:
+      cleanupOnFail: true
+    testsEnabled: false
+    postRenderers: true
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:ffe8caae9cfeb497d4f5693f0ac2a22d755e86235a75c044cc5f39e8379fa908
+  occurrences:
+  - file: clusters/re8ch/components/toolhive/operator-release.yaml
+    document: 2
+  - file: clusters/re8ch/domains/agent-runtime/resources.yaml
+    document: 270
+  classification:
+    id: helmrelease:flux-system:toolhive-operator
+    disposition: retain-helm-lifecycle
+    rollbackOwner: tool runtime owner via helm-controller
+    evidence: The operator owns custom-resource lifecycle and post-rendering; ordered
+      CRD and workload rollback equivalence is unproven.
+- id: helmrelease:observability-system:re8ch-kube-state-metrics
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: observability-system
+  name: re8ch-kube-state-metrics
+  releaseName: re8ch-kube-state-metrics
+  targetNamespace: observability-system
+  storageNamespace: observability-system
+  suspended: false
+  chart:
+    mode: template
+    chart: kube-state-metrics
+    version: 8.3.0
+    sourceRef:
+      kind: HelmRepository
+      name: prometheus-community
+      namespace: observability-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:068ea7822db86d7a4cd6e94e6683ebcc5d0954dae8afcd64b876ebf8728a2cf8
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: false
+      remediation:
+        remediateLastFailure: true
+        retries: 3
+    rollback: {}
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:ea56d8de495e125898ea354654f0c4c52fc56ae851de47d30d977294b64fe4e6
+  occurrences:
+  - file: clusters/re8ch/domains/observability-metering/resources.yaml
+    document: 74
+  - file: platform/observability/bootstrap/kube-state-metrics.yaml
+    document: 2
+  classification:
+    id: helmrelease:observability-system:re8ch-kube-state-metrics
+    disposition: blocked-pending-evidence
+    rollbackOwner: observability owner via helm-controller
+    evidence: This is a possible low-risk canary, pending locked repository artifact,
+      byte-stable renders, inventory match and restore drill.
+- id: helmrelease:observability-system:re8ch-opentelemetry-operator
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: observability-system
+  name: re8ch-opentelemetry-operator
+  releaseName: otel-operator
+  targetNamespace: opentelemetry-operator
+  storageNamespace: observability-system
+  suspended: false
+  chart:
+    mode: template
+    chart: opentelemetry-operator
+    version: 0.115.0
+    sourceRef:
+      kind: HelmRepository
+      name: open-telemetry
+      namespace: observability-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:82483d48098c2426a9d5334b61f735fe9c1d41eca3bbc5915d4cf0940977a0e8
+    references: []
+  lifecycle:
+    install:
+      crds: null
+      remediation:
+        retries: 3
+    upgrade:
+      crds: null
+      cleanupOnFail: false
+      remediation:
+        remediateLastFailure: true
+        retries: 3
+    rollback: {}
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:931a1a35ba69f4f38df730bc522e882c8e1ca5749f84b8ffb4d8f9369b6515b6
+  occurrences:
+  - file: clusters/re8ch/domains/observability-metering/resources.yaml
+    document: 75
+  - file: platform/observability/bootstrap/opentelemetry-operator.yaml
+    document: 2
+  classification:
+    id: helmrelease:observability-system:re8ch-opentelemetry-operator
+    disposition: retain-helm-lifecycle
+    rollbackOwner: observability owner via helm-controller
+    evidence: The operator owns custom-resource lifecycle; CRD discovery, conversion
+      and deletion behavior have not been replaced.
+- id: helmrelease:observability-system:victoria-metrics-operator
+  apiVersion: helm.toolkit.fluxcd.io/v2
+  namespace: observability-system
+  name: victoria-metrics-operator
+  releaseName: victoria-metrics-operator
+  targetNamespace: observability-system
+  storageNamespace: observability-system
+  suspended: false
+  chart:
+    mode: template
+    chart: victoria-metrics-operator
+    version: 0.67.2
+    sourceRef:
+      kind: HelmRepository
+      name: victoriametrics
+      namespace: observability-system
+  values:
+    inlinePresent: true
+    inlineSha256: sha256:f7c8afb01b1d031a2cc96eeef8780070b46e4af2e798ebdb7afca347db6851b2
+    references: []
+  lifecycle:
+    install:
+      crds: CreateReplace
+      remediation:
+        retries: 3
+    upgrade:
+      crds: CreateReplace
+      cleanupOnFail: false
+      remediation:
+        remediateLastFailure: true
+        retries: 3
+    rollback: {}
+    testsEnabled: false
+    postRenderers: false
+    dependsOn: []
+  maxHistory: null
+  serviceAccountName: null
+  declarationSha256: sha256:98f21c5ab3c45598e956a5d31c1004be30f597ec6315096b23f50a685eaaa4e3
+  occurrences:
+  - file: clusters/re8ch/domains/observability-metering/resources.yaml
+    document: 76
+  - file: platform/observability/bootstrap/victoria-metrics-operator.yaml
+    document: 2
+  classification:
+    id: helmrelease:observability-system:victoria-metrics-operator
+    disposition: retain-helm-lifecycle
+    rollbackOwner: observability owner via helm-controller
+    evidence: Chart-managed CRDs use CreateReplace and no ordered SSA CRD lifecycle
+      or rollback drill is approved.
