@@ -107,6 +107,8 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     assert "--field-manager=re8ch-release/demo" in apply_calls[1][0]
     persisted = json.loads((tmp_path / "state/state/demo.json").read_text())
     assert persisted["inventory"] == ["apps/Deployment/demo/demo"]
+    assert persisted["bundleReference"] == "oci://registry.example/releases/demo"
+    assert persisted["payloadDigest"] == operation["bundle"]["payloadDigest"]
     count = len(runner.calls)
     assert instance.reconcile(value, operation, bundle_path, tmp_path / "state", verify_signature=False) == result
     assert len(runner.calls) == count

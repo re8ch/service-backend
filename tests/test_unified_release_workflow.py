@@ -10,11 +10,15 @@ def test_unified_release_publishes_and_verifies_exact_oci_digest():
     workflow = (ROOT / ".github/workflows/unified-release.yml").read_text()
     assert "workflow_dispatch:" in workflow
     assert "flux push artifact" in workflow
-    assert ".repository + \"@\" + .digest" in workflow
+    assert 'oci_digest="$(jq -r .digest' in workflow
     assert "cosign sign --yes \"$immutable\"" in workflow
     assert "unified-release.yml@refs/heads/main" in workflow
     assert "payloadDigest" in workflow
-    assert "kubectl apply" not in workflow
+    assert "ghcr.io/re8ch/service-backend-release" in workflow
+    assert "EXECUTOR_AUDIENCE" in workflow
+    assert "operation_materialize.py hydrate" in workflow
+    assert "ssa_executor.py" in workflow
+    assert "get secrets -n api-conformance-runners" in workflow
 
 
 def test_canary_contract_is_exactly_namespaced_and_non_pruning():
