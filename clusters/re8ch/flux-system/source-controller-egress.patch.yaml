@@ -12,17 +12,16 @@ spec:
     type: Recreate
   template:
     spec:
-      # Use the pod network on the KL/restricted-node-6dc3f140f9 pair. restricted-node-6dc3f140f9 is preferred because the
-      # source controller must reach the Kubernetes API service VIP while it
-      # serves artifacts. KL remains a fallback after its API route recovers.
+      # Use nodes with a verified route to a control-plane endpoint. Prefer the
+      # control-plane node itself and retain R640 as scheduler failover.
       hostNetwork: false
       dnsPolicy: ClusterFirst
       containers:
         - name: manager
           env:
-            # Use the health-checked API service VIP instead of restricted-node-6dc3f140f9's local
-            # k3s supervisor, whose backend reconnects cause correlated EOFs.
-            - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.220"}
+            # The service VIP is not routed consistently from all workers.
+            # Bootstrap against the stable a1-wsl-zt control-plane endpoint.
+            - {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
             - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
             - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
       nodeSelector:
@@ -34,16 +33,16 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: [overseas-kl, restricted-node-6dc3f140f9]
+                    values: [a1-wsl-zt, r640]
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
-            - weight: 50
+                  - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt]}
+            - weight: 80
               preference:
                 matchExpressions:
-                  - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [r640]}
       tolerations:
-        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
         - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}

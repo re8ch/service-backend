@@ -41,7 +41,7 @@ def test_rendered_controller_failover_and_source_cache_safety():
     docs = list(yaml.safe_load_all(rendered))
     services = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Service'}
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
-    for name in ('helm-controller', 'notification-controller', 'kustomize-controller'):
+    for name in ('helm-controller', 'notification-controller'):
         deployment = deployments[name]
         assert deployment['spec']['replicas'] == 2
         pod = deployment['spec']['template']['spec']
@@ -55,12 +55,16 @@ def test_rendered_controller_failover_and_source_cache_safety():
     expression = kustomize['spec']['template']['spec']['affinity']['nodeAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'
     ]['nodeSelectorTerms'][0]['matchExpressions'][0]
-    assert expression['values'] == ['overseas-kl', 'restricted-node-6dc3f140f9']
+    assert expression['values'] == ['restricted-node-1eb0570f74', 'restricted-node-6dc3f140f9']
     kustomize_env = {
         item['name']: item.get('value')
         for item in kustomize['spec']['template']['spec']['containers'][0]['env']
     }
-    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.220'
+    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.173'
+    assert '--concurrent=4' in kustomize['spec']['template']['spec']['containers'][0]['args']
+    assert kustomize['spec']['template']['spec']['affinity']['podAntiAffinity'][
+        'preferredDuringSchedulingIgnoredDuringExecution'
+    ]
     # Source artifacts use pod-local storage and a non-leader replica does not
     # become ready, so scheduler failover is safer than an empty standby cache.
     source = deployments['source-controller']
@@ -79,6 +83,9 @@ def test_rendered_controller_failover_and_source_cache_safety():
     assert expression == {
         'key': 'kubernetes.io/hostname',
         'operator': 'In',
-        'values': ['overseas-kl', 'restricted-node-6dc3f140f9'],
+        'values': ['restricted-node-1eb0570f74', 'restricted-node-6dc3f140f9'],
     }
+    source_env = {item['name']: item.get('value') for item in manager['env']}
+    assert source_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.173'
+    assert '--concurrent=4' in manager['args']
     assert services['identity-egress-control-plane']['spec']['internalTrafficPolicy'] == 'Local'
