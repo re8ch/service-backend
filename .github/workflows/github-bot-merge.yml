@@ -1,0 +1,46 @@
+name: GitHub App protected merge
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number
+        required: true
+        type: number
+      head_sha:
+        description: Exact 40-character PR head SHA being authorized
+        required: true
+        type: string
+
+permissions: {contents: read}
+
+concurrency:
+  group: github-bot-merge-${{ inputs.pull_request }}
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    if: github.actor == 'Woomou' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: gitops-merge
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: service-backend
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Validate authorization and merge through branch protection
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          AUTHORIZED_PR: ${{ inputs.pull_request }}
+          AUTHORIZED_HEAD_SHA: ${{ inputs.head_sha }}
+        run: python operations/github-maintenance/bot_merge.py "$AUTHORIZED_PR" "$AUTHORIZED_HEAD_SHA"

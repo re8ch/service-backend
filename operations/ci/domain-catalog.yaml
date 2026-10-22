@@ -26,6 +26,7 @@ shared_paths:
   - clusters/re8ch/flux-system/**
 
 always_tests:
+  - tests/test_github_bot_merge.py
   - tests/test_infrastructure_contracts.py
   - tests/test_git_k8s_manifests.py
   - tests/test_git_governance_gate.py
