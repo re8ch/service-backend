@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/among-clusters
-codename: chinook-amber
+codename: etesian-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-among-clusters
-  digest: sha256:64f1c21d74d54db62847ede5d6392e174c9f4547deaa61597d946bddac42b960
+  digest: sha256:5dc75141e87a565e32f144f81711379a2293a8e393cdbca6475efe3fec6de0ca
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

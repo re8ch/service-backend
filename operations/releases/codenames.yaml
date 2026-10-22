@@ -228,6 +228,8 @@ modules:
       digest: sha256:467e6f46f7e8419844fe11af9678e6dbe57bc971dcce32c1383ff1cff753bfac
     - codename: zephyr-umber
       digest: sha256:1170189c9d888ff22e21a3bf40ce2f5ec7c8634c089ae28b3ce3f65099bc6cd9
+    - codename: bora-violet
+      digest: sha256:268475391e98d4ee1fb519962dc927c9b319bee47e8427640968aae5c786b30a
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
@@ -397,6 +399,8 @@ modules:
       digest: sha256:caaabb5650fd4e1de16d63ef75393e3e20370e6353b37a0d2553e51718fb68bf
     - codename: chinook-amber
       digest: sha256:64f1c21d74d54db62847ede5d6392e174c9f4547deaa61597d946bddac42b960
+    - codename: etesian-amber
+      digest: sha256:5dc75141e87a565e32f144f81711379a2293a8e393cdbca6475efe3fec6de0ca
   platform/scheduling-fabric:
     releases:
     - codename: atoll
@@ -555,6 +559,8 @@ modules:
       digest: sha256:b315959c47eb937597c09da26cbf8bf4eadc8159224ff4fce19691074b968878
     - codename: canopy-copper
       digest: sha256:f5c5bb8fe554864235599bdbb3b867c2808bd12aff2dc1edeedeeeef6802b017
+    - codename: delta-copper
+      digest: sha256:23af266f93f6f674db0bb66e82ff5ddd30bc058f46e936e61b0e459d4bd0e746
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -641,6 +647,8 @@ modules:
       digest: sha256:aba280b10427bdf6d2fb4cf3c6c4250b0da93c10ecc1445c54aca3e6736276c1
     - codename: tramontane-pearl
       digest: sha256:cb6627da8b156511bf860f966fa1e82e515c39e2e51316dc4757a96ccc49cc25
+    - codename: zephyr-pearl
+      digest: sha256:3057ffd02d7a9ab2d1a84251e200e86989a5017d73e8fe3e50789a61a978b94a
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -1484,6 +1492,8 @@ modules:
       digest: sha256:144bd443916a63d11e71c5c2c02c36bd8a6c53b5ec9348ea22a9c9114a8b405e
     - codename: zephyr-opal
       digest: sha256:0d084a0f5db24f1fb26a8425afdc0fd3a29d0b1357c439d666d3acec09ba6df1
+    - codename: bora-garnet
+      digest: sha256:905a87886152d946e489386f3d25f8039d4c75388c17d31e399e15bba63bb77b
   platform/adapter:
     releases:
     - codename: anchor
