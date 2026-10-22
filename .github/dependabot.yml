@@ -1,0 +1,162 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      actions-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: pip
+    directory: /
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      python-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /clusters/re8ch/components/ai-operations/agent-workspace
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /operations/plugin-capabilities/stagehand
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /operations/stagehand-service
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /platform/plugins/headlamp-mihomos-cluster
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /platform/plugins/headlamp-public-edge
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /platform/plugins/headlamp-runtime-anatomy
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /platform/plugins/headlamp-secretary
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      npm-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /operations/api-conformance/result-proxy
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /operations/cloud-platform/network-planner
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /platform/apps/akash-lease-admission
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /platform/apps/dataspace-gateway
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /platform/apps/r640-usb-dra
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /platform/apps/regional-routing-authority
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
+    directory: /platform/apps/tenant-mcp
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
