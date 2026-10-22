@@ -1,5 +1,29 @@
-* @Woomou
-/clusters/ @Woomou
-/operations/ @Woomou
-/plugins/ @Woomou
-/inventory/ @Woomou
+# Human approval is reserved for authority, security, network, and control-plane
+# changes. Routine dependency maintenance, generated reconciliation evidence,
+# inventory refreshes, and application declarations rely on required Checks and
+# do not request a human review by default.
+
+# Repository governance and GitHub execution authority.
+/CODEOWNERS @Woomou
+/AGENTS.md @Woomou
+/.github/workflows/ @Woomou
+/.github/dependabot.yml @Woomou
+
+# Flux source ownership and cluster bootstrap authority.
+/clusters/re8ch/flux-federation/ @Woomou
+/clusters/re8ch/domain-sources/ @Woomou
+/clusters/re8ch/namespaces.yaml @Woomou
+
+# Network, routing, Kubernetes-system, and host-operation authority.
+/clusters/re8ch/components/cilium/ @Woomou
+/clusters/re8ch/components/regional-routing/ @Woomou
+/clusters/re8ch/components/kube-system/ @Woomou
+/clusters/re8ch/components/ops/ @Woomou
+/operations/network/ @Woomou
+/operations/cloud-platform/ @Woomou
+
+# GitOps workspace and history invariants.
+/operations/workspace-controller/ @Woomou
+
+# Encrypted secret declarations still change runtime authority.
+**/*.sops.yaml @Woomou
