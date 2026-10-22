@@ -1,0 +1,139 @@
+apiVersion: migration.re8ch.com/v1alpha1
+kind: DesiredStateCoverage
+metadata:
+  name: re8ch-cloud-desired-state
+  observedAt: "2026-10-22T21:55:59+08:00"
+  sourceRevision: 9949e650f572c28974f97f6df68723ae796ecb00
+spec:
+  authority:
+    provider: github
+    repository: re8ch/service-backend
+    branch: main
+    signedCommitsRequired: true
+  policy:
+    plaintextSecretsForbidden: true
+    standingKubeconfigsForbidden: true
+    runtimeTokensInGitForbidden: true
+    immutableReleaseInputsRequired: true
+  surfaces:
+    - id: kubernetes-manifests
+      status: substantial
+      currentAuthorities:
+        - clusters/re8ch
+      evidence:
+        yamlFiles: 545
+        fluxKustomizations: 75
+        helmReleases: 21
+        ociRepositories: 32
+        helmRepositories: 10
+        gitRepositories: 6
+      gaps:
+        - active status cannot be inferred from file presence
+        - generated domain bundles and source declarations need one traceable release lock
+    - id: node-inventory
+      status: fragmented
+      currentAuthorities:
+        - clusters/re8ch/components/cluster-inventory/configmap.yaml
+        - clusters/re8ch/components/ai-operations/nodes.json
+        - clusters/re8ch/components/ops/a1-wsl2-k3s-server-config.yaml
+        - clusters/re8ch/components/ops/b1-wsl2-k3s-server-config.yaml
+        - clusters/re8ch/components/ops/r640-k3s-server-config.retired.yaml
+      evidence:
+        clusterInventoryNodes: 14
+        aiOperationsNodes: 13
+        onlyClusterInventory:
+          - overseas-flk
+          - overseas-kl
+          - overseas-la
+          - overseas-la-2
+          - suxunji
+          - vm-20-12-ubuntu
+        onlyAiOperations:
+          - artc-control-plane
+          - overseas-edge-50
+          - qwen-1
+          - qwen-2
+          - qwen-3
+      targetAuthority: contracts/nodes
+      gate: live API parity and stable node UID mapping
+    - id: host-configuration
+      status: partial
+      currentAuthorities:
+        - clusters/re8ch/components/systemd
+        - clusters/re8ch/components/storage-fabric/systemd
+        - operations/ansible
+      evidence:
+        filesContainingHostPath: 41
+      gaps:
+        - not every active node has a complete K3s and host profile
+        - hostPath producers and restore procedures are not uniformly declared
+      targetAuthority: contracts/node-profiles
+    - id: configuration
+      status: substantial
+      currentAuthorities:
+        - clusters/re8ch
+        - operations/config
+      evidence:
+        filesContainingConfigMaps: 89
+      gaps:
+        - live-only ConfigMaps are not yet accounted for
+        - ownership and typed source are not uniform
+      targetAuthority: contracts/configuration
+    - id: secrets
+      status: partial
+      currentAuthorities:
+        - clusters/re8ch/secrets
+        - clusters/re8ch/flux-system
+        - clusters/re8ch/flux-federation/secrets
+      evidence:
+        filesContainingSecrets: 67
+        sopsEncryptedFiles: 54
+      gaps:
+        - live Secret name/key parity is unverified
+        - runtime-generated and bootstrap Secrets need explicit classification
+      targetAuthority: contracts/secrets
+    - id: release-inputs
+      status: partial
+      currentAuthorities:
+        - clusters/re8ch/charts
+        - clusters/re8ch/components
+        - clusters/re8ch/domains
+        - clusters/re8ch/domain-sources
+      evidence:
+        filesWithNonDigestImages: 115
+        filesWithLatestImages: 6
+      gaps:
+        - not every chart archive and image is digest locked
+        - tag-to-digest evidence is not represented by one release contract
+      targetAuthority: contracts/releases
+    - id: workload-identity
+      status: designed
+      currentAuthorities:
+        - operations/migrations/github-first-control-plane/credential-contract-architecture.md
+      targetAuthority: contracts/credentials
+      gate: schema, compiler and Broker shadow projections
+    - id: runtime-observation
+      status: unavailable
+      evidence:
+        context: r640-k3s-ssh
+        operation: get nodes
+        result: http-503-service-unavailable
+      gaps:
+        - live node and object parity cannot be asserted from this audit
+      gate: healthy read-only public API and Observer credential
+  irreducibleBootstrap:
+    - node firmware and initial operating-system image
+    - first network path to GitHub, Kubernetes API or Credential Broker
+    - Kubernetes CA private key and Broker signing root
+    - one-time node enrollment or join proof
+    - SOPS or KMS private decryption material
+    - etcd, persistent-volume and application data
+    - runtime TokenRequest and Broker bearer tokens
+    - separately controlled break-glass credential
+  waves:
+    - inventory-convergence
+    - host-declaration
+    - release-locks
+    - configuration-and-secrets
+    - external-reconciliation
+

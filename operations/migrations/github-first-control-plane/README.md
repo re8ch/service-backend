@@ -32,6 +32,12 @@ extends this portability boundary to workload identity. One public declaration
 compiles GitHub Actions OIDC trust, Kubernetes RBAC/workload identity, Broker
 issuance, credential lifecycle observations and GitHub Projects governance.
 
+The [cloud desired-state authority](cloud-desired-state-authority.md) defines
+the end state in which node configuration, releases, charts, ConfigMaps, Secret
+contracts and immutable source locks are reconstructable from GitHub. Its
+[coverage ledger](cloud-desired-state-coverage.yaml) records current gaps and
+migration gates without treating runtime tokens or live status as Git data.
+
 ## Target topology
 
 ```text
