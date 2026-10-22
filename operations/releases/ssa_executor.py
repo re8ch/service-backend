@@ -193,9 +193,9 @@ class Executor:
             if operation["bundle"][key] != provenance[key]:
                 raise Rejected(f"bundle {key} is not authorized")
         data = bundle_path.read_bytes()
-        bundle_digest = digest(data)
-        if operation["bundle"]["digest"] != bundle_digest:
-            raise Rejected("bundle digest mismatch")
+        payload_digest = digest(data)
+        if operation["bundle"]["payloadDigest"] != payload_digest:
+            raise Rejected("bundle payload digest mismatch")
         manifest, objects = load_archive(bundle_path)
         if manifest["contractDigest"] != contract_digest or manifest["releaseId"] != operation["releaseId"]:
             raise Rejected("bundle is bound to another contract or release")
