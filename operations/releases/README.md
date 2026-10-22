@@ -1,5 +1,33 @@
 # Domain releases
 
+## Unified immutable bundle contract (Wave 5)
+
+`unified_bundle.py` defines the renderer-neutral boundary for the GitHub static
+compiler. Helm and Kustomize run only before that boundary; both supply rendered
+YAML to the same validator and deterministic archive builder. The resulting
+archive contains only `manifest.json` and canonical `objects.json`, with exact
+inventory, rendered and contract digests.
+
+The compiler rejects undeclared namespaces, GVKs and names, cluster-scoped
+objects unless explicitly enabled, duplicate identities, Secret payloads and
+mutable container images. Bounded input size and object count are checked before
+apply can become possible. Its schemas cover the ReleaseContract, bundle
+manifest, approved operation request, redacted result and durable accepted state. None of these
+artifacts grants runtime authority by itself: OCI digest/signature/provenance and
+the approved operation envelope must still be verified by the executor.
+
+Example after either `helm template` or `kubectl kustomize` has produced YAML:
+
+```sh
+python operations/releases/unified_bundle.py \
+  --contract contracts/releases/example.yaml \
+  --rendered "$RUNNER_TEMP/rendered.yaml" \
+  --output "$RUNNER_TEMP/release-bundle.tar.gz"
+```
+
+The command prints the bundle digest and embedded manifest. Publication and
+signing must address that exact digest; a tag is never executable input.
+
 The active Git-path reconciliation ownership model is documented in
 [`DOMAIN-RECONCILIATION.md`](DOMAIN-RECONCILIATION.md).
 
