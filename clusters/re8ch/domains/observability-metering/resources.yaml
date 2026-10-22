@@ -4564,8 +4564,7 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - zan
-            - suxunji
+            - restricted-node-6dc3f140f9
   externalLabelName: vmagent_ha
   externalLabels:
     cluster: re8ch
@@ -5570,6 +5569,50 @@ spec:
         severity: high
         signal_domain: observability
         tier: critical
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  labels:
+    app.kubernetes.io/part-of: re8ch-observability
+  name: tenant-usage-closure
+  namespace: observability-system
+spec:
+  groups:
+  - name: tenant-usage-closure
+    rules:
+    - alert: OpenCostUnavailable
+      annotations:
+        summary: OpenCost allocation API is unavailable to Bifurcate
+      expr: birfucate_dependency_up{dependency="opencost"} == 0
+      for: 10m
+      labels:
+        owner: platform-observability
+        severity: warning
+    - alert: BifurcateCollectionDelayed
+      annotations:
+        summary: Tenant usage collection is more than ten minutes behind
+      expr: time() - birfucate_last_success_unixtime > 600
+      for: 10m
+      labels:
+        owner: platform-finops
+        severity: critical
+    - alert: BifurcateAttributionSamplesDropped
+      annotations:
+        summary: Usage samples were discarded because attribution was incomplete
+      expr: increase(birfucate_dropped_samples_total[15m]) > 0
+      for: 5m
+      labels:
+        owner: platform-finops
+        severity: warning
+    - alert: BifurcateUsageSinkFailing
+      annotations:
+        summary: Usage outbox delivery is failing and awaiting replay
+      expr: increase(birfucate_sink_failures_total[15m]) > 0
+      for: 5m
+      labels:
+        owner: platform-finops
+        severity: critical
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape

@@ -35,6 +35,29 @@ class ToolProfileTests(unittest.TestCase):
         self.assertEqual(routes["pigsty-writeService"]["status"], "reachable")
         self.assertEqual(result["summary"]["unreachable"], 2)
 
+    def test_trusted_proxy_propagates_allowlisted_tenant_to_metrics(self):
+        module = load_profile("observe")
+        module.TENANT_CONTEXT_ALLOWLIST.add("re8ch")
+        request = type("Request", (), {})()
+        request.headers = {"X-Re8ch-Tenant": "re8ch"}
+        request.trusted_loopback_proxy = lambda: True
+        request.token_tenant = lambda: None
+        tenant = module.Handler.request_tenant_context(request)
+        token = module.ACTIVE_TENANT.set(tenant)
+        try:
+            self.assertEqual(module.current_metrics_tenant(), "re8ch")
+            self.assertEqual(module.current_namespaces(), ["re8ch"])
+        finally:
+            module.ACTIVE_TENANT.reset(token)
+
+    def test_trusted_proxy_rejects_unlisted_tenant_header(self):
+        module = load_profile("observe")
+        request = type("Request", (), {})()
+        request.headers = {"X-Re8ch-Tenant": "other"}
+        request.trusted_loopback_proxy = lambda: True
+        request.token_tenant = lambda: None
+        self.assertEqual(module.Handler.request_tenant_context(request), "platform")
+
     def test_database_credentials_and_plan_use_the_same_live_role_services(self):
         from urllib.parse import urlsplit
         module = load_profile("admin")

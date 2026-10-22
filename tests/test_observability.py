@@ -23,7 +23,7 @@ def test_victoria_metrics_operator_is_an_r640_singleton():
     assert node_expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-6dc3f140f9"],
+        "values": ["r640"],
     }
     assert values["replicaCount"] == 1
     assert values["podDisruptionBudget"]["enabled"] is False
@@ -38,7 +38,7 @@ def test_victoria_metrics_operator_is_an_r640_singleton():
         }
     ]
     assert values["env"] == [
-        {"name": "KUBERNETES_SERVICE_HOST", "value": "192.0.2.116"},
+        {"name": "KUBERNETES_SERVICE_HOST", "value": "10.250.0.1"},
         {"name": "KUBERNETES_SERVICE_PORT", "value": "6443"},
     ]
 
@@ -71,11 +71,11 @@ def test_retention_and_r640_storage_placement_are_explicit():
     traces = next(doc for doc in resources if doc["kind"] == "VTCluster")
 
     assert metrics["spec"]["retentionPeriod"] == "90d"
-    assert metrics["spec"]["vmstorage"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
+    assert metrics["spec"]["vmstorage"]["nodeSelector"]["kubernetes.io/hostname"] == "r640"
     assert analytics["spec"]["retentionPeriod"] == "180d"
-    assert analytics["spec"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
+    assert analytics["spec"]["nodeSelector"]["kubernetes.io/hostname"] == "r640"
     assert traces["spec"]["storage"]["retentionPeriod"] == "30d"
-    assert traces["spec"]["storage"]["nodeSelector"]["kubernetes.io/hostname"] == "restricted-node-6dc3f140f9"
+    assert traces["spec"]["storage"]["nodeSelector"]["kubernetes.io/hostname"] == "r640"
 
 
 def test_metrics_are_temporarily_colocated_while_traces_can_fail_over():
@@ -86,13 +86,13 @@ def test_metrics_are_temporarily_colocated_while_traces_can_fail_over():
     for name in ("vmselect", "vminsert"):
         component = metrics["spec"][name]
         assert component["replicaCount"] == 1
-        assert component["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+        assert component["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
 
     for component in (traces["spec"]["select"], traces["spec"]["insert"]):
         expression = component["affinity"]["nodeAffinity"][
             "requiredDuringSchedulingIgnoredDuringExecution"
         ]["nodeSelectorTerms"][0]["matchExpressions"][0]
-        assert {"restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"}.issubset(expression["values"])
+        assert {"a1-wsl-zt", "r640"}.issubset(expression["values"])
         assert component["affinity"]["podAntiAffinity"].get(
             "preferredDuringSchedulingIgnoredDuringExecution"
         )
@@ -118,7 +118,7 @@ def test_production_scrape_and_alerting_have_two_distinct_control_plane_replicas
         affinity = workload["spec"]["affinity"]
         assert affinity["podAntiAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]
         preferred = affinity["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
-        assert [entry["preference"]["matchExpressions"][0]["values"] for entry in preferred] == [["restricted-node-6dc3f140f9"], ["restricted-node-296f36f2fb"]]
+        assert [entry["preference"]["matchExpressions"][0]["values"] for entry in preferred] == [["r640"], ["b1-wsl-zt"]]
 
 
 def test_logs_and_alertmanager_are_declared_but_production_remains_gated():
@@ -238,7 +238,7 @@ def test_active_metrics_scrape_gateway_receive_bytes_per_node():
     assert placement["nodeSelectorTerms"][0]["matchExpressions"][0] == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["zan", "suxunji"],
+        "values": ["r640"],
     }
 
 
