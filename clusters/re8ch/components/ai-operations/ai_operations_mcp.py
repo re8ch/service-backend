@@ -1545,10 +1545,26 @@ def tenant_claim_usage_summary(tenant: str, claim_name: str | None = None) -> di
             row["requested"] = {"pods": params.get("replicas", params.get("parallelism", 1)), **params.get("resources", {}), "publicEndpoints": 1 if params.get("exposure", {}).get("enabled") else 0}
         if row["claimUid"]:
             usage = store.usage_summary(tenant, row["claimUid"])
-            row["usage"] = {"totals": usage["totals"], "eventCount": usage["eventCount"]}
+            row["usage"] = {"totals": usage["totals"], "eventCount": usage["eventCount"],
+                            "latestObservedAt": usage.get("latestObservedAt")}
             row["usageState"] = "observed" if usage["eventCount"] else "pending-observation"
         rows.append(row)
-    return {"tenantRef": tenant, "claims": rows, "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate", "usageState": "accepted-events" if any(row.get("usage", {}).get("eventCount") for row in rows) else "pending-observation"}
+    services = []
+    if not claim_name:
+        for value in tenant_control_request("/v1/services", tenant).get("items", []):
+            spec, status, meta = value.get("spec", {}), value.get("status", {}), value.get("metadata", {})
+            resource_ref = f"service://{tenant}/{meta.get('name')}"
+            usage = store.usage_summary(tenant, resource_ref)
+            services.append({"instanceName": meta.get("name"), "instanceUid": meta.get("uid"),
+                             "resourceRef": resource_ref, "serviceClass": spec.get("serviceClass"),
+                             "phase": status.get("phase"),
+                             "usage": {"totals": usage["totals"], "eventCount": usage["eventCount"],
+                                       "latestObservedAt": usage.get("latestObservedAt")},
+                             "usageState": "observed" if usage["eventCount"] else "pending-observation"})
+    observed = any(row.get("usage", {}).get("eventCount") for row in rows + services)
+    return {"tenantRef": tenant, "claims": rows, "serviceInstances": services,
+            "pricingApplied": False, "accountingPosted": False, "meteringSource": "birfucate",
+            "usageState": "accepted-events" if observed else "pending-observation"}
 
 
 def readiness() -> tuple[bool, dict[str, str]]:
@@ -2419,7 +2435,7 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
         if name == "litellm_spend":
             return {"service": "litellm", **litellm_get("/global/spend")}
         domain = args.get("domain")
-        exec_node = resolve_node(os.getenv("INFRA_EXEC_NODE", "restricted-node-6dc3f140f9"))
+        exec_node = resolve_node(os.getenv("INFRA_EXEC_NODE", "r640"))
         routes = {
             "cilium": ("direct", "kubernetes-api"),
             "ceph": ("direct", "kubernetes-api/rook-toolbox"),
