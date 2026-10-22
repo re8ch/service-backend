@@ -1,0 +1,105 @@
+# Transitional ownership record for two legacy live Deployments that are no
+# longer present in gotk-components.yaml. GitHub producer events, immutable
+# digest locks and reviewed update PRs replaced their runtime responsibilities.
+# The live precondition is zero ImageRepository, ImagePolicy and
+# ImageUpdateAutomation resources. Keep these at zero replicas for an
+# observation window, then remove this file so Flux prunes the adopted objects.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-reflector-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/component: image-reflector-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    control-plane: controller
+    delivery.re8ch.com/lifecycle: retiring
+spec:
+  replicas: 0
+  selector:
+    matchLabels: {app: image-reflector-controller}
+  template:
+    metadata:
+      labels: {app: image-reflector-controller}
+    spec:
+      serviceAccountName: image-reflector-controller
+      securityContext: {fsGroup: 1337}
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: manager
+        image: registry.re8ch.com/functions-shared/flux-image-reflector-controller@sha256:2cfeca99a7585323047ee6b979bdcd0af48dc13158e4a8ac207f9429f5660ceb
+        imagePullPolicy: IfNotPresent
+        args: [--events-addr=http://notification-controller.flux-system.svc.cluster.local./, --watch-all-namespaces, --log-level=info, --log-encoding=json, --enable-leader-election]
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+        ports:
+        - {containerPort: 8080, name: http-prom}
+        - {containerPort: 9440, name: healthz}
+        livenessProbe: {httpGet: {path: /healthz, port: healthz}}
+        readinessProbe: {httpGet: {path: /readyz, port: healthz}}
+        resources:
+          requests: {cpu: 100m, memory: 64Mi}
+          limits: {cpu: "1", memory: 1Gi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: [ALL]}
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile: {type: RuntimeDefault}
+        volumeMounts:
+        - {mountPath: /tmp, name: temp}
+        - {mountPath: /data, name: data}
+      volumes:
+      - {emptyDir: {}, name: temp}
+      - {emptyDir: {}, name: data}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-automation-controller
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/component: image-automation-controller
+    app.kubernetes.io/instance: flux-system
+    app.kubernetes.io/part-of: flux
+    control-plane: controller
+    delivery.re8ch.com/lifecycle: retiring
+spec:
+  replicas: 0
+  selector:
+    matchLabels: {app: image-automation-controller}
+  template:
+    metadata:
+      labels: {app: image-automation-controller}
+    spec:
+      serviceAccountName: image-automation-controller
+      securityContext: {fsGroup: 1337}
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: manager
+        image: registry.re8ch.com/functions-shared/flux-image-automation-controller@sha256:70e668ad1ab0fd805a912a367ef2c3185a65b05e4eac43b3322588a56fbd3e3e
+        imagePullPolicy: IfNotPresent
+        args: [--events-addr=http://notification-controller.flux-system.svc.cluster.local./, --watch-all-namespaces, --log-level=info, --log-encoding=json, --enable-leader-election]
+        env:
+        - name: RUNTIME_NAMESPACE
+          valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+        ports:
+        - {containerPort: 8080, name: http-prom}
+        - {containerPort: 9440, name: healthz}
+        livenessProbe: {httpGet: {path: /healthz, port: healthz}}
+        readinessProbe: {httpGet: {path: /readyz, port: healthz}}
+        resources:
+          requests: {cpu: 100m, memory: 64Mi}
+          limits: {cpu: "1", memory: 1Gi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: [ALL]}
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          seccompProfile: {type: RuntimeDefault}
+        volumeMounts:
+        - {mountPath: /tmp, name: temp}
+      volumes:
+      - {emptyDir: {}, name: temp}
