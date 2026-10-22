@@ -102,6 +102,29 @@ def main() -> None:
     serialized = (FEDERATION / "controllers.yaml").read_text()
     require("cluster-admin" not in serialized, "federated controller references cluster-admin")
 
+    for namespace, domain in DOMAIN_BY_NAMESPACE.items():
+        runtime_binding = next(
+            doc for doc in controller_docs
+            if doc["kind"] == "RoleBinding"
+            and doc["metadata"]["name"] == "flux-controller-runtime"
+            and doc["metadata"].get("namespace") == namespace
+        )
+        require(runtime_binding["roleRef"] == {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "Role",
+            "name": "flux-controller-runtime",
+        }, f"{domain} runtime binding references the wrong role")
+        require(
+            {
+                (subject["kind"], subject["name"], subject.get("namespace"))
+                for subject in runtime_binding["subjects"]
+            } == {
+                ("ServiceAccount", controller, namespace)
+                for controller in CONTROLLERS
+            },
+            f"{domain} runtime binding omits a Flux controller",
+        )
+
     for domain in DOMAIN_BY_NAMESPACE.values():
         namespaced_role = next(
             doc for doc in controller_docs
