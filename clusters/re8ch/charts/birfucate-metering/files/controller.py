@@ -51,7 +51,7 @@ def meter_contract(kind, namespace):
         common += [("request", "request"), ("concurrency_second", "concurrent-second")]
     if namespace == "harbor":
         common += [("artifact_gib_second", "GiB-second"), ("pull_byte", "byte"), ("push_byte", "byte"), ("scan", "scan")]
-    if namespace in {"qianwen-ops", "observability-ai"}:
+    if namespace in {"qianwen-ops", "observability-ai", "observability-system"}:
         common += [("sample_ingested", "sample"), ("log_byte_ingested", "byte"), ("retained_gib_second", "GiB-second")]
     if namespace in {"egress-fabric", "regional-routing", "among-clusters"}:
         common += [("path_second", "path-second"), ("flow", "flow"), ("route_change", "change")]
@@ -62,7 +62,7 @@ def meter_contract(kind, namespace):
 
 def consumable_for(namespace):
     if namespace == "harbor": return "registry-harbor"
-    if namespace in {"qianwen-ops", "observability-ai"}: return "observability-managed"
+    if namespace in {"qianwen-ops", "observability-ai", "observability-system"}: return "observability-managed"
     if namespace in {"egress-fabric", "regional-routing", "among-clusters"}: return "network-among-clusters"
     if namespace in {"rook-ceph", "storage-fabric"}: return "storage-volume"
     if namespace in {"pigsty-external", "supabase-pg-re8ch"}: return "database-postgresql-shared"
@@ -177,11 +177,50 @@ def derived_binding(claim, shard):
     result = {
         "apiVersion": f"{GROUP}/{VERSION}", "kind": "ConsumptionBinding",
         "metadata": {"name": name, "namespace": meta["namespace"], "labels": {"app.kubernetes.io/managed-by": "birfucate-discovery", "tenancy.re8ch.com/claim-uid": meta["uid"]}},
-        "spec": {"tenantRef": spec["tenantRef"], "serviceInstanceRef": meta["uid"], "consumableRef": shard["spec"]["consumableRef"], "shardRefs": [shard["metadata"]["name"]], "planRef": spec["capability"], "quota": parameters.get("resources", {"storageGiB": parameters.get("sizeGiB")}), "access": access, "startsAt": meta["creationTimestamp"], "sourceClusterRef": shard["spec"]["clusterRef"]},
+        "spec": {"tenantRef": spec["tenantRef"], "serviceInstanceRef": meta["uid"], "resourceRef": meta["uid"], "consumableRef": shard["spec"]["consumableRef"], "shardRefs": [shard["metadata"]["name"]], "planRef": spec["capability"], "quota": parameters.get("resources", {"storageGiB": parameters.get("sizeGiB")}), "access": access, "startsAt": meta["creationTimestamp"], "sourceClusterRef": shard["spec"]["clusterRef"]},
     }
     if spec["capability"] != "storage.volume.v1" and claim.get("status", {}).get("expiresAt"):
         result["spec"]["endsAt"] = claim["status"]["expiresAt"]
     return result
+
+
+def derived_service_binding(instance, shard_names, namespace, config):
+    meta, spec, status = instance["metadata"], instance["spec"], instance.get("status", {})
+    service_class, parameters = spec["serviceClass"], spec.get("parameters", {})
+    resource_ref = f"service://{spec['tenantRef']}/{meta['name']}"
+    if service_class == "registry.harbor.v1":
+        consumable = "registry-harbor"
+        provider_ref = str((status.get("access") or {}).get("project") or "")
+        access = {"type": "Harbor", "harbor": {
+            "project": parameters.get("project"), "permission": spec.get("plan"),
+            "quotaGiB": parameters.get("quotaGiB"),
+            "robotDurationDays": parameters.get("robotDurationDays"),
+        }}
+        quota = {"storageGiB": parameters.get("quotaGiB")}
+    elif service_class == "observability.grafana.v1":
+        consumable = "observability-managed"
+        provider_ref = str((status.get("access") or {}).get("organizationId") or "")
+        access = {"type": "Grafana", "grafana": {
+            "organizationRef": provider_ref,
+            "role": "Editor" if spec.get("plan") == "editor" else "Viewer",
+            "folderRefs": parameters.get("folderRefs") or [],
+            "datasourceRefs": parameters.get("datasourceRefs") or [],
+        }}
+        quota = {}
+    else:
+        raise ValueError("unsupported provider service class")
+    return {
+        "apiVersion": f"{GROUP}/{VERSION}", "kind": "ConsumptionBinding",
+        "metadata": {"name": "service-" + meta["uid"].replace("-", "")[:24].lower(), "namespace": namespace,
+                     "labels": {"app.kubernetes.io/managed-by": "birfucate-discovery",
+                                "tenancy.re8ch.com/service-instance-uid": meta["uid"],
+                                "tenancy.re8ch.com/tenant": spec["tenantRef"]}},
+        "spec": {"tenantRef": spec["tenantRef"], "serviceInstanceRef": meta["uid"],
+                 "resourceRef": resource_ref, "providerResourceRef": provider_ref,
+                 "consumableRef": consumable, "shardRefs": sorted(shard_names),
+                 "planRef": spec.get("plan"), "quota": quota, "access": access,
+                 "startsAt": meta["creationTimestamp"], "sourceClusterRef": config["clusterRef"]},
+    }
 
 
 def volume_shard_for(pvc, claim, config):
@@ -282,6 +321,7 @@ def reconcile(kube, config):
     resources = {"pods": kube.list("v1", "pods"), "services": kube.list("v1", "services"), "persistentvolumeclaims": kube.list("v1", "persistentvolumeclaims"), "httproutes": kube.list("gateway.networking.k8s.io/v1", "httproutes")}
     bindings = kube.list(f"{GROUP}/{VERSION}", "consumptionbindings")
     claims = kube.list("tenancy.re8ch.com/v1alpha1", "tenantresourceclaims")
+    service_instances = kube.list("tenancy.re8ch.com/v1alpha1", "tenantserviceinstances")
     claims_by_uid = {item["metadata"]["uid"]: item for item in claims if item.get("spec", {}).get("desiredState", "Active") == "Active" or item.get("spec", {}).get("capability") == "storage.volume.v1"}
     consumables = {x["metadata"]["name"]: x for x in kube.list(f"{GROUP}/{VERSION}", "consumables")}
     count = 0
@@ -313,6 +353,38 @@ def reconcile(kube, config):
         kube.apply("serviceshards", shard)
         kube.apply("bifurcationpaths", path_for(shard, binding))
         count += 1
+    provider_targets = {
+        "registry.harbor.v1": ("harbor", "registry-harbor"),
+        "observability.grafana.v1": ("observability-system", "observability-managed"),
+    }
+    active_service_bindings = set()
+    shards = kube.list(f"{GROUP}/{VERSION}", "serviceshards")
+    for instance in service_instances:
+        service_class = instance.get("spec", {}).get("serviceClass")
+        if service_class not in provider_targets:
+            continue
+        target_namespace, consumable_ref = provider_targets[service_class]
+        meta, spec, status = instance["metadata"], instance.get("spec", {}), instance.get("status", {})
+        active = (spec.get("lifecycle") == "Requested" and status.get("phase") == "Ready"
+                  and status.get("observedGeneration") == meta.get("generation", 1))
+        name = "service-" + meta["uid"].replace("-", "")[:24].lower()
+        if not active:
+            continue
+        shard_names = [item["metadata"]["name"] for item in shards
+                       if item["metadata"].get("namespace") == target_namespace
+                       and item.get("spec", {}).get("consumableRef") == consumable_ref]
+        if not shard_names:
+            continue
+        binding = kube.apply("consumptionbindings", derived_service_binding(
+            instance, shard_names, target_namespace, config))
+        active_service_bindings.add((target_namespace, name))
+        bindings = [item for item in bindings if (item["metadata"].get("namespace"), item["metadata"]["name"]) != (target_namespace, name)] + [binding]
+    for binding in list(bindings):
+        labels, meta = binding.get("metadata", {}).get("labels", {}), binding["metadata"]
+        key = (meta.get("namespace"), meta.get("name"))
+        if labels.get("tenancy.re8ch.com/service-instance-uid") and key not in active_service_bindings:
+            kube.delete("consumptionbindings", key[0], key[1])
+            bindings.remove(binding)
     for existing in kube.list(f"{GROUP}/{VERSION}", "serviceshards"):
         meta = existing["metadata"]
         key = (meta["namespace"], meta["name"])

@@ -141,6 +141,7 @@ func (s *server) claimUsageSummary(ctx context.Context, tenant, claimName string
 		items = append(items, result)
 	}
 	rows := []map[string]any{}
+	serviceRows := []map[string]any{}
 	anyObserved := false
 	for _, raw := range items {
 		claim := object(raw)
@@ -171,7 +172,7 @@ func (s *server) claimUsageSummary(ctx context.Context, tenant, claimName string
 			if err != nil {
 				return nil, err
 			}
-			row["usage"] = map[string]any{"totals": usage["totals"], "eventCount": usage["eventCount"]}
+			row["usage"] = map[string]any{"totals": usage["totals"], "eventCount": usage["eventCount"], "latestObservedAt": usage["latestObservedAt"]}
 			row["usageState"] = "pending-observation"
 			if usage["eventCount"].(int) > 0 {
 				row["usageState"] = "observed"
@@ -180,9 +181,41 @@ func (s *server) claimUsageSummary(ctx context.Context, tenant, claimName string
 		}
 		rows = append(rows, row)
 	}
+	if claimName == "" {
+		services, serviceErr := controlRequest(ctx, tenant, "/v1/services")
+		if serviceErr != nil {
+			return nil, serviceErr
+		}
+		for _, raw := range objectSlice(services["items"]) {
+			instance := object(raw)
+			spec, status, metadata := object(instance["spec"]), object(instance["status"]), object(instance["metadata"])
+			name, _ := metadata["name"].(string)
+			uid, _ := metadata["uid"].(string)
+			resource := "service://" + tenant + "/" + name
+			usage, usageErr := s.usageSummary(tenant, resource)
+			if usageErr != nil {
+				return nil, usageErr
+			}
+			observed := usage["eventCount"].(int) > 0
+			if observed {
+				anyObserved = true
+			}
+			serviceRows = append(serviceRows, map[string]any{
+				"instanceName": name, "instanceUid": uid, "resourceRef": resource,
+				"serviceClass": spec["serviceClass"], "phase": status["phase"],
+				"usage":      map[string]any{"totals": usage["totals"], "eventCount": usage["eventCount"], "latestObservedAt": usage["latestObservedAt"]},
+				"usageState": map[bool]string{true: "observed", false: "pending-observation"}[observed],
+			})
+		}
+	}
 	state := "pending-observation"
 	if anyObserved {
 		state = "accepted-events"
 	}
-	return map[string]any{"tenantRef": tenant, "claims": rows, "pricingApplied": false, "accountingPosted": false, "meteringSource": "birfucate", "usageState": state}, nil
+	return map[string]any{"tenantRef": tenant, "claims": rows, "serviceInstances": serviceRows, "pricingApplied": false, "accountingPosted": false, "meteringSource": "birfucate", "usageState": state}, nil
+}
+
+func objectSlice(value any) []any {
+	items, _ := value.([]any)
+	return items
 }
