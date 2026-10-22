@@ -94,6 +94,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with: {version: v1.33.1}
       - name: Initialize selected product gitlinks
         env: {SUBMODULES: "${{ needs.impact.outputs.submodules }}"}
         run: |
