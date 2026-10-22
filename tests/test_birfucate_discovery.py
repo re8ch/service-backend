@@ -48,13 +48,13 @@ def test_each_inventory_workload_maps_to_one_stable_shard():
 def test_dependency_graph_finds_service_route_pvc_claim_and_node():
     item = workload()
     resources = {
-        "pods": [{"metadata": {"namespace": "qwen", "name": "api-1", "labels": {"app": "api"}}, "spec": {"nodeName": "restricted-node-6dc3f140f9", "volumes": [{"persistentVolumeClaim": {"claimName": "data"}}, {"resourceClaim": {"resourceClaimName": "gpu"}}]}}],
+        "pods": [{"metadata": {"namespace": "qwen", "name": "api-1", "labels": {"app": "api"}}, "spec": {"nodeName": "r640", "volumes": [{"persistentVolumeClaim": {"claimName": "data"}}, {"resourceClaim": {"resourceClaimName": "gpu"}}]}}],
         "services": [{"metadata": {"namespace": "qwen", "name": "api"}, "spec": {"selector": {"app": "api"}}}],
         "httproutes": [{"metadata": {"namespace": "qwen", "name": "api-public"}, "spec": {"rules": [{"backendRefs": [{"name": "api"}]}]}}],
     }
     shard = controller.shard_for(item, resources, CONFIG)
     kinds = {(x["relation"], x["kind"], x["name"]) for x in shard["spec"]["dependencies"]}
-    assert ("RunsOn", "Node", "restricted-node-6dc3f140f9") in kinds
+    assert ("RunsOn", "Node", "r640") in kinds
     assert ("StoresOn", "PersistentVolumeClaim", "data") in kinds
     assert ("Claims", "ResourceClaim", "gpu") in kinds
     assert ("Exposes", "Service", "api") in kinds
@@ -88,6 +88,7 @@ def test_tenant_claim_workload_becomes_consumable_and_derives_binding():
     assert shard["spec"]["consumableIntent"] is True
     assert shard["spec"]["consumableRef"] == "compute-workload"
     assert binding["spec"]["serviceInstanceRef"] == "claim-uid"
+    assert binding["spec"]["resourceRef"] == "claim-uid"
     assert any(node["kind"] == "TenantResourceClaim" for node in path["status"]["nodes"])
 
 
@@ -115,6 +116,7 @@ class FakeKube:
             ("finops.re8ch.com/v1alpha1", "serviceshards"): [],
             ("finops.re8ch.com/v1alpha1", "consumables"): [{"metadata": {"name": "ai-model-gateway"}, "spec": {"lifecycle": offering_lifecycle, "accessContract": {"type": "ModelGateway"}}}],
             ("finops.re8ch.com/v1alpha1", "consumptionbindings"): [{"metadata": {"namespace": "qwen", "name": "tenant-api", "generation": 1}, "spec": {"tenantRef": "qwen", "serviceInstanceRef": "api-1", "consumableRef": "ai-model-gateway", "shardRefs": ["deployment-api"], "access": {"type": "ModelGateway", "parameters": {"models": ["qwen"]}}}}],
+            ("tenancy.re8ch.com/v1alpha1", "tenantserviceinstances"): [],
         }
 
     def list(self, api, plural): return self.data.get((api, plural), [])
@@ -147,3 +149,20 @@ def test_each_infrastructure_service_validates_its_native_tenant_unit():
         assert controller.access_valid({"spec": {"access": access}}, offering(kind)) == (True, "AccessContractValid")
     invalid, reason = controller.access_valid({"spec": {"access": {"type": "Harbor", "harbor": {"project": "qwen"}}}}, offering("Harbor"))
     assert invalid is False and reason == "AccessParametersInvalid"
+
+
+def test_ready_provider_service_instance_derives_stable_binding():
+    instance = {"metadata": {"name": "build-registry", "namespace": "acme-default",
+                             "uid": "12345678-1234-4234-8234-123456789abc", "generation": 3,
+                             "creationTimestamp": "2026-10-22T00:00:00Z"},
+                "spec": {"tenantRef": "acme", "serviceClass": "registry.harbor.v1",
+                         "plan": "build-push", "lifecycle": "Requested",
+                         "parameters": {"project": "acme", "quotaGiB": 100, "robotDurationDays": 90}},
+                "status": {"phase": "Ready", "observedGeneration": 3,
+                           "access": {"project": "acme"}}}
+    binding = controller.derived_service_binding(instance, ["statefulset-registry"], "harbor", CONFIG)
+    assert binding["metadata"]["name"] == "service-123456781234423482341234"
+    assert binding["spec"]["serviceInstanceRef"] == instance["metadata"]["uid"]
+    assert binding["spec"]["resourceRef"] == "service://acme/build-registry"
+    assert binding["spec"]["providerResourceRef"] == "acme"
+    assert binding["spec"]["access"]["type"] == "Harbor"
