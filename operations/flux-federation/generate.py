@@ -48,7 +48,7 @@ EXTERNAL_NAMESPACED_AUTHORITY = {
     },
     "networking": {
         "apps": {"replicasets"},
-        "gateway.networking.k8s.io": {"referencegrants"},
+        "gateway.networking.k8s.io": {"referencegrants", "tcproutes"},
     },
 }
 
@@ -378,9 +378,9 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
             local_endpoints = R640_LOCAL_ENDPOINTS.get(domain)
             if local_endpoints and name == "source-controller":
                 container["args"] = [
-                    f"--storage-adv-addr=192.0.2.205:{local_endpoints['artifacts']}"
+                    f"--storage-adv-addr=10.250.0.128:{local_endpoints['artifacts']}"
                     if arg.startswith("--storage-adv-addr=") else
-                    f"--events-addr=http://192.0.2.205:{local_endpoints['events']}/"
+                    f"--events-addr=http://10.250.0.128:{local_endpoints['events']}/"
                     if arg.startswith("--events-addr=") else arg
                     for arg in container["args"]
                 ]
@@ -399,7 +399,7 @@ def controller_objects(root: Path, namespace: str, domain: str) -> list[dict]:
             obj["spec"]["replicas"] = 1
             pod_spec = obj["spec"]["template"]["spec"]
             if domain in {"agent-runtime", "identity-access", "observability-metering"}:
-                pod_spec.setdefault("nodeSelector", {})["kubernetes.io/hostname"] = "restricted-node-6dc3f140f9"
+                pod_spec.setdefault("nodeSelector", {})["kubernetes.io/hostname"] = "r640"
                 if name == "source-controller":
                     pod_spec["dnsPolicy"] = "None"
                     pod_spec["dnsConfig"] = {
@@ -517,6 +517,32 @@ def application_rbac(domain: str, namespace: str, documents: list[dict], resourc
             "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": role_name},
             "subjects": subjects,
         })
+    if domain == "networking":
+        # The public kube-api TCPRoute lives in kube-system but its backend is
+        # the built-in default/kubernetes Service. Do not bind the broad
+        # networking ClusterRole into default; grant only ReferenceGrant
+        # reconciliation in that namespace.
+        referencegrant_role = "flux-networking-referencegrants"
+        result.extend([
+            {
+                "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role",
+                "metadata": {"name": referencegrant_role, "namespace": "default",
+                             "labels": {"gitops.re8ch.com/domain": domain}},
+                "rules": [{
+                    "apiGroups": ["gateway.networking.k8s.io"],
+                    "resources": ["referencegrants"],
+                    "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"],
+                }],
+            },
+            {
+                "apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding",
+                "metadata": {"name": referencegrant_role, "namespace": "default",
+                             "labels": {"gitops.re8ch.com/domain": domain}},
+                "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role",
+                            "name": referencegrant_role},
+                "subjects": subjects,
+            },
+        ])
     if cluster:
         result.extend([
             {

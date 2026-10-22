@@ -105,6 +105,45 @@ def test_identity_controller_can_bind_shared_mailbox_role():
     assert "mailbox-provisioner" in bind_rule["resourceNames"]
 
 
+def test_network_controller_has_only_referencegrant_authority_in_default():
+    documents = load_all(FEDERATION_CONTROLLERS)
+    role = next(
+        item for item in documents
+        if item.get("kind") == "Role"
+        and item["metadata"].get("namespace") == "default"
+        and item["metadata"]["name"] == "flux-networking-referencegrants"
+    )
+    assert role["rules"] == [{
+        "apiGroups": ["gateway.networking.k8s.io"],
+        "resources": ["referencegrants"],
+        "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"],
+    }]
+    binding = next(
+        item for item in documents
+        if item.get("kind") == "RoleBinding"
+        and item["metadata"].get("namespace") == "default"
+        and item["metadata"]["name"] == "flux-networking-referencegrants"
+    )
+    assert binding["roleRef"] == {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "flux-networking-referencegrants",
+    }
+    assert {subject["name"] for subject in binding["subjects"]} == {
+        "helm-controller", "kustomize-controller",
+    }
+    cluster_role = next(
+        item for item in documents
+        if item.get("kind") == "ClusterRole"
+        and item["metadata"]["name"] == "flux-networking-namespaced"
+    )
+    gateway_rule = next(
+        rule for rule in cluster_role["rules"]
+        if rule.get("apiGroups") == ["gateway.networking.k8s.io"]
+    )
+    assert "tcproutes" in gateway_rule["resources"]
+
+
 def test_external_fast_changing_products_target_product_runtime():
     policy = yaml.safe_load(AUTHORITY.read_text())
     assert policy["selectionPolicy"]["externalAndFastChanging"] == "product-runtime"
