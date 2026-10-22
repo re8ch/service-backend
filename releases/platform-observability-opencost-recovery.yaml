@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/observability/opencost-recovery
-codename: aperture-amber
+codename: focus-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
-  digest: sha256:9c56524a0230dd0942842fec75052914f8d2143bcbb9ff9ae50d2fd268694e18
+  digest: sha256:85f046b23139600485cc066c577abe356081700b34085c791248014a28c91e35
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

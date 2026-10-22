@@ -5,12 +5,12 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/observability/opencost-recovery
-    delivery.re8ch.com/codename: aperture-amber
+    delivery.re8ch.com/codename: focus-amber
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-observability-opencost-recovery
   ref:
-    digest: sha256:9c56524a0230dd0942842fec75052914f8d2143bcbb9ff9ae50d2fd268694e18
+    digest: sha256:85f046b23139600485cc066c577abe356081700b34085c791248014a28c91e35
   verify:
     provider: cosign
     matchOIDCIdentity:
