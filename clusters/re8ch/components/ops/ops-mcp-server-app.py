@@ -74,6 +74,9 @@ TENANT_NAMESPACES = [x.strip() for x in os.getenv("TENANT_NAMESPACES", TENANT if
 TENANT_DB_NAMES = [x.strip() for x in os.getenv("TENANT_DB_NAMES", "").split(",") if x.strip()]
 TENANT_GRAFANA_DASHBOARD = os.getenv("TENANT_GRAFANA_DASHBOARD", "")
 TENANT_GRAFANA_TOKEN_SECRET = os.getenv("TENANT_GRAFANA_TOKEN_SECRET", "grafana-%s-viewer" % TENANT_METRICS_TENANT)
+TENANT_CONTEXT_ALLOWLIST = {
+    value.strip() for value in os.getenv("TENANT_CONTEXT_ALLOWLIST", "").split(",") if value.strip()
+}
 GRAFANA_RENDER_PRESETS = {
     "traffic": {"panelId": "7", "title": "Function Requests by Function", "width": 1000, "height": 500},
     "errors": {"panelId": "8", "title": "Function Errors by Function", "width": 1000, "height": 500},
@@ -2920,7 +2923,10 @@ def current_harbor_robot():
 
 
 def current_metrics_tenant():
-    return current_catalog().get("grafana", {}).get("tenantLabel", current_harbor_project())
+    catalog = current_catalog()
+    if not catalog and current_tenant() != TENANT:
+        return current_tenant()
+    return catalog.get("grafana", {}).get("tenantLabel", current_harbor_project())
 
 
 def current_namespaces():
@@ -4619,6 +4625,16 @@ class Handler(BaseHTTPRequestHandler):
             return TENANT
         return self.tenant_token_map().get(token)
 
+    def request_tenant_context(self):
+        """Accept tenant context only from the already trusted vMCP hop."""
+        if not self.trusted_loopback_proxy():
+            return self.token_tenant()
+        tenant = (self.headers.get("X-Re8ch-Tenant") or self.headers.get("X-Tenant-Ref") or "").strip()
+        allowed = set(TENANT_RESOURCE_CATALOG) | TENANT_CONTEXT_ALLOWLIST
+        if tenant and NAME_RE.match(tenant) and tenant in allowed:
+            return tenant
+        return TENANT
+
     def authorized(self):
         if self.trusted_loopback_proxy():
             return OPS_TOOL_PROFILE in ("public", "observe", "operate", "admin")
@@ -4662,10 +4678,7 @@ class Handler(BaseHTTPRequestHandler):
             # ToolHive already authenticated and authorized the caller. Do not
             # interpret its short-lived KSA token as a legacy tenant token or
             # read the legacy auth Secret from a least-privilege workload.
-            if self.trusted_loopback_proxy():
-                ACTIVE_TENANT.set(TENANT)
-            else:
-                ACTIVE_TENANT.set(self.token_tenant() or TENANT)
+            ACTIVE_TENANT.set(self.request_tenant_context())
             return True
         self.send_json({"error": "unauthorized", "hint": "send Authorization: Bearer <ops-token>"}, 401)
         return False

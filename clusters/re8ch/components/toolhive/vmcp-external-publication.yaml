@@ -163,6 +163,9 @@ spec:
     - {name: EXTERNAL_AUTH_ORIGIN, value: "https://db-rw.re8ch.com/auth/v1"}
     - {name: TRUST_PROXY_CIDRS, value: "192.0.2.224/16"}
     - {name: TENANT_NAMESPACE, value: platform}
+    # The authenticated tenant gateway forwards X-Re8ch-Tenant. The backend
+    # accepts only this explicit allowlist at the trusted final hop.
+    - {name: TENANT_CONTEXT_ALLOWLIST, value: "re8ch"}
     - {name: REGISTRY_PUBLIC, value: "https://registry.re8ch.com"}
     - {name: GRAFANA_PUBLIC, value: "https://grafana.service.re8ch.com"}
     - {name: HEADLAMP_PUBLIC, value: "https://headlamp.service.re8ch.com"}
