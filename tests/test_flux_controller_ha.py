@@ -60,7 +60,7 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
         and item["metadata"]["name"] == "kustomize-controller"
     )
     assert deployment["spec"]["replicas"] == 2
-    assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
+    assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
     assert expression["values"] == CONTROL_PLANE_FAILOVER_NODES
