@@ -9,7 +9,9 @@ on:
         default: contracts/releases/api-conformance-runner-projection.yaml
 
 permissions: {contents: read, id-token: write}
-concurrency: {group: unified-release-${{ inputs.contract }}, cancel-in-progress: false}
+concurrency:
+  group: unified-release-${{ inputs.contract }}
+  cancel-in-progress: false
 
 jobs:
   compile-sign:
