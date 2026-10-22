@@ -35,7 +35,7 @@ tenantPlatform:
     databaseBindings: []
   tenantReadinessPath: /readyz
   placement:
-    nodeNames: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]
+    nodeNames: [a1-wsl-zt, b1-wsl-zt]
   tolerations: []
   state:
     storageClassName: rbd-r640
@@ -172,6 +172,81 @@ pricing:
 # resource type and purpose used by the Headlamp flow diagram.
 meters:
   usage:
+    # Provider exporters must publish all three attribution labels. The
+    # resource_ref is always service://<tenant>/<instance>; unattributed
+    # shared-platform samples are intentionally absent from tenant events.
+    - name: artifact_storage
+      domain: harbor
+      serviceClass: registry.harbor.v1
+      resourceType: artifact-storage
+      purpose: registry-storage
+      unit: GiB-hour
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (harbor_tenant_artifact_storage_bytes{tenant!="",resource_ref=~"service://.+"}) / 1073741824 / 3600
+    - name: pull_bytes
+      domain: harbor
+      serviceClass: registry.harbor.v1
+      resourceType: artifact-transfer
+      purpose: registry-pull
+      unit: byte
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (rate(harbor_tenant_pull_bytes_total{tenant!="",resource_ref=~"service://.+"}[5m]))
+    - name: push_bytes
+      domain: harbor
+      serviceClass: registry.harbor.v1
+      resourceType: artifact-transfer
+      purpose: registry-push
+      unit: byte
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (rate(harbor_tenant_push_bytes_total{tenant!="",resource_ref=~"service://.+"}[5m]))
+    - name: scans
+      domain: harbor
+      serviceClass: registry.harbor.v1
+      resourceType: artifact-scan
+      purpose: vulnerability-scan
+      unit: scan
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (rate(harbor_tenant_scans_total{tenant!="",resource_ref=~"service://.+"}[5m]))
+    - name: queries
+      domain: observability
+      serviceClass: observability.grafana.v1
+      resourceType: query
+      purpose: tenant-query
+      unit: query
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (rate(grafana_tenant_queries_total{tenant!="",resource_ref=~"service://.+"}[5m]))
+    - name: samples
+      domain: observability
+      serviceClass: observability.grafana.v1
+      resourceType: metric-sample
+      purpose: metrics-ingest
+      unit: sample
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (rate(grafana_tenant_samples_total{tenant!="",resource_ref=~"service://.+"}[5m]))
+    - name: logs
+      domain: observability
+      serviceClass: observability.grafana.v1
+      resourceType: log-byte
+      purpose: logs-ingest
+      unit: byte
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (rate(grafana_tenant_log_bytes_total{tenant!="",resource_ref=~"service://.+"}[5m]))
+    - name: active_series
+      domain: observability
+      serviceClass: observability.grafana.v1
+      resourceType: active-series
+      purpose: metrics-cardinality
+      unit: series-hour
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (grafana_tenant_active_series{tenant!="",resource_ref=~"service://.+"}) / 3600
+    - name: retained_data
+      domain: observability
+      serviceClass: observability.grafana.v1
+      resourceType: retained-data
+      purpose: observability-retention
+      unit: GiB-hour
+      valueKind: rate
+      query: sum by (tenant, resource_ref) (grafana_tenant_retained_data_bytes{tenant!="",resource_ref=~"service://.+"}) / 1073741824 / 3600
     - name: ai-gateway-provider-spend
       domain: ai-gateway
       serviceClass: ai.model-gateway.v1
@@ -235,6 +310,7 @@ meters:
       serviceClass: compute.workload.v1
       resourceType: namespace-cpu
       purpose: workload-runtime
+      billingEligible: false
       unit: core-second
       valueKind: gauge
       tenantLabel: label_tenancy_re8ch_com_tenant
@@ -245,16 +321,69 @@ meters:
       serviceClass: compute.workload.v1
       resourceType: namespace-memory
       purpose: workload-runtime
+      billingEligible: false
       unit: GiB-second
       valueKind: gauge
       tenantLabel: label_tenancy_re8ch_com_tenant
       resourceLabel: namespace
       query: label_replace((sum by (exported_namespace) (max by (exported_namespace, exported_pod, exported_container) (kube_pod_container_resource_requests{resource="memory"}) unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) * on (exported_namespace) group_left(label_tenancy_re8ch_com_tenant) max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""})), "namespace", "$1", "exported_namespace", "(.+)") / 1073741824
+    - name: tenant-namespace-cpu-used
+      domain: compute
+      serviceClass: compute.workload.v1
+      resourceType: namespace-cpu-used
+      purpose: workload-runtime
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      query: sum by (namespace, label_tenancy_re8ch_com_tenant) (rate(container_cpu_usage_seconds_total{container!="",image!=""}[5m]) * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)"))
+    - name: tenant-namespace-memory-used
+      domain: compute
+      serviceClass: compute.workload.v1
+      resourceType: namespace-memory-used
+      purpose: workload-runtime
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      query: sum by (namespace, label_tenancy_re8ch_com_tenant) (container_memory_working_set_bytes{container!="",image!=""} * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)")) / 1073741824
+    - name: tenant-network-ingress
+      domain: networks
+      serviceClass: compute.workload.v1
+      resourceType: network-ingress
+      purpose: workload-network
+      unit: byte
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      query: sum by (namespace, label_tenancy_re8ch_com_tenant) (rate(container_network_receive_bytes_total{pod!=""}[5m]) * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)"))
+    - name: tenant-network-egress
+      domain: networks
+      serviceClass: compute.workload.v1
+      resourceType: network-egress
+      purpose: workload-network
+      unit: byte
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      query: sum by (namespace, label_tenancy_re8ch_com_tenant) (rate(container_network_transmit_bytes_total{pod!=""}[5m]) * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)"))
+    - name: tenant-gpu-used
+      domain: compute
+      serviceClass: compute.workload.v1
+      resourceType: gpu-used
+      purpose: workload-accelerator
+      unit: GPU-second
+      valueKind: gauge
+      tenantLabel: label_tenancy_re8ch_com_tenant
+      resourceLabel: namespace
+      dimensionLabels: [gpu_model, mig_profile]
+      query: sum by (namespace, label_tenancy_re8ch_com_tenant, gpu_model, mig_profile) (label_replace(label_replace(DCGM_FI_DEV_GPU_UTIL{pod!=""} / 100, "gpu_model", "$1", "modelName", "(.+)"), "mig_profile", "$1", "GPU_I_PROFILE", "(.+)") * on (namespace) group_left(label_tenancy_re8ch_com_tenant) label_replace(max by (exported_namespace, label_tenancy_re8ch_com_tenant) (kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}), "namespace", "$1", "exported_namespace", "(.+)"))
     - name: sandbox-cpu-request
       domain: sandbox
       serviceClass: sandbox.runtime.v1
       resourceType: sandbox-cpu
       purpose: agent-execution
+      billingEligible: false
       pricePerBillingUnit: 0.08
       billingUnitSize: 3600
       unit: core-second
@@ -267,6 +396,7 @@ meters:
       serviceClass: sandbox.runtime.v1
       resourceType: sandbox-memory
       purpose: agent-execution
+      billingEligible: false
       pricePerBillingUnit: 0.03
       billingUnitSize: 3600
       unit: GiB-second
@@ -278,6 +408,7 @@ meters:
       domain: compute
       resourceType: cpu
       purpose: workload-runtime
+      billingEligible: false
       pricePerBillingUnit: 0.20
       billingUnitSize: 3600
       unit: core-second
@@ -289,6 +420,7 @@ meters:
       domain: compute
       resourceType: memory
       purpose: workload-runtime
+      billingEligible: false
       pricePerBillingUnit: 0.03
       billingUnitSize: 3600
       unit: GiB-second
@@ -296,6 +428,26 @@ meters:
       tenantLabel: label_tenant
       resourceLabel: label_resource_ref
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="memory"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: tenant-claim-cpu-limit
+      domain: compute
+      resourceType: cpu-limit
+      purpose: capacity-audit
+      billingEligible: false
+      unit: core-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_limits{resource="cpu"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"})
+    - name: tenant-claim-memory-limit
+      domain: compute
+      resourceType: memory-limit
+      purpose: capacity-audit
+      billingEligible: false
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_limits{resource="memory"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: tenant-workload-cpu-used
       domain: compute
       resourceType: cpu-used
@@ -318,6 +470,7 @@ meters:
       domain: compute
       resourceType: ephemeral-storage
       purpose: workload-scratch
+      billingEligible: false
       pricePerBillingUnit: 0.005
       billingUnitSize: 3600
       unit: GiB-second
@@ -325,10 +478,20 @@ meters:
       tenantLabel: label_tenant
       resourceLabel: label_resource_ref
       query: sum by (label_tenant, label_resource_ref) (kube_pod_container_resource_requests{resource="ephemeral_storage"} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
+    - name: tenant-workload-ephemeral-storage-used
+      domain: compute
+      resourceType: ephemeral-storage-used
+      purpose: workload-scratch
+      unit: GiB-second
+      valueKind: gauge
+      tenantLabel: label_tenant
+      resourceLabel: label_resource_ref
+      query: sum by (label_tenant, label_resource_ref) (container_fs_usage_bytes{container!="",image!=""} * on (namespace, pod) group_left(label_tenant, label_resource_ref) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}) / 1073741824
     - name: ceph-volume-capacity
       domain: ceph
       resourceType: block-storage
       purpose: persistent-data
+      billingEligible: false
       pricePerBillingUnit: 0.002
       billingUnitSize: 3600
       unit: GiB-second
@@ -340,6 +503,7 @@ meters:
       domain: ceph
       resourceType: storage-request
       purpose: requested-capacity
+      billingEligible: false
       unit: GiB-second
       valueKind: gauge
       tenantLabel: label_tenant
