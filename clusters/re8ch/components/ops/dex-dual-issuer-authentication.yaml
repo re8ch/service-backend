@@ -15,21 +15,37 @@ jwt:
       username: {claim: email, prefix: 'oidc:'}
   - issuer:
       url: https://token.actions.githubusercontent.com
-      audiences: [https://kube-api.re8ch.com/observer]
+      audiences:
+        - https://kube-api.re8ch.com/observer
+        - https://kube-api.re8ch.com/release-executor-api-conformance
     claimValidationRules:
       - {expression: "claims.repository_id == '1367237854'", message: token must belong to the service-backend repository ID}
       - {expression: "claims.repository_owner_id == '283958313'", message: token must belong to the RE8CH owner ID}
       - {expression: "claims.repository == 're8ch/service-backend'", message: token must belong to re8ch/service-backend}
       - {expression: "claims.repository_visibility == 'private'", message: repository must remain private}
-      - {expression: "claims.ref == 'refs/heads/main'", message: observer must run from main}
-      - {expression: "claims.workflow_ref == 're8ch/service-backend/.github/workflows/node-contract-observer.yml@refs/heads/main'", message: token must come from the pinned node observer workflow}
-      - {expression: "claims.environment == 'cluster-observation'", message: token must use the cluster-observation environment}
-      - {expression: "claims.event_name in ['schedule', 'workflow_dispatch']", message: only scheduled or manually dispatched observation is allowed}
       - {expression: "claims.runner_environment == 'github-hosted'", message: self-hosted runners are not trusted for this identity}
+      - expression: >-
+          (claims.aud == 'https://kube-api.re8ch.com/observer' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/node-contract-observer.yml@refs/heads/main' &&
+           claims.environment == 'cluster-observation' &&
+           claims.event_name in ['schedule', 'workflow_dispatch']) ||
+          (claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main' &&
+           claims.environment == 'release-api-conformance' &&
+           claims.event_name == 'workflow_dispatch')
+        message: token audience and workflow context must match one reviewed credential contract
     claimMappings:
       username:
-        expression: "'github-actions:node-observer:' + claims.run_id"
+        expression: >-
+          claims.aud == 'https://kube-api.re8ch.com/observer'
+          ? 'github-actions:node-observer:' + claims.run_id
+          : 'github-actions:release-executor-api-conformance:' + claims.run_id
       groups:
-        expression: "['re8ch:credential-contract:node-observer']"
+        expression: >-
+          claims.aud == 'https://kube-api.re8ch.com/observer'
+          ? ['re8ch:credential-contract:node-observer']
+          : ['re8ch:release-executor:api-conformance']
       uid:
         expression: "claims.run_id + ':' + claims.run_attempt"

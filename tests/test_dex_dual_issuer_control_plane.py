@@ -24,17 +24,27 @@ def test_all_control_planes_share_supabase_authentication():
         'username': {'claim': 'email', 'prefix': 'oidc:'}
     }
     github = auth['jwt'][1]
-    assert github['issuer']['audiences'] == ['https://kube-api.re8ch.com/observer']
+    assert github['issuer']['audiences'] == [
+        'https://kube-api.re8ch.com/observer',
+        'https://kube-api.re8ch.com/release-executor-api-conformance',
+    ]
     expressions = {item['expression'] for item in github['claimValidationRules']}
     assert {
         "claims.repository_id == '1367237854'",
         "claims.repository_owner_id == '283958313'",
-        "claims.ref == 'refs/heads/main'",
-        "claims.environment == 'cluster-observation'",
         "claims.runner_environment == 'github-hosted'",
     } <= expressions
-    assert github['claimMappings']['username']['expression'] == "'github-actions:node-observer:' + claims.run_id"
-    assert github['claimMappings']['groups']['expression'] == "['re8ch:credential-contract:node-observer']"
+    route = github['claimValidationRules'][-1]['expression']
+    for required in (
+        "claims.aud == 'https://kube-api.re8ch.com/observer'",
+        "claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'",
+        "claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main'",
+        "claims.environment == 'release-api-conformance'",
+        "claims.event_name == 'workflow_dispatch'",
+    ):
+        assert required in route
+    assert "github-actions:release-executor-api-conformance:" in github['claimMappings']['username']['expression']
+    assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
     configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]
     configs.append(ROOT.parents[3] / 'operations/network/manifests/network/private-transit/mubao-k3s-config.yaml')
     for path in configs:

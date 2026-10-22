@@ -24,6 +24,7 @@ resources:
 - flux-system/retired-image-controllers.yaml
 - flux-federation
 - components/ops/github-actions-node-observer-rbac.yaml
+- components/ops/github-actions-release-executor-rbac.yaml
 patches:
 - target:
     group: apps
