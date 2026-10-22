@@ -1,0 +1,91 @@
+apiVersion: re8ch.com/v1alpha1
+kind: HelmReleaseClassifications
+releases:
+  - id: helmrelease:cube-trial:cube-trial
+    disposition: blocked-pending-evidence
+    rollbackOwner: helm-controller release history
+    evidence: Git chart rendering uses runtime values and post-rendering; bundle equivalence and orphan deletion are unproven.
+  - id: helmrelease:flux-system:adapter
+    disposition: blocked-pending-evidence
+    rollbackOwner: helm-controller release history
+    evidence: OCI input is locked, but rendered inventory, image digests, field ownership and uninstall behavior are not recorded.
+  - id: helmrelease:flux-system:advanced-fabric
+    disposition: retain-helm-lifecycle
+    rollbackOwner: network platform owner via helm-controller
+    evidence: Networking authority uses chart CRD replacement, Helm tests, secret values and post-rendering; it is excluded from early canaries.
+  - id: helmrelease:flux-system:among-clusters-agent
+    disposition: retain-helm-lifecycle
+    rollbackOwner: cluster federation owner via helm-controller
+    evidence: Cluster connectivity and tenant-bound enrollment use release-specific post-rendering and require a dedicated restore drill.
+  - id: helmrelease:flux-system:among-clusters-hub
+    disposition: retain-helm-lifecycle
+    rollbackOwner: cluster federation owner via helm-controller
+    evidence: The hub manages federation CRDs and identity-bearing enrollment state; equivalent ordered SSA lifecycle is not proven.
+  - id: helmrelease:flux-system:birfucate-metering
+    disposition: retain-helm-lifecycle
+    rollbackOwner: metering platform owner via helm-controller
+    evidence: Chart-managed CRDs use CreateReplace and lack a rehearsed ordered SSA replacement and rollback procedure.
+  - id: helmrelease:flux-system:ceph-csi-drivers
+    disposition: retain-helm-lifecycle
+    rollbackOwner: storage platform owner via helm-controller
+    evidence: CSI is storage authority and depends on Helm remediation and release ordering; it is outside early migration cohorts.
+  - id: helmrelease:flux-system:connectool
+    disposition: blocked-pending-evidence
+    rollbackOwner: connectool owner via helm-controller
+    evidence: OCI input is locked, but post-rendered inventory, field managers and safe orphan deletion have not been captured.
+  - id: helmrelease:flux-system:descheduler
+    disposition: blocked-pending-evidence
+    rollbackOwner: scheduling platform owner via helm-controller
+    evidence: The chart version is declared but the HelmRepository artifact digest, rendered inventory and ownership conflicts are unproven.
+  - id: helmrelease:flux-system:hyperswitch
+    disposition: retain-helm-lifecycle
+    rollbackOwner: commerce platform owner via helm-controller
+    evidence: Payment infrastructure consumes secret values and post-rendering; release-specific rollback and deletion semantics must remain intact.
+  - id: helmrelease:flux-system:incidentrelay
+    disposition: blocked-pending-evidence
+    rollbackOwner: incident platform owner via helm-controller
+    evidence: The declaration is suspended, but suspension alone does not prove finalizer or uninstall safety and runtime presence is unknown.
+  - id: helmrelease:flux-system:kueue
+    disposition: retain-helm-lifecycle
+    rollbackOwner: scheduling platform owner via helm-controller
+    evidence: Chart-managed CRDs use CreateReplace and require an ordered CRD ownership and rollback drill.
+  - id: helmrelease:flux-system:kyverno
+    disposition: retain-helm-lifecycle
+    rollbackOwner: policy platform owner via helm-controller
+    evidence: Admission policy infrastructure manages CRDs and post-rendering; dual ownership or failed rollback could block cluster writes.
+  - id: helmrelease:flux-system:paralus
+    disposition: retain-helm-lifecycle
+    rollbackOwner: identity platform owner via helm-controller
+    evidence: Cluster access and identity authority use release-specific post-rendering and are excluded from early canaries.
+  - id: helmrelease:flux-system:public-edge-manager
+    disposition: retain-helm-lifecycle
+    rollbackOwner: public edge owner via helm-controller
+    evidence: The suspended declaration governs public delivery; finalizer and restoration semantics require a dedicated traffic-safe drill.
+  - id: helmrelease:flux-system:rook-ceph
+    disposition: retain-helm-lifecycle
+    rollbackOwner: storage platform owner via helm-controller
+    evidence: Rook is storage control-plane infrastructure with Helm remediation and history dependencies; it is outside early migration cohorts.
+  - id: helmrelease:flux-system:rook-ceph-cluster
+    disposition: retain-helm-lifecycle
+    rollbackOwner: storage platform owner via helm-controller
+    evidence: The release owns persistent storage topology and depends on ordered CSI and operator releases; static takeover is not qualified.
+  - id: helmrelease:flux-system:runtime-anatomy
+    disposition: blocked-pending-evidence
+    rollbackOwner: runtime governance owner via helm-controller
+    evidence: Local Git chart input is reviewable, but deterministic bundle, exact inventory, images and field ownership evidence are absent.
+  - id: helmrelease:flux-system:toolhive-operator
+    disposition: retain-helm-lifecycle
+    rollbackOwner: tool runtime owner via helm-controller
+    evidence: The operator owns custom-resource lifecycle and post-rendering; ordered CRD and workload rollback equivalence is unproven.
+  - id: helmrelease:observability-system:re8ch-kube-state-metrics
+    disposition: blocked-pending-evidence
+    rollbackOwner: observability owner via helm-controller
+    evidence: This is a possible low-risk canary, pending locked repository artifact, byte-stable renders, inventory match and restore drill.
+  - id: helmrelease:observability-system:re8ch-opentelemetry-operator
+    disposition: retain-helm-lifecycle
+    rollbackOwner: observability owner via helm-controller
+    evidence: The operator owns custom-resource lifecycle; CRD discovery, conversion and deletion behavior have not been replaced.
+  - id: helmrelease:observability-system:victoria-metrics-operator
+    disposition: retain-helm-lifecycle
+    rollbackOwner: observability owner via helm-controller
+    evidence: Chart-managed CRDs use CreateReplace and no ordered SSA CRD lifecycle or rollback drill is approved.
