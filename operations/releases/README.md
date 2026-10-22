@@ -28,6 +28,20 @@ python operations/releases/unified_bundle.py \
 The command prints the bundle digest and embedded manifest. Publication and
 signing must address that exact digest; a tag is never executable input.
 
+`ssa_executor.py` is the single renderer-independent runtime boundary. It
+validates an expiring, sequenced operation; binds GitHub repository, workflow,
+ref, environment and OIDC audience to the reviewed contract; verifies the OCI
+digest and keyless signature; then performs conflict-detecting Server-Side
+Apply with a stable field manager. Accepted inventory and the previous bundle
+are written before success is acknowledged, so prune and rollback never depend
+on rendering source again. Its CLI deliberately has no signature-verification
+bypass and accepts no raw kubectl arguments.
+
+The state directory is part of the executor's durable runtime, not runner
+scratch space. Deployments must place it on persistent storage; losing it is a
+fail-closed recovery event, never permission to infer inventory from a new
+bundle or to prune live objects.
+
 The active Git-path reconciliation ownership model is documented in
 [`DOMAIN-RECONCILIATION.md`](DOMAIN-RECONCILIATION.md).
 

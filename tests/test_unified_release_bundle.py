@@ -23,6 +23,13 @@ def contract(renderer="kustomize"):
         "spec": {
             "target": {"cluster": "re8ch", "namespace": "demo"},
             "source": {"renderer": renderer, "revision": "0123456789abcdef"},
+            "provenance": {
+                "repository": "re8ch/service-backend", "workflow": ".github/workflows/release.yml",
+                "ref": "refs/heads/main", "environment": "production",
+                "audience": "https://kube-api.re8ch.com/release-executor",
+                "signer": "https://github.com/re8ch/service-backend/.github/workflows/release.yml@refs/heads/main",
+                "issuer": "https://token.actions.githubusercontent.com",
+            },
             "authorization": {
                 "fieldManager": "re8ch-release/demo",
                 "resources": ["apps/Deployment"],
