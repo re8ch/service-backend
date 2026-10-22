@@ -121,6 +121,8 @@ class FakeHarbor:
         self.robot_items = []
         self.granted_role_id = None
         self.reset_passwords = []
+        self.probe_error = None
+        self.probes = []
 
     def find_project(self, project):
         return self.project
@@ -160,6 +162,14 @@ class FakeHarbor:
 
     def robots(self):
         return list(self.robot_items)
+
+    def robot(self, robot_id):
+        return next(item for item in self.robot_items if item["id"] == robot_id)
+
+    def probe_robot_credential(self, username, password, project):
+        self.probes.append((username, password, project))
+        if self.probe_error:
+            raise self.probe_error
 
     def create_robot(self, project, name, permission, duration_days, description=None):
         assert project == "acme" and permission in {"pull", "build-push"}
@@ -219,7 +229,21 @@ def test_tenant_build_robot_needs_no_human_membership_and_is_reused():
     provider.reconcile_instance(kube, value, harbor_factory=lambda _kube: harbor,
                                 identity_factory=NoHumanIdentity)
     assert kube.status["access"]["robotCredentialRef"] == ref
+    assert kube.status["access"]["credentialVerified"] is True
     assert len(harbor.robot_items) == 1
+
+
+def test_tenant_build_robot_probe_failure_does_not_publish_or_replace_credential():
+    kube = FakeKube("registry.harbor.v1")
+    harbor = FakeHarbor()
+    harbor.probe_error = RuntimeError("credential denied")
+    value = instance("registry.harbor.v1", {"project": "acme", "quotaGiB": 10,
+                                            "robotDurationDays": 90}, "build-push")
+    with pytest.raises(RuntimeError, match="credential denied"):
+        provider.reconcile_instance(kube, value, harbor_factory=lambda _kube: harbor)
+    assert kube.status is None
+    assert not kube.secrets
+    assert len(harbor.robot_items) == 1 and harbor.robot_items[0]["disable"] is True
 
 
 def test_human_membership_revocation_preserves_other_tenant_instance_robot():

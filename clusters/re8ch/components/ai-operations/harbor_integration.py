@@ -134,6 +134,15 @@ class HarborClient:
     def robots(self) -> list[dict[str, Any]]:
         return self.paged("/robots")
 
+    def robot(self, robot_id: int) -> dict[str, Any]:
+        return self.request("GET", f"/robots/{robot_id}")
+
+    def probe_robot_credential(self, username: str, password: str, project: str) -> None:
+        """Verify the exact tenant credential through a project-scoped endpoint."""
+        scoped = HarborClient(self.base_url.removesuffix("/api/v2.0"), username, password,
+                              opener=self.opener)
+        scoped.repositories(project)
+
     def find_user(self, username: str) -> dict[str, Any] | None:
         return next((item for item in self.users() if item.get("username") == username), None)
 
