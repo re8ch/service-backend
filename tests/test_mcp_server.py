@@ -10,6 +10,7 @@ import yaml
 from runtime import CloudPlatform, Identity, Inventory, OperationError, OperationRunner
 
 ROOT = Path(__file__).parents[1]
+NODE_FIXTURE = ROOT / "tests/fixtures/synthetic-nodes.yaml"
 
 
 def resources():
@@ -22,7 +23,7 @@ spec.loader.exec_module(server)
 
 
 def service():
-    return CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]), OperationRunner(), kubeconfig="x", ssh_config="y")
+    return CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(), kubeconfig="x", ssh_config="y")
 
 
 def test_observer_catalog_has_no_mutating_tools():
@@ -43,7 +44,7 @@ def test_admin_catalog_has_mutating_tools():
 
 def test_dispatch_rechecks_authorization():
     with pytest.raises(OperationError) as caught:
-        server.dispatch(service(), "node.ssh.exec", {"name": "restricted-node-6dc3f140f9", "argv": ["hostname"]}, Identity("observer", ()))
+        server.dispatch(service(), "node.ssh.exec", {"name": "test-primary", "argv": ["hostname"]}, Identity("observer", ()))
     assert caught.value.code == "AUTHORIZATION_DENIED"
     with pytest.raises(OperationError):
         server.dispatch(service(), "kubectl.exec", {"argv": ["get", "nodes"]}, Identity("observer", ()))
@@ -56,13 +57,13 @@ def test_admin_generic_kubectl_and_inventory_ssh():
         calls.append((argv, kwargs))
         return subprocess.CompletedProcess(argv, 0, "ok", "")
 
-    runtime = CloudPlatform(Inventory([ROOT / "inventory/nodes.yaml"]), OperationRunner(execute), kubeconfig="x", ssh_config="y")
+    runtime = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(execute), kubeconfig="x", ssh_config="y")
     admin = Identity("admin", (server.ADMIN_GROUP,))
     assert server.dispatch(runtime, "kubectl.exec", {"argv": ["rollout", "status", "deployment/example"], "timeout": 45}, admin)["exitCode"] == 0
     assert calls[0][0] == ["kubectl", "--kubeconfig", "x", "rollout", "status", "deployment/example"]
     assert calls[0][1]["timeout"] == 45
-    assert server.dispatch(runtime, "node.ssh.exec", {"name": "restricted-node-6dc3f140f9", "argv": ["hostname"]}, admin)["exitCode"] == 0
-    assert calls[1][0] == ["ssh", "-F", "y", "--", "restricted-node-6dc3f140f9", "hostname"]
+    assert server.dispatch(runtime, "node.ssh.exec", {"name": "test-primary", "argv": ["hostname"]}, admin)["exitCode"] == 0
+    assert calls[1][0] == ["ssh", "-F", "y", "--", "test-primary.invalid", "hostname"]
 
 
 def test_observer_can_see_workspace_status_but_not_mutating_sync():

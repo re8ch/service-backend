@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Enable Mihomos consumers on Ready Kubernetes nodes and public global exits."""
 
+import base64
 import ipaddress
 import json
 import os
@@ -11,7 +12,7 @@ from pathlib import Path
 
 
 SERVICE_ACCOUNT = Path("/var/run/secrets/kubernetes.io/serviceaccount")
-INVENTORY_PATH = "/api/v1/namespaces/flux-system/configmaps/cluster-node-inventory"
+INVENTORY_PATH = "/api/v1/namespaces/flux-system/secrets/cluster-node-inventory"
 
 
 def api(path, method="GET", payload=None):
@@ -63,7 +64,7 @@ def desired_labels(node, inventory):
 def reconcile():
     nodes = api("/api/v1/nodes").get("items", [])
     try:
-        inventory = json.loads(api(INVENTORY_PATH)["data"]["nodes.json"])
+        inventory = json.loads(base64.b64decode(api(INVENTORY_PATH)["data"]["nodes.json"]))
     except (KeyError, ValueError, urllib.error.HTTPError, urllib.error.URLError) as exc:
         print(json.dumps({"level": "warning", "event": "mihomo-inventory-facts-unavailable",
                           "error": type(exc).__name__}), flush=True)

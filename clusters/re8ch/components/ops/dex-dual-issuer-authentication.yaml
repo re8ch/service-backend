@@ -13,3 +13,23 @@ jwt:
         message: token must have been issued to the Headlamp OAuth client
     claimMappings:
       username: {claim: email, prefix: 'oidc:'}
+  - issuer:
+      url: https://token.actions.githubusercontent.com
+      audiences: [https://kube-api.re8ch.com/observer]
+    claimValidationRules:
+      - {expression: "claims.repository_id == '1367237854'", message: token must belong to the service-backend repository ID}
+      - {expression: "claims.repository_owner_id == '283958313'", message: token must belong to the RE8CH owner ID}
+      - {expression: "claims.repository == 're8ch/service-backend'", message: token must belong to re8ch/service-backend}
+      - {expression: "claims.repository_visibility == 'private'", message: repository must remain private}
+      - {expression: "claims.ref == 'refs/heads/main'", message: observer must run from main}
+      - {expression: "claims.workflow_ref == 're8ch/service-backend/.github/workflows/node-contract-observer.yml@refs/heads/main'", message: token must come from the pinned node observer workflow}
+      - {expression: "claims.environment == 'cluster-observation'", message: token must use the cluster-observation environment}
+      - {expression: "claims.event_name in ['schedule', 'workflow_dispatch']", message: only scheduled or manually dispatched observation is allowed}
+      - {expression: "claims.runner_environment == 'github-hosted'", message: self-hosted runners are not trusted for this identity}
+    claimMappings:
+      username:
+        expression: "'github-actions:node-observer:' + claims.run_id"
+      groups:
+        expression: "['re8ch:credential-contract:node-observer']"
+      uid:
+        expression: "claims.run_id + ':' + claims.run_attempt"

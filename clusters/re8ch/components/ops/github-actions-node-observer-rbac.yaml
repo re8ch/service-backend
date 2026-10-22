@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: github-actions-node-observer
+  labels: {operations.re8ch.com/credential-contract: node-observer}
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, list]
+  - nonResourceURLs: [/api, /api/*, /apis, /apis/*, /version]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: github-actions-node-observer
+  labels: {operations.re8ch.com/credential-contract: node-observer}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: github-actions-node-observer
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: re8ch:credential-contract:node-observer

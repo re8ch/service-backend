@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://re8ch.com/schemas/operations-target-contract.schema.json",
+  "title": "OperationsTargetContract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "operations.re8ch.com/v1alpha1"},
+    "kind": {"const": "OperationsTargetContract"},
+    "metadata": {"$ref": "#/$defs/metadata"},
+    "spec": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "lifecycle", "transport", "aliases", "capabilities", "publishTo"],
+      "properties": {
+        "type": {"enum": ["controlled-subcluster", "host", "external-ssh", "retired"]},
+        "lifecycle": {"enum": ["active", "retired"]},
+        "transport": {"$ref": "#/$defs/transport"},
+        "aliases": {"$ref": "#/$defs/stringArray"},
+        "capabilities": {"$ref": "#/$defs/stringArray"},
+        "publishTo": {"type": "array", "uniqueItems": true, "items": {"enum": ["compatInventory", "aiOperations", "sshConfig"]}},
+        "legacyCluster": {"$ref": "#/$defs/legacyCluster"},
+        "byoc": {"$ref": "#/$defs/byoc"},
+        "aiOperations": {"$ref": "#/$defs/aiOperations"},
+        "sshConfig": {"$ref": "#/$defs/sshConfig"}
+      }
+    }
+  },
+  "$defs": {
+    "name": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
+    "metadata": {"type": "object", "additionalProperties": false, "required": ["name", "uid"], "properties": {"name": {"$ref": "#/$defs/name"}, "uid": {"type": "string", "format": "uuid"}}},
+    "stringArray": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "stringMap": {"type": "object", "additionalProperties": {"type": "string"}},
+    "commands": {"type": "object", "additionalProperties": false, "required": ["read", "write", "rollback"], "properties": {"read": {"$ref": "#/$defs/stringArray"}, "write": {"$ref": "#/$defs/stringArray"}, "rollback": {"$ref": "#/$defs/stringArray"}}},
+    "cloud": {"type": "object", "additionalProperties": false, "required": ["provider", "product", "account", "cliProfile", "regionId", "apiEndpoint", "instanceId", "instanceName", "publicIp"], "properties": {"provider": {"type": "string"}, "product": {"type": "string"}, "account": {"type": "string"}, "cliProfile": {"type": "string"}, "regionId": {"type": "string"}, "zoneId": {"type": "string"}, "apiEndpoint": {"type": "string"}, "instanceId": {"type": "string"}, "instanceName": {"type": "string"}, "publicIp": {"type": "string", "format": "ipv4"}}},
+    "transport": {"type": "object", "additionalProperties": false, "required": ["type", "address", "credentialRef", "commands"], "properties": {"type": {"enum": ["ssh"]}, "address": {"type": "string"}, "credentialRef": {"type": "string"}, "commands": {"$ref": "#/$defs/commands"}, "cloud": {"$ref": "#/$defs/cloud"}}},
+    "legacyNetwork": {"type": "object", "additionalProperties": false, "required": ["region", "zone"], "properties": {"region": {"type": "string"}, "zone": {"type": "string"}, "controlRoute": {"type": "string"}, "externalIPMode": {"type": "string"}, "networkLevel": {"type": "integer"}, "uplinkMbps": {"type": "integer"}}},
+    "parameters": {"type": "object", "additionalProperties": false, "required": ["cpu", "memoryKi", "ephemeralStorageKi", "osImage", "kernelVersion"], "properties": {"cpu": {"type": "integer"}, "memoryKi": {"type": "integer"}, "ephemeralStorageKi": {"type": "integer"}, "osImage": {"type": "string"}, "kernelVersion": {"type": "string"}}},
+    "storage": {"type": "object", "additionalProperties": false, "required": ["csiDrivers", "profiles"], "properties": {"csiDrivers": {"$ref": "#/$defs/stringArray"}, "profiles": {"$ref": "#/$defs/stringArray"}}},
+    "legacyCluster": {"type": "object", "additionalProperties": false, "required": ["membership", "roles", "services"], "properties": {"membership": {"enum": ["retired", "not-observed"]}, "roles": {"$ref": "#/$defs/stringArray"}, "services": {"$ref": "#/$defs/stringArray"}, "labels": {"$ref": "#/$defs/stringMap"}, "taints": {"type": "array", "items": {"type": "object"}}, "parameters": {"$ref": "#/$defs/parameters"}, "network": {"$ref": "#/$defs/legacyNetwork"}, "storage": {"$ref": "#/$defs/storage"}}},
+    "byoc": {"type": "object", "additionalProperties": false, "required": ["tenantRef", "clusterUID", "clusterID", "regionRef", "connectionLimit", "knownHost"], "properties": {"tenantRef": {"type": "string"}, "clusterUID": {"type": "string", "format": "uuid"}, "clusterID": {"type": "string"}, "regionRef": {"type": "string"}, "connectionLimit": {"type": "integer", "minimum": 1}, "knownHost": {"type": "string", "pattern": "^[^\\s]+[ \\t]+(?:ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa)[ \\t]+[^\\s]+(?:[ \\t]+.*)?$"}}},
+    "capacity": {"type": "object", "additionalProperties": false, "required": ["cpu", "memory", "ephemeralStorage"], "properties": {"cpu": {"type": "string"}, "memory": {"type": "string"}, "ephemeralStorage": {"type": "string"}}},
+    "aiByoc": {"type": "object", "additionalProperties": false, "required": ["tenantRef", "hostFingerprint", "clusterUID", "clusterID", "regionRef", "connectionLimit", "capacity"], "properties": {"tenantRef": {"type": "string"}, "hostFingerprint": {"type": "string"}, "clusterUID": {"type": "string", "format": "uuid"}, "clusterID": {"type": "string"}, "regionRef": {"type": "string"}, "connectionLimit": {"type": "integer"}, "capacity": {"$ref": "#/$defs/capacity"}}},
+    "aiOperations": {"type": "object", "additionalProperties": false, "required": ["id", "target", "address", "roles", "enabled"], "properties": {"id": {"type": "string"}, "target": {"type": "string"}, "address": {"type": "string"}, "roles": {"$ref": "#/$defs/stringArray"}, "enabled": {"type": "boolean"}, "byoc": {"$ref": "#/$defs/aiByoc"}}},
+    "sshConfig": {"type": "object", "additionalProperties": false, "required": ["aliases", "hostName", "user"], "properties": {"aliases": {"$ref": "#/$defs/stringArray"}, "hostName": {"type": "string"}, "user": {"type": "string"}, "proxyJump": {"type": "string"}}}
+  }
+}

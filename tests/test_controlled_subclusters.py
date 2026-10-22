@@ -44,36 +44,25 @@ def test_artc_owner_aliases_bind_one_explicit_admin():
     }
 
 
-def test_gitops_ssh_config_matches_reviewable_template():
+def test_gitops_ssh_config_is_only_a_sops_secret():
     manifests = yaml.safe_load_all(
-        (ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text()
+        (ROOT / "clusters/re8ch/secrets/ai-operations-inventory.sops.yaml").read_text()
     )
-    config = next(
+    secret = next(
         item
         for item in manifests
         if item
-        and item.get("kind") == "ConfigMap"
+        and item.get("kind") == "Secret"
         and item.get("metadata", {}).get("name") == "ai-operations-ssh-config"
     )
-    template = (
-        ROOT / "clusters/re8ch/components/ai-operations/ssh_config.template"
-    ).read_text()
-    assert config["data"]["ssh-config"] == template
+    assert secret["stringData"]["ssh-config"].startswith("ENC[")
+    assert "sops" in secret
+    assert not (ROOT / "clusters/re8ch/components/ai-operations/ssh_config.template").exists()
 
 
-def test_windows_hosts_use_cross_host_wsl_recovery_paths():
-    template = (
-        ROOT / "clusters/re8ch/components/ai-operations/ssh_config.template"
-    ).read_text()
-    assert "Host a1-windows\n  HostName 192.0.2.246\n  User Administrator\n  ProxyJump restricted-node-296f36f2fb" in template
-    assert "Host b1-windows\n  HostName 192.0.2.35\n  User Administrator\n  ProxyJump restricted-node-1eb0570f74" in template
-
-    targets = yaml.safe_load((ROOT / "inventory/nodes.yaml").read_text())["items"]
-    by_name = {item["metadata"]["name"]: item["spec"] for item in targets}
-    for name in ("a1-windows", "b1-windows"):
-        assert by_name[name]["address"] == name
-        assert by_name[name]["credentialRef"] == "node-ssh"
-        assert "wsl-lifecycle" in by_name[name]["capabilities"]
+def test_plaintext_operations_targets_are_absent():
+    assert not (ROOT / "inventory/nodes.yaml").exists()
+    assert not (ROOT / "contracts/infrastructure/targets.yaml").exists()
 
 
 def test_cloud_platform_mounts_gitops_ssh_config_and_secret_identity():
@@ -83,7 +72,7 @@ def test_cloud_platform_mounts_gitops_ssh_config_and_secret_identity():
     deployment = next(item for item in documents if item and item.get("kind") == "Deployment")
     ssh = next(volume for volume in deployment["spec"]["template"]["spec"]["volumes"] if volume["name"] == "ssh-projected")
     sources = ssh["projected"]["sources"]
-    assert sources[0]["configMap"] == {
+    assert sources[0]["secret"] == {
         "name": "ai-operations-ssh-config",
         "items": [{"key": "ssh-config", "path": "ssh-config"}],
     }

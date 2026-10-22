@@ -87,7 +87,7 @@ spec:
       networking.re8ch.com/lb-pool: service-vip
       networking.re8ch.com/bgp-advertise: enabled
     annotations:
-      lbipam.cilium.io/ips: 192.0.2.213
+      lbipam.cilium.io/ips: 10.251.0.4
   listeners:
     - name: http
       protocol: HTTP
@@ -100,6 +100,12 @@ spec:
     - {name: mail-submission, protocol: TCP, port: 587, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
     - {name: mail-imaps, protocol: TCP, port: 993, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
     - {name: mail-sieve, protocol: TCP, port: 4190, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
+    - name: kube-api
+      protocol: TCP
+      port: 6443
+      allowedRoutes:
+        namespaces:
+          from: Same
     - name: apps-wildcard-https
       hostname: "*.apps.re8ch.com"
       protocol: HTTPS
@@ -232,6 +238,52 @@ spec:
         namespaces:
           from: All
 ---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: kube-api-public
+  namespace: kube-system
+  labels: {operations.re8ch.com/credential-contract: node-observer}
+spec:
+  parentRefs:
+    - {name: re8ch-gateway-canary, sectionName: kube-api}
+  rules:
+    - backendRefs:
+        - {name: kubernetes, namespace: default, port: 443}
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: kube-api-public
+  namespace: default
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: TCPRoute, namespace: kube-system}
+  to:
+    - {group: "", kind: Service, name: kubernetes}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kube-api-public-dns-authority
+  namespace: kube-system
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: kube-api.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    networking.re8ch.com/public-authority: operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority
+spec:
+  ingressClassName: external-dns-only
+  rules:
+    - host: kube-api.re8ch.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: {service: {name: re8ch-gateway-canary, port: {number: 6443}}}
+---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -266,7 +318,7 @@ metadata:
   annotations:
     # Gateway status contains private service VIPs for every regional parent.
     # Publish only the routable public edge; the VIPs remain internal origins.
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
 spec:

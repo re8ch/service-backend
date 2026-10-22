@@ -6,7 +6,9 @@ resources:
 - ../../../secrets/routeros-authority-bundle-key.sops.yaml
 - ../../../secrets/public-edge-route-snapshot-signing.sops.yaml
 - ../../../secrets/zerotier-planet-env.sops.yaml
-- ../../../components/cluster-inventory/configmap.yaml
+- ../../../secrets/infrastructure-contracts.sops.yaml
+- ../../../secrets/cluster-node-inventory.sops.yaml
+- ../../../components/ops/github-actions-node-observer-rbac.yaml
 - ../../../components/cilium/gateway-api-canary.yaml
 - ../../../components/cilium/service-zone-wave-15.yaml
 - ../../../components/cilium/advfab-worker-node-ips.yaml
