@@ -151,3 +151,11 @@ def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():
     assert "secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64" in text
     assert "secrets.KUBE_API_CA_PEM" in text
     assert "vars.INFRASTRUCTURE" not in text
+    assert "observer expected 14 Nodes" in text
+    for denial_probe in ("secret-list", "pod-log", "pod-exec", "token-request"):
+        assert denial_probe in text
+
+
+def test_observer_rbac_is_in_the_main_flux_root():
+    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
+    assert "components/ops/github-actions-node-observer-rbac.yaml" in root["resources"]

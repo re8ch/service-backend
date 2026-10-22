@@ -54,6 +54,14 @@ jobs:
           evidence="$RUNNER_TEMP/node-contract-evidence.json"
           cleanup() { rm -f "$token_json" "$kubeconfig" "$observed" "$RUNNER_TEMP/re8ch-ca.crt"; rm -rf "$RUNNER_TEMP/infrastructure-contracts"; }
           trap cleanup EXIT
+          unauthenticated_status="$(curl --fail-with-body --silent --show-error \
+            --cacert "$RUNNER_TEMP/re8ch-ca.crt" \
+            --output /dev/null --write-out '%{http_code}' \
+            https://kube-api.re8ch.com:6443/api || true)"
+          if [[ "$unauthenticated_status" != "401" && "$unauthenticated_status" != "403" ]]; then
+            echo "Public Kubernetes API did not fail closed (status: ${unauthenticated_status:-unreachable})" >&2
+            exit 1
+          fi
           curl --fail-with-body --silent --show-error --get \
             --header "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             --data-urlencode "audience=$OBSERVER_AUDIENCE" \
@@ -68,6 +76,43 @@ jobs:
           kubectl config --kubeconfig "$kubeconfig" set-context node-observer --cluster=re8ch-main --user=node-observer
           kubectl config --kubeconfig "$kubeconfig" use-context node-observer
           kubectl --kubeconfig "$kubeconfig" get nodes -o json > "$observed"
+          python - "$observed" <<'PY'
+          import json, sys
+          count = len(json.load(open(sys.argv[1], encoding="utf-8"))["items"])
+          if count != 14:
+              raise SystemExit(f"observer expected 14 Nodes, received {count}")
+          PY
+
+          expect_forbidden() {
+            local label="$1"
+            shift
+            local stdout_file="$RUNNER_TEMP/${label}.stdout"
+            local stderr_file="$RUNNER_TEMP/${label}.stderr"
+            if "$@" >"$stdout_file" 2>"$stderr_file"; then
+              echo "Observer unexpectedly passed denied operation: $label" >&2
+              exit 1
+            fi
+            if ! grep -Eqi 'forbidden|cannot' "$stderr_file"; then
+              echo "Observer denial probe returned an unexpected failure: $label" >&2
+              exit 1
+            fi
+            rm -f "$stdout_file" "$stderr_file"
+          }
+          expect_forbidden secret-list kubectl --kubeconfig "$kubeconfig" get secrets --all-namespaces
+          expect_forbidden pod-log kubectl --kubeconfig "$kubeconfig" logs -n default observer-deny-probe
+          expect_forbidden pod-exec kubectl --kubeconfig "$kubeconfig" exec -n default observer-deny-probe -- true
+          expect_forbidden token-request kubectl --kubeconfig "$kubeconfig" create token default -n default --duration=10m
+          for denied in \
+            'create deployments.apps -n default' \
+            'patch nodes' \
+            'delete nodes' \
+            'impersonate users'; do
+            read -r -a denial_request <<<"$denied"
+            if [[ "$(kubectl --kubeconfig "$kubeconfig" auth can-i "${denial_request[@]}")" != "no" ]]; then
+              echo "Observer unexpectedly authorized: $denied" >&2
+              exit 1
+            fi
+          done
           set +e
           INFRASTRUCTURE_CONTRACT_DIR="$RUNNER_TEMP/infrastructure-contracts" \
             python operations/infrastructure-contract/compiler.py observe-diff "$observed" > "$evidence"
