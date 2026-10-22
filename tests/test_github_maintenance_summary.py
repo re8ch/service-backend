@@ -52,3 +52,15 @@ def test_workflow_uses_maintenance_app_and_github_hosted_runner():
     assert "runs-on: ubuntu-latest" in workflow
     assert "self-hosted" not in workflow
     assert 'cron: "0 1 * * 1"' in workflow
+
+
+def test_bounded_array_does_not_request_pagination(monkeypatch):
+    calls = []
+
+    def fake_gh(*args):
+        calls.append(args)
+        return "[]"
+
+    monkeypatch.setattr(SUMMARY, "gh", fake_gh)
+    assert SUMMARY.api_array("repos/re8ch/service-backend/deployments?per_page=20") == []
+    assert calls == [("api", "repos/re8ch/service-backend/deployments?per_page=20")]
