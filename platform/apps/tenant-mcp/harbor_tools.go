@@ -77,7 +77,18 @@ func (s *server) callHarbor(ctx context.Context, id identity, name string, args 
 	switch name {
 	case "harbor_project_get":
 		value, err := client.request(ctx, http.MethodGet, projectPath, nil, true)
-		return map[string]any{"tenant": tenant, "project": value}, err
+		if err == nil {
+			return map[string]any{"tenant": tenant, "project": value}, nil
+		}
+		// Project-scoped robots can enumerate their repositories but Harbor may
+		// reject the administrator-oriented project metadata endpoint.
+		repositories, scopedErr := client.paged(ctx, projectPath+"/repositories")
+		if scopedErr != nil {
+			return nil, err
+		}
+		return map[string]any{"tenant": tenant, "project": map[string]any{
+			"name": project, "metadataAvailable": false, "repositoryCount": len(repositories),
+		}}, nil
 	case "harbor_repository_list":
 		value, err := client.paged(ctx, projectPath+"/repositories")
 		return map[string]any{"tenant": tenant, "project": project, "repositories": value}, err

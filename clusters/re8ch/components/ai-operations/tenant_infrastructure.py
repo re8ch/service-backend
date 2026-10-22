@@ -562,7 +562,10 @@ class ServiceStore:
         for event in events:
             key = event["meter"] + ":" + event["unit"]
             totals[key] = totals.get(key, 0) + float(event["quantity"])
-        return {"tenantRef": tenant, "resourceRef": resource_ref, "totals": totals, "eventCount": len(events), "pricingApplied": False, "accountingPosted": False}
+        latest = max((event["observedAt"] for event in events), default=None)
+        return {"tenantRef": tenant, "resourceRef": resource_ref, "totals": totals,
+                "eventCount": len(events), "latestObservedAt": latest,
+                "pricingApplied": False, "accountingPosted": False}
 
     def usage_events(self, tenant: str, resource_ref: str | None = None, limit: int = 100) -> dict[str, Any]:
         if not 1 <= limit <= 500:

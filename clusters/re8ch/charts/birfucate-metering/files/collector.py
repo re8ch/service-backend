@@ -83,6 +83,38 @@ def vector(items: list[dict[str, Any]], tenant_label: str, resource_label: str) 
     return result
 
 
+def attributed_vector(
+    items: list[dict[str, Any]], tenant_label: str, resource_label: str,
+    meter_name: str, dimension_labels: list[str] | None = None,
+) -> dict[tuple[str, str, tuple[tuple[str, str], ...]], float]:
+    """Validate attribution and retain only explicitly allowlisted dimensions."""
+    result: dict[tuple[str, str, tuple[tuple[str, str], ...]], float] = {}
+    dimensions = dimension_labels or []
+    for item in items:
+        labels = item.get("metric") or {}
+        tenant = str(labels.get(tenant_label) or "")
+        resource = str(labels.get(resource_label) or "")
+        if not tenant or not resource:
+            reason = "missing_tenant" if not tenant else "missing_resource_ref"
+            add_metric("birfucate_dropped_samples_total", {"meter": meter_name, "reason": reason}, 1)
+            continue
+        missing_dimension = next((label for label in dimensions if not str(labels.get(label) or "")), "")
+        if missing_dimension:
+            add_metric("birfucate_dropped_samples_total", {"meter": meter_name, "reason": "missing_dimension"}, 1)
+            continue
+        try:
+            value = float((item.get("value") or [0, 0])[1])
+        except (TypeError, ValueError, IndexError):
+            add_metric("birfucate_dropped_samples_total", {"meter": meter_name, "reason": "invalid_value"}, 1)
+            continue
+        if not math.isfinite(value) or value < 0:
+            add_metric("birfucate_dropped_samples_total", {"meter": meter_name, "reason": "invalid_value"}, 1)
+            continue
+        retained = tuple(sorted((label, str(labels[label])) for label in dimensions))
+        result[(tenant, resource, retained)] = value
+    return result
+
+
 def labeled_vector(items: list[dict[str, Any]], labels: list[str]) -> dict[tuple[str, ...], float]:
     """Return finite non-negative samples keyed by required Prometheus labels."""
     result: dict[tuple[str, ...], float] = {}
@@ -151,7 +183,7 @@ def price(config: dict[str, Any], meter: dict[str, Any], quantity: float) -> tup
     pricing = config.get("pricing") or {}
     rate = meter.get("pricePerBillingUnit")
     unit_size = float(meter.get("billingUnitSize", 1))
-    applied = bool(pricing.get("enabled")) and rate is not None and unit_size > 0
+    applied = bool(pricing.get("enabled")) and bool(meter.get("billingEligible", True)) and rate is not None and unit_size > 0
     return (quantity / unit_size * float(rate) if applied else 0.0, applied, str(pricing.get("currency", "CNY")))
 
 
@@ -275,8 +307,8 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         # while its upstream metrics are rolling out or temporarily unavailable.
         set_metric("birfucate_dependency_up", {"dependency": "node-cost-allocation"}, 0)
     for meter in config["meters"].get("occupancy", []):
-        values = vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
-        for (tenant, resource), gauge in values.items():
+        values = attributed_vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label), meter["name"], meter.get("dimensionLabels"))
+        for (tenant, resource, retained_dimensions), gauge in values.items():
             quantity = gauge * interval
             resource_type = str(meter.get("resourceType", meter["domain"]))
             purpose = str(meter.get("purpose", meter["name"]))
@@ -287,10 +319,11 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
             tenant_resources.add((tenant, resource, resource_type))
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
-            queue(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose}, cost, priced, currency, meter.get("serviceClass")))
+            dimensions = {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose, "billingEligible": bool(meter.get("billingEligible", True)), **dict(retained_dimensions)}
+            queue(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, dimensions, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("usage", []):
-        values = vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label))
-        for (tenant, resource), observed in values.items():
+        values = attributed_vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label), meter["name"], meter.get("dimensionLabels"))
+        for (tenant, resource, retained_dimensions), observed in values.items():
             quantity = observed * interval if meter.get("valueKind") == "rate" else observed
             resource_type = str(meter.get("resourceType", meter["domain"]))
             purpose = str(meter.get("purpose", meter["name"]))
@@ -304,7 +337,7 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
             tenant_resources.add((tenant, resource, resource_type))
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
-            queue(usage_event(tenant, resource, meter["domain"], "usage." + meter["name"], quantity, meter["unit"], start, end, {"resourceType": resource_type, "purpose": purpose}, cost, priced, currency, meter.get("serviceClass")))
+            queue(usage_event(tenant, resource, meter["domain"], "usage." + meter["name"], quantity, meter["unit"], start, end, {"resourceType": resource_type, "purpose": purpose, "billingEligible": bool(meter.get("billingEligible", True)), **dict(retained_dimensions)}, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("bifurcation", []):
         counts = vector(prometheus_query(query_base_url, meter["countQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
         intensities = vector(prometheus_query(query_base_url, meter["intensityQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
@@ -367,7 +400,8 @@ def deliver(config: dict[str, Any], outbox: Outbox) -> None:
                     if not 200 <= response.status < 300:
                         break
             outbox.delivered(key)
-        except urllib.error.URLError:
+        except (OSError, RuntimeError, urllib.error.URLError):
+            add_metric("birfucate_sink_failures_total", {"sink": "billing" if (config.get("billingSink") or {}).get("enabled") else "usage"}, 1)
             break
 
 

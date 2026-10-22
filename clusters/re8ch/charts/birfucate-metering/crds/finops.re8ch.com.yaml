@@ -627,6 +627,7 @@ spec:
             required:
             - tenantRef
             - serviceInstanceRef
+            - resourceRef
             - consumableRef
             - shardRefs
             - planRef
@@ -640,6 +641,11 @@ spec:
               serviceInstanceRef:
                 type: string
                 minLength: 1
+              resourceRef:
+                type: string
+                minLength: 1
+              providerResourceRef:
+                type: string
               consumableRef:
                 type: string
                 minLength: 1

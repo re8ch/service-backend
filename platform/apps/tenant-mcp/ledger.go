@@ -188,7 +188,8 @@ func (s *server) usageSummary(tenant, resource string) (map[string]any, error) {
 		args = append(args, resource)
 	}
 	query += `)) SELECT json_extract(event_json, '$.meter'), json_extract(event_json, '$.unit'),
-		SUM(CAST(json_extract(event_json, '$.quantity') AS REAL)), COUNT(*)
+		SUM(CAST(json_extract(event_json, '$.quantity') AS REAL)), COUNT(*),
+		MAX(json_extract(event_json, '$.observedAt'))
 		FROM events GROUP BY 1,2`
 	rows, err := s.ledger.Query(query, args...)
 	if err != nil {
@@ -197,15 +198,20 @@ func (s *server) usageSummary(tenant, resource string) (map[string]any, error) {
 	defer rows.Close()
 	totals := map[string]float64{}
 	eventCount := 0
+	latestObservedAt := ""
 	for rows.Next() {
 		var meter, unit string
+		var observedAt sql.NullString
 		var quantity float64
 		var count int
-		if err = rows.Scan(&meter, &unit, &quantity, &count); err != nil {
+		if err = rows.Scan(&meter, &unit, &quantity, &count, &observedAt); err != nil {
 			return nil, err
 		}
 		totals[meter+":"+unit] = quantity
 		eventCount += count
+		if observedAt.Valid && observedAt.String > latestObservedAt {
+			latestObservedAt = observedAt.String
+		}
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
@@ -214,7 +220,11 @@ func (s *server) usageSummary(tenant, resource string) (map[string]any, error) {
 	if resource != "" {
 		resourceRef = resource
 	}
-	return map[string]any{"tenantRef": tenant, "resourceRef": resourceRef, "totals": totals, "eventCount": eventCount, "pricingApplied": false, "accountingPosted": false}, nil
+	var latest any
+	if latestObservedAt != "" {
+		latest = latestObservedAt
+	}
+	return map[string]any{"tenantRef": tenant, "resourceRef": resourceRef, "totals": totals, "eventCount": eventCount, "latestObservedAt": latest, "pricingApplied": false, "accountingPosted": false}, nil
 }
 
 func usageCollectorAuthenticated(r *http.Request) (bool, error) {
