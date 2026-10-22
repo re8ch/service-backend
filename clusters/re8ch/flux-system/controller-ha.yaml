@@ -11,16 +11,6 @@ spec:
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: kustomize-controller
-  namespace: flux-system
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels: {app: kustomize-controller}
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
   name: notification-controller
   namespace: flux-system
 spec:

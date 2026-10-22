@@ -247,17 +247,14 @@ patches:
     name: kustomize-controller
     namespace: flux-system
   patch: |-
-    # Keep manifest rendering on nodes that can reach the control-plane
-    # endpoint directly. The Kubernetes service VIP is not routed reliably
-    # from every worker, so controller bootstrap must not depend on it.
+    # Keep manifest rendering on B1, which has verified connectivity to the
+    # direct control-plane endpoint and does not need a standby replica.
     - op: replace
       path: /spec/replicas
-      value: 2
+      value: 1
     - op: replace
       path: /spec/strategy
       value:
-        # The previous ReplicaSet has hard pod anti-affinity. Recreate is
-        # required to retire that rule before the new placement can schedule.
         type: Recreate
     - op: replace
       path: /spec/template/spec/affinity
@@ -268,28 +265,7 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            preference:
-              matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
-          - weight: 80
-            preference:
-              matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels: {app: kustomize-controller}
-              topologyKey: kubernetes.io/hostname
-    - op: add
-      path: /spec/template/spec/tolerations
-      value:
-      - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-      - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+                values: [restricted-node-296f36f2fb]
     - op: add
       path: /spec/template/spec/containers/0/args/-
       # Bound cross-region Kubernetes API pressure so reconciliation does not
