@@ -22,7 +22,7 @@ metadata:
 spec:
   serviceClass: {{ $item.class }}
   owner: {{ $item.owner }}
-  lifecycle: {{ if or (eq $item.name "compute-workload") (eq $item.name "storage-volume") }}Approved{{ else }}Draft{{ end }}
+  lifecycle: {{ if or (eq $item.name "compute-workload") (eq $item.name "storage-volume") (eq $item.name "registry-harbor") (eq $item.name "observability-managed") }}Approved{{ else }}Draft{{ end }}
   endpointClass: TenantSafe
   authenticationProxyRef: tenant
   supportBoundary: {{ $item.boundary | quote }}
