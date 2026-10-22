@@ -440,6 +440,7 @@ def reconcile_harbor_robot(kube, instance: dict[str, Any], client: HarborClient)
         if exc.code != 404:
             raise
     old_id = None
+    old_material = None
     if existing:
         labels = existing.get("metadata", {}).get("labels", {})
         if any(labels.get(f"credentials.re8ch.com/{key}") != value for key, value in
@@ -449,21 +450,33 @@ def reconcile_harbor_robot(kube, instance: dict[str, Any], client: HarborClient)
         old_id = int(base64.b64decode(data["robot_id"]).decode())
         if not data.get("username") or not data.get("password"):
             raise RuntimeError("tenant robot credential is incomplete")
-        robot = next((item for item in client.robots() if int(item.get("id") or 0) == old_id), None)
+        old_material = {key: base64.b64decode(data[key]).decode()
+                        for key in ("username", "password", "project", "robot_id")}
+        try:
+            robot = client.robot(old_id)
+        except Exception:
+            robot = None
         expected_access = ({("repository", "pull")} if plan == "pull" else
                            {("repository", "pull"), ("repository", "push"),
                             ("artifact", "read"), ("artifact", "create"), ("scan", "create")})
         permissions = (robot.get("permissions") or []) if robot else []
         actual_access = {(entry.get("resource"), entry.get("action"))
                          for permission in permissions for entry in permission.get("access") or []}
-        if (robot and not robot.get("disable") and robot.get("description") == description
+        reusable = (robot and not robot.get("disable") and robot.get("description") == description
                 and robot.get("level") == "project"
                 and permissions and all(permission.get("namespace") == project for permission in permissions)
                 and actual_access == expected_access
                 and labels.get("credentials.re8ch.com/plan") == plan
-                and int(robot.get("expires_at") or 0) > int(time.time()) + 86400):
+                and int(robot.get("expires_at") or 0) > int(time.time()) + 86400)
+        if reusable:
+            try:
+                client.probe_robot_credential(old_material["username"], old_material["password"], project)
+            except Exception:
+                reusable = False
+        if reusable:
             return {"project": project, "robotCredentialRef": reference, "robotId": old_id,
-                    "quotaGiB": quota, "credentialMaterialReturned": False}
+                    "quotaGiB": quota, "credentialVerified": True,
+                    "credentialMaterialReturned": False}
 
     robot, token = client.create_robot(project, f"tenant-{credential_id[:16]}-{secrets.token_hex(3)}",
                                        plan, spec["parameters"]["robotDurationDays"], description=description)
@@ -472,17 +485,23 @@ def reconcile_harbor_robot(kube, instance: dict[str, Any], client: HarborClient)
     labels = {"credentials.re8ch.com/provider": "harbor", "credentials.re8ch.com/tenant": tenant,
               "credentials.re8ch.com/project": project, "credentials.re8ch.com/type": "robot",
               "credentials.re8ch.com/instance-uid": meta["uid"], "credentials.re8ch.com/plan": plan}
-    if existing:
-        kube.patch("secrets", secret_name, {"metadata": {"labels": labels}, "stringData": material},
-                   "credential-broker", "api/v1")
-    else:
-        kube.create("secrets", {"apiVersion": "v1", "kind": "Secret",
-                                "metadata": {"name": secret_name, "namespace": "credential-broker", "labels": labels},
-                                "type": "Opaque", "stringData": material}, "credential-broker", "api/v1")
+    try:
+        client.probe_robot_credential(material["username"], material["password"], project)
+        if existing:
+            kube.patch("secrets", secret_name, {"metadata": {"labels": labels}, "stringData": material},
+                       "credential-broker", "api/v1")
+        else:
+            kube.create("secrets", {"apiVersion": "v1", "kind": "Secret",
+                                    "metadata": {"name": secret_name, "namespace": "credential-broker", "labels": labels},
+                                    "type": "Opaque", "stringData": material}, "credential-broker", "api/v1")
+    except Exception:
+        client.disable_robot(robot_id, True)
+        raise
     if old_id and old_id != robot_id:
         client.disable_robot(old_id, True)
     return {"project": project, "robotCredentialRef": reference, "robotId": robot_id,
-            "quotaGiB": quota, "credentialMaterialReturned": False}
+            "quotaGiB": quota, "credentialVerified": True,
+            "credentialMaterialReturned": False}
 
 
 def revoke_harbor(kube, instance: dict[str, Any], client: HarborClient) -> list[int]:
