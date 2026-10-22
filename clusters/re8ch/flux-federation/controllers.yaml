@@ -4701,6 +4701,7 @@ rules:
   - gateways
   - httproutes
   - referencegrants
+  - tcproutes
   verbs:
   - get
   - list
@@ -6410,3 +6411,44 @@ subjects:
 - kind: ServiceAccount
   name: helm-controller
   namespace: flux-observability-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: flux-networking-referencegrants
+  namespace: default
+  labels:
+    gitops.re8ch.com/domain: networking
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - referencegrants
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: flux-networking-referencegrants
+  namespace: default
+  labels:
+    gitops.re8ch.com/domain: networking
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: flux-networking-referencegrants
+subjects:
+- kind: ServiceAccount
+  name: kustomize-controller
+  namespace: flux-network-system
+- kind: ServiceAccount
+  name: helm-controller
+  namespace: flux-network-system
+---
