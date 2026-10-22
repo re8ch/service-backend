@@ -68,7 +68,12 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.173"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     assert "--concurrent=4" in pod["containers"][0]["args"]
-    assert "tolerations" not in pod
+    assert pod["tolerations"] == [{
+        "key": "storage.re8ch.com/coordinator",
+        "operator": "Equal",
+        "value": "true",
+        "effect": "NoSchedule",
+    }]
 
 
 def test_source_controller_uses_kl_r640_scheduler_failover():
