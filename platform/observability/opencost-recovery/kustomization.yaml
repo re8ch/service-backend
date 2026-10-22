@@ -4,6 +4,7 @@ resources:
   - runtime.yaml
   - scrapes.yaml
   - fair-value.yaml
+  - alerts.yaml
 configMapGenerator:
   - name: re8ch-fair-value-controller-code
     namespace: observability-system

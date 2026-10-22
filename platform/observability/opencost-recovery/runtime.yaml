@@ -8,7 +8,7 @@ metadata:
     observability.re8ch.com/component: opencost-metrics
 spec:
   retentionPeriod: "30d"
-  nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+  nodeSelector: {kubernetes.io/hostname: r640}
   storage:
     accessModes: [ReadWriteOnce]
     storageClassName: local-path
@@ -40,12 +40,15 @@ spec:
     promscrape.streamParse: "true"
     promscrape.maxScrapeSize: 64MB
     remoteWrite.maxDiskUsagePerURL: 10GB
+  # Keep the scraper with its VMSingle on the declared R640 observability
+  # authority. The previous zan/suxunji-only affinity left VMAgent Pending,
+  # so OpenCost saw an empty Prometheus and crash-looped before opening 9003.
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [zan, suxunji]}
+              - {key: kubernetes.io/hostname, operator: In, values: [r640]}
   resources:
     requests: {cpu: 500m, memory: 1Gi}
     limits: {cpu: "2", memory: 2Gi}
