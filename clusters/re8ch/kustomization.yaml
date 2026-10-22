@@ -267,6 +267,10 @@ patches:
                 operator: In
                 values: [restricted-node-296f36f2fb]
     - op: add
+      path: /spec/template/spec/tolerations
+      value:
+      - {key: storage.re8ch.com/coordinator, operator: Equal, value: "true", effect: NoSchedule}
+    - op: add
       path: /spec/template/spec/containers/0/args/-
       # Bound cross-region Kubernetes API pressure so reconciliation does not
       # amplify an etcd/control-plane recovery event.
