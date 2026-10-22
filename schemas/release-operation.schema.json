@@ -9,7 +9,7 @@
     "apiVersion": {"const": "delivery.re8ch.com/release-operation/v1alpha1"},
     "operationId": {"type": "string", "format": "uuid"},
     "sequence": {"type": "integer", "minimum": 1},
-    "releaseId": {"type": "string", "minLength": 1},
+    "releaseId": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63},
     "target": {"type": "string", "minLength": 1},
     "contractDigest": {"$ref": "#/$defs/digest"},
     "bundle": {
@@ -24,13 +24,15 @@
     "inventoryDigest": {"$ref": "#/$defs/digest"},
     "previousApprovedDigest": {"$ref": "#/$defs/digest"},
     "github": {
-      "type": "object", "additionalProperties": false, "required": ["repository", "workflow", "commit", "runId", "environment"],
+      "type": "object", "additionalProperties": false, "required": ["repository", "workflow", "ref", "commit", "runId", "environment", "audience"],
       "properties": {
         "repository": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
         "workflow": {"type": "string", "minLength": 1},
+        "ref": {"type": "string", "pattern": "^refs/heads/[A-Za-z0-9._/-]+$"},
         "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
         "runId": {"type": "string", "pattern": "^[0-9]+$"},
-        "environment": {"type": "string", "minLength": 1}
+        "environment": {"type": "string", "minLength": 1},
+        "audience": {"type": "string", "format": "uri"}
       }
     },
     "issuedAt": {"type": "string", "format": "date-time"},
