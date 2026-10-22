@@ -1705,6 +1705,9 @@ spec:
           readOnly: true
         - mountPath: /var/lib/re8ch-ai-operations
           name: ssh-known-hosts
+        - mountPath: /etc/re8ch-platform/infrastructure
+          name: infrastructure-contracts
+          readOnly: true
       imagePullSecrets:
       - name: harbor-registry-pull
       securityContext:
@@ -1726,11 +1729,17 @@ spec:
           - key: kubeconfig-re8ch.yaml
             path: kubeconfig
           secretName: cloud-platform-runtime
+      - name: infrastructure-contracts
+        secret:
+          items:
+          - key: compat-nodes.yaml
+            path: compat-nodes.yaml
+          secretName: infrastructure-contracts
       - name: ssh-projected
         projected:
           defaultMode: 288
           sources:
-          - configMap:
+          - secret:
               items:
               - key: ssh-config
                 path: ssh-config
@@ -2124,7 +2133,7 @@ spec:
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
 metadata:
-  name: restricted-node-1eb0570f74
+  name: a1-wsl-zt
 spec:
   aliases:
   - a1-wsl
@@ -2151,7 +2160,7 @@ spec:
     network: a1-local-uplink
     power: a1-workstation
     site: cn-hunan-a1
-  nodeName: restricted-node-1eb0570f74
+  nodeName: a1-wsl-zt
   reliability:
     class: variable
     disruptionRisk: 45
@@ -2202,7 +2211,7 @@ spec:
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
 metadata:
-  name: restricted-node-296f36f2fb
+  name: b1-wsl-zt
 spec:
   aliases:
   - b1-wsl
@@ -2229,7 +2238,7 @@ spec:
     network: b1-local-uplink
     power: b1-workstation
     site: cn-hunan-b1
-  nodeName: restricted-node-296f36f2fb
+  nodeName: b1-wsl-zt
   reliability:
     class: variable
     disruptionRisk: 45
@@ -2356,7 +2365,7 @@ spec:
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
 metadata:
-  name: restricted-node-abb3f27a69
+  name: mubao-wsl
 spec:
   background:
     account: local-mubao
@@ -2376,7 +2385,7 @@ spec:
     network: mubao-local-uplink
     power: mubao-workstation
     site: cn-hunan-mubao
-  nodeName: restricted-node-abb3f27a69
+  nodeName: mubao-wsl
   reliability:
     class: variable
     disruptionRisk: 45
@@ -2592,7 +2601,7 @@ spec:
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile
 metadata:
-  name: restricted-node-6dc3f140f9
+  name: r640
 spec:
   background:
     account: r640-idc
@@ -2620,11 +2629,11 @@ spec:
     - ceph-client
     - object-client
   failureDomains:
-    host: restricted-node-6dc3f140f9
+    host: r640
     network: r640-dedicated-line
     power: r640-mains
     site: cn-hunan-r640
-  nodeName: restricted-node-6dc3f140f9
+  nodeName: r640
   reliability:
     class: anchor
     disruptionRisk: 15

@@ -258,7 +258,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    inventory = Inventory([ROOT / "inventory/nodes.yaml", ROOT / "inventory/devices.yaml", ROOT / "inventory/cloud-providers.yaml"])
+    confidential_nodes = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-platform/infrastructure/compat-nodes.yaml"))
+    inventory = Inventory([confidential_nodes, ROOT / "inventory/devices.yaml", ROOT / "inventory/cloud-providers.yaml"])
     service = CloudPlatform(inventory, OperationRunner(), kubeconfig=os.getenv("KUBECONFIG", "/etc/re8ch-platform/kubeconfig"), ssh_config=os.getenv("SSH_CONFIG", "/etc/re8ch-platform/ssh_config"))
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.service = service

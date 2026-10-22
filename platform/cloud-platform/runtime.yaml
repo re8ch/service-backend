@@ -46,10 +46,12 @@ spec:
             - {name: ssh-projected, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
             - {name: ssh-projected, mountPath: /etc/re8ch-ai-operations, readOnly: true}
             - {name: ssh-known-hosts, mountPath: /var/lib/re8ch-ai-operations}
+            - {name: infrastructure-contracts, mountPath: /etc/re8ch-platform/infrastructure, readOnly: true}
       volumes:
         - {name: ssh-known-hosts, emptyDir: {medium: Memory, sizeLimit: 1Mi}}
         - {name: http-acceptance-tmp, emptyDir: {medium: Memory, sizeLimit: 16Mi}}
         - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}
+        - {name: infrastructure-contracts, secret: {secretName: infrastructure-contracts, items: [{key: compat-nodes.yaml, path: compat-nodes.yaml}]}}
         # A new name is required when migrating the live volume from Secret to
         # Projected; Kubernetes union volume sources cannot be changed in-place
         # by server-side apply without briefly producing an invalid object.
@@ -57,7 +59,7 @@ spec:
           projected:
             defaultMode: 288
             sources:
-              - configMap: {name: ai-operations-ssh-config, items: [{key: ssh-config, path: ssh-config}]}
+              - secret: {name: ai-operations-ssh-config, items: [{key: ssh-config, path: ssh-config}]}
               - secret: {name: cloud-platform-runtime, items: [{key: id_ed25519, path: id_ed25519}]}
 ---
 apiVersion: v1

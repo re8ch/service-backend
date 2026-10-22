@@ -32,9 +32,9 @@ spec:
   chartRef:
     kind: OCIRepository
     name: advanced-fabric
-  # Nodes, capacity and region are projected from inventory/nodes.yaml.
+  # Confidential NodeContract projection decrypted by Flux in-cluster.
   valuesFrom:
-    - kind: ConfigMap
+    - kind: Secret
       name: cluster-node-inventory
       valuesKey: advanced-fabric-values.yaml
   install:
@@ -109,19 +109,19 @@ spec:
               # API endpoint until the guarded control-plane VIP is healthy.
               - op: add
                 path: /spec/template/spec/containers/2/env/-
-                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.173"}
+                value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
               - op: add
                 path: /spec/template/spec/containers/2/env/-
                 value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
               - op: add
                 path: /spec/template/spec/containers/3/env/-
-                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.173"}
+                value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
               - op: add
                 path: /spec/template/spec/containers/3/env/-
                 value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
               - op: add
                 path: /spec/template/spec/containers/4/env/-
-                value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.173"}
+                value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
               - op: add
                 path: /spec/template/spec/containers/4/env/-
                 value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
@@ -161,131 +161,131 @@ spec:
       observeDays: 7
       emergencyDisable: false
       timezone: Asia/Shanghai
-      nativeRoutingCIDR: 192.0.2.224/16
-      acceleratedCIDR: 192.0.2.106/24
-      serviceCIDR: 192.0.2.215/24
+      nativeRoutingCIDR: 10.42.0.0/16
+      acceleratedCIDR: 10.250.0.0/24
+      serviceCIDR: 10.251.0.0/24
       controlPlaneApi:
         enabled: true
-        vip: 192.0.2.220/32
+        vip: 10.250.0.1/32
         port: 6443
         mode: healthy-ecmp
-        eligibleNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74]
-        guardedNodes: [restricted-node-6dc3f140f9, restricted-node-1eb0570f74]
+        eligibleNodes: [r640, a1-wsl-zt]
+        guardedNodes: [r640, a1-wsl-zt]
         nodeOperations:
-          - name: restricted-node-6dc3f140f9
+          - name: r640
             localAsn: 4200000128
             vipInterface: lo
             frrExportPrefixLists: [POD-FABRIC-SELF]
             frrImportPrefixLists: [SELF]
             frrNeighborPolicies:
-              - {neighbor: 192.0.2.208, maximumPrefixes: 8}
+              - {neighbor: 172.31.92.50, maximumPrefixes: 8}
             frrPrefixEntries:
-              - {list: POD-FABRIC-SELF, sequence: 30, prefix: 192.0.2.208/32}
-            frrNetworks: [192.0.2.208/32]
+              - {list: POD-FABRIC-SELF, sequence: 30, prefix: 172.31.92.50/32}
+            frrNetworks: [172.31.92.50/32]
             forwardRules:
-              - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 192.0.2.208/32, destination: 192.0.2.220/32, protocol: tcp, port: 6443}
+              - {inInterface: wg-public-mesh, outInterface: wg-pt-a1, source: 172.31.92.50/32, destination: 10.250.0.1/32, protocol: tcp, port: 6443}
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.205, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
-              - {source: 192.0.2.205, destination: 192.0.2.106/24}
+              - {source: 10.250.0.128, destination: 10.250.0.0/24, protocol: tcp, port: 2380}
+              - {source: 10.250.0.128, destination: 10.250.0.0/24}
             fallbackRoutes:
-              - {destination: 192.0.2.18/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
-              - {destination: 192.0.2.208/32, via: 192.0.2.131, dev: eno2np1, src: 192.0.2.183, metric: 500}
-          - name: restricted-node-1eb0570f74
+              - {destination: 10.181.22.147/32, via: 192.168.88.1, dev: eno2np1, src: 10.181.22.128, metric: 500}
+              - {destination: 10.181.22.125/32, via: 192.168.88.1, dev: eno2np1, src: 10.181.22.128, metric: 500}
+          - name: a1-wsl-zt
             localAsn: 4200010147
             vipInterface: lo
             # Keep Raft and kube-apiserver flows on the deterministic main
             # route before the broader accelerated-CIDR ECMP policy.
             routingPolicyRules:
-              - {priority: 11520, destination: 192.0.2.106/24, protocol: tcp, destinationPort: 2379-2380, table: main}
-              - {priority: 11521, destination: 192.0.2.106/24, protocol: tcp, destinationPort: "6443", table: main}
+              - {priority: 11520, destination: 10.250.0.0/24, protocol: tcp, destinationPort: 2379-2380, table: main}
+              - {priority: 11521, destination: 10.250.0.0/24, protocol: tcp, destinationPort: "6443", table: main}
             frrExportPrefixLists: [POD-FABRIC-OUT]
             wireguardInterfaces: []
             frrPrefixEntries:
-              - {list: POD-FABRIC-OUT, sequence: 500, prefix: 192.0.2.208/32}
+              - {list: POD-FABRIC-OUT, sequence: 500, prefix: 172.31.92.50/32}
             wireguardPeerPolicies:
               - interface: wg-pt-a1
                 peer: pEho3VmmtSBsMbUglwD3/NDi8Vw2sFvRVEvToqWypx8=
-                allowedPrefixes: [192.0.2.208/32]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+                allowedPrefixes: [172.31.92.50/32]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             # Preserve 10.42/16 pod sources across the A/B native-routing path
             # so Cilium can enforce the originating workload identity.
             sourceIdentityRules:
-              - {source: 192.0.2.173, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
-              - {source: 192.0.2.173, destination: 192.0.2.106/24}
-          - name: restricted-node-296f36f2fb
+              - {source: 10.250.0.147, destination: 10.250.0.0/24, protocol: tcp, port: 2380}
+              - {source: 10.250.0.147, destination: 10.250.0.0/24}
+          - name: b1-wsl-zt
             localAsn: 4200010125
             vipInterface: lo
             # Symmetric with A1: both large-memory control-plane nodes bypass
             # dynamic ECMP for long-lived membership and API connections.
             routingPolicyRules:
-              - {priority: 11520, destination: 192.0.2.106/24, protocol: tcp, destinationPort: 2379-2380, table: main}
-              - {priority: 11521, destination: 192.0.2.106/24, protocol: tcp, destinationPort: "6443", table: main}
+              - {priority: 11520, destination: 10.250.0.0/24, protocol: tcp, destinationPort: 2379-2380, table: main}
+              - {priority: 11521, destination: 10.250.0.0/24, protocol: tcp, destinationPort: "6443", table: main}
             frrExportPrefixLists: [POD-FABRIC-OUT]
             frrImportPrefixLists: [POD-FABRIC-OUT]
             frrImportPrefixSequence: 305
             frrPrefixEntries:
-              - {list: POD-FABRIC-OUT, sequence: 30, prefix: 192.0.2.18/24}
+              - {list: POD-FABRIC-OUT, sequence: 30, prefix: 10.42.6.0/24}
             wireguardInterfaces: [wg-wsl-lan]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             # Preserve 10.42/16 pod sources across the A/B native-routing path
             # so Cilium can enforce the originating workload identity.
             sourceIdentityRules:
-              - {source: 192.0.2.213, destination: 192.0.2.106/24, protocol: tcp, port: 2380}
-              - {source: 192.0.2.213, destination: 192.0.2.106/24}
+              - {source: 10.250.0.125, destination: 10.250.0.0/24, protocol: tcp, port: 2380}
+              - {source: 10.250.0.125, destination: 10.250.0.0/24}
           # Non-origin consumers never announce the API VIP. Their guarded=false
           # transactions only authorize cryptokey routing for the ECMP prefix.
           - name: overseas-la
             wireguardInterfaces: [wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             wireguardPeerPolicies:
               - interface: wg-pt-b1
                 peer: ETC/pX4zvVrz+vBXlPuM0DUwHP4E+AdrMl9Xd5tv/XY=
-                allowedPrefixes: [192.0.2.20/32, 192.0.2.208/32, 192.0.2.224/16, 192.0.2.106/24, 192.0.2.215/24]
+                allowedPrefixes: [172.31.94.125/32, 10.181.22.125/32, 10.42.0.0/16, 10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.29, destination: 192.0.2.106/24}
+              - {source: 10.250.0.104, destination: 10.250.0.0/24}
               # PublicEdge ingress keeps the LA node identity while AdvFab
               # carries traffic to the shared Gateway and final Pod paths.
-              - {source: 192.0.2.29, destination: 192.0.2.215/24}
+              - {source: 10.250.0.104, destination: 10.251.0.0/24}
           - name: overseas-kl
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.220/32]
+            wireguardAllowedPrefixes: [10.250.0.1/32]
           - name: vm-20-12-ubuntu
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.114, destination: 192.0.2.106/24}
+              - {source: 10.250.0.73, destination: 10.250.0.0/24}
           - name: suxunji
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.145, destination: 192.0.2.106/24}
+              - {source: 10.250.0.77, destination: 10.250.0.0/24}
           - name: muaya-lightweight
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.24, destination: 192.0.2.106/24}
+              - {source: 10.250.0.79, destination: 10.250.0.0/24}
           - name: muaya-ecs
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.46, destination: 192.0.2.106/24}
+              - {source: 10.250.0.95, destination: 10.250.0.0/24}
           - name: zan
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.63, destination: 192.0.2.106/24}
+              - {source: 10.250.0.16, destination: 10.250.0.0/24}
           - name: domain-ex
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.31, destination: 192.0.2.106/24}
+              - {source: 10.250.0.186, destination: 10.250.0.0/24}
           - name: amdwsl-zt
             wireguardInterfaces: [wg-pt-a1, wg-pt-b1]
-            wireguardAllowedPrefixes: [192.0.2.106/24, 192.0.2.215/24]
+            wireguardAllowedPrefixes: [10.250.0.0/24, 10.251.0.0/24]
             sourceIdentityRules:
-              - {source: 192.0.2.93, destination: 192.0.2.106/24}
+              - {source: 10.250.0.38, destination: 10.250.0.0/24}
         primaryTransport: wireguard
         fallbackTransport: zerotier
         healthCheck:
@@ -299,11 +299,11 @@ spec:
       weightedEcmp:
         enabled: true
       controller:
-        # The Lease fences status writes while A1 and the restricted-node-6dc3f140f9 API relay provide
+        # The Lease fences status writes while A1 and the R640 API relay provide
         # separate runtime domains for the NetworkPathAssessment freshness clock.
         replicas: 2
         pdbMinAvailable: 1
-        # A1 runs kube-apiserver and restricted-node-6dc3f140f9 exposes the guarded HAProxy relay on
+        # A1 runs kube-apiserver and R640 exposes the guarded HAProxy relay on
         # the same local port, so both replicas retain a node-local API path.
         useNodeLocalAPI: true
         nodeLocalAPIPort: 6443
@@ -316,7 +316,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]}
+                    - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, r640]}
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
@@ -336,7 +336,7 @@ spec:
             requiredDuringSchedulingIgnoredDuringExecution:
               nodeSelectorTerms:
                 - matchExpressions:
-                    - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb]}
+                    - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt, b1-wsl-zt]}
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
@@ -344,7 +344,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
         className: advanced-fabric
         gateway: {name: re8ch-gateway-canary, namespace: kube-system, sectionName: http}
-        publicAddress: 192.0.2.79
+        publicAddress: 223.159.210.222
         reconcileIntervalSeconds: 15
         adoption:
           enabled: true
@@ -354,20 +354,20 @@ spec:
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         # DNS is a recovery-plane service, not an ordinary balanced workload.
-        # Keep one replica on each control plane. Retain restricted-node-6dc3f140f9's local DNS
+        # Keep one replica on each control plane. Retain R640's local DNS
         # endpoint for worker traffic while removing its API authority.
         # Hard anti-affinity prevents replica co-location.
         replicas: 3
         pdbMinAvailable: 2
-        # Run the blocking Helm test beside the restricted-node-6dc3f140f9 DNS replica. A control-plane
+        # Run the blocking Helm test beside the R640 DNS replica. A control-plane
         # Service-path fault must remain observable, but must not leave the
         # already-upgraded fabric release permanently Stalled and block all
         # dependent public-edge reconciliation.
-        testNodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+        testNodeSelector: {kubernetes.io/hostname: r640}
         # Bootstrap by IP, outside both cluster DNS and the Service VIP path.
         kubernetesApiEndpoints:
-          - https://192.0.2.173:6443
-          - https://192.0.2.213:6443
+          - https://10.250.0.147:6443
+          - https://10.250.0.125:6443
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
@@ -375,7 +375,7 @@ spec:
                 - matchExpressions:
                     - key: kubernetes.io/hostname
                       operator: In
-                      values: [restricted-node-1eb0570f74, restricted-node-296f36f2fb, restricted-node-6dc3f140f9]
+                      values: [a1-wsl-zt, b1-wsl-zt, r640]
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
@@ -383,11 +383,11 @@ spec:
                 topologyKey: kubernetes.io/hostname
         clusterDomain: cluster.local
         ttlSeconds: 30
-        upstreams: [192.0.2.131, 192.0.2.148, 1.1.1.1]
+        upstreams: [223.5.5.5, 119.29.29.29, 1.1.1.1]
         conditionalForwarders:
-          ynzs.com: [192.0.2.131, 192.0.2.121]
-          zt.re8ch.com: [192.0.2.67, 192.0.2.79, 192.0.2.203]
-        service: {name: advanced-fabric-dns, clusterIP: 192.0.2.42}
+          ynzs.com: [223.5.5.5, 114.114.114.114]
+          zt.re8ch.com: [10.181.22.73, 10.181.22.16, 10.181.22.95]
+        service: {name: advanced-fabric-dns, clusterIP: 10.43.65.40}
         doh: {serviceName: advanced-fabric-doh, caSecretName: advanced-fabric-doh-tls}
         migration: {phase: active}
       componentAPI:

@@ -14,12 +14,19 @@ shared_paths:
   - operations/ci/**
   - operations/workspace-controller/**
   - schemas/**
+  - contracts/infrastructure/**
+  - operations/infrastructure-contract/**
+  - operations/github-maintenance/**
+  - clusters/re8ch/secrets/infrastructure-contracts.sops.yaml
+  - clusters/re8ch/secrets/cluster-node-inventory.sops.yaml
+  - clusters/re8ch/secrets/ai-operations-inventory.sops.yaml
   - tests/validate_schemas.py
   - clusters/re8ch/kustomization.yaml
   - clusters/re8ch/domain-sources/kustomization.yaml
   - clusters/re8ch/flux-system/**
 
 always_tests:
+  - tests/test_infrastructure_contracts.py
   - tests/test_git_k8s_manifests.py
   - tests/test_git_governance_gate.py
   - tests/test_incremental_ci.py

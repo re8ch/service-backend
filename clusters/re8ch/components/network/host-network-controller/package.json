@@ -1,7 +1,7 @@
 {
   "node": "overseas-flk",
   "scope": "public-mesh-peers",
-  "revision": "38c7f407aae44b4e1faf0e1c29ef5dddeac2680adb3f5888c1e62bdea6b05d71",
+  "revision": "4bf4fb03d8769b78db8939df1121d28cf170a13d00ae74a92d8dcab029ffa465",
   "timeout": 180,
   "wireguard": {
     "interface": "wg-public-mesh",
@@ -10,59 +10,59 @@
       {
         "publicKey": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
         "allowedIPs": [
-          "192.0.2.145/32",
-          "192.0.2.205/32",
-          "192.0.2.18/24"
+          "172.31.92.128/32",
+          "10.250.0.128/32",
+          "10.42.6.0/24"
         ],
-        "endpoint": "192.0.2.79:51888",
+        "endpoint": "223.159.210.222:51888",
         "keepalive": 15
       },
       {
         "publicKey": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs=",
         "allowedIPs": [
-          "192.0.2.81/32",
-          "192.0.2.59/32",
-          "192.0.2.184/24"
+          "172.31.92.220/32",
+          "10.250.0.220/32",
+          "10.42.3.0/24"
         ],
-        "endpoint": "192.0.2.38:51888",
+        "endpoint": "179.253.231.159:51888",
         "keepalive": 15
       }
     ]
   },
   "prefixLists": {
     "FROM-128": [
-      "ip prefix-list FROM-128 seq 10 permit 192.0.2.205/32",
-      "ip prefix-list FROM-128 seq 20 permit 192.0.2.18/24"
+      "ip prefix-list FROM-128 seq 10 permit 10.250.0.128/32",
+      "ip prefix-list FROM-128 seq 20 permit 10.42.6.0/24"
     ],
     "FROM-220": [
-      "ip prefix-list FROM-220 seq 10 permit 192.0.2.59/32"
+      "ip prefix-list FROM-220 seq 10 permit 10.250.0.220/32"
     ]
   },
   "health": {
     "tcpTargets": [
       {
-        "ip": "192.0.2.220",
+        "ip": "10.250.0.1",
         "port": 6443
       },
       {
-        "ip": "192.0.2.173",
+        "ip": "10.250.0.147",
         "port": 6443
       },
       {
-        "ip": "192.0.2.213",
+        "ip": "10.250.0.125",
         "port": 6443
       }
     ],
-    "egressProxy": "http://192.0.2.205:17891",
+    "egressProxy": "http://10.250.0.128:17891",
     "egressURL": "https://www.gstatic.com/generate_204",
-    "sourceIdentity": "192.0.2.109",
+    "sourceIdentity": "10.250.0.105",
     "bgpPeers": [
-      "192.0.2.145",
-      "192.0.2.81"
+      "172.31.92.128",
+      "172.31.92.220"
     ],
     "bfdPeers": [
-      "192.0.2.145",
-      "192.0.2.81"
+      "172.31.92.128",
+      "172.31.92.220"
     ],
     "checks": [
       "/usr/local/lib/re8ch-host-network/checks/fabric"

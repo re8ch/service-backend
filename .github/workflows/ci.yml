@@ -84,6 +84,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
       - run: python operations/network/fabric/fabric_model.py check
+      - run: python operations/infrastructure-contract/compiler.py verify-encrypted
       - if: needs.impact.outputs.run == 'true'
         run: |
           python tests/validate_schemas.py

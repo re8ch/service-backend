@@ -5,3 +5,9 @@ __pycache__/
 *.pyc
 .env
 *.dec.yaml
+# Confidential infrastructure contracts and compiler scratch output.
+contracts/infrastructure/*.yaml
+contracts/infrastructure/trust/
+.private-infrastructure-output/
+clusters/re8ch/components/ai-operations/nodes.json
+clusters/re8ch/components/ai-operations/ssh_config.template

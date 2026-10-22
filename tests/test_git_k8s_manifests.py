@@ -656,9 +656,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
     assert values["discovery"]["minimumCapacityMbps"] == 100
-    assert values["discovery"]["clusterInventoryConfigMap"] == {
-        "namespace": "flux-system", "name": "cluster-node-inventory", "key": "nodes.json",
-    }
+    assert "clusterInventoryConfigMap" not in values["discovery"]
     assert "nodeInventory" not in values["discovery"]
     assert "capacityInventory" not in values["discovery"]
     assert "dependsOn" not in release["spec"]
@@ -724,14 +722,12 @@ def test_public_edge_owns_capacity_inventory_without_creating_nodes():
         if item["kind"] == "HelmRelease"
     )
     inventory = next(
-        item for item in documents(ROOT / "clusters/re8ch/components/cluster-inventory/configmap.yaml")
-        if item["kind"] == "ConfigMap"
+        item for item in documents(ROOT / "clusters/re8ch/secrets/cluster-node-inventory.sops.yaml")
+        if item["kind"] == "Secret"
     )
-    nodes = json.loads(inventory["data"]["nodes.json"])
-    assert nodes["overseas-la"] == {"capacityMbps": 1000, "region": "us-ca"}
-    assert nodes["restricted-node-6dc3f140f9"] == {"capacityMbps": 200, "region": "cn-hunan"}
-    assert nodes["vm-20-12-ubuntu"] == {"capacityMbps": 3, "region": "cn-guangzhou"}
-    assert not {"qwen-1", "qwen-2", "qwen-3"} & nodes.keys()
+    assert inventory["stringData"]["nodes.json"].startswith("ENC[")
+    assert inventory["stringData"]["advanced-fabric-values.yaml"].startswith("ENC[")
+    assert "sops" in inventory
     assert "dependsOn" not in release["spec"]
     fabric = next(
         item for item in documents(ROOT / "platform/advanced-fabric/release.yaml")
@@ -739,16 +735,11 @@ def test_public_edge_owns_capacity_inventory_without_creating_nodes():
     )
     assert "nodes" not in fabric["spec"]["values"]["advancedFabric"]
     assert fabric["spec"]["valuesFrom"] == [{
-        "kind": "ConfigMap", "name": "cluster-node-inventory", "valuesKey": "advanced-fabric-values.yaml",
+        "kind": "Secret", "name": "cluster-node-inventory", "valuesKey": "advanced-fabric-values.yaml",
     }]
-    fabric_nodes = yaml.safe_load(inventory["data"]["advanced-fabric-values.yaml"])["advancedFabric"]["nodes"]
-    assert {item["name"]: (item["uplinkMbps"], item["region"]) for item in fabric_nodes} == {
-        name: (item["capacityMbps"], item["region"]) for name, item in nodes.items()
-    }
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "../../../components/cluster-inventory/configmap.yaml" in domain_resources("networking")
-    renderer = runpy.run_path(str(ROOT / "operations/network/scripts/render-cluster-node-inventory.py"))
-    assert (ROOT / "clusters/re8ch/components/cluster-inventory/configmap.yaml").read_text() == renderer["render"]()
+    assert "../../../secrets/cluster-node-inventory.sops.yaml" in domain_resources("networking")
+    assert not (ROOT / "clusters/re8ch/components/cluster-inventory/configmap.yaml").exists()
 
     release = next(
         item

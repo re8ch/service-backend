@@ -10,7 +10,10 @@ def test_all_control_planes_share_supabase_authentication():
     auth = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())
     assert auth['apiVersion'] == 'apiserver.config.k8s.io/v1'
     assert auth['kind'] == 'AuthenticationConfiguration'
-    assert [item['issuer']['url'] for item in auth['jwt']] == ['https://db-rw.re8ch.com/auth/v1']
+    assert [item['issuer']['url'] for item in auth['jwt']] == [
+        'https://db-rw.re8ch.com/auth/v1',
+        'https://token.actions.githubusercontent.com',
+    ]
     headlamp_supabase = auth['jwt'][0]
     assert headlamp_supabase['issuer']['audiences'] == ['authenticated']
     assert headlamp_supabase['claimValidationRules'] == [{
@@ -20,6 +23,18 @@ def test_all_control_planes_share_supabase_authentication():
     assert headlamp_supabase['claimMappings'] == {
         'username': {'claim': 'email', 'prefix': 'oidc:'}
     }
+    github = auth['jwt'][1]
+    assert github['issuer']['audiences'] == ['https://kube-api.re8ch.com/observer']
+    expressions = {item['expression'] for item in github['claimValidationRules']}
+    assert {
+        "claims.repository_id == '1367237854'",
+        "claims.repository_owner_id == '283958313'",
+        "claims.ref == 'refs/heads/main'",
+        "claims.environment == 'cluster-observation'",
+        "claims.runner_environment == 'github-hosted'",
+    } <= expressions
+    assert github['claimMappings']['username']['expression'] == "'github-actions:node-observer:' + claims.run_id"
+    assert github['claimMappings']['groups']['expression'] == "['re8ch:credential-contract:node-observer']"
     configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]
     configs.append(ROOT.parents[3] / 'operations/network/manifests/network/private-transit/mubao-k3s-config.yaml')
     for path in configs:
