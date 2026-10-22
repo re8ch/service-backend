@@ -22,7 +22,7 @@ def test_production_collector_uses_stable_cached_runtime():
     assert values["image"]["tag"] == (
         "3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d"
     )
-    assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
     re8ch = next(item for item in values["tenantPlatform"]["tenants"] if item["name"] == "re8ch")
     grants = {item["consumableRef"] for item in re8ch["grants"]}
     assert {"ai.model-gateway.v1", "sandbox.runtime.v1"} <= grants
@@ -85,7 +85,11 @@ def test_default_meters_cover_infrastructure_ai_gateway_and_sandbox():
     assert values["vmServiceScrape"]["enabled"] is False
     domains = {item["domain"] for family in values["meters"].values() for item in family}
     names = {item["name"] for family in values["meters"].values() for item in family}
-    assert domains == {"compute", "ceph", "pigsty", "networks", "ai-gateway", "sandbox"}
+    assert domains == {"compute", "ceph", "pigsty", "networks", "ai-gateway", "sandbox", "harbor", "observability"}
+    assert {"artifact_storage", "pull_bytes", "push_bytes", "scans", "queries", "samples", "logs", "active_series", "retained_data"} <= names
+    assert {"tenant-workload-cpu-used", "tenant-workload-memory-used", "tenant-workload-ephemeral-storage-used", "tenant-network-ingress", "tenant-network-egress", "tenant-gpu-used", "ceph-volume-used"} <= names
+    capacity = [item for item in values["meters"]["occupancy"] if "request" in item["name"] or "limit" in item["name"] or item["name"] == "ceph-volume-capacity"]
+    assert capacity and all(item.get("billingEligible") is False for item in capacity)
     assert {"tenant-claim-cpu-request", "tenant-claim-memory-request", "tenant-claim-ephemeral-storage-request"} <= names
     assert {"tenant-workload-cpu-used", "tenant-workload-memory-used", "ceph-volume-requested", "ceph-volume-capacity", "ceph-volume-used"} <= names
     assert {"ceph-client-io", "pigsty-transactions", "hubble-network-flows", "hyperglass-route-branches"} <= names
@@ -105,7 +109,7 @@ def test_namespace_meter_uses_controller_ownership_and_excludes_individually_met
     allowlist = ksm["spec"]["values"]["metricLabelsAllowlist"]
     assert "namespaces=[tenancy.re8ch.com/tenant]" in allowlist
     assert any("birfucate.re8ch.com/metered" in item for item in allowlist if item.startswith("pods="))
-    meters = [item for item in values["meters"]["occupancy"] if item["name"].startswith("tenant-namespace-")]
+    meters = [item for item in values["meters"]["occupancy"] if item["name"] in {"tenant-namespace-cpu-request", "tenant-namespace-memory-request"}]
     assert {item["name"] for item in meters} == {"tenant-namespace-cpu-request", "tenant-namespace-memory-request"}
     assert all('kube_namespace_labels{label_tenancy_re8ch_com_tenant!=""}' in item["query"] for item in meters)
     assert all('unless on (exported_namespace, exported_pod) kube_pod_labels{label_birfucate_re8ch_com_metered="true"}' in item["query"] for item in meters)
@@ -194,6 +198,20 @@ def test_vectors_without_tenant_and_resource_are_dropped():
         {"metric": {"tenant": "qwen", "resource_ref": "service://qwen/x"}, "value": [0, "3"]},
     ]
     assert collector.vector(items, "tenant", "resource_ref") == {("qwen", "service://qwen/x"): 3}
+
+
+def test_attributed_vectors_count_drops_and_preserve_gpu_dimensions():
+    collector.METRICS.clear()
+    items = [
+        {"metric": {"tenant": "re8ch", "resource_ref": "service://re8ch/gpu", "gpu_model": "A100", "mig_profile": "1g.10gb"}, "value": [0, "0.5"]},
+        {"metric": {"resource_ref": "service://re8ch/missing"}, "value": [0, "1"]},
+        {"metric": {"tenant": "re8ch", "resource_ref": "service://re8ch/gpu", "gpu_model": "A100"}, "value": [0, "1"]},
+    ]
+    result = collector.attributed_vector(items, "tenant", "resource_ref", "gpu", ["gpu_model", "mig_profile"])
+    assert result == {("re8ch", "service://re8ch/gpu", (("gpu_model", "A100"), ("mig_profile", "1g.10gb"))): 0.5}
+    rendered = collector.render_metrics().decode()
+    assert 'birfucate_dropped_samples_total{meter="gpu",reason="missing_tenant"} 1.0' in rendered
+    assert 'birfucate_dropped_samples_total{meter="gpu",reason="missing_dimension"} 1.0' in rendered
 
 
 def test_showback_pricing_is_explicit_and_never_posts_accounting(tmp_path, monkeypatch):
