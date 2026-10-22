@@ -1200,6 +1200,8 @@ modules:
       digest: sha256:eefad0ffc16b1c50fdf1739a3ffe7c85204c42a9c6da7654e27ef6b67a65f7ef
     - codename: riptide-amethyst
       digest: sha256:233a759891a6367984d09ff514c64bf0ea923bc4a2e6c196b2cb37d2d61d6ec9
+    - codename: springtide-amethyst
+      digest: sha256:e4b54954185dd75e9404e09e0c52fae9fd2e9e89d7cf2289f69d12c880d3a0ae
   platform/hyperswitch:
     releases:
     - codename: anchor
