@@ -79,7 +79,7 @@ jobs:
           docker buildx build --platform linux/amd64 --target worker -f product/toolkit/Dockerfile --load -t studio-worker:acceptance product
           python operations/studio-toolkit/verify-worker-image.py --transfer transfer --config-digest "$(docker image inspect studio-worker:acceptance --format '{{.Id}}')"
           docker run --rm --network none -v "$PWD/product/tests:/app/tests:ro" studio-worker:acceptance python tests/toolkit-e2e.py --blender blender
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: studio-oci
           path: transfer

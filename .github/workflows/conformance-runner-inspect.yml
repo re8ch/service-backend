@@ -26,7 +26,7 @@ jobs:
             ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
             image --image-src remote --scanners vuln --severity HIGH,CRITICAL --format json \
             --output /out/runner.json "registry.re8ch.com/functions-shared/api-conformance-runner@$IMAGE_DIGEST"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           name: conformance-runner-scan

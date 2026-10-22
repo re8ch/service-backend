@@ -151,7 +151,7 @@ jobs:
           docker run --rm --volume "$PWD:/work:ro" --volume "$RUNNER_TEMP:/out" --workdir /work ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 fs --scanners vuln --format json --output /out/trivy-dependencies.json .
           python operations/ci/check_dependency_vulnerabilities.py --report "$RUNNER_TEMP/trivy-dependencies.json" --baseline operations/ci/dependency-vulnerability-baseline.json
       - if: always() && needs.impact.outputs.full == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with: {name: dependency-vulnerability-report, path: "${{ runner.temp }}/trivy-dependencies.json", if-no-files-found: error, retention-days: 14}
 
   supply-chain:

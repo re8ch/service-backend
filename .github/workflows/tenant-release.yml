@@ -98,7 +98,7 @@ jobs:
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tenant-release-finalized-${{ github.sha }}
           path: |
@@ -118,7 +118,7 @@ jobs:
       - run: ./operations/mcp-conformance/tenant-canary.sh
         env:
           TENANT_CANARY_REFRESH_TOKEN: ${{ secrets.TENANT_CANARY_REFRESH_TOKEN }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: tenant-canary-${{ github.sha }}
           path: |
