@@ -35,6 +35,11 @@ def api_object(endpoint: str) -> dict[str, Any]:
     return json.loads(gh("api", endpoint))
 
 
+def api_array(endpoint: str) -> list[dict[str, Any]]:
+    """Fetch one deliberately bounded page without following historical links."""
+    return json.loads(gh("api", endpoint))
+
+
 def severity_counts(alerts: Iterable[dict[str, Any]], path: tuple[str, ...]) -> Counter[str]:
     counts: Counter[str] = Counter()
     for alert in alerts:
@@ -81,10 +86,12 @@ def collect() -> dict[str, Any]:
         in {"failure", "cancelled", "timed_out", "action_required", "stale", "startup_failure"}
     ]
 
-    deployments = api_pages(f"repos/{REPO}/deployments?per_page=20")
+    deployments = api_array(f"repos/{REPO}/deployments?per_page=20")
     unhealthy_deployments: list[dict[str, Any]] = []
     for deployment in deployments:
-        statuses = api_pages(f"repos/{REPO}/deployments/{deployment['id']}/statuses?per_page=1")
+        statuses = api_array(
+            f"repos/{REPO}/deployments/{deployment['id']}/statuses?per_page=1"
+        )
         if statuses and statuses[0].get("state") not in {"success", "inactive"}:
             unhealthy_deployments.append(
                 {
