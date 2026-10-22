@@ -159,3 +159,33 @@ def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():
 def test_observer_rbac_is_in_the_main_flux_root():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/ops/github-actions-node-observer-rbac.yaml" in root["resources"]
+
+
+def test_release_executor_canary_is_exact_and_reserved_profiles_are_unbound():
+    path = ROOT / "clusters/re8ch/components/ops/github-actions-release-executor-rbac.yaml"
+    objects = [item for item in yaml.safe_load_all(path.read_text()) if item]
+    canary = next(item for item in objects if item["kind"] == "Role")
+    assert canary["metadata"]["namespace"] == "api-conformance-runners"
+    assert canary["rules"] == [{
+        "apiGroups": [""], "resources": ["configmaps"],
+        "resourceNames": [
+            "api-conformance-runner-projection-contract",
+            "re8ch-release-state-api-conformance-runner-projection",
+        ],
+        "verbs": ["get", "patch", "update"],
+    }]
+    binding = next(item for item in objects if item["kind"] == "RoleBinding")
+    assert binding["subjects"] == [{
+        "apiGroup": "rbac.authorization.k8s.io", "kind": "Group",
+        "name": "re8ch:release-executor:api-conformance",
+    }]
+    cluster_roles = [item for item in objects if item["kind"] == "ClusterRole"]
+    assert {item["metadata"]["name"] for item in cluster_roles} == {
+        "re8ch-release-executor-workload-reserved",
+        "re8ch-release-executor-network-policy-reserved",
+        "re8ch-release-executor-namespaced-rbac-reserved",
+    }
+    assert not any(item["kind"] == "ClusterRoleBinding" for item in objects)
+    serialized = json.dumps(objects)
+    for forbidden in ("secrets", "pods/log", "pods/exec", "serviceaccounts/token", "impersonate"):
+        assert forbidden not in serialized
