@@ -25,8 +25,10 @@ python operations/releases/unified_bundle.py \
   --output "$RUNNER_TEMP/release-bundle.tar.gz"
 ```
 
-The command prints the bundle digest and embedded manifest. Publication and
-signing must address that exact digest; a tag is never executable input.
+The command prints the payload digest and embedded manifest. Publication records
+that layer digest separately from the OCI manifest digest. Signing and execution
+address the immutable OCI manifest digest; the executor also hashes the fetched
+payload before parsing it. A tag is never executable input.
 
 `ssa_executor.py` is the single renderer-independent runtime boundary. It
 validates an expiring, sequenced operation; binds GitHub repository, workflow,

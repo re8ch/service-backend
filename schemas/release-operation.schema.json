@@ -13,10 +13,11 @@
     "target": {"type": "string", "minLength": 1},
     "contractDigest": {"$ref": "#/$defs/digest"},
     "bundle": {
-      "type": "object", "additionalProperties": false, "required": ["reference", "digest", "signer", "issuer"],
+      "type": "object", "additionalProperties": false, "required": ["reference", "digest", "payloadDigest", "signer", "issuer"],
       "properties": {
         "reference": {"type": "string", "pattern": "^oci://"},
         "digest": {"$ref": "#/$defs/digest"},
+        "payloadDigest": {"$ref": "#/$defs/digest"},
         "signer": {"type": "string", "minLength": 1},
         "issuer": {"type": "string", "minLength": 1}
       }
