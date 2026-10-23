@@ -69,14 +69,22 @@ spec:
        ((!has(object.spec.timeout) && !has(oldObject.spec.timeout)) ||
         (has(object.spec.timeout) && has(oldObject.spec.timeout) && object.spec.timeout == oldObject.spec.timeout)) &&
        object.spec.chart == oldObject.spec.chart &&
-       object.spec.releaseName == oldObject.spec.releaseName &&
-       object.spec.targetNamespace == oldObject.spec.targetNamespace &&
-       object.spec.storageNamespace == oldObject.spec.storageNamespace &&
-       object.spec.valuesFrom == oldObject.spec.valuesFrom &&
-       object.spec.dependsOn == oldObject.spec.dependsOn &&
-       object.spec.install == oldObject.spec.install &&
-       object.spec.upgrade == oldObject.spec.upgrade &&
-       object.spec.rollback == oldObject.spec.rollback)
+       ((!has(object.spec.releaseName) && !has(oldObject.spec.releaseName)) ||
+        (has(object.spec.releaseName) && has(oldObject.spec.releaseName) && object.spec.releaseName == oldObject.spec.releaseName)) &&
+       ((!has(object.spec.targetNamespace) && !has(oldObject.spec.targetNamespace)) ||
+        (has(object.spec.targetNamespace) && has(oldObject.spec.targetNamespace) && object.spec.targetNamespace == oldObject.spec.targetNamespace)) &&
+       ((!has(object.spec.storageNamespace) && !has(oldObject.spec.storageNamespace)) ||
+        (has(object.spec.storageNamespace) && has(oldObject.spec.storageNamespace) && object.spec.storageNamespace == oldObject.spec.storageNamespace)) &&
+       ((!has(object.spec.valuesFrom) && !has(oldObject.spec.valuesFrom)) ||
+        (has(object.spec.valuesFrom) && has(oldObject.spec.valuesFrom) && object.spec.valuesFrom == oldObject.spec.valuesFrom)) &&
+       ((!has(object.spec.dependsOn) && !has(oldObject.spec.dependsOn)) ||
+        (has(object.spec.dependsOn) && has(oldObject.spec.dependsOn) && object.spec.dependsOn == oldObject.spec.dependsOn)) &&
+       ((!has(object.spec.install) && !has(oldObject.spec.install)) ||
+        (has(object.spec.install) && has(oldObject.spec.install) && object.spec.install == oldObject.spec.install)) &&
+       ((!has(object.spec.upgrade) && !has(oldObject.spec.upgrade)) ||
+        (has(object.spec.upgrade) && has(oldObject.spec.upgrade) && object.spec.upgrade == oldObject.spec.upgrade)) &&
+       ((!has(object.spec.rollback) && !has(oldObject.spec.rollback)) ||
+        (has(object.spec.rollback) && has(oldObject.spec.rollback) && object.spec.rollback == oldObject.spec.rollback)))
     message: only reconcile annotations and spec.suspend are writable on compatibility projections
 ---
 apiVersion: admissionregistration.k8s.io/v1
