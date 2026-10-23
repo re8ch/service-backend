@@ -22,7 +22,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: controller
-        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:5c87f85f8a5864b92ebfc82edee6a7b206cdef516c9ccaeb053b977b5dbb144c
+        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:f46d7f099dc6c954875272f59b21d3065414e5609e89c14184c8f9f0e2d4c41d
         imagePullPolicy: IfNotPresent
         ports: [{name: http-prom, containerPort: 8080}, {name: healthz, containerPort: 8081}]
         readinessProbe: {httpGet: {path: /readyz, port: healthz}}
@@ -61,7 +61,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: dispatcher
-        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:5c87f85f8a5864b92ebfc82edee6a7b206cdef516c9ccaeb053b977b5dbb144c
+        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:f46d7f099dc6c954875272f59b21d3065414e5609e89c14184c8f9f0e2d4c41d
         env:
         - {name: MODE, value: dispatcher}
         - name: GITHUB_APP_ID
