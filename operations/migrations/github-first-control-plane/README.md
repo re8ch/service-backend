@@ -45,6 +45,8 @@ documents. They are designed to proceed together and converge on one executor:
 
 - [Wave 4: classify and safely transition HelmRelease ownership](tasks/wave-4-helmrelease-transition.md)
 - [Wave 5: build the unified immutable-bundle SSA executor](tasks/wave-5-unified-release-executor.md)
+- [Static release executor handoff and domain migration playbook](static-release-domain-handoff.md)
+- [Machine-readable autonomous/main-domain dispatch matrix](static-release-domain-dispatch.yaml)
 
 ```text
 GitHub Enterprise
