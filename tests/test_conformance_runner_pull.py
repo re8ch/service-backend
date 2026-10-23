@@ -29,9 +29,10 @@ def test_pull_projection_cannot_target_app_key_namespace():
     }
 
 
-def test_projection_waits_for_bootstrap_without_blocking_root():
+def test_executor_cutover_keeps_only_bootstrap_reconciler():
     docs = list(yaml.safe_load_all((BASE / "runner-reconciliation.yaml").read_text()))
-    assert docs[1]["spec"]["dependsOn"] == [{"name": docs[0]["metadata"]["name"]}]
+    assert len(docs) == 1
+    assert docs[0]["metadata"]["name"] == "api-conformance-runner-bootstrap"
     assert all(d["spec"]["wait"] is True and d["spec"]["prune"] is False for d in docs)
     root = yaml.safe_load((BASE / "kustomization.yaml").read_text())
     assert "runner-reconciliation.yaml" in root["resources"]

@@ -152,11 +152,14 @@ def test_rollback_pull_keeps_oci_scheme(tmp_path):
     }
     runner = Runner(pulled_bundle=archive)
     instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
-    observed, _ = instance.rollback(previous, manifest, objects, value, "re8ch-release/demo",
+    observed, _ = instance.rollback(previous, manifest, objects, value, operation, "re8ch-release/demo",
                                     executor.Store(tmp_path / "state", "demo"), "drill")
     pull = next(call[0] for call in runner.calls if call[0][:3] == ["flux", "pull", "artifact"])
     assert pull[3].startswith("oci://registry.example/releases/demo@sha256:")
     assert observed == operation["bundle"]["digest"]
+    applied = [json.loads(call[1]) for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    assert all(item["metadata"]["annotations"]["delivery.re8ch.com/operation-id"] == operation["operationId"]
+               for item in applied)
 
 
 def test_expired_out_of_order_and_reused_operation_are_rejected(tmp_path):
