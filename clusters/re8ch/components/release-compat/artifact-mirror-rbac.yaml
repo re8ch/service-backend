@@ -47,12 +47,20 @@ spec:
       object.spec.template.spec.serviceAccountName == 'release-artifact-mirror' &&
       object.spec.template.spec.automountServiceAccountToken == false &&
       object.spec.template.spec.restartPolicy == 'Never' &&
+      object.spec.template.spec.hostNetwork == true &&
+      object.spec.template.spec.dnsPolicy == 'ClusterFirstWithHostNet' &&
       object.spec.template.spec.nodeSelector == {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'} &&
       object.spec.template.spec.initContainers.size() == 2 &&
       object.spec.template.spec.initContainers.all(c,
-        c.image == 'registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579') &&
+        c.image == 'registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579' &&
+        c.securityContext.runAsNonRoot == true && c.securityContext.runAsUser == 65532 &&
+        c.securityContext.runAsGroup == 65532 && c.securityContext.allowPrivilegeEscalation == false) &&
       object.spec.template.spec.containers.size() == 1 &&
-      object.spec.template.spec.containers[0].image == 'registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870'
+      object.spec.template.spec.containers[0].image == 'registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870' &&
+      object.spec.template.spec.containers[0].securityContext.runAsNonRoot == true &&
+      object.spec.template.spec.containers[0].securityContext.runAsUser == 65532 &&
+      object.spec.template.spec.containers[0].securityContext.runAsGroup == 65532 &&
+      object.spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation == false
     message: mirror Job runtime, identity and immutable images are fixed
   - expression: >-
       object.spec.template.spec.volumes.exists(v,
