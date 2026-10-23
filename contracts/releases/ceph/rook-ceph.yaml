@@ -15,6 +15,7 @@ spec:
     releaseName: rook-ceph
     chartURL: https://charts.rook.io/release/rook-ceph-v1.20.3.tgz
     chartDigest: sha256:95bd3966bcf36b383b88e1996132642057e8fe4bc133b9681092c4ddec4dd0b2
+    chartOCI: oci://registry.re8ch.com/functions-shared/rook-ceph@sha256:5b71dfc23fdb0214ef585cd44d75d1d2baee420de8a0b3b1a86215ca877098e8
     values:
     - path: clusters/re8ch/components/rook-ceph/operator-values.yaml
       digest: sha256:ea5144e63da8992fdde0e65603baea37e592023297b0b548ba5160701eb3f670

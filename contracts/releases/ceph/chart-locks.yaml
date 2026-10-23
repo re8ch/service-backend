@@ -17,6 +17,8 @@ charts:
   images:
     docker.io/rook/ceph:v1.20.3: docker.io/rook/ceph@sha256:da3c5046074ddc01bd2d162f7da3c3098e2f117fa5093df827e55f7e35899add
     quay.io/cephcsi/ceph-csi-operator:v1.0.4: quay.io/cephcsi/ceph-csi-operator@sha256:c62933fd4083635f969f8a61932af45dba9902d48867e2b5d98a69d8e4344eb6
+  bundleDigest: sha256:71c42de1b77ca9e2b5bed3a82ae5073d757fbda69c3598c940ab3946eb28495f
+  mirrorDigest: sha256:5b71dfc23fdb0214ef585cd44d75d1d2baee420de8a0b3b1a86215ca877098e8
 - name: ceph-csi-drivers
   chart: ceph-csi-drivers
   version: 1.0.4
@@ -27,7 +29,8 @@ charts:
   mirror: oci://registry.re8ch.com/functions-shared/ceph-csi-drivers
   sourceMirror: oci://ghcr.io/re8ch/service-backend-chart/ceph-csi-drivers
   objectCount: 23
-  dependsOn: [rook-ceph]
+  dependsOn:
+  - rook-ceph
   values:
   - path: clusters/re8ch/components/rook-ceph/csi-drivers-values.yaml
     sha256: sha256:f824aacc91ba148a4c0a0b96d584c177abd3e072855a827bee171d13b081744d
@@ -42,7 +45,9 @@ charts:
   mirror: oci://registry.re8ch.com/functions-shared/rook-ceph-cluster
   sourceMirror: oci://ghcr.io/re8ch/service-backend-chart/rook-ceph-cluster
   objectCount: 7
-  dependsOn: [rook-ceph, ceph-csi-drivers]
+  dependsOn:
+  - rook-ceph
+  - ceph-csi-drivers
   values:
   - path: clusters/re8ch/components/rook-ceph/cluster-values.yaml
     sha256: sha256:198ed897bc954b9a5ce40774fd911cf98acfbbe142e59893c9e4331b39cbc381
