@@ -21,6 +21,7 @@ jwt:
         - https://kube-api.re8ch.com/release-executor-main-domain
         - https://kube-api.re8ch.com/release-executor-ceph-infra
         - https://kube-api.re8ch.com/release-executor-ceph-runtime
+        - https://kube-api.re8ch.com/release-artifact-publisher
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - {expression: "claims.repository_id == '1367237854'", message: token must belong to the service-backend repository ID}
@@ -53,6 +54,13 @@ jwt:
            claims.ref == 'refs/heads/main' &&
            claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
            claims.environment == 'release-executor-ceph-runtime' &&
+           claims.event_name == 'workflow_dispatch') ||
+          (claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref in [
+             're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main',
+             're8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'] &&
+           claims.environment == 'release-ceph-compiler' &&
            claims.event_name == 'workflow_dispatch')
         message: token audience and workflow context must match one reviewed credential contract
     claimMappings:
@@ -66,7 +74,9 @@ jwt:
               ? 'github-actions:release-executor-main-domain:' + claims.run_id
               : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra'
                 ? 'github-actions:release-executor-ceph-infra:' + claims.run_id
-                : 'github-actions:release-executor-ceph-runtime:' + claims.run_id
+                : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
+                  ? 'github-actions:release-executor-ceph-runtime:' + claims.run_id
+                  : 'github-actions:release-artifact-publisher:' + claims.run_id
       groups:
         expression: >-
           claims.aud == 'https://kube-api.re8ch.com/observer'
@@ -77,6 +87,8 @@ jwt:
               ? ['re8ch:release-executor:main-domain']
               : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra'
                 ? ['re8ch:release-executor:ceph-infra']
-                : ['re8ch:release-executor:ceph-runtime']
+                : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
+                  ? ['re8ch:release-executor:ceph-runtime']
+                  : ['re8ch:release-artifact-publisher']
       uid:
         expression: "claims.run_id + ':' + claims.run_attempt"
