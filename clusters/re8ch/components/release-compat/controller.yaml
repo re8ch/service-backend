@@ -13,7 +13,7 @@ spec:
       annotations: {prometheus.io/port: "8080", prometheus.io/scrape: "true"}
     spec:
       serviceAccountName: release-compat-controller
-      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+      nodeSelector: {kubernetes.io/hostname: a1-wsl-zt}
       tolerations:
       - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: 'true', effect: NoSchedule}
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
@@ -22,7 +22,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: controller
-        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:f46d7f099dc6c954875272f59b21d3065414e5609e89c14184c8f9f0e2d4c41d
+        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:c691ff19e5d368008556c4274c749ab2f3510843551b8b7a3b31becc7954eda9
         imagePullPolicy: IfNotPresent
         ports: [{name: http-prom, containerPort: 8080}, {name: healthz, containerPort: 8081}]
         readinessProbe: {httpGet: {path: /readyz, port: healthz}}
@@ -53,7 +53,7 @@ spec:
     metadata: {labels: {app: re8ch-release-dispatcher}}
     spec:
       serviceAccountName: re8ch-release-dispatcher
-      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
+      nodeSelector: {kubernetes.io/hostname: a1-wsl-zt}
       tolerations:
       - {key: node-role.kubernetes.io/control-plane, operator: Equal, value: 'true', effect: NoSchedule}
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
@@ -61,7 +61,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: dispatcher
-        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:f46d7f099dc6c954875272f59b21d3065414e5609e89c14184c8f9f0e2d4c41d
+        image: registry.re8ch.com/functions-shared/release-compat-controller@sha256:c691ff19e5d368008556c4274c749ab2f3510843551b8b7a3b31becc7954eda9
         env:
         - {name: MODE, value: dispatcher}
         - name: GITHUB_APP_ID
