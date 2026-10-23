@@ -5,11 +5,12 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-data-storage, namespace: flux-system}
 spec:
+  suspend: true
   interval: 1m
   retryInterval: 1m
   timeout: 15m
   path: ./clusters/re8ch/domains/data-storage
-  prune: true
+  prune: false
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}
   decryption: {provider: sops, secretRef: {name: sops-age}}
@@ -18,11 +19,12 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-commerce-billing, namespace: flux-system}
 spec:
+  suspend: true
   interval: 1m
   retryInterval: 1m
   timeout: 15m
   path: ./clusters/re8ch/domains/commerce-billing
-  prune: true
+  prune: false
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}
   decryption: {provider: sops, secretRef: {name: sops-age}}
@@ -31,11 +33,12 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-delivery-products, namespace: flux-system}
 spec:
+  suspend: true
   interval: 1m
   retryInterval: 1m
   timeout: 15m
   path: ./clusters/re8ch/domains/delivery-products
-  prune: true
+  prune: false
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}
   decryption: {provider: sops, secretRef: {name: sops-age}}
@@ -44,11 +47,12 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-tenant-runtime, namespace: flux-system}
 spec:
+  suspend: true
   interval: 1m
   retryInterval: 1m
   timeout: 15m
   path: ./clusters/re8ch/domains/tenant-runtime
-  prune: true
+  prune: false
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}
   decryption: {provider: sops, secretRef: {name: sops-age}}
@@ -61,7 +65,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-main-legacy-data-storage, namespace: flux-system}
 spec:
-  suspend: true
+  suspend: false
   interval: 1m
   retryInterval: 1m
   timeout: 15m
@@ -75,7 +79,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-main-legacy-commerce-billing, namespace: flux-system}
 spec:
-  suspend: true
+  suspend: false
   interval: 1m
   retryInterval: 1m
   timeout: 15m
@@ -89,7 +93,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-main-legacy-delivery-products, namespace: flux-system}
 spec:
-  suspend: true
+  suspend: false
   interval: 1m
   retryInterval: 1m
   timeout: 15m
@@ -117,7 +121,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-main-legacy-tenant-runtime, namespace: flux-system}
 spec:
-  suspend: true
+  suspend: false
   interval: 1m
   retryInterval: 1m
   timeout: 15m
