@@ -27,15 +27,22 @@ def test_all_control_planes_share_supabase_authentication():
     assert github['issuer']['audiences'] == [
         'https://kube-api.re8ch.com/observer',
         'https://kube-api.re8ch.com/release-executor-api-conformance',
-        'https://kube-api.re8ch.com/release-executor-main-domain',
+        'https://kube-api.re8ch.com/release-executor-agent-runtime',
+        'https://kube-api.re8ch.com/release-executor-identity-access',
+        'https://kube-api.re8ch.com/release-executor-observability-metering',
+        'https://kube-api.re8ch.com/release-executor-networking',
+        'https://kube-api.re8ch.com/release-executor-data-storage',
+        'https://kube-api.re8ch.com/release-executor-commerce-billing',
+        'https://kube-api.re8ch.com/release-executor-delivery-products',
+        'https://kube-api.re8ch.com/release-executor-operations-ui',
+        'https://kube-api.re8ch.com/release-executor-tenant-runtime',
         'https://kube-api.re8ch.com/release-executor-ceph-infra',
         'https://kube-api.re8ch.com/release-executor-ceph-runtime',
         'https://kube-api.re8ch.com/release-artifact-publisher',
     ]
     expressions = {item['expression'] for item in github['claimValidationRules']}
     assert {
-        "claims.repository_id == '1367237854'",
-        "claims.repository_owner_id == '283958313'",
+        "claims.repository_visibility == 'private'",
         "claims.runner_environment == 'github-hosted'",
     } <= expressions
     route = github['claimValidationRules'][-1]['expression']
@@ -44,9 +51,7 @@ def test_all_control_planes_share_supabase_authentication():
         "claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'",
         "claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main'",
         "claims.environment == 'release-api-conformance'",
-        "claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain'",
         "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main'",
-        "claims.environment == 'release-main-domain'",
         "claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher'",
         "re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main",
         "re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main",
@@ -56,8 +61,26 @@ def test_all_control_planes_share_supabase_authentication():
         assert required in route
     assert "github-actions:release-executor-api-conformance:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
-    assert "github-actions:release-executor-main-domain:" in github['claimMappings']['username']['expression']
-    assert "re8ch:release-executor:main-domain" in github['claimMappings']['groups']['expression']
+    external = {
+        'agent-runtime': ('re8ch-ai/agent-gitops', '1423311998', '334604670'),
+        'identity-access': ('re8ch/identity-gitops', '1423312101', '283958313'),
+        'observability-metering': ('siren-observer/observability-gitops', '1423312205', '334604879'),
+        'networking': ('pillars-infra/network-gitops', '1423312303', '334604858'),
+    }
+    for domain, (repository, repository_id, owner_id) in external.items():
+        assert f"claims.repository_id == '{repository_id}'" in route
+        assert f"claims.repository_owner_id == '{owner_id}'" in route
+        assert f"claims.repository == '{repository}'" in route
+        assert f"claims.aud == 'https://kube-api.re8ch.com/release-executor-{domain}'" in route
+        assert f"claims.workflow_ref == '{repository}/.github/workflows/static-release.yml@refs/heads/main'" in route
+        assert f"claims.environment == 'release-executor-{domain}'" in route
+        assert f"github-actions:release-executor-{domain}:" in github['claimMappings']['username']['expression']
+        assert f"re8ch:release-executor:{domain}" in github['claimMappings']['groups']['expression']
+    for domain in ('data-storage', 'commerce-billing', 'delivery-products', 'operations-ui', 'tenant-runtime'):
+        assert f"claims.aud == 'https://kube-api.re8ch.com/release-executor-{domain}'" in route
+        assert f"claims.environment == 'release-executor-{domain}'" in route
+        assert f"github-actions:release-executor-{domain}:" in github['claimMappings']['username']['expression']
+        assert f"re8ch:release-executor:{domain}" in github['claimMappings']['groups']['expression']
     assert "github-actions:release-artifact-publisher:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-artifact-publisher" in github['claimMappings']['groups']['expression']
     configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]

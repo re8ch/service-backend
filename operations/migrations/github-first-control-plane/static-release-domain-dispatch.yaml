@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/domain-migration-dispatch/v1alpha1
 kind: StaticReleaseDomainDispatch
 metadata:
-  name: flux-replacement-wave-after-ceph
-  observedAt: "2026-10-24T05:50:00+08:00"
+  name: nine-domain-static-gitops
+  observedAt: "2026-10-24T07:36:25+08:00"
 authority:
-  desiredState: github-main-and-signed-oci
+  desiredState: independent-github-repository-and-signed-oci
   runtime: kubernetes
   compatibilityOnly:
   - flux-crd-status
@@ -16,6 +16,7 @@ references:
   cutoverRunbook: operations/migrations/github-first-control-plane/flux-cutover-runbook.md
   autonomousAuthority: operations/flux-federation/authority.yaml
   mainCohort: operations/releases/main-domain-ssa/cohort.yaml
+  staticDomainAuthority: operations/releases/static-domain-authority.yaml
 provenBaseline:
   gitRevision: c78ed25c31260fbb4404b54b719cd824481dcd89
   controllerImage: registry.re8ch.com/functions-shared/release-compat-controller@sha256:c691ff19e5d368008556c4274c749ab2f3510843551b8b7a3b31becc7954eda9
@@ -47,6 +48,7 @@ dispatches:
 - id: autonomous-agent-runtime
   scope: existing-autonomous-domain
   authorityDomain: agent-runtime
+  authorityRef: operations/releases/static-domain-authority.yaml#agent-runtime
   controllerNamespace: flux-agent-system
   risk: medium
   liveSnapshot:
@@ -62,6 +64,7 @@ dispatches:
 - id: autonomous-identity-access
   scope: existing-autonomous-domain
   authorityDomain: identity-access
+  authorityRef: operations/releases/static-domain-authority.yaml#identity-access
   controllerNamespace: flux-identity-system
   risk: high
   liveSnapshot:
@@ -80,6 +83,7 @@ dispatches:
 - id: autonomous-observability-metering
   scope: existing-autonomous-domain
   authorityDomain: observability-metering
+  authorityRef: operations/releases/static-domain-authority.yaml#observability-metering
   controllerNamespace: flux-observability-system
   risk: medium
   liveSnapshot:
@@ -104,6 +108,7 @@ dispatches:
 - id: autonomous-networking
   scope: existing-autonomous-domain
   authorityDomain: networking
+  authorityRef: operations/releases/static-domain-authority.yaml#networking
   controllerNamespace: flux-network-system
   risk: critical
   liveSnapshot:
@@ -153,12 +158,14 @@ dispatches:
 - id: main-data-storage
   scope: split-main-domain
   authorityDomain: data-storage
-  controllerNamespace: to-be-created
+  authorityRef: operations/releases/static-domain-authority.yaml#data-storage
+  controllerNamespace: flux-system
+  protectedEnvironment: release-executor-data-storage
   risk: critical
   staticCohort:
-    releases: 6
-    objects: 26
-    legacyShardObjects: 16
+    releases: 5
+    objects: 21
+    legacyShardObjects: 15
   recommendedCanary: main-data-storage-toolhive-system
   dependencies:
   - proven-ceph-baseline
@@ -172,7 +179,9 @@ dispatches:
 - id: main-commerce-billing
   scope: split-main-domain
   authorityDomain: commerce-billing
-  controllerNamespace: to-be-created
+  authorityRef: operations/releases/static-domain-authority.yaml#commerce-billing
+  controllerNamespace: flux-system
+  protectedEnvironment: release-executor-commerce-billing
   risk: high
   staticCohort:
     releases: 1
@@ -190,12 +199,14 @@ dispatches:
 - id: main-delivery-products
   scope: split-main-domain
   authorityDomain: delivery-products
-  controllerNamespace: to-be-created
+  authorityRef: operations/releases/static-domain-authority.yaml#delivery-products
+  controllerNamespace: flux-system
+  protectedEnvironment: release-executor-delivery-products
   risk: medium
   staticCohort:
-    releases: 5
-    objects: 31
-    legacyShardObjects: 13
+    releases: 4
+    objects: 18
+    legacyShardObjects: 10
   recommendedCanary: main-delivery-products-aesthete
   dependencies: []
   notes:
@@ -208,7 +219,9 @@ dispatches:
 - id: main-operations-ui
   scope: split-main-domain
   authorityDomain: operations-ui
-  controllerNamespace: to-be-created
+  authorityRef: operations/releases/static-domain-authority.yaml#operations-ui
+  controllerNamespace: flux-system
+  protectedEnvironment: release-executor-operations-ui
   risk: medium
   staticCohort:
     releases: 4
@@ -226,7 +239,9 @@ dispatches:
 - id: main-tenant-runtime
   scope: split-main-domain
   authorityDomain: tenant-runtime
-  controllerNamespace: to-be-created
+  authorityRef: operations/releases/static-domain-authority.yaml#tenant-runtime
+  controllerNamespace: flux-system
+  protectedEnvironment: release-executor-tenant-runtime
   risk: high
   staticCohort:
     releases: 3

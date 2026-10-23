@@ -18,49 +18,109 @@ jwt:
       audiences:
         - https://kube-api.re8ch.com/observer
         - https://kube-api.re8ch.com/release-executor-api-conformance
-        - https://kube-api.re8ch.com/release-executor-main-domain
+        - https://kube-api.re8ch.com/release-executor-agent-runtime
+        - https://kube-api.re8ch.com/release-executor-identity-access
+        - https://kube-api.re8ch.com/release-executor-observability-metering
+        - https://kube-api.re8ch.com/release-executor-networking
+        - https://kube-api.re8ch.com/release-executor-data-storage
+        - https://kube-api.re8ch.com/release-executor-commerce-billing
+        - https://kube-api.re8ch.com/release-executor-delivery-products
+        - https://kube-api.re8ch.com/release-executor-operations-ui
+        - https://kube-api.re8ch.com/release-executor-tenant-runtime
         - https://kube-api.re8ch.com/release-executor-ceph-infra
         - https://kube-api.re8ch.com/release-executor-ceph-runtime
         - https://kube-api.re8ch.com/release-artifact-publisher
       audienceMatchPolicy: MatchAny
     claimValidationRules:
-      - {expression: "claims.repository_id == '1367237854'", message: token must belong to the service-backend repository ID}
-      - {expression: "claims.repository_owner_id == '283958313'", message: token must belong to the RE8CH owner ID}
-      - {expression: "claims.repository == 're8ch/service-backend'", message: token must belong to re8ch/service-backend}
       - {expression: "claims.repository_visibility == 'private'", message: repository must remain private}
       - {expression: "claims.runner_environment == 'github-hosted'", message: self-hosted runners are not trusted for this identity}
       - expression: >-
-          (claims.aud == 'https://kube-api.re8ch.com/observer' &&
+          (claims.repository_id == '1367237854' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/service-backend' &&
+           ((claims.aud == 'https://kube-api.re8ch.com/observer' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/node-contract-observer.yml@refs/heads/main' &&
+             claims.environment == 'cluster-observation' &&
+             claims.event_name in ['schedule', 'workflow_dispatch']) ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main' &&
+             claims.environment == 'release-api-conformance' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-data-storage' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-data-storage' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-commerce-billing' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-commerce-billing' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-delivery-products' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-delivery-products' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-operations-ui' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-operations-ui' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-tenant-runtime' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-ceph-infra' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-ceph-runtime' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref in [
+               're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main',
+               're8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'] &&
+             claims.environment == 'release-ceph-compiler' &&
+             claims.event_name == 'workflow_dispatch'))) ||
+          (claims.repository_id == '1423311998' &&
+           claims.repository_owner_id == '334604670' &&
+           claims.repository == 're8ch-ai/agent-gitops' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-agent-runtime' &&
            claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/node-contract-observer.yml@refs/heads/main' &&
-           claims.environment == 'cluster-observation' &&
-           claims.event_name in ['schedule', 'workflow_dispatch']) ||
-          (claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance' &&
-           claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main' &&
-           claims.environment == 'release-api-conformance' &&
+           claims.workflow_ref == 're8ch-ai/agent-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-agent-runtime' &&
            claims.event_name == 'workflow_dispatch') ||
-          (claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain' &&
+          (claims.repository_id == '1423312101' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/identity-gitops' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-identity-access' &&
            claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
-           claims.environment == 'release-main-domain' &&
+           claims.workflow_ref == 're8ch/identity-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-identity-access' &&
            claims.event_name == 'workflow_dispatch') ||
-          (claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra' &&
+          (claims.repository_id == '1423312205' &&
+           claims.repository_owner_id == '334604879' &&
+           claims.repository == 'siren-observer/observability-gitops' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-observability-metering' &&
            claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
-           claims.environment == 'release-executor-ceph-infra' &&
+           claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-observability-metering' &&
            claims.event_name == 'workflow_dispatch') ||
-          (claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime' &&
+          (claims.repository_id == '1423312303' &&
+           claims.repository_owner_id == '334604858' &&
+           claims.repository == 'pillars-infra/network-gitops' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
            claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
-           claims.environment == 'release-executor-ceph-runtime' &&
-           claims.event_name == 'workflow_dispatch') ||
-          (claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher' &&
-           claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref in [
-             're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main',
-             're8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'] &&
-           claims.environment == 'release-ceph-compiler' &&
+           claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')
         message: token audience and workflow context must match one reviewed credential contract
     claimMappings:
@@ -70,25 +130,57 @@ jwt:
           ? 'github-actions:node-observer:' + claims.run_id
           : claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'
             ? 'github-actions:release-executor-api-conformance:' + claims.run_id
-            : claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain'
-              ? 'github-actions:release-executor-main-domain:' + claims.run_id
-              : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra'
-                ? 'github-actions:release-executor-ceph-infra:' + claims.run_id
-                : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
-                  ? 'github-actions:release-executor-ceph-runtime:' + claims.run_id
-                  : 'github-actions:release-artifact-publisher:' + claims.run_id
+            : claims.aud == 'https://kube-api.re8ch.com/release-executor-agent-runtime'
+              ? 'github-actions:release-executor-agent-runtime:' + claims.run_id
+              : claims.aud == 'https://kube-api.re8ch.com/release-executor-identity-access'
+                ? 'github-actions:release-executor-identity-access:' + claims.run_id
+                : claims.aud == 'https://kube-api.re8ch.com/release-executor-observability-metering'
+                  ? 'github-actions:release-executor-observability-metering:' + claims.run_id
+                  : claims.aud == 'https://kube-api.re8ch.com/release-executor-networking'
+                    ? 'github-actions:release-executor-networking:' + claims.run_id
+                    : claims.aud == 'https://kube-api.re8ch.com/release-executor-data-storage'
+                      ? 'github-actions:release-executor-data-storage:' + claims.run_id
+                      : claims.aud == 'https://kube-api.re8ch.com/release-executor-commerce-billing'
+                        ? 'github-actions:release-executor-commerce-billing:' + claims.run_id
+                        : claims.aud == 'https://kube-api.re8ch.com/release-executor-delivery-products'
+                          ? 'github-actions:release-executor-delivery-products:' + claims.run_id
+                          : claims.aud == 'https://kube-api.re8ch.com/release-executor-operations-ui'
+                            ? 'github-actions:release-executor-operations-ui:' + claims.run_id
+                            : claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime'
+                              ? 'github-actions:release-executor-tenant-runtime:' + claims.run_id
+                              : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra'
+                                ? 'github-actions:release-executor-ceph-infra:' + claims.run_id
+                                : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
+                                  ? 'github-actions:release-executor-ceph-runtime:' + claims.run_id
+                                  : 'github-actions:release-artifact-publisher:' + claims.run_id
       groups:
         expression: >-
           claims.aud == 'https://kube-api.re8ch.com/observer'
           ? ['re8ch:credential-contract:node-observer']
           : claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'
             ? ['re8ch:release-executor:api-conformance']
-            : claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain'
-              ? ['re8ch:release-executor:main-domain']
-              : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra'
-                ? ['re8ch:release-executor:ceph-infra']
-                : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
-                  ? ['re8ch:release-executor:ceph-runtime']
-                  : ['re8ch:release-artifact-publisher']
+            : claims.aud == 'https://kube-api.re8ch.com/release-executor-agent-runtime'
+              ? ['re8ch:release-executor:agent-runtime']
+              : claims.aud == 'https://kube-api.re8ch.com/release-executor-identity-access'
+                ? ['re8ch:release-executor:identity-access']
+                : claims.aud == 'https://kube-api.re8ch.com/release-executor-observability-metering'
+                  ? ['re8ch:release-executor:observability-metering']
+                  : claims.aud == 'https://kube-api.re8ch.com/release-executor-networking'
+                    ? ['re8ch:release-executor:networking']
+                    : claims.aud == 'https://kube-api.re8ch.com/release-executor-data-storage'
+                      ? ['re8ch:release-executor:data-storage']
+                      : claims.aud == 'https://kube-api.re8ch.com/release-executor-commerce-billing'
+                        ? ['re8ch:release-executor:commerce-billing']
+                        : claims.aud == 'https://kube-api.re8ch.com/release-executor-delivery-products'
+                          ? ['re8ch:release-executor:delivery-products']
+                          : claims.aud == 'https://kube-api.re8ch.com/release-executor-operations-ui'
+                            ? ['re8ch:release-executor:operations-ui']
+                            : claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime'
+                              ? ['re8ch:release-executor:tenant-runtime']
+                              : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra'
+                                ? ['re8ch:release-executor:ceph-infra']
+                                : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
+                                  ? ['re8ch:release-executor:ceph-runtime']
+                                  : ['re8ch:release-artifact-publisher']
       uid:
         expression: "claims.run_id + ':' + claims.run_attempt"

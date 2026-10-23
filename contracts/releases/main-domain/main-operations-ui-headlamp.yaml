@@ -3,6 +3,7 @@ kind: ReleaseContract
 metadata:
   name: main-operations-ui-headlamp
 spec:
+  authorityDomain: operations-ui
   target:
     cluster: re8ch
     namespace: headlamp
@@ -15,8 +16,8 @@ spec:
     repository: re8ch/service-backend
     workflow: .github/workflows/main-domain-release.yml
     ref: refs/heads/main
-    environment: release-main-domain
-    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    environment: release-executor-operations-ui
+    audience: https://kube-api.re8ch.com/release-executor-operations-ui
     signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
     issuer: https://token.actions.githubusercontent.com
   authorization:

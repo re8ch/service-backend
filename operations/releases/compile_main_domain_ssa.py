@@ -27,6 +27,7 @@ OUTPUT = ROOT / "operations/releases/main-domain-ssa"
 CONTRACTS = ROOT / "contracts/releases/main-domain"
 LEGACY = ROOT / "clusters/re8ch/domains/main-legacy"
 RBAC = ROOT / "clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml"
+AUTHORITY = ROOT / "operations/releases/static-domain-authority.yaml"
 CLUSTER_KINDS = {
     "APIService", "ClusterRole", "ClusterRoleBinding", "CustomResourceDefinition", "Namespace",
     "Node", "PersistentVolume", "StorageClass", "ValidatingWebhookConfiguration", "MutatingWebhookConfiguration",
@@ -41,9 +42,16 @@ PLURALS = {
     "HTTPRoute": "httproutes", "CiliumNetworkPolicy": "ciliumnetworkpolicies",
     "Role": "roles", "RoleBinding": "rolebindings", "MCPServer": "mcpservers",
 }
-AUDIENCE = "https://kube-api.re8ch.com/release-executor-main-domain"
 WORKFLOW = ".github/workflows/main-domain-release.yml"
-ENVIRONMENT = "release-main-domain"
+
+
+def execution_profiles() -> dict[str, dict]:
+    authority = yaml.safe_load(AUTHORITY.read_text())
+    profiles = authority["spec"]["domains"]
+    missing = set(DOMAINS) - set(profiles)
+    if missing:
+        raise ValueError(f"missing static domain authority profiles: {sorted(missing)}")
+    return {domain: profiles[domain]["execution"] for domain in DOMAINS}
 
 
 def docs(path: Path) -> list[dict]:
@@ -111,6 +119,7 @@ def role_rules(items: list[dict], state_name: str) -> list[dict]:
 
 
 def compile_outputs() -> dict[Path, str]:
+    profiles = execution_profiles()
     releases: dict[tuple[str, str], list[dict]] = defaultdict(list)
     legacy: dict[str, list[dict]] = defaultdict(list)
     seen: dict[str, str] = {}
@@ -133,6 +142,7 @@ def compile_outputs() -> dict[Path, str]:
     files: dict[Path, str] = {}
     rbac_docs: list[dict] = []
     for (domain, namespace), items in sorted(releases.items()):
+        profile = profiles[domain]
         items.sort(key=identity)
         name = release_name(domain, namespace)
         package = OUTPUT / name
@@ -144,11 +154,13 @@ def compile_outputs() -> dict[Path, str]:
         contract = {
             "apiVersion": "delivery.re8ch.com/v1alpha1", "kind": "ReleaseContract", "metadata": {"name": name},
             "spec": {
+                "authorityDomain": domain,
                 "target": {"cluster": "re8ch", "namespace": namespace},
                 "source": {"renderer": "kustomize", "revision": revision, "repository": "re8ch/service-backend",
                            "path": str(package.relative_to(ROOT))},
                 "provenance": {"repository": "re8ch/service-backend", "workflow": WORKFLOW,
-                               "ref": "refs/heads/main", "environment": ENVIRONMENT, "audience": AUDIENCE,
+                               "ref": "refs/heads/main", "environment": profile["protectedEnvironment"],
+                               "audience": profile["audience"],
                                "signer": f"https://github.com/re8ch/service-backend/{WORKFLOW}@refs/heads/main",
                                "issuer": "https://token.actions.githubusercontent.com"},
                 "authorization": {"fieldManager": f"re8ch-release/{name}",
@@ -167,17 +179,18 @@ def compile_outputs() -> dict[Path, str]:
         rbac_docs.extend([
             {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": state_name, "namespace": namespace,
                 "annotations": {"kustomize.toolkit.fluxcd.io/ssa": "Merge"},
-                "labels": {"delivery.re8ch.com/state": "accepted", "delivery.re8ch.com/cohort": "main-domain"}}},
+                "labels": {"delivery.re8ch.com/state": "accepted", "delivery.re8ch.com/cohort": "main-domain",
+                           "delivery.re8ch.com/authority-domain": domain}}},
             {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role",
              "metadata": {"name": name, "namespace": namespace,
-                          "labels": {"delivery.re8ch.com/rbac-profile": "main-domain"}},
+                          "labels": {"delivery.re8ch.com/rbac-profile": domain}},
              "rules": role_rules(items, state_name)},
             {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding",
              "metadata": {"name": name, "namespace": namespace,
-                          "labels": {"delivery.re8ch.com/rbac-profile": "main-domain"}},
+                          "labels": {"delivery.re8ch.com/rbac-profile": domain}},
              "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": name},
              "subjects": [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group",
-                           "name": "re8ch:release-executor:main-domain"}]},
+                           "name": profile["kubernetesGroup"]}]},
         ])
     for domain, items in sorted(legacy.items()):
         items.sort(key=identity)
@@ -192,6 +205,12 @@ def compile_outputs() -> dict[Path, str]:
         "releaseCount": len(releases), "objectCount": sum(map(len, releases.values())),
         "legacyObjectCount": sum(map(len, legacy.values())),
         "deferredSSAObjects": sorted(DEFERRED_SSA),
+        "executionProfiles": [{"domain": domain, "repository": profiles[domain]["repository"],
+                               "workflow": profiles[domain]["workflow"],
+                               "protectedEnvironment": profiles[domain]["protectedEnvironment"],
+                               "audience": profiles[domain]["audience"],
+                               "kubernetesGroup": profiles[domain]["kubernetesGroup"]}
+                              for domain in DOMAINS],
         "legacyShards": [{"domain": domain, "objects": len(items)} for domain, items in sorted(legacy.items())],
         "releases": [{"name": release_name(d, n), "domain": d, "namespace": n, "objects": len(items)}
                      for (d, n), items in sorted(releases.items())],
