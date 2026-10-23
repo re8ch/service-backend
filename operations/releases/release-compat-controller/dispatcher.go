@@ -35,6 +35,11 @@ type dispatcher struct {
 	appID, installationID, keyPath string
 }
 
+func operationExpired(item *unstructured.Unstructured, now time.Time) bool {
+	timeout, found, err := unstructured.NestedInt64(item.Object, "spec", "timeoutSeconds")
+	return err == nil && found && timeout > 0 && now.After(item.GetCreationTimestamp().Time.Add(time.Duration(timeout)*time.Second))
+}
+
 func b64(value []byte) string { return base64.RawURLEncoding.EncodeToString(value) }
 
 func (d *dispatcher) appJWT() (string, error) {
@@ -128,6 +133,18 @@ func (d *dispatcher) run(ctx context.Context) error {
 		if phase != "" && phase != "Pending" {
 			continue
 		}
+		now := time.Now().UTC()
+		if operationExpired(item, now) {
+			status := map[string]any{"phase": "Failed", "finishedAt": now.Format(time.RFC3339),
+				"terminalResult": map[string]any{"outcome": "expired", "message": "operation expired before dispatch"}}
+			if err := unstructured.SetNestedMap(item.Object, status, "status"); err != nil {
+				return err
+			}
+			if err := d.client.Status().Update(ctx, item); err != nil {
+				return err
+			}
+			continue
+		}
 		release := nestedString(item.Object, "spec", "releaseRef")
 		if release != "rook-ceph" && release != "ceph-csi-drivers" && release != "rook-ceph-cluster" {
 			continue
@@ -135,7 +152,7 @@ func (d *dispatcher) run(ctx context.Context) error {
 		if err := d.dispatch(ctx, item.GetName()); err != nil {
 			return err
 		}
-		status := map[string]any{"phase": "Dispatched", "dispatchedAt": time.Now().UTC().Format(time.RFC3339)}
+		status := map[string]any{"phase": "Dispatched", "dispatchedAt": now.Format(time.RFC3339)}
 		if err := unstructured.SetNestedMap(item.Object, status, "status"); err != nil {
 			return err
 		}
