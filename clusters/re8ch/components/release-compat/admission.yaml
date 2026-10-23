@@ -32,7 +32,10 @@ spec:
       resources: [helmreleases]
   matchConditions:
   - name: compat-only
-    expression: "has(object.metadata.labels) && object.metadata.labels['delivery.re8ch.com/compat-projection'] == 'true'"
+    expression: >-
+      has(object.metadata.labels) &&
+      'delivery.re8ch.com/compat-projection' in object.metadata.labels &&
+      object.metadata.labels['delivery.re8ch.com/compat-projection'] == 'true'
   validations:
   - expression: "request.operation != 'DELETE'"
     message: compatibility projections cannot be deleted directly
@@ -72,7 +75,10 @@ spec:
       resources: [helmrepositories, helmcharts]
   matchConditions:
   - name: compat-only
-    expression: "has(object.metadata.labels) && object.metadata.labels['delivery.re8ch.com/compat-projection'] == 'true'"
+    expression: >-
+      has(object.metadata.labels) &&
+      'delivery.re8ch.com/compat-projection' in object.metadata.labels &&
+      object.metadata.labels['delivery.re8ch.com/compat-projection'] == 'true'
   validations:
   - {expression: "request.operation != 'DELETE'", message: compatibility projections cannot be deleted directly}
   - {expression: "request.operation != 'UPDATE' || object.spec == oldObject.spec", message: source compatibility specs are immutable}
