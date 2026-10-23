@@ -42,6 +42,7 @@ jobs:
         kubectl config --kubeconfig "$kubeconfig" set-context executor --cluster=re8ch --user=executor --namespace=flux-system
         kubectl config --kubeconfig "$kubeconfig" use-context executor
         echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+        echo "EXECUTOR_AUDIENCE=$EXECUTOR_AUDIENCE" >> "$GITHUB_ENV"
     - id: operation
       env: {OPERATION_ID: '${{ inputs.operation_id }}'}
       run: |
@@ -79,6 +80,9 @@ jobs:
       run: |
         python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
           --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" --stage crd-schema --stage cluster-rbac --partial > "$RUNNER_TEMP/infra-result.json"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubectl config --kubeconfig "$KUBECONFIG" set-credentials executor --token="$token" >/dev/null
         kubectl patch releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system --subresource=status --type=merge \
           -p "$(jq -n --arg now "$(date -u +%FT%TZ)" '{status:{phase:"InfraApplied",infra:{finishedAt:$now,result:"healthy"}}}')"
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -117,6 +121,7 @@ jobs:
         kubectl config --kubeconfig "$kubeconfig" set-context executor --cluster=re8ch --user=executor --namespace=flux-system
         kubectl config --kubeconfig "$kubeconfig" use-context executor
         echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+        echo "EXECUTOR_AUDIENCE=$EXECUTOR_AUDIENCE" >> "$GITHUB_ENV"
     - name: Rematerialize immutable request and durable state
       env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
       run: |
@@ -137,6 +142,9 @@ jobs:
       run: |
         python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
           --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" --stage runtime --stage custom-resources --partial > "$RUNNER_TEMP/result.json"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubectl config --kubeconfig "$KUBECONFIG" set-credentials executor --token="$token" >/dev/null
         python operations/releases/ceph_health.py --release "$RELEASE" > "$RUNNER_TEMP/ceph-health.json"
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       if: needs.infra.outputs.action == 'reconcile' || needs.infra.outputs.action == 'force-reconcile' || needs.infra.outputs.action == 'rollback'
@@ -178,6 +186,7 @@ jobs:
         kubectl config --kubeconfig "$kubeconfig" set-context executor --cluster=re8ch --user=executor --namespace=flux-system
         kubectl config --kubeconfig "$kubeconfig" use-context executor
         echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+        echo "EXECUTOR_AUDIENCE=$EXECUTOR_AUDIENCE" >> "$GITHUB_ENV"
     - name: Verify request again and materialize durable state
       env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
       run: |
@@ -195,6 +204,9 @@ jobs:
         if [[ "$ACTION" == reconcile || "$ACTION" == force-reconcile || "$ACTION" == rollback ]]; then args+=(--stage storage-class --stage health-acceptance); fi
         python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
           --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" > "$RUNNER_TEMP/result.json"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubectl config --kubeconfig "$KUBECONFIG" set-credentials executor --token="$token" >/dev/null
         python operations/releases/operation_materialize.py persist --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE" --result "$RUNNER_TEMP/result.json" --output "$RUNNER_TEMP/state-patch.json"
         kubectl patch configmap "ssa-state-${RELEASE}" -n rook-ceph --type=merge -p "$(cat "$RUNNER_TEMP/state-patch.json")"
         result="$(jq -c . "$RUNNER_TEMP/result.json")"; state="$(cat "$RUNNER_TEMP/state/state/${RELEASE}.json")"

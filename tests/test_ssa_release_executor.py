@@ -1,5 +1,6 @@
 import datetime as dt
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -117,6 +118,43 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     count = len(runner.calls)
     assert instance.reconcile(value, operation, bundle_path, tmp_path / "state", verify_signature=False) == result
     assert len(runner.calls) == count
+
+
+def test_kubectl_commands_refresh_actions_oidc_token(monkeypatch):
+    runner = Runner()
+    instance = executor.Executor(runner=runner)
+    monkeypatch.setattr(instance, "actions_kube_token", lambda: "fresh-token")
+    instance.command(["kubectl", "get", "namespace", "demo"])
+    assert runner.calls[0][0][:3] == ["kubectl", "--token=fresh-token", "get"]
+
+
+def test_actions_oidc_refresh_is_cached_and_audience_bounded(monkeypatch):
+    monkeypatch.setenv("ACTIONS_ID_TOKEN_REQUEST_URL", "https://pipelines.actions.githubusercontent.com/token?api-version=2.0")
+    monkeypatch.setenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "request-token")
+    monkeypatch.setenv("EXECUTOR_AUDIENCE", "https://kube-api.re8ch.com/release-executor-ceph-infra")
+    requests = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.close()
+
+    def open_token(request, timeout):
+        requests.append(request)
+        assert timeout == 30
+        return Response(b'{"value":"fresh-token"}')
+
+    monkeypatch.setattr(executor.urllib.request, "urlopen", open_token)
+    instance = executor.Executor()
+    assert instance.actions_kube_token() == "fresh-token"
+    assert instance.actions_kube_token() == "fresh-token"
+    assert len(requests) == 1
+    monkeypatch.setenv("EXECUTOR_AUDIENCE", "https://attacker.example/release-executor-ceph-infra")
+    rejected = executor.Executor()
+    with pytest.raises(executor.Rejected, match="unexpected executor audience"):
+        rejected.actions_kube_token()
 
 
 def test_normal_apply_does_not_reclaim_conflicting_fields(tmp_path):
