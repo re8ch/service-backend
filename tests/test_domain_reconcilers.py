@@ -10,6 +10,7 @@ AUTHORITY = ROOT / "operations/releases/runtime-authority.yaml"
 FEDERATION_AUTHORITY = ROOT / "operations/flux-federation/authority.yaml"
 FEDERATION_REGISTRATIONS = ROOT / "clusters/re8ch/flux-federation/registrations.yaml"
 FEDERATION_CONTROLLERS = ROOT / "clusters/re8ch/flux-federation/controllers.yaml"
+MAIN_DOMAINS = {"data-storage", "commerce-billing", "delivery-products", "operations-ui", "tenant-runtime"}
 
 
 def load_all(path: Path) -> list[dict]:
@@ -35,7 +36,8 @@ def test_every_domain_has_one_desired_state_reconciler():
         if item["spec"]["suspend"] is False
     }
     assert set(legacy) | transitioned | set(federation) == set(domain_names)
-    assert "operations-ui" in transitioned and "operations-ui" not in legacy
+    assert MAIN_DOMAINS <= transitioned
+    assert MAIN_DOMAINS.isdisjoint(legacy)
     for domain, item in legacy.items():
         spec = item["spec"]
         assert spec["path"] == f"./clusters/re8ch/domains/{domain}"
