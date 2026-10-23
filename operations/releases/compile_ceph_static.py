@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 import subprocess
 import tempfile
 import urllib.request
@@ -69,8 +70,18 @@ def rewrite_images(value: object, locks: dict[str, str]) -> None:
 
 def download(entry: dict, directory: Path) -> Path:
     destination = directory / f'{entry["name"]}-{entry["version"]}.tgz'
-    with urllib.request.urlopen(entry["url"], timeout=60) as response:  # exact archive URL, never an index
-        destination.write_bytes(response.read(32 * 1024 * 1024 + 1))
+    if entry.get("mirrorDigest"):
+        reference = f'{entry["mirror"]}@{entry["mirrorDigest"]}'
+        pull_directory = directory / f'.pull-{entry["name"]}'
+        pull_directory.mkdir()
+        subprocess.run(["helm", "pull", reference, "--destination", str(pull_directory)], check=True, text=True, capture_output=True)
+        pulled = list(pull_directory.glob("*.tgz"))
+        if len(pulled) != 1:
+            raise ValueError(f'OCI chart pull produced no archive for {entry["name"]}')
+        pulled[0].replace(destination)
+    else:
+        with urllib.request.urlopen(entry["url"], timeout=60) as response:  # bootstrap exact archive URL, never an index
+            destination.write_bytes(response.read(32 * 1024 * 1024 + 1))
     if destination.stat().st_size > 32 * 1024 * 1024 or sha256(destination) != entry["sha256"]:
         raise ValueError(f'chart digest mismatch for {entry["name"]}')
     return destination
@@ -124,6 +135,7 @@ def make_contract(entry: dict, documents: list[dict]) -> dict:
             "source": {"renderer": "helm", "revision": entry["sha256"], "repository": "re8ch/service-backend",
                        "chart": entry["chart"], "version": entry["version"], "releaseName": entry["releaseName"],
                        "chartURL": entry["url"], "chartDigest": entry["sha256"],
+                       **({"chartOCI": f'{entry["mirror"]}@{entry["mirrorDigest"]}'} if entry.get("mirrorDigest") else {}),
                        "values": [{"path": value["path"], "digest": value["sha256"]} for value in entry["values"]]},
             "provenance": {"repository": "re8ch/service-backend", "workflow": WORKFLOW, "ref": "refs/heads/main",
                            "environment": "release-executor-ceph-infra", "audience": audience, "signer": SIGNER,
@@ -254,7 +266,7 @@ def outputs() -> dict[Path, str]:
                 "spec": {"releaseID": entry["name"], "renderer": "helm", "targetCluster": "re8ch",
                          "targetNamespace": entry["namespace"], "contractDigest": digest(canonical(contract)),
                          "chartDigest": entry["sha256"], "valuesDigest": digest(canonical(entry["values"])),
-                         "bundleRepository": f'oci://ghcr.io/re8ch/service-backend-release/{entry["name"]}',
+                         "bundleRepository": f'oci://registry.re8ch.com/functions-shared/ceph-release-{entry["name"]}',
                          "dependencies": entry.get("dependsOn", []),
                          "stages": [stage["name"] for stage in contract["spec"]["lifecycle"]["stages"]]},
             })
@@ -270,6 +282,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--render")
     parser.add_argument("--rendered-output", type=Path)
+    parser.add_argument("--chart-output", type=Path)
     args = parser.parse_args()
     if args.render:
         if not args.rendered_output:
@@ -279,7 +292,10 @@ def main() -> int:
         if not entry:
             parser.error("unknown locked release")
         with tempfile.TemporaryDirectory(prefix="ceph-static-render-") as temporary:
-            documents = render(entry, download(entry, Path(temporary)))
+            chart = download(entry, Path(temporary))
+            if args.chart_output:
+                shutil.copyfile(chart, args.chart_output)
+            documents = render(entry, chart)
         args.rendered_output.write_text(yaml.safe_dump_all(documents, sort_keys=False, explicit_start=True))
         return 0
     generated = outputs()
