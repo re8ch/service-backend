@@ -13,7 +13,7 @@ sourceDomains:
 - tenant-runtime
 releaseCount: 19
 objectCount: 142
-legacyObjectCount: 121
+legacyObjectCount: 112
 deferredSSAObjects:
 - apps/Deployment/observable/observable-postgrest
 - apps/Deployment/re8ch-ontology-microscope/ontology-microscope-adapter
@@ -25,7 +25,7 @@ legacyShards:
 - domain: commerce-billing
   objects: 14
 - domain: data-storage
-  objects: 25
+  objects: 16
 - domain: delivery-products
   objects: 13
 - domain: operations-ui

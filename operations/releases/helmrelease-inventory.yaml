@@ -358,8 +358,6 @@ releases:
   occurrences:
   - file: clusters/re8ch/components/rook-ceph/releases.yaml
     document: 4
-  - file: clusters/re8ch/domains/data-storage/resources.yaml
-    document: 41
   classification:
     id: helmrelease:flux-system:ceph-csi-drivers
     disposition: bundle-ssa-candidate
@@ -795,8 +793,6 @@ releases:
   occurrences:
   - file: clusters/re8ch/components/rook-ceph/releases.yaml
     document: 3
-  - file: clusters/re8ch/domains/data-storage/resources.yaml
-    document: 42
   classification:
     id: helmrelease:flux-system:rook-ceph
     disposition: bundle-ssa-candidate
@@ -855,8 +851,6 @@ releases:
   occurrences:
   - file: clusters/re8ch/components/rook-ceph/releases.yaml
     document: 5
-  - file: clusters/re8ch/domains/data-storage/resources.yaml
-    document: 43
   classification:
     id: helmrelease:flux-system:rook-ceph-cluster
     disposition: bundle-ssa-candidate
