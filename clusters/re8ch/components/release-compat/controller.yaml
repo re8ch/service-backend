@@ -47,7 +47,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: re8ch-release-dispatcher, namespace: flux-system}
 spec:
-  replicas: 0
+  replicas: 1
   selector: {matchLabels: {app: re8ch-release-dispatcher}}
   template:
     metadata: {labels: {app: re8ch-release-dispatcher}}
