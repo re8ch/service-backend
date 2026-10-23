@@ -7,6 +7,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /ou
 
 FROM scratch
 COPY --from=builder /out/controller /controller
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 USER 65532:65532
 EXPOSE 8080 8081
 ENTRYPOINT ["/controller"]
