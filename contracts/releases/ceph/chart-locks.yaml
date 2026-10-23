@@ -17,7 +17,8 @@ charts:
   images:
     docker.io/rook/ceph:v1.20.3: docker.io/rook/ceph@sha256:da3c5046074ddc01bd2d162f7da3c3098e2f117fa5093df827e55f7e35899add
     quay.io/cephcsi/ceph-csi-operator:v1.0.4: quay.io/cephcsi/ceph-csi-operator@sha256:c62933fd4083635f969f8a61932af45dba9902d48867e2b5d98a69d8e4344eb6
-  mirrorDigest: sha256:36ecf2f2c0279bcd1e6c2ea6ac5b68a89b618a643cdb50c8729cd6a70ab3d088
+  mirrorDigest: sha256:40cac2c7748f526ecd9e677da9e9deba1d6364f7df164b4bff9cfcf303eab21a
+  bundleDigest: sha256:3c7f536d6f9e5dc799a97998c7e4643b65853f796917748753338d4e990f1856
 - name: ceph-csi-drivers
   chart: ceph-csi-drivers
   version: 1.0.4
