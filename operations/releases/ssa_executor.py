@@ -393,17 +393,71 @@ class Executor:
             raise Rejected(rollback_reason)
         return rollback_digest, f"rollback restored previous healthy digest after: {reason}"
 
+    @staticmethod
+    def history_entry(state: dict) -> dict:
+        return {key: state[key] for key in (
+            "bundleReference", "payloadDigest", "appliedDigest", "inventoryDigest")}
+
+    def validate_explicit_rollback(self, previous: dict, operation: dict, target_manifest: dict,
+                                   target_objects: list[dict], current_bundle_path: Path | None,
+                                   rollback_stages: set[str]) -> None:
+        if not operation.get("approvalRef"):
+            raise Rejected("explicit rollback requires an approval reference")
+        if not previous:
+            raise Rejected("explicit rollback requires accepted release state")
+        accepted = next((item for item in previous.get("history", [])
+                         if item["appliedDigest"] == operation["bundle"]["digest"]), None)
+        if not accepted:
+            raise Rejected("rollback digest is not present in accepted signed history")
+        if (accepted["payloadDigest"] != operation["bundle"]["payloadDigest"] or
+                accepted["inventoryDigest"] != target_manifest["inventoryDigest"]):
+            raise Rejected("rollback bundle differs from accepted signed history")
+        if current_bundle_path is None:
+            raise Rejected("explicit rollback requires the currently accepted bundle")
+        current_bytes = current_bundle_path.read_bytes()
+        if digest(current_bytes) != previous["payloadDigest"]:
+            raise Rejected("current accepted bundle payload digest mismatch")
+        current_manifest, current_objects = load_archive(current_bundle_path)
+        if current_manifest["inventory"] != target_manifest["inventory"]:
+            raise Rejected("automatic rollback cannot change inventory")
+        target_by_identity = {object_identity(item): item for item in target_objects}
+        current_by_identity = {object_identity(item): item for item in current_objects}
+        allowed_identities = {
+            identity
+            for stage in target_manifest.get("stages", [])
+            if stage["name"] in rollback_stages
+            for identity in stage["inventory"]
+        }
+        if not allowed_identities:
+            raise Rejected("automatic rollback stage selection is empty")
+        # The contract check is repeated by the caller before any apply. Protected
+        # kinds are never eligible even if a malformed bundle places them in runtime.
+        for identity in allowed_identities:
+            item = target_by_identity[identity]
+            if item["kind"] in PROTECTED_KINDS:
+                raise Rejected("automatic rollback stage contains a protected object")
+        changed = {
+            identity for identity in target_by_identity
+            if canonical(target_by_identity[identity]) != canonical(current_by_identity[identity])
+        }
+        outside = changed - allowed_identities
+        if outside:
+            raise Rejected(f"automatic rollback changes objects outside approved stages: {sorted(outside)}")
+
     def reconcile(self, contract: dict, operation: dict, bundle_path: Path, state_root: Path,
-                  verify_signature: bool = True, stages: set[str] | None = None, finalize: bool = True) -> dict:
+                  verify_signature: bool = True, stages: set[str] | None = None, finalize: bool = True,
+                  current_bundle_path: Path | None = None, rollback_stages: set[str] | None = None) -> dict:
         started = self.now()
         validate_schema(operation, "release-operation.schema.json")
         store = Store(state_root, operation["releaseId"])
         with store.lock():
-            return self._reconcile_locked(contract, operation, bundle_path, store, started, verify_signature, stages, finalize)
+            return self._reconcile_locked(contract, operation, bundle_path, store, started, verify_signature, stages,
+                                          finalize, current_bundle_path, rollback_stages or set())
 
     def _reconcile_locked(self, contract: dict, operation: dict, bundle_path: Path, store: Store,
                           started: dt.datetime, verify_signature: bool, selected_stages: set[str] | None,
-                          finalize: bool) -> dict:
+                          finalize: bool, current_bundle_path: Path | None,
+                          rollback_stages: set[str]) -> dict:
         manifest, objects, request_digest = self.validate(contract, operation, bundle_path, store)
         cached = store.result(operation["operationId"])
         if cached:
@@ -411,6 +465,17 @@ class Executor:
         if verify_signature:
             self.verify_signature(operation)
         previous = store.state()
+        if operation["action"] == "rollback":
+            self.validate_explicit_rollback(
+                previous, operation, manifest, objects, current_bundle_path, rollback_stages)
+            manual = set(contract["spec"]["lifecycle"].get("manualRollbackKinds", []))
+            by_identity_for_rollback = {object_identity(item): item for item in objects}
+            rollback_identities = {
+                identity for stage in manifest.get("stages", []) if stage["name"] in rollback_stages
+                for identity in stage["inventory"]
+            }
+            if any(by_identity_for_rollback[identity]["kind"] in manual for identity in rollback_identities):
+                raise Rejected("automatic rollback stage contains a manual-approval object")
         if operation["action"] in {"suspend", "resume", "reset"}:
             if not previous:
                 raise Rejected(f'{operation["action"]} requires accepted release state')
@@ -482,6 +547,11 @@ class Executor:
         elif finalize:
             self.prune(previous, set(manifest["inventory"]), contract, manager)
             store.cache_bundle(bundle_path, operation["bundle"]["digest"])
+            history = list(previous.get("history", [])) if previous else []
+            if previous:
+                history.append(self.history_entry(previous))
+            history = [item for item in history if item["appliedDigest"] != operation["bundle"]["digest"]]
+            history = list({item["appliedDigest"]: item for item in history}.values())[-10:]
             state = {
                 "schemaVersion": "delivery.re8ch.com/accepted-state/v1alpha1",
                 "releaseId": operation["releaseId"], "lastOperationId": operation["operationId"],
@@ -490,13 +560,17 @@ class Executor:
                 "appliedDigest": operation["bundle"]["digest"],
                 "healthyDigest": operation["bundle"]["digest"], "inventoryDigest": manifest["inventoryDigest"],
                 "inventory": manifest["inventory"], "objectRefs": [object_ref(item) for item in objects],
-                "sequence": operation["sequence"], "updatedAt": self.now().isoformat(), "blocked": False,
+                "history": history, "sequence": operation["sequence"],
+                "updatedAt": self.now().isoformat(), "blocked": False,
             }
             store.accept(state)
         if not finalize:
             return {"apiVersion": "delivery.re8ch.com/stage-result/v1alpha1", "operationId": operation["operationId"],
                     "releaseId": operation["releaseId"], "stages": [stage["name"] for stage in stages],
                     "outcome": "healthy", "health": {"status": "healthy", "reason": reason}}
+        if operation["action"] == "rollback" and outcome == "healthy":
+            outcome = "rolled-back"
+            rollback_digest = operation["bundle"]["digest"]
         result = {
             "apiVersion": "delivery.re8ch.com/release-result/v1alpha1",
             "operationId": operation["operationId"], "releaseId": operation["releaseId"],
@@ -523,6 +597,8 @@ def main() -> int:
     parser.add_argument("--no-stage-apply", action="store_true",
                         help="finalize and persist the signed inventory without applying any bundle stage")
     parser.add_argument("--partial", action="store_true")
+    parser.add_argument("--current-bundle", type=Path)
+    parser.add_argument("--rollback-stage", action="append", default=[])
     args = parser.parse_args()
     if args.no_stage_apply and args.stage:
         parser.error("--no-stage-apply cannot be combined with --stage")
@@ -532,7 +608,9 @@ def main() -> int:
     operation = json.loads(args.operation.read_text())
     selected_stages = set() if args.no_stage_apply else (set(args.stage) if args.stage else None)
     result = Executor().reconcile(contract, operation, args.bundle, args.state_dir,
-                                  stages=selected_stages, finalize=not args.partial)
+                                  stages=selected_stages, finalize=not args.partial,
+                                  current_bundle_path=args.current_bundle,
+                                  rollback_stages=set(args.rollback_stage))
     print(json.dumps(result, sort_keys=True))
     return 0
 

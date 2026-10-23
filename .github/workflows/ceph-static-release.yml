@@ -65,10 +65,15 @@ jobs:
       run: |
         set -euo pipefail
         repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"
-        approved="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
-        test "$(jq -r .spec.approvedDigest "$RUNNER_TEMP/operation-resource.json")" = "$approved"
+        projected="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        approved="$(jq -r .spec.approvedDigest "$RUNNER_TEMP/operation-resource.json")"
+        if [[ "$ACTION" != rollback ]]; then test "$approved" = "$projected"; fi
         mkdir -p "$RUNNER_TEMP/bundle"
         flux pull artifact "${repository}@${approved}" --output "$RUNNER_TEMP/bundle"
+        if [[ "$ACTION" == rollback ]]; then
+          mkdir -p "$RUNNER_TEMP/current-bundle"
+          flux pull artifact "${repository}@${projected}" --output "$RUNNER_TEMP/current-bundle"
+        fi
         state_name="ssa-state-${RELEASE}"
         kubectl get configmap "$state_name" -n rook-ceph -o json > "$RUNNER_TEMP/state-configmap.json"
         python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-configmap.json" --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE"
@@ -80,17 +85,19 @@ jobs:
       run: |
         set -euo pipefail
         args=()
-        for stage in crd-schema cluster-rbac; do
-          if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
-            args+=(--stage "$stage")
-          fi
-        done
+        if [[ "$ACTION" != rollback ]]; then
+          for stage in crd-schema cluster-rbac; do
+            if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
+              args+=(--stage "$stage")
+            fi
+          done
+        fi
         if ((${#args[@]})); then
           python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
             --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" --partial > "$RUNNER_TEMP/infra-result.json"
         else
           jq -n --arg operation "${{ inputs.operation_id }}" --arg release "$RELEASE" \
-            '{apiVersion:"delivery.re8ch.com/stage-result/v1alpha1",operationId:$operation,releaseId:$release,stages:[],outcome:"healthy",health:{status:"healthy",reason:"bundle has no infra stages"}}' \
+            '{apiVersion:"delivery.re8ch.com/stage-result/v1alpha1",operationId:$operation,releaseId:$release,stages:[],outcome:"healthy",health:{status:"healthy",reason:"bundle has no infra stages, or automatic rollback deliberately skips them"}}' \
             > "$RUNNER_TEMP/infra-result.json"
         fi
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
@@ -141,9 +148,15 @@ jobs:
         set -euo pipefail
         kubectl get releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system -o json > "$RUNNER_TEMP/operation-resource.json"
         kubectl get staticrelease.delivery.re8ch.com "$RELEASE" -n flux-system -o json > "$RUNNER_TEMP/static-release.json"
-        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"; approved="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"
+        projected="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        approved="$(jq -r .spec.approvedDigest "$RUNNER_TEMP/operation-resource.json")"
         mkdir -p "$RUNNER_TEMP/bundle"
         flux pull artifact "${repository}@${approved}" --output "$RUNNER_TEMP/bundle"
+        if [[ "$ACTION" == rollback ]]; then
+          mkdir -p "$RUNNER_TEMP/current-bundle"
+          flux pull artifact "${repository}@${projected}" --output "$RUNNER_TEMP/current-bundle"
+        fi
         kubectl get configmap "ssa-state-${RELEASE}" -n rook-ceph -o json > "$RUNNER_TEMP/state-configmap.json"
         python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-configmap.json" --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE"
         python operations/releases/ceph_operation.py --resource "$RUNNER_TEMP/operation-resource.json" --static-release "$RUNNER_TEMP/static-release.json" \
@@ -155,14 +168,20 @@ jobs:
       run: |
         set -euo pipefail
         args=()
-        for stage in runtime custom-resources; do
+        stages=(runtime custom-resources)
+        if [[ "$ACTION" == rollback ]]; then stages=(runtime); fi
+        for stage in "${stages[@]}"; do
           if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
             args+=(--stage "$stage")
           fi
         done
         if ((${#args[@]})); then
+          executor_args=("${args[@]}" --partial)
+          if [[ "$ACTION" == rollback ]]; then
+            executor_args+=(--current-bundle "$RUNNER_TEMP/current-bundle/release.bundle" --rollback-stage runtime)
+          fi
           python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
-            --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" --partial > "$RUNNER_TEMP/result.json"
+            --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${executor_args[@]}" > "$RUNNER_TEMP/result.json"
         else
           jq -n --arg operation "${{ inputs.operation_id }}" --arg release "$RELEASE" \
             '{apiVersion:"delivery.re8ch.com/stage-result/v1alpha1",operationId:$operation,releaseId:$release,stages:[],outcome:"healthy",health:{status:"healthy",reason:"bundle has no runtime stages"}}' \
@@ -219,15 +238,23 @@ jobs:
         set -euo pipefail
         kubectl get releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system -o json > "$RUNNER_TEMP/operation-resource.json"
         kubectl get staticrelease.delivery.re8ch.com "$RELEASE" -n flux-system -o json > "$RUNNER_TEMP/static-release.json"
-        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"; approved="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"
+        projected="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        approved="$(jq -r .spec.approvedDigest "$RUNNER_TEMP/operation-resource.json")"
         mkdir -p "$RUNNER_TEMP/bundle"
         flux pull artifact "${repository}@${approved}" --output "$RUNNER_TEMP/bundle"
+        if [[ "$ACTION" == rollback ]]; then
+          mkdir -p "$RUNNER_TEMP/current-bundle"
+          flux pull artifact "${repository}@${projected}" --output "$RUNNER_TEMP/current-bundle"
+        fi
         kubectl get configmap "ssa-state-${RELEASE}" -n rook-ceph -o json > "$RUNNER_TEMP/state-configmap.json"
         python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-configmap.json" --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE"
         python operations/releases/ceph_operation.py --resource "$RUNNER_TEMP/operation-resource.json" --static-release "$RUNNER_TEMP/static-release.json" \
           --contract "contracts/releases/ceph/${RELEASE}.yaml" --metadata "$RUNNER_TEMP/bundle/bundle-metadata.json" --state-dir "$RUNNER_TEMP/state" --output "$RUNNER_TEMP/operation.json"
         args=()
-        if [[ "$ACTION" == reconcile || "$ACTION" == force-reconcile || "$ACTION" == rollback ]]; then
+        if [[ "$ACTION" == rollback ]]; then
+          args+=(--no-stage-apply --current-bundle "$RUNNER_TEMP/current-bundle/release.bundle" --rollback-stage runtime)
+        elif [[ "$ACTION" == reconcile || "$ACTION" == force-reconcile ]]; then
           for stage in storage-class health-acceptance; do
             if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
               args+=(--stage "$stage")

@@ -34,11 +34,24 @@ def main() -> int:
     contract_digest = digest(canonical(contract))
     if spec["contractDigest"] != contract_digest or release["spec"]["contractDigest"] != contract_digest:
         raise SystemExit("contract digest mismatch")
-    bundle_digest = release["spec"].get("bundleDigest")
-    if not bundle_digest or spec["approvedDigest"] != bundle_digest:
-        raise SystemExit("operation does not approve the Git-projected bundle digest")
     state_path = args.state_dir / "state" / f"{release_id}.json"
     state = json.loads(state_path.read_text()) if state_path.exists() else None
+    projected_digest = release["spec"].get("bundleDigest")
+    bundle_digest = spec["approvedDigest"]
+    if not projected_digest:
+        raise SystemExit("StaticRelease has no Git-projected bundle digest")
+    if spec["action"] == "rollback":
+        if not state or state["appliedDigest"] != projected_digest:
+            raise SystemExit("rollback requires the accepted digest to match the Git projection")
+        if not spec.get("approvalRef"):
+            raise SystemExit("rollback requires an approval reference")
+        history = next((item for item in state.get("history", []) if item["appliedDigest"] == bundle_digest), None)
+        if not history:
+            raise SystemExit("rollback digest is not present in accepted signed history")
+        if metadata["payloadDigest"] != history["payloadDigest"] or metadata["inventoryDigest"] != history["inventoryDigest"]:
+            raise SystemExit("rollback bundle metadata does not match accepted signed history")
+    elif bundle_digest != projected_digest:
+        raise SystemExit("operation does not approve the Git-projected bundle digest")
     now = dt.datetime.now(dt.timezone.utc)
     timeout = min(int(spec["timeoutSeconds"]), 3600)
     provenance = contract["spec"]["provenance"]

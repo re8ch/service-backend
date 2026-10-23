@@ -75,6 +75,7 @@ spec:
             type: object
             x-kubernetes-validations:
             - {rule: "self == oldSelf", message: ReleaseOperation spec is immutable}
+            - {rule: "self.action != 'rollback' || has(self.approvalRef)", message: rollback requires approvalRef}
             required: [releaseRef, action, approvedDigest, contractDigest, requestedBy, idempotencyKey, timeoutSeconds]
             properties:
               releaseRef: {type: string, maxLength: 63}
