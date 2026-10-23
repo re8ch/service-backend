@@ -520,12 +520,19 @@ def main() -> int:
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--stage", action="append", default=[])
+    parser.add_argument("--no-stage-apply", action="store_true",
+                        help="finalize and persist the signed inventory without applying any bundle stage")
     parser.add_argument("--partial", action="store_true")
     args = parser.parse_args()
+    if args.no_stage_apply and args.stage:
+        parser.error("--no-stage-apply cannot be combined with --stage")
+    if args.no_stage_apply and args.partial:
+        parser.error("--no-stage-apply cannot be combined with --partial")
     contract = yaml.safe_load(args.contract.read_text())
     operation = json.loads(args.operation.read_text())
+    selected_stages = set() if args.no_stage_apply else (set(args.stage) if args.stage else None)
     result = Executor().reconcile(contract, operation, args.bundle, args.state_dir,
-                                  stages=set(args.stage) if args.stage else None, finalize=not args.partial)
+                                  stages=selected_stages, finalize=not args.partial)
     print(json.dumps(result, sort_keys=True))
     return 0
 
