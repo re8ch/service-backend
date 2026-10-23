@@ -140,6 +140,8 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert pod["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     assert {item["name"] for item in pod["initContainers"]} == {"copy-artifact", "copy-signature"}
+    assert all(item["env"] == [{"name": "DOCKER_CONFIG", "value": "/auth"}] for item in pod["initContainers"])
+    assert all("--registry-config" not in item["args"] for item in pod["initContainers"])
     assert {item["image"] for item in pod["initContainers"]} == {
         "registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579"
     }
