@@ -30,6 +30,7 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-executor-main-domain',
         'https://kube-api.re8ch.com/release-executor-ceph-infra',
         'https://kube-api.re8ch.com/release-executor-ceph-runtime',
+        'https://kube-api.re8ch.com/release-artifact-publisher',
     ]
     expressions = {item['expression'] for item in github['claimValidationRules']}
     assert {
@@ -46,6 +47,10 @@ def test_all_control_planes_share_supabase_authentication():
         "claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain'",
         "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main'",
         "claims.environment == 'release-main-domain'",
+        "claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher'",
+        "re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main",
+        "re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main",
+        "claims.environment == 'release-ceph-compiler'",
         "claims.event_name == 'workflow_dispatch'",
     ):
         assert required in route
@@ -53,6 +58,8 @@ def test_all_control_planes_share_supabase_authentication():
     assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
     assert "github-actions:release-executor-main-domain:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-executor:main-domain" in github['claimMappings']['groups']['expression']
+    assert "github-actions:release-artifact-publisher:" in github['claimMappings']['username']['expression']
+    assert "re8ch:release-artifact-publisher" in github['claimMappings']['groups']['expression']
     configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]
     configs.append(ROOT.parents[3] / 'operations/network/manifests/network/private-transit/mubao-k3s-config.yaml')
     for path in configs:
