@@ -1,5 +1,5 @@
 # Rook v1.20.3 pilot settings for the RE8CH K3s v1.36 cluster.
-# R640 is the sole OSD host. A1/B1 disks are node-local pools and are never
+# restricted-node-6dc3f140f9 is the sole OSD host. A1/B1 disks are node-local pools and are never
 # eligible for Rook discovery; loop-backed images are deliberately rejected.
 allowLoopDevices: false
 
@@ -25,3 +25,8 @@ resources:
 
 discover:
   nodeAffinity: "scheduling.re8ch.com/capability-storage-ceph-osd=true"
+
+# Runtime-only canary used to prove signed SSA rollback. This changes only the
+# operator Pod template and is removed after the rehearsal is accepted.
+annotations:
+  delivery.re8ch.com/rollback-drill: "2026-10-24"
