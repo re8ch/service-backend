@@ -5,7 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: release-compat-controller, namespace: flux-system}
 spec:
-  replicas: 0
+  replicas: 2
   selector: {matchLabels: {delivery.re8ch.com/component: release-compat-controller}}
   template:
     metadata:
@@ -17,7 +17,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: controller
-        image: ghcr.io/re8ch/release-compat-controller@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        image: ghcr.io/re8ch/release-compat-controller@sha256:fbef91abaf50ba3627ddb8ec653f5712c8d3f70ae1b145ef115432d1f8d9e29c
         imagePullPolicy: IfNotPresent
         ports: [{name: http-prom, containerPort: 8080}, {name: healthz, containerPort: 8081}]
         readinessProbe: {httpGet: {path: /readyz, port: healthz}}
@@ -51,7 +51,7 @@ spec:
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: dispatcher
-        image: ghcr.io/re8ch/release-compat-controller@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        image: ghcr.io/re8ch/release-compat-controller@sha256:fbef91abaf50ba3627ddb8ec653f5712c8d3f70ae1b145ef115432d1f8d9e29c
         env:
         - {name: MODE, value: dispatcher}
         - name: GITHUB_APP_ID
