@@ -315,7 +315,7 @@ class Executor:
             with tempfile.TemporaryDirectory(prefix="re8ch-rollback-") as temporary:
                 self.command([
                     "flux", "pull", "artifact",
-                    previous["bundleReference"].removeprefix("oci://") + "@" + rollback_digest,
+                    previous["bundleReference"] + "@" + rollback_digest,
                     "--output", temporary,
                 ], timeout=300)
                 fetched = Path(temporary) / "release.bundle"
