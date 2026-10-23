@@ -82,7 +82,7 @@ def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
     assert {item["metadata"]["name"].removeprefix("reconcile-main-legacy-") for item in legacy} == DOMAINS
     state = {item["metadata"]["name"].removeprefix("reconcile-main-legacy-"): item["spec"]["suspend"]
              for item in legacy}
-    assert state == {domain: domain != "operations-ui" for domain in DOMAINS}
+    assert state == {domain: False for domain in DOMAINS}
     assert all(item["spec"]["prune"] is False for item in legacy)
     assert {item["spec"]["path"] for item in legacy} == {
         f"./clusters/re8ch/domains/main-legacy/{domain}" for domain in DOMAINS
