@@ -1,5 +1,23 @@
 # Task: build the unified immutable-bundle SSA executor
 
+## Implementation status
+
+The Ceph production cohort completed the first end-to-end implementation on
+2026-10-24. Three Helm releases now execute as signed OCI bundles through
+audience-specific infra/runtime identities, bounded SSA, durable inventory and
+health acceptance. The independent `re8ch-release-dispatcher` GitHub App and
+Flux compatibility controller are live, and a compatibility request completed
+as `ReleaseOperation/rook-ceph-9cd3f4260b72b501` through Actions run
+`40026749978`.
+
+The implementation evidence, operational lessons, repeatable cutover procedure
+and dispatch plan for the four autonomous domains plus the five main-domain
+splits are maintained in
+[`../static-release-domain-handoff.md`](../static-release-domain-handoff.md) and
+[`../static-release-domain-dispatch.yaml`](../static-release-domain-dispatch.yaml).
+The remaining work is domain expansion and controller retirement; the shared
+executor contract described below remains authoritative.
+
 ## Outcome
 
 Provide one minimal executor that can take ownership of qualified Helm and

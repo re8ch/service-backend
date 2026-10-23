@@ -1,0 +1,263 @@
+apiVersion: delivery.re8ch.com/domain-migration-dispatch/v1alpha1
+kind: StaticReleaseDomainDispatch
+metadata:
+  name: flux-replacement-wave-after-ceph
+  observedAt: "2026-10-24T05:50:00+08:00"
+authority:
+  desiredState: github-main-and-signed-oci
+  runtime: kubernetes
+  compatibilityOnly:
+  - flux-crd-status
+  - flux-metrics
+  - headlamp-flux-plugin
+references:
+  handoff: operations/migrations/github-first-control-plane/static-release-domain-handoff.md
+  executorContract: operations/migrations/github-first-control-plane/tasks/wave-5-unified-release-executor.md
+  cutoverRunbook: operations/migrations/github-first-control-plane/flux-cutover-runbook.md
+  autonomousAuthority: operations/flux-federation/authority.yaml
+  mainCohort: operations/releases/main-domain-ssa/cohort.yaml
+provenBaseline:
+  gitRevision: c78ed25c31260fbb4404b54b719cd824481dcd89
+  controllerImage: registry.re8ch.com/functions-shared/release-compat-controller@sha256:c691ff19e5d368008556c4274c749ab2f3510843551b8b7a3b31becc7954eda9
+  reconcileOperation: rook-ceph-9cd3f4260b72b501
+  reconcileWorkflowRun: 40026749978
+  releases:
+  - name: rook-ceph
+    digest: sha256:3c7f536d6f9e5dc799a97998c7e4643b65853f796917748753338d4e990f1856
+  - name: ceph-csi-drivers
+    digest: sha256:be4732be7a612517deb37adea3dd733701968b2494de2baeb2ffcb7b61bbd716
+  - name: rook-ceph-cluster
+    digest: sha256:032726de18cd2b7f0511f9631fd1fcbbfa032627f1144405c319e6f203c78b3f
+sharedGates: &sharedGates
+- locked-renderer-inputs
+- deterministic-signed-bundle
+- harbor-copy-signature-verified
+- domain-specific-oidc-and-minimal-rbac
+- live-inventory-classified
+- server-side-dry-run-clean
+- takeover-and-idempotent-replay
+- drift-recovery-proven
+- rollback-policy-proven
+- github-outage-safe
+- compatibility-status-events-metrics-verified
+- zero-old-controller-writes
+- finalizers-orphaned-safely
+- consumer-count-zero-before-controller-removal
+dispatches:
+- id: autonomous-agent-runtime
+  scope: existing-autonomous-domain
+  authorityDomain: agent-runtime
+  controllerNamespace: flux-agent-system
+  risk: medium
+  liveSnapshot:
+    helmReleases: 1
+    kustomizations: 2
+    helmReleaseNames: [toolhive-operator]
+  recommendedCanary: toolhive-operator
+  dependencies: []
+  gates: *sharedGates
+  completion:
+    removeControllers: [helm-controller, kustomize-controller]
+    sourceAndNotificationRemoval: after-live-consumer-audit
+- id: autonomous-identity-access
+  scope: existing-autonomous-domain
+  authorityDomain: identity-access
+  controllerNamespace: flux-identity-system
+  risk: high
+  liveSnapshot:
+    helmReleases: 0
+    kustomizations: 1
+    helmReleaseNames: []
+  recommendedCanary: smallest-non-secret-kustomize-release
+  dependencies: []
+  notes:
+  - No HelmRelease does not mean Flux-free; migrate the remaining Kustomization and sources.
+  - Keep authentication, issuer and credential schema rollback human-approved.
+  gates: *sharedGates
+  completion:
+    removeControllers: [helm-controller, kustomize-controller]
+    sourceAndNotificationRemoval: after-live-consumer-audit
+- id: autonomous-observability-metering
+  scope: existing-autonomous-domain
+  authorityDomain: observability-metering
+  controllerNamespace: flux-observability-system
+  risk: medium
+  liveSnapshot:
+    helmReleases: 5
+    kustomizations: 1
+    helmReleaseNames:
+    - birfucate-metering
+    - incidentrelay
+    - re8ch-kube-state-metrics
+    - re8ch-opentelemetry-operator
+    - victoria-metrics-operator
+  recommendedCanary: re8ch-kube-state-metrics
+  dependencies:
+  - cleanup-legacy-observability-projections
+  notes:
+  - Preserve telemetry continuity while replacing its deployment authority.
+  - Operator CRDs and generated collectors require separate ownership classification.
+  gates: *sharedGates
+  completion:
+    removeControllers: [helm-controller, kustomize-controller]
+    sourceAndNotificationRemoval: after-live-consumer-audit
+- id: autonomous-networking
+  scope: existing-autonomous-domain
+  authorityDomain: networking
+  controllerNamespace: flux-network-system
+  risk: critical
+  liveSnapshot:
+    helmReleases: 5
+    kustomizations: 1
+    helmReleaseNames:
+    - advanced-fabric
+    - among-clusters-agent
+    - among-clusters-hub
+    - cilium
+    - public-edge-manager
+  recommendedCanary: among-clusters-hub
+  dependencies:
+  - autonomous-agent-runtime
+  - autonomous-observability-metering
+  notes:
+  - Migrate last among the existing autonomous domains.
+  - Cilium and public delivery require node-aware health plus real service-VIP and public-authority probes.
+  - Read operations/network/manifests/network/public-mesh/inventory.json before any restricted-node-6dc3f140f9 public-path change.
+  gates: *sharedGates
+  completion:
+    removeControllers: [helm-controller, kustomize-controller]
+    sourceAndNotificationRemoval: after-live-consumer-audit
+- id: cleanup-legacy-observability-projections
+  scope: central-cleanup
+  authorityDomain: observability-metering
+  controllerNamespace: observability-system
+  risk: low
+  liveSnapshot:
+    helmReleases: 3
+    kustomizations: 0
+    helmReleaseNames:
+    - re8ch-kube-state-metrics
+    - re8ch-opentelemetry-operator
+    - victoria-metrics-operator
+    state: suspended-artifact-failed-duplicates
+  recommendedCanary: null
+  dependencies: []
+  gates:
+  - prove-not-a-live-consumer
+  - preserve-required-rollback-evidence
+  - remove-finalizers-with-orphan-semantics
+  - verify-autonomous-owner-healthy
+  completion:
+    removeControllers: []
+    sourceAndNotificationRemoval: not-applicable
+- id: main-data-storage
+  scope: split-main-domain
+  authorityDomain: data-storage
+  controllerNamespace: to-be-created
+  risk: critical
+  staticCohort:
+    releases: 6
+    objects: 26
+    legacyShardObjects: 16
+  recommendedCanary: main-data-storage-toolhive-system
+  dependencies:
+  - proven-ceph-baseline
+  notes:
+  - Ceph StaticReleases remain separate protected infrastructure dependencies.
+  - Persistent data, StorageClasses and schema objects require manual rollback policy.
+  gates: *sharedGates
+  completion:
+    createIndependentAuthority: true
+    removeMainFluxConsumers: after-all-data-storage-releases-healthy
+- id: main-commerce-billing
+  scope: split-main-domain
+  authorityDomain: commerce-billing
+  controllerNamespace: to-be-created
+  risk: high
+  staticCohort:
+    releases: 1
+    objects: 28
+    legacyShardObjects: 14
+  recommendedCanary: main-commerce-billing-payments
+  dependencies: []
+  notes:
+  - Ordinary payment/business state must remain in authenticated service APIs, not Git.
+  - Product release publishers and platform guardrails need distinct field ownership.
+  gates: *sharedGates
+  completion:
+    createIndependentAuthority: true
+    removeMainFluxConsumers: after-commerce-runtime-and-guardrail-split
+- id: main-delivery-products
+  scope: split-main-domain
+  authorityDomain: delivery-products
+  controllerNamespace: to-be-created
+  risk: medium
+  staticCohort:
+    releases: 5
+    objects: 31
+    legacyShardObjects: 13
+  recommendedCanary: main-delivery-products-aesthete
+  dependencies: []
+  notes:
+  - Keep product-owned fast release paths separate from shared platform guardrails.
+  - Deferred ontology workloads need explicit evidence before SSA ownership transfer.
+  gates: *sharedGates
+  completion:
+    createIndependentAuthority: true
+    removeMainFluxConsumers: after-all-delivery-releases-healthy
+- id: main-operations-ui
+  scope: split-main-domain
+  authorityDomain: operations-ui
+  controllerNamespace: to-be-created
+  risk: medium
+  staticCohort:
+    releases: 4
+    objects: 44
+    legacyShardObjects: 12
+  recommendedCanary: main-operations-ui-studio-toolkit
+  dependencies: []
+  notes:
+  - Keep Headlamp compatibility validation in the acceptance suite.
+  - UI availability must not grant cluster mutation authority.
+  gates: *sharedGates
+  completion:
+    createIndependentAuthority: true
+    removeMainFluxConsumers: after-all-operations-ui-releases-healthy
+- id: main-tenant-runtime
+  scope: split-main-domain
+  authorityDomain: tenant-runtime
+  controllerNamespace: to-be-created
+  risk: high
+  staticCohort:
+    releases: 3
+    objects: 13
+    legacyShardObjects: 57
+  recommendedCanary: main-tenant-runtime-scheduler-system
+  dependencies:
+  - autonomous-identity-access
+  notes:
+  - Resolve authenticated tenant and active membership in the same organization before provider-backed writes.
+  - Keep Secret material and ordinary tenant state outside Git and bundle evidence.
+  gates: *sharedGates
+  completion:
+    createIndependentAuthority: true
+    removeMainFluxConsumers: after-all-tenant-runtime-releases-healthy
+centralRetirementInputs:
+  fluxSystem:
+    realHelmReleases: 12
+    kustomizations: 39
+    knownExceptions:
+    - advanced-fabric: ValuesError
+    - public-edge-manager: suspended
+    - toolhive-operator: suspended-progressing
+  compatibilityProjections:
+  - rook-ceph
+  - ceph-csi-drivers
+  - rook-ceph-cluster
+  finalGate:
+  - every-real-consumer-assigned-to-one-domain
+  - all-domain-executors-proven
+  - helm-controller-real-consumers-zero
+  - kustomize-controller-real-consumers-zero
+  - no-old-finalizers-or-managed-fields-writes
+  - flux-cli-headlamp-and-metrics-compatibility-continuous
