@@ -264,9 +264,9 @@ class Executor:
                 return False, f'{check["jsonPointer"]} differs from contract'
         if ref["kind"] not in READY_KINDS:
             return True, "contract health checks satisfied"
-        generation = live.get("metadata", {}).get("generation", 0)
         status = live.get("status", {})
-        if status.get("observedGeneration", 0) < generation:
+        generation = live.get("metadata", {}).get("generation", 0)
+        if ref["kind"] != "Job" and status.get("observedGeneration", 0) < generation:
             return False, "generation not observed"
         spec = live.get("spec", {})
         if ref["kind"] in {"Deployment", "StatefulSet"}:

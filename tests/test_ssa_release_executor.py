@@ -139,6 +139,12 @@ def test_explicit_health_check_reads_live_json_pointer():
     assert unhealthy.healthy(item, [check]) == (False, "/data/authority differs from contract")
 
 
+def test_completed_job_does_not_require_observed_generation():
+    item = {"apiVersion": "batch/v1", "kind": "Job", "metadata": {"name": "migrate", "namespace": "demo"}}
+    live = {"metadata": {"generation": 1}, "spec": {"completions": 1}, "status": {"succeeded": 1}}
+    assert executor.Executor(runner=Runner(live=live)).healthy(item) == (True, "job incomplete")
+
+
 def test_rollback_pull_keeps_oci_scheme(tmp_path):
     value, operation, bundle_path = prepare(tmp_path)
     archive = bundle_path.read_bytes()
