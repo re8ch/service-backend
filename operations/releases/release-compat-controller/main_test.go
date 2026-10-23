@@ -2,10 +2,25 @@ package main
 
 import (
 	"testing"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+func TestOperationExpiryUsesCreationTimestampAndTimeout(t *testing.T) {
+	created := time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC)
+	operation := &unstructured.Unstructured{Object: map[string]any{
+		"spec": map[string]any{"timeoutSeconds": int64(1800)},
+	}}
+	operation.SetCreationTimestamp(metav1.NewTime(created))
+	if operationExpired(operation, created.Add(29*time.Minute)) {
+		t.Fatal("operation expired before its timeout")
+	}
+	if !operationExpired(operation, created.Add(31*time.Minute)) {
+		t.Fatal("operation remained dispatchable after its timeout")
+	}
+}
 
 func TestOperationNameIsStableAndActionScoped(t *testing.T) {
 	a := operationName("rook-ceph", "reconcile", "123")
