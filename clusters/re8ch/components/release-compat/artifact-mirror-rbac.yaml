@@ -12,8 +12,7 @@ rules:
   verbs: [create]
 - apiGroups: [batch]
   resources: [jobs]
-  resourceNames: [release-artifact-mirror]
-  verbs: [get, watch, delete]
+  verbs: [get, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -39,7 +38,7 @@ spec:
   validations:
   - expression: >-
       object.metadata.namespace == 'flux-system' &&
-      object.metadata.name == 'release-artifact-mirror' &&
+      object.metadata.name.matches('^release-artifact-mirror-[0-9]{1,20}-[0-9a-f]{12}$') &&
       object.metadata.labels['delivery.re8ch.com/component'] == 'artifact-mirror' &&
       object.metadata.annotations['delivery.re8ch.com/operation-id'].matches('^[0-9]{1,20}$')
     message: artifact publisher may create only the audited mirror Job
@@ -49,7 +48,7 @@ spec:
       object.spec.template.spec.restartPolicy == 'Never' &&
       object.spec.template.spec.hostNetwork == true &&
       object.spec.template.spec.dnsPolicy == 'ClusterFirstWithHostNet' &&
-      object.spec.template.spec.nodeSelector == {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'} &&
+      object.spec.template.spec.nodeSelector == {'kubernetes.io/hostname': 'r640'} &&
       object.spec.template.spec.securityContext.fsGroup == 65532 &&
       object.spec.template.spec.securityContext.fsGroupChangePolicy == 'OnRootMismatch' &&
       object.spec.template.spec.initContainers.size() == 2 &&

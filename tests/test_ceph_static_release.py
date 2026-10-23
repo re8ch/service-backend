@@ -140,7 +140,7 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
         "123",
     )
     pod = job["spec"]["template"]["spec"]
-    assert job["metadata"]["name"] == "release-artifact-mirror"
+    assert job["metadata"]["name"] == "release-artifact-mirror-123-111111111111"
     assert pod["automountServiceAccountToken"] is False
     assert pod["hostNetwork"] is True
     assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
@@ -161,6 +161,35 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     assert pod["volumes"][0]["secret"]["defaultMode"] == 0o440
     assert pod["containers"][0]["name"] == "verify-signature"
     assert pod["volumes"][0]["secret"]["secretName"] == "release-artifact-mirror-auth"
+
+
+def test_protected_harbor_mirror_jobs_are_operation_scoped():
+    import importlib.util
+
+    path = ROOT / "operations/releases/protected_harbor_mirror.py"
+    spec = importlib.util.spec_from_file_location("protected_harbor_mirror_scoped", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    signer = "https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main"
+    first = module.manifest(
+        "ghcr.io/re8ch/service-backend-chart/rook-ceph",
+        "registry.re8ch.com/functions-shared/rook-ceph",
+        "sha256:" + "1" * 64,
+        "run-123",
+        signer,
+        "123",
+    )
+    second = module.manifest(
+        "ghcr.io/re8ch/service-backend-chart/ceph-csi-drivers",
+        "registry.re8ch.com/functions-shared/ceph-csi-drivers",
+        "sha256:" + "2" * 64,
+        "run-456",
+        signer,
+        "456",
+    )
+    assert first["metadata"]["name"] != second["metadata"]["name"]
+    assert first["metadata"]["annotations"]["delivery.re8ch.com/operation-id"] == "123"
+    assert second["metadata"]["annotations"]["delivery.re8ch.com/operation-id"] == "456"
 
 
 def test_mirror_wait_refreshes_only_the_exact_actions_oidc_audience(monkeypatch):
