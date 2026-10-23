@@ -5,6 +5,7 @@ resources:
 - admission.yaml
 - rbac.yaml
 - ceph-executor-rbac.yaml
+- artifact-mirror-rbac.yaml
 - controller.yaml
 - ceph-static-releases.yaml
 - storage-smoke.yaml
