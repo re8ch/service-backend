@@ -76,7 +76,7 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
                     "serviceAccountName": "release-artifact-mirror",
                     "automountServiceAccountToken": False,
                     "restartPolicy": "Never",
-                    "nodeSelector": {"kubernetes.io/hostname": "amdwsl-zt"},
+                    "nodeSelector": {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"},
                     "imagePullSecrets": [{"name": "release-artifact-mirror-auth"}],
                     "initContainers": [
                         {

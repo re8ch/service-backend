@@ -136,7 +136,7 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     pod = job["spec"]["template"]["spec"]
     assert job["metadata"]["name"] == "release-artifact-mirror"
     assert pod["automountServiceAccountToken"] is False
-    assert pod["nodeSelector"] == {"kubernetes.io/hostname": "amdwsl-zt"}
+    assert pod["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
     assert {item["name"] for item in pod["initContainers"]} == {"copy-artifact", "copy-signature"}
     assert {item["image"] for item in pod["initContainers"]} == {
         "registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579"
