@@ -1,0 +1,46 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-delivery-products-farseer
+spec:
+  target:
+    cluster: re8ch
+    namespace: farseer
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-delivery-products-farseer
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-delivery-products-farseer
+    resources:
+    - apps/Deployment
+    - core/ConfigMap
+    - core/Service
+    objectNames:
+    - farseer-cos-origin
+    - farseer-web
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:3322dbd9283fb5f9a734149562f14561541d2476131410da69e778cead01b5bc
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - apps/Deployment/farseer/farseer-web
+    - core/ConfigMap/farseer/farseer-cos-origin
+    - core/Service/farseer/farseer-web

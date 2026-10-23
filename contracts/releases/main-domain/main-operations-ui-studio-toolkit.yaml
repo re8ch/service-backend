@@ -1,0 +1,60 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-operations-ui-studio-toolkit
+spec:
+  target:
+    cluster: re8ch
+    namespace: studio-toolkit
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-operations-ui-studio-toolkit
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-operations-ui-studio-toolkit
+    resources:
+    - apps/Deployment
+    - batch/CronJob
+    - core/PersistentVolumeClaim
+    - core/Service
+    - gateway.networking.k8s.io/HTTPRoute
+    objectNames:
+    - studio-api
+    - studio-blobs
+    - studio-db-ro
+    - studio-db-rw
+    - studio-retention
+    - studio-worker-r640
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:7d1586a58bba5db6773342263a6a913f23a4dbac2ee58f2274394c0e7b000cfd
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - apps/Deployment/studio-toolkit/studio-api
+    - apps/Deployment/studio-toolkit/studio-db-ro
+    - apps/Deployment/studio-toolkit/studio-db-rw
+    - apps/Deployment/studio-toolkit/studio-worker-r640
+    - batch/CronJob/studio-toolkit/studio-retention
+    - core/Service/studio-toolkit/studio-api
+    - core/Service/studio-toolkit/studio-db-ro
+    - core/Service/studio-toolkit/studio-db-rw
+    - gateway.networking.k8s.io/HTTPRoute/studio-toolkit/studio-api
+    - gateway.networking.k8s.io/HTTPRoute/studio-toolkit/studio-db-ro
+    - gateway.networking.k8s.io/HTTPRoute/studio-toolkit/studio-db-rw

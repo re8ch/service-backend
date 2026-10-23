@@ -1,0 +1,48 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-tenant-runtime-scheduling-system
+spec:
+  target:
+    cluster: re8ch
+    namespace: scheduling-system
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-tenant-runtime-scheduling-system
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-tenant-runtime-scheduling-system
+    resources:
+    - core/ConfigMap
+    - core/ServiceAccount
+    - policy/PodDisruptionBudget
+    objectNames:
+    - node-reservation-profiles
+    - penrose-controller
+    - penrose-controller-source-5f7tbkh9db
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:348595835713716a7a4573f2e5420f13cda199652554f49137cb87932c5c8f44
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - core/ConfigMap/scheduling-system/node-reservation-profiles
+    - core/ConfigMap/scheduling-system/penrose-controller-source-5f7tbkh9db
+    - core/ServiceAccount/scheduling-system/penrose-controller
+    - policy/PodDisruptionBudget/scheduling-system/penrose-controller

@@ -1,0 +1,59 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-data-storage-cloud-disk
+spec:
+  target:
+    cluster: re8ch
+    namespace: cloud-disk
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-data-storage-cloud-disk
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-data-storage-cloud-disk
+    resources:
+    - apps/Deployment
+    - cilium.io/CiliumNetworkPolicy
+    - core/PersistentVolumeClaim
+    - core/Service
+    - core/ServiceAccount
+    - gateway.networking.k8s.io/HTTPRoute
+    - networking.k8s.io/NetworkPolicy
+    objectNames:
+    - cloud-disk
+    - cloud-disk-deny-ingress
+    - cloud-disk-entrypoints
+    - cloud-disk-internal
+    - cloud-disk-public
+    - cloud-disk-web
+    - cloud-disk-workspace
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:34663a49997e25c77424655adce90c6602ad2eca7a587d18c989d64a427bbb72
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - apps/Deployment/cloud-disk/cloud-disk
+    - cilium.io/CiliumNetworkPolicy/cloud-disk/cloud-disk-entrypoints
+    - core/Service/cloud-disk/cloud-disk-internal
+    - core/Service/cloud-disk/cloud-disk-web
+    - core/ServiceAccount/cloud-disk/cloud-disk
+    - gateway.networking.k8s.io/HTTPRoute/cloud-disk/cloud-disk-public
+    - networking.k8s.io/NetworkPolicy/cloud-disk/cloud-disk-deny-ingress

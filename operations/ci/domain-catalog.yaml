@@ -166,6 +166,7 @@ domains:
       - operations/cloud-disk/**
       - clusters/re8ch/domains/data-storage/**
       - clusters/re8ch/domains/tenant-runtime/**
+      - clusters/re8ch/domains/main-legacy/**
     roots:
       - platform/cloud-platform
       - platform/runtime-anatomy
@@ -177,6 +178,7 @@ domains:
       - clusters/re8ch/components/cloud-disk
       - clusters/re8ch/domains/data-storage
       - clusters/re8ch/domains/tenant-runtime
+      - clusters/re8ch/domains/main-legacy
     tests:
       - tests/test_cloud_platform.py
       - tests/test_cloud_platform_manifest.py

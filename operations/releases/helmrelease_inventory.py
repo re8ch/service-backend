@@ -15,6 +15,9 @@ DECISIONS = ROOT / "operations/releases/helmrelease-classifications.yaml"
 DEFAULT_INVENTORY = ROOT / "operations/releases/helmrelease-inventory.yaml"
 SKIP_NAMES = {"gotk-components.yaml"}
 SKIP_PARTS = {".git", "templates"}
+# Generated transition mirror: its HelmRelease documents are byte-identical to
+# the five source domains and must not be counted as new lifecycle consumers.
+SKIP_PREFIXES = {Path("clusters/re8ch/domains/main-legacy")}
 ALLOWED_DISPOSITIONS = {
     "retain-helm-lifecycle",
     "bundle-ssa-candidate",
@@ -37,7 +40,8 @@ def yaml_paths(scan_roots: list[Path]):
     for scan_root in scan_roots:
         for path in sorted(scan_root.rglob("*.yaml")):
             relative = path.relative_to(ROOT)
-            if path in seen or path.name in SKIP_NAMES or any(part in SKIP_PARTS for part in relative.parts):
+            if (path in seen or path.name in SKIP_NAMES or any(part in SKIP_PARTS for part in relative.parts)
+                    or any(relative.is_relative_to(prefix) for prefix in SKIP_PREFIXES)):
                 continue
             seen.add(path)
             yield path

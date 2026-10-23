@@ -1,0 +1,41 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-operations-ui-supabase-pg-re8ch
+spec:
+  target:
+    cluster: re8ch
+    namespace: supabase-pg-re8ch
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-operations-ui-supabase-pg-re8ch
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-operations-ui-supabase-pg-re8ch
+    resources:
+    - batch/Job
+    objectNames:
+    - studio-database-bootstrap-v2
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:8f140edd457f09cc2c01bc1560da29fcd5c75851e09cca83181d0e6baa776651
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - batch/Job/supabase-pg-re8ch/studio-database-bootstrap-v2
