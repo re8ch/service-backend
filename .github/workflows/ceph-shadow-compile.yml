@@ -20,7 +20,7 @@ jobs:
       with: {fetch-depth: 0}
     - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
       with: {version: '2.9.5'}
-    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b4cbd6f
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
       with: {version: v1.33.1}
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
