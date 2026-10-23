@@ -31,3 +31,10 @@ spec:
     healthTimeoutSeconds: 30
     protectedKinds: [Namespace, CustomResourceDefinition, PersistentVolume, PersistentVolumeClaim, StorageClass]
     deletionAllowlist: []
+    healthChecks:
+      - apiVersion: v1
+        kind: ConfigMap
+        namespace: api-conformance-runners
+        name: api-conformance-runner-projection-contract
+        jsonPointer: /data/authority
+        equals: flux-system-policy-boundary
