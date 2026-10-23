@@ -18,6 +18,7 @@ jwt:
       audiences:
         - https://kube-api.re8ch.com/observer
         - https://kube-api.re8ch.com/release-executor-api-conformance
+      audienceMatchPolicy: MatchAny
     claimValidationRules:
       - {expression: "claims.repository_id == '1367237854'", message: token must belong to the service-backend repository ID}
       - {expression: "claims.repository_owner_id == '283958313'", message: token must belong to the RE8CH owner ID}
