@@ -30,23 +30,34 @@ jobs:
         registry: ghcr.io
         username: '${{ github.actor }}'
         password: '${{ secrets.GITHUB_TOKEN }}'
+    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+      with:
+        registry: registry.re8ch.com
+        username: '${{ secrets.HARBOR_RELEASE_PUBLISHER_USERNAME }}'
+        password: '${{ secrets.HARBOR_RELEASE_PUBLISHER_PASSWORD }}'
     - id: build
       uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
       with:
         context: operations/releases/release-compat-controller
         platforms: linux/amd64
         push: true
-        tags: ghcr.io/re8ch/release-compat-controller:${{ inputs.revision }}
+        tags: |
+          ghcr.io/re8ch/release-compat-controller:${{ inputs.revision }}
+          registry.re8ch.com/functions-shared/release-compat-controller:${{ inputs.revision }}
         provenance: mode=max
         sbom: true
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
     - name: Sign immutable image
-      env: {IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'}
+      env:
+        GHCR_IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'
+        HARBOR_IMAGE: 'registry.re8ch.com/functions-shared/release-compat-controller@${{ steps.build.outputs.digest }}'
       run: |
-        cosign sign --yes "$IMAGE"
-        cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com "$IMAGE"
-        printf '%s\n' "$IMAGE" > release-compat-controller.image
+        for image in "$GHCR_IMAGE" "$HARBOR_IMAGE"; do
+          cosign sign --yes "$image"
+          cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image"
+        done
+        printf '%s\n' "$HARBOR_IMAGE" > release-compat-controller.image
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with: {name: release-compat-controller-image, path: release-compat-controller.image, if-no-files-found: error}
     - id: promoter
@@ -59,5 +70,5 @@ jobs:
         permission-contents: write
         permission-pull-requests: write
     - name: Open signed activation PR
-      env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}', IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'}
+      env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}', IMAGE: 'registry.re8ch.com/functions-shared/release-compat-controller@${{ steps.build.outputs.digest }}'}
       run: python operations/releases/promote_release_compat.py --image "$IMAGE"

@@ -15,7 +15,7 @@ spec:
   contractDigest: sha256:8ed2f442f62db26ade5bd87a39ad4fcbb9435793743e0cca8c204c187a7e5e73
   chartDigest: sha256:95bd3966bcf36b383b88e1996132642057e8fe4bc133b9681092c4ddec4dd0b2
   valuesDigest: sha256:e33cbbcaf8b86acc8be5c3b6fb6639276b99f18126249e8bc13531128089d563
-  bundleRepository: oci://ghcr.io/re8ch/service-backend-release/rook-ceph
+  bundleRepository: oci://registry.re8ch.com/functions-shared/ceph-release-rook-ceph
   dependencies: []
   stages:
   - crd-schema
@@ -38,7 +38,7 @@ spec:
   contractDigest: sha256:c905f094d77afc222d25e3ecefd7f879d9a41db6fc9c691d21deb1e9098d46b6
   chartDigest: sha256:76a1787baa7d62232eb073ab8260a455a016c02b59aae584a47be6791f05994b
   valuesDigest: sha256:c5aa40d30d12e66e1c79fac912f968fbefedf07fa3a7d27c3d995750b2af45ab
-  bundleRepository: oci://ghcr.io/re8ch/service-backend-release/ceph-csi-drivers
+  bundleRepository: oci://registry.re8ch.com/functions-shared/ceph-release-ceph-csi-drivers
   dependencies:
   - rook-ceph
   stages:
@@ -62,7 +62,7 @@ spec:
   contractDigest: sha256:9f9864bd4da8676f808506587d5a6e51d0f891dd9cfc7c8eda98e9906431fe2b
   chartDigest: sha256:2c7c4bf4930318e2375c9e65eb763e5f5df8973da9e5db88dbc6383e79a2e314
   valuesDigest: sha256:515086529356ace4a700b81fc339ddcbeab552fa546599725d2ebb1838244d93
-  bundleRepository: oci://ghcr.io/re8ch/service-backend-release/rook-ceph-cluster
+  bundleRepository: oci://registry.re8ch.com/functions-shared/ceph-release-rook-ceph-cluster
   dependencies:
   - rook-ceph
   - ceph-csi-drivers
