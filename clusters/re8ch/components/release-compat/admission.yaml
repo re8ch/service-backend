@@ -1,5 +1,29 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
+metadata: {name: delivery-staticrelease-git-authority}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [delivery.re8ch.com]
+      apiVersions: [v1alpha1]
+      operations: [UPDATE]
+      resources: [staticreleases]
+  validations:
+  - expression: >-
+      object.spec == oldObject.spec ||
+      request.userInfo.username == 'system:serviceaccount:flux-system:kustomize-controller'
+    message: StaticRelease desired state may be changed only by the main Git projection
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata: {name: delivery-staticrelease-git-authority}
+spec:
+  policyName: delivery-staticrelease-git-authority
+  validationActions: [Deny]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
 metadata: {name: delivery-immutable-operations}
 spec:
   failurePolicy: Fail
