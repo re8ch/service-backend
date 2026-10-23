@@ -1224,6 +1224,8 @@ rules:
   - patch
   - update
   - delete
+  - escalate
+  - bind
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
