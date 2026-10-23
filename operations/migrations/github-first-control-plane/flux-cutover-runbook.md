@@ -17,6 +17,10 @@ Secret values are created outside Git and committed only as SOPS ciphertext.
   `githubAppInstallationOwner` or `githubAppInstallationID`, and
   `githubAppPrivateKey` for the separately installed reaction App. A long-lived
   user PAT is prohibited.
+- `re8ch-release-dispatcher-github-app`: `app-id`, `installation-id`, and
+  `private-key.pem` for the separately installed release dispatcher App. The
+  App is installed only on `re8ch/service-backend`, has Actions write and
+  Metadata read, and has no Contents permission or Kubernetes credential.
 - `service-backend-github-proxy`: an optional credential-free SOCKS5 address for
   the vendor-neutral Mihomos global egress service. It is used when direct
   cluster egress to a Git provider is unhealthy; GitHub credentials remain in
@@ -31,7 +35,8 @@ not receive Administration permission.
 
 GitHub does not expose a normal REST endpoint that lets `gh api` silently create
 a GitHub App. Use the GitHub App Manifest flow with
-`github-app-manifests/flux-source.json` or `flux-reaction.json`: submit the
+`github-app-manifests/flux-source.json`, `flux-reaction.json`, or
+`release-dispatcher.json`: submit the
 manifest to the organization manifest page, approve the single browser prompt,
 then exchange the one-time `code` through the manifest conversion endpoint.
 Everything after that approval (installation selection, repository restriction,
