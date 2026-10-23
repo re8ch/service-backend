@@ -86,7 +86,7 @@ def prepare(tmp_path, sequence=1, operation_id=None, previous=None):
     return value, operation, bundle_path
 
 
-def staged_release(tmp_path, suffix, deployment_version, config_value):
+def staged_release(tmp_path, suffix, deployment_version, config_value, revision="a" * 40):
     documents = f"""apiVersion: apps/v1
 kind: Deployment
 metadata: {{name: demo, namespace: demo, labels: {{drill: '{deployment_version}'}}}}
@@ -104,6 +104,7 @@ data: {{value: '{config_value}'}}
 """.encode()
     inventory = ["apps/Deployment/demo/demo", "core/ConfigMap/demo/demo-config"]
     value = contract(inventory)
+    value["spec"]["source"]["revision"] = revision
     value["spec"]["authorization"]["resources"] = ["apps/Deployment", "core/ConfigMap"]
     value["spec"]["authorization"]["objectNames"] = ["demo", "demo-config"]
     value["spec"]["lifecycle"]["stages"] = [
@@ -316,17 +317,18 @@ def test_rollback_pull_keeps_oci_scheme(tmp_path):
 
 def test_explicit_rollback_restores_only_runtime_stage_and_records_history(tmp_path):
     value, old_archive, old_manifest, old_path = staged_release(tmp_path, "old", "old", "stable")
-    _, new_archive, new_manifest, new_path = staged_release(tmp_path, "new", "new", "stable")
+    new_value, new_archive, new_manifest, new_path = staged_release(
+        tmp_path, "new", "new", "stable", revision="c" * 40)
     state_root = tmp_path / "state"
     instance = executor.Executor(runner=Runner(), now=lambda: NOW, sleeper=lambda _: None)
     old_operation = operation_for(value, old_archive, old_manifest, 1)
     instance.reconcile(value, old_operation, old_path, state_root, verify_signature=False)
-    new_operation = operation_for(value, new_archive, new_manifest, 2, old_operation["bundle"]["digest"])
-    instance.reconcile(value, new_operation, new_path, state_root, verify_signature=False)
+    new_operation = operation_for(new_value, new_archive, new_manifest, 2, old_operation["bundle"]["digest"])
+    instance.reconcile(new_value, new_operation, new_path, state_root, verify_signature=False)
 
-    rollback = operation_for(value, old_archive, old_manifest, 3, new_operation["bundle"]["digest"], "rollback")
+    rollback = operation_for(new_value, old_archive, old_manifest, 3, new_operation["bundle"]["digest"], "rollback")
     result = instance.reconcile(
-        value, rollback, old_path, state_root, verify_signature=False, stages={"runtime"},
+        new_value, rollback, old_path, state_root, verify_signature=False, stages={"runtime"},
         current_bundle_path=new_path, rollback_stages={"runtime"})
     assert result["outcome"] == "rolled-back"
     assert result["rollbackDigest"] == old_operation["bundle"]["digest"]
@@ -337,17 +339,18 @@ def test_explicit_rollback_restores_only_runtime_stage_and_records_history(tmp_p
 
 def test_explicit_rollback_rejects_changes_outside_runtime_stage(tmp_path):
     value, old_archive, old_manifest, old_path = staged_release(tmp_path, "old", "old", "old-config")
-    _, new_archive, new_manifest, new_path = staged_release(tmp_path, "new", "new", "new-config")
+    new_value, new_archive, new_manifest, new_path = staged_release(
+        tmp_path, "new", "new", "new-config", revision="c" * 40)
     state_root = tmp_path / "state"
     instance = executor.Executor(runner=Runner(), now=lambda: NOW, sleeper=lambda _: None)
     old_operation = operation_for(value, old_archive, old_manifest, 1)
     instance.reconcile(value, old_operation, old_path, state_root, verify_signature=False)
-    new_operation = operation_for(value, new_archive, new_manifest, 2, old_operation["bundle"]["digest"])
-    instance.reconcile(value, new_operation, new_path, state_root, verify_signature=False)
-    rollback = operation_for(value, old_archive, old_manifest, 3, new_operation["bundle"]["digest"], "rollback")
+    new_operation = operation_for(new_value, new_archive, new_manifest, 2, old_operation["bundle"]["digest"])
+    instance.reconcile(new_value, new_operation, new_path, state_root, verify_signature=False)
+    rollback = operation_for(new_value, old_archive, old_manifest, 3, new_operation["bundle"]["digest"], "rollback")
     with pytest.raises(executor.Rejected, match="outside approved stages"):
         instance.reconcile(
-            value, rollback, old_path, state_root, verify_signature=False, stages={"runtime"},
+            new_value, rollback, old_path, state_root, verify_signature=False, stages={"runtime"},
             current_bundle_path=new_path, rollback_stages={"runtime"})
 
 

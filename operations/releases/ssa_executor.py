@@ -238,8 +238,10 @@ class Executor:
         if operation["bundle"]["payloadDigest"] != payload_digest:
             raise Rejected("bundle payload digest mismatch")
         manifest, objects = load_archive(bundle_path)
-        if manifest["contractDigest"] != contract_digest or manifest["releaseId"] != operation["releaseId"]:
-            raise Rejected("bundle is bound to another contract or release")
+        if manifest["releaseId"] != operation["releaseId"]:
+            raise Rejected("bundle is bound to another release")
+        if operation["action"] != "rollback" and manifest["contractDigest"] != contract_digest:
+            raise Rejected("bundle is bound to another contract")
         if manifest["inventoryDigest"] != operation["inventoryDigest"]:
             raise Rejected("operation inventory differs from bundle")
         if state and operation.get("previousApprovedDigest") != state["appliedDigest"]:
