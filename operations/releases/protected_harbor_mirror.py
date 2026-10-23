@@ -9,8 +9,8 @@ import subprocess
 
 JOB_NAME = "release-artifact-mirror"
 NAMESPACE = "flux-system"
-ORAS_IMAGE = "ghcr.io/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579"
-COSIGN_IMAGE = "ghcr.io/sigstore/cosign/cosign@sha256:2adcba84c5389dfbfe62a1fb1a4bf6dc48f7c7d6221050f6c4825db3ba9c300c"
+ORAS_IMAGE = "registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579"
+COSIGN_IMAGE = "registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870"
 ISSUER = "https://token.actions.githubusercontent.com"
 
 SOURCE_RE = re.compile(
