@@ -92,11 +92,21 @@ def role_rules(items: list[dict], state_name: str) -> list[dict]:
             raise ValueError(f'no RBAC plural mapping for {item["apiVersion"]}/{item["kind"]}')
         rules[(group(item["apiVersion"]), plural)].add(item["metadata"]["name"])
     rules[("core", "configmaps")].add(state_name)
-    return [
-        {"apiGroups": ["" if api_group == "core" else api_group], "resources": [resource],
-         "resourceNames": sorted(names), "verbs": ["get", "patch", "update", "delete"]}
-        for (api_group, resource), names in sorted(rules.items())
-    ]
+    result = []
+    for (api_group, resource), names in sorted(rules.items()):
+        verbs = ["get", "patch", "update", "delete"]
+        if api_group == "rbac.authorization.k8s.io" and resource == "roles":
+            # Kubernetes protects Role and RoleBinding writes from privilege
+            # escalation. Keep those exceptional verbs constrained to the
+            # exact Role names already present in this signed bundle.
+            verbs.extend(["escalate", "bind"])
+        result.append({
+            "apiGroups": ["" if api_group == "core" else api_group],
+            "resources": [resource],
+            "resourceNames": sorted(names),
+            "verbs": verbs,
+        })
+    return result
 
 
 def compile_outputs() -> dict[Path, str]:

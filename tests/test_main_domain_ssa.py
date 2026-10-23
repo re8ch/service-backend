@@ -56,7 +56,7 @@ def test_every_ssa_release_is_signed_bundle_eligible_and_exactly_scoped():
         bundle.compile_bundle(contract, package.read_bytes())
 
 
-def test_main_domain_rbac_is_exact_name_update_only():
+def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover():
     docs = documents(ROOT / "clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml")
     roles = [item for item in docs if item["kind"] == "Role"]
     bindings = [item for item in docs if item["kind"] == "RoleBinding"]
@@ -64,7 +64,11 @@ def test_main_domain_rbac_is_exact_name_update_only():
     assert len(roles) == len(bindings) == len(states) == 19
     for role in roles:
         assert all(rule.get("resourceNames") for rule in role["rules"])
-        assert all(set(rule["verbs"]) == {"get", "patch", "update", "delete"} for rule in role["rules"])
+        for rule in role["rules"]:
+            expected = {"get", "patch", "update", "delete"}
+            if rule["apiGroups"] == ["rbac.authorization.k8s.io"] and rule["resources"] == ["roles"]:
+                expected |= {"escalate", "bind"}
+            assert set(rule["verbs"]) == expected
         assert all("*" not in rule.get("resources", []) + rule.get("resourceNames", []) for rule in role["rules"])
     assert {subject["name"] for binding in bindings for subject in binding["subjects"]} == {
         "re8ch:release-executor:main-domain"
