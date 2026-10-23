@@ -111,7 +111,7 @@ releases:
   declarationSha256: sha256:03ebfcf9d57cdadd49da93a83ee1f157944ffb643f06f52f79a893255f4126f6
   occurrences:
   - file: clusters/re8ch/domains/delivery-products/resources.yaml
-    document: 41
+    document: 25
   - file: platform/adapter/release.yaml
     document: 2
   classification:

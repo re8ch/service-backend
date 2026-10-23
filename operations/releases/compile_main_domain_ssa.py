@@ -22,18 +22,7 @@ from operation_materialize import state_configmap_name
 ROOT = Path(__file__).resolve().parents[2]
 DOMAINS = ("data-storage", "commerce-billing", "delivery-products", "operations-ui", "tenant-runtime")
 AUTONOMOUS = {"networking", "identity-access", "agent-runtime", "observability-metering"}
-# Workloads that currently fail the executor's availability gate remain under
-# the non-pruning transition reconciler. This is an explicit quarantine, not a
-# relaxation of SSA health policy; remove entries as their runtime faults are
-# repaired and verified.
-DEFERRED_SSA = {
-    "apps/Deployment/observable/observable-postgrest",
-    "apps/Deployment/re8ch-ontology-microscope/ontology-microscope-adapter",
-    "apps/Deployment/re8ch-ontology-microscope/ontology-microscope-evaluation-worker",
-    "apps/Deployment/re8ch-ontology-microscope/ontology-microscope-neuronpedia",
-    "apps/StatefulSet/re8ch-ontology-microscope/ontology-microscope-neo4j",
-    "apps/StatefulSet/re8ch-ontology-microscope/ontology-neuronpedia-postgres",
-}
+DEFERRED_SSA: set[str] = set()
 OUTPUT = ROOT / "operations/releases/main-domain-ssa"
 CONTRACTS = ROOT / "contracts/releases/main-domain"
 LEGACY = ROOT / "clusters/re8ch/domains/main-legacy"
@@ -133,7 +122,8 @@ def compile_outputs() -> dict[Path, str]:
             seen[ident] = domain
             meta = item.get("metadata", {})
             namespace = meta.get("namespace")
-            if (ident in DEFERRED_SSA or not namespace or namespace == "flux-system" or item["kind"] in CLUSTER_KINDS |
+            retained_data = meta.get("labels", {}).get("delivery.re8ch.com/retention") == "retained-data"
+            if (retained_data or ident in DEFERRED_SSA or not namespace or namespace == "flux-system" or item["kind"] in CLUSTER_KINDS |
                     FLUX_KINDS | {"Secret"} or has_mutable_image(item)):
                 legacy[domain].append(item)
             else:

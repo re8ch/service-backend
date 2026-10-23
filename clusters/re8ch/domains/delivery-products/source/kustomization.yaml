@@ -9,4 +9,15 @@ resources:
 - ../../../components/anycam/market-demo.yaml
 - ../../../../../platform/adapter
 - ../../../../../platform/external-projects
+patches:
+- target:
+    kind: Secret
+    name: ontology-microscope-db|ontology-microscope-evaluation
+    namespace: re8ch-ontology-microscope
+  patch: |-
+    - op: add
+      path: /metadata/labels
+      value:
+        delivery.re8ch.com/retention: retained-data
+        delivery.re8ch.com/retired-product: ontology-microscope
 
