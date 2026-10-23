@@ -308,7 +308,7 @@ class Executor:
             self.command(["kubectl", "delete", "--wait=true", "-f", "-"], json.dumps(manifest), timeout=120)
 
     def rollback(self, previous: dict, attempted_manifest: dict, attempted_objects: list[dict],
-                 contract: dict, manager: str, store: Store, reason: str) -> tuple[str, str]:
+                 contract: dict, operation: dict, manager: str, store: Store, reason: str) -> tuple[str, str]:
         rollback_digest = previous["appliedDigest"]
         rollback_path = store.cached_bundle(rollback_digest)
         if not rollback_path.exists():
@@ -323,6 +323,7 @@ class Executor:
                     raise Rejected("rollback bundle payload is unavailable or has the wrong digest")
                 store.cache_bundle(fetched, rollback_digest)
         _, rollback_objects = load_archive(rollback_path)
+        rollback_objects = self.with_audit(rollback_objects, operation)
         self.apply(rollback_objects, manager, dry_run=True)
         self.apply(rollback_objects, manager, dry_run=False)
         attempted_state = {
@@ -370,7 +371,8 @@ class Executor:
             if not previous:
                 raise Rejected("health failed and no accepted rollback bundle exists")
             try:
-                rollback_digest, reason = self.rollback(previous, manifest, objects, contract, manager, store, reason)
+                rollback_digest, reason = self.rollback(
+                    previous, manifest, objects, contract, operation, manager, store, reason)
                 outcome, healthy = "rolled-back", True
             except Rejected as error:
                 blocked = {**previous, "blocked": True, "blockedReason": f"rollback failed: {error}", "updatedAt": self.now().isoformat()}
