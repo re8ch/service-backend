@@ -1,0 +1,67 @@
+import json
+from pathlib import Path
+
+import yaml
+from jsonschema import Draft202012Validator, FormatChecker
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def docs(path):
+    return [item for item in yaml.safe_load_all(path.read_text()) if isinstance(item, dict)]
+
+
+def test_three_locked_ceph_contracts_and_dependencies_are_exact():
+    lock = yaml.safe_load((ROOT / "contracts/releases/ceph/chart-locks.yaml").read_text())
+    assert [item["name"] for item in lock["charts"]] == ["rook-ceph", "ceph-csi-drivers", "rook-ceph-cluster"]
+    assert [item["objectCount"] for item in lock["charts"]] == [83, 23, 7]
+    assert lock["charts"][1]["dependsOn"] == ["rook-ceph"]
+    assert lock["charts"][2]["dependsOn"] == ["rook-ceph", "ceph-csi-drivers"]
+    assert all(item["sha256"].startswith("sha256:") and len(item["sha256"]) == 71 for item in lock["charts"])
+    schema = json.loads((ROOT / "schemas/release-contract.schema.json").read_text())
+    for name in ("rook-ceph", "ceph-csi-drivers", "rook-ceph-cluster"):
+        contract = yaml.safe_load((ROOT / f"contracts/releases/ceph/{name}.yaml").read_text())
+        Draft202012Validator(schema, format_checker=FormatChecker()).validate(contract)
+        assert [stage["name"] for stage in contract["spec"]["lifecycle"]["stages"]][-1] == "health-acceptance"
+        assert set(contract["spec"]["lifecycle"]["manualRollbackKinds"]) >= {"CustomResourceDefinition", "StorageClass", "CephCluster"}
+
+
+def test_compatibility_surface_is_projection_only_and_controller_has_no_workload_authority():
+    releases = docs(ROOT / "clusters/re8ch/components/rook-ceph/releases.yaml")
+    projections = [item for item in releases if item["kind"] in {"HelmRelease", "HelmRepository"}]
+    assert len(projections) == 5
+    assert all(item["metadata"]["labels"]["delivery.re8ch.com/compat-projection"] == "true" for item in projections)
+    assert all(item["spec"]["suspend"] is True for item in projections if item["kind"] == "HelmRelease")
+    rbac = docs(ROOT / "clusters/re8ch/components/release-compat/rbac.yaml")
+    controller = next(item for item in rbac if item["kind"] == "ClusterRole" and item["metadata"]["name"] == "release-compat-controller")
+    resources = {resource for rule in controller["rules"] for resource in rule["resources"]}
+    assert not resources & {"secrets", "pods", "pods/exec", "serviceaccounts/token", "deployments", "daemonsets"}
+
+
+def test_ceph_executor_identities_deny_forbidden_capabilities_by_construction():
+    resources = docs(ROOT / "clusters/re8ch/components/release-compat/ceph-executor-rbac.yaml")
+    roles = {item["metadata"]["name"]: item for item in resources if item["kind"] == "ClusterRole"}
+    infra = roles["release-executor-ceph-infra"]
+    runtime = roles["release-executor-ceph-runtime"]
+    forbidden = {"secrets", "serviceaccounts/token", "pods/exec"}
+    assert not {resource for rule in infra["rules"] for resource in rule["resources"]} & forbidden
+    cluster_resources = {"customresourcedefinitions", "clusterroles", "clusterrolebindings", "storageclasses"}
+    runtime_writes = {resource for rule in runtime["rules"] if set(rule["verbs"]) & {"create", "patch", "update", "delete"} for resource in rule["resources"]}
+    assert not runtime_writes & cluster_resources
+
+
+def test_workflow_accepts_only_operation_id_and_splits_identities():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ceph-static-release.yml").read_text())
+    inputs = workflow[True]["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"operation_id"}
+    text = (ROOT / ".github/workflows/ceph-static-release.yml").read_text()
+    assert "release-executor-ceph-infra" in text
+    assert "release-executor-ceph-runtime" in text
+    assert "--stage crd-schema --stage cluster-rbac --partial" in text
+    assert "--stage runtime --stage custom-resources --partial" in text
+
+
+def test_metrics_golden_and_compatibility_additions_are_declared():
+    fixture = yaml.safe_load((ROOT / "operations/releases/metrics-golden/helm-controller-v2.6.1.yaml").read_text())
+    assert {"controller_runtime_reconcile_total", "workqueue_depth", "gotk_reconcile_duration_seconds"} <= set(fixture["families"])
+    assert set(fixture["compatibilityAdditions"]) == {"gotk_reconcile_condition", "gotk_resource_info", "gotk_suspend_status"}

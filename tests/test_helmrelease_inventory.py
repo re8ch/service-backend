@@ -46,11 +46,15 @@ def test_high_blast_radius_releases_are_not_ssa_candidates():
         "helmrelease:flux-system:advanced-fabric",
         "helmrelease:flux-system:kyverno",
         "helmrelease:flux-system:paralus",
-        "helmrelease:flux-system:rook-ceph",
-        "helmrelease:flux-system:rook-ceph-cluster",
     }
     for identity in protected:
         assert releases[identity]["classification"]["disposition"] == "retain-helm-lifecycle"
+    for identity in {
+        "helmrelease:flux-system:rook-ceph",
+        "helmrelease:flux-system:ceph-csi-drivers",
+        "helmrelease:flux-system:rook-ceph-cluster",
+    }:
+        assert releases[identity]["classification"]["disposition"] == "bundle-ssa-candidate"
 
 
 def test_helmrelease_api_versions_are_an_explicit_allowlist():

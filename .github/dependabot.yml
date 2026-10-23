@@ -111,6 +111,16 @@ updates:
         update-types: ["minor", "patch"]
 
   - package-ecosystem: gomod
+    directory: /operations/releases/release-compat-controller
+    schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "automation/dependabot"]
+    groups:
+      go-updates:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: gomod
     directory: /platform/apps/akash-lease-admission
     schedule: {interval: weekly, day: monday, time: "03:00", timezone: Asia/Shanghai}
     open-pull-requests-limit: 5

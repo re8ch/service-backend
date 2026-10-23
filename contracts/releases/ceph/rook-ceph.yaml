@@ -1,0 +1,256 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: rook-ceph
+spec:
+  target:
+    cluster: re8ch
+    namespace: rook-ceph
+  source:
+    renderer: helm
+    revision: sha256:95bd3966bcf36b383b88e1996132642057e8fe4bc133b9681092c4ddec4dd0b2
+    repository: re8ch/service-backend
+    chart: rook-ceph
+    version: v1.20.3
+    releaseName: rook-ceph
+    chartURL: https://charts.rook.io/release/rook-ceph-v1.20.3.tgz
+    chartDigest: sha256:95bd3966bcf36b383b88e1996132642057e8fe4bc133b9681092c4ddec4dd0b2
+    values:
+    - path: clusters/re8ch/components/rook-ceph/operator-values.yaml
+      digest: sha256:ea5144e63da8992fdde0e65603baea37e592023297b0b548ba5160701eb3f670
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/ceph-static-release.yml
+    ref: refs/heads/main
+    environment: release-executor-ceph-infra
+    audience: https://kube-api.re8ch.com/release-executor-ceph-infra
+    signer: https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/rook-ceph
+    resources:
+    - apiextensions.k8s.io/CustomResourceDefinition
+    - apps/Deployment
+    - core/ConfigMap
+    - core/ServiceAccount
+    - rbac.authorization.k8s.io/ClusterRole
+    - rbac.authorization.k8s.io/ClusterRoleBinding
+    - rbac.authorization.k8s.io/Role
+    - rbac.authorization.k8s.io/RoleBinding
+    objectNames:
+    - ceph-csi
+    - ceph-csi-cephconnection-viewer-role
+    - ceph-csi-cephconnections-editor-role
+    - ceph-csi-clientprofile-viewer-role
+    - ceph-csi-clientprofilemapping-editor-role
+    - ceph-csi-clientprofilemapping-viewer-role
+    - ceph-csi-clientprofiles-editor-role
+    - ceph-csi-controller-manager
+    - ceph-csi-driver-editor-role
+    - ceph-csi-driver-viewer-role
+    - ceph-csi-leader-election-role
+    - ceph-csi-leader-election-rolebinding
+    - ceph-csi-manager-role
+    - ceph-csi-manager-rolebinding
+    - ceph-csi-metrics-auth-role
+    - ceph-csi-metrics-auth-rolebinding
+    - ceph-csi-metrics-reader
+    - ceph-csi-operatorconfig-editor-role
+    - ceph-csi-operatorconfig-viewer-role
+    - cephblockpoolradosnamespaces.ceph.rook.io
+    - cephblockpools.ceph.rook.io
+    - cephbucketnotifications.ceph.rook.io
+    - cephbuckettopics.ceph.rook.io
+    - cephclients.ceph.rook.io
+    - cephclusters.ceph.rook.io
+    - cephconnections.csi.ceph.io
+    - cephcosidrivers.ceph.rook.io
+    - cephfilesystemmirrors.ceph.rook.io
+    - cephfilesystems.ceph.rook.io
+    - cephfilesystemsubvolumegroups.ceph.rook.io
+    - cephnfses.ceph.rook.io
+    - cephnvmeofgateways.ceph.rook.io
+    - cephobjectrealms.ceph.rook.io
+    - cephobjectstoreaccounts.ceph.rook.io
+    - cephobjectstores.ceph.rook.io
+    - cephobjectstoreusers.ceph.rook.io
+    - cephobjectzonegroups.ceph.rook.io
+    - cephobjectzones.ceph.rook.io
+    - cephrbdmirrors.ceph.rook.io
+    - clientprofilemappings.csi.ceph.io
+    - clientprofiles.csi.ceph.io
+    - drivers.csi.ceph.io
+    - objectbucketclaims.objectbucket.io
+    - objectbuckets.objectbucket.io
+    - objectstorage-provisioner
+    - objectstorage-provisioner-role
+    - objectstorage-provisioner-role-binding
+    - operatorconfigs.csi.ceph.io
+    - rook-ceph-cluster-mgmt
+    - rook-ceph-cmd-reporter
+    - rook-ceph-default
+    - rook-ceph-global
+    - rook-ceph-mgr
+    - rook-ceph-mgr-cluster
+    - rook-ceph-mgr-system
+    - rook-ceph-nvmeof
+    - rook-ceph-object-bucket
+    - rook-ceph-operator
+    - rook-ceph-operator-config
+    - rook-ceph-osd
+    - rook-ceph-purge-osd
+    - rook-ceph-rgw
+    - rook-ceph-system
+    - rook-csi-operator-image-set-configmap
+    allowClusterScoped: true
+    forceConflictObjects:
+    - apps/Deployment/rook-ceph/ceph-csi-controller-manager
+    - apps/Deployment/rook-ceph/rook-ceph-operator
+    - core/ConfigMap/rook-ceph/rook-ceph-operator-config
+    - core/ConfigMap/rook-ceph/rook-csi-operator-image-set-configmap
+    - core/ServiceAccount/rook-ceph/ceph-csi
+    - core/ServiceAccount/rook-ceph/objectstorage-provisioner
+    - core/ServiceAccount/rook-ceph/rook-ceph-cmd-reporter
+    - core/ServiceAccount/rook-ceph/rook-ceph-default
+    - core/ServiceAccount/rook-ceph/rook-ceph-mgr
+    - core/ServiceAccount/rook-ceph/rook-ceph-nvmeof
+    - core/ServiceAccount/rook-ceph/rook-ceph-osd
+    - core/ServiceAccount/rook-ceph/rook-ceph-purge-osd
+    - core/ServiceAccount/rook-ceph/rook-ceph-rgw
+    - core/ServiceAccount/rook-ceph/rook-ceph-system
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-cephconnection-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-cephconnections-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofile-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofilemapping-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofilemapping-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofiles-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-driver-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-driver-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-manager-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-metrics-auth-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-metrics-reader
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-operatorconfig-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-operatorconfig-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/objectstorage-provisioner-role
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-cluster-mgmt
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-global
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-mgr-cluster
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-mgr-system
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-object-bucket
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-osd
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-system
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/ceph-csi-manager-rolebinding
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/ceph-csi-metrics-auth-rolebinding
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/objectstorage-provisioner-role-binding
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-global
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-mgr-cluster
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-object-bucket
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-osd
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-system
+    - rbac.authorization.k8s.io/Role/rook-ceph/ceph-csi-leader-election-role
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-cmd-reporter
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-mgr
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-osd
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-purge-osd
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-system
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/ceph-csi-leader-election-rolebinding
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cluster-mgmt
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cmd-reporter
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-mgr
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-mgr-system
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-osd
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-purge-osd
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-system
+  inventory:
+    digest: sha256:71a086c5fb3a95d306288fb8024de1648ee961d120ea349a964113e11f43d6c1
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 1200
+    protectedKinds: &id001
+    - CustomResourceDefinition
+    - StorageClass
+    - CephCluster
+    - CephFilesystem
+    - CephBlockPool
+    - CephFilesystemSubVolumeGroup
+    deletionAllowlist:
+    - apps/Deployment/rook-ceph/ceph-csi-controller-manager
+    - apps/Deployment/rook-ceph/rook-ceph-operator
+    - core/ConfigMap/rook-ceph/rook-ceph-operator-config
+    - core/ConfigMap/rook-ceph/rook-csi-operator-image-set-configmap
+    - core/ServiceAccount/rook-ceph/ceph-csi
+    - core/ServiceAccount/rook-ceph/objectstorage-provisioner
+    - core/ServiceAccount/rook-ceph/rook-ceph-cmd-reporter
+    - core/ServiceAccount/rook-ceph/rook-ceph-default
+    - core/ServiceAccount/rook-ceph/rook-ceph-mgr
+    - core/ServiceAccount/rook-ceph/rook-ceph-nvmeof
+    - core/ServiceAccount/rook-ceph/rook-ceph-osd
+    - core/ServiceAccount/rook-ceph/rook-ceph-purge-osd
+    - core/ServiceAccount/rook-ceph/rook-ceph-rgw
+    - core/ServiceAccount/rook-ceph/rook-ceph-system
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-cephconnection-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-cephconnections-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofile-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofilemapping-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofilemapping-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-clientprofiles-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-driver-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-driver-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-manager-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-metrics-auth-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-metrics-reader
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-operatorconfig-editor-role
+    - rbac.authorization.k8s.io/ClusterRole/_/ceph-csi-operatorconfig-viewer-role
+    - rbac.authorization.k8s.io/ClusterRole/_/objectstorage-provisioner-role
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-cluster-mgmt
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-global
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-mgr-cluster
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-mgr-system
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-object-bucket
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-osd
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-system
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/ceph-csi-manager-rolebinding
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/ceph-csi-metrics-auth-rolebinding
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/objectstorage-provisioner-role-binding
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-global
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-mgr-cluster
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-object-bucket
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-osd
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-system
+    - rbac.authorization.k8s.io/Role/rook-ceph/ceph-csi-leader-election-role
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-cmd-reporter
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-mgr
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-osd
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-purge-osd
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-system
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/ceph-csi-leader-election-rolebinding
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cluster-mgmt
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cmd-reporter
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-mgr
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-mgr-system
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-osd
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-purge-osd
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-system
+    dependencies: []
+    stages:
+    - name: crd-schema
+      kinds:
+      - CustomResourceDefinition
+      automaticRollback: false
+    - name: cluster-rbac
+      kinds:
+      - ClusterRole
+      - ClusterRoleBinding
+      - Role
+      - RoleBinding
+      automaticRollback: true
+    - name: runtime
+      kinds:
+      - ConfigMap
+      - Deployment
+      - ServiceAccount
+      automaticRollback: true
+    - name: health-acceptance
+      kinds: []
+      automaticRollback: false
+    manualRollbackKinds: *id001

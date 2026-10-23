@@ -1,0 +1,143 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: ceph-csi-drivers
+spec:
+  target:
+    cluster: re8ch
+    namespace: rook-ceph
+  source:
+    renderer: helm
+    revision: sha256:76a1787baa7d62232eb073ab8260a455a016c02b59aae584a47be6791f05994b
+    repository: re8ch/service-backend
+    chart: ceph-csi-drivers
+    version: 1.0.4
+    releaseName: ceph-csi-drivers
+    chartURL: https://github.com/ceph/ceph-csi-operator/releases/download/v1.0.4/ceph-csi-drivers-1.0.4.tgz
+    chartDigest: sha256:76a1787baa7d62232eb073ab8260a455a016c02b59aae584a47be6791f05994b
+    values:
+    - path: clusters/re8ch/components/rook-ceph/csi-drivers-values.yaml
+      digest: sha256:f824aacc91ba148a4c0a0b96d584c177abd3e072855a827bee171d13b081744d
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/ceph-static-release.yml
+    ref: refs/heads/main
+    environment: release-executor-ceph-infra
+    audience: https://kube-api.re8ch.com/release-executor-ceph-infra
+    signer: https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/ceph-csi-drivers
+    resources:
+    - core/ServiceAccount
+    - csi.ceph.io/Driver
+    - csi.ceph.io/OperatorConfig
+    - rbac.authorization.k8s.io/ClusterRole
+    - rbac.authorization.k8s.io/ClusterRoleBinding
+    - rbac.authorization.k8s.io/Role
+    - rbac.authorization.k8s.io/RoleBinding
+    objectNames:
+    - ceph-csi-operator-config
+    - rook-ceph-cephfs-csi-ceph-com-ctrlplugin-cr
+    - rook-ceph-cephfs-csi-ceph-com-ctrlplugin-crb
+    - rook-ceph-cephfs-csi-ceph-com-ctrlplugin-r
+    - rook-ceph-cephfs-csi-ceph-com-ctrlplugin-rb
+    - rook-ceph-cephfs-csi-ceph-com-ctrlplugin-sa
+    - rook-ceph-cephfs-csi-ceph-com-nodeplugin-cr
+    - rook-ceph-cephfs-csi-ceph-com-nodeplugin-crb
+    - rook-ceph-cephfs-csi-ceph-com-nodeplugin-r
+    - rook-ceph-cephfs-csi-ceph-com-nodeplugin-rb
+    - rook-ceph-cephfs-csi-ceph-com-nodeplugin-sa
+    - rook-ceph-rbd-csi-ceph-com-ctrlplugin-cr
+    - rook-ceph-rbd-csi-ceph-com-ctrlplugin-crb
+    - rook-ceph-rbd-csi-ceph-com-ctrlplugin-r
+    - rook-ceph-rbd-csi-ceph-com-ctrlplugin-rb
+    - rook-ceph-rbd-csi-ceph-com-ctrlplugin-sa
+    - rook-ceph-rbd-csi-ceph-com-nodeplugin-cr
+    - rook-ceph-rbd-csi-ceph-com-nodeplugin-crb
+    - rook-ceph-rbd-csi-ceph-com-nodeplugin-r
+    - rook-ceph-rbd-csi-ceph-com-nodeplugin-rb
+    - rook-ceph-rbd-csi-ceph-com-nodeplugin-sa
+    - rook-ceph.cephfs.csi.ceph.com
+    - rook-ceph.rbd.csi.ceph.com
+    allowClusterScoped: true
+    forceConflictObjects:
+    - core/ServiceAccount/rook-ceph/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-sa
+    - core/ServiceAccount/rook-ceph/rook-ceph-cephfs-csi-ceph-com-nodeplugin-sa
+    - core/ServiceAccount/rook-ceph/rook-ceph-rbd-csi-ceph-com-ctrlplugin-sa
+    - core/ServiceAccount/rook-ceph/rook-ceph-rbd-csi-ceph-com-nodeplugin-sa
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-cr
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-cephfs-csi-ceph-com-nodeplugin-cr
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-rbd-csi-ceph-com-ctrlplugin-cr
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-rbd-csi-ceph-com-nodeplugin-cr
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-crb
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-cephfs-csi-ceph-com-nodeplugin-crb
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-rbd-csi-ceph-com-ctrlplugin-crb
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-rbd-csi-ceph-com-nodeplugin-crb
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-r
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-cephfs-csi-ceph-com-nodeplugin-r
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-rbd-csi-ceph-com-ctrlplugin-r
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-rbd-csi-ceph-com-nodeplugin-r
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-rb
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cephfs-csi-ceph-com-nodeplugin-rb
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-rbd-csi-ceph-com-ctrlplugin-rb
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-rbd-csi-ceph-com-nodeplugin-rb
+  inventory:
+    digest: sha256:dfbe4d4fa67783c507101db09a54844688e4a84317ec41d0c2a7e921ad645756
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 1200
+    protectedKinds: &id001
+    - CustomResourceDefinition
+    - StorageClass
+    - CephCluster
+    - CephFilesystem
+    - CephBlockPool
+    - CephFilesystemSubVolumeGroup
+    deletionAllowlist:
+    - core/ServiceAccount/rook-ceph/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-sa
+    - core/ServiceAccount/rook-ceph/rook-ceph-cephfs-csi-ceph-com-nodeplugin-sa
+    - core/ServiceAccount/rook-ceph/rook-ceph-rbd-csi-ceph-com-ctrlplugin-sa
+    - core/ServiceAccount/rook-ceph/rook-ceph-rbd-csi-ceph-com-nodeplugin-sa
+    - csi.ceph.io/Driver/rook-ceph/rook-ceph.cephfs.csi.ceph.com
+    - csi.ceph.io/Driver/rook-ceph/rook-ceph.rbd.csi.ceph.com
+    - csi.ceph.io/OperatorConfig/rook-ceph/ceph-csi-operator-config
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-cr
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-cephfs-csi-ceph-com-nodeplugin-cr
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-rbd-csi-ceph-com-ctrlplugin-cr
+    - rbac.authorization.k8s.io/ClusterRole/_/rook-ceph-rbd-csi-ceph-com-nodeplugin-cr
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-crb
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-cephfs-csi-ceph-com-nodeplugin-crb
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-rbd-csi-ceph-com-ctrlplugin-crb
+    - rbac.authorization.k8s.io/ClusterRoleBinding/_/rook-ceph-rbd-csi-ceph-com-nodeplugin-crb
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-r
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-cephfs-csi-ceph-com-nodeplugin-r
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-rbd-csi-ceph-com-ctrlplugin-r
+    - rbac.authorization.k8s.io/Role/rook-ceph/rook-ceph-rbd-csi-ceph-com-nodeplugin-r
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cephfs-csi-ceph-com-ctrlplugin-rb
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-cephfs-csi-ceph-com-nodeplugin-rb
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-rbd-csi-ceph-com-ctrlplugin-rb
+    - rbac.authorization.k8s.io/RoleBinding/rook-ceph/rook-ceph-rbd-csi-ceph-com-nodeplugin-rb
+    dependencies:
+    - rook-ceph
+    stages:
+    - name: cluster-rbac
+      kinds:
+      - ClusterRole
+      - ClusterRoleBinding
+      - Role
+      - RoleBinding
+      automaticRollback: true
+    - name: runtime
+      kinds:
+      - ServiceAccount
+      automaticRollback: true
+    - name: custom-resources
+      kinds:
+      - Driver
+      - OperatorConfig
+      automaticRollback: false
+    - name: health-acceptance
+      kinds: []
+      automaticRollback: false
+    manualRollbackKinds: *id001

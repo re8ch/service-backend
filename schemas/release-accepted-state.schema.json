@@ -32,6 +32,7 @@
     "sequence": {"type": "integer", "minimum": 1},
     "updatedAt": {"type": "string", "format": "date-time"},
     "blocked": {"type": "boolean"},
+    "suspended": {"type": "boolean"},
     "blockedReason": {"type": "string"}
   },
   "$defs": {"digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}

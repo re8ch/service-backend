@@ -62,6 +62,7 @@ def prepare(tmp_path, sequence=1, operation_id=None, previous=None):
     operation = {
         "apiVersion": "delivery.re8ch.com/release-operation/v1alpha1",
         "operationId": operation_id or str(uuid.uuid4()), "sequence": sequence,
+        "action": "reconcile", "idempotencyKey": "0123456789abcdef",
         "releaseId": "demo", "target": "re8ch/demo", "contractDigest": digest(canonical(value)),
         "bundle": {"reference": "oci://registry.example/releases/demo", "digest": digest(archive),
                    "payloadDigest": digest(archive),
@@ -118,15 +119,33 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     assert len(runner.calls) == count
 
 
-def test_authorized_apply_reclaims_conflicting_fields(tmp_path):
+def test_normal_apply_does_not_reclaim_conflicting_fields(tmp_path):
     value, operation, bundle_path = prepare(tmp_path)
     runner = Runner(conflict=True)
-    result = executor.Executor(runner=runner, now=lambda: NOW).reconcile(
-        value, operation, bundle_path, tmp_path / "state", verify_signature=False)
+    with pytest.raises(executor.Rejected, match="field manager conflict"):
+        executor.Executor(runner=runner, now=lambda: NOW).reconcile(
+            value, operation, bundle_path, tmp_path / "state", verify_signature=False)
     apply_calls = [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    assert len(apply_calls) == 1
+    assert "--force-conflicts" not in apply_calls[0][0]
+
+
+def test_force_conflicts_requires_action_and_contract_identity(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    identity = "apps/Deployment/demo/demo"
+    value["spec"]["authorization"]["forceConflictObjects"] = [identity]
+    archive, manifest = compile_bundle(value, rendered())
+    bundle_path.write_bytes(archive)
+    operation["contractDigest"] = digest(canonical(value))
+    operation["bundle"]["digest"] = digest(archive)
+    operation["bundle"]["payloadDigest"] = digest(archive)
+    operation["inventoryDigest"] = manifest["inventoryDigest"]
+    operation["action"] = "force-reconcile"
+    operation["forceConflictObjects"] = [identity]
+    runner = Runner(conflict=True)
+    result = executor.Executor(runner=runner, now=lambda: NOW).reconcile(value, operation, bundle_path, tmp_path / "state", False)
     assert result["outcome"] == "healthy"
-    assert len(apply_calls) == 2
-    assert all("--force-conflicts" in call[0] for call in apply_calls)
+    assert all("--force-conflicts" in call[0] for call in runner.calls if call[0][:2] == ["kubectl", "apply"])
 
 
 def test_explicit_health_check_reads_live_json_pointer():
