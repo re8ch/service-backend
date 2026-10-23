@@ -36,7 +36,7 @@ spec:
   renderer: helm
   targetCluster: re8ch
   targetNamespace: rook-ceph
-  contractDigest: sha256:c905f094d77afc222d25e3ecefd7f879d9a41db6fc9c691d21deb1e9098d46b6
+  contractDigest: sha256:c3d5758525736429723ae6b33cbdcec948fa7c2c06fe66574cbe64fb18b3f2f8
   chartDigest: sha256:76a1787baa7d62232eb073ab8260a455a016c02b59aae584a47be6791f05994b
   valuesDigest: sha256:c5aa40d30d12e66e1c79fac912f968fbefedf07fa3a7d27c3d995750b2af45ab
   bundleRepository: oci://registry.re8ch.com/functions-shared/ceph-release-ceph-csi-drivers
@@ -47,6 +47,7 @@ spec:
   - runtime
   - custom-resources
   - health-acceptance
+  bundleDigest: sha256:fbc567832feba7030ca597844d6512478b877a1c5af2df213c8d134c6cd2a211
 ---
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: StaticRelease

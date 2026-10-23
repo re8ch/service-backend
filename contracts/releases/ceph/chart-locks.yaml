@@ -35,6 +35,8 @@ charts:
   - path: clusters/re8ch/components/rook-ceph/csi-drivers-values.yaml
     sha256: sha256:f824aacc91ba148a4c0a0b96d584c177abd3e072855a827bee171d13b081744d
   images: {}
+  bundleDigest: sha256:fbc567832feba7030ca597844d6512478b877a1c5af2df213c8d134c6cd2a211
+  mirrorDigest: sha256:45f8353c932b0d0f84c9084329a04cbfe815be21ae098397529f57731cba58c3
 - name: rook-ceph-cluster
   chart: rook-ceph-cluster
   version: v1.20.3
