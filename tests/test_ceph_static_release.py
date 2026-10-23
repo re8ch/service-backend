@@ -38,6 +38,18 @@ def test_compatibility_surface_is_projection_only_and_controller_has_no_workload
     assert not resources & {"secrets", "pods", "pods/exec", "serviceaccounts/token", "deployments", "daemonsets"}
 
 
+def test_flux_compat_admission_ignores_unlabelled_flux_consumers():
+    resources = docs(ROOT / "clusters/re8ch/components/release-compat/admission.yaml")
+    policies = {
+        item["metadata"]["name"]: item
+        for item in resources
+        if item["kind"] == "ValidatingAdmissionPolicy"
+    }
+    for name in ("flux-compat-projections", "flux-source-compat-projections"):
+        expression = policies[name]["spec"]["matchConditions"][0]["expression"]
+        assert "'delivery.re8ch.com/compat-projection' in object.metadata.labels" in expression
+
+
 def test_ceph_executor_identities_deny_forbidden_capabilities_by_construction():
     resources = docs(ROOT / "clusters/re8ch/components/release-compat/ceph-executor-rbac.yaml")
     roles = {item["metadata"]["name"]: item for item in resources if item["kind"] == "ClusterRole"}
