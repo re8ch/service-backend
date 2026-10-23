@@ -18,7 +18,7 @@ spec:
     chartOCI: oci://registry.re8ch.com/functions-shared/rook-ceph@sha256:36ecf2f2c0279bcd1e6c2ea6ac5b68a89b618a643cdb50c8729cd6a70ab3d088
     values:
     - path: clusters/re8ch/components/rook-ceph/operator-values.yaml
-      digest: sha256:87978b550eada08aa4486aec9ae8616727c06982e52c48b0d8b5e93bed789d22
+      digest: sha256:ea5144e63da8992fdde0e65603baea37e592023297b0b548ba5160701eb3f670
   provenance:
     repository: re8ch/service-backend
     workflow: .github/workflows/ceph-static-release.yml
