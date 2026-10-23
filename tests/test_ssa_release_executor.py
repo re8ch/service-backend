@@ -17,6 +17,11 @@ SPEC = importlib.util.spec_from_file_location("ssa_executor", ROOT / "operations
 executor = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(executor)
 
+MATERIALIZE_SPEC = importlib.util.spec_from_file_location(
+    "operation_materialize", ROOT / "operations/releases/operation_materialize.py")
+materialize = importlib.util.module_from_spec(MATERIALIZE_SPEC)
+MATERIALIZE_SPEC.loader.exec_module(materialize)
+
 NOW = dt.datetime(2026, 10, 23, tzinfo=dt.timezone.utc)
 
 
@@ -129,6 +134,25 @@ def test_explicit_empty_stage_selection_finalizes_without_applying_objects(tmp_p
     assert not [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
     persisted = json.loads((tmp_path / "state/state/demo.json").read_text())
     assert persisted["inventory"] == ["apps/Deployment/demo/demo"]
+
+
+def test_durable_state_is_a_server_side_apply_configmap(monkeypatch, tmp_path):
+    state_dir = tmp_path / "state-root"
+    (state_dir / "state").mkdir(parents=True)
+    state = {"releaseId": "demo", "sequence": 1}
+    result = {"releaseId": "demo", "outcome": "healthy"}
+    (state_dir / "state/demo.json").write_text(json.dumps(state))
+    result_path = tmp_path / "result.json"
+    result_path.write_text(json.dumps(result))
+    output = tmp_path / "configmap.json"
+    monkeypatch.setattr(materialize, "validate_schema", lambda *_: None)
+    materialize.persist(state_dir, "demo", result_path, output)
+    manifest = json.loads(output.read_text())
+    assert manifest["apiVersion"] == "v1"
+    assert manifest["kind"] == "ConfigMap"
+    assert manifest["metadata"] == {"name": "ssa-state-demo", "namespace": "rook-ceph"}
+    assert json.loads(manifest["data"]["accepted-state.json"]) == state
+    assert json.loads(manifest["data"]["last-result.json"]) == result
 
 
 def test_kubectl_commands_refresh_actions_oidc_token(monkeypatch):
