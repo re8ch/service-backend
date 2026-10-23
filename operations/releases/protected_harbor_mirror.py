@@ -11,7 +11,7 @@ import time
 import urllib.parse
 import urllib.request
 
-JOB_NAME = "release-artifact-mirror"
+JOB_PREFIX = "release-artifact-mirror"
 NAMESPACE = "flux-system"
 ORAS_IMAGE = "registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579"
 COSIGN_IMAGE = "registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870"
@@ -48,6 +48,8 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
     if not re.fullmatch(r"[0-9]{1,20}", operation_id):
         raise ValueError("operation ID must be a GitHub run ID")
 
+    job_name = f"{JOB_PREFIX}-{operation_id}-{digest.removeprefix('sha256:')[:12]}"
+
     signature_tag = "sha256-" + digest.removeprefix("sha256:") + ".sig"
     mount = {"name": "registry-auth", "mountPath": "/auth", "readOnly": True}
     security = {
@@ -69,7 +71,7 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
         "apiVersion": "batch/v1",
         "kind": "Job",
         "metadata": {
-            "name": JOB_NAME,
+            "name": job_name,
             "namespace": NAMESPACE,
             "labels": {"delivery.re8ch.com/component": "artifact-mirror"},
             "annotations": {"delivery.re8ch.com/operation-id": operation_id},
@@ -86,7 +88,7 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
                     "restartPolicy": "Never",
                     "hostNetwork": True,
                     "dnsPolicy": "ClusterFirstWithHostNet",
-                    "nodeSelector": {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"},
+                    "nodeSelector": {"kubernetes.io/hostname": "r640"},
                     "securityContext": {"fsGroup": 65532, "fsGroupChangePolicy": "OnRootMismatch"},
                     "imagePullSecrets": [{"name": "release-artifact-mirror-auth"}],
                     "initContainers": [
@@ -142,25 +144,33 @@ def fresh_actions_token() -> str | None:
     return token
 
 
-def read_job() -> tuple[dict | None, str]:
-    command = ["kubectl", "get", "job/" + JOB_NAME, "-n", NAMESPACE, "-o", "json"]
+def read_job(job_name: str, operation_id: str) -> tuple[dict | None, str]:
+    command = ["kubectl", "get", "job/" + job_name, "-n", NAMESPACE, "-o", "json"]
     token = fresh_actions_token()
     if token:
         command.extend(["--token", token])
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode:
         return None, result.stderr.strip()
-    return json.loads(result.stdout), ""
+    job = json.loads(result.stdout)
+    observed_operation = job.get("metadata", {}).get("annotations", {}).get(
+        "delivery.re8ch.com/operation-id"
+    )
+    if observed_operation != operation_id:
+        raise RuntimeError("mirror Job operation identity mismatch")
+    return job, ""
 
 
 def run(job: dict) -> None:
-    subprocess.run(["kubectl", "delete", "job", JOB_NAME, "-n", NAMESPACE,
-                    "--ignore-not-found", "--wait=true"], check=True)
-    subprocess.run(["kubectl", "create", "-f", "-"], input=json.dumps(job), text=True, check=True)
+    job_name = job["metadata"]["name"]
+    operation_id = job["metadata"]["annotations"]["delivery.re8ch.com/operation-id"]
+    existing, _ = read_job(job_name, operation_id)
+    if existing is None:
+        subprocess.run(["kubectl", "create", "-f", "-"], input=json.dumps(job), text=True, check=True)
     deadline = time.monotonic() + 900
     last_error = ""
     while time.monotonic() < deadline:
-        current, error = read_job()
+        current, error = read_job(job_name, operation_id)
         if current is not None:
             status = current.get("status", {})
             conditions = {item.get("type"): item.get("status") for item in status.get("conditions", [])}
