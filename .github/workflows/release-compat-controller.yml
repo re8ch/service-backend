@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       revision: {description: Reviewed merged service-backend commit, required: true, type: string}
-permissions: {contents: read, id-token: write}
+permissions: {contents: read, id-token: write, packages: write}
 concurrency: {group: release-compat-controller, cancel-in-progress: false}
 jobs:
   release:
@@ -27,21 +27,21 @@ jobs:
     - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
-        registry: registry.re8ch.com
-        username: '${{ secrets.HARBOR_USERNAME }}'
-        password: '${{ secrets.HARBOR_PASSWORD }}'
+        registry: ghcr.io
+        username: '${{ github.actor }}'
+        password: '${{ secrets.GITHUB_TOKEN }}'
     - id: build
       uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
       with:
         context: operations/releases/release-compat-controller
         platforms: linux/amd64
         push: true
-        tags: registry.re8ch.com/functions-shared/release-compat-controller:${{ inputs.revision }}
+        tags: ghcr.io/re8ch/release-compat-controller:${{ inputs.revision }}
         provenance: mode=max
         sbom: true
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
     - name: Sign immutable image
-      env: {IMAGE: 'registry.re8ch.com/functions-shared/release-compat-controller@${{ steps.build.outputs.digest }}'}
+      env: {IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'}
       run: |
         cosign sign --yes "$IMAGE"
         cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' \
@@ -59,5 +59,5 @@ jobs:
         permission-contents: write
         permission-pull-requests: write
     - name: Open signed activation PR
-      env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}', IMAGE: 'registry.re8ch.com/functions-shared/release-compat-controller@${{ steps.build.outputs.digest }}'}
+      env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}', IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'}
       run: python operations/releases/promote_release_compat.py --image "$IMAGE"
