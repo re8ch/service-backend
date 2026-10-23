@@ -12,15 +12,22 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 19
-objectCount: 148
-legacyObjectCount: 115
+objectCount: 142
+legacyObjectCount: 121
+deferredSSAObjects:
+- apps/Deployment/observable/observable-postgrest
+- apps/Deployment/re8ch-ontology-microscope/ontology-microscope-adapter
+- apps/Deployment/re8ch-ontology-microscope/ontology-microscope-evaluation-worker
+- apps/Deployment/re8ch-ontology-microscope/ontology-microscope-neuronpedia
+- apps/StatefulSet/re8ch-ontology-microscope/ontology-microscope-neo4j
+- apps/StatefulSet/re8ch-ontology-microscope/ontology-neuronpedia-postgres
 legacyShards:
 - domain: commerce-billing
   objects: 14
 - domain: data-storage
-  objects: 24
+  objects: 25
 - domain: delivery-products
-  objects: 8
+  objects: 13
 - domain: operations-ui
   objects: 12
 - domain: tenant-runtime
@@ -37,7 +44,7 @@ releases:
 - name: main-data-storage-observable
   domain: data-storage
   namespace: observable
-  objects: 6
+  objects: 5
 - name: main-data-storage-ops
   domain: data-storage
   namespace: ops
@@ -73,7 +80,7 @@ releases:
 - name: main-delivery-products-re8ch-ontology-microscope
   domain: delivery-products
   namespace: re8ch-ontology-microscope
-  objects: 18
+  objects: 13
 - name: main-operations-ui-headlamp
   domain: operations-ui
   namespace: headlamp

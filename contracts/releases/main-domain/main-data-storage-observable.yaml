@@ -22,7 +22,6 @@ spec:
   authorization:
     fieldManager: re8ch-release/main-data-storage-observable
     resources:
-    - apps/Deployment
     - autoscaling/HorizontalPodAutoscaler
     - core/Service
     - gateway.networking.k8s.io/HTTPRoute
@@ -33,7 +32,7 @@ spec:
     - observable-postgrest-rw
     allowClusterScoped: false
   inventory:
-    digest: sha256:b5f9ba208e7e34e3c2b3a3e0719a7a0cbbd9825bc0f92024e7a20ec80f08bffb
+    digest: sha256:1f239439e96fd387fcbd17f25ef8ecddb0adcf7fb86768242e971f5d360171cc
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -44,7 +43,6 @@ spec:
     - PersistentVolumeClaim
     - StorageClass
     deletionAllowlist:
-    - apps/Deployment/observable/observable-postgrest
     - autoscaling/HorizontalPodAutoscaler/observable/observable-postgrest
     - core/Service/observable/observable-postgrest
     - gateway.networking.k8s.io/HTTPRoute/observable/observable-postgrest-ro

@@ -260,17 +260,6 @@ metadata:
     delivery.re8ch.com/rbac-profile: main-domain
 rules:
 - apiGroups:
-  - apps
-  resources:
-  - deployments
-  resourceNames:
-  - observable-postgrest
-  verbs:
-  - get
-  - patch
-  - update
-  - delete
-- apiGroups:
   - autoscaling
   resources:
   - horizontalpodautoscalers
@@ -995,21 +984,6 @@ rules:
   - deployments
   resourceNames:
   - ontology-microscope
-  - ontology-microscope-adapter
-  - ontology-microscope-evaluation-worker
-  - ontology-microscope-neuronpedia
-  verbs:
-  - get
-  - patch
-  - update
-  - delete
-- apiGroups:
-  - apps
-  resources:
-  - statefulsets
-  resourceNames:
-  - ontology-microscope-neo4j
-  - ontology-neuronpedia-postgres
   verbs:
   - get
   - patch
