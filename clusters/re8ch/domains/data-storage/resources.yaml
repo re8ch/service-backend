@@ -1741,6 +1741,8 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
+  labels:
+    delivery.re8ch.com/compat-projection: "true"
   name: ceph-csi-drivers
   namespace: flux-system
 spec:
@@ -1762,6 +1764,7 @@ spec:
   rollback:
     cleanupOnFail: true
   storageNamespace: rook-ceph
+  suspend: true
   targetNamespace: rook-ceph
   upgrade:
     cleanupOnFail: true
@@ -1777,6 +1780,8 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
+  labels:
+    delivery.re8ch.com/compat-projection: "true"
   name: rook-ceph
   namespace: flux-system
 spec:
@@ -1797,6 +1802,7 @@ spec:
   rollback:
     cleanupOnFail: true
   storageNamespace: rook-ceph
+  suspend: true
   targetNamespace: rook-ceph
   timeout: 20m
   upgrade:
@@ -1813,6 +1819,8 @@ spec:
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
+  labels:
+    delivery.re8ch.com/compat-projection: "true"
   name: rook-ceph-cluster
   namespace: flux-system
 spec:
@@ -1835,6 +1843,7 @@ spec:
   rollback:
     cleanupOnFail: true
   storageNamespace: rook-ceph
+  suspend: true
   targetNamespace: rook-ceph
   upgrade:
     cleanupOnFail: true
@@ -1892,19 +1901,25 @@ spec:
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
+  labels:
+    delivery.re8ch.com/compat-projection: "true"
   name: ceph-csi-operator
   namespace: flux-system
 spec:
   interval: 3m
+  suspend: true
   url: https://ceph.github.io/ceph-csi-operator
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
+  labels:
+    delivery.re8ch.com/compat-projection: "true"
   name: rook-release
   namespace: flux-system
 spec:
   interval: 3m
+  suspend: true
   url: https://charts.rook.io/release
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1

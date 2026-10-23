@@ -22,7 +22,8 @@ SCHEMAS = ROOT / "schemas"
 CLUSTER_SCOPED = {
     "APIService", "ClusterRole", "ClusterRoleBinding", "CustomResourceDefinition",
     "Namespace", "Node", "PersistentVolume", "StorageClass", "ValidatingWebhookConfiguration",
-    "MutatingWebhookConfiguration",
+    "MutatingWebhookConfiguration", "CSIDriver", "PriorityClass", "RuntimeClass",
+    "VolumeSnapshotClass", "ValidatingAdmissionPolicy", "ValidatingAdmissionPolicyBinding",
 }
 MAX_RENDERED_BYTES = 10 * 1024 * 1024
 MAX_OBJECTS = 500
@@ -132,6 +133,21 @@ def compile_bundle(contract: dict, rendered: bytes) -> tuple[bytes, dict]:
     documents, inventory = normalize_documents(rendered, contract)
     objects = canonical(documents)
     inventory_bytes = canonical(inventory)
+    configured_stages = contract["spec"]["lifecycle"].get("stages") or [
+        {"name": "runtime", "kinds": sorted({item["kind"] for item in documents})}
+    ]
+    assigned: set[str] = set()
+    stages = []
+    for stage in configured_stages:
+        identities = sorted(object_identity(item) for item in documents if item["kind"] in set(stage["kinds"]))
+        duplicate = assigned.intersection(identities)
+        if duplicate:
+            raise ValueError(f"objects assigned to multiple stages: {sorted(duplicate)}")
+        assigned.update(identities)
+        stages.append({"name": stage["name"], "inventory": identities})
+    missing = set(inventory) - assigned
+    if missing:
+        raise ValueError(f"objects are not assigned to a stage: {sorted(missing)}")
     manifest = {
         "schemaVersion": "delivery.re8ch.com/release-bundle/v1alpha1",
         "releaseId": contract["metadata"]["name"],
@@ -141,6 +157,7 @@ def compile_bundle(contract: dict, rendered: bytes) -> tuple[bytes, dict]:
         "renderedDigest": digest(objects),
         "inventoryDigest": digest(inventory_bytes),
         "inventory": inventory,
+        "stages": stages,
         "objectsFile": "objects.json",
     }
     validate_schema(manifest, "release-bundle-manifest.schema.json")

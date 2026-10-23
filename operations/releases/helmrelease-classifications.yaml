@@ -26,9 +26,9 @@ releases:
     rollbackOwner: metering platform owner via helm-controller
     evidence: Chart-managed CRDs use CreateReplace and lack a rehearsed ordered SSA replacement and rollback procedure.
   - id: helmrelease:flux-system:ceph-csi-drivers
-    disposition: retain-helm-lifecycle
-    rollbackOwner: storage platform owner via helm-controller
-    evidence: CSI is storage authority and depends on Helm remediation and release ordering; it is outside early migration cohorts.
+    disposition: bundle-ssa-candidate
+    rollbackOwner: signed Ceph StaticRelease operation history
+    evidence: Exact 1.0.4 chart and values digests render 23 staged objects; runtime SSA, CSI health and protected rollback gates replace Helm lifecycle before finalizer removal.
   - id: helmrelease:flux-system:connectool
     disposition: blocked-pending-evidence
     rollbackOwner: connectool owner via helm-controller
@@ -62,13 +62,13 @@ releases:
     rollbackOwner: public edge owner via helm-controller
     evidence: The suspended declaration governs public delivery; finalizer and restoration semantics require a dedicated traffic-safe drill.
   - id: helmrelease:flux-system:rook-ceph
-    disposition: retain-helm-lifecycle
-    rollbackOwner: storage platform owner via helm-controller
-    evidence: Rook is storage control-plane infrastructure with Helm remediation and history dependencies; it is outside early migration cohorts.
+    disposition: bundle-ssa-candidate
+    rollbackOwner: signed Ceph StaticRelease operation history
+    evidence: Exact v1.20.3 chart and values digests render 83 staged objects with CRD/RBAC/runtime separation and protected-schema rollback policy.
   - id: helmrelease:flux-system:rook-ceph-cluster
-    disposition: retain-helm-lifecycle
-    rollbackOwner: storage platform owner via helm-controller
-    evidence: The release owns persistent storage topology and depends on ordered CSI and operator releases; static takeover is not qualified.
+    disposition: bundle-ssa-candidate
+    rollbackOwner: manual-approved Ceph StaticRelease rollback operation
+    evidence: Exact v1.20.3 chart and values digests render seven protected data-plane objects after the operator and CSI dependency gates; destructive rollback and prune are forbidden.
   - id: helmrelease:flux-system:runtime-anatomy
     disposition: blocked-pending-evidence
     rollbackOwner: runtime governance owner via helm-controller

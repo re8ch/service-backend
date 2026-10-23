@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Namespace
+metadata: {name: ceph-storage-smoke}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: rbd-smoke, namespace: ceph-storage-smoke}
+spec: {accessModes: [ReadWriteOnce], storageClassName: rbd-r640, resources: {requests: {storage: 1Gi}}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cephfs-smoke
+  namespace: ceph-storage-smoke
+  labels: {storage.re8ch.com/replicated-approved: "true"}
+spec: {accessModes: [ReadWriteMany], storageClassName: cephfs-r640, resources: {requests: {storage: 1Gi}}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: rbd-smoke, namespace: ceph-storage-smoke}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: rbd-smoke}}
+  template:
+    metadata: {labels: {app: rbd-smoke}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
+      containers:
+      - name: smoke
+        image: quay.io/ceph/ceph@sha256:6b4b5ae33acd3d736eb26d2a19238bce71a22f9cfb99cca887ba6312d0957644
+        command: [sh, -ec]
+        args: ['while true; do marker=$(date -u +%s); printf "%s\n" "$marker" > /data/.next; mv /data/.next /data/marker; test "$(cat /data/marker)" = "$marker"; sleep 15; done']
+        volumeMounts: [{name: data, mountPath: /data}]
+        resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 64Mi}}
+      volumes: [{name: data, persistentVolumeClaim: {claimName: rbd-smoke}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: cephfs-smoke, namespace: ceph-storage-smoke}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: cephfs-smoke}}
+  template:
+    metadata: {labels: {app: cephfs-smoke}}
+    spec:
+      nodeSelector: {kubernetes.io/hostname: restricted-node-296f36f2fb}
+      containers:
+      - name: smoke
+        image: quay.io/ceph/ceph@sha256:6b4b5ae33acd3d736eb26d2a19238bce71a22f9cfb99cca887ba6312d0957644
+        command: [sh, -ec]
+        args: ['while true; do marker=$(date -u +%s); printf "%s\n" "$marker" > /data/.next; mv /data/.next /data/marker; test "$(cat /data/marker)" = "$marker"; sleep 15; done']
+        volumeMounts: [{name: data, mountPath: /data}]
+        resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {cpu: 50m, memory: 64Mi}}
+      volumes: [{name: data, persistentVolumeClaim: {claimName: cephfs-smoke}}]

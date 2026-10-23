@@ -1,0 +1,67 @@
+name: ceph-shadow-compile
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Locked Ceph StaticRelease to compile
+        type: choice
+        options: [rook-ceph, ceph-csi-drivers, rook-ceph-cluster]
+        required: true
+permissions: {contents: read, id-token: write, packages: write}
+concurrency: {group: 'ceph-shadow-${{ inputs.release }}', cancel-in-progress: false}
+jobs:
+  compile-sign-promote:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release-ceph-compiler
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with: {fetch-depth: 0}
+    - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+      with: {version: '2.9.5'}
+    - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+      with:
+        registry: ghcr.io
+        username: '${{ github.actor }}'
+        password: '${{ secrets.GITHUB_TOKEN }}'
+    - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+    - name: Render exact chart archive and build deterministic bundle
+      env: {RELEASE: '${{ inputs.release }}'}
+      run: |
+        set -euo pipefail
+        python operations/releases/compile_ceph_static.py --check
+        python operations/releases/compile_ceph_static.py --render "$RELEASE" --rendered-output "$RUNNER_TEMP/rendered.yaml"
+        contract="contracts/releases/ceph/${RELEASE}.yaml"
+        python operations/releases/unified_bundle.py --contract "$contract" --rendered "$RUNNER_TEMP/rendered.yaml" \
+          --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
+        install -d "$RUNNER_TEMP/oci"
+        cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/"
+        reference="oci://ghcr.io/re8ch/service-backend-release/${RELEASE}"
+        flux push artifact "${reference}:run-${GITHUB_RUN_ID}" --path "$RUNNER_TEMP/oci" --reproducible \
+          --source "https://github.com/${GITHUB_REPOSITORY}" --revision "main@sha1:${GITHUB_SHA}" \
+          --annotations "delivery.re8ch.com/release-id=${RELEASE}" --output json > "$RUNNER_TEMP/oci-result.json"
+        digest="$(jq -r .digest "$RUNNER_TEMP/oci-result.json")"
+        immutable="${reference#oci://}@${digest}"
+        cosign sign --yes "$immutable"
+        cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main' \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
+        jq -n --arg release "$RELEASE" --arg reference "$reference" --arg digest "$digest" \
+          --argjson bundle "$(cat "$RUNNER_TEMP/bundle-metadata.json")" \
+          '{release:$release,reference:$reference,digest:$digest,bundle:$bundle}' > "$RUNNER_TEMP/ceph-release-evidence.json"
+        echo "digest=$digest" >> "$GITHUB_ENV"
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      with: {name: 'ceph-shadow-${{ inputs.release }}-${{ github.run_id }}', path: '${{ runner.temp }}/ceph-release-evidence.json', retention-days: 30, if-no-files-found: error}
+    - id: promoter
+      uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349
+      with:
+        app-id: ${{ vars.DOMAIN_PROMOTER_APP_ID }}
+        private-key: ${{ secrets.DOMAIN_PROMOTER_PRIVATE_KEY }}
+        owner: re8ch
+        repositories: service-backend
+        permission-contents: write
+        permission-pull-requests: write
+    - name: Open GitHub-signed digest promotion PR
+      env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}', RELEASE: '${{ inputs.release }}', DIGEST: '${{ env.digest }}'}
+      run: python operations/releases/promote_ceph.py --release "$RELEASE" --digest "$DIGEST"

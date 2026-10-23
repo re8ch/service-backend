@@ -1,0 +1,202 @@
+name: ceph-static-release
+on:
+  workflow_dispatch:
+    inputs:
+      operation_id: {description: Immutable ReleaseOperation name in flux-system, required: true, type: string}
+permissions: {contents: read, id-token: write, packages: read}
+concurrency: {group: 'ceph-operation-${{ inputs.operation_id }}', cancel-in-progress: false}
+jobs:
+  infra:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release-executor-ceph-infra
+    outputs:
+      release: ${{ steps.operation.outputs.release }}
+      action: ${{ steps.operation.outputs.action }}
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+      with: {version: v1.33.1}
+    - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+      with: {version: '2.9.5'}
+    - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+      with:
+        registry: ghcr.io
+        username: '${{ github.actor }}'
+        password: '${{ secrets.GITHUB_TOKEN }}'
+    - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+    - name: Acquire exact infra identity
+      env:
+        KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
+        EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-executor-ceph-infra
+      run: |
+        set -euo pipefail
+        printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubeconfig="$RUNNER_TEMP/executor.kubeconfig"
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:6443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-credentials executor --token="$token"
+        kubectl config --kubeconfig "$kubeconfig" set-context executor --cluster=re8ch --user=executor --namespace=flux-system
+        kubectl config --kubeconfig "$kubeconfig" use-context executor
+        echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+    - id: operation
+      env: {OPERATION_ID: '${{ inputs.operation_id }}'}
+      run: |
+        set -euo pipefail
+        [[ "$OPERATION_ID" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]
+        kubectl get releaseoperation.delivery.re8ch.com "$OPERATION_ID" -n flux-system -o json > "$RUNNER_TEMP/operation-resource.json"
+        release="$(jq -r .spec.releaseRef "$RUNNER_TEMP/operation-resource.json")"
+        action="$(jq -r .spec.action "$RUNNER_TEMP/operation-resource.json")"
+        case "$release" in rook-ceph|ceph-csi-drivers|rook-ceph-cluster) ;; *) exit 1;; esac
+        case "$action" in reconcile|force-reconcile|reset|suspend|resume|rollback) ;; *) exit 1;; esac
+        kubectl get staticrelease.delivery.re8ch.com "$release" -n flux-system -o json > "$RUNNER_TEMP/static-release.json"
+        while IFS= read -r dependency; do
+          [[ -z "$dependency" ]] || kubectl get staticrelease.delivery.re8ch.com "$dependency" -n flux-system -o json | jq -e '.status.conditions[] | select(.type=="Healthy" and .status=="True")' >/dev/null
+        done < <(jq -r '.spec.dependencies[]?' "$RUNNER_TEMP/static-release.json")
+        echo "release=$release" >> "$GITHUB_OUTPUT"
+        echo "action=$action" >> "$GITHUB_OUTPUT"
+        echo "RELEASE=$release" >> "$GITHUB_ENV"
+        echo "ACTION=$action" >> "$GITHUB_ENV"
+    - name: Pull approved signed bundle and materialize operation
+      run: |
+        set -euo pipefail
+        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"
+        approved="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        test "$(jq -r .spec.approvedDigest "$RUNNER_TEMP/operation-resource.json")" = "$approved"
+        flux pull artifact "${repository}@${approved}" --output "$RUNNER_TEMP/bundle"
+        state_name="ssa-state-${RELEASE}"
+        kubectl get configmap "$state_name" -n rook-ceph -o json > "$RUNNER_TEMP/state-configmap.json"
+        python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-configmap.json" --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE"
+        python operations/releases/ceph_operation.py --resource "$RUNNER_TEMP/operation-resource.json" --static-release "$RUNNER_TEMP/static-release.json" \
+          --contract "contracts/releases/ceph/${RELEASE}.yaml" --metadata "$RUNNER_TEMP/bundle/bundle-metadata.json" \
+          --state-dir "$RUNNER_TEMP/state" --output "$RUNNER_TEMP/operation.json"
+    - name: Apply schema and RBAC stages
+      if: steps.operation.outputs.action == 'reconcile' || steps.operation.outputs.action == 'force-reconcile' || steps.operation.outputs.action == 'rollback'
+      run: |
+        python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
+          --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" --stage crd-schema --stage cluster-rbac --partial > "$RUNNER_TEMP/infra-result.json"
+        kubectl patch releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system --subresource=status --type=merge \
+          -p "$(jq -n --arg now "$(date -u +%FT%TZ)" '{status:{phase:"InfraApplied",infra:{finishedAt:$now,result:"healthy"}}}')"
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      if: always()
+      with: {name: 'ceph-infra-${{ inputs.operation_id }}', path: '${{ runner.temp }}/infra-result.json', retention-days: 30, if-no-files-found: ignore}
+  runtime:
+    needs: infra
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: release-executor-ceph-runtime
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+      with: {version: v1.33.1}
+    - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+      with: {version: '2.9.5'}
+    - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+      with:
+        registry: ghcr.io
+        username: '${{ github.actor }}'
+        password: '${{ secrets.GITHUB_TOKEN }}'
+    - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+    - name: Acquire runtime-only identity
+      env:
+        KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
+        EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-executor-ceph-runtime
+      run: |
+        set -euo pipefail
+        printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubeconfig="$RUNNER_TEMP/executor.kubeconfig"
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:6443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-credentials executor --token="$token"
+        kubectl config --kubeconfig "$kubeconfig" set-context executor --cluster=re8ch --user=executor --namespace=flux-system
+        kubectl config --kubeconfig "$kubeconfig" use-context executor
+        echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+    - name: Rematerialize immutable request and durable state
+      env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
+      run: |
+        set -euo pipefail
+        kubectl get releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system -o json > "$RUNNER_TEMP/operation-resource.json"
+        kubectl get staticrelease.delivery.re8ch.com "$RELEASE" -n flux-system -o json > "$RUNNER_TEMP/static-release.json"
+        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"; approved="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        flux pull artifact "${repository}@${approved}" --output "$RUNNER_TEMP/bundle"
+        kubectl get configmap "ssa-state-${RELEASE}" -n rook-ceph -o json > "$RUNNER_TEMP/state-configmap.json"
+        python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-configmap.json" --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE"
+        python operations/releases/ceph_operation.py --resource "$RUNNER_TEMP/operation-resource.json" --static-release "$RUNNER_TEMP/static-release.json" \
+          --contract "contracts/releases/ceph/${RELEASE}.yaml" --metadata "$RUNNER_TEMP/bundle/bundle-metadata.json" \
+          --state-dir "$RUNNER_TEMP/state" --output "$RUNNER_TEMP/operation.json"
+    - name: Apply runtime and Ceph custom-resource stages
+      if: needs.infra.outputs.action == 'reconcile' || needs.infra.outputs.action == 'force-reconcile' || needs.infra.outputs.action == 'rollback'
+      env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
+      run: |
+        python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
+          --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" --stage runtime --stage custom-resources --partial > "$RUNNER_TEMP/result.json"
+        python operations/releases/ceph_health.py --release "$RELEASE" > "$RUNNER_TEMP/ceph-health.json"
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      if: needs.infra.outputs.action == 'reconcile' || needs.infra.outputs.action == 'force-reconcile' || needs.infra.outputs.action == 'rollback'
+      with:
+        name: 'ceph-runtime-${{ inputs.operation_id }}'
+        path: |
+          ${{ runner.temp }}/result.json
+          ${{ runner.temp }}/ceph-health.json
+        retention-days: 30
+        if-no-files-found: error
+  accept:
+    needs: [infra, runtime]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release-executor-ceph-infra
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+      with: {version: v1.33.1}
+    - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+      with: {version: '2.9.5'}
+    - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+      with:
+        registry: ghcr.io
+        username: '${{ github.actor }}'
+        password: '${{ secrets.GITHUB_TOKEN }}'
+    - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+    - name: Acquire final infra identity
+      env: {KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}', EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-executor-ceph-infra}
+      run: |
+        set -euo pipefail
+        printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubeconfig="$RUNNER_TEMP/executor.kubeconfig"
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:6443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-credentials executor --token="$token"
+        kubectl config --kubeconfig "$kubeconfig" set-context executor --cluster=re8ch --user=executor --namespace=flux-system
+        kubectl config --kubeconfig "$kubeconfig" use-context executor
+        echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+    - name: Verify request again and materialize durable state
+      env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
+      run: |
+        set -euo pipefail
+        kubectl get releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system -o json > "$RUNNER_TEMP/operation-resource.json"
+        kubectl get staticrelease.delivery.re8ch.com "$RELEASE" -n flux-system -o json > "$RUNNER_TEMP/static-release.json"
+        repository="$(jq -r .spec.bundleRepository "$RUNNER_TEMP/static-release.json")"; approved="$(jq -r .spec.bundleDigest "$RUNNER_TEMP/static-release.json")"
+        flux pull artifact "${repository}@${approved}" --output "$RUNNER_TEMP/bundle"
+        kubectl get configmap "ssa-state-${RELEASE}" -n rook-ceph -o json > "$RUNNER_TEMP/state-configmap.json"
+        python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-configmap.json" --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE"
+        python operations/releases/ceph_operation.py --resource "$RUNNER_TEMP/operation-resource.json" --static-release "$RUNNER_TEMP/static-release.json" \
+          --contract "contracts/releases/ceph/${RELEASE}.yaml" --metadata "$RUNNER_TEMP/bundle/bundle-metadata.json" --state-dir "$RUNNER_TEMP/state" --output "$RUNNER_TEMP/operation.json"
+        args=()
+        if [[ "$ACTION" == reconcile || "$ACTION" == force-reconcile || "$ACTION" == rollback ]]; then args+=(--stage storage-class --stage health-acceptance); fi
+        python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
+          --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" > "$RUNNER_TEMP/result.json"
+        python operations/releases/operation_materialize.py persist --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE" --result "$RUNNER_TEMP/result.json" --output "$RUNNER_TEMP/state-patch.json"
+        kubectl patch configmap "ssa-state-${RELEASE}" -n rook-ceph --type=merge -p "$(cat "$RUNNER_TEMP/state-patch.json")"
+        result="$(jq -c . "$RUNNER_TEMP/result.json")"; state="$(cat "$RUNNER_TEMP/state/state/${RELEASE}.json")"
+        kubectl patch releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system --subresource=status --type=merge -p "$(jq -n --argjson result "$result" '{status:{phase:"Succeeded",terminalResult:$result}}')"
+        kubectl patch staticrelease.delivery.re8ch.com "$RELEASE" -n flux-system --subresource=status --type=merge -p "$(jq -n --argjson state "$state" '{status:{acceptedDigest:$state.appliedDigest,appliedDigest:$state.appliedDigest,healthyDigest:$state.healthyDigest,inventoryDigest:$state.inventoryDigest,currentOperation:$state.lastOperationId,suspended:($state.suspended // false),conditions:[{type:"Accepted",status:"True",reason:"SignatureVerified"},{type:"Applied",status:"True",reason:"SSAComplete"},{type:"Healthy",status:"True",reason:"HealthAcceptancePassed"}],history:[{chartName:$state.releaseId,digest:$state.appliedDigest,status:"deployed",version:$state.sequence}]}}')"
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      if: always()
+      with: {name: 'ceph-accept-${{ inputs.operation_id }}', path: '${{ runner.temp }}/result.json', retention-days: 30, if-no-files-found: ignore}

@@ -1,0 +1,28 @@
+capturedAt: '2026-10-23T00:00:00+08:00'
+source:
+  namespace: flux-system
+  deployment: helm-controller
+  fluxVersion: v2.6.1
+families:
+  gotk_reconcile_duration_seconds: {type: histogram, labels: [kind, le, name, namespace]}
+  controller_runtime_active_workers: {type: gauge, labels: [controller]}
+  controller_runtime_max_concurrent_reconciles: {type: gauge, labels: [controller]}
+  controller_runtime_reconcile_errors_total: {type: counter, labels: [controller]}
+  controller_runtime_reconcile_panics_total: {type: counter, labels: [controller]}
+  controller_runtime_reconcile_time_seconds: {type: histogram, labels: [controller, le]}
+  controller_runtime_reconcile_total: {type: counter, labels: [controller, result]}
+  controller_runtime_terminal_reconcile_errors_total: {type: counter, labels: [controller]}
+  workqueue_adds_total: {type: counter, labels: [controller, name]}
+  workqueue_depth: {type: gauge, labels: [controller, name, priority]}
+  workqueue_longest_running_processor_seconds: {type: gauge, labels: [controller, name]}
+  workqueue_queue_duration_seconds: {type: histogram, labels: [controller, le, name]}
+  workqueue_retries_total: {type: counter, labels: [controller, name]}
+  workqueue_unfinished_work_seconds: {type: gauge, labels: [controller, name]}
+  workqueue_work_duration_seconds: {type: histogram, labels: [controller, le, name]}
+  leader_election_master_status: {type: gauge, labels: [name]}
+  rest_client_requests_total: {type: counter, labels: [code, host, method]}
+requiredPrefixes: [go_, process_]
+compatibilityAdditions:
+  gotk_reconcile_condition: {type: gauge, labels: [kind, name, namespace, status, type]}
+  gotk_resource_info: {type: gauge, labels: [kind, name, namespace, revision, suspended]}
+  gotk_suspend_status: {type: gauge, labels: [kind, name, namespace]}

@@ -318,7 +318,7 @@ releases:
   releaseName: ceph-csi-drivers
   targetNamespace: rook-ceph
   storageNamespace: rook-ceph
-  suspended: false
+  suspended: true
   chart:
     mode: template
     chart: ceph-csi-drivers
@@ -354,7 +354,7 @@ releases:
     - name: rook-ceph
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:861fad1e36f63f89f9b4ee54960f581059277ad52bf5d327fa3ec82d380cdb11
+  declarationSha256: sha256:bed13aaf637d7bc2cdbb06be2b4a0e8e736c8d21b067e7c6ef4c2077b1f8d862
   occurrences:
   - file: clusters/re8ch/components/rook-ceph/releases.yaml
     document: 4
@@ -362,10 +362,11 @@ releases:
     document: 41
   classification:
     id: helmrelease:flux-system:ceph-csi-drivers
-    disposition: retain-helm-lifecycle
-    rollbackOwner: storage platform owner via helm-controller
-    evidence: CSI is storage authority and depends on Helm remediation and release
-      ordering; it is outside early migration cohorts.
+    disposition: bundle-ssa-candidate
+    rollbackOwner: signed Ceph StaticRelease operation history
+    evidence: Exact 1.0.4 chart and values digests render 23 staged objects; runtime
+      SSA, CSI health and protected rollback gates replace Helm lifecycle before finalizer
+      removal.
 - id: helmrelease:flux-system:connectool
   apiVersion: helm.toolkit.fluxcd.io/v2
   namespace: flux-system
@@ -755,7 +756,7 @@ releases:
   releaseName: rook-ceph
   targetNamespace: rook-ceph
   storageNamespace: rook-ceph
-  suspended: false
+  suspended: true
   chart:
     mode: template
     chart: rook-ceph
@@ -790,7 +791,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:75824f42bc29b2c03637c0da9a21b1162636e413d0437572285fcbf54f7f0ea5
+  declarationSha256: sha256:ddb9e09b5566bdf738c9c3a4affe2b2795b7f24061833d67725e9c01e6b5f5ce
   occurrences:
   - file: clusters/re8ch/components/rook-ceph/releases.yaml
     document: 3
@@ -798,10 +799,10 @@ releases:
     document: 42
   classification:
     id: helmrelease:flux-system:rook-ceph
-    disposition: retain-helm-lifecycle
-    rollbackOwner: storage platform owner via helm-controller
-    evidence: Rook is storage control-plane infrastructure with Helm remediation and
-      history dependencies; it is outside early migration cohorts.
+    disposition: bundle-ssa-candidate
+    rollbackOwner: signed Ceph StaticRelease operation history
+    evidence: Exact v1.20.3 chart and values digests render 83 staged objects with
+      CRD/RBAC/runtime separation and protected-schema rollback policy.
 - id: helmrelease:flux-system:rook-ceph-cluster
   apiVersion: helm.toolkit.fluxcd.io/v2
   namespace: flux-system
@@ -809,7 +810,7 @@ releases:
   releaseName: rook-ceph-cluster
   targetNamespace: rook-ceph
   storageNamespace: rook-ceph
-  suspended: false
+  suspended: true
   chart:
     mode: template
     chart: rook-ceph-cluster
@@ -850,7 +851,7 @@ releases:
     - name: ceph-csi-drivers
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:a2837bb3cc0f28bd23e632d947aad9cd92a8b7fc8aa721f0e0ebb9ad41c05c1e
+  declarationSha256: sha256:e5d0e5814adf9b1888bcf81d215a70443088f1a869409eae4a6a57c9d762102a
   occurrences:
   - file: clusters/re8ch/components/rook-ceph/releases.yaml
     document: 5
@@ -858,10 +859,11 @@ releases:
     document: 43
   classification:
     id: helmrelease:flux-system:rook-ceph-cluster
-    disposition: retain-helm-lifecycle
-    rollbackOwner: storage platform owner via helm-controller
-    evidence: The release owns persistent storage topology and depends on ordered
-      CSI and operator releases; static takeover is not qualified.
+    disposition: bundle-ssa-candidate
+    rollbackOwner: manual-approved Ceph StaticRelease rollback operation
+    evidence: Exact v1.20.3 chart and values digests render seven protected data-plane
+      objects after the operator and CSI dependency gates; destructive rollback and
+      prune are forbidden.
 - id: helmrelease:flux-system:runtime-anatomy
   apiVersion: helm.toolkit.fluxcd.io/v2
   namespace: flux-system
