@@ -18,7 +18,7 @@ spec:
     chartOCI: oci://registry.re8ch.com/functions-shared/rook-ceph-cluster@sha256:1f96f81af52e05ed16593dc354d5303da74fd29e2f876582b2cef24840a233be
     values:
     - path: clusters/re8ch/components/rook-ceph/cluster-values.yaml
-      digest: sha256:198ed897bc954b9a5ce40774fd911cf98acfbbe142e59893c9e4331b39cbc381
+      digest: sha256:09721dcb992c30249b117c8fed7128f2b788ba4727e3c181c5cf60af7d5f385e
     - path: clusters/re8ch/components/rook-ceph/cluster-values-production-encrypted.yaml
       digest: sha256:4fd9c352e2712b5b68e5326570ee86c1ef8cc36f443f56d07c93740b724c6679
   provenance:
