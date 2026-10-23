@@ -47,6 +47,7 @@ spec:
       object.spec.template.spec.serviceAccountName == 'release-artifact-mirror' &&
       object.spec.template.spec.automountServiceAccountToken == false &&
       object.spec.template.spec.restartPolicy == 'Never' &&
+      object.spec.template.spec.nodeSelector == {'kubernetes.io/hostname': 'restricted-node-1eb0570f74'} &&
       object.spec.template.spec.initContainers.size() == 2 &&
       object.spec.template.spec.initContainers.all(c,
         c.image == 'ghcr.io/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579') &&
