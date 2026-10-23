@@ -240,8 +240,8 @@ jobs:
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
         token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
         kubectl config --kubeconfig "$KUBECONFIG" set-credentials executor --token="$token" >/dev/null
-        python operations/releases/operation_materialize.py persist --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE" --result "$RUNNER_TEMP/result.json" --output "$RUNNER_TEMP/state-patch.json"
-        kubectl patch configmap "ssa-state-${RELEASE}" -n rook-ceph --type=merge -p "$(cat "$RUNNER_TEMP/state-patch.json")"
+        python operations/releases/operation_materialize.py persist --state-dir "$RUNNER_TEMP/state" --release-id "$RELEASE" --result "$RUNNER_TEMP/result.json" --output "$RUNNER_TEMP/state-configmap-apply.json"
+        kubectl apply --server-side --field-manager="re8ch-release-state/${RELEASE}" -f "$RUNNER_TEMP/state-configmap-apply.json"
         result="$(jq -c . "$RUNNER_TEMP/result.json")"; state="$(cat "$RUNNER_TEMP/state/state/${RELEASE}.json")"
         kubectl patch releaseoperation.delivery.re8ch.com "${{ inputs.operation_id }}" -n flux-system --subresource=status --type=merge -p "$(jq -n --argjson result "$result" '{status:{phase:"Succeeded",terminalResult:$result}}')"
         kubectl patch staticrelease.delivery.re8ch.com "$RELEASE" -n flux-system --subresource=status --type=merge -p "$(jq -n --argjson state "$state" '{status:{acceptedDigest:$state.appliedDigest,appliedDigest:$state.appliedDigest,healthyDigest:$state.healthyDigest,inventoryDigest:$state.inventoryDigest,currentOperation:$state.lastOperationId,suspended:($state.suspended // false),conditions:[{type:"Accepted",status:"True",reason:"SignatureVerified"},{type:"Applied",status:"True",reason:"SSAComplete"},{type:"Healthy",status:"True",reason:"HealthAcceptancePassed"}],history:[{chartName:$state.releaseId,digest:$state.appliedDigest,status:"deployed",version:$state.sequence}]}}')"

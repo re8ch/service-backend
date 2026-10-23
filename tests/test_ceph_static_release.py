@@ -90,6 +90,8 @@ def test_workflow_accepts_only_operation_id_and_splits_identities():
     assert "--no-stage-apply" in text
     assert "bundle has no infra stages" in text
     assert "bundle has no runtime stages" in text
+    assert 'kubectl apply --server-side --field-manager="re8ch-release-state/${RELEASE}"' in text
+    assert "kubectl patch configmap" not in text
 
 
 def test_metrics_golden_and_compatibility_additions_are_declared():
