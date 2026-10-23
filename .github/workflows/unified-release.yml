@@ -120,7 +120,7 @@ jobs:
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/executor-state"; install -d "$RUNNER_TEMP/pulled" "$root/state" "$root/results/$RELEASE_ID"
-          flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --path "$RUNNER_TEMP/pulled"
+          flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --output "$RUNNER_TEMP/pulled"
           kubectl get configmap re8ch-release-state-api-conformance-runner-projection -n api-conformance-runners -o json > "$RUNNER_TEMP/state-cm.json"
           python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-cm.json" --state-dir "$root" --release-id "$RELEASE_ID"
           python operations/releases/operation_materialize.py request --contract "$CONTRACT" --metadata "$RUNNER_TEMP/pulled/bundle-metadata.json" \
