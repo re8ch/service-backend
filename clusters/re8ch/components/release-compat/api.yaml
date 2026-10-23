@@ -27,8 +27,6 @@ spec:
         properties:
           spec:
             type: object
-            x-kubernetes-validations:
-            - {rule: "self == oldSelf", message: StaticRelease spec is an immutable Git projection}
             required: [releaseID, renderer, targetCluster, targetNamespace, contractDigest, chartDigest, valuesDigest, bundleRepository, stages]
             properties:
               releaseID: {type: string, maxLength: 63}
