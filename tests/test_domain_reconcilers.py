@@ -16,7 +16,7 @@ def load_all(path: Path) -> list[dict]:
     return [item for item in yaml.safe_load_all(path.read_text()) if isinstance(item, dict)]
 
 
-def test_every_domain_has_one_independent_reconciler():
+def test_every_domain_has_one_desired_state_reconciler():
     domain_names = sorted(path.name for path in DOMAINS.iterdir() if path.is_dir() and path.name != "main-legacy")
     reconcilers = load_all(RECONCILERS)
     transition = {item["metadata"]["name"].removeprefix("reconcile-main-legacy-"): item
@@ -30,7 +30,12 @@ def test_every_domain_has_one_independent_reconciler():
         if item.get("kind") == "Kustomization"
     }
 
-    assert set(legacy) | set(federation) == set(domain_names)
+    transitioned = {
+        domain for domain, item in transition.items()
+        if item["spec"]["suspend"] is False
+    }
+    assert set(legacy) | transitioned | set(federation) == set(domain_names)
+    assert "operations-ui" in transitioned and "operations-ui" not in legacy
     for domain, item in legacy.items():
         spec = item["spec"]
         assert spec["path"] == f"./clusters/re8ch/domains/{domain}"

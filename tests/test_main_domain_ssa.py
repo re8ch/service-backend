@@ -77,6 +77,7 @@ def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover()
 
 def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
     reconcilers = documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
+    assert all(item["metadata"]["name"] != "reconcile-operations-ui" for item in reconcilers)
     legacy = [item for item in reconcilers if item["metadata"]["name"].startswith("reconcile-main-legacy-")]
     assert {item["metadata"]["name"].removeprefix("reconcile-main-legacy-") for item in legacy} == DOMAINS
     state = {item["metadata"]["name"].removeprefix("reconcile-main-legacy-"): item["spec"]["suspend"]
