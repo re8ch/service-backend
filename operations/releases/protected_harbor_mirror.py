@@ -82,6 +82,7 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
                     "hostNetwork": True,
                     "dnsPolicy": "ClusterFirstWithHostNet",
                     "nodeSelector": {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"},
+                    "securityContext": {"fsGroup": 65532, "fsGroupChangePolicy": "OnRootMismatch"},
                     "imagePullSecrets": [{"name": "release-artifact-mirror-auth"}],
                     "initContainers": [
                         {
@@ -109,7 +110,7 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
                     "volumes": [
                         {"name": "registry-auth", "secret": {"secretName": "release-artifact-mirror-auth",
                                                                "items": [{"key": ".dockerconfigjson", "path": "config.json"}],
-                                                               "defaultMode": 256}},
+                                                               "defaultMode": 288}},
                         {"name": "tmp", "emptyDir": {}},
                     ],
                 },

@@ -50,6 +50,8 @@ spec:
       object.spec.template.spec.hostNetwork == true &&
       object.spec.template.spec.dnsPolicy == 'ClusterFirstWithHostNet' &&
       object.spec.template.spec.nodeSelector == {'kubernetes.io/hostname': 'restricted-node-6dc3f140f9'} &&
+      object.spec.template.spec.securityContext.fsGroup == 65532 &&
+      object.spec.template.spec.securityContext.fsGroupChangePolicy == 'OnRootMismatch' &&
       object.spec.template.spec.initContainers.size() == 2 &&
       object.spec.template.spec.initContainers.all(c,
         c.image == 'registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579' &&
@@ -65,7 +67,8 @@ spec:
     message: mirror Job runtime, identity and immutable images are fixed
   - expression: >-
       object.spec.template.spec.volumes.exists(v,
-        v.name == 'registry-auth' && v.secret.secretName == 'release-artifact-mirror-auth') &&
+        v.name == 'registry-auth' && v.secret.secretName == 'release-artifact-mirror-auth' &&
+        v.secret.defaultMode == 288) &&
       object.spec.template.spec.imagePullSecrets.exists(s, s.name == 'release-artifact-mirror-auth')
     message: mirror Job may use only the dedicated combined registry credential
 ---
