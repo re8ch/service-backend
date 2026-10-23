@@ -26,16 +26,16 @@ cephClusterSpec:
     count: 1
     allowMultiplePerNode: false
   dashboard:
-    enabled: false
+    enabled: true
   network:
     provider: host
     addressRanges:
       # Stable daemon/client identity. Node InternalIP authority remains here.
       public:
-        - 192.0.2.253/24
+        - 10.181.22.0/24
       # OSD replication, recovery, backfill, and heartbeat data plane.
       cluster:
-        - 192.0.2.106/24
+        - 10.250.0.0/24
     connections:
       encryption:
         enabled: false
@@ -165,7 +165,7 @@ cephClusterSpec:
     config:
       osdsPerDevice: "1"
     nodes:
-      - name: restricted-node-6dc3f140f9
+      - name: r640
         devices:
           - name: /dev/ubuntu-vg/ceph_pilot_osd
   disruptionManagement:
@@ -178,10 +178,10 @@ cephClusterSpec:
         interval: 45s
       osd:
         disabled: false
-        interval: 60s
+        interval: 1m0s
       status:
         disabled: false
-        interval: 60s
+        interval: 1m0s
 
 cephBlockPools:
   - name: r640-rbd
@@ -198,13 +198,13 @@ cephBlockPools:
       # nindent directly, so this field must be a YAML fragment string.
       labels: |
         storage.re8ch.com/availability-class: single-node
-        storage.re8ch.com/failure-domain: restricted-node-6dc3f140f9
+        storage.re8ch.com/failure-domain: r640
         storage.re8ch.com/replication: "1"
       annotations:
         storage.re8ch.com/ha: "false"
         storage.re8ch.com/usage-policy: >-
           R640-local non-HA storage; use only for workloads that intentionally
-          accept the restricted-node-6dc3f140f9 failure domain.
+          accept the R640 failure domain.
       isDefault: false
       reclaimPolicy: Retain
       allowVolumeExpansion: true
@@ -238,7 +238,7 @@ cephFileSystems:
           replicated:
             size: 1
             requireSafeReplicaSize: false
-        - name: restricted-node-6dc3f140f9
+        - name: r640
           failureDomain: host
           deviceClass: r640-hdd
           replicated:
@@ -262,10 +262,10 @@ cephFileSystems:
                       values: ["true"]
         resources:
           limits:
-            memory: 1Gi
+            memory: 4Gi
           requests:
-            cpu: 100m
-            memory: 512Mi
+            cpu: 250m
+            memory: 1Gi
         priorityClassName: system-cluster-critical
     storageClass:
       enabled: true
