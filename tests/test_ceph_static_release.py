@@ -139,6 +139,7 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     assert pod["hostNetwork"] is True
     assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
     assert pod["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert pod["securityContext"] == {"fsGroup": 65532, "fsGroupChangePolicy": "OnRootMismatch"}
     assert {item["name"] for item in pod["initContainers"]} == {"copy-artifact", "copy-signature"}
     assert all(item["env"] == [{"name": "DOCKER_CONFIG", "value": "/auth"}] for item in pod["initContainers"])
     assert all("--registry-config" not in item["args"] for item in pod["initContainers"])
@@ -151,5 +152,6 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     for container in [*pod["initContainers"], *pod["containers"]]:
         assert container["securityContext"]["runAsUser"] == 65532
         assert container["securityContext"]["runAsGroup"] == 65532
+    assert pod["volumes"][0]["secret"]["defaultMode"] == 0o440
     assert pod["containers"][0]["name"] == "verify-signature"
     assert pod["volumes"][0]["secret"]["secretName"] == "release-artifact-mirror-auth"
