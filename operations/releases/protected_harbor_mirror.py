@@ -56,6 +56,7 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
     copy_base = {
         "image": ORAS_IMAGE,
         "command": ["/bin/oras"],
+        "env": [{"name": "DOCKER_CONFIG", "value": "/auth"}],
         "volumeMounts": [mount],
         "securityContext": security,
     }
@@ -86,14 +87,12 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
                         {
                             **copy_base,
                             "name": "copy-artifact",
-                            "args": ["cp", "--recursive", "--registry-config", "/auth/config.json",
-                                     f"{source}@{digest}", f"{target}:{tag}"],
+                            "args": ["cp", "--recursive", f"{source}@{digest}", f"{target}:{tag}"],
                         },
                         {
                             **copy_base,
                             "name": "copy-signature",
-                            "args": ["cp", "--registry-config", "/auth/config.json",
-                                     f"{source}:{signature_tag}", f"{target}:{signature_tag}"],
+                            "args": ["cp", f"{source}:{signature_tag}", f"{target}:{signature_tag}"],
                         },
                     ],
                     "containers": [{
