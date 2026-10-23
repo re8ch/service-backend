@@ -87,7 +87,7 @@ class Runner:
 
     def __call__(self, argv, **kwargs):
         self.calls.append((argv, kwargs.get("input")))
-        if self.conflict and "--dry-run=server" in argv:
+        if self.conflict and "--dry-run=server" in argv and "--force-conflicts" not in argv:
             return subprocess.CompletedProcess(argv, 1, "", "field manager conflict")
         if argv[:2] == ["kubectl", "get"]:
             body = self.live or {"metadata": {"generation": 2}, "spec": {"replicas": 1},
@@ -115,14 +115,15 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     assert len(runner.calls) == count
 
 
-def test_conflict_stops_before_apply_or_state_write(tmp_path):
+def test_authorized_apply_reclaims_conflicting_fields(tmp_path):
     value, operation, bundle_path = prepare(tmp_path)
     runner = Runner(conflict=True)
-    with pytest.raises(executor.Rejected, match="field manager conflict"):
-        executor.Executor(runner=runner, now=lambda: NOW).reconcile(
-            value, operation, bundle_path, tmp_path / "state", verify_signature=False)
-    assert len([call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]) == 1
-    assert not (tmp_path / "state/state/demo.json").exists()
+    result = executor.Executor(runner=runner, now=lambda: NOW).reconcile(
+        value, operation, bundle_path, tmp_path / "state", verify_signature=False)
+    apply_calls = [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    assert result["outcome"] == "healthy"
+    assert len(apply_calls) == 2
+    assert all("--force-conflicts" in call[0] for call in apply_calls)
 
 
 def test_explicit_health_check_reads_live_json_pointer():
