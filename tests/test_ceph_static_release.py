@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
@@ -155,3 +156,43 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     assert pod["volumes"][0]["secret"]["defaultMode"] == 0o440
     assert pod["containers"][0]["name"] == "verify-signature"
     assert pod["volumes"][0]["secret"]["secretName"] == "release-artifact-mirror-auth"
+
+
+def test_mirror_wait_refreshes_only_the_exact_actions_oidc_audience(monkeypatch):
+    import importlib.util
+    import io
+    import urllib.parse
+
+    path = ROOT / "operations/releases/protected_harbor_mirror.py"
+    spec = importlib.util.spec_from_file_location("protected_harbor_mirror_token", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setenv(
+        "ACTIONS_ID_TOKEN_REQUEST_URL",
+        "https://pipelines.actions.githubusercontent.com/example/token?api-version=2.0",
+    )
+    monkeypatch.setenv("ACTIONS_ID_TOKEN_REQUEST_TOKEN", "request-token")
+    captured = {}
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.close()
+
+    def open_token(request, timeout):
+        captured["url"] = request.full_url
+        captured["authorization"] = request.headers["Authorization"]
+        assert timeout == 30
+        return Response(b'{"value":"short-lived-token"}')
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", open_token)
+    assert module.fresh_actions_token() == "short-lived-token"
+    assert captured["authorization"] == "bearer request-token"
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(captured["url"]).query)
+    assert query["audience"] == [module.PUBLISHER_AUDIENCE]
+
+    monkeypatch.setenv("ACTIONS_ID_TOKEN_REQUEST_URL", "https://example.com/token")
+    with pytest.raises(RuntimeError, match="unexpected Actions OIDC endpoint"):
+        module.fresh_actions_token()
