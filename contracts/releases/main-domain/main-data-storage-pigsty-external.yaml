@@ -1,0 +1,49 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-data-storage-pigsty-external
+spec:
+  target:
+    cluster: re8ch
+    namespace: pigsty-external
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-data-storage-pigsty-external
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-data-storage-pigsty-external
+    resources:
+    - core/ConfigMap
+    - core/Service
+    - discovery.k8s.io/EndpointSlice
+    objectNames:
+    - pg-re8ch-primary
+    - pg-re8ch-replicas
+    - pg-re8ch-topology
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:6ed21bc72e603c9b07794c59db1b306b2ae16b27650fc55fa00af7d9cc5e19ca
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - core/ConfigMap/pigsty-external/pg-re8ch-topology
+    - core/Service/pigsty-external/pg-re8ch-primary
+    - core/Service/pigsty-external/pg-re8ch-replicas
+    - discovery.k8s.io/EndpointSlice/pigsty-external/pg-re8ch-primary
+    - discovery.k8s.io/EndpointSlice/pigsty-external/pg-re8ch-replicas

@@ -1,0 +1,56 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-delivery-products-anycam
+spec:
+  target:
+    cluster: re8ch
+    namespace: anycam
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-delivery-products-anycam
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-delivery-products-anycam
+    resources:
+    - apps/Deployment
+    - batch/Job
+    - core/ConfigMap
+    - core/PersistentVolumeClaim
+    - core/Service
+    - gateway.networking.k8s.io/HTTPRoute
+    objectNames:
+    - anycam-market-demo-seed
+    - anycam-market-demo-seed-v2
+    - anycam-market-public
+    - anycam-model-downloader
+    - anycam-model-registry
+    - anycam-r640-model-store
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:18f4ca66750abe70ec0951c6d7217b0a47643312a3e562de195aaa899accfeac
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - apps/Deployment/anycam/anycam-model-downloader
+    - apps/Deployment/anycam/anycam-model-registry
+    - batch/Job/anycam/anycam-market-demo-seed-v2
+    - core/ConfigMap/anycam/anycam-market-demo-seed
+    - core/Service/anycam/anycam-model-registry
+    - gateway.networking.k8s.io/HTTPRoute/anycam/anycam-market-public

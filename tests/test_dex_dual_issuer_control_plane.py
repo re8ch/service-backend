@@ -27,6 +27,7 @@ def test_all_control_planes_share_supabase_authentication():
     assert github['issuer']['audiences'] == [
         'https://kube-api.re8ch.com/observer',
         'https://kube-api.re8ch.com/release-executor-api-conformance',
+        'https://kube-api.re8ch.com/release-executor-main-domain',
     ]
     expressions = {item['expression'] for item in github['claimValidationRules']}
     assert {
@@ -40,11 +41,16 @@ def test_all_control_planes_share_supabase_authentication():
         "claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'",
         "claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main'",
         "claims.environment == 'release-api-conformance'",
+        "claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain'",
+        "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main'",
+        "claims.environment == 'release-main-domain'",
         "claims.event_name == 'workflow_dispatch'",
     ):
         assert required in route
     assert "github-actions:release-executor-api-conformance:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
+    assert "github-actions:release-executor-main-domain:" in github['claimMappings']['username']['expression']
+    assert "re8ch:release-executor:main-domain" in github['claimMappings']['groups']['expression']
     configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]
     configs.append(ROOT.parents[3] / 'operations/network/manifests/network/private-transit/mubao-k3s-config.yaml')
     for path in configs:

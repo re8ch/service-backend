@@ -1,0 +1,48 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-tenant-runtime-scheduler-system
+spec:
+  target:
+    cluster: re8ch
+    namespace: scheduler-system
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-tenant-runtime-scheduler-system
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-tenant-runtime-scheduler-system
+    resources:
+    - apps/Deployment
+    - core/ConfigMap
+    - core/ServiceAccount
+    - policy/PodDisruptionBudget
+    objectNames:
+    - scheduler-plugins
+    - scheduler-plugins-config
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:be7c65d37c6ed51cc96f8cc035bfadcfc8bd10a5f966fca1104870213a82a95c
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - apps/Deployment/scheduler-system/scheduler-plugins
+    - core/ConfigMap/scheduler-system/scheduler-plugins-config
+    - core/ServiceAccount/scheduler-system/scheduler-plugins
+    - policy/PodDisruptionBudget/scheduler-system/scheduler-plugins

@@ -17,9 +17,10 @@ def load_all(path: Path) -> list[dict]:
 
 
 def test_every_domain_has_one_independent_reconciler():
-    domain_names = sorted(path.name for path in DOMAINS.iterdir() if path.is_dir())
+    domain_names = sorted(path.name for path in DOMAINS.iterdir() if path.is_dir() and path.name != "main-legacy")
     reconcilers = load_all(RECONCILERS)
-    legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers}
+    legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers
+              if item["metadata"]["name"] != "reconcile-main-legacy"}
     federation = yaml.safe_load(FEDERATION_AUTHORITY.read_text())["spec"]["domains"]
     registrations = {
         item["metadata"]["namespace"]: item
@@ -56,6 +57,8 @@ def test_domain_bundles_are_local_and_secrets_have_one_owner():
     for domain in sorted(DOMAINS.iterdir()):
         if not domain.is_dir():
             continue
+        if domain.name == "main-legacy":
+            continue  # generated transition mirror is covered by test_main_domain_ssa.py
         runtime = yaml.safe_load((domain / "kustomization.yaml").read_text())
         assert runtime["resources"] == ["resources.yaml"]
         assert (domain / "resources.yaml").is_file()

@@ -18,6 +18,7 @@ jwt:
       audiences:
         - https://kube-api.re8ch.com/observer
         - https://kube-api.re8ch.com/release-executor-api-conformance
+        - https://kube-api.re8ch.com/release-executor-main-domain
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - {expression: "claims.repository_id == '1367237854'", message: token must belong to the service-backend repository ID}
@@ -35,6 +36,11 @@ jwt:
            claims.ref == 'refs/heads/main' &&
            claims.workflow_ref == 're8ch/service-backend/.github/workflows/unified-release.yml@refs/heads/main' &&
            claims.environment == 'release-api-conformance' &&
+           claims.event_name == 'workflow_dispatch') ||
+          (claims.aud == 'https://kube-api.re8ch.com/release-executor-main-domain' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+           claims.environment == 'release-main-domain' &&
            claims.event_name == 'workflow_dispatch')
         message: token audience and workflow context must match one reviewed credential contract
     claimMappings:
@@ -42,11 +48,15 @@ jwt:
         expression: >-
           claims.aud == 'https://kube-api.re8ch.com/observer'
           ? 'github-actions:node-observer:' + claims.run_id
-          : 'github-actions:release-executor-api-conformance:' + claims.run_id
+          : claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'
+            ? 'github-actions:release-executor-api-conformance:' + claims.run_id
+            : 'github-actions:release-executor-main-domain:' + claims.run_id
       groups:
         expression: >-
           claims.aud == 'https://kube-api.re8ch.com/observer'
           ? ['re8ch:credential-contract:node-observer']
-          : ['re8ch:release-executor:api-conformance']
+          : claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'
+            ? ['re8ch:release-executor:api-conformance']
+            : ['re8ch:release-executor:main-domain']
       uid:
         expression: "claims.run_id + ':' + claims.run_attempt"

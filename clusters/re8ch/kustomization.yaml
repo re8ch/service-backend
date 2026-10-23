@@ -25,6 +25,7 @@ resources:
 - flux-federation
 - components/ops/github-actions-node-observer-rbac.yaml
 - components/ops/github-actions-release-executor-rbac.yaml
+- components/ops/github-actions-main-domain-executor-rbac.yaml
 patches:
 - target:
     group: apps

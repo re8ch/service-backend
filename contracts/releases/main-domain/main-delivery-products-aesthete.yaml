@@ -1,0 +1,47 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-delivery-products-aesthete
+spec:
+  target:
+    cluster: re8ch
+    namespace: aesthete
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-delivery-products-aesthete
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-main-domain
+    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-delivery-products-aesthete
+    resources:
+    - core/Service
+    - discovery.k8s.io/EndpointSlice
+    - gateway.networking.k8s.io/HTTPRoute
+    objectNames:
+    - aesthete-native-api
+    - aesthete-native-api-origin
+    - aesthete-native-api-origin-ipv4
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:38d67dd01830e8c315fd35d10043f7fced4782c138718ce96699877f2d9f683e
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - core/Service/aesthete/aesthete-native-api-origin
+    - discovery.k8s.io/EndpointSlice/aesthete/aesthete-native-api-origin-ipv4
+    - gateway.networking.k8s.io/HTTPRoute/aesthete/aesthete-native-api

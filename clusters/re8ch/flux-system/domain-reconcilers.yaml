@@ -65,3 +65,21 @@ spec:
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}
   decryption: {provider: sops, secretRef: {name: sops-age}}
+---
+# Temporary residual domain for objects that cannot yet be safely handed to
+# namespaced SSA: encrypted Secrets, cluster-scoped resources, Flux lifecycle
+# objects, and Helm releases. It remains suspended until all signed shadow
+# bundles have passed publication and verification.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata: {name: reconcile-main-legacy, namespace: flux-system}
+spec:
+  suspend: true
+  interval: 1m
+  retryInterval: 1m
+  timeout: 15m
+  path: ./clusters/re8ch/domains/main-legacy
+  prune: false
+  wait: false
+  sourceRef: {kind: GitRepository, name: service-backend}
+  decryption: {provider: sops, secretRef: {name: sops-age}}

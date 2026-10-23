@@ -1,0 +1,93 @@
+apiVersion: delivery.re8ch.com/main-domain-cohort/v1alpha1
+kind: MainDomainSSACohort
+autonomousDomainsExcluded:
+- agent-runtime
+- identity-access
+- networking
+- observability-metering
+sourceDomains:
+- data-storage
+- commerce-billing
+- delivery-products
+- operations-ui
+- tenant-runtime
+releaseCount: 19
+objectCount: 148
+legacyObjectCount: 115
+releases:
+- name: main-commerce-billing-payments
+  domain: commerce-billing
+  namespace: payments
+  objects: 28
+- name: main-data-storage-cloud-disk
+  domain: data-storage
+  namespace: cloud-disk
+  objects: 8
+- name: main-data-storage-observable
+  domain: data-storage
+  namespace: observable
+  objects: 6
+- name: main-data-storage-ops
+  domain: data-storage
+  namespace: ops
+  objects: 6
+- name: main-data-storage-pigsty-external
+  domain: data-storage
+  namespace: pigsty-external
+  objects: 5
+- name: main-data-storage-supabase-pg-re8ch
+  domain: data-storage
+  namespace: supabase-pg-re8ch
+  objects: 1
+- name: main-data-storage-toolhive-system
+  domain: data-storage
+  namespace: toolhive-system
+  objects: 1
+- name: main-delivery-products-aesthete
+  domain: delivery-products
+  namespace: aesthete
+  objects: 3
+- name: main-delivery-products-anycam
+  domain: delivery-products
+  namespace: anycam
+  objects: 7
+- name: main-delivery-products-farseer
+  domain: delivery-products
+  namespace: farseer
+  objects: 3
+- name: main-delivery-products-re8ch-farseer
+  domain: delivery-products
+  namespace: re8ch-farseer
+  objects: 5
+- name: main-delivery-products-re8ch-ontology-microscope
+  domain: delivery-products
+  namespace: re8ch-ontology-microscope
+  objects: 18
+- name: main-operations-ui-headlamp
+  domain: operations-ui
+  namespace: headlamp
+  objects: 29
+- name: main-operations-ui-kube-system
+  domain: operations-ui
+  namespace: kube-system
+  objects: 2
+- name: main-operations-ui-studio-toolkit
+  domain: operations-ui
+  namespace: studio-toolkit
+  objects: 12
+- name: main-operations-ui-supabase-pg-re8ch
+  domain: operations-ui
+  namespace: supabase-pg-re8ch
+  objects: 1
+- name: main-tenant-runtime-ai-operations
+  domain: tenant-runtime
+  namespace: ai-operations
+  objects: 5
+- name: main-tenant-runtime-scheduler-system
+  domain: tenant-runtime
+  namespace: scheduler-system
+  objects: 4
+- name: main-tenant-runtime-scheduling-system
+  domain: tenant-runtime
+  namespace: scheduling-system
+  objects: 4

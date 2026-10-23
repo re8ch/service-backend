@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import secrets
@@ -13,6 +14,17 @@ from pathlib import Path
 import yaml
 
 from unified_bundle import canonical, digest, validate_schema
+
+
+def state_configmap_name(release_id: str) -> str:
+    """Return a stable DNS label for a release's durable executor state."""
+    prefix = "ssa-state-"
+    candidate = prefix + release_id
+    if len(candidate) <= 63:
+        return candidate
+    suffix = hashlib.sha256(release_id.encode()).hexdigest()[:10]
+    head = release_id[: 63 - len(prefix) - len(suffix) - 1].rstrip("-")
+    return f"{prefix}{head}-{suffix}"
 
 
 def compact(value: object) -> str:
@@ -52,7 +64,7 @@ def request(contract_path: Path, metadata_path: Path, state_dir: Path, reference
         "bundle": {"reference": reference, "digest": oci_digest, "payloadDigest": metadata["payloadDigest"],
                    "signer": provenance["signer"], "issuer": provenance["issuer"]},
         "inventoryDigest": metadata["inventoryDigest"],
-        "github": {"repository": os.environ["GITHUB_REPOSITORY"], "workflow": ".github/workflows/unified-release.yml",
+        "github": {"repository": os.environ["GITHUB_REPOSITORY"], "workflow": provenance["workflow"],
                    "ref": os.environ["GITHUB_REF"], "commit": os.environ["GITHUB_SHA"], "runId": os.environ["GITHUB_RUN_ID"],
                    "environment": provenance["environment"], "audience": provenance["audience"]},
         "issuedAt": now.isoformat(), "expiresAt": (now + dt.timedelta(minutes=10)).isoformat(),
@@ -85,10 +97,13 @@ def main() -> int:
     save = sub.add_parser("persist")
     save.add_argument("--state-dir", type=Path, required=True); save.add_argument("--release-id", required=True)
     save.add_argument("--result", type=Path, required=True); save.add_argument("--output", type=Path, required=True)
+    state_name = sub.add_parser("state-name")
+    state_name.add_argument("--release-id", required=True)
     args = parser.parse_args()
     if args.command == "hydrate": hydrate(args.configmap, args.state_dir, args.release_id)
     elif args.command == "request": request(args.contract, args.metadata, args.state_dir, args.reference, args.digest, args.output)
-    else: persist(args.state_dir, args.release_id, args.result, args.output)
+    elif args.command == "persist": persist(args.state_dir, args.release_id, args.result, args.output)
+    else: print(state_configmap_name(args.release_id))
     return 0
 
 

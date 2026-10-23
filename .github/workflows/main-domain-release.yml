@@ -1,0 +1,146 @@
+name: main-domain-release
+on:
+  workflow_dispatch:
+    inputs:
+      contract: {description: Reviewed main-domain ReleaseContract path, type: string, required: true}
+      execute: {description: Execute through the bounded SSA executor, type: boolean, default: false}
+concurrency:
+  group: main-domain-release-${{ inputs.contract }}
+  cancel-in-progress: false
+jobs:
+  compile-sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: release-main-domain
+    permissions: {contents: read, id-token: write, packages: write}
+    outputs:
+      digest: ${{ steps.publish.outputs.digest }}
+      reference: ${{ steps.publish.outputs.reference }}
+      release-id: ${{ steps.publish.outputs.release-id }}
+      namespace: ${{ steps.publish.outputs.namespace }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {fetch-depth: 0}
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with: {version: v1.33.1}
+      - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+        with: {version: '2.9.5'}
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: '${{ github.actor }}'
+          password: '${{ secrets.GITHUB_TOKEN }}'
+      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - id: publish
+        env: {CONTRACT: '${{ inputs.contract }}'}
+        run: |
+          set -euo pipefail
+          case "$CONTRACT" in contracts/releases/main-domain/*.yaml) ;; *) exit 1;; esac
+          readarray -t fields < <(python - "$CONTRACT" <<'PY'
+          import sys,yaml
+          c=yaml.safe_load(open(sys.argv[1])); s=c["spec"]
+          for value in (s["source"]["renderer"],s["source"]["path"],c["metadata"]["name"],s["target"]["namespace"],s["provenance"]["audience"],s["provenance"]["environment"],s["provenance"]["workflow"]): print(value)
+          PY
+          )
+          [[ "${fields[0]}" == kustomize && "${fields[1]}" != /* && "${fields[1]}" != *..* ]]
+          [[ "${fields[4]}" == https://kube-api.re8ch.com/release-executor-main-domain ]]
+          [[ "${fields[5]}" == release-main-domain && "${fields[6]}" == .github/workflows/main-domain-release.yml ]]
+          kubectl kustomize "${fields[1]}" > "$RUNNER_TEMP/rendered.yaml"
+          python operations/releases/unified_bundle.py --contract "$CONTRACT" --rendered "$RUNNER_TEMP/rendered.yaml" \
+            --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
+          install -d "$RUNNER_TEMP/oci"; cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/"
+          reference="oci://ghcr.io/re8ch/service-backend-release/${fields[2]}"
+          flux push artifact "${reference}:run-${GITHUB_RUN_ID}" --path "$RUNNER_TEMP/oci" --reproducible \
+            --source "https://github.com/${GITHUB_REPOSITORY}" --revision "main@sha1:${GITHUB_SHA}" \
+            --annotations "delivery.re8ch.com/release-id=${fields[2]}" --output json > "$RUNNER_TEMP/oci-result.json"
+          oci_digest="$(jq -r .digest "$RUNNER_TEMP/oci-result.json")"; immutable="${reference#oci://}@${oci_digest}"
+          cosign sign --yes "$immutable"
+          cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
+          {
+            echo "digest=$oci_digest"
+            echo "reference=$reference"
+            echo "release-id=${fields[2]}"
+            echo "namespace=${fields[3]}"
+          } >> "$GITHUB_OUTPUT"
+          jq -n --arg reference "$reference" --arg digest "$oci_digest" --arg releaseId "${fields[2]}" --arg namespace "${fields[3]}" \
+            '{reference:$reference,digest:$digest,releaseId:$releaseId,namespace:$namespace,verified:true}' > main-domain-release-evidence.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with: {name: 'main-domain-release-${{ github.run_id }}', path: main-domain-release-evidence.json, retention-days: 30, if-no-files-found: error}
+  execute:
+    if: inputs.execute && github.ref == 'refs/heads/main'
+    needs: compile-sign
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release-main-domain
+    permissions: {contents: read, id-token: write, packages: read}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with: {version: v1.33.1}
+      - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
+        with: {version: '2.9.5'}
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: '${{ github.actor }}'
+          password: '${{ secrets.GITHUB_TOKEN }}'
+      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - name: Acquire exact OIDC identity and prove denials
+        env:
+          KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
+          EXECUTOR_AUDIENCE: 'https://kube-api.re8ch.com/release-executor-main-domain'
+          RELEASE_ID: '${{ needs.compile-sign.outputs.release-id }}'
+          TARGET_NAMESPACE: '${{ needs.compile-sign.outputs.namespace }}'
+        run: |
+          set -euo pipefail
+          printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+          curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+          token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+          kubeconfig="$RUNNER_TEMP/executor.kubeconfig"
+          kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main --server=https://kube-api.re8ch.com:6443 \
+            --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+          kubectl config --kubeconfig "$kubeconfig" set-credentials release-executor --token="$token"
+          kubectl config --kubeconfig "$kubeconfig" set-context release-executor --cluster=re8ch-main --user=release-executor
+          kubectl config --kubeconfig "$kubeconfig" use-context release-executor
+          export KUBECONFIG="$kubeconfig"
+          state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"
+          test "$(kubectl auth can-i patch "configmap/$state_name" -n "$TARGET_NAMESPACE")" = yes
+          for denied in "create configmaps -n $TARGET_NAMESPACE" "get secrets -n $TARGET_NAMESPACE" \
+            'patch kustomizations.kustomize.toolkit.fluxcd.io -n flux-system' "get pods/log -n $TARGET_NAMESPACE" \
+            "create serviceaccounts/token -n $TARGET_NAMESPACE" 'impersonate users'; do
+            read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no
+          done
+          echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+      - name: Pull signed digest, resume durable state and reconcile
+        env:
+          CONTRACT: '${{ inputs.contract }}'
+          OCI_REFERENCE: '${{ needs.compile-sign.outputs.reference }}'
+          OCI_DIGEST: '${{ needs.compile-sign.outputs.digest }}'
+          RELEASE_ID: '${{ needs.compile-sign.outputs.release-id }}'
+          TARGET_NAMESPACE: '${{ needs.compile-sign.outputs.namespace }}'
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/executor-state"; install -d "$RUNNER_TEMP/pulled" "$root/state" "$root/results/$RELEASE_ID"
+          immutable="${OCI_REFERENCE#oci://}@${OCI_DIGEST}"
+          cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
+          flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --output "$RUNNER_TEMP/pulled"
+          state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"
+          kubectl get configmap "$state_name" -n "$TARGET_NAMESPACE" -o json > "$RUNNER_TEMP/state-cm.json"
+          python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-cm.json" --state-dir "$root" --release-id "$RELEASE_ID"
+          python operations/releases/operation_materialize.py request --contract "$CONTRACT" --metadata "$RUNNER_TEMP/pulled/bundle-metadata.json" \
+            --state-dir "$root" --reference "$OCI_REFERENCE" --digest "$OCI_DIGEST" --output "$RUNNER_TEMP/operation.json"
+          python operations/releases/ssa_executor.py --contract "$CONTRACT" --operation "$RUNNER_TEMP/operation.json" \
+            --bundle "$RUNNER_TEMP/pulled/release.bundle" --state-dir "$root" > "$RUNNER_TEMP/result.json"
+          python operations/releases/operation_materialize.py persist --state-dir "$root" --release-id "$RELEASE_ID" \
+            --result "$RUNNER_TEMP/result.json" --output "$RUNNER_TEMP/state-patch.json"
+          kubectl patch configmap "$state_name" -n "$TARGET_NAMESPACE" --type merge --patch-file "$RUNNER_TEMP/state-patch.json"
+          cp "$RUNNER_TEMP/result.json" main-domain-release-result.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with: {name: 'main-domain-release-result-${{ github.run_id }}', path: main-domain-release-result.json, retention-days: 30, if-no-files-found: warn}
