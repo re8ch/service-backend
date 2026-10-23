@@ -75,7 +75,10 @@ def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
     reconcilers = documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
     legacy = [item for item in reconcilers if item["metadata"]["name"].startswith("reconcile-main-legacy-")]
     assert {item["metadata"]["name"].removeprefix("reconcile-main-legacy-") for item in legacy} == DOMAINS
-    assert all(item["spec"]["suspend"] is True and item["spec"]["prune"] is False for item in legacy)
+    state = {item["metadata"]["name"].removeprefix("reconcile-main-legacy-"): item["spec"]["suspend"]
+             for item in legacy}
+    assert state == {domain: domain != "operations-ui" for domain in DOMAINS}
+    assert all(item["spec"]["prune"] is False for item in legacy)
     assert {item["spec"]["path"] for item in legacy} == {
         f"./clusters/re8ch/domains/main-legacy/{domain}" for domain in DOMAINS
     }
