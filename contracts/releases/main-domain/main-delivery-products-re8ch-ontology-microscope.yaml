@@ -23,7 +23,6 @@ spec:
     fieldManager: re8ch-release/main-delivery-products-re8ch-ontology-microscope
     resources:
     - apps/Deployment
-    - apps/StatefulSet
     - cilium.io/CiliumNetworkPolicy
     - core/ConfigMap
     - core/Service
@@ -41,7 +40,7 @@ spec:
     - ontology-neuronpedia-postgres
     allowClusterScoped: false
   inventory:
-    digest: sha256:bcf02c7facde4a9568549b32826289ddd42dd752db5ff7232a9532cb89e09649
+    digest: sha256:f202afc1a9b1f2989b6f0d43a280d2d8eb641fec4b2cddef595fd52ba855477a
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -53,11 +52,6 @@ spec:
     - StorageClass
     deletionAllowlist:
     - apps/Deployment/re8ch-ontology-microscope/ontology-microscope
-    - apps/Deployment/re8ch-ontology-microscope/ontology-microscope-adapter
-    - apps/Deployment/re8ch-ontology-microscope/ontology-microscope-evaluation-worker
-    - apps/Deployment/re8ch-ontology-microscope/ontology-microscope-neuronpedia
-    - apps/StatefulSet/re8ch-ontology-microscope/ontology-microscope-neo4j
-    - apps/StatefulSet/re8ch-ontology-microscope/ontology-neuronpedia-postgres
     - cilium.io/CiliumNetworkPolicy/re8ch-ontology-microscope/ontology-microscope-adapter-egress
     - cilium.io/CiliumNetworkPolicy/re8ch-ontology-microscope/ontology-microscope-evaluation-worker
     - cilium.io/CiliumNetworkPolicy/re8ch-ontology-microscope/ontology-microscope-neo4j

@@ -42,6 +42,9 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
               for item in documents(path)}
     assert not ssa & legacy
     assert ssa | legacy == source
+    assert set(cohort["deferredSSAObjects"]) == compiler.DEFERRED_SSA
+    assert compiler.DEFERRED_SSA <= legacy
+    assert compiler.DEFERRED_SSA.isdisjoint(ssa)
 
 
 def test_every_ssa_release_is_signed_bundle_eligible_and_exactly_scoped():
