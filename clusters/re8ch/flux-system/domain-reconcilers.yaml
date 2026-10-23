@@ -31,11 +31,12 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-operations-ui, namespace: flux-system}
 spec:
+  suspend: true
   interval: 1m
   retryInterval: 1m
   timeout: 15m
   path: ./clusters/re8ch/domains/operations-ui
-  prune: true
+  prune: false
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}
   decryption: {provider: sops, secretRef: {name: sops-age}}
@@ -116,7 +117,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-main-legacy-operations-ui, namespace: flux-system}
 spec:
-  suspend: true
+  suspend: false
   interval: 1m
   retryInterval: 1m
   timeout: 15m

@@ -19,6 +19,8 @@ def load_all(path: Path) -> list[dict]:
 def test_every_domain_has_one_independent_reconciler():
     domain_names = sorted(path.name for path in DOMAINS.iterdir() if path.is_dir() and path.name != "main-legacy")
     reconcilers = load_all(RECONCILERS)
+    transition = {item["metadata"]["name"].removeprefix("reconcile-main-legacy-"): item
+                  for item in reconcilers if item["metadata"]["name"].startswith("reconcile-main-legacy-")}
     legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers
               if not item["metadata"]["name"].startswith("reconcile-main-legacy")}
     federation = yaml.safe_load(FEDERATION_AUTHORITY.read_text())["spec"]["domains"]
@@ -33,7 +35,10 @@ def test_every_domain_has_one_independent_reconciler():
         spec = item["spec"]
         assert spec["path"] == f"./clusters/re8ch/domains/{domain}"
         assert spec["sourceRef"] == {"kind": "GitRepository", "name": "service-backend"}
-        assert spec["prune"] is True
+        if domain in transition and transition[domain]["spec"]["suspend"] is False:
+            assert spec["suspend"] is True and spec["prune"] is False
+        else:
+            assert spec.get("suspend", False) is False and spec["prune"] is True
         assert spec["wait"] is False
         assert "dependsOn" not in spec
     for domain, authority in federation.items():
