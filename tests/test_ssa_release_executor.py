@@ -120,6 +120,17 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     assert len(runner.calls) == count
 
 
+def test_explicit_empty_stage_selection_finalizes_without_applying_objects(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    runner = Runner()
+    result = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None).reconcile(
+        value, operation, bundle_path, tmp_path / "state", verify_signature=False, stages=set(), finalize=True)
+    assert result["outcome"] == "healthy"
+    assert not [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    persisted = json.loads((tmp_path / "state/state/demo.json").read_text())
+    assert persisted["inventory"] == ["apps/Deployment/demo/demo"]
+
+
 def test_kubectl_commands_refresh_actions_oidc_token(monkeypatch):
     runner = Runner()
     instance = executor.Executor(runner=runner)
