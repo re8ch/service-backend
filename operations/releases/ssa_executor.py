@@ -222,7 +222,9 @@ class Executor:
 
     def apply(self, objects: list[dict], field_manager: str, dry_run: bool) -> None:
         for item in objects:
-            argv = ["kubectl", "apply", "--server-side", f"--field-manager={field_manager}"]
+            # Authorization is already narrowed by the signed contract and API
+            # RBAC. Reclaim those exact fields so a third-party patch is healed.
+            argv = ["kubectl", "apply", "--server-side", "--force-conflicts", f"--field-manager={field_manager}"]
             if dry_run:
                 argv.append("--dry-run=server")
             argv += ["-f", "-"]
