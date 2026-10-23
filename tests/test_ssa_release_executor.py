@@ -80,10 +80,11 @@ def prepare(tmp_path, sequence=1, operation_id=None, previous=None):
 
 
 class Runner:
-    def __init__(self, conflict=False, live=None):
+    def __init__(self, conflict=False, live=None, pulled_bundle=None):
         self.calls = []
         self.conflict = conflict
         self.live = live
+        self.pulled_bundle = pulled_bundle
 
     def __call__(self, argv, **kwargs):
         self.calls.append((argv, kwargs.get("input")))
@@ -93,6 +94,8 @@ class Runner:
             body = self.live or {"metadata": {"generation": 2}, "spec": {"replicas": 1},
                                  "status": {"observedGeneration": 2, "availableReplicas": 1}}
             return subprocess.CompletedProcess(argv, 0, json.dumps(body), "")
+        if argv[:3] == ["flux", "pull", "artifact"] and self.pulled_bundle:
+            Path(argv[argv.index("--output") + 1], "release.bundle").write_bytes(self.pulled_bundle)
         return subprocess.CompletedProcess(argv, 0, "ok", "")
 
 
@@ -134,6 +137,26 @@ def test_explicit_health_check_reads_live_json_pointer():
     unhealthy = executor.Executor(runner=Runner(live={"data": {"authority": "drift"}}))
     assert healthy.healthy(item, [check]) == (True, "contract health checks satisfied")
     assert unhealthy.healthy(item, [check]) == (False, "/data/authority differs from contract")
+
+
+def test_rollback_pull_keeps_oci_scheme(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    archive = bundle_path.read_bytes()
+    manifest, objects = executor.load_archive(bundle_path)
+    previous = {
+        "appliedDigest": operation["bundle"]["digest"],
+        "bundleReference": operation["bundle"]["reference"],
+        "payloadDigest": digest(archive),
+        "inventory": manifest["inventory"],
+        "objectRefs": [executor.object_ref(item) for item in objects],
+    }
+    runner = Runner(pulled_bundle=archive)
+    instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
+    observed, _ = instance.rollback(previous, manifest, objects, value, "re8ch-release/demo",
+                                    executor.Store(tmp_path / "state", "demo"), "drill")
+    pull = next(call[0] for call in runner.calls if call[0][:3] == ["flux", "pull", "artifact"])
+    assert pull[3].startswith("oci://registry.example/releases/demo@sha256:")
+    assert observed == operation["bundle"]["digest"]
 
 
 def test_expired_out_of_order_and_reused_operation_are_rejected(tmp_path):
