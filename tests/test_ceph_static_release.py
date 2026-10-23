@@ -40,6 +40,18 @@ def test_compatibility_surface_is_projection_only_and_controller_has_no_workload
     assert not resources & {"secrets", "pods", "pods/exec", "serviceaccounts/token", "deployments", "daemonsets"}
 
 
+def test_staticrelease_spec_updates_are_reserved_to_main_git_projection():
+    crds = docs(ROOT / "clusters/re8ch/components/release-compat/api.yaml")
+    static = next(item for item in crds if item["metadata"]["name"] == "staticreleases.delivery.re8ch.com")
+    schema = static["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+    assert "x-kubernetes-validations" not in schema
+    resources = docs(ROOT / "clusters/re8ch/components/release-compat/admission.yaml")
+    policy = next(item for item in resources if item["metadata"]["name"] == "delivery-staticrelease-git-authority")
+    expression = policy["spec"]["validations"][0]["expression"]
+    assert "object.spec == oldObject.spec" in expression
+    assert "system:serviceaccount:flux-system:kustomize-controller" in expression
+
+
 def test_flux_compat_admission_ignores_unlabelled_flux_consumers():
     resources = docs(ROOT / "clusters/re8ch/components/release-compat/admission.yaml")
     policies = {
