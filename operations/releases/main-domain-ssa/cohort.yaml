@@ -14,6 +14,17 @@ sourceDomains:
 releaseCount: 19
 objectCount: 148
 legacyObjectCount: 115
+legacyShards:
+- domain: commerce-billing
+  objects: 14
+- domain: data-storage
+  objects: 24
+- domain: delivery-products
+  objects: 8
+- domain: operations-ui
+  objects: 12
+- domain: tenant-runtime
+  objects: 57
 releases:
 - name: main-commerce-billing-payments
   domain: commerce-billing
