@@ -270,7 +270,11 @@ func (r *reconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.
 	status, _, _ := unstructured.NestedMap(helm.Object, "status")
 	for _, item := range actions {
 		key := annotations[item.annotation]
-		if key != "" && nestedString(status, item.handled) != key {
+		if key != "" {
+			// The retiring Flux controller may acknowledge annotations on a
+			// suspended projection without executing them. The immutable,
+			// deterministic ReleaseOperation is the idempotency authority; the
+			// projected Flux status is only a compatibility view.
 			if err := r.createOperation(ctx, release, helm, item.action, key); err != nil {
 				return ctrl.Result{RequeueAfter: 20 * time.Second}, err
 			}

@@ -29,6 +29,18 @@ func TestOperationNameIsStableAndActionScoped(t *testing.T) {
 	}
 }
 
+func TestOperationNameDoesNotTrustFluxHandledStatus(t *testing.T) {
+	requestedAt := "2026-10-23T21:05:43.284Z"
+	// A retiring Flux controller can copy requestedAt into
+	// lastHandledReconcileAt before the compatibility controller observes it.
+	// Operation identity must remain derived from the request itself.
+	got := operationName("rook-ceph", "reconcile", requestedAt)
+	want := "rook-ceph-9cd3f4260b72b501"
+	if got != want {
+		t.Fatalf("unexpected operation identity: got %q want %q", got, want)
+	}
+}
+
 func TestConditionProjection(t *testing.T) {
 	status := map[string]any{"conditions": []any{map[string]any{"type": "Healthy", "status": "False", "reason": "Frozen"}}}
 	value, reason := condition(status, "Healthy")
