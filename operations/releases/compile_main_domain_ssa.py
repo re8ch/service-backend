@@ -101,7 +101,7 @@ def role_rules(items: list[dict], state_name: str) -> list[dict]:
 
 def compile_outputs() -> dict[Path, str]:
     releases: dict[tuple[str, str], list[dict]] = defaultdict(list)
-    legacy: list[dict] = []
+    legacy: dict[str, list[dict]] = defaultdict(list)
     seen: dict[str, str] = {}
     for domain in DOMAINS:
         for item in docs(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml"):
@@ -113,7 +113,7 @@ def compile_outputs() -> dict[Path, str]:
             namespace = meta.get("namespace")
             if (not namespace or namespace == "flux-system" or item["kind"] in CLUSTER_KINDS |
                     FLUX_KINDS | {"Secret"} or has_mutable_image(item)):
-                legacy.append(item)
+                legacy[domain].append(item)
             else:
                 releases[(domain, namespace)].append(item)
 
@@ -167,17 +167,19 @@ def compile_outputs() -> dict[Path, str]:
              "subjects": [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group",
                            "name": "re8ch:release-executor:main-domain"}]},
         ])
-    legacy.sort(key=identity)
-    files[LEGACY / "resources.yaml"] = dump_all(legacy)
-    files[LEGACY / "kustomization.yaml"] = yaml.safe_dump({
-        "apiVersion": "kustomize.config.k8s.io/v1beta1", "kind": "Kustomization", "resources": ["resources.yaml"]
-    }, sort_keys=False)
+    for domain, items in sorted(legacy.items()):
+        items.sort(key=identity)
+        files[LEGACY / domain / "resources.yaml"] = dump_all(items)
+        files[LEGACY / domain / "kustomization.yaml"] = yaml.safe_dump({
+            "apiVersion": "kustomize.config.k8s.io/v1beta1", "kind": "Kustomization", "resources": ["resources.yaml"]
+        }, sort_keys=False)
     files[RBAC] = dump_all(rbac_docs)
     manifest = {
         "apiVersion": "delivery.re8ch.com/main-domain-cohort/v1alpha1", "kind": "MainDomainSSACohort",
         "autonomousDomainsExcluded": sorted(AUTONOMOUS), "sourceDomains": list(DOMAINS),
         "releaseCount": len(releases), "objectCount": sum(map(len, releases.values())),
-        "legacyObjectCount": len(legacy),
+        "legacyObjectCount": sum(map(len, legacy.values())),
+        "legacyShards": [{"domain": domain, "objects": len(items)} for domain, items in sorted(legacy.items())],
         "releases": [{"name": release_name(d, n), "domain": d, "namespace": n, "objects": len(items)}
                      for (d, n), items in sorted(releases.items())],
     }

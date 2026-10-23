@@ -37,7 +37,9 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
            for item in documents(path)}
-    legacy = {compiler.identity(item) for item in documents(ROOT / "clusters/re8ch/domains/main-legacy/resources.yaml")}
+    legacy = {compiler.identity(item)
+              for path in (ROOT / "clusters/re8ch/domains/main-legacy").glob("*/resources.yaml")
+              for item in documents(path)}
     assert not ssa & legacy
     assert ssa | legacy == source
 
@@ -71,10 +73,12 @@ def test_main_domain_rbac_is_exact_name_update_only():
 
 def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
     reconcilers = documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
-    legacy = next(item for item in reconcilers if item["metadata"]["name"] == "reconcile-main-legacy")
-    assert legacy["spec"]["suspend"] is True
-    assert legacy["spec"]["prune"] is False
-    assert legacy["spec"]["path"] == "./clusters/re8ch/domains/main-legacy"
+    legacy = [item for item in reconcilers if item["metadata"]["name"].startswith("reconcile-main-legacy-")]
+    assert {item["metadata"]["name"].removeprefix("reconcile-main-legacy-") for item in legacy} == DOMAINS
+    assert all(item["spec"]["suspend"] is True and item["spec"]["prune"] is False for item in legacy)
+    assert {item["spec"]["path"] for item in legacy} == {
+        f"./clusters/re8ch/domains/main-legacy/{domain}" for domain in DOMAINS
+    }
     workflow = (ROOT / ".github/workflows/main-domain-release.yml").read_text()
     assert "contracts/releases/main-domain/*.yaml" in workflow
     assert "https://kube-api.re8ch.com/release-executor-main-domain" in workflow

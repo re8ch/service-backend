@@ -178,7 +178,11 @@ domains:
       - clusters/re8ch/components/cloud-disk
       - clusters/re8ch/domains/data-storage
       - clusters/re8ch/domains/tenant-runtime
-      - clusters/re8ch/domains/main-legacy
+      - clusters/re8ch/domains/main-legacy/data-storage
+      - clusters/re8ch/domains/main-legacy/commerce-billing
+      - clusters/re8ch/domains/main-legacy/delivery-products
+      - clusters/re8ch/domains/main-legacy/operations-ui
+      - clusters/re8ch/domains/main-legacy/tenant-runtime
     tests:
       - tests/test_cloud_platform.py
       - tests/test_cloud_platform_manifest.py

@@ -20,7 +20,7 @@ def test_every_domain_has_one_independent_reconciler():
     domain_names = sorted(path.name for path in DOMAINS.iterdir() if path.is_dir() and path.name != "main-legacy")
     reconcilers = load_all(RECONCILERS)
     legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers
-              if item["metadata"]["name"] != "reconcile-main-legacy"}
+              if not item["metadata"]["name"].startswith("reconcile-main-legacy")}
     federation = yaml.safe_load(FEDERATION_AUTHORITY.read_text())["spec"]["domains"]
     registrations = {
         item["metadata"]["namespace"]: item
