@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: re8ch-release-state-api-conformance-runner-projection
   namespace: api-conformance-runners
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
   labels:
     delivery.re8ch.com/state: accepted
 ---

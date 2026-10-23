@@ -4,6 +4,7 @@ on:
     inputs:
       contract: {description: Reviewed ReleaseContract path, type: string, default: contracts/releases/api-conformance-runner-projection.yaml}
       execute: {description: Execute through the bounded SSA executor, type: boolean, default: false}
+      rollback_drill: {description: Publish the reviewed unhealthy canary to prove automatic rollback, type: boolean, default: false}
 concurrency:
   group: unified-release-${{ inputs.contract }}
   cancel-in-progress: false
@@ -45,6 +46,16 @@ jobs:
           )
           [[ "${fields[0]}" == kustomize && "${fields[1]}" != /* && "${fields[1]}" != *..* ]]
           kubectl kustomize "${fields[1]}" > "$RUNNER_TEMP/rendered.yaml"
+          if [[ '${{ inputs.rollback_drill }}' == true ]]; then
+            [[ "${fields[2]}" == api-conformance-runner-projection ]]
+            python - "$RUNNER_TEMP/rendered.yaml" <<'PY'
+          import sys, yaml
+          path=sys.argv[1]; docs=list(yaml.safe_load_all(open(path)))
+          target=[d for d in docs if d and d.get("kind")=="ConfigMap" and d.get("metadata",{}).get("name")=="api-conformance-runner-projection-contract"]
+          assert len(target)==1; target[0]["data"]["authority"]="rollback-drill-invalid"
+          open(path,"w").write("---\n".join(yaml.safe_dump(d, sort_keys=False) for d in docs if d))
+          PY
+          fi
           python operations/releases/unified_bundle.py --contract "$CONTRACT" --rendered "$RUNNER_TEMP/rendered.yaml" \
             --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
           install -d "$RUNNER_TEMP/oci"; cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/"

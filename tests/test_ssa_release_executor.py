@@ -80,17 +80,18 @@ def prepare(tmp_path, sequence=1, operation_id=None, previous=None):
 
 
 class Runner:
-    def __init__(self, conflict=False):
+    def __init__(self, conflict=False, live=None):
         self.calls = []
         self.conflict = conflict
+        self.live = live
 
     def __call__(self, argv, **kwargs):
         self.calls.append((argv, kwargs.get("input")))
         if self.conflict and "--dry-run=server" in argv:
             return subprocess.CompletedProcess(argv, 1, "", "field manager conflict")
         if argv[:2] == ["kubectl", "get"]:
-            body = {"metadata": {"generation": 2}, "spec": {"replicas": 1},
-                    "status": {"observedGeneration": 2, "availableReplicas": 1}}
+            body = self.live or {"metadata": {"generation": 2}, "spec": {"replicas": 1},
+                                 "status": {"observedGeneration": 2, "availableReplicas": 1}}
             return subprocess.CompletedProcess(argv, 0, json.dumps(body), "")
         return subprocess.CompletedProcess(argv, 0, "ok", "")
 
@@ -122,6 +123,16 @@ def test_conflict_stops_before_apply_or_state_write(tmp_path):
             value, operation, bundle_path, tmp_path / "state", verify_signature=False)
     assert len([call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]) == 1
     assert not (tmp_path / "state/state/demo.json").exists()
+
+
+def test_explicit_health_check_reads_live_json_pointer():
+    item = {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "demo", "namespace": "demo"}}
+    check = {"apiVersion": "v1", "kind": "ConfigMap", "name": "demo", "namespace": "demo",
+             "jsonPointer": "/data/authority", "equals": "executor"}
+    healthy = executor.Executor(runner=Runner(live={"data": {"authority": "executor"}}))
+    unhealthy = executor.Executor(runner=Runner(live={"data": {"authority": "drift"}}))
+    assert healthy.healthy(item, [check]) == (True, "contract health checks satisfied")
+    assert unhealthy.healthy(item, [check]) == (False, "/data/authority differs from contract")
 
 
 def test_expired_out_of_order_and_reused_operation_are_rejected(tmp_path):

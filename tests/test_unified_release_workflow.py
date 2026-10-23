@@ -19,6 +19,8 @@ def test_unified_release_publishes_and_verifies_exact_oci_digest():
     assert "operation_materialize.py hydrate" in workflow
     assert "ssa_executor.py" in workflow
     assert "get secrets -n api-conformance-runners" in workflow
+    assert "rollback_drill" in workflow
+    assert "rollback-drill-invalid" in workflow
 
 
 def test_canary_contract_is_exactly_namespaced_and_non_pruning():
@@ -27,3 +29,4 @@ def test_canary_contract_is_exactly_namespaced_and_non_pruning():
     assert contract["spec"]["authorization"]["resources"] == ["core/ConfigMap"]
     assert contract["spec"]["authorization"]["objectNames"] == ["api-conformance-runner-projection-contract"]
     assert contract["spec"]["lifecycle"]["prune"] is False
+    assert contract["spec"]["lifecycle"]["healthChecks"][0]["jsonPointer"] == "/data/authority"
