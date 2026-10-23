@@ -78,8 +78,21 @@ jobs:
     - name: Apply schema and RBAC stages
       if: steps.operation.outputs.action == 'reconcile' || steps.operation.outputs.action == 'force-reconcile' || steps.operation.outputs.action == 'rollback'
       run: |
-        python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
-          --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" --stage crd-schema --stage cluster-rbac --partial > "$RUNNER_TEMP/infra-result.json"
+        set -euo pipefail
+        args=()
+        for stage in crd-schema cluster-rbac; do
+          if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
+            args+=(--stage "$stage")
+          fi
+        done
+        if ((${#args[@]})); then
+          python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
+            --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" --partial > "$RUNNER_TEMP/infra-result.json"
+        else
+          jq -n --arg operation "${{ inputs.operation_id }}" --arg release "$RELEASE" \
+            '{apiVersion:"delivery.re8ch.com/stage-result/v1alpha1",operationId:$operation,releaseId:$release,stages:[],outcome:"healthy",health:{status:"healthy",reason:"bundle has no infra stages"}}' \
+            > "$RUNNER_TEMP/infra-result.json"
+        fi
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
         token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
         kubectl config --kubeconfig "$KUBECONFIG" set-credentials executor --token="$token" >/dev/null
@@ -140,8 +153,21 @@ jobs:
       if: needs.infra.outputs.action == 'reconcile' || needs.infra.outputs.action == 'force-reconcile' || needs.infra.outputs.action == 'rollback'
       env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
       run: |
-        python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
-          --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" --stage runtime --stage custom-resources --partial > "$RUNNER_TEMP/result.json"
+        set -euo pipefail
+        args=()
+        for stage in runtime custom-resources; do
+          if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
+            args+=(--stage "$stage")
+          fi
+        done
+        if ((${#args[@]})); then
+          python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
+            --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" --partial > "$RUNNER_TEMP/result.json"
+        else
+          jq -n --arg operation "${{ inputs.operation_id }}" --arg release "$RELEASE" \
+            '{apiVersion:"delivery.re8ch.com/stage-result/v1alpha1",operationId:$operation,releaseId:$release,stages:[],outcome:"healthy",health:{status:"healthy",reason:"bundle has no runtime stages"}}' \
+            > "$RUNNER_TEMP/result.json"
+        fi
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
         token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
         kubectl config --kubeconfig "$KUBECONFIG" set-credentials executor --token="$token" >/dev/null
@@ -201,7 +227,14 @@ jobs:
         python operations/releases/ceph_operation.py --resource "$RUNNER_TEMP/operation-resource.json" --static-release "$RUNNER_TEMP/static-release.json" \
           --contract "contracts/releases/ceph/${RELEASE}.yaml" --metadata "$RUNNER_TEMP/bundle/bundle-metadata.json" --state-dir "$RUNNER_TEMP/state" --output "$RUNNER_TEMP/operation.json"
         args=()
-        if [[ "$ACTION" == reconcile || "$ACTION" == force-reconcile || "$ACTION" == rollback ]]; then args+=(--stage storage-class --stage health-acceptance); fi
+        if [[ "$ACTION" == reconcile || "$ACTION" == force-reconcile || "$ACTION" == rollback ]]; then
+          for stage in storage-class health-acceptance; do
+            if jq -e --arg stage "$stage" '.stages[] | select(.name == $stage)' "$RUNNER_TEMP/bundle/bundle-metadata.json" >/dev/null; then
+              args+=(--stage "$stage")
+            fi
+          done
+          if ((${#args[@]} == 0)); then args+=(--no-stage-apply); fi
+        fi
         python operations/releases/ssa_executor.py --contract "contracts/releases/ceph/${RELEASE}.yaml" --operation "$RUNNER_TEMP/operation.json" \
           --bundle "$RUNNER_TEMP/bundle/release.bundle" --state-dir "$RUNNER_TEMP/state" "${args[@]}" > "$RUNNER_TEMP/result.json"
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"

@@ -84,8 +84,12 @@ def test_workflow_accepts_only_operation_id_and_splits_identities():
     text = (ROOT / ".github/workflows/ceph-static-release.yml").read_text()
     assert "release-executor-ceph-infra" in text
     assert "release-executor-ceph-runtime" in text
-    assert "--stage crd-schema --stage cluster-rbac --partial" in text
-    assert "--stage runtime --stage custom-resources --partial" in text
+    assert "for stage in crd-schema cluster-rbac" in text
+    assert "for stage in runtime custom-resources" in text
+    assert "for stage in storage-class health-acceptance" in text
+    assert "--no-stage-apply" in text
+    assert "bundle has no infra stages" in text
+    assert "bundle has no runtime stages" in text
 
 
 def test_metrics_golden_and_compatibility_additions_are_declared():
