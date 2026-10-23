@@ -289,7 +289,7 @@ class Executor:
                 self.command([
                     "flux", "pull", "artifact",
                     previous["bundleReference"].removeprefix("oci://") + "@" + rollback_digest,
-                    "--path", temporary,
+                    "--output", temporary,
                 ], timeout=300)
                 fetched = Path(temporary) / "release.bundle"
                 if not fetched.is_file() or digest(fetched.read_bytes()) != previous["payloadDigest"]:
