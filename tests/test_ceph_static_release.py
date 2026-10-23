@@ -19,6 +19,7 @@ def test_three_locked_ceph_contracts_and_dependencies_are_exact():
     assert lock["charts"][2]["dependsOn"] == ["rook-ceph", "ceph-csi-drivers"]
     assert all(item["sha256"].startswith("sha256:") and len(item["sha256"]) == 71 for item in lock["charts"])
     assert all(item["mirror"].startswith("oci://registry.re8ch.com/functions-shared/") for item in lock["charts"])
+    assert all(item["sourceMirror"].startswith("oci://ghcr.io/re8ch/service-backend-chart/") for item in lock["charts"])
     schema = json.loads((ROOT / "schemas/release-contract.schema.json").read_text())
     for name in ("rook-ceph", "ceph-csi-drivers", "rook-ceph-cluster"):
         contract = yaml.safe_load((ROOT / f"contracts/releases/ceph/{name}.yaml").read_text())
@@ -92,12 +93,37 @@ def test_compat_controller_uses_authenticated_internal_registry():
         )
 
 
-def test_release_workflows_use_dedicated_harbor_publisher():
+def test_release_workflows_use_oidc_protected_in_cluster_harbor_mirror():
     for path in (
         ROOT / ".github/workflows/release-compat-controller.yml",
         ROOT / ".github/workflows/ceph-shadow-compile.yml",
     ):
         workflow = path.read_text()
-        assert "HARBOR_RELEASE_PUBLISHER_USERNAME" in workflow
-        assert "HARBOR_RELEASE_PUBLISHER_PASSWORD" in workflow
+        assert "release-artifact-publisher" in workflow
+        assert "protected_harbor_mirror.py --apply" in workflow
         assert "registry.re8ch.com/functions-shared" in workflow
+        assert "HARBOR_RELEASE_PUBLISHER_PASSWORD" not in workflow
+
+
+def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
+    import importlib.util
+
+    path = ROOT / "operations/releases/protected_harbor_mirror.py"
+    spec = importlib.util.spec_from_file_location("protected_harbor_mirror", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    digest = "sha256:" + "1" * 64
+    job = module.manifest(
+        "ghcr.io/re8ch/service-backend-chart/rook-ceph",
+        "registry.re8ch.com/functions-shared/rook-ceph",
+        digest,
+        "run-123",
+        "https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main",
+        "123",
+    )
+    pod = job["spec"]["template"]["spec"]
+    assert job["metadata"]["name"] == "release-artifact-mirror"
+    assert pod["automountServiceAccountToken"] is False
+    assert {item["name"] for item in pod["initContainers"]} == {"copy-artifact", "copy-signature"}
+    assert pod["containers"][0]["name"] == "verify-signature"
+    assert pod["volumes"][0]["secret"]["secretName"] == "release-artifact-mirror-auth"

@@ -71,7 +71,7 @@ def rewrite_images(value: object, locks: dict[str, str]) -> None:
 def download(entry: dict, directory: Path) -> Path:
     destination = directory / f'{entry["name"]}-{entry["version"]}.tgz'
     if entry.get("mirrorDigest"):
-        reference = f'{entry["mirror"]}@{entry["mirrorDigest"]}'
+        reference = f'{entry.get("sourceMirror", entry["mirror"])}@{entry["mirrorDigest"]}'
         pull_directory = directory / f'.pull-{entry["name"]}'
         pull_directory.mkdir()
         subprocess.run(["helm", "pull", reference, "--destination", str(pull_directory)], check=True, text=True, capture_output=True)

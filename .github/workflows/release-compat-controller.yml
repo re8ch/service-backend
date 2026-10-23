@@ -22,6 +22,8 @@ jobs:
         git checkout --detach "$SOURCE_REVISION"
     - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
       with: {go-version: '1.26.10', cache: false}
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b4cbd6f
+      with: {version: v1.33.1}
     - working-directory: operations/releases/release-compat-controller
       run: go test -race ./... && go vet ./...
     - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
@@ -30,34 +32,46 @@ jobs:
         registry: ghcr.io
         username: '${{ github.actor }}'
         password: '${{ secrets.GITHUB_TOKEN }}'
-    - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
-      with:
-        registry: registry.re8ch.com
-        username: '${{ secrets.HARBOR_RELEASE_PUBLISHER_USERNAME }}'
-        password: '${{ secrets.HARBOR_RELEASE_PUBLISHER_PASSWORD }}'
     - id: build
       uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
       with:
         context: operations/releases/release-compat-controller
         platforms: linux/amd64
         push: true
-        tags: |
-          ghcr.io/re8ch/release-compat-controller:${{ inputs.revision }}
-          registry.re8ch.com/functions-shared/release-compat-controller:${{ inputs.revision }}
+        tags: ghcr.io/re8ch/release-compat-controller:${{ inputs.revision }}
         provenance: mode=max
         sbom: true
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
     - name: Sign immutable image
-      env:
-        GHCR_IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'
-        HARBOR_IMAGE: 'registry.re8ch.com/functions-shared/release-compat-controller@${{ steps.build.outputs.digest }}'
+      env: {IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'}
       run: |
-        for image in "$GHCR_IMAGE" "$HARBOR_IMAGE"; do
-          cosign sign --yes "$image"
-          cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$image"
-        done
-        printf '%s\n' "$HARBOR_IMAGE" > release-compat-controller.image
+        cosign sign --yes "$IMAGE"
+        cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com "$IMAGE"
+    - name: Acquire artifact-publisher identity
+      env:
+        KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
+        EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-artifact-publisher
+      run: |
+        set -euo pipefail
+        printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubeconfig="$RUNNER_TEMP/publisher.kubeconfig"
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:6443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-credentials publisher --token="$token"
+        kubectl config --kubeconfig "$kubeconfig" set-context publisher --cluster=re8ch --user=publisher --namespace=flux-system
+        kubectl config --kubeconfig "$kubeconfig" use-context publisher
+        echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+    - name: Protected copy into Harbor and verify target signature
+      env: {DIGEST: '${{ steps.build.outputs.digest }}', REVISION: '${{ inputs.revision }}'}
+      run: |
+        python operations/releases/protected_harbor_mirror.py --apply \
+          --source ghcr.io/re8ch/release-compat-controller \
+          --target registry.re8ch.com/functions-shared/release-compat-controller \
+          --digest "$DIGEST" --tag "$REVISION" --operation-id "$GITHUB_RUN_ID" \
+          --signer 'https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main'
+        printf '%s\n' "registry.re8ch.com/functions-shared/release-compat-controller@${DIGEST}" > release-compat-controller.image
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with: {name: release-compat-controller-image, path: release-compat-controller.image, if-no-files-found: error}
     - id: promoter

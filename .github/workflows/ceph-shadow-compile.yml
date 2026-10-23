@@ -20,17 +20,19 @@ jobs:
       with: {fetch-depth: 0}
     - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
       with: {version: '2.9.5'}
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b4cbd6f
+      with: {version: v1.33.1}
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
-        registry: registry.re8ch.com
-        username: '${{ secrets.HARBOR_RELEASE_PUBLISHER_USERNAME }}'
-        password: '${{ secrets.HARBOR_RELEASE_PUBLISHER_PASSWORD }}'
-    - name: Authenticate Helm to the chart mirror
+        registry: ghcr.io
+        username: '${{ github.actor }}'
+        password: '${{ secrets.GITHUB_TOKEN }}'
+    - name: Authenticate Helm to the protected source registry
       env:
-        HARBOR_USERNAME: '${{ secrets.HARBOR_RELEASE_PUBLISHER_USERNAME }}'
-        HARBOR_PASSWORD: '${{ secrets.HARBOR_RELEASE_PUBLISHER_PASSWORD }}'
-      run: printf '%s' "$HARBOR_PASSWORD" | helm registry login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin
+        GHCR_USERNAME: '${{ github.actor }}'
+        GHCR_PASSWORD: '${{ secrets.GITHUB_TOKEN }}'
+      run: printf '%s' "$GHCR_PASSWORD" | helm registry login ghcr.io --username "$GHCR_USERNAME" --password-stdin
     - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
     - name: Render exact chart archive and build deterministic bundle
       env: {RELEASE: '${{ inputs.release }}'}
@@ -45,12 +47,13 @@ jobs:
         print(next(item['mirror'] for item in lock['charts'] if item['name'] == sys.argv[1]))
         PY
         )"
-        helm push "$RUNNER_TEMP/chart.tgz" oci://registry.re8ch.com/functions-shared 2>&1 | tee "$RUNNER_TEMP/chart-push.txt"
+        source_chart_reference="oci://ghcr.io/re8ch/service-backend-chart/${RELEASE}"
+        helm push "$RUNNER_TEMP/chart.tgz" oci://ghcr.io/re8ch/service-backend-chart 2>&1 | tee "$RUNNER_TEMP/chart-push.txt"
         chart_digest="$(awk '$1 == "Digest:" {print $2}' "$RUNNER_TEMP/chart-push.txt" | tail -1)"
         [[ "$chart_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-        cosign sign --yes "${chart_reference#oci://}@${chart_digest}"
+        cosign sign --yes "${source_chart_reference#oci://}@${chart_digest}"
         cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main' \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com "${chart_reference#oci://}@${chart_digest}" >/dev/null
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com "${source_chart_reference#oci://}@${chart_digest}" >/dev/null
         contract="contracts/releases/ceph/${RELEASE}.yaml"
         contract_with_mirror="$RUNNER_TEMP/release-contract.yaml"
         python - "$contract" "$contract_with_mirror" "$chart_reference" "$chart_digest" <<'PY'
@@ -64,21 +67,49 @@ jobs:
           --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
         install -d "$RUNNER_TEMP/oci"
         cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/"
+        source_reference="oci://ghcr.io/re8ch/service-backend-release/${RELEASE}"
         reference="oci://registry.re8ch.com/functions-shared/ceph-release-${RELEASE}"
-        flux push artifact "${reference}:run-${GITHUB_RUN_ID}" --path "$RUNNER_TEMP/oci" --reproducible \
+        flux push artifact "${source_reference}:run-${GITHUB_RUN_ID}" --path "$RUNNER_TEMP/oci" --reproducible \
           --source "https://github.com/${GITHUB_REPOSITORY}" --revision "main@sha1:${GITHUB_SHA}" \
           --annotations "delivery.re8ch.com/release-id=${RELEASE}" --output json > "$RUNNER_TEMP/oci-result.json"
         digest="$(jq -r .digest "$RUNNER_TEMP/oci-result.json")"
-        immutable="${reference#oci://}@${digest}"
-        cosign sign --yes "$immutable"
+        source_immutable="${source_reference#oci://}@${digest}"
+        cosign sign --yes "$source_immutable"
         cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main' \
-          --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com "$source_immutable" >/dev/null
         jq -n --arg release "$RELEASE" --arg reference "$reference" --arg digest "$digest" \
           --arg chartReference "$chart_reference" --arg chartDigest "$chart_digest" \
           --argjson bundle "$(cat "$RUNNER_TEMP/bundle-metadata.json")" \
           '{release:$release,reference:$reference,digest:$digest,chart:{reference:$chartReference,digest:$chartDigest},bundle:$bundle}' > "$RUNNER_TEMP/ceph-release-evidence.json"
         echo "digest=$digest" >> "$GITHUB_ENV"
         echo "chart_digest=$chart_digest" >> "$GITHUB_ENV"
+    - name: Acquire artifact-publisher identity
+      env:
+        KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
+        EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-artifact-publisher
+      run: |
+        set -euo pipefail
+        printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubeconfig="$RUNNER_TEMP/publisher.kubeconfig"
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:6443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-credentials publisher --token="$token"
+        kubectl config --kubeconfig "$kubeconfig" set-context publisher --cluster=re8ch --user=publisher --namespace=flux-system
+        kubectl config --kubeconfig "$kubeconfig" use-context publisher
+        echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+    - name: Protected copy into Harbor and verify target signatures
+      env: {RELEASE: '${{ inputs.release }}', DIGEST: '${{ env.digest }}', CHART_DIGEST: '${{ env.chart_digest }}'}
+      run: |
+        signer='https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'
+        python operations/releases/protected_harbor_mirror.py --apply \
+          --source "ghcr.io/re8ch/service-backend-chart/${RELEASE}" \
+          --target "registry.re8ch.com/functions-shared/${RELEASE}" \
+          --digest "$CHART_DIGEST" --tag "run-${GITHUB_RUN_ID}" --operation-id "$GITHUB_RUN_ID" --signer "$signer"
+        python operations/releases/protected_harbor_mirror.py --apply \
+          --source "ghcr.io/re8ch/service-backend-release/${RELEASE}" \
+          --target "registry.re8ch.com/functions-shared/ceph-release-${RELEASE}" \
+          --digest "$DIGEST" --tag "run-${GITHUB_RUN_ID}" --operation-id "$GITHUB_RUN_ID" --signer "$signer"
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with: {name: 'ceph-shadow-${{ inputs.release }}-${{ github.run_id }}', path: '${{ runner.temp }}/ceph-release-evidence.json', retention-days: 30, if-no-files-found: error}
     - id: promoter
