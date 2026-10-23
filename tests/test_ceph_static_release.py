@@ -100,6 +100,11 @@ def test_compat_controller_uses_authenticated_internal_registry():
     assert len(deployments) == 2
     for deployment in deployments:
         pod = deployment["spec"]["template"]["spec"]
+        assert pod["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
+        assert {item["key"] for item in pod["tolerations"]} == {
+            "node-role.kubernetes.io/control-plane",
+            "scheduling.re8ch.com/capacity-window",
+        }
         assert pod["imagePullSecrets"] == [{"name": "gitops-oci-reader"}]
         assert pod["containers"][0]["image"].startswith(
             "registry.re8ch.com/functions-shared/release-compat-controller@sha256:"
