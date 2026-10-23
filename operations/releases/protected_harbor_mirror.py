@@ -4,14 +4,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
+import time
+import urllib.parse
+import urllib.request
 
 JOB_NAME = "release-artifact-mirror"
 NAMESPACE = "flux-system"
 ORAS_IMAGE = "registry.re8ch.com/proxy-ghcr/oras-project/oras@sha256:a3ce6b38d4c510ea9fdc0449b942ea44fb790f157e79b5e7e30b1e7460fe5579"
 COSIGN_IMAGE = "registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870"
 ISSUER = "https://token.actions.githubusercontent.com"
+PUBLISHER_AUDIENCE = "https://kube-api.re8ch.com/release-artifact-publisher"
 
 SOURCE_RE = re.compile(
     r"^ghcr\.io/re8ch/(?:release-compat-controller|"
@@ -119,19 +124,57 @@ def manifest(source: str, target: str, digest: str, tag: str, signer: str, opera
     }
 
 
+def fresh_actions_token() -> str | None:
+    request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+    request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+    if not request_url or not request_token:
+        return None
+    parsed = urllib.parse.urlparse(request_url)
+    if parsed.scheme != "https" or not parsed.hostname or not parsed.hostname.endswith(".actions.githubusercontent.com"):
+        raise RuntimeError("unexpected Actions OIDC endpoint")
+    separator = "&" if "?" in request_url else "?"
+    url = request_url + separator + urllib.parse.urlencode({"audience": PUBLISHER_AUDIENCE})
+    request = urllib.request.Request(url, headers={"Authorization": "bearer " + request_token})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        token = json.load(response).get("value")
+    if not token:
+        raise RuntimeError("Actions OIDC endpoint returned no token")
+    return token
+
+
+def read_job() -> tuple[dict | None, str]:
+    command = ["kubectl", "get", "job/" + JOB_NAME, "-n", NAMESPACE, "-o", "json"]
+    token = fresh_actions_token()
+    if token:
+        command.extend(["--token", token])
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode:
+        return None, result.stderr.strip()
+    return json.loads(result.stdout), ""
+
+
 def run(job: dict) -> None:
     subprocess.run(["kubectl", "delete", "job", JOB_NAME, "-n", NAMESPACE,
                     "--ignore-not-found", "--wait=true"], check=True)
     subprocess.run(["kubectl", "create", "-f", "-"], input=json.dumps(job), text=True, check=True)
-    result = subprocess.run(["kubectl", "wait", "job/" + JOB_NAME, "-n", NAMESPACE,
-                             "--for=condition=complete", "--timeout=900s"])
-    if result.returncode:
-        subprocess.run(["kubectl", "describe", "job/" + JOB_NAME, "-n", NAMESPACE], check=False)
-        raise RuntimeError("protected Harbor mirror Job failed")
-    current = json.loads(subprocess.check_output(
-        ["kubectl", "get", "job/" + JOB_NAME, "-n", NAMESPACE, "-o", "json"], text=True))
-    if current.get("status", {}).get("succeeded") != 1:
-        raise RuntimeError("mirror Job did not record exactly one success")
+    deadline = time.monotonic() + 900
+    last_error = ""
+    while time.monotonic() < deadline:
+        current, error = read_job()
+        if current is not None:
+            status = current.get("status", {})
+            conditions = {item.get("type"): item.get("status") for item in status.get("conditions", [])}
+            if conditions.get("Failed") == "True" or status.get("failed"):
+                raise RuntimeError("protected Harbor mirror Job failed")
+            if conditions.get("Complete") == "True":
+                if status.get("succeeded") != 1:
+                    raise RuntimeError("mirror Job did not record exactly one success")
+                return
+        else:
+            last_error = error
+        time.sleep(15)
+    suffix = f": {last_error}" if last_error else ""
+    raise RuntimeError("timed out waiting for protected Harbor mirror Job" + suffix)
 
 
 def main() -> int:
