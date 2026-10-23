@@ -98,6 +98,101 @@ func condition(status map[string]any, wanted string) (string, string) {
 	return "Unknown", "Progressing"
 }
 
+func projectedHistory(release, helm *unstructured.Unstructured, now string) []any {
+	items, found, _ := unstructured.NestedSlice(release.Object, "status", "history")
+	if !found {
+		return nil
+	}
+	chartVersion := nestedString(helm.Object, "spec", "chart", "spec", "version")
+	releaseName := nestedString(helm.Object, "spec", "releaseName")
+	if releaseName == "" {
+		releaseName = release.GetName()
+	}
+	targetNamespace := nestedString(helm.Object, "spec", "targetNamespace")
+	if targetNamespace == "" {
+		targetNamespace = release.GetNamespace()
+	}
+	createdAt := release.GetCreationTimestamp()
+	firstDeployed := createdAt.Format(time.RFC3339)
+	if createdAt.IsZero() {
+		firstDeployed = now
+	}
+	result := make([]any, 0, len(items))
+	for _, raw := range items {
+		item, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		chartName, _ := item["chartName"].(string)
+		if chartName == "" {
+			chartName = release.GetName()
+		}
+		status, _ := item["status"].(string)
+		if status == "" {
+			status = "deployed"
+		}
+		version := item["version"]
+		if version == nil {
+			version = int64(len(result) + 1)
+		}
+		result = append(result, map[string]any{
+			"appVersion": chartVersion, "chartName": chartName, "chartVersion": chartVersion,
+			"configDigest": nestedString(release.Object, "spec", "valuesDigest"), "digest": fmt.Sprint(item["digest"]),
+			"firstDeployed": firstDeployed, "lastDeployed": now, "name": releaseName,
+			"namespace": targetNamespace, "status": status, "version": version,
+			"ociDigest": nestedString(release.Object, "spec", "bundleDigest"),
+		})
+	}
+	return result
+}
+
+func refreshCompatMetrics(ctx context.Context, reader client.Reader) {
+	releases := &unstructured.UnstructuredList{}
+	releases.SetGroupVersionKind(schema.GroupVersionKind{Group: staticGVK.Group, Version: staticGVK.Version, Kind: "StaticReleaseList"})
+	if err := reader.List(ctx, releases); err != nil {
+		return
+	}
+	conditionMetric.Reset()
+	resourceMetric.Reset()
+	suspendMetric.Reset()
+	for i := range releases.Items {
+		release := &releases.Items[i]
+		helm := &unstructured.Unstructured{}
+		helm.SetGroupVersionKind(helmGVK)
+		if err := reader.Get(ctx, types.NamespacedName{Namespace: release.GetNamespace(), Name: release.GetName()}, helm); err != nil {
+			continue
+		}
+		status, _, _ := unstructured.NestedMap(release.Object, "status")
+		ready, _ := condition(status, "Healthy")
+		revision := nestedString(release.Object, "status", "appliedDigest")
+		if revision == "" {
+			revision = nestedString(release.Object, "spec", "bundleDigest")
+		}
+		suspended := nestedBool(helm.Object, "spec", "suspend")
+		conditionMetric.WithLabelValues("HelmRelease", helm.GetName(), helm.GetNamespace(), "Ready", ready).Set(1)
+		resourceMetric.WithLabelValues("HelmRelease", helm.GetName(), helm.GetNamespace(), revision, fmt.Sprint(suspended)).Set(1)
+		if suspended {
+			suspendMetric.WithLabelValues("HelmRelease", helm.GetName(), helm.GetNamespace()).Set(1)
+		} else {
+			suspendMetric.WithLabelValues("HelmRelease", helm.GetName(), helm.GetNamespace()).Set(0)
+		}
+	}
+}
+
+func runMetricProjection(ctx context.Context, reader client.Reader) {
+	refreshCompatMetrics(ctx, reader)
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			refreshCompatMetrics(ctx, reader)
+		}
+	}
+}
+
 func operationName(release, action, key string) string {
 	sum := sha256.Sum256([]byte(release + "\x00" + action + "\x00" + key))
 	return release + "-" + hex.EncodeToString(sum[:])[:16]
@@ -204,7 +299,7 @@ func (r *reconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.
 	status["lastAttemptedRevisionDigest"] = nestedString(release.Object, "status", "appliedDigest")
 	status["lastAttemptedConfigDigest"] = nestedString(release.Object, "spec", "valuesDigest")
 	status["conditions"] = []any{map[string]any{"type": "Ready", "status": ready, "reason": reason, "message": "projected from StaticRelease", "lastTransitionTime": now, "observedGeneration": helm.GetGeneration()}}
-	if history, found, _ := unstructured.NestedSlice(release.Object, "status", "history"); found {
+	if history := projectedHistory(release, helm, now); history != nil {
 		status["history"] = history
 	}
 	if err := unstructured.SetNestedMap(helm.Object, status, "status"); err != nil {
@@ -252,7 +347,9 @@ func main() {
 	if err := manager.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		panic(err)
 	}
-	if err := manager.Start(ctrl.SetupSignalHandler()); err != nil {
+	ctx := ctrl.SetupSignalHandler()
+	go runMetricProjection(ctx, manager.GetAPIReader())
+	if err := manager.Start(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, strings.TrimSpace(err.Error()))
 		os.Exit(1)
 	}
