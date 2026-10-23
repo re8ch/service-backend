@@ -19,6 +19,8 @@ import subprocess
 import tarfile
 import tempfile
 import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Callable
 
@@ -151,9 +153,47 @@ class Executor:
         self.runner = runner
         self.now = now
         self.sleeper = sleeper
+        self._kube_token: str | None = None
+        self._kube_token_refresh_at = 0.0
+
+    def actions_kube_token(self) -> str | None:
+        request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+        request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+        audience = os.environ.get("EXECUTOR_AUDIENCE")
+        if not request_url and not request_token and not audience:
+            return None
+        if not request_url or not request_token or not audience:
+            raise Rejected("incomplete Actions OIDC refresh configuration")
+        now = time.monotonic()
+        if self._kube_token and now < self._kube_token_refresh_at:
+            return self._kube_token
+        endpoint = urllib.parse.urlparse(request_url)
+        target = urllib.parse.urlparse(audience)
+        if endpoint.scheme != "https" or not endpoint.hostname or not endpoint.hostname.endswith(".actions.githubusercontent.com"):
+            raise Rejected("unexpected Actions OIDC endpoint")
+        if target.scheme != "https" or target.hostname != "kube-api.re8ch.com" or not target.path.startswith("/release-executor-"):
+            raise Rejected("unexpected executor audience")
+        separator = "&" if "?" in request_url else "?"
+        url = request_url + separator + urllib.parse.urlencode({"audience": audience})
+        request = urllib.request.Request(url, headers={"Authorization": "bearer " + request_token})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                token = json.load(response).get("value")
+        except (OSError, ValueError) as error:
+            raise Rejected("Actions OIDC token refresh failed") from error
+        if not token:
+            raise Rejected("Actions OIDC endpoint returned no token")
+        self._kube_token = token
+        self._kube_token_refresh_at = now + 180
+        return token
 
     def command(self, argv: list[str], stdin: str | None = None, timeout: int = 60) -> subprocess.CompletedProcess[str]:
-        result = self.runner(argv, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+        effective = list(argv)
+        if effective and effective[0] == "kubectl":
+            token = self.actions_kube_token()
+            if token:
+                effective.insert(1, "--token=" + token)
+        result = self.runner(effective, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
         if result.returncode:
             message = (result.stderr or result.stdout or "command failed")[-2048:]
             raise Rejected(message)
