@@ -86,6 +86,60 @@ def prepare(tmp_path, sequence=1, operation_id=None, previous=None):
     return value, operation, bundle_path
 
 
+def staged_release(tmp_path, suffix, deployment_version, config_value):
+    documents = f"""apiVersion: apps/v1
+kind: Deployment
+metadata: {{name: demo, namespace: demo, labels: {{drill: '{deployment_version}'}}}}
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - {{name: demo, image: 'registry.example/demo@sha256:{'a' * 64}'}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {{name: demo-config, namespace: demo}}
+data: {{value: '{config_value}'}}
+""".encode()
+    inventory = ["apps/Deployment/demo/demo", "core/ConfigMap/demo/demo-config"]
+    value = contract(inventory)
+    value["spec"]["authorization"]["resources"] = ["apps/Deployment", "core/ConfigMap"]
+    value["spec"]["authorization"]["objectNames"] = ["demo", "demo-config"]
+    value["spec"]["lifecycle"]["stages"] = [
+        {"name": "runtime", "kinds": ["Deployment"]},
+        {"name": "custom-resources", "kinds": ["ConfigMap"]},
+    ]
+    archive, manifest = compile_bundle(value, documents)
+    path = tmp_path / f"{suffix}.tar.gz"
+    path.write_bytes(archive)
+    return value, archive, manifest, path
+
+
+def operation_for(value, archive, manifest, sequence, previous=None, action="reconcile"):
+    operation = {
+        "apiVersion": "delivery.re8ch.com/release-operation/v1alpha1",
+        "operationId": str(uuid.uuid4()), "sequence": sequence, "action": action,
+        "idempotencyKey": uuid.uuid4().hex, "releaseId": "demo", "target": "re8ch/demo",
+        "contractDigest": digest(canonical(value)),
+        "bundle": {"reference": "oci://registry.example/releases/demo", "digest": digest(archive),
+                   "payloadDigest": digest(archive),
+                   "signer": "https://github.com/re8ch/service-backend/.github/workflows/release.yml@refs/heads/main",
+                   "issuer": "https://token.actions.githubusercontent.com"},
+        "inventoryDigest": manifest["inventoryDigest"],
+        "github": {"repository": "re8ch/service-backend", "workflow": ".github/workflows/release.yml",
+                   "ref": "refs/heads/main", "commit": "b" * 40, "runId": "123", "environment": "production",
+                   "audience": "https://kube-api.re8ch.com/release-executor"},
+        "issuedAt": (NOW - dt.timedelta(minutes=1)).isoformat(),
+        "expiresAt": (NOW + dt.timedelta(minutes=10)).isoformat(), "nonce": uuid.uuid4().hex,
+    }
+    if previous:
+        operation["previousApprovedDigest"] = previous
+    if action == "rollback":
+        operation["approvalRef"] = "change/ceph-rollback-drill"
+    return operation
+
+
 class Runner:
     def __init__(self, conflict=False, live=None, pulled_bundle=None):
         self.calls = []
@@ -258,6 +312,43 @@ def test_rollback_pull_keeps_oci_scheme(tmp_path):
     applied = [json.loads(call[1]) for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
     assert all(item["metadata"]["annotations"]["delivery.re8ch.com/operation-id"] == operation["operationId"]
                for item in applied)
+
+
+def test_explicit_rollback_restores_only_runtime_stage_and_records_history(tmp_path):
+    value, old_archive, old_manifest, old_path = staged_release(tmp_path, "old", "old", "stable")
+    _, new_archive, new_manifest, new_path = staged_release(tmp_path, "new", "new", "stable")
+    state_root = tmp_path / "state"
+    instance = executor.Executor(runner=Runner(), now=lambda: NOW, sleeper=lambda _: None)
+    old_operation = operation_for(value, old_archive, old_manifest, 1)
+    instance.reconcile(value, old_operation, old_path, state_root, verify_signature=False)
+    new_operation = operation_for(value, new_archive, new_manifest, 2, old_operation["bundle"]["digest"])
+    instance.reconcile(value, new_operation, new_path, state_root, verify_signature=False)
+
+    rollback = operation_for(value, old_archive, old_manifest, 3, new_operation["bundle"]["digest"], "rollback")
+    result = instance.reconcile(
+        value, rollback, old_path, state_root, verify_signature=False, stages={"runtime"},
+        current_bundle_path=new_path, rollback_stages={"runtime"})
+    assert result["outcome"] == "rolled-back"
+    assert result["rollbackDigest"] == old_operation["bundle"]["digest"]
+    state = json.loads((state_root / "state/demo.json").read_text())
+    assert state["appliedDigest"] == old_operation["bundle"]["digest"]
+    assert [item["appliedDigest"] for item in state["history"]] == [new_operation["bundle"]["digest"]]
+
+
+def test_explicit_rollback_rejects_changes_outside_runtime_stage(tmp_path):
+    value, old_archive, old_manifest, old_path = staged_release(tmp_path, "old", "old", "old-config")
+    _, new_archive, new_manifest, new_path = staged_release(tmp_path, "new", "new", "new-config")
+    state_root = tmp_path / "state"
+    instance = executor.Executor(runner=Runner(), now=lambda: NOW, sleeper=lambda _: None)
+    old_operation = operation_for(value, old_archive, old_manifest, 1)
+    instance.reconcile(value, old_operation, old_path, state_root, verify_signature=False)
+    new_operation = operation_for(value, new_archive, new_manifest, 2, old_operation["bundle"]["digest"])
+    instance.reconcile(value, new_operation, new_path, state_root, verify_signature=False)
+    rollback = operation_for(value, old_archive, old_manifest, 3, new_operation["bundle"]["digest"], "rollback")
+    with pytest.raises(executor.Rejected, match="outside approved stages"):
+        instance.reconcile(
+            value, rollback, old_path, state_root, verify_signature=False, stages={"runtime"},
+            current_bundle_path=new_path, rollback_stages={"runtime"})
 
 
 def test_expired_out_of_order_and_reused_operation_are_rejected(tmp_path):
