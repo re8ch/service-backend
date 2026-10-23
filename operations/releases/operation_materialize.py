@@ -46,7 +46,7 @@ def hydrate(configmap: Path, state_dir: Path, release_id: str) -> None:
 
 
 def request(contract_path: Path, metadata_path: Path, state_dir: Path, reference: str,
-            oci_digest: str, output: Path) -> None:
+            oci_digest: str, output: Path, action: str = "reconcile", force_objects: list[str] | None = None) -> None:
     contract = yaml.safe_load(contract_path.read_text())
     validate_schema(contract, "release-contract.schema.json")
     metadata = json.loads(metadata_path.read_text())
@@ -58,6 +58,7 @@ def request(contract_path: Path, metadata_path: Path, state_dir: Path, reference
     operation = {
         "apiVersion": "delivery.re8ch.com/release-operation/v1alpha1",
         "operationId": str(uuid.uuid4()), "sequence": 1 if state is None else state["sequence"] + 1,
+        "action": action,
         "releaseId": release_id,
         "target": f'{contract["spec"]["target"]["cluster"]}/{contract["spec"]["target"]["namespace"]}',
         "contractDigest": digest(canonical(contract)),
@@ -69,9 +70,12 @@ def request(contract_path: Path, metadata_path: Path, state_dir: Path, reference
                    "environment": provenance["environment"], "audience": provenance["audience"]},
         "issuedAt": now.isoformat(), "expiresAt": (now + dt.timedelta(minutes=10)).isoformat(),
         "nonce": secrets.token_hex(16),
+        "idempotencyKey": secrets.token_hex(16),
     }
     if state:
         operation["previousApprovedDigest"] = state["appliedDigest"]
+    if force_objects:
+        operation["forceConflictObjects"] = sorted(force_objects)
     validate_schema(operation, "release-operation.schema.json")
     output.write_text(compact(operation))
 
@@ -94,6 +98,8 @@ def main() -> int:
     make.add_argument("--contract", type=Path, required=True); make.add_argument("--metadata", type=Path, required=True)
     make.add_argument("--state-dir", type=Path, required=True); make.add_argument("--reference", required=True)
     make.add_argument("--digest", required=True); make.add_argument("--output", type=Path, required=True)
+    make.add_argument("--action", choices=["reconcile", "force-reconcile", "reset", "suspend", "resume", "rollback"], default="reconcile")
+    make.add_argument("--force-object", action="append", default=[])
     save = sub.add_parser("persist")
     save.add_argument("--state-dir", type=Path, required=True); save.add_argument("--release-id", required=True)
     save.add_argument("--result", type=Path, required=True); save.add_argument("--output", type=Path, required=True)
@@ -101,7 +107,7 @@ def main() -> int:
     state_name.add_argument("--release-id", required=True)
     args = parser.parse_args()
     if args.command == "hydrate": hydrate(args.configmap, args.state_dir, args.release_id)
-    elif args.command == "request": request(args.contract, args.metadata, args.state_dir, args.reference, args.digest, args.output)
+    elif args.command == "request": request(args.contract, args.metadata, args.state_dir, args.reference, args.digest, args.output, args.action, args.force_object)
     elif args.command == "persist": persist(args.state_dir, args.release_id, args.result, args.output)
     else: print(state_configmap_name(args.release_id))
     return 0

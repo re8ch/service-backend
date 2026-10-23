@@ -28,6 +28,8 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/observer',
         'https://kube-api.re8ch.com/release-executor-api-conformance',
         'https://kube-api.re8ch.com/release-executor-main-domain',
+        'https://kube-api.re8ch.com/release-executor-ceph-infra',
+        'https://kube-api.re8ch.com/release-executor-ceph-runtime',
     ]
     expressions = {item['expression'] for item in github['claimValidationRules']}
     assert {

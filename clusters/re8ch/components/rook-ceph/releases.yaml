@@ -1,24 +1,36 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
-metadata: {name: rook-release, namespace: flux-system}
+metadata:
+  name: rook-release
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
 spec:
+  suspend: true
   interval: 3m
   url: https://charts.rook.io/release
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
-metadata: {name: ceph-csi-operator, namespace: flux-system}
+metadata:
+  name: ceph-csi-operator
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
 spec:
+  suspend: true
   interval: 3m
   url: https://ceph.github.io/ceph-csi-operator
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
-metadata: {name: rook-ceph, namespace: flux-system}
+metadata:
+  name: rook-ceph
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
 spec:
+  suspend: true
   interval: 1m
   # Cross-node operator rollouts can outlive Flux's 10 minute default while
-  # the control plane or restricted-node-6dc3f140f9 is recovering. A spec generation bump also
+  # the control plane or R640 is recovering. A spec generation bump also
   # gives a previously stalled, successfully rolled-back release a clean retry.
   timeout: 20m
   releaseName: rook-ceph
@@ -43,8 +55,12 @@ spec:
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
-metadata: {name: ceph-csi-drivers, namespace: flux-system}
+metadata:
+  name: ceph-csi-drivers
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
 spec:
+  suspend: true
   interval: 1m
   releaseName: ceph-csi-drivers
   targetNamespace: rook-ceph
@@ -68,8 +84,12 @@ spec:
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
-metadata: {name: rook-ceph-cluster, namespace: flux-system}
+metadata:
+  name: rook-ceph-cluster
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
 spec:
+  suspend: true
   interval: 1m
   releaseName: rook-ceph-cluster
   targetNamespace: rook-ceph

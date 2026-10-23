@@ -26,7 +26,8 @@ import yaml
 
 from unified_bundle import canonical, digest, object_identity, validate_schema
 
-PROTECTED_KINDS = {"Namespace", "CustomResourceDefinition", "PersistentVolume", "PersistentVolumeClaim", "StorageClass"}
+PROTECTED_KINDS = {"Namespace", "CustomResourceDefinition", "PersistentVolume", "PersistentVolumeClaim", "StorageClass",
+                   "CephCluster", "CephFilesystem", "CephBlockPool", "CephFilesystemSubVolumeGroup"}
 READY_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job"}
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -220,11 +221,12 @@ class Executor:
             annotations["delivery.re8ch.com/operation-id"] = operation["operationId"]
         return annotated
 
-    def apply(self, objects: list[dict], field_manager: str, dry_run: bool) -> None:
+    def apply(self, objects: list[dict], field_manager: str, dry_run: bool,
+              force_objects: set[str] | None = None) -> None:
         for item in objects:
-            # Authorization is already narrowed by the signed contract and API
-            # RBAC. Reclaim those exact fields so a third-party patch is healed.
-            argv = ["kubectl", "apply", "--server-side", "--force-conflicts", f"--field-manager={field_manager}"]
+            argv = ["kubectl", "apply", "--server-side", f"--field-manager={field_manager}"]
+            if object_identity(item) in (force_objects or set()):
+                argv.append("--force-conflicts")
             if dry_run:
                 argv.append("--dry-run=server")
             argv += ["-f", "-"]
@@ -248,6 +250,16 @@ class Executor:
         matching = [check for check in (checks or []) if all(
             check.get(key) == ref.get(key) for key in ("apiVersion", "kind", "namespace", "name")
         )]
+        if ref["kind"] == "CustomResourceDefinition" and not matching:
+            argv = ["kubectl", "get", "customresourcedefinition", ref["name"], "-o", "json"]
+            live = json.loads(self.command(argv).stdout)
+            established = next((value for value in live.get("status", {}).get("conditions", []) if value.get("type") == "Established"), {})
+            return established.get("status") == "True", "CRD is not Established"
+        if ref["kind"] in {"CephCluster", "CephBlockPool", "CephFilesystem"} and not matching:
+            argv = ["kubectl", "get", ref["kind"], ref["name"], "--namespace", ref["namespace"], "-o", "json"]
+            live = json.loads(self.command(argv).stdout)
+            phase = live.get("status", {}).get("phase")
+            return phase == "Ready", f"Ceph phase is {phase or 'absent'}"
         if ref["kind"] not in READY_KINDS and not matching:
             return True, "no readiness rule"
         argv = ["kubectl", "get", ref["kind"], ref["name"]]
@@ -324,6 +336,9 @@ class Executor:
                 store.cache_bundle(fetched, rollback_digest)
         _, rollback_objects = load_archive(rollback_path)
         rollback_objects = self.with_audit(rollback_objects, operation)
+        manual = set(contract["spec"]["lifecycle"].get("manualRollbackKinds", []))
+        if any(item["kind"] in manual or item["kind"] in PROTECTED_KINDS for item in attempted_objects):
+            raise Rejected("manual rollback approval required for protected Ceph/schema objects")
         self.apply(rollback_objects, manager, dry_run=True)
         self.apply(rollback_objects, manager, dry_run=False)
         attempted_state = {
@@ -339,15 +354,16 @@ class Executor:
         return rollback_digest, f"rollback restored previous healthy digest after: {reason}"
 
     def reconcile(self, contract: dict, operation: dict, bundle_path: Path, state_root: Path,
-                  verify_signature: bool = True) -> dict:
+                  verify_signature: bool = True, stages: set[str] | None = None, finalize: bool = True) -> dict:
         started = self.now()
         validate_schema(operation, "release-operation.schema.json")
         store = Store(state_root, operation["releaseId"])
         with store.lock():
-            return self._reconcile_locked(contract, operation, bundle_path, store, started, verify_signature)
+            return self._reconcile_locked(contract, operation, bundle_path, store, started, verify_signature, stages, finalize)
 
     def _reconcile_locked(self, contract: dict, operation: dict, bundle_path: Path, store: Store,
-                          started: dt.datetime, verify_signature: bool) -> dict:
+                          started: dt.datetime, verify_signature: bool, selected_stages: set[str] | None,
+                          finalize: bool) -> dict:
         manifest, objects, request_digest = self.validate(contract, operation, bundle_path, store)
         cached = store.result(operation["operationId"])
         if cached:
@@ -355,30 +371,75 @@ class Executor:
         if verify_signature:
             self.verify_signature(operation)
         previous = store.state()
+        if operation["action"] in {"suspend", "resume", "reset"}:
+            if not previous:
+                raise Rejected(f'{operation["action"]} requires accepted release state')
+            updated = dict(previous)
+            updated.update({"lastOperationId": operation["operationId"], "requestDigest": request_digest,
+                            "sequence": operation["sequence"], "updatedAt": self.now().isoformat()})
+            if operation["action"] == "suspend": updated["suspended"] = True
+            elif operation["action"] == "resume": updated["suspended"] = False
+            else:
+                updated["blocked"] = False
+                updated.pop("blockedReason", None)
+            store.accept(updated)
+            result = {"apiVersion": "delivery.re8ch.com/release-result/v1alpha1",
+                      "operationId": operation["operationId"], "releaseId": operation["releaseId"],
+                      "requestDigest": request_digest, "approvedDigest": operation["bundle"]["digest"],
+                      "observedDigest": previous["appliedDigest"], "inventoryDigest": previous["inventoryDigest"],
+                      "startedAt": started.isoformat(), "finishedAt": self.now().isoformat(), "outcome": "healthy",
+                      "health": {"status": "healthy", "reason": f'{operation["action"]} state recorded'}}
+            validate_schema(result, "release-operation-result.schema.json")
+            store.save_result(result)
+            return result
         audited = self.with_audit(objects, operation)
         manager = contract["spec"]["authorization"]["fieldManager"]
-        self.apply(audited, manager, dry_run=True)
+        requested_force = set(operation.get("forceConflictObjects", []))
+        allowed_force = set(contract["spec"]["authorization"].get("forceConflictObjects", []))
+        if operation["action"] != "force-reconcile" and requested_force:
+            raise Rejected("force conflicts require force-reconcile action")
+        if not requested_force.issubset(allowed_force):
+            raise Rejected("operation requests unauthorized force-conflict objects")
+        if any(item["kind"] in PROTECTED_KINDS and object_identity(item) in requested_force for item in audited):
+            raise Rejected("protected objects cannot use force-conflicts")
+        by_identity = {object_identity(item): item for item in audited}
+        stages = manifest.get("stages", [{"name": "runtime", "inventory": list(by_identity)}])
+        if selected_stages is not None:
+            unknown = selected_stages - {stage["name"] for stage in stages}
+            if unknown:
+                raise Rejected(f"unknown bundle stages: {sorted(unknown)}")
+            stages = [stage for stage in stages if stage["name"] in selected_stages]
+        selected_objects = [by_identity[identity] for stage in stages for identity in stage["inventory"]]
+        if not selected_objects and not finalize:
+            raise Rejected("stage selection contains no objects")
+        for stage in stages:
+            stage_objects = [by_identity[identity] for identity in stage["inventory"]]
+            self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force)
         try:
-            self.apply(audited, manager, dry_run=False)
+            for stage in stages:
+                stage_objects = [by_identity[identity] for identity in stage["inventory"]]
+                self.apply(stage_objects, manager, dry_run=False, force_objects=requested_force)
             lifecycle = contract["spec"]["lifecycle"]
             healthy, reason = self.wait_healthy(
-                audited, lifecycle["healthTimeoutSeconds"], lifecycle.get("healthChecks"))
+                selected_objects, lifecycle["healthTimeoutSeconds"], lifecycle.get("healthChecks"))
         except Rejected as error:
             healthy, reason = False, f"apply failed: {error}"
         outcome = "healthy"
         rollback_digest = None
         if not healthy:
+            if not finalize:
+                raise Rejected(f"partial stage health failed: {reason}")
             if not previous:
                 raise Rejected("health failed and no accepted rollback bundle exists")
             try:
                 rollback_digest, reason = self.rollback(
-                    previous, manifest, objects, contract, operation, manager, store, reason)
+                    previous, manifest, selected_objects, contract, operation, manager, store, reason)
                 outcome, healthy = "rolled-back", True
             except Rejected as error:
                 blocked = {**previous, "blocked": True, "blockedReason": f"rollback failed: {error}", "updatedAt": self.now().isoformat()}
                 store.accept(blocked)
                 raise Rejected(blocked["blockedReason"]) from error
-        else:
+        elif finalize:
             self.prune(previous, set(manifest["inventory"]), contract, manager)
             store.cache_bundle(bundle_path, operation["bundle"]["digest"])
             state = {
@@ -392,6 +453,10 @@ class Executor:
                 "sequence": operation["sequence"], "updatedAt": self.now().isoformat(), "blocked": False,
             }
             store.accept(state)
+        if not finalize:
+            return {"apiVersion": "delivery.re8ch.com/stage-result/v1alpha1", "operationId": operation["operationId"],
+                    "releaseId": operation["releaseId"], "stages": [stage["name"] for stage in stages],
+                    "outcome": "healthy", "health": {"status": "healthy", "reason": reason}}
         result = {
             "apiVersion": "delivery.re8ch.com/release-result/v1alpha1",
             "operationId": operation["operationId"], "releaseId": operation["releaseId"],
@@ -414,10 +479,13 @@ def main() -> int:
     parser.add_argument("--operation", type=Path, required=True)
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--state-dir", type=Path, required=True)
+    parser.add_argument("--stage", action="append", default=[])
+    parser.add_argument("--partial", action="store_true")
     args = parser.parse_args()
     contract = yaml.safe_load(args.contract.read_text())
     operation = json.loads(args.operation.read_text())
-    result = Executor().reconcile(contract, operation, args.bundle, args.state_dir)
+    result = Executor().reconcile(contract, operation, args.bundle, args.state_dir,
+                                  stages=set(args.stage) if args.stage else None, finalize=not args.partial)
     print(json.dumps(result, sort_keys=True))
     return 0
 

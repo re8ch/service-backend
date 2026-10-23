@@ -1,0 +1,38 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: flux-system-rook-ceph
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
+spec:
+  suspend: true
+  interval: 1m
+  chart: rook-ceph
+  version: v1.20.3
+  sourceRef: {apiVersion: source.toolkit.fluxcd.io/v1, kind: HelmRepository, name: rook-release}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: flux-system-ceph-csi-drivers
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
+spec:
+  suspend: true
+  interval: 1m
+  chart: ceph-csi-drivers
+  version: 1.0.4
+  sourceRef: {apiVersion: source.toolkit.fluxcd.io/v1, kind: HelmRepository, name: ceph-csi-operator}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmChart
+metadata:
+  name: flux-system-rook-ceph-cluster
+  namespace: flux-system
+  labels: {delivery.re8ch.com/compat-projection: "true"}
+spec:
+  suspend: true
+  interval: 1m
+  chart: rook-ceph-cluster
+  version: v1.20.3
+  sourceRef: {apiVersion: source.toolkit.fluxcd.io/v1, kind: HelmRepository, name: rook-release}
