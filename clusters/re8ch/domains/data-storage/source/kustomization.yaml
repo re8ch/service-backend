@@ -9,7 +9,6 @@ resources:
 - ../../../secrets/cloud-disk-credentials.sops.yaml
 - ../../../components/observable/postgrest-ha.yaml
 - ../../../components/supabase-pg-re8ch/supabase-rest-runtime.yaml
-- ../../../components/rook-ceph/releases.yaml
 - ../../../components/cloud-disk
 - ../../../components/rook-ceph/storage-node-labels.yaml
 - ../../../components/rook-ceph/local-storage-classes.yaml
@@ -19,17 +18,5 @@ configMapGenerator:
 - name: pg-re8ch-topology
   namespace: pigsty-external
   files: [topology.json=../../../components/pigsty-external/pg-re8ch-topology.json]
-- name: rook-ceph-operator-values
-  namespace: flux-system
-  files: [values.yaml=../../../components/rook-ceph/operator-values.yaml]
-- name: rook-ceph-csi-values
-  namespace: flux-system
-  files: [values.yaml=../../../components/rook-ceph/csi-drivers-values.yaml]
-- name: rook-ceph-cluster-values
-  namespace: flux-system
-  files: [values.yaml=../../../components/rook-ceph/cluster-values.yaml]
-- name: rook-ceph-production-overlay
-  namespace: flux-system
-  files: [values.yaml=../../../components/rook-ceph/cluster-values-production-encrypted.yaml]
 generatorOptions: {disableNameSuffixHash: true}
 
