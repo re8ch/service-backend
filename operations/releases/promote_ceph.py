@@ -41,18 +41,22 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--release", required=True)
     parser.add_argument("--digest", required=True)
+    parser.add_argument("--chart-digest", required=True)
     args = parser.parse_args()
     if not re.fullmatch(r"sha256:[0-9a-f]{64}", args.digest):
         parser.error("digest must be immutable")
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", args.chart_digest):
+        parser.error("chart digest must be immutable")
     lock_path = ROOT / "contracts/releases/ceph/chart-locks.yaml"
     lock = yaml.safe_load(lock_path.read_text())
     entry = next((item for item in lock["charts"] if item["name"] == args.release), None)
     if not entry:
         parser.error("unknown release")
-    if entry.get("bundleDigest") == args.digest:
-        print("bundle already promoted")
+    if entry.get("bundleDigest") == args.digest and entry.get("mirrorDigest") == args.chart_digest:
+        print("chart and bundle already promoted")
         return 0
     entry["bundleDigest"] = args.digest
+    entry["mirrorDigest"] = args.chart_digest
     lock_body = yaml.safe_dump(lock, sort_keys=False)
     compiler_spec = importlib.util.spec_from_file_location("compile_ceph_static", ROOT / "operations/releases/compile_ceph_static.py")
     compiler = importlib.util.module_from_spec(compiler_spec)

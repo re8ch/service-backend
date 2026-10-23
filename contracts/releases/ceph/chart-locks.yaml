@@ -8,7 +8,7 @@ charts:
   namespace: rook-ceph
   url: https://charts.rook.io/release/rook-ceph-v1.20.3.tgz
   sha256: sha256:95bd3966bcf36b383b88e1996132642057e8fe4bc133b9681092c4ddec4dd0b2
-  mirror: oci://ghcr.io/re8ch/service-backend-chart/rook-ceph
+  mirror: oci://registry.re8ch.com/functions-shared/rook-ceph
   objectCount: 83
   values:
   - path: clusters/re8ch/components/rook-ceph/operator-values.yaml
@@ -23,7 +23,7 @@ charts:
   namespace: rook-ceph
   url: https://github.com/ceph/ceph-csi-operator/releases/download/v1.0.4/ceph-csi-drivers-1.0.4.tgz
   sha256: sha256:76a1787baa7d62232eb073ab8260a455a016c02b59aae584a47be6791f05994b
-  mirror: oci://ghcr.io/re8ch/service-backend-chart/ceph-csi-drivers
+  mirror: oci://registry.re8ch.com/functions-shared/ceph-csi-drivers
   objectCount: 23
   dependsOn: [rook-ceph]
   values:
@@ -37,7 +37,7 @@ charts:
   namespace: rook-ceph
   url: https://charts.rook.io/release/rook-ceph-cluster-v1.20.3.tgz
   sha256: sha256:2c7c4bf4930318e2375c9e65eb763e5f5df8973da9e5db88dbc6383e79a2e314
-  mirror: oci://ghcr.io/re8ch/service-backend-chart/rook-ceph-cluster
+  mirror: oci://registry.re8ch.com/functions-shared/rook-ceph-cluster
   objectCount: 7
   dependsOn: [rook-ceph, ceph-csi-drivers]
   values:

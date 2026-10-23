@@ -15,18 +15,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", required=True)
     args = parser.parse_args()
-    if not re.fullmatch(r"ghcr\.io/re8ch/release-compat-controller@sha256:[0-9a-f]{64}", args.image):
+    if not re.fullmatch(r"registry\.re8ch\.com/functions-shared/release-compat-controller@sha256:[0-9a-f]{64}", args.image):
         parser.error("immutable compatibility image required")
-    pull_image = args.image.replace(
-        "ghcr.io/re8ch/",
-        "registry.re8ch.com/proxy-ghcr/re8ch/",
-        1,
-    )
     path = ROOT / "clusters/re8ch/components/release-compat/controller.yaml"
     body = path.read_text()
     body, count = re.subn(
-        r"(?:ghcr\.io|registry\.re8ch\.com/proxy-ghcr)/re8ch/release-compat-controller@sha256:[0-9a-f]{64}",
-        pull_image,
+        r"(?:ghcr\.io/re8ch|registry\.re8ch\.com/proxy-ghcr/re8ch|registry\.re8ch\.com/functions-shared)/release-compat-controller@sha256:[0-9a-f]{64}",
+        args.image,
         body,
     )
     if count != 2:

@@ -18,6 +18,7 @@ def test_three_locked_ceph_contracts_and_dependencies_are_exact():
     assert lock["charts"][1]["dependsOn"] == ["rook-ceph"]
     assert lock["charts"][2]["dependsOn"] == ["rook-ceph", "ceph-csi-drivers"]
     assert all(item["sha256"].startswith("sha256:") and len(item["sha256"]) == 71 for item in lock["charts"])
+    assert all(item["mirror"].startswith("oci://registry.re8ch.com/functions-shared/") for item in lock["charts"])
     schema = json.loads((ROOT / "schemas/release-contract.schema.json").read_text())
     for name in ("rook-ceph", "ceph-csi-drivers", "rook-ceph-cluster"):
         contract = yaml.safe_load((ROOT / f"contracts/releases/ceph/{name}.yaml").read_text())
@@ -79,7 +80,7 @@ def test_metrics_golden_and_compatibility_additions_are_declared():
     assert set(fixture["compatibilityAdditions"]) == {"gotk_reconcile_condition", "gotk_resource_info", "gotk_suspend_status"}
 
 
-def test_compat_controller_uses_authenticated_cluster_registry_proxy():
+def test_compat_controller_uses_authenticated_internal_registry():
     resources = docs(ROOT / "clusters/re8ch/components/release-compat/controller.yaml")
     deployments = [item for item in resources if item["kind"] == "Deployment"]
     assert len(deployments) == 2
@@ -87,5 +88,16 @@ def test_compat_controller_uses_authenticated_cluster_registry_proxy():
         pod = deployment["spec"]["template"]["spec"]
         assert pod["imagePullSecrets"] == [{"name": "gitops-oci-reader"}]
         assert pod["containers"][0]["image"].startswith(
-            "registry.re8ch.com/proxy-ghcr/re8ch/release-compat-controller@sha256:"
+            "registry.re8ch.com/functions-shared/release-compat-controller@sha256:"
         )
+
+
+def test_release_workflows_use_dedicated_harbor_publisher():
+    for path in (
+        ROOT / ".github/workflows/release-compat-controller.yml",
+        ROOT / ".github/workflows/ceph-shadow-compile.yml",
+    ):
+        workflow = path.read_text()
+        assert "HARBOR_RELEASE_PUBLISHER_USERNAME" in workflow
+        assert "HARBOR_RELEASE_PUBLISHER_PASSWORD" in workflow
+        assert "registry.re8ch.com/functions-shared" in workflow
