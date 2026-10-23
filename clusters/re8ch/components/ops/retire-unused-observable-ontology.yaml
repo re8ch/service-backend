@@ -90,7 +90,6 @@ spec:
     spec:
       serviceAccountName: retire-unused-observable-ontology
       restartPolicy: OnFailure
-      nodeSelector: {kubernetes.io/hostname: restricted-node-1eb0570f74}
       securityContext: {seccompProfile: {type: RuntimeDefault}}
       initContainers:
       - &kubectlStep
