@@ -228,15 +228,40 @@ class Executor:
             argv += ["-f", "-"]
             self.command(argv, json.dumps(item), timeout=120)
 
-    def healthy(self, item: dict) -> tuple[bool, str]:
+    @staticmethod
+    def pointer(value: object, pointer: str) -> object:
+        current = value
+        for token in pointer.removeprefix("/").split("/"):
+            token = token.replace("~1", "/").replace("~0", "~")
+            if isinstance(current, list):
+                current = current[int(token)]
+            elif isinstance(current, dict):
+                current = current[token]
+            else:
+                raise KeyError(pointer)
+        return current
+
+    def healthy(self, item: dict, checks: list[dict] | None = None) -> tuple[bool, str]:
         ref = object_ref(item)
-        if ref["kind"] not in READY_KINDS:
+        matching = [check for check in (checks or []) if all(
+            check.get(key) == ref.get(key) for key in ("apiVersion", "kind", "namespace", "name")
+        )]
+        if ref["kind"] not in READY_KINDS and not matching:
             return True, "no readiness rule"
         argv = ["kubectl", "get", ref["kind"], ref["name"]]
         if ref.get("namespace"):
             argv += ["--namespace", ref["namespace"]]
         argv += ["-o", "json"]
         live = json.loads(self.command(argv).stdout)
+        for check in matching:
+            try:
+                observed = self.pointer(live, check["jsonPointer"])
+            except (KeyError, IndexError, ValueError):
+                return False, f'{check["jsonPointer"]} is absent'
+            if observed != check["equals"]:
+                return False, f'{check["jsonPointer"]} differs from contract'
+        if ref["kind"] not in READY_KINDS:
+            return True, "contract health checks satisfied"
         generation = live.get("metadata", {}).get("generation", 0)
         status = live.get("status", {})
         if status.get("observedGeneration", 0) < generation:
@@ -251,12 +276,12 @@ class Executor:
             return status.get("succeeded", 0) >= spec.get("completions", 1), "job incomplete"
         return True, "healthy"
 
-    def wait_healthy(self, objects: list[dict], timeout_seconds: int) -> tuple[bool, str]:
+    def wait_healthy(self, objects: list[dict], timeout_seconds: int, checks: list[dict] | None = None) -> tuple[bool, str]:
         deadline = time.monotonic() + timeout_seconds
         while True:
             failures = []
             for item in objects:
-                ready, reason = self.healthy(item)
+                ready, reason = self.healthy(item, checks)
                 if not ready:
                     failures.append(f"{object_identity(item)}: {reason}")
             if not failures:
@@ -303,8 +328,9 @@ class Executor:
             "objectRefs": [object_ref(item) for item in attempted_objects],
         }
         self.prune(attempted_state, set(previous["inventory"]), contract, manager)
+        lifecycle = contract["spec"]["lifecycle"]
         rollback_healthy, rollback_reason = self.wait_healthy(
-            rollback_objects, contract["spec"]["lifecycle"]["healthTimeoutSeconds"])
+            rollback_objects, lifecycle["healthTimeoutSeconds"], lifecycle.get("healthChecks"))
         if not rollback_healthy:
             raise Rejected(rollback_reason)
         return rollback_digest, f"rollback restored previous healthy digest after: {reason}"
@@ -331,7 +357,9 @@ class Executor:
         self.apply(audited, manager, dry_run=True)
         try:
             self.apply(audited, manager, dry_run=False)
-            healthy, reason = self.wait_healthy(audited, contract["spec"]["lifecycle"]["healthTimeoutSeconds"])
+            lifecycle = contract["spec"]["lifecycle"]
+            healthy, reason = self.wait_healthy(
+                audited, lifecycle["healthTimeoutSeconds"], lifecycle.get("healthChecks"))
         except Rejected as error:
             healthy, reason = False, f"apply failed: {error}"
         outcome = "healthy"
