@@ -85,7 +85,12 @@ def persist(state_dir: Path, release_id: str, result_path: Path, output: Path) -
     result = json.loads(result_path.read_text())
     validate_schema(state, "release-accepted-state.schema.json")
     validate_schema(result, "release-operation-result.schema.json")
-    output.write_text(compact({"data": {"accepted-state.json": compact(state), "last-result.json": compact(result)}}))
+    output.write_text(compact({
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {"name": state_configmap_name(release_id), "namespace": "rook-ceph"},
+        "data": {"accepted-state.json": compact(state), "last-result.json": compact(result)},
+    }))
 
 
 def main() -> int:
