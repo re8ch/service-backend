@@ -1,66 +1,6 @@
-# Business domains reconcile directly from the verified service-backend source.
-# They intentionally do not depend on Kustomization/service-backend readiness:
-# the root grants ownership, while each domain owns its own failure and rollout.
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata: {name: reconcile-data-storage, namespace: flux-system}
-spec:
-  suspend: true
-  interval: 1m
-  retryInterval: 1m
-  timeout: 15m
-  path: ./clusters/re8ch/domains/data-storage
-  prune: false
-  wait: false
-  sourceRef: {kind: GitRepository, name: service-backend}
-  decryption: {provider: sops, secretRef: {name: sops-age}}
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata: {name: reconcile-commerce-billing, namespace: flux-system}
-spec:
-  suspend: true
-  interval: 1m
-  retryInterval: 1m
-  timeout: 15m
-  path: ./clusters/re8ch/domains/commerce-billing
-  prune: false
-  wait: false
-  sourceRef: {kind: GitRepository, name: service-backend}
-  decryption: {provider: sops, secretRef: {name: sops-age}}
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata: {name: reconcile-delivery-products, namespace: flux-system}
-spec:
-  suspend: true
-  interval: 1m
-  retryInterval: 1m
-  timeout: 15m
-  path: ./clusters/re8ch/domains/delivery-products
-  prune: false
-  wait: false
-  sourceRef: {kind: GitRepository, name: service-backend}
-  decryption: {provider: sops, secretRef: {name: sops-age}}
----
-apiVersion: kustomize.toolkit.fluxcd.io/v1
-kind: Kustomization
-metadata: {name: reconcile-tenant-runtime, namespace: flux-system}
-spec:
-  suspend: true
-  interval: 1m
-  retryInterval: 1m
-  timeout: 15m
-  path: ./clusters/re8ch/domains/tenant-runtime
-  prune: false
-  wait: false
-  sourceRef: {kind: GitRepository, name: service-backend}
-  decryption: {provider: sops, secretRef: {name: sops-age}}
----
 # Temporary residual shards for objects that cannot yet be safely handed to
 # namespaced SSA: encrypted Secrets, cluster-scoped resources, Flux lifecycle
-# objects, and Helm releases. Each shard stays suspended until its matching
-# signed bundle cohort is ready for an independently reversible cutover.
+# objects, Helm releases, and explicitly quarantined unhealthy workloads.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata: {name: reconcile-main-legacy-data-storage, namespace: flux-system}
