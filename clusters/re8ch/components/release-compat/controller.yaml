@@ -13,11 +13,12 @@ spec:
       annotations: {prometheus.io/port: "8080", prometheus.io/scrape: "true"}
     spec:
       serviceAccountName: release-compat-controller
+      imagePullSecrets: [{name: gitops-oci-reader}]
       automountServiceAccountToken: true
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: controller
-        image: ghcr.io/re8ch/release-compat-controller@sha256:fbef91abaf50ba3627ddb8ec653f5712c8d3f70ae1b145ef115432d1f8d9e29c
+        image: registry.re8ch.com/proxy-ghcr/re8ch/release-compat-controller@sha256:fbef91abaf50ba3627ddb8ec653f5712c8d3f70ae1b145ef115432d1f8d9e29c
         imagePullPolicy: IfNotPresent
         ports: [{name: http-prom, containerPort: 8080}, {name: healthz, containerPort: 8081}]
         readinessProbe: {httpGet: {path: /readyz, port: healthz}}
@@ -48,10 +49,11 @@ spec:
     metadata: {labels: {app: re8ch-release-dispatcher}}
     spec:
       serviceAccountName: re8ch-release-dispatcher
+      imagePullSecrets: [{name: gitops-oci-reader}]
       securityContext: {runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
       containers:
       - name: dispatcher
-        image: ghcr.io/re8ch/release-compat-controller@sha256:fbef91abaf50ba3627ddb8ec653f5712c8d3f70ae1b145ef115432d1f8d9e29c
+        image: registry.re8ch.com/proxy-ghcr/re8ch/release-compat-controller@sha256:fbef91abaf50ba3627ddb8ec653f5712c8d3f70ae1b145ef115432d1f8d9e29c
         env:
         - {name: MODE, value: dispatcher}
         - name: GITHUB_APP_ID

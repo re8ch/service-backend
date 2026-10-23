@@ -17,9 +17,18 @@ def main() -> int:
     args = parser.parse_args()
     if not re.fullmatch(r"ghcr\.io/re8ch/release-compat-controller@sha256:[0-9a-f]{64}", args.image):
         parser.error("immutable compatibility image required")
+    pull_image = args.image.replace(
+        "ghcr.io/re8ch/",
+        "registry.re8ch.com/proxy-ghcr/re8ch/",
+        1,
+    )
     path = ROOT / "clusters/re8ch/components/release-compat/controller.yaml"
     body = path.read_text()
-    body, count = re.subn(r"ghcr\.io/re8ch/release-compat-controller@sha256:[0-9a-f]{64}", args.image, body)
+    body, count = re.subn(
+        r"(?:ghcr\.io|registry\.re8ch\.com/proxy-ghcr)/re8ch/release-compat-controller@sha256:[0-9a-f]{64}",
+        pull_image,
+        body,
+    )
     if count != 2:
         raise RuntimeError("expected projector and dispatcher image slots")
     body = body.replace("  replicas: 0\n  selector: {matchLabels: {delivery.re8ch.com/component: release-compat-controller}}",
