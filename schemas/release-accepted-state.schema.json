@@ -29,6 +29,26 @@
         }
       }
     },
+    "history": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bundleReference",
+          "payloadDigest",
+          "appliedDigest",
+          "inventoryDigest"
+        ],
+        "properties": {
+          "bundleReference": {"type": "string", "pattern": "^oci://"},
+          "payloadDigest": {"$ref": "#/$defs/digest"},
+          "appliedDigest": {"$ref": "#/$defs/digest"},
+          "inventoryDigest": {"$ref": "#/$defs/digest"}
+        }
+      }
+    },
     "sequence": {"type": "integer", "minimum": 1},
     "updatedAt": {"type": "string", "format": "date-time"},
     "blocked": {"type": "boolean"},

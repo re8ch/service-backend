@@ -85,13 +85,24 @@ def test_workflow_accepts_only_operation_id_and_splits_identities():
     assert "release-executor-ceph-infra" in text
     assert "release-executor-ceph-runtime" in text
     assert "for stage in crd-schema cluster-rbac" in text
-    assert "for stage in runtime custom-resources" in text
+    assert "stages=(runtime custom-resources)" in text
     assert "for stage in storage-class health-acceptance" in text
     assert "--no-stage-apply" in text
     assert "bundle has no infra stages" in text
     assert "bundle has no runtime stages" in text
+    assert 'approved="$(jq -r .spec.approvedDigest' in text
+    assert '--current-bundle "$RUNNER_TEMP/current-bundle/release.bundle" --rollback-stage runtime' in text
+    assert 'if [[ "$ACTION" != rollback ]]' in text
     assert 'kubectl apply --server-side --field-manager="re8ch-release-state/${RELEASE}"' in text
     assert "kubectl patch configmap" not in text
+
+
+def test_rollback_operations_require_an_explicit_approval_reference():
+    crds = docs(ROOT / "clusters/re8ch/components/release-compat/api.yaml")
+    operation = next(item for item in crds if item["metadata"]["name"] == "releaseoperations.delivery.re8ch.com")
+    validations = operation["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"][
+        "x-kubernetes-validations"]
+    assert any("self.action != 'rollback' || has(self.approvalRef)" in item["rule"] for item in validations)
 
 
 def test_metrics_golden_and_compatibility_additions_are_declared():
