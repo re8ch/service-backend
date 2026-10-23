@@ -65,6 +65,14 @@ def test_flux_compat_admission_ignores_unlabelled_flux_consumers():
         assert "'delivery.re8ch.com/compat-projection' in object.metadata.labels" in expression
 
 
+def test_flux_compat_admission_handles_optional_helmrelease_fields():
+    resources = docs(ROOT / "clusters/re8ch/components/release-compat/admission.yaml")
+    policy = next(item for item in resources if item["metadata"]["name"] == "flux-compat-projections")
+    expression = policy["spec"]["validations"][1]["expression"]
+    for field in ("timeout", "releaseName", "targetNamespace", "storageNamespace", "valuesFrom", "dependsOn", "install", "upgrade", "rollback"):
+        assert f"!has(object.spec.{field}) && !has(oldObject.spec.{field})" in expression
+
+
 def test_ceph_executor_identities_deny_forbidden_capabilities_by_construction():
     resources = docs(ROOT / "clusters/re8ch/components/release-compat/ceph-executor-rbac.yaml")
     roles = {item["metadata"]["name"]: item for item in resources if item["kind"] == "ClusterRole"}
@@ -117,7 +125,7 @@ def test_compat_controller_uses_authenticated_internal_registry():
     assert len(deployments) == 2
     for deployment in deployments:
         pod = deployment["spec"]["template"]["spec"]
-        assert pod["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-1eb0570f74"}
+        assert pod["nodeSelector"] == {"kubernetes.io/hostname": "a1-wsl-zt"}
         assert {item["key"] for item in pod["tolerations"]} == {
             "node-role.kubernetes.io/control-plane",
             "scheduling.re8ch.com/capacity-window",
@@ -161,7 +169,7 @@ def test_protected_harbor_mirror_job_is_fixed_and_has_no_api_token():
     assert pod["automountServiceAccountToken"] is False
     assert pod["hostNetwork"] is True
     assert pod["dnsPolicy"] == "ClusterFirstWithHostNet"
-    assert pod["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert pod["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
     assert pod["securityContext"] == {"fsGroup": 65532, "fsGroupChangePolicy": "OnRootMismatch"}
     assert {item["name"] for item in pod["initContainers"]} == {"copy-artifact", "copy-signature"}
     assert all(item["env"] == [{"name": "DOCKER_CONFIG", "value": "/auth"}] for item in pod["initContainers"])
