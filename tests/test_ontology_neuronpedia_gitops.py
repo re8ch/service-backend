@@ -11,6 +11,22 @@ def documents(name: str):
     return [doc for doc in yaml.safe_load_all((PROJECT / name).read_text()) if doc]
 
 
+def test_ontology_runtime_is_retired_but_data_is_retained():
+    external = yaml.safe_load((PROJECT.parent / "kustomization.yaml").read_text())
+    assert external["resources"] == ["ontology-microscope/retained-data.yaml"]
+    retained = documents("retained-data.yaml")
+    assert {doc["kind"] for doc in retained} == {"Namespace", "TenantNamespace", "PersistentVolumeClaim"}
+    claims = {doc["metadata"]["name"] for doc in retained if doc["kind"] == "PersistentVolumeClaim"}
+    assert claims == {
+        "data-ontology-microscope-neo4j-0",
+        "data-ontology-neuronpedia-postgres-0",
+    }
+    compiled = (ROOT / "clusters/re8ch/domains/delivery-products/resources.yaml").read_text()
+    assert "kind: Deployment\nmetadata:\n" in compiled
+    assert "name: ontology-microscope\n" not in compiled
+    assert "name: ontology-microscope-adapter\n" not in compiled
+
+
 def test_neuronpedia_canary_is_parallel_and_digest_pinned():
     resources = (PROJECT / "kustomization.yaml").read_text()
     assert "database.yaml" in resources

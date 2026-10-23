@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: re8ch-ontology-microscope
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    tenancy.re8ch.com/tenant: re8ch
+    delivery.re8ch.com/retention: retained-data
+    delivery.re8ch.com/retired-product: ontology-microscope
+  annotations:
+    delivery.re8ch.com/retired-at: "2026-10-24"
+    delivery.re8ch.com/retention-policy: preserve-namespace-secrets-and-pvcs
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantNamespace
+metadata:
+  name: re8ch-ontology-microscope
+  labels:
+    tenancy.re8ch.com/tenant: re8ch
+    delivery.re8ch.com/retention: retained-data
+    delivery.re8ch.com/retired-product: ontology-microscope
+spec:
+  tenantRef: re8ch
+  namespaceName: re8ch-ontology-microscope
+  operation: EnsurePresent
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-ontology-microscope-neo4j-0
+  namespace: re8ch-ontology-microscope
+  labels:
+    app.kubernetes.io/name: ontology-microscope-neo4j
+    saas.re8ch.com/tenant: re8ch
+    delivery.re8ch.com/retention: retained-data
+    delivery.re8ch.com/retired-product: ontology-microscope
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 20Gi}
+  storageClassName: rbd-r640
+  volumeMode: Filesystem
+  volumeName: pvc-851c3185-9299-4ee1-994e-e92bde0652e5
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-ontology-neuronpedia-postgres-0
+  namespace: re8ch-ontology-microscope
+  labels:
+    app.kubernetes.io/name: ontology-neuronpedia-postgres
+    saas.re8ch.com/tenant: re8ch
+    delivery.re8ch.com/retention: retained-data
+    delivery.re8ch.com/retired-product: ontology-microscope
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 20Gi}
+  storageClassName: rbd-r640
+  volumeMode: Filesystem
+  volumeName: pvc-3801ea81-1b03-4c81-b69d-b86ca2fd74a5

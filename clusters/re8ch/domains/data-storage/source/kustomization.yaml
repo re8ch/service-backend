@@ -7,7 +7,7 @@ resources:
 - ../../../secrets/cloud-disk-mcp-internal.sops.yaml
 - ../../../secrets/ghcr-re8ch-cloud-disk.sops.yaml
 - ../../../secrets/cloud-disk-credentials.sops.yaml
-- ../../../components/observable/postgrest-ha.yaml
+- retained-observable.yaml
 - ../../../components/supabase-pg-re8ch/supabase-rest-runtime.yaml
 - ../../../components/cloud-disk
 - ../../../components/rook-ceph/storage-node-labels.yaml

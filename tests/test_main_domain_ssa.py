@@ -32,7 +32,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
     cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
-    assert cohort["releaseCount"] == 19
+    assert cohort["releaseCount"] == 17
     source = {compiler.identity(item) for domain in DOMAINS
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
@@ -64,7 +64,8 @@ def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover()
     roles = [item for item in docs if item["kind"] == "Role"]
     bindings = [item for item in docs if item["kind"] == "RoleBinding"]
     states = [item for item in docs if item["kind"] == "ConfigMap"]
-    assert len(roles) == len(bindings) == len(states) == 19
+    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    assert len(roles) == len(bindings) == len(states) == cohort["releaseCount"]
     for role in roles:
         assert all(rule.get("resourceNames") for rule in role["rules"])
         for rule in role["rules"]:
