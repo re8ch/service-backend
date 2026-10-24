@@ -10,6 +10,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: commerce-billing
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -17,7 +18,7 @@ metadata:
   name: main-commerce-billing-payments
   namespace: payments
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: commerce-billing
 rules:
 - apiGroups:
   - apps
@@ -105,7 +106,7 @@ metadata:
   name: main-commerce-billing-payments
   namespace: payments
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: commerce-billing
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -113,7 +114,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:commerce-billing
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -125,6 +126,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: data-storage
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -132,7 +134,7 @@ metadata:
   name: main-data-storage-cloud-disk
   namespace: cloud-disk
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
   - apps
@@ -230,7 +232,7 @@ metadata:
   name: main-data-storage-cloud-disk
   namespace: cloud-disk
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -238,7 +240,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:data-storage
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -250,6 +252,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: data-storage
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -257,7 +260,7 @@ metadata:
   name: main-data-storage-ops
   namespace: ops
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
   - ''
@@ -323,7 +326,7 @@ metadata:
   name: main-data-storage-ops
   namespace: ops
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -331,7 +334,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:data-storage
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -343,6 +346,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: data-storage
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -350,7 +354,7 @@ metadata:
   name: main-data-storage-pigsty-external
   namespace: pigsty-external
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
   - ''
@@ -395,7 +399,7 @@ metadata:
   name: main-data-storage-pigsty-external
   namespace: pigsty-external
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -403,7 +407,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:data-storage
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -415,6 +419,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: data-storage
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -422,7 +427,7 @@ metadata:
   name: main-data-storage-supabase-pg-re8ch
   namespace: supabase-pg-re8ch
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
   - apps
@@ -453,7 +458,7 @@ metadata:
   name: main-data-storage-supabase-pg-re8ch
   namespace: supabase-pg-re8ch
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -461,7 +466,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:data-storage
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -473,6 +478,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: data-storage
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -480,7 +486,7 @@ metadata:
   name: main-data-storage-toolhive-system
   namespace: toolhive-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
   - ''
@@ -511,7 +517,7 @@ metadata:
   name: main-data-storage-toolhive-system
   namespace: toolhive-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: data-storage
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -519,7 +525,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:data-storage
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -531,6 +537,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: delivery-products
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -538,7 +545,7 @@ metadata:
   name: main-delivery-products-aesthete
   namespace: aesthete
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 rules:
 - apiGroups:
   - ''
@@ -591,7 +598,7 @@ metadata:
   name: main-delivery-products-aesthete
   namespace: aesthete
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -599,7 +606,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:delivery-products
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -611,6 +618,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: delivery-products
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -618,7 +626,7 @@ metadata:
   name: main-delivery-products-anycam
   namespace: anycam
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 rules:
 - apiGroups:
   - apps
@@ -695,7 +703,7 @@ metadata:
   name: main-delivery-products-anycam
   namespace: anycam
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -703,7 +711,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:delivery-products
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -715,6 +723,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: delivery-products
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -722,7 +731,7 @@ metadata:
   name: main-delivery-products-farseer
   namespace: farseer
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 rules:
 - apiGroups:
   - apps
@@ -765,7 +774,7 @@ metadata:
   name: main-delivery-products-farseer
   namespace: farseer
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -773,7 +782,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:delivery-products
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -785,6 +794,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: delivery-products
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -792,7 +802,7 @@ metadata:
   name: main-delivery-products-re8ch-farseer
   namespace: re8ch-farseer
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 rules:
 - apiGroups:
   - apps
@@ -857,7 +867,7 @@ metadata:
   name: main-delivery-products-re8ch-farseer
   namespace: re8ch-farseer
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: delivery-products
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -865,7 +875,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:delivery-products
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -877,6 +887,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: operations-ui
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -884,7 +895,7 @@ metadata:
   name: main-operations-ui-headlamp
   namespace: headlamp
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 rules:
 - apiGroups:
   - apps
@@ -1015,7 +1026,7 @@ metadata:
   name: main-operations-ui-headlamp
   namespace: headlamp
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1023,7 +1034,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:operations-ui
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -1035,6 +1046,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: operations-ui
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1042,7 +1054,7 @@ metadata:
   name: main-operations-ui-kube-system
   namespace: kube-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 rules:
 - apiGroups:
   - ''
@@ -1064,7 +1076,7 @@ metadata:
   name: main-operations-ui-kube-system
   namespace: kube-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1072,7 +1084,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:operations-ui
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -1084,6 +1096,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: operations-ui
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1091,7 +1104,7 @@ metadata:
   name: main-operations-ui-studio-toolkit
   namespace: studio-toolkit
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 rules:
 - apiGroups:
   - apps
@@ -1173,7 +1186,7 @@ metadata:
   name: main-operations-ui-studio-toolkit
   namespace: studio-toolkit
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1181,7 +1194,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:operations-ui
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -1193,6 +1206,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: operations-ui
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1200,7 +1214,7 @@ metadata:
   name: main-operations-ui-supabase-pg-re8ch
   namespace: supabase-pg-re8ch
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 rules:
 - apiGroups:
   - batch
@@ -1231,7 +1245,7 @@ metadata:
   name: main-operations-ui-supabase-pg-re8ch
   namespace: supabase-pg-re8ch
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: operations-ui
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1239,7 +1253,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:operations-ui
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -1251,6 +1265,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: tenant-runtime
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1258,7 +1273,7 @@ metadata:
   name: main-tenant-runtime-ai-operations
   namespace: ai-operations
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: tenant-runtime
 rules:
 - apiGroups:
   - apps
@@ -1333,7 +1348,7 @@ metadata:
   name: main-tenant-runtime-ai-operations
   namespace: ai-operations
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: tenant-runtime
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1341,7 +1356,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:tenant-runtime
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -1353,6 +1368,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: tenant-runtime
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1360,7 +1376,7 @@ metadata:
   name: main-tenant-runtime-scheduler-system
   namespace: scheduler-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: tenant-runtime
 rules:
 - apiGroups:
   - apps
@@ -1414,7 +1430,7 @@ metadata:
   name: main-tenant-runtime-scheduler-system
   namespace: scheduler-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: tenant-runtime
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1422,7 +1438,7 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:tenant-runtime
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -1434,6 +1450,7 @@ metadata:
   labels:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: tenant-runtime
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -1441,7 +1458,7 @@ metadata:
   name: main-tenant-runtime-scheduling-system
   namespace: scheduling-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: tenant-runtime
 rules:
 - apiGroups:
   - ''
@@ -1485,7 +1502,7 @@ metadata:
   name: main-tenant-runtime-scheduling-system
   namespace: scheduling-system
   labels:
-    delivery.re8ch.com/rbac-profile: main-domain
+    delivery.re8ch.com/rbac-profile: tenant-runtime
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -1493,4 +1510,4 @@ roleRef:
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
-  name: re8ch:release-executor:main-domain
+  name: re8ch:release-executor:tenant-runtime

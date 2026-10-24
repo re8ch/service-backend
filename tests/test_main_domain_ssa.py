@@ -75,8 +75,9 @@ def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover()
             assert set(rule["verbs"]) == expected
         assert all("*" not in rule.get("resources", []) + rule.get("resourceNames", []) for rule in role["rules"])
     assert {subject["name"] for binding in bindings for subject in binding["subjects"]} == {
-        "re8ch:release-executor:main-domain"
+        f"re8ch:release-executor:{domain}" for domain in DOMAINS
     }
+    assert {role["metadata"]["labels"]["delivery.re8ch.com/rbac-profile"] for role in roles} == DOMAINS
 
 
 def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
@@ -94,7 +95,23 @@ def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
     }
     workflow = (ROOT / ".github/workflows/main-domain-release.yml").read_text()
     assert "contracts/releases/main-domain/*.yaml" in workflow
-    assert "https://kube-api.re8ch.com/release-executor-main-domain" in workflow
-    assert "environment: release-main-domain" in workflow
+    for domain in DOMAINS:
+        assert f"release-executor-{domain}" in workflow or "needs.validate.outputs.environment" in workflow
+    assert "needs.validate.outputs.environment" in workflow
+    assert "needs.validate.outputs.audience" in workflow
     assert "state-name --release-id" in workflow
     assert "cosign verify" in workflow
+
+
+def test_each_main_domain_contract_uses_its_own_protected_execution_profile():
+    authority = yaml.safe_load((ROOT / "operations/releases/static-domain-authority.yaml").read_text())
+    profiles = authority["spec"]["domains"]
+    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    declared = {item["domain"]: item for item in cohort["executionProfiles"]}
+    assert set(declared) == DOMAINS
+    for contract_path in sorted((ROOT / "contracts/releases/main-domain").glob("*.yaml")):
+        contract = yaml.safe_load(contract_path.read_text())
+        domain = contract["spec"]["authorityDomain"]
+        execution = profiles[domain]["execution"]
+        assert contract["spec"]["provenance"]["environment"] == execution["protectedEnvironment"]
+        assert contract["spec"]["provenance"]["audience"] == execution["audience"]

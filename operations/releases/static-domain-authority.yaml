@@ -1,0 +1,180 @@
+apiVersion: delivery.re8ch.com/static-domain-authority/v1alpha1
+kind: StaticDomainAuthority
+metadata:
+  name: re8ch-nine-domain-static-gitops
+spec:
+  desiredState: independent-github-repository-and-signed-oci
+  runtimeAuthority: kubernetes
+  compatibilityMode: flux-api-status-events-metrics-only
+  protectedEnvironmentPolicy:
+    requiredReviewers: [Woomou]
+    preventSelfReview: false
+    administratorsMayBypass: false
+    deploymentBranches: [main]
+    requiredSecrets: [KUBE_API_CA_PEM]
+    notes:
+    - Woomou is the only current member of both k8s-admins and gitops-breakglass.
+    - Preventing self review would deadlock every protected deployment until another reviewer is enrolled.
+  rolloutPolicy:
+    productionCutovers: serial
+    order:
+    - delivery-products
+    - operations-ui
+    - agent-runtime
+    - observability-metering
+    - identity-access
+    - tenant-runtime
+    - commerce-billing
+    - data-storage
+    - networking
+  domains:
+    agent-runtime:
+      risk: medium
+      stabilityHours: 24
+      state: inventory
+      source:
+        organization: re8ch-ai
+        repository: re8ch-ai/agent-gitops
+        ref: refs/heads/main
+        mappingState: verified
+      execution:
+        repository: re8ch-ai/agent-gitops
+        workflow: .github/workflows/static-release.yml
+        protectedEnvironment: release-executor-agent-runtime
+        audience: https://kube-api.re8ch.com/release-executor-agent-runtime
+        kubernetesGroup: re8ch:release-executor:agent-runtime
+    identity-access:
+      risk: high
+      stabilityHours: 48
+      state: inventory
+      source:
+        organization: re8ch
+        repository: re8ch/identity-gitops
+        ref: refs/heads/main
+        mappingState: verified
+      execution:
+        repository: re8ch/identity-gitops
+        workflow: .github/workflows/static-release.yml
+        protectedEnvironment: release-executor-identity-access
+        audience: https://kube-api.re8ch.com/release-executor-identity-access
+        kubernetesGroup: re8ch:release-executor:identity-access
+    observability-metering:
+      risk: medium
+      stabilityHours: 24
+      state: inventory
+      source:
+        organization: siren-observer
+        repository: siren-observer/observability-gitops
+        ref: refs/heads/main
+        mappingState: verified
+      execution:
+        repository: siren-observer/observability-gitops
+        workflow: .github/workflows/static-release.yml
+        protectedEnvironment: release-executor-observability-metering
+        audience: https://kube-api.re8ch.com/release-executor-observability-metering
+        kubernetesGroup: re8ch:release-executor:observability-metering
+    networking:
+      risk: critical
+      stabilityHours: 72
+      state: inventory
+      source:
+        organization: pillars-infra
+        repository: pillars-infra/network-gitops
+        ref: refs/heads/main
+        mappingState: verified
+      execution:
+        repository: pillars-infra/network-gitops
+        workflow: .github/workflows/static-release.yml
+        protectedEnvironment: release-executor-networking
+        audience: https://kube-api.re8ch.com/release-executor-networking
+        kubernetesGroup: re8ch:release-executor:networking
+    data-storage:
+      risk: critical
+      stabilityHours: 72
+      state: inventory
+      source:
+        organization: null
+        repository: null
+        ref: refs/heads/main
+        mappingState: pending-enterprise-inventory
+      bootstrap:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+      execution:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+        protectedEnvironment: release-executor-data-storage
+        audience: https://kube-api.re8ch.com/release-executor-data-storage
+        kubernetesGroup: re8ch:release-executor:data-storage
+    commerce-billing:
+      risk: high
+      stabilityHours: 48
+      state: inventory
+      source:
+        organization: null
+        repository: null
+        ref: refs/heads/main
+        mappingState: pending-enterprise-inventory
+      bootstrap:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+      execution:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+        protectedEnvironment: release-executor-commerce-billing
+        audience: https://kube-api.re8ch.com/release-executor-commerce-billing
+        kubernetesGroup: re8ch:release-executor:commerce-billing
+    delivery-products:
+      risk: medium
+      stabilityHours: 24
+      state: inventory
+      source:
+        organization: null
+        repository: null
+        ref: refs/heads/main
+        mappingState: pending-enterprise-inventory
+      bootstrap:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+      execution:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+        protectedEnvironment: release-executor-delivery-products
+        audience: https://kube-api.re8ch.com/release-executor-delivery-products
+        kubernetesGroup: re8ch:release-executor:delivery-products
+    operations-ui:
+      risk: medium
+      stabilityHours: 24
+      state: inventory
+      source:
+        organization: null
+        repository: null
+        ref: refs/heads/main
+        mappingState: pending-enterprise-inventory
+      bootstrap:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+      execution:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+        protectedEnvironment: release-executor-operations-ui
+        audience: https://kube-api.re8ch.com/release-executor-operations-ui
+        kubernetesGroup: re8ch:release-executor:operations-ui
+    tenant-runtime:
+      risk: high
+      stabilityHours: 48
+      state: inventory
+      source:
+        organization: null
+        repository: null
+        ref: refs/heads/main
+        mappingState: pending-enterprise-inventory
+      bootstrap:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+      execution:
+        repository: re8ch/service-backend
+        workflow: .github/workflows/main-domain-release.yml
+        protectedEnvironment: release-executor-tenant-runtime
+        audience: https://kube-api.re8ch.com/release-executor-tenant-runtime
+        kubernetesGroup: re8ch:release-executor:tenant-runtime

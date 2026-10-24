@@ -19,6 +19,11 @@
       "additionalProperties": false,
       "required": ["target", "source", "provenance", "authorization", "inventory", "lifecycle"],
       "properties": {
+        "authorityDomain": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "maxLength": 63
+        },
         "target": {
           "type": "object", "additionalProperties": false,
           "required": ["cluster", "namespace"],
