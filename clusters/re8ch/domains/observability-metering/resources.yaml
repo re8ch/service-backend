@@ -3891,6 +3891,7 @@ spec:
     remediation:
       retries: 3
   interval: 3m
+  suspend: true
   upgrade:
     remediation:
       remediateLastFailure: true

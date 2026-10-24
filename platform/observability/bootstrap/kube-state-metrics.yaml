@@ -14,6 +14,7 @@ metadata:
   name: re8ch-kube-state-metrics
   namespace: observability-system
 spec:
+  suspend: true
   interval: 3m
   chart:
     spec:
@@ -32,7 +33,7 @@ spec:
     # Required anti-affinity from the previous revision otherwise deadlocks a
     # one-replica RollingUpdate on the only currently schedulable node.
     updateStrategy: Recreate
-    nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+    nodeSelector: {kubernetes.io/hostname: r640}
     customLabels:
       observability.re8ch.com/component: inventory
     collectors:
