@@ -14,11 +14,11 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert release['environment'] == 'production'
     assert jobs['finalize']['needs'] == 'release'
     assert jobs['finalize']['permissions']['id-token'] == 'write'
-    assert jobs['validate']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'restricted-node-6dc3f140f9', 'untrusted-build']
+    assert jobs['validate']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
     assert release['runs-on'] == ['self-hosted', 'macOS', 'ARM64', 'macmini-a1']
-    assert jobs['finalize']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'restricted-node-6dc3f140f9', 'untrusted-build']
+    assert jobs['finalize']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
-    assert 'docker build -f operations/cloud-platform/Dockerfile' in validation
+    assert 'docker build --load -f operations/cloud-platform/Dockerfile' in validation
     assert 'docker run --rm --network none' in validation
     assert 'server.PRIVILEGED_TOOLS & viewer' in validation
     assert 'operations/plugin-capabilities/verify.py' in validation
