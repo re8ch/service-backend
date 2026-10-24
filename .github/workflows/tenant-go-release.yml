@@ -21,13 +21,15 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: platform/apps/tenant-mcp/go.mod
           cache-dependency-path: platform/apps/tenant-mcp/go.sum
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with: {version: v4.2.3}
       - run: go test -race ./... && go vet ./...
         working-directory: platform/apps/tenant-mcp
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
@@ -93,7 +95,7 @@ jobs:
   finalize:
     if: github.event_name != 'pull_request'
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     environment: production
     permissions:
       contents: read

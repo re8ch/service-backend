@@ -14,7 +14,7 @@ concurrency: {group: commerce-go-release, cancel-in-progress: false}
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
     environment: production
     timeout-minutes: 45
     steps:

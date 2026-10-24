@@ -10,7 +10,7 @@ concurrency:
 jobs:
   validate:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 5
     permissions: {contents: read}
     outputs:
@@ -27,7 +27,7 @@ jobs:
   compile-sign:
     if: github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 20
     environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: write}
@@ -92,7 +92,7 @@ jobs:
   execute:
     if: inputs.execute && github.ref == 'refs/heads/main'
     needs: [validate, compile-sign]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 15
     environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: read}

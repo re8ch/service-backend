@@ -9,7 +9,7 @@ permissions: {contents: read}
 concurrency: {group: full-regression, cancel-in-progress: false}
 jobs:
   regression:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

@@ -11,7 +11,7 @@ concurrency:
 jobs:
   compile-sign:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 20
     environment: release-api-conformance
     permissions: {contents: read, id-token: write, packages: write}
@@ -81,7 +81,7 @@ jobs:
   execute:
     if: inputs.execute && github.ref == 'refs/heads/main'
     needs: compile-sign
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 15
     environment: release-api-conformance
     permissions: {contents: read, id-token: write, packages: read}
