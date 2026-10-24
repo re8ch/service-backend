@@ -16,7 +16,8 @@ def test_cloud_ui_release_is_remote_pinned_and_signed():
     assert "TOOLHIVE_CLOUD_UI_REF=d8a92acc24ae48e08579c580108f376708730300" in dockerfile
     assert 'git fetch --depth 1 origin "${TOOLHIVE_CLOUD_UI_REF}"' in dockerfile
     assert 'org.opencontainers.image.source="https://github.com/re8ch/service-backend"' in dockerfile
-    assert "runs-on: ubuntu-latest" in workflow
+    assert "runs-on: [self-hosted, Linux, X64, r640, untrusted-build]" in workflow
+    assert "runs-on: [self-hosted, macOS, ARM64, macmini-a1]" in workflow
     assert "environment: production" in workflow
     assert "packages: write" in workflow
     assert "id-token: write" in workflow
