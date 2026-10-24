@@ -11,6 +11,8 @@ authority:
   - flux-metrics
   - headlamp-flux-plugin
 references:
+  standard: operations/releases/static-domain-standard.yaml
+  standardRunbook: operations/migrations/github-first-control-plane/static-domain-standard.md
   handoff: operations/migrations/github-first-control-plane/static-release-domain-handoff.md
   executorContract: operations/migrations/github-first-control-plane/tasks/wave-5-unified-release-executor.md
   cutoverRunbook: operations/migrations/github-first-control-plane/flux-cutover-runbook.md
@@ -50,6 +52,7 @@ dispatches:
   authorityDomain: agent-runtime
   authorityRef: operations/releases/static-domain-authority.yaml#agent-runtime
   controllerNamespace: flux-agent-system
+  protectedEnvironment: release-executor-agent-runtime
   risk: medium
   liveSnapshot:
     helmReleases: 1
@@ -59,7 +62,7 @@ dispatches:
   dependencies: []
   notes:
   - Static shadow workflow merged in re8ch-ai/agent-gitops PR 16; Flux CLI annotation correction merged in PR 17.
-  - Run 40115419539 compiled, published, signed and verified bundle sha256:bc8e35a4c7f16c526fc0a65b87e5b2c6ad3e76b647bb68d885ce398815cc0e90 on the enterprise restricted-node-6dc3f140f9 pool.
+  - Run 40115419539 compiled, published, signed and verified bundle sha256:bc8e35a4c7f16c526fc0a65b87e5b2c6ad3e76b647bb68d885ce398815cc0e90 on the enterprise R640 pool.
   - Shadow mode performs no cluster apply and does not transfer ownership from the live HelmRelease.
   gates: *sharedGates
   completion:
@@ -70,6 +73,7 @@ dispatches:
   authorityDomain: identity-access
   authorityRef: operations/releases/static-domain-authority.yaml#identity-access
   controllerNamespace: flux-identity-system
+  protectedEnvironment: release-executor-identity-access
   risk: high
   liveSnapshot:
     helmReleases: 0
@@ -89,6 +93,7 @@ dispatches:
   authorityDomain: observability-metering
   authorityRef: operations/releases/static-domain-authority.yaml#observability-metering
   controllerNamespace: flux-observability-system
+  protectedEnvironment: release-executor-observability-metering
   risk: medium
   liveSnapshot:
     helmReleases: 5
@@ -114,6 +119,7 @@ dispatches:
   authorityDomain: networking
   authorityRef: operations/releases/static-domain-authority.yaml#networking
   controllerNamespace: flux-network-system
+  protectedEnvironment: release-executor-networking
   risk: critical
   liveSnapshot:
     helmReleases: 5
@@ -131,7 +137,7 @@ dispatches:
   notes:
   - Migrate last among the existing autonomous domains.
   - Cilium and public delivery require node-aware health plus real service-VIP and public-authority probes.
-  - Read operations/network/manifests/network/public-mesh/inventory.json before any restricted-node-6dc3f140f9 public-path change.
+  - Read operations/network/manifests/network/public-mesh/inventory.json before any R640 public-path change.
   gates: *sharedGates
   completion:
     removeControllers: [helm-controller, kustomize-controller]
