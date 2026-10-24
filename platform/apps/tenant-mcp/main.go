@@ -20,6 +20,7 @@ import (
 )
 
 var legacyToolPrefixes = []string{"re8ch_review_demo.", "re8ch_tenant.", "re8ch."}
+var mcpToolTelemetry = newToolTelemetry()
 
 type searchInput struct {
 	Query string `json:"query" jsonschema:"Search phrase describing the capability needed"`
@@ -39,6 +40,7 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}, Resources: &mcp.ResourceCapabilities{}}})
+	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			caller, ok := ctx.Value(identityKey{}).(identity)
@@ -227,6 +229,10 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /.well-known/openai-apps-challenge", openAIChallenge)
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"status": "ok", "profile": "tenant"})
+	})
+	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+		mcpToolTelemetry.writePrometheus(w)
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ready, checks := s.readiness(r.Context())
