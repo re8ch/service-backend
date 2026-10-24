@@ -82,6 +82,7 @@ metadata:
   namespace: flux-system
   annotations:
     governance.re8ch.com/change: retire-unused-observable-ontology
+    kustomize.toolkit.fluxcd.io/force: enabled
 spec:
   backoffLimit: 3
   ttlSecondsAfterFinished: 604800
