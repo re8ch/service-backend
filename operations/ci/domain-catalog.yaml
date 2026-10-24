@@ -10,7 +10,9 @@ external_inputs:
 # validates this inventory before selecting tests, so a new root cannot silently
 # bypass CI.
 shared_paths:
-  - .github/workflows/**
+  - .github/workflows/ci.yml
+  - .github/workflows/full-regression.yml
+  - .github/workflows/github-security-checks.yml
   - operations/ci/**
   - operations/workspace-controller/**
   - schemas/**
@@ -24,6 +26,13 @@ shared_paths:
   - clusters/re8ch/kustomization.yaml
   - clusters/re8ch/domain-sources/kustomization.yaml
   - clusters/re8ch/flux-system/**
+
+# A change to a domain-specific workflow is validated by that workflow and by
+# the baseline GitHub policy checks. It must not expand control-plane CI to all
+# domains merely because the file lives under .github/workflows.
+ci_metadata_paths:
+  - .github/workflows/**
+  - .github/dependabot.yml
 
 always_tests:
   - tests/test_github_bot_merge.py
@@ -158,6 +167,8 @@ domains:
     theme: habitats
     paths:
       - operations/tenant-conformance/**
+      - operations/mcp-conformance/release-tenant-infrastructure.sh
+      - platform/apps/tenant-mcp/**
       - platform/cloud-platform/**
       - platform/runtime-anatomy/**
       - platform/scheduling-fabric/**

@@ -4,9 +4,9 @@
   "enforcement": "active",
   "bypass_actors": [
     {
-      "actor_id": null,
-      "actor_type": "EnterpriseOwner",
-      "bypass_mode": "always"
+      "actor_id": 19495017,
+      "actor_type": "Team",
+      "bypass_mode": "pull_request"
     }
   ],
   "conditions": {
@@ -26,6 +26,7 @@
         "allowed_merge_methods": ["squash", "rebase"],
         "dismiss_stale_reviews_on_push": true,
         "require_code_owner_review": false,
+        "require_extra_approval_for_unattributed_changes": true,
         "require_last_push_approval": false,
         "required_approving_review_count": 0,
         "required_review_thread_resolution": true
@@ -36,7 +37,9 @@
       "parameters": {
         "do_not_enforce_on_create": true,
         "required_status_checks": [
-          {"context": "validate"}
+          {"context": "control-plane-validate"},
+          {"context": "tenant-go-validate"},
+          {"context": "GitHub dependency review"}
         ],
         "strict_required_status_checks_policy": true
       }

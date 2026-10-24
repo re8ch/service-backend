@@ -8,9 +8,10 @@ audits remain on the Macmini runner with labels `macmini-a1` and
 restricted-node-6dc3f140f9 runs an eight-instance repository runner pool. Every instance has its own
 registration, credentials, installation directory, `_work`, and temporary
 state; only the locked `github-runner` Unix account and its rootless Podman
-service are shared. With 80 logical CPUs and 247 GiB RAM, eight is the reviewed
-default concurrency. Do not raise `R640_RUNNER_POOL_SIZE` above 16 without a
-resource and registry-egress review.
+service are shared. The eight-instance enterprise pool is also authorized for
+`service-backend`, providing 16 eligible slots without changing either pool's
+reviewed size. With 80 logical CPUs and 247 GiB RAM, do not raise either pool
+above 16 without a resource and registry-egress review.
 
 GitOps repositories in other enterprise organizations use an additional
 enterprise-scoped pool installed by
@@ -34,6 +35,18 @@ restricted-node-6dc3f140f9 must provide `python-is-python3` and `python3-pip` be
 workflows intentionally use the portable `python -m pip` interface. Project
 tools and Python packages are declared and installed by each workflow; they are
 not part of the runner host image.
+
+All restricted-node-6dc3f140f9 instances set `AGENT_TOOLSDIRECTORY` to the shared
+`/home/github-runner/actions-toolcache`. Setup actions therefore download pinned
+Go, Node, Helm, kubectl, and similar GitHub release assets once per version
+instead of once per runner directory. Go module and build caches and Trivy's
+database are likewise persistent under the locked runner user's home directory.
+Workflows must disable remote `actions/setup-go` caching on restricted-node-6dc3f140f9; downloading a
+large archive is slower than compiling against these local caches. These caches
+are performance state only and are never release evidence or a credential store.
+Both pool installers prewarm the shared tool cache from the existing base runner
+with `rsync --ignore-existing`, avoiding a simultaneous cold download from all
+new slots.
 
 Image publishers that use `docker/setup-buildx-action` remain on the self-hosted
 Macmini. Buildx's `docker-container` driver is not compatible with the restricted-node-6dc3f140f9
@@ -62,9 +75,12 @@ disabled and the runner is not a member of the `docker` group. Release
 credentials continue to be issued per workflow by GitHub or the credential
 broker; they are never installed on the host.
 
-restricted-node-6dc3f140f9 reaches GitHub and public registries through the host-network endpoint of
-`mihomos-cluster` at `127.0.0.1:17891`. The checked-in `restricted-node-6dc3f140f9.env` contains only
-non-secret proxy routing. Install it as every runner directory's `.env`, owned by
+restricted-node-6dc3f140f9 reaches public registries through the host-network endpoint of
+`mihomos-cluster` at `127.0.0.1:17891`. GitHub repository transport also stays on
+that route because direct `github.com` connectivity is intermittent. GitHub API,
+codeload, and release asset hosts are in `NO_PROXY`: their direct path avoids
+proxy head-of-line blocking for job setup and pinned tool downloads. The checked-in `restricted-node-6dc3f140f9.env` contains only
+non-secret routing. Install it as every runner directory's `.env`, owned by
 `github-runner`. Install `podman-proxy.conf` as the user-systemd override for
 `podman.service`, reload the user manager, and restart both the Podman and runner
 services. Private and cluster CIDRs stay in `NO_PROXY`; do not add an ad-hoc
@@ -94,9 +110,11 @@ sudo -u github-runner env \
 
 The configuration script recreates the builder and therefore discards its
 local build cache. It must not run concurrently with Actions jobs. The checked-in
-`buildkitd.toml` sends Docker Hub source pulls through the internal Harbor proxy
-cache; all other public registry and Dockerfile build traffic uses the runner's
-Mihomos egress contract.
+`buildkitd.toml` sends Docker Hub source pulls, including pinned Alpine bases,
+through the internal Harbor proxy cache; all other public registry and Dockerfile
+build traffic uses the runner's Mihomos egress contract. Runtime Dockerfiles
+should copy pinned tools and CA bundles from digest-pinned stages instead of
+calling Alpine package repositories during every build.
 
 Install `containers.conf` under `/home/github-runner/.config/containers/`.
 Registry layers are fetched serially because several concurrent Docker Hub

@@ -1,9 +1,9 @@
 {
   "proxies": {
     "default": {
-      "httpProxy": "http://10.250.0.128:17891",
-      "httpsProxy": "http://10.250.0.128:17891",
-      "noProxy": "localhost,127.0.0.1,::1,.re8ch.com,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16"
+      "httpProxy": "http://192.0.2.205:17891",
+      "httpsProxy": "http://192.0.2.205:17891",
+      "noProxy": "localhost,127.0.0.1,::1,.re8ch.com,api.github.com,codeload.github.com,.githubusercontent.com,192.0.2.203/8,192.0.2.225/10,192.0.2.179/12,192.0.2.148/16"
     }
   }
 }

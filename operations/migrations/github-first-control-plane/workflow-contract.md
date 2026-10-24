@@ -5,7 +5,7 @@ Repository workflows are thin, SHA-pinned callers of workflows in
 artifact digest, attestation URL, change ID and deployment status.
 
 ```yaml
-name: validate
+name: control-plane-validate
 on:
   pull_request:
 permissions:
@@ -43,9 +43,11 @@ only to make the compatibility boundary explicit. The final reusable workflow
 exchanges OIDC for a narrowly scoped broker token and opens a GitOps PR; it does
 not call `kubectl apply`. Flux is the deployer.
 
-Required checks are `contract`, `schema`, `unit`, `render`, `secret-scan`,
-`dependency-review`, `supply-chain`, and `policy`. Tests upload immutable evidence
-and annotate the PR. Fork-origin workflows never receive secrets or OIDC deploy
-permissions. Self-hosted runners are split into untrusted-build and trusted-release
-groups; no runner has a standing cluster-admin credential.
+Required checks are `control-plane-validate`, `tenant-go-validate`, and GitHub's
+`GitHub dependency review`. The two repository-owned checks aggregate the jobs
+selected by changed paths, so skipped unrelated domain jobs do not weaken the
+gate and do not occupy a runner. Tests upload immutable evidence and annotate the
+PR. Fork-origin workflows never receive secrets or OIDC deploy permissions.
+Self-hosted runners are split into untrusted-build and trusted-release groups; no
+runner has a standing cluster-admin credential.
 

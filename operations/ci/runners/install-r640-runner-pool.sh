@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Expand the existing repository runner into independent service instances.
-# Run as root on restricted-node-6dc3f140f9 and pass a short-lived repository registration token:
+# Run as root on R640 and pass a short-lived repository registration token:
 #   RUNNER_REGISTRATION_TOKEN=... ./install-r640-runner-pool.sh
 
 : "${RUNNER_REGISTRATION_TOKEN:?set a short-lived GitHub runner registration token}"
@@ -35,6 +35,12 @@ done
 
 install -d -o "${runner_user}" -g "${runner_user}" -m 0700 \
   "/home/${runner_user}/.docker"
+install -d -o "${runner_user}" -g "${runner_user}" -m 0755 \
+  "/home/${runner_user}/actions-toolcache"
+if [[ -d "${base_dir}/_work/_tool" ]]; then
+  runuser -u "${runner_user}" -- rsync -a --ignore-existing \
+    "${base_dir}/_work/_tool/" "/home/${runner_user}/actions-toolcache/"
+fi
 install -o "${runner_user}" -g "${runner_user}" -m 0600 \
   "${script_dir}/docker-config.json" \
   "/home/${runner_user}/.docker/config.json"
@@ -47,6 +53,8 @@ configure_python_environment() {
     printf '%s\n' "PIP_USER=1" >>"${runner_dir}/.env"
   grep -qxF "BUILDX_BUILDER=r640-mihomos" "${runner_dir}/.env" || \
     printf '%s\n' "BUILDX_BUILDER=r640-mihomos" >>"${runner_dir}/.env"
+  grep -qxF "AGENT_TOOLSDIRECTORY=/home/${runner_user}/actions-toolcache" "${runner_dir}/.env" || \
+    printf '%s\n' "AGENT_TOOLSDIRECTORY=/home/${runner_user}/actions-toolcache" >>"${runner_dir}/.env"
   if ! grep -qF "/home/${runner_user}/.local/bin" "${runner_dir}/.path"; then
     sed -i "1s|^|/home/${runner_user}/.local/bin:|" "${runner_dir}/.path"
   fi
@@ -86,7 +94,7 @@ for ((slot = 2; slot <= pool_size; slot++)); do
           --url "${RUNNER_REPOSITORY_URL}" \
           --token "${RUNNER_REGISTRATION_TOKEN}" \
           --name "${RUNNER_TARGET_NAME}" \
-          --labels restricted-node-6dc3f140f9,untrusted-build \
+          --labels r640,untrusted-build \
           --work _work \
           --replace \
           --disableupdate
