@@ -2,6 +2,7 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata: {name: toolhive-operator, namespace: flux-system}
 spec:
+  suspend: true
   interval: 1m
   provider: generic
   url: oci://ghcr.io/stacklok/toolhive/toolhive-operator
@@ -44,7 +45,7 @@ spec:
       toolhiveRunnerImage: ghcr.io/stacklok/toolhive/proxyrunner@sha256:1ee5a4d66763180fdfdb95c4da9afb7112946e90531516fb9a1fd279f2c9cd29
       vmcpImage: ghcr.io/stacklok/toolhive/vmcp@sha256:22b6bb5c642c45e913afef0ea0ca696b1f12cd7dd26d74a8e8cb0b794cd2774c
       env:
-        - {name: KUBERNETES_SERVICE_HOST, value: 192.0.2.205}
+        - {name: KUBERNETES_SERVICE_HOST, value: 10.250.0.128}
         - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
         - {name: TOOLHIVE_SKIP_UPDATE_CHECK, value: "true"}
       resources:
@@ -52,7 +53,7 @@ spec:
         limits: {cpu: 500m, memory: 256Mi}
       rbac: {scope: namespace, allowedNamespaces: [toolhive-system]}
       serviceAccount: {create: true, name: toolhive-operator}
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
