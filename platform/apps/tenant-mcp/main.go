@@ -175,7 +175,8 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	if json.Unmarshal(body, &request) != nil {
 		return nil
 	}
-	if !rewriteReviewDemoToolNames(request) {
+	uses := []toolAliasUse{}
+	if !rewriteToolNames(request, &uses) {
 		return nil
 	}
 	normalized, err := json.Marshal(request)
@@ -184,15 +185,21 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	}
 	r.Body = io.NopCloser(bytes.NewReader(normalized))
 	r.ContentLength = int64(len(normalized))
+	rctx := withToolAliasUses(r.Context(), uses)
+	*r = *r.WithContext(rctx)
 	return nil
 }
 
 func rewriteReviewDemoToolNames(value any) bool {
+	return rewriteToolNames(value, nil)
+}
+
+func rewriteToolNames(value any, uses *[]toolAliasUse) bool {
 	switch request := value.(type) {
 	case []any:
 		changed := false
 		for _, item := range request {
-			changed = rewriteReviewDemoToolNames(item) || changed
+			changed = rewriteToolNames(item, uses) || changed
 		}
 		return changed
 	case map[string]any:
@@ -207,11 +214,13 @@ func rewriteReviewDemoToolNames(value any) bool {
 		if !ok {
 			return false
 		}
-		for _, prefix := range legacyToolPrefixes {
-			if strings.HasPrefix(name, prefix) {
-				params["name"] = strings.TrimPrefix(name, prefix)
-				return true
+		canonical, changed := normalizeToolName(name)
+		if changed {
+			params["name"] = canonical
+			if uses != nil {
+				*uses = append(*uses, toolAliasUse{Alias: toolAliasMetricName(name), Canonical: canonical})
 			}
+			return true
 		}
 		return false
 	default:
@@ -314,6 +323,7 @@ func (s *server) handler() http.Handler {
 		id, err := s.authenticate(r.Context(), strings.TrimPrefix(header, "Bearer "), r.Header.Get("X-RE8CH-Tenant"))
 		if err != nil {
 			if errors.Is(err, errTenantUnassigned) {
+				recordToolAliasUses(r.Context())
 				mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 				return
 			}
@@ -332,6 +342,7 @@ func (s *server) handler() http.Handler {
 			writeJSON(w, http.StatusForbidden, map[string]string{"error": "forbidden"})
 			return
 		}
+		recordToolAliasUses(r.Context())
 		mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	})
 	return mux

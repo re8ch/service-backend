@@ -58,6 +58,13 @@ overflow names are aggregated as `__unknown__`. The endpoint has no public
 Gateway route and is reachable by the declared observability scraper through
 the namespace NetworkPolicy.
 
+Compatibility names are rewritten before MCP dispatch and are not included in
+`tools/list`. Authenticated use of a compatibility name increments
+`re8ch_mcp_tool_alias_calls_total` with only its bounded alias family and
+canonical tool name. This permits a measured deprecation window: publish the
+smaller canonical surface, retain old calls temporarily, and remove an alias
+only after its usage reaches zero.
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret
