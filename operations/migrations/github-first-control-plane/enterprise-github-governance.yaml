@@ -30,7 +30,7 @@ spec:
       - organization: re8ch-ai
         repositories: [agent-gitops]
       - organization: re8ch
-        repositories: [identity-gitops]
+        repositories: [identity-gitops, service-backend]
       - organization: siren-observer
         repositories: [observability-gitops]
       - organization: pillars-infra
