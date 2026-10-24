@@ -100,6 +100,8 @@ jobs:
         with: {version: v1.33.1}
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with: {version: v4.2.3}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: {node-version: '24'}
       - name: Initialize selected product gitlinks
         env: {SUBMODULES: "${{ needs.impact.outputs.submodules }}"}
         run: |
