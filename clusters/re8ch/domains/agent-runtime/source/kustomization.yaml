@@ -23,6 +23,7 @@ resources:
 - ../../../components/toolhive/retire-legacy-session-redis.yaml
 - ../../../components/toolhive/registry.yaml
 - ../../../components/toolhive/operator-release.yaml
+- ../../../components/ops/github-actions-agent-runtime-executor-rbac.yaml
 - ../../../components/plugin-runtime/runtime.yaml
 - ../../../components/plugin-runtime/rbac.yaml
 - ../../../../../operations/api-conformance
