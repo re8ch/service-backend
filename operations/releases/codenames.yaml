@@ -1210,6 +1210,8 @@ modules:
       digest: sha256:233a759891a6367984d09ff514c64bf0ea923bc4a2e6c196b2cb37d2d61d6ec9
     - codename: springtide-amethyst
       digest: sha256:e4b54954185dd75e9404e09e0c52fae9fd2e9e89d7cf2289f69d12c880d3a0ae
+    - codename: tideway-amethyst
+      digest: sha256:9c54c80cdef500f408219a46f6ca3f372f6b21b6e60435460b6cf584831123f7
   platform/hyperswitch:
     releases:
     - codename: anchor
