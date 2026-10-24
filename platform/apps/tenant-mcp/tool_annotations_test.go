@@ -6,7 +6,7 @@ import (
 )
 
 func TestToolAnnotationSafetyBoundaries(t *testing.T) {
-	for _, name := range []string{"platform_tool_call", "platform_user", "platform_organization", "tenant_kubernetes_apply", "artc_kubernetes_admin", "grafana_render", "grafana_exploration_save"} {
+	for _, name := range []string{"platform_tool_call", "platform_user", "platform_organization", "tenant_kubernetes_apply", "artc_kubernetes_admin", "grafana_render", "grafana_exploration_save", "tenant_secret_upsert"} {
 		a := toolAnnotations(name)
 		if a.ReadOnlyHint || a.DestructiveHint == nil || !*a.DestructiveHint {
 			t.Errorf("%s must advertise its mutating/destructive supported behavior", name)
@@ -25,7 +25,7 @@ func TestToolAnnotationSafetyBoundaries(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"platform_tool_call", "harbor_build_start", "tenant_kubernetes_apply", "dynamic_skill_submit"} {
+	for _, name := range []string{"platform_tool_call", "harbor_build_start", "tenant_kubernetes_apply", "dynamic_skill_submit", "tenant_exposure_create"} {
 		if !*toolAnnotations(name).OpenWorldHint {
 			t.Errorf("%s can interact with external entities", name)
 		}
