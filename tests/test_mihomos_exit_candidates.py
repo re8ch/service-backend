@@ -15,6 +15,7 @@ def test_mihomos_consumers_discover_ready_exit_services() -> None:
     assert "cnCandidates" not in values["exits"]
     assert "mihomos-global-exit.{{ .Release.Namespace }}.svc.cluster.local" in template
     assert "mihomos-cn-exit.{{ .Release.Namespace }}.svc.cluster.local" in template
+    assert "publishNotReadyAddresses" not in template
     assert "192.0.2.110" not in template
 
 
