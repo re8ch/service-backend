@@ -42,6 +42,22 @@ ClusterIP Service. Hostnames are allocated below `apps.re8ch.com`; the shared
 Gateway, listener, DNS and TLS policy remain platform-owned. Raw Secret and
 Gateway access are not published.
 
+## Tool-call telemetry
+
+The native tenant MCP records completed authenticated `tools/call` requests at
+the SDK middleware boundary and exposes Prometheus metrics on `/metrics`:
+
+- `re8ch_mcp_tool_calls_total` records the canonical `tool_name`, `outcome`, and
+  a bounded `error_category` (`none`, `tool`, `protocol`, `timeout`, or
+  `canceled`);
+- `re8ch_mcp_tool_call_duration_seconds` records latency with the same labels.
+
+The metrics never contain tenant, user, session, arguments, results, bearer
+tokens, or free-form error text. Tool-name cardinality is capped; invalid or
+overflow names are aggregated as `__unknown__`. The endpoint has no public
+Gateway route and is reachable by the declared observability scraper through
+the namespace NetworkPolicy.
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret
