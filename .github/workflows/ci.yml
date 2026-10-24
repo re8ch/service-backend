@@ -13,7 +13,7 @@ env:
 
 jobs:
   impact:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     outputs:
       domains: ${{ steps.plan.outputs.domains }}
       tests: ${{ steps.plan.outputs.tests }}
@@ -45,7 +45,7 @@ jobs:
 
   contract:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: 0}
@@ -60,7 +60,7 @@ jobs:
   # Production health is reported by k6-contracts.yml. A production outage
   # must not prevent merging the change that repairs it.
   k6-contracts:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -80,7 +80,7 @@ jobs:
 
   schema:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
@@ -93,7 +93,7 @@ jobs:
 
   unit:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -118,7 +118,7 @@ jobs:
 
   render:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -139,14 +139,14 @@ jobs:
           done < "$RUNNER_TEMP/roots"
 
   secret-scan:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python tests/check_no_plaintext_secrets.py
 
   dependency-review:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Scan dependencies for shared CI changes
@@ -160,7 +160,7 @@ jobs:
 
   supply-chain:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
@@ -171,7 +171,7 @@ jobs:
 
   policy:
     needs: impact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2'
@@ -181,7 +181,7 @@ jobs:
           git diff --exit-code -- indexes catalogs/platform/modules/service-backend/MEMORY.md
 
   tenant-select:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     outputs: {matrix: "${{ steps.select.outputs.matrix }}"}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -198,7 +198,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.tenant-select.outputs.matrix) }}
     name: tenant / ${{ matrix.module }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
@@ -207,7 +207,7 @@ jobs:
   validate:
     if: always()
     needs: [impact, contract, k6-contracts, schema, unit, render, secret-scan, dependency-review, supply-chain, policy, tenant-select, tenant-contract]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - env: {RESULTS: "${{ toJSON(needs) }}"}
         run: |

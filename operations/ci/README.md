@@ -28,8 +28,10 @@ run full regression; incremental PR checks do not replace these safety nets.
 
 The eight legacy required check names remain present during migration. `validate`
 rejects failures and cancellations, including failure of the impact planner.
-GitHub-hosted execution remains active until a controlled Linux runner has been
-registered and verified; existing Macmini audit is unchanged.
+Portable Linux execution uses the repository-scoped restricted-node-6dc3f140f9 runner class
+`[self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]`. Existing Macmini host-bound
+audits remain unchanged. The restricted-node-6dc3f140f9 runner has no standing cluster credentials;
+see `operations/ci/runners/README.md` for its trust and egress boundary.
 
 ## OCI cutover boundary
 

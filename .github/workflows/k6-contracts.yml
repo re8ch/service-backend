@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   contracts:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 10
     env:
       PROBE_CADENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.cadence || (github.event.schedule == '2/5 * * * *' && 'fast' || 'standard') }}
