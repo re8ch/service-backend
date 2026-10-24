@@ -24,7 +24,7 @@ jobs:
       plan: ${{ steps.plan.outputs.plan }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with: {fetch-depth: 0}
+        with: {fetch-depth: "${{ github.event_name == 'pull_request' && 2 || 0 }}"}
       - run: python -m pip install 'PyYAML>=6.0.2'
       - id: plan
         env:
@@ -45,10 +45,11 @@ jobs:
 
   contract:
     needs: impact
+    if: needs.impact.outputs.run == 'true'
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with: {fetch-depth: 0}
+        with: {fetch-depth: "${{ github.event_name == 'pull_request' && 2 || 0 }}"}
       - run: python -m pip install 'PyYAML>=6.0.2'
       - run: |
           python operations/workspace-controller/workspace.py doctor
@@ -60,6 +61,8 @@ jobs:
   # Production health is reported by k6-contracts.yml. A production outage
   # must not prevent merging the change that repairs it.
   k6-contracts:
+    needs: impact
+    if: needs.impact.outputs.full == 'true' || contains(needs.impact.outputs.domains, 'observability')
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
     steps:
@@ -80,19 +83,20 @@ jobs:
 
   schema:
     needs: impact
+    if: needs.impact.outputs.run == 'true'
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
       - run: python operations/network/fabric/fabric_model.py check
       - run: python operations/infrastructure-contract/compiler.py verify-encrypted
-      - if: needs.impact.outputs.run == 'true'
-        run: |
+      - run: |
           python tests/validate_schemas.py
           python operations/scripts/validate-r640-public-authority.py
 
   unit:
     needs: impact
+    if: needs.impact.outputs.run == 'true'
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -124,6 +128,7 @@ jobs:
 
   render:
     needs: impact
+    if: needs.impact.outputs.run == 'true'
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -152,29 +157,28 @@ jobs:
 
   dependency-review:
     needs: impact
+    if: needs.impact.outputs.full == 'true'
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Scan dependencies for shared CI changes
-        if: needs.impact.outputs.full == 'true'
         run: |
           install -d "$HOME/.cache/trivy"
           docker run --rm --volume "$PWD:/work:ro" --volume "$RUNNER_TEMP:/out" --volume "$HOME/.cache/trivy:/root/.cache/trivy" --workdir /work ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 fs --timeout 20m --scanners vuln --format json --output /out/trivy-dependencies.json .
           python operations/ci/check_dependency_vulnerabilities.py --report "$RUNNER_TEMP/trivy-dependencies.json" --baseline operations/ci/dependency-vulnerability-baseline.json
-      - if: always() && needs.impact.outputs.full == 'true'
+      - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with: {name: dependency-vulnerability-report, path: "${{ runner.temp }}/trivy-dependencies.json", if-no-files-found: error, retention-days: 14}
 
   supply-chain:
     needs: impact
+    if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
-        run: git submodule update --init catalogs/platform/modules/connectool/source
+      - run: git submodule update --init catalogs/platform/modules/connectool/source
       - run: python -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
-      - if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
-        run: pytest -q tests/test_connectool_delivery.py tests/test_tenant_release_signing.py
+      - run: pytest -q tests/test_connectool_delivery.py tests/test_tenant_release_signing.py
 
   policy:
     needs: impact
@@ -190,18 +194,20 @@ jobs:
           git diff --exit-code -- indexes catalogs/platform/modules/service-backend/MEMORY.md
 
   tenant-select:
+    needs: impact
+    if: needs.impact.outputs.full == 'true' || contains(needs.impact.outputs.domains, 'tenant-runtime')
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     outputs: {matrix: "${{ steps.select.outputs.matrix }}"}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with: {fetch-depth: 0}
+        with: {fetch-depth: "${{ github.event_name == 'pull_request' && 2 || 0 }}"}
       - id: select
         env: {BASE: "${{ github.event.pull_request.base.sha || format('origin/{0}', github.event.repository.default_branch) }}"}
         run: python operations/tenant-conformance/select.py --base "$BASE" --head "${{ github.sha }}"
 
   tenant-contract:
-    needs: tenant-select
-    if: needs.tenant-select.outputs.matrix != '[]'
+    needs: [impact, tenant-select]
+    if: needs.tenant-select.result == 'success' && needs.tenant-select.outputs.matrix != '[]'
     strategy:
       fail-fast: false
       matrix:
@@ -215,7 +221,8 @@ jobs:
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
       - run: pytest -q ${{ matrix.tests }}
 
-  validate:
+  control-plane-validate:
+    name: control-plane-validate
     if: always()
     needs: [impact, contract, k6-contracts, schema, unit, render, secret-scan, dependency-review, supply-chain, policy, tenant-select, tenant-contract]
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Add a generic enterprise-scoped restricted-node-6dc3f140f9 pool without removing the existing
+# Add a generic enterprise-scoped R640 pool without removing the existing
 # repository-scoped service-backend pool. Run as root with a short-lived token:
 #   RUNNER_REGISTRATION_TOKEN=... ./install-r640-enterprise-runner-pool.sh
 
@@ -33,6 +33,13 @@ for required in rsync runuser systemctl; do
     exit 1
   }
 done
+
+install -d -o "${runner_user}" -g "${runner_user}" -m 0755 \
+  "/home/${runner_user}/actions-toolcache"
+if [[ -d "${source_dir}/_work/_tool" ]]; then
+  runuser -u "${runner_user}" -- rsync -a --ignore-existing \
+    "${source_dir}/_work/_tool/" "/home/${runner_user}/actions-toolcache/"
+fi
 
 for ((slot = 1; slot <= pool_size; slot++)); do
   printf -v suffix "%02d" "${slot}"
@@ -66,7 +73,7 @@ for ((slot = 1; slot <= pool_size; slot++)); do
           --url "${RUNNER_ENTERPRISE_URL}" \
           --token "${RUNNER_REGISTRATION_TOKEN}" \
           --name "${RUNNER_TARGET_NAME}" \
-          --labels restricted-node-6dc3f140f9,untrusted-build \
+          --labels r640,untrusted-build \
           --work _work \
           --replace \
           --disableupdate
@@ -79,6 +86,8 @@ for ((slot = 1; slot <= pool_size; slot++)); do
     printf '%s\n' "PIP_USER=1" >>"${runner_dir}/.env"
   grep -qxF "BUILDX_BUILDER=r640-mihomos" "${runner_dir}/.env" || \
     printf '%s\n' "BUILDX_BUILDER=r640-mihomos" >>"${runner_dir}/.env"
+  grep -qxF "AGENT_TOOLSDIRECTORY=/home/${runner_user}/actions-toolcache" "${runner_dir}/.env" || \
+    printf '%s\n' "AGENT_TOOLSDIRECTORY=/home/${runner_user}/actions-toolcache" >>"${runner_dir}/.env"
   if ! grep -qF "/home/${runner_user}/.local/bin" "${runner_dir}/.path"; then
     sed -i "1s|^|/home/${runner_user}/.local/bin:|" "${runner_dir}/.path"
   fi
