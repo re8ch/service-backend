@@ -33,7 +33,7 @@ jwt:
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - {expression: "claims.repository_visibility == 'private'", message: repository must remain private}
-      - {expression: "claims.runner_environment == 'github-hosted'", message: self-hosted runners are not trusted for this identity}
+      - {expression: "claims.runner_environment == 'self-hosted'", message: release and observer identities require the enterprise self-hosted runner plane}
       - expression: >-
           (claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
