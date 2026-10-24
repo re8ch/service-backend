@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-toolhive-operator
+  namespace: toolhive-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-toolhive-operator
+  namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+rules:
+- apiGroups: [apps]
+  resources: [deployments]
+  resourceNames: [toolhive-operator]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [serviceaccounts]
+  resourceNames: [toolhive-operator]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [configmaps]
+  resourceNames: [ssa-state-agent-runtime-toolhive-operator]
+  verbs: [get, patch, update, delete]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [roles]
+  resourceNames: [toolhive-operator-leader-election-role]
+  verbs: [get, patch, update, delete]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [rolebindings]
+  resourceNames:
+  - toolhive-operator-leader-election-rolebinding
+  - toolhive-operator-manager-rolebinding
+  verbs: [get, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-toolhive-operator
+  namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-toolhive-operator
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-runtime-toolhive-operator
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+rules:
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [clusterroles]
+  resourceNames: [toolhive-operator-manager-role]
+  verbs: [get, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-runtime-toolhive-operator
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-runtime-toolhive-operator
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
