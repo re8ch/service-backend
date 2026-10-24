@@ -11,6 +11,16 @@ pool_size="${R640_RUNNER_POOL_SIZE:-8}"
 runner_user="github-runner"
 base_dir="/home/${runner_user}/actions-runner-service-backend"
 repository_url="https://github.com/re8ch/service-backend"
+helm_version="v4.2.3"
+helm_sha256="e9b88b4ee95b18c706839c28d3a0220e5bc470e9cd9262410c90793c45ff8b7c"
+tool_tmp=""
+
+cleanup() {
+  if [[ -n "${tool_tmp}" && -d "${tool_tmp}" ]]; then
+    rm -rf -- "${tool_tmp}"
+  fi
+}
+trap cleanup EXIT
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "run this installer as root" >&2
@@ -25,12 +35,32 @@ if [[ ! -f "${base_dir}/.runner" || ! -x "${base_dir}/config.sh" ]]; then
   exit 1
 fi
 
-for required in jq rsync runuser systemctl; do
+for required in curl install jq mktemp rsync runuser sha256sum systemctl tar; do
   command -v "${required}" >/dev/null || {
     echo "missing required command: ${required}" >&2
     exit 1
   }
 done
+
+install_helm() {
+  if command -v helm >/dev/null && \
+    [[ "$(helm version --short)" == "${helm_version}+"* ]]; then
+    return
+  fi
+
+  tool_tmp="$(mktemp -d)"
+  curl --fail --silent --show-error --location \
+    --proxy http://127.0.0.1:17891 \
+    --output "${tool_tmp}/helm.tgz" \
+    "https://get.helm.sh/helm-${helm_version}-linux-amd64.tar.gz"
+  printf '%s  %s\n' "${helm_sha256}" "${tool_tmp}/helm.tgz" | sha256sum --check
+  tar -xzf "${tool_tmp}/helm.tgz" -C "${tool_tmp}"
+  install -o root -g root -m 0755 "${tool_tmp}/linux-amd64/helm" /usr/local/bin/helm
+  rm -rf -- "${tool_tmp}"
+  tool_tmp=""
+}
+
+install_helm
 
 configure_python_environment() {
   local runner_dir="$1"
