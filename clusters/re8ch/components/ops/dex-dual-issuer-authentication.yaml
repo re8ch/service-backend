@@ -58,11 +58,6 @@ jwt:
              claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
              claims.environment == 'release-executor-commerce-billing' &&
              claims.event_name == 'workflow_dispatch') ||
-            (claims.aud == 'https://kube-api.re8ch.com/release-executor-delivery-products' &&
-             claims.ref == 'refs/heads/main' &&
-             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
-             claims.environment == 'release-executor-delivery-products' &&
-             claims.event_name == 'workflow_dispatch') ||
             (claims.aud == 'https://kube-api.re8ch.com/release-executor-operations-ui' &&
              claims.ref == 'refs/heads/main' &&
              claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
@@ -90,6 +85,14 @@ jwt:
                're8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'] &&
              claims.environment == 'release-ceph-compiler' &&
              claims.event_name == 'workflow_dispatch'))) ||
+          (claims.repository_id == '1431915128' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/delivery-products-gitops' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-delivery-products' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/delivery-products-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-delivery-products' &&
+           claims.event_name == 'workflow_dispatch') ||
           (claims.repository_id == '1423311998' &&
            claims.repository_owner_id == '334604670' &&
            claims.repository == 're8ch-ai/agent-gitops' &&

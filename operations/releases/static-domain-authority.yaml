@@ -127,18 +127,18 @@ spec:
     delivery-products:
       risk: medium
       stabilityHours: 24
-      state: inventory
+      state: shadow
       source:
-        organization: null
-        repository: null
+        organization: re8ch
+        repository: re8ch/delivery-products-gitops
         ref: refs/heads/main
-        mappingState: pending-enterprise-inventory
+        mappingState: verified
       bootstrap:
         repository: re8ch/service-backend
         workflow: .github/workflows/main-domain-release.yml
       execution:
-        repository: re8ch/service-backend
-        workflow: .github/workflows/main-domain-release.yml
+        repository: re8ch/delivery-products-gitops
+        workflow: .github/workflows/static-release.yml
         protectedEnvironment: release-executor-delivery-products
         audience: https://kube-api.re8ch.com/release-executor-delivery-products
         kubernetesGroup: re8ch:release-executor:delivery-products

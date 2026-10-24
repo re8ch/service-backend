@@ -202,6 +202,8 @@ dispatches:
   authorityRef: operations/releases/static-domain-authority.yaml#delivery-products
   controllerNamespace: flux-system
   protectedEnvironment: release-executor-delivery-products
+  authorityRepository: re8ch/delivery-products-gitops
+  authorityState: shadow
   risk: medium
   staticCohort:
     releases: 4
@@ -210,6 +212,9 @@ dispatches:
   recommendedCanary: main-delivery-products-aesthete
   dependencies: []
   notes:
+  - Independent repository PR 1 merged at 69783864163fbc22e08409877450eed999134d50.
+  - Shadow run 40073134400 verified the aesthete OCI digest sha256:f7bffb0b1c56c0875b3ffd8dd80f6ff0dccfc6faa912dbe973d3c878b8463cad with execute=false.
+  - The service-backend executor route is removed before the independent repository is allowed to request Kubernetes OIDC.
   - Keep product-owned fast release paths separate from shared platform guardrails.
   - Deferred ontology workloads need explicit evidence before SSA ownership transfer.
   gates: *sharedGates
