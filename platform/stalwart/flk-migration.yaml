@@ -1,4 +1,4 @@
-# One-shot cold copy from the retained restricted-node-6dc3f140f9 claims to smaller claims selected
+# One-shot cold copy from the retained R640 claims to smaller claims selected
 # for overseas-flk. The old StatefulSets are pruned in this reconciliation
 # because their replacements have new names. RWO attachment keeps these Jobs
 # Pending until the old pods have fully released their claims. Replacement
@@ -17,6 +17,22 @@ metadata: {name: stalwart-idp-flk-data, namespace: mail-system}
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: rbd-r640
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: stalwart-flk-local-data, namespace: mail-system}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources: {requests: {storage: 2Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: stalwart-idp-flk-local-data, namespace: mail-system}
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
   resources: {requests: {storage: 1Gi}}
 ---
 apiVersion: batch/v1

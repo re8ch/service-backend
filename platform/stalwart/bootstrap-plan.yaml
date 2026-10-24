@@ -6,13 +6,14 @@ metadata:
 data:
   plan.ndjson: |
     {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}},"re8ch-domain":{"name":"re8ch.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}
+    {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"mail.re8ch.com","mailExchangers":{"0":{"hostname":"mail.re8ch.com","priority":10}},"services":{"caldav":{"hostname":"mail.re8ch.com","cleartext":false},"carddav":{"hostname":"mail.re8ch.com","cleartext":false},"imap":{"hostname":"mail.re8ch.com","cleartext":false},"jmap":{"hostname":"mail.re8ch.com","cleartext":false},"managesieve":{"hostname":"mail.re8ch.com","cleartext":false},"pop3":{"hostname":"mail.re8ch.com","cleartext":false},"smtp":{"hostname":"mail.re8ch.com","cleartext":false},"webdav":{"hostname":"mail.re8ch.com","cleartext":false}}}}
     {"@type":"upsert","object":"NetworkListener","matchOn":["name"],"value":{"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"tlsImplicit":false},"imap":{"name":"imap","protocol":"imap","bind":{"[::]:143":true},"tlsImplicit":false}}}
     {"@type":"update","object":"Sharing","value":{"allowDirectoryQueries":false,"maxShares":25}}
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-bootstrap-reconciler-v7
+  name: stalwart-bootstrap-reconciler-v8
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
