@@ -175,6 +175,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2'
+      - name: Reject GitHub-hosted runner declarations
+        run: python tests/check_no_github_hosted_runners.py
       - if: contains(needs.impact.outputs.domains, 'control-plane') || needs.impact.outputs.full == 'true'
         run: |
           python operations/workspace-controller/workspace.py index --write

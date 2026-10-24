@@ -9,6 +9,8 @@ Image publishers that use `docker/setup-buildx-action` remain on the self-hosted
 Macmini. Buildx's `docker-container` driver is not compatible with the restricted-node-6dc3f140f9
 rootless Podman API, while ordinary `docker run`, validation, chart publishing,
 and the Mihomos release jobs run on restricted-node-6dc3f140f9. No workflow uses a GitHub-hosted runner.
+The control-plane CI policy runs `tests/check_no_github_hosted_runners.py` and
+rejects any workflow job that does not explicitly select `self-hosted`.
 
 ## restricted-node-6dc3f140f9 trust boundary
 
