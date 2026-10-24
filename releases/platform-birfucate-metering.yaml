@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: cascade-aquamarine
+codename: confluence-aquamarine
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:9fb10415017ec7d8503fcd797ef48afc8e5a6ca1c1c5847f9b21827fb2c4fae1
+  digest: sha256:4e9eef05e13408b9469cdeef8d39daab56803e7326aa7692aedd2ad82552f0da
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
