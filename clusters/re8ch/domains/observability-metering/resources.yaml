@@ -103,6 +103,49 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+  namespace: observability-system
+rules:
+- apiGroups:
+  - apps
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - services
+  - serviceaccounts
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-kube-state-metrics
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: retire-legacy-qianwen-grafana
   namespace: qianwen-ops
 rules:
@@ -165,6 +208,38 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - clusterrolebindings
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: re8ch-event-collector
 rules:
 - apiGroups:
@@ -193,6 +268,22 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-kube-state-metrics
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: retire-legacy-qianwen-grafana
   namespace: qianwen-ops
 roleRef:
@@ -203,6 +294,21 @@ subjects:
 - kind: ServiceAccount
   name: retire-legacy-qianwen-grafana
   namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: observability-kube-state-metrics
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -991,6 +1097,17 @@ metadata:
     app.kubernetes.io/part-of: re8ch-observability
     grafana_alert: "1"
   name: re8ch-observability-grafana-alerts
+  namespace: observability-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/authority-domain: observability-metering
+    delivery.re8ch.com/state: accepted
+  name: ssa-state-observability-kube-state-metrics
   namespace: observability-system
 ---
 apiVersion: v1

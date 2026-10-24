@@ -302,7 +302,7 @@ releases:
   declarationSha256: sha256:b6fdcad3349090149b919c583d7e7c1ca6cbd0211cb8126997f000cf2da35e41
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 72
+    document: 77
   - file: platform/birfucate-metering/release.yaml
     document: 1
   classification:
@@ -549,7 +549,7 @@ releases:
   declarationSha256: sha256:0af325dc8b7281fea58e7d890cbbfba980ee9e8f96f97b5d03ee582e7fa2b769
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 73
+    document: 78
   - file: platform/incidentrelay/release.yaml
     document: 2
   classification:
@@ -995,7 +995,7 @@ releases:
   declarationSha256: sha256:ea56d8de495e125898ea354654f0c4c52fc56ae851de47d30d977294b64fe4e6
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 74
+    document: 79
   - file: platform/observability/bootstrap/kube-state-metrics.yaml
     document: 2
   classification:
@@ -1044,7 +1044,7 @@ releases:
   declarationSha256: sha256:931a1a35ba69f4f38df730bc522e882c8e1ca5749f84b8ffb4d8f9369b6515b6
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 75
+    document: 80
   - file: platform/observability/bootstrap/opentelemetry-operator.yaml
     document: 2
   classification:
@@ -1093,7 +1093,7 @@ releases:
   declarationSha256: sha256:98f21c5ab3c45598e956a5d31c1004be30f597ec6315096b23f50a685eaaa4e3
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 76
+    document: 81
   - file: platform/observability/bootstrap/victoria-metrics-operator.yaml
     document: 2
   classification:
