@@ -8,11 +8,28 @@ concurrency:
   group: main-domain-release-${{ inputs.contract }}
   cancel-in-progress: false
 jobs:
-  compile-sign:
+  validate:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {contents: read}
+    outputs:
+      domain: ${{ steps.profile.outputs.domain }}
+      environment: ${{ steps.profile.outputs.environment }}
+      audience: ${{ steps.profile.outputs.audience }}
+      signer: ${{ steps.profile.outputs.signer }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
+      - id: profile
+        env: {CONTRACT: '${{ inputs.contract }}'}
+        run: python operations/releases/main_domain_profile.py --contract "$CONTRACT" --github-output "$GITHUB_OUTPUT"
+  compile-sign:
+    if: github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment: release-main-domain
+    environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: write}
     outputs:
       digest: ${{ steps.publish.outputs.digest }}
@@ -41,12 +58,15 @@ jobs:
           readarray -t fields < <(python - "$CONTRACT" <<'PY'
           import sys,yaml
           c=yaml.safe_load(open(sys.argv[1])); s=c["spec"]
-          for value in (s["source"]["renderer"],s["source"]["path"],c["metadata"]["name"],s["target"]["namespace"],s["provenance"]["audience"],s["provenance"]["environment"],s["provenance"]["workflow"]): print(value)
+          for value in (s["source"]["renderer"],s["source"]["path"],c["metadata"]["name"],s["target"]["namespace"],s["provenance"]["audience"],s["provenance"]["environment"],s["provenance"]["workflow"],s["authorityDomain"],s["provenance"]["signer"]): print(value)
           PY
           )
           [[ "${fields[0]}" == kustomize && "${fields[1]}" != /* && "${fields[1]}" != *..* ]]
-          [[ "${fields[4]}" == https://kube-api.re8ch.com/release-executor-main-domain ]]
-          [[ "${fields[5]}" == release-main-domain && "${fields[6]}" == .github/workflows/main-domain-release.yml ]]
+          [[ "${fields[4]}" == '${{ needs.validate.outputs.audience }}' ]]
+          [[ "${fields[5]}" == '${{ needs.validate.outputs.environment }}' ]]
+          [[ "${fields[6]}" == .github/workflows/main-domain-release.yml ]]
+          [[ "${fields[7]}" == '${{ needs.validate.outputs.domain }}' ]]
+          [[ "${fields[8]}" == '${{ needs.validate.outputs.signer }}' ]]
           kubectl kustomize "${fields[1]}" > "$RUNNER_TEMP/rendered.yaml"
           python operations/releases/unified_bundle.py --contract "$CONTRACT" --rendered "$RUNNER_TEMP/rendered.yaml" \
             --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
@@ -57,7 +77,7 @@ jobs:
             --annotations "delivery.re8ch.com/release-id=${fields[2]}" --output json > "$RUNNER_TEMP/oci-result.json"
           oci_digest="$(jq -r .digest "$RUNNER_TEMP/oci-result.json")"; immutable="${reference#oci://}@${oci_digest}"
           cosign sign --yes "$immutable"
-          cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' \
+          cosign verify --certificate-identity '${{ needs.validate.outputs.signer }}' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
           {
             echo "digest=$oci_digest"
@@ -71,10 +91,10 @@ jobs:
         with: {name: 'main-domain-release-${{ github.run_id }}', path: main-domain-release-evidence.json, retention-days: 30, if-no-files-found: error}
   execute:
     if: inputs.execute && github.ref == 'refs/heads/main'
-    needs: compile-sign
+    needs: [validate, compile-sign]
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: release-main-domain
+    environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: read}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -92,7 +112,7 @@ jobs:
       - name: Acquire exact OIDC identity and prove denials
         env:
           KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
-          EXECUTOR_AUDIENCE: 'https://kube-api.re8ch.com/release-executor-main-domain'
+          EXECUTOR_AUDIENCE: '${{ needs.validate.outputs.audience }}'
           RELEASE_ID: '${{ needs.compile-sign.outputs.release-id }}'
           TARGET_NAMESPACE: '${{ needs.compile-sign.outputs.namespace }}'
         run: |
@@ -127,7 +147,7 @@ jobs:
           set -euo pipefail
           root="$RUNNER_TEMP/executor-state"; install -d "$RUNNER_TEMP/pulled" "$root/state" "$root/results/$RELEASE_ID"
           immutable="${OCI_REFERENCE#oci://}@${OCI_DIGEST}"
-          cosign verify --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' \
+          cosign verify --certificate-identity '${{ needs.validate.outputs.signer }}' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
           flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --output "$RUNNER_TEMP/pulled"
           state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"

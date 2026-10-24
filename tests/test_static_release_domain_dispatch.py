@@ -29,8 +29,8 @@ def test_dispatch_matrix_covers_four_autonomous_domains_and_five_main_splits():
         "operations-ui",
         "tenant-runtime",
     }
-    assert sum(item["staticCohort"]["releases"] for item in main) == 19
-    assert sum(item["staticCohort"]["objects"] for item in main) == 142
+    assert sum(item["staticCohort"]["releases"] for item in main) == 17
+    assert sum(item["staticCohort"]["objects"] for item in main) == 124
 
 
 def test_every_domain_dispatch_inherits_the_cutover_safety_gates():

@@ -3,6 +3,7 @@ kind: ReleaseContract
 metadata:
   name: main-tenant-runtime-ai-operations
 spec:
+  authorityDomain: tenant-runtime
   target:
     cluster: re8ch
     namespace: ai-operations
@@ -15,8 +16,8 @@ spec:
     repository: re8ch/service-backend
     workflow: .github/workflows/main-domain-release.yml
     ref: refs/heads/main
-    environment: release-main-domain
-    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    environment: release-executor-tenant-runtime
+    audience: https://kube-api.re8ch.com/release-executor-tenant-runtime
     signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
     issuer: https://token.actions.githubusercontent.com
   authorization:

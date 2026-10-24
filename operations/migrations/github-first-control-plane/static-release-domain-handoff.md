@@ -392,8 +392,12 @@ kubectl get deploy -A -l app.kubernetes.io/part-of=flux
 
 The main-domain static cohort is already described in
 [`operations/releases/main-domain-ssa/cohort.yaml`](../../releases/main-domain-ssa/cohort.yaml):
-19 releases, 142 objects and five source domains. Split those domains by
-authority and rollback boundary; do not create one new main-domain super-owner.
+17 releases, 124 objects and five source domains. Each source domain has its
+own protected environment, OIDC audience and Kubernetes group in
+[`operations/releases/static-domain-authority.yaml`](../../releases/static-domain-authority.yaml).
+Split those domains by authority and rollback boundary; do not create one new
+main-domain super-owner. The shared `release-main-domain` environment and
+`release-executor-main-domain` identity are retirement inputs, not the target.
 
 ## Required completion report from every delegated task
 

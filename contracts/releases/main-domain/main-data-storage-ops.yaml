@@ -3,6 +3,7 @@ kind: ReleaseContract
 metadata:
   name: main-data-storage-ops
 spec:
+  authorityDomain: data-storage
   target:
     cluster: re8ch
     namespace: ops
@@ -15,8 +16,8 @@ spec:
     repository: re8ch/service-backend
     workflow: .github/workflows/main-domain-release.yml
     ref: refs/heads/main
-    environment: release-main-domain
-    audience: https://kube-api.re8ch.com/release-executor-main-domain
+    environment: release-executor-data-storage
+    audience: https://kube-api.re8ch.com/release-executor-data-storage
     signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
     issuer: https://token.actions.githubusercontent.com
   authorization:
