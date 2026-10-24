@@ -38,6 +38,8 @@ configure_python_environment() {
     printf '%s\n' "PIP_BREAK_SYSTEM_PACKAGES=1" >>"${runner_dir}/.env"
   grep -qxF "PIP_USER=1" "${runner_dir}/.env" || \
     printf '%s\n' "PIP_USER=1" >>"${runner_dir}/.env"
+  grep -qxF "BUILDX_BUILDER=r640-mihomos" "${runner_dir}/.env" || \
+    printf '%s\n' "BUILDX_BUILDER=r640-mihomos" >>"${runner_dir}/.env"
   if ! grep -qF "/home/${runner_user}/.local/bin" "${runner_dir}/.path"; then
     sed -i "1s|^|/home/${runner_user}/.local/bin:|" "${runner_dir}/.path"
   fi

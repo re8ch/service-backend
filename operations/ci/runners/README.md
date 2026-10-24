@@ -48,12 +48,29 @@ broker; they are never installed on the host.
 
 restricted-node-6dc3f140f9 reaches GitHub and public registries through the host-network endpoint of
 `mihomos-cluster` at `127.0.0.1:17891`. The checked-in `restricted-node-6dc3f140f9.env` contains only
-non-secret proxy routing. Install it as the runner directory's `.env`, owned by
+non-secret proxy routing. Install it as every runner directory's `.env`, owned by
 `github-runner`. Install `podman-proxy.conf` as the user-systemd override for
 `podman.service`, reload the user manager, and restart both the Podman and runner
-services. This lets API-driven Buildx pulls use the same egress path. Private and
-cluster CIDRs stay in `NO_PROXY`; do not add an ad-hoc route or replace the
-declared restricted-node-6dc3f140f9 public authority.
+services. Private and cluster CIDRs stay in `NO_PROXY`; do not add an ad-hoc
+route or replace the declared restricted-node-6dc3f140f9 public authority.
+
+Image validation on restricted-node-6dc3f140f9 uses the shared named BuildKit builder
+`r640-mihomos`. Its daemon runs with host networking and explicit HTTP(S) proxy
+environment so `127.0.0.1:17891` resolves to the host's Mihomos listener. Every
+runner `.env` sets `BUILDX_BUILDER=r640-mihomos`; without that setting, a plain
+`docker build` can silently create an unproxied `default` bridge builder. Create
+or repair the named builder while all restricted-node-6dc3f140f9 runner slots are idle:
+
+```sh
+sudo -u github-runner env \
+  XDG_RUNTIME_DIR=/run/user/1002 \
+  DOCKER_HOST=unix:///run/user/1002/podman/podman.sock \
+  BUILDX_BUILDER=r640-mihomos \
+  operations/ci/runners/configure-r640-buildkit.sh
+```
+
+The configuration script recreates the builder and therefore discards its
+local build cache. It must not run concurrently with Actions jobs.
 
 Install `containers.conf` under `/home/github-runner/.config/containers/`.
 Registry layers are fetched serially because several concurrent Docker Hub
@@ -64,6 +81,11 @@ Verification from restricted-node-6dc3f140f9:
 ```sh
 curl --fail --proxy http://127.0.0.1:17891 https://api.github.com/rate_limit
 sudo -u github-runner docker run --rm docker.io/library/alpine:3.22 /bin/true
+sudo -u github-runner env \
+  XDG_RUNTIME_DIR=/run/user/1002 \
+  DOCKER_HOST=unix:///run/user/1002/podman/podman.sock \
+  BUILDX_BUILDER=r640-mihomos \
+  docker buildx inspect r640-mihomos
 sudo systemctl status actions.runner.re8ch-service-backend.r640-service-backend.service
 ```
 
