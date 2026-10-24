@@ -62,6 +62,7 @@ def test_all_control_planes_share_supabase_authentication():
     assert "github-actions:release-executor-api-conformance:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
     external = {
+        'delivery-products': ('re8ch/delivery-products-gitops', '1431915128', '283958313'),
         'agent-runtime': ('re8ch-ai/agent-gitops', '1423311998', '334604670'),
         'identity-access': ('re8ch/identity-gitops', '1423312101', '283958313'),
         'observability-metering': ('siren-observer/observability-gitops', '1423312205', '334604879'),
@@ -76,7 +77,7 @@ def test_all_control_planes_share_supabase_authentication():
         assert f"claims.environment == 'release-executor-{domain}'" in route
         assert f"github-actions:release-executor-{domain}:" in github['claimMappings']['username']['expression']
         assert f"re8ch:release-executor:{domain}" in github['claimMappings']['groups']['expression']
-    for domain in ('data-storage', 'commerce-billing', 'delivery-products', 'operations-ui', 'tenant-runtime'):
+    for domain in ('data-storage', 'commerce-billing', 'operations-ui', 'tenant-runtime'):
         assert f"claims.aud == 'https://kube-api.re8ch.com/release-executor-{domain}'" in route
         assert f"claims.environment == 'release-executor-{domain}'" in route
         assert f"github-actions:release-executor-{domain}:" in github['claimMappings']['username']['expression']
