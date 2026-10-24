@@ -5,6 +5,20 @@ Portable Linux CI runs on the repository-scoped restricted-node-6dc3f140f9 runne
 audits remain on the Macmini runner with labels `macmini-a1` and
 `trusted-audit`.
 
+restricted-node-6dc3f140f9 runs an eight-instance repository runner pool. Every instance has its own
+registration, credentials, installation directory, `_work`, and temporary
+state; only the locked `github-runner` Unix account and its rootless Podman
+service are shared. With 80 logical CPUs and 247 GiB RAM, eight is the reviewed
+default concurrency. Do not raise `R640_RUNNER_POOL_SIZE` above 16 without a
+resource and registry-egress review.
+
+`install-r640-runner-pool.sh` idempotently expands an already configured base
+runner. Generate a short-lived repository registration token outside Git, pass
+it through `RUNNER_REGISTRATION_TOKEN`, and run the script as root on restricted-node-6dc3f140f9. The
+token is used only by `config.sh` and is never written to repository files.
+restricted-node-6dc3f140f9 must provide `python-is-python3` and `python3-pip` because repository
+workflows intentionally use the portable `python -m pip` interface.
+
 Image publishers that use `docker/setup-buildx-action` remain on the self-hosted
 Macmini. Buildx's `docker-container` driver is not compatible with the restricted-node-6dc3f140f9
 rootless Podman API, while ordinary `docker run`, validation, chart publishing,
