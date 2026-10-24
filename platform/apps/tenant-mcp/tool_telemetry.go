@@ -33,6 +33,11 @@ type toolMetricValue struct {
 	Buckets [14]uint64
 }
 
+type toolAliasMetricKey struct {
+	Alias         string
+	CanonicalName string
+}
+
 // toolTelemetry deliberately records no tenant, subject, session, arguments,
 // result content, or free-form error text. Tool names are bounded to prevent an
 // unauthenticated or buggy client from creating unbounded metric cardinality.
@@ -40,13 +45,14 @@ type toolTelemetry struct {
 	mu        sync.Mutex
 	toolNames map[string]struct{}
 	values    map[toolMetricKey]*toolMetricValue
+	aliases   map[toolAliasMetricKey]uint64
 }
 
 func newToolTelemetry() *toolTelemetry {
-	return &toolTelemetry{toolNames: make(map[string]struct{}), values: make(map[toolMetricKey]*toolMetricValue)}
+	return &toolTelemetry{toolNames: make(map[string]struct{}), values: make(map[toolMetricKey]*toolMetricValue), aliases: make(map[toolAliasMetricKey]uint64)}
 }
 
-func (t *toolTelemetry) canonicalToolName(name string) string {
+func (t *toolTelemetry) boundedToolName(name string) string {
 	if name == "" || len(name) > 128 {
 		return unknownToolName
 	}
@@ -68,7 +74,7 @@ func (t *toolTelemetry) canonicalToolName(name string) string {
 func (t *toolTelemetry) observe(name, outcome, category string, elapsed time.Duration) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	name = t.canonicalToolName(name)
+	name = t.boundedToolName(name)
 	key := toolMetricKey{ToolName: name, Outcome: outcome, ErrorCategory: category}
 	value := t.values[key]
 	if value == nil {
@@ -85,6 +91,13 @@ func (t *toolTelemetry) observe(name, outcome, category string, elapsed time.Dur
 		}
 	}
 	value.Buckets[len(toolLatencyBuckets)]++
+}
+
+func (t *toolTelemetry) observeAlias(alias, canonical string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	canonical = t.boundedToolName(canonical)
+	t.aliases[toolAliasMetricKey{Alias: alias, CanonicalName: canonical}]++
 }
 
 func toolCallOutcome(result mcp.Result, err error) (string, string) {
@@ -130,9 +143,20 @@ func (t *toolTelemetry) writePrometheus(writer io.Writer) {
 		keys = append(keys, key)
 		values[key] = *value
 	}
+	aliasKeys := make([]toolAliasMetricKey, 0, len(t.aliases))
+	aliases := make(map[toolAliasMetricKey]uint64, len(t.aliases))
+	for key, value := range t.aliases {
+		aliasKeys = append(aliasKeys, key)
+		aliases[key] = value
+	}
 	t.mu.Unlock()
 	sort.Slice(keys, func(i, j int) bool {
 		return strings.Compare(metricLabels(keys[i]), metricLabels(keys[j])) < 0
+	})
+	sort.Slice(aliasKeys, func(i, j int) bool {
+		left := aliasKeys[i].Alias + "\x00" + aliasKeys[i].CanonicalName
+		right := aliasKeys[j].Alias + "\x00" + aliasKeys[j].CanonicalName
+		return left < right
 	})
 
 	_, _ = io.WriteString(writer, "# HELP re8ch_mcp_tool_calls_total Completed authenticated MCP tool calls.\n")
@@ -140,6 +164,11 @@ func (t *toolTelemetry) writePrometheus(writer io.Writer) {
 	for _, key := range keys {
 		value := values[key]
 		_, _ = fmt.Fprintf(writer, "re8ch_mcp_tool_calls_total{%s} %d\n", metricLabels(key), value.Count)
+	}
+	_, _ = io.WriteString(writer, "# HELP re8ch_mcp_tool_alias_calls_total Authenticated MCP calls made through a compatibility alias.\n")
+	_, _ = io.WriteString(writer, "# TYPE re8ch_mcp_tool_alias_calls_total counter\n")
+	for _, key := range aliasKeys {
+		_, _ = fmt.Fprintf(writer, "re8ch_mcp_tool_alias_calls_total{alias=%s,canonical_tool_name=%s} %d\n", strconv.Quote(key.Alias), strconv.Quote(key.CanonicalName), aliases[key])
 	}
 	_, _ = io.WriteString(writer, "# HELP re8ch_mcp_tool_call_duration_seconds Authenticated MCP tool call duration.\n")
 	_, _ = io.WriteString(writer, "# TYPE re8ch_mcp_tool_call_duration_seconds histogram\n")
