@@ -6,10 +6,6 @@ import (
 )
 
 func TestNormalizeToolNameSupportsPrefixesAndHiddenAliases(t *testing.T) {
-	previous := toolAliases
-	toolAliases = map[string]string{"grafana_query": "monitoring_query"}
-	t.Cleanup(func() { toolAliases = previous })
-
 	tests := []struct {
 		input, canonical string
 		changed          bool
@@ -30,6 +26,32 @@ func TestNormalizeToolNameSupportsPrefixesAndHiddenAliases(t *testing.T) {
 	}
 	if got := toolAliasMetricName("grafana_query"); got != "grafana_query" {
 		t.Fatalf("explicit alias metric label = %q", got)
+	}
+}
+
+func TestMonitoringAliasArgumentsCannotOverrideAction(t *testing.T) {
+	arguments := map[string]any{"action": "delete", "capability_id": "query"}
+	applyToolAliasArguments("grafana_capability_get", arguments)
+	if arguments["action"] != "get_capability" {
+		t.Fatalf("compatibility arguments selected %q", arguments["action"])
+	}
+}
+
+func TestMonitoringAliasRewriteInjectsCanonicalAction(t *testing.T) {
+	request := map[string]any{"method": "tools/call", "params": map[string]any{
+		"name":      "re8ch_review_demo.grafana_indicators",
+		"arguments": map[string]any{"indicators": []any{map[string]any{"type": "slope"}}},
+	}}
+	uses := []toolAliasUse{}
+	if !rewriteToolNames(request, &uses) {
+		t.Fatal("legacy monitoring call was not rewritten")
+	}
+	params := object(request["params"])
+	if params["name"] != "monitoring_analyze" || object(params["arguments"])["action"] != "indicators" {
+		t.Fatalf("unexpected rewritten call: %#v", request)
+	}
+	if len(uses) != 1 || uses[0].Alias != "re8ch_review_demo.*" || uses[0].Canonical != "monitoring_analyze" {
+		t.Fatalf("unexpected alias observation: %#v", uses)
 	}
 }
 

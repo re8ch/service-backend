@@ -65,6 +65,12 @@ canonical tool name. This permits a measured deprecation window: publish the
 smaller canonical surface, retain old calls temporarily, and remove an alias
 only after its usage reaches zero.
 
+The monitoring product surface is provider-neutral and intentionally compact:
+`monitoring_catalog`, `monitoring_query`, `monitoring_analyze`, and
+`monitoring_dashboard`. Historical `grafana_*` calls remain hidden aliases for
+the measured migration window; Grafana remains an implementation detail and
+provider-specific resource URI until a separate resource migration is reviewed.
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret

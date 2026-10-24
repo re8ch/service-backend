@@ -214,9 +214,22 @@ func rewriteToolNames(value any, uses *[]toolAliasUse) bool {
 		if !ok {
 			return false
 		}
+		unprefixed := name
+		for _, prefix := range legacyToolPrefixes {
+			if strings.HasPrefix(unprefixed, prefix) {
+				unprefixed = strings.TrimPrefix(unprefixed, prefix)
+				break
+			}
+		}
 		canonical, changed := normalizeToolName(name)
 		if changed {
 			params["name"] = canonical
+			arguments, _ := params["arguments"].(map[string]any)
+			if arguments == nil {
+				arguments = map[string]any{}
+				params["arguments"] = arguments
+			}
+			applyToolAliasArguments(unprefixed, arguments)
 			if uses != nil {
 				*uses = append(*uses, toolAliasUse{Alias: toolAliasMetricName(name), Canonical: canonical})
 			}
