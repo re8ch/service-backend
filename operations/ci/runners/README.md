@@ -12,6 +12,20 @@ service are shared. With 80 logical CPUs and 247 GiB RAM, eight is the reviewed
 default concurrency. Do not raise `R640_RUNNER_POOL_SIZE` above 16 without a
 resource and registry-egress review.
 
+GitOps repositories in other enterprise organizations use an additional
+enterprise-scoped pool installed by
+`install-r640-enterprise-runner-pool.sh`. It reuses the same generic host,
+proxy, rootless container, and workflow-installed tool contract; it does not
+add repository-specific tools. Keep the repository pool until the enterprise
+pool is online and cross-organization workflow acceptance succeeds.
+
+The enterprise runner group is named `GitOps restricted-node-6dc3f140f9`. Repository access is
+explicit rather than enterprise-wide: each authorized organization must also
+select the GitOps repositories allowed to use the inherited group. The
+machine-readable scope and the boundary between enterprise and repository
+controls live in
+`operations/migrations/github-first-control-plane/enterprise-github-governance.yaml`.
+
 `install-r640-runner-pool.sh` idempotently expands an already configured base
 runner. Generate a short-lived repository registration token outside Git, pass
 it through `RUNNER_REGISTRATION_TOKEN`, and run the script as root on restricted-node-6dc3f140f9. The
