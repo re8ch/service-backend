@@ -56,6 +56,13 @@ non-secret proxy routing. Install it as every runner directory's `.env`, owned b
 services. Private and cluster CIDRs stay in `NO_PROXY`; do not add an ad-hoc
 route or replace the declared restricted-node-6dc3f140f9 public authority.
 
+Install `docker-config.json` as `/home/github-runner/.docker/config.json`. Its
+standard Docker `proxies.default` block passes the same Mihomos route into
+Dockerfile `RUN` sandboxes as proxy build arguments. Sandboxes use the declared
+restricted-node-6dc3f140f9 node service identity `192.0.2.179:17891`, because their loopback is not
+the host loopback. This is a generic egress contract for arbitrary builds;
+workflows remain responsible for declaring all project tools and dependencies.
+
 Image validation on restricted-node-6dc3f140f9 uses the shared named BuildKit builder
 `r640-mihomos`. Its daemon runs with host networking and explicit HTTP(S) proxy
 environment so `127.0.0.1:17891` resolves to the host's Mihomos listener. Every
@@ -72,7 +79,10 @@ sudo -u github-runner env \
 ```
 
 The configuration script recreates the builder and therefore discards its
-local build cache. It must not run concurrently with Actions jobs.
+local build cache. It must not run concurrently with Actions jobs. The checked-in
+`buildkitd.toml` sends Docker Hub source pulls through the internal Harbor proxy
+cache; all other public registry and Dockerfile build traffic uses the runner's
+Mihomos egress contract.
 
 Install `containers.conf` under `/home/github-runner/.config/containers/`.
 Registry layers are fetched serially because several concurrent Docker Hub

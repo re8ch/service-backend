@@ -11,6 +11,7 @@ pool_size="${R640_RUNNER_POOL_SIZE:-8}"
 runner_user="github-runner"
 base_dir="/home/${runner_user}/actions-runner-service-backend"
 repository_url="https://github.com/re8ch/service-backend"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "run this installer as root" >&2
@@ -31,6 +32,12 @@ for required in jq rsync runuser systemctl; do
     exit 1
   }
 done
+
+install -d -o "${runner_user}" -g "${runner_user}" -m 0700 \
+  "/home/${runner_user}/.docker"
+install -o "${runner_user}" -g "${runner_user}" -m 0600 \
+  "${script_dir}/docker-config.json" \
+  "/home/${runner_user}/.docker/config.json"
 
 configure_python_environment() {
   local runner_dir="$1"
