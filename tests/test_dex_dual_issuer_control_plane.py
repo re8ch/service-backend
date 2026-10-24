@@ -43,7 +43,7 @@ def test_all_control_planes_share_supabase_authentication():
     expressions = {item['expression'] for item in github['claimValidationRules']}
     assert {
         "claims.repository_visibility == 'private'",
-        "claims.runner_environment == 'github-hosted'",
+        "claims.runner_environment == 'self-hosted'",
     } <= expressions
     route = github['claimValidationRules'][-1]['expression']
     for required in (
