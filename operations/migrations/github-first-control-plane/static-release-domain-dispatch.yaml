@@ -57,6 +57,10 @@ dispatches:
     helmReleaseNames: [toolhive-operator]
   recommendedCanary: toolhive-operator
   dependencies: []
+  notes:
+  - Static shadow workflow merged in re8ch-ai/agent-gitops PR 16; Flux CLI annotation correction merged in PR 17.
+  - Run 40115419539 compiled, published, signed and verified bundle sha256:bc8e35a4c7f16c526fc0a65b87e5b2c6ad3e76b647bb68d885ce398815cc0e90 on the enterprise restricted-node-6dc3f140f9 pool.
+  - Shadow mode performs no cluster apply and does not transfer ownership from the live HelmRelease.
   gates: *sharedGates
   completion:
     removeControllers: [helm-controller, kustomize-controller]
