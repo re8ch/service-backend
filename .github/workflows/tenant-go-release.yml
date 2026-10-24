@@ -28,6 +28,8 @@ jobs:
         with:
           go-version-file: platform/apps/tenant-mcp/go.mod
           cache-dependency-path: platform/apps/tenant-mcp/go.sum
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with: {version: v4.2.3}
       - run: go test -race ./... && go vet ./...
         working-directory: platform/apps/tenant-mcp
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'

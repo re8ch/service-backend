@@ -17,10 +17,9 @@ runner. Generate a short-lived repository registration token outside Git, pass
 it through `RUNNER_REGISTRATION_TOKEN`, and run the script as root on restricted-node-6dc3f140f9. The
 token is used only by `config.sh` and is never written to repository files.
 restricted-node-6dc3f140f9 must provide `python-is-python3` and `python3-pip` because repository
-workflows intentionally use the portable `python -m pip` interface. The pool
-installer also installs the checksum-pinned Helm CLI through Mihomos; tenant
-rendering tests call `helm template` directly rather than installing it in every
-job.
+workflows intentionally use the portable `python -m pip` interface. Project
+tools and Python packages are declared and installed by each workflow; they are
+not part of the runner host image.
 
 Image publishers that use `docker/setup-buildx-action` remain on the self-hosted
 Macmini. Buildx's `docker-container` driver is not compatible with the restricted-node-6dc3f140f9
