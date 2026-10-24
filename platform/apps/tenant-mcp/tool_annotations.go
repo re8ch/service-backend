@@ -19,8 +19,14 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
-	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create", "tenant_secret_upsert", "tenant_exposure_create":
+	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
 		// Additive operations against the configured tenant platform.
+	case "tenant_secret_upsert":
+		// Replaces existing write-only Secret data and cannot restore prior values.
+		destructive = true
+	case "tenant_exposure_create":
+		// Reconciles an externally reachable endpoint through the platform PublicEdge.
+		openWorld = true
 	case "dynamic_skill_submit":
 		// Stores caller-supplied workflow text for an independently reviewed platform process.
 		openWorld = true
