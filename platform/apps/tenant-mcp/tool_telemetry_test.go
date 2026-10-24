@@ -14,12 +14,14 @@ import (
 func TestToolTelemetryPrometheusIsDeidentified(t *testing.T) {
 	telemetry := newToolTelemetry()
 	telemetry.observe("monitoring_query", "success", "none", 125*time.Millisecond)
+	telemetry.observeAlias("grafana_query", "monitoring_query")
 	var output strings.Builder
 	telemetry.writePrometheus(&output)
 	text := output.String()
 	for _, expected := range []string{
 		`re8ch_mcp_tool_calls_total{tool_name="monitoring_query",outcome="success",error_category="none"} 1`,
 		`re8ch_mcp_tool_call_duration_seconds_count{tool_name="monitoring_query",outcome="success",error_category="none"} 1`,
+		`re8ch_mcp_tool_alias_calls_total{alias="grafana_query",canonical_tool_name="monitoring_query"} 1`,
 	} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("metrics missing %q:\n%s", expected, text)
