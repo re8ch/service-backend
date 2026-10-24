@@ -12,7 +12,7 @@ concurrency:
 jobs:
   observe:
     name: NodeContract live parity
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
     environment: cluster-observation
     permissions:
@@ -142,7 +142,7 @@ jobs:
     name: NodeContract governance
     if: always() && needs.observe.result != 'cancelled'
     needs: observe
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
     permissions:
       contents: read

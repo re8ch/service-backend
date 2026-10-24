@@ -13,7 +13,7 @@ concurrency: {group: domain-oci-production, cancel-in-progress: false}
 jobs:
   publish:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     environment: production
     timeout-minutes: 60
     steps:

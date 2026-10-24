@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   sign:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     timeout-minutes: 15
     steps:

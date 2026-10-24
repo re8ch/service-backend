@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   publish-chart:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
@@ -25,7 +25,7 @@ jobs:
         run: helm push dist/mihomos-cluster-*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts
 
   publish-headlamp-plugin:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     defaults:
       run:
         working-directory: plugins/headlamp-mihomos-cluster

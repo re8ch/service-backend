@@ -45,12 +45,11 @@ def test_render_is_quiet_and_contains_signal_counts():
     assert "without assignees, mentions, or\nreview requests" in body
 
 
-def test_workflow_uses_maintenance_app_and_github_hosted_runner():
+def test_workflow_uses_maintenance_app_and_r640_runner():
     workflow = (ROOT / ".github/workflows/gitops-maintenance-summary.yml").read_text()
     assert "GITOPS_MAINTENANCE_APP_ID" in workflow
     assert "GITOPS_MAINTENANCE_PRIVATE_KEY" in workflow
-    assert "runs-on: ubuntu-latest" in workflow
-    assert "self-hosted" not in workflow
+    assert "runs-on: [self-hosted, Linux, X64, r640, untrusted-build]" in workflow
     assert 'cron: "0 1 * * 1"' in workflow
 
 
