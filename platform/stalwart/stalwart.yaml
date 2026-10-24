@@ -37,6 +37,26 @@ spec:
     - {name: https, port: 443, targetPort: https}
     - {name: management, port: 8080, targetPort: management}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stalwart-direct-mail
+  namespace: mail-system
+  annotations:
+    governance.re8ch.com/exposure: overseas-flk-public-mail-only
+spec:
+  type: ClusterIP
+  # overseas-flk owns this provider address. Keep the management and web
+  # ports on the separate cluster-internal Service above.
+  externalIPs: [192.0.2.101]
+  selector: {app.kubernetes.io/name: stalwart}
+  ports:
+    - {name: smtp, port: 25, targetPort: smtp}
+    - {name: smtps, port: 465, targetPort: smtps}
+    - {name: submission, port: 587, targetPort: submission}
+    - {name: imaps, port: 993, targetPort: imaps}
+    - {name: sieve, port: 4190, targetPort: sieve}
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata: {name: stalwart-flk, namespace: mail-system}
@@ -108,10 +128,18 @@ spec:
             httpGet: {path: /healthz/live, port: management}
             initialDelaySeconds: 20
             periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 6
           readinessProbe:
             httpGet: {path: /healthz/ready, port: management}
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 10
+          startupProbe:
+            httpGet: {path: /healthz/live, port: management}
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 60
           resources:
             requests: {cpu: 100m, memory: 256Mi}
             limits: {cpu: "2", memory: 2Gi}
@@ -130,7 +158,7 @@ spec:
         - {name: config, configMap: {name: stalwart-config}}
         - {name: tmp, emptyDir: {}}
         - name: data
-          persistentVolumeClaim: {claimName: stalwart-flk-data}
+          persistentVolumeClaim: {claimName: stalwart-flk-local-data}
         - name: cloudflare-token
           secret:
             # Dedicated least-privilege token for the phonaid.com zone.
