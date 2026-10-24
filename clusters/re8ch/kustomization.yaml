@@ -276,6 +276,7 @@ patches:
       path: /spec/template/spec/tolerations
       value:
       - {key: storage.re8ch.com/coordinator, operator: Equal, value: "true", effect: NoSchedule}
+      - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     - op: add
       path: /spec/template/spec/containers/0/args/-
       # Bound cross-region Kubernetes API pressure so reconciliation does not
