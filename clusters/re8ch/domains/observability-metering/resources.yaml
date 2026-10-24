@@ -3363,7 +3363,7 @@ spec:
         required: false
       tenantAPI:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:3fda180b706ceacddc8d4ecf64315f78838ba3f36036be0e28c701c17b206a10
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:dbd60536580fdbed4915871aee6ee81806c18f9bce1aa8f80d8e7479d85dff60
         openAIAppsChallengeToken: 6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
