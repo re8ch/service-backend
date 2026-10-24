@@ -608,11 +608,13 @@ reconciliation incident.
 | Attestations/provenance | bind artifact to workflow/repository/commit | guarantee runtime health |
 | Rulesets | protected state transitions | continuous runtime convergence |
 
-Code Quality and CodeQL should use GitHub-hosted runners unless a compiled
-language genuinely requires private build dependencies unavailable through
-approved caching. Generated bundles and vendored output should be excluded from
-quality scoring where supported, while still receiving manifest/security policy
-checks.
+CodeQL uses repository-owned advanced setup on the restricted-node-6dc3f140f9 self-hosted runner. Its
+language allowlist is `actions` and `python`, and its path allowlist is limited
+to GitHub workflows plus `operations` and `tests`. Default setup and language
+auto-detection are disabled so application clients, compiled code, generated
+bundles, vendored output, and Swift cannot silently expand the scan or select a
+GitHub-hosted macOS runner. Manifest and runtime security remain separate policy
+and observation concerns.
 
 ## 7. Static compilation, dynamic observation, AI and executor boundary
 
@@ -890,7 +892,7 @@ maintenance loop for `re8ch/service-backend`.
 | Dependabot alerts | API returned active alerts, including High and Medium Vite findings | dependency graph/advisory detection exists |
 | Dependabot version config | declared for Actions, Python, npm and Go ecosystems | update cadence and bounded per-directory concurrency are reviewable |
 | Dependabot security updates | enabled | security alerts can become update PRs |
-| Code Security / code scanning | enabled with GitHub-hosted default CodeQL | SARIF findings are durable maintenance signals; the initial baseline must be triaged before enabling a zero-alert merge gate |
+| Code Security / code scanning | default setup removed; bounded advanced workflow staged behind a disabled activation interlock because Code Security is not currently purchased | no runner is dispatched; purchase Code Security, attach the enforced configuration with default setup disabled, then enable the interlock before collecting the first Actions/Python baseline |
 | Secret scanning / push protection | enabled | GitHub rejects supported secrets before they enter normal history |
 | Existing Checks | recent control-plane CI and policy-review workflows succeeded | Checks are a viable admission/output channel |
 | Existing dependency gate | custom Trivy filesystem scan and reviewed baseline | must be compared with, not blindly duplicated by, Dependency Review |
@@ -934,9 +936,10 @@ by `CODEOWNERS`.
    risk/owner mapping, dedupe key and automation identity.
 3. Add repository-owned Dependabot configuration for supported ecosystems;
    enable security updates only after PR concurrency/grouping is defined.
-4. Enable Code Security/default CodeQL and Code Quality deliberately, with a
-   GitHub-hosted runner and Actions/AI budget. Do not silently move scans to a
-   cluster runner.
+4. Enable Code Security advanced CodeQL deliberately from a reviewed workflow,
+   with default setup disabled, explicit language/path allowlists, self-hosted
+   runner labels, cadence, timeout, and a compute budget. Keep Code Quality and
+   its per-committer/AI budget independent from CodeQL Actions execution.
 5. Enable secret scanning and push protection before granting any automation
    Contents write access.
 6. Run the first Issue pilot from an actual finding. The App must upsert by a

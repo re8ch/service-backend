@@ -1,0 +1,13 @@
+name: Control-plane static analysis
+
+# This repository is a GitOps control plane, not an application monorepo.
+# Keep CodeQL limited to repository automation and control-plane Python.
+paths:
+  - .github/workflows
+  - operations
+  - tests
+
+paths-ignore:
+  - operations/**/fixtures
+  - tests/fixtures
+

@@ -1,0 +1,52 @@
+name: CodeQL control-plane static analysis
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/**
+      - .github/codeql/**
+      - operations/**/*.py
+      - tests/**/*.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/**
+      - .github/codeql/**
+      - operations/**/*.py
+      - tests/**/*.py
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-control-plane-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    # Private-repository CodeQL requires GitHub Code Security. Keep this false
+    # until the enforced organization configuration is attached successfully.
+    if: vars.CODEQL_CONTROL_PLANE_ENABLED == 'true'
+    name: Analyze control plane (${{ matrix.language }})
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, python]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Initialize the bounded CodeQL database
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          languages: ${{ matrix.language }}
+          config-file: ./.github/codeql/control-plane.yml
+      - name: Analyze and upload results
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          category: /language:${{ matrix.language }}/scope:control-plane
+

@@ -12,6 +12,27 @@ and the Mihomos release jobs run on restricted-node-6dc3f140f9. No workflow uses
 The control-plane CI policy runs `tests/check_no_github_hosted_runners.py` and
 rejects any workflow job that does not explicitly select `self-hosted`.
 
+## CodeQL boundary
+
+CodeQL uses advanced setup from the checked-in
+`.github/workflows/codeql-control-plane.yml` workflow. It analyzes only GitHub
+Actions and Python in `.github/workflows`, `operations`, and `tests`, on restricted-node-6dc3f140f9.
+Language auto-detection, default setup, application paths, compiled languages,
+Swift, and GitHub-hosted runners are outside this repository's CodeQL contract.
+The workflow runs only for matching changes, a single weekly schedule, or a
+manual dispatch, and each analysis has a 30-minute timeout. Default CodeQL
+queries are the compute budget; expanding languages, paths, queries, cadence,
+runner classes, or timeout requires a reviewed policy change.
+
+`tests/check_codeql_control_plane_scope.py` enforces that contract in the normal
+control-plane policy job. The organization Code Security configuration attached
+to this repository must keep default setup disabled and advanced setup allowed.
+The repository variable `CODEQL_CONTROL_PLANE_ENABLED` is an activation interlock:
+leave it `false` until GitHub Code Security is licensed and the enforced
+`service-backend static GitOps` configuration reports an attached state. Set it
+to `true` only after both conditions are verified. A skipped job does not acquire
+a runner.
+
 ## restricted-node-6dc3f140f9 trust boundary
 
 The runner service uses the dedicated, locked `github-runner` account. It has
