@@ -1212,6 +1212,8 @@ modules:
       digest: sha256:e4b54954185dd75e9404e09e0c52fae9fd2e9e89d7cf2289f69d12c880d3a0ae
     - codename: tideway-amethyst
       digest: sha256:9c54c80cdef500f408219a46f6ca3f372f6b21b6e60435460b6cf584831123f7
+    - codename: cascade-aquamarine
+      digest: sha256:9fb10415017ec7d8503fcd797ef48afc8e5a6ca1c1c5847f9b21827fb2c4fae1
   platform/hyperswitch:
     releases:
     - codename: anchor
