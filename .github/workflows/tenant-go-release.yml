@@ -138,9 +138,23 @@ jobs:
             --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main' \
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "$image" >/dev/null
+          echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Create scoped promotion token
+        id: promoter
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.DOMAIN_PROMOTER_APP_ID }}
+          private-key: ${{ secrets.DOMAIN_PROMOTER_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: service-backend
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Open GitHub-signed tenant MCP promotion PR
+        env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}'}
+        run: python operations/releases/promote_tenant_mcp.py --image "$TENANT_MCP_IMAGE"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-go-finalized-${{ github.sha }}
