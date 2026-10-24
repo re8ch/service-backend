@@ -30,6 +30,11 @@ def validate_contract(path: Path) -> dict[str, str]:
     if profile is None or "bootstrap" not in profile:
         raise ValueError(f"unknown or non-bootstrap main domain: {domain!r}")
     execution = profile["execution"]
+    if execution["repository"] != "re8ch/service-backend":
+        raise ValueError(
+            f"domain execution authority moved to {execution['repository']}; "
+            "dispatch its protected workflow instead"
+        )
     expected = {
         "repository": execution["repository"],
         "workflow": execution["workflow"],

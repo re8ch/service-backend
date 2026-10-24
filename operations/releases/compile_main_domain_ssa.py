@@ -42,9 +42,6 @@ PLURALS = {
     "HTTPRoute": "httproutes", "CiliumNetworkPolicy": "ciliumnetworkpolicies",
     "Role": "roles", "RoleBinding": "rolebindings", "MCPServer": "mcpservers",
 }
-WORKFLOW = ".github/workflows/main-domain-release.yml"
-
-
 def execution_profiles() -> dict[str, dict]:
     authority = yaml.safe_load(AUTHORITY.read_text())
     profiles = authority["spec"]["domains"]
@@ -158,10 +155,10 @@ def compile_outputs() -> dict[Path, str]:
                 "target": {"cluster": "re8ch", "namespace": namespace},
                 "source": {"renderer": "kustomize", "revision": revision, "repository": "re8ch/service-backend",
                            "path": str(package.relative_to(ROOT))},
-                "provenance": {"repository": "re8ch/service-backend", "workflow": WORKFLOW,
+                "provenance": {"repository": profile["repository"], "workflow": profile["workflow"],
                                "ref": "refs/heads/main", "environment": profile["protectedEnvironment"],
                                "audience": profile["audience"],
-                               "signer": f"https://github.com/re8ch/service-backend/{WORKFLOW}@refs/heads/main",
+                               "signer": f'https://github.com/{profile["repository"]}/{profile["workflow"]}@refs/heads/main',
                                "issuer": "https://token.actions.githubusercontent.com"},
                 "authorization": {"fieldManager": f"re8ch-release/{name}",
                                   "resources": sorted({f'{group(x["apiVersion"])}/{x["kind"]}' for x in items}),

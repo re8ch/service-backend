@@ -13,12 +13,12 @@ spec:
     repository: re8ch/service-backend
     path: operations/releases/main-domain-ssa/main-delivery-products-farseer
   provenance:
-    repository: re8ch/service-backend
-    workflow: .github/workflows/main-domain-release.yml
+    repository: re8ch/delivery-products-gitops
+    workflow: .github/workflows/static-release.yml
     ref: refs/heads/main
     environment: release-executor-delivery-products
     audience: https://kube-api.re8ch.com/release-executor-delivery-products
-    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    signer: https://github.com/re8ch/delivery-products-gitops/.github/workflows/static-release.yml@refs/heads/main
     issuer: https://token.actions.githubusercontent.com
   authorization:
     fieldManager: re8ch-release/main-delivery-products-farseer
