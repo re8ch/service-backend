@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'">
+<title>RE8CH · 云端发布</title><link rel="stylesheet" href="style.css">
+</head>
+<body><main>
+<header><span>RE8CH / DELIVERY</span><h1>云端发布</h1><p>从 GitHub 读取发布证据。此页面不连接 Kubernetes，也不持有凭据。</p></header>
+<div class="toolbar"><a href="https://github.com/re8ch/service-backend">re8ch/service-backend</a><button id="refresh">刷新 GitHub</button></div>
+<p id="message" role="status">正在读取 GitHub…</p>
+<p id="revision"></p>
+<section><h2>Flux 运行时证据</h2><p>仅展示 GitHub 上的 Flux Kustomization 状态。有效期 15 分钟；这不是整个集群的实时健康保证。没有新的回报就显示未知。</p><div id="runtime"></div></section>
+<section><h2>Checks</h2><p>构建与检查结果不等于部署健康。</p><div id="checks"></div></section>
+<section><h2>Deployments</h2><p>部署状态由 GitHub 记录；未附带有效运行时证据的 success 不代表当前健康。</p><div id="deployments"></div></section>
+<section><h2>其他提交状态</h2><div id="statuses"></div></section>
+<footer>静态页面 · GitHub API · 无认证代理 · 无集群查询<br>匿名 API 有速率限制；读取失败不会保留绿色健康结论。</footer>
+</main><script type="module" src="app.mjs"></script></body></html>

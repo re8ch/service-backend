@@ -1,0 +1,43 @@
+name: Cloud release view
+on:
+  pull_request:
+    paths: ['operations/releases/cloud-view/**', '.github/workflows/cloud-release-pages.yml']
+  push:
+    branches: [main]
+    paths: ['operations/releases/cloud-view/**', '.github/workflows/cloud-release-pages.yml']
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: cloud-release-pages-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - run: node --test operations/releases/cloud-view/model.test.mjs
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
+      - name: Select static files without rebuilding or publishing repository contents
+        run: |
+          mkdir _site
+          cp operations/releases/cloud-view/{index.html,style.css,app.mjs,model.mjs} _site/
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
+        with: {path: _site}
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
