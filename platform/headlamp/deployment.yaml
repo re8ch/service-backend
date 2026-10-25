@@ -51,7 +51,9 @@ spec:
         # tolerates admission; kubelet eviction policy remains authoritative.
         - {key: node.kubernetes.io/memory-pressure, operator: Exists, effect: NoSchedule}
       # Separate pod IPs let the replacement start while the active UI serves.
-      # In-cluster configuration uses Kubernetes' standard API Service.
+      # Explicit defaults retire fields still owned by the old SSA manager.
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
       initContainers:
         - name: install-runtime-anatomy-plugin
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
@@ -285,6 +287,10 @@ spec:
             - -oidc-use-access-token
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
+          env:
+            - {name: KUBERNETES_SERVICE_HOST, value: kubernetes.default.svc}
+            - {name: KUBERNETES_SERVICE_PORT, value: "443"}
+            - {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "443"}
           ports:
             - name: http
               containerPort: 4466
