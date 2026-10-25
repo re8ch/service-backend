@@ -22,6 +22,28 @@ func TestGrafanaLocalAnalysisWithoutTenantBinding(t *testing.T) {
 	}
 }
 
+func TestMonitoringOperationsCollapseProviderTools(t *testing.T) {
+	tests := []struct {
+		name, action, want string
+	}{
+		{"monitoring_catalog", "list_capabilities", "grafana_capability_list"},
+		{"monitoring_catalog", "get_datasource", "grafana_datasource_get"},
+		{"monitoring_query", "", "grafana_query"},
+		{"monitoring_analyze", "indicators", "grafana_indicators"},
+		{"monitoring_dashboard", "delete", "grafana_exploration_delete"},
+	}
+	for _, test := range tests {
+		args := map[string]any{"action": test.action, "datasource_uid": "metrics", "indicators": []any{map[string]any{"type": "slope"}}, "dashboard_uid": "dashboard"}
+		got, err := monitoringOperation(test.name, args)
+		if err != nil || got != test.want {
+			t.Errorf("%s/%s = %q, %v; want %q", test.name, test.action, got, err, test.want)
+		}
+	}
+	if _, err := monitoringOperation("monitoring_dashboard", map[string]any{"action": "delete"}); err == nil {
+		t.Fatal("dashboard delete accepted without dashboard_uid")
+	}
+}
+
 func TestPersonalGrafanaBindingRejectsOtherOwner(t *testing.T) {
 	owner := "personal-11111111-1111-4111-8111-111111111111"
 	other := "personal-22222222-2222-4222-8222-222222222222"

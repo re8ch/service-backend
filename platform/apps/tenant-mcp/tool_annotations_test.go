@@ -6,7 +6,7 @@ import (
 )
 
 func TestToolAnnotationSafetyBoundaries(t *testing.T) {
-	for _, name := range []string{"platform_tool_call", "platform_user", "platform_organization", "tenant_kubernetes_apply", "artc_kubernetes_admin", "grafana_render", "grafana_exploration_save", "tenant_secret_upsert"} {
+	for _, name := range []string{"platform_tool_call", "platform_user", "platform_organization", "tenant_kubernetes_apply", "artc_kubernetes_admin", "monitoring_dashboard", "tenant_secret_upsert"} {
 		a := toolAnnotations(name)
 		if a.ReadOnlyHint || a.DestructiveHint == nil || !*a.DestructiveHint {
 			t.Errorf("%s must advertise its mutating/destructive supported behavior", name)
