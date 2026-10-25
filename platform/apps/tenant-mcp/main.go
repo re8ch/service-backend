@@ -280,6 +280,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource", metadataHandler)
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource/", metadataHandler)
 	mux.HandleFunc("POST /oauth/token", s.exchangeToken)
+	mux.HandleFunc("POST /oauth/token/compat", oauthTokenCompat)
 	mux.HandleFunc("OPTIONS /billing/usage", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Origin") != "https://auth.re8ch.com" {
 			writeJSON(w, 403, map[string]string{"error": "forbidden"})
