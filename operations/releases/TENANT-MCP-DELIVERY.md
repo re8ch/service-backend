@@ -20,6 +20,9 @@ suspended. The active owner is `HelmRelease/birfucate-metering` in
 Consequently, the old promotion was not a working path to that active owner.
 The observed image was `sha256:dbd60536580fdbed4915871aee6ee81806c18f9bce1aa8f80d8e7479d85dff60`.
 Its HelmRelease was reconciling at inspection time; this audit is not a health certificate.
+During implementation, observability main advanced to `ed719549` with image
+`sha256:00ce4a96b6077a878f5358099ff1be41f3b7701307ea303245c7655b33b6b5fb`.
+The handoff is seeded from that newer desired state to avoid rolling it back.
 
 ## Replacement
 
@@ -49,7 +52,8 @@ main publication. This change removes the duplicate **main** build, not PR check
 
 Merge the service-backend change first, then wait for
 `flux-system/tenant-mcp-image` Ready and the ConfigMap to exist. The initial value
-matches the observed live image. Only then merge the observability companion PR
+matches the latest reviewed consumer image. Recheck that it still matches the
+consumer's current main before activation. Only then merge the observability companion PR
 that removes its inline tenant API image and adds a required ConfigMap reference.
 A missing reference fails reconciliation instead of silently selecting a default.
 Check the active HelmRelease and tenant MCP Deployment image, rollout and readiness
