@@ -27,7 +27,7 @@
     ]
   },
   "dependencies": {
-    "@iconify/react": "^6.0.0",
+    "@iconify/react": "^6.0.3",
     "@mui/material": "^7.0.0"
   },
   "overrides": {
