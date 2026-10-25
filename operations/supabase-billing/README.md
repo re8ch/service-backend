@@ -71,6 +71,24 @@ local Pigsty credentials or print Secret values.
 
 Every database URI must name `re8ch_billing`. Storage uses its own 20 GiB
 `rbd-r640` PVC and may be expanded but never shrunk.
+
+## Ownership repair and migration authority
+
+Legacy Billing objects created by `postgres` or `supabase_admin` must be
+normalized once before later Catalog migrations. Use the administrator-only
+`repair_re8ch_billing_ownership` tool with its plan/apply hash workflow and a
+reviewed PR reference. The operation is fixed to `re8ch_billing` and the
+`billing`, `payment_api`, `commerce`, and `commerce_api` schemas; it does not
+accept arbitrary SQL or credentials.
+
+The repair creates the NOLOGIN roles `re8ch_billing_owner` and
+`re8ch_billing_migrator`, transfers only legacy business objects owned by
+`postgres` or `supabase_admin` to the owner, and grants the migrator through
+the existing server-side platform identity. Subsequent `postgres_admin_sql`
+writes to `re8ch_billing` execute after `SET ROLE re8ch_billing_migrator`.
+Read-only inspection remains under `supabase_admin`. Do not use
+`REASSIGN OWNED BY postgres`, because it can capture extension or unrelated
+objects in the same database.
 6. Start GoTrue, Storage, and Realtime privately so they initialize their
    managed schemas. Then plan and apply `post-start.sql` to install the
    canonical Identity-subject claim helper, private Storage owner policies, and
@@ -79,7 +97,7 @@ Every database URI must name `re8ch_billing`. Storage uses its own 20 GiB
 
 ## Activation and rollout
 
-After preflight, verify restricted-node-6dc3f140f9 allocatable resources and current requests, then
+After preflight, verify R640 allocatable resources and current requests, then
 allow Identity Flux to roll out the already-declared Billing resources. Flux
 must apply the signed autonomous Identity repository revision.
 
