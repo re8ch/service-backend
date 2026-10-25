@@ -7135,7 +7135,7 @@ spec:
         - key: kubernetes.io/hostname
           operator: In
           values:
-          - restricted-node-6dc3f140f9
+          - r640
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual-r640
 ---
@@ -7208,7 +7208,7 @@ spec:
             drop:
             - ALL
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -7270,7 +7270,7 @@ spec:
             drop:
             - ALL
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -7325,7 +7325,7 @@ spec:
       imagePullSecrets:
       - name: harbor-hyperswitch-admin
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 101
@@ -7392,7 +7392,7 @@ spec:
             drop:
             - ALL
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -7454,7 +7454,7 @@ spec:
             drop:
             - ALL
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -7529,7 +7529,7 @@ spec:
       imagePullSecrets:
       - name: ghcr-re8ch
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsGroup: 65532
         runAsNonRoot: true
@@ -7561,7 +7561,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       containers:
       - args:
         - |
@@ -7721,7 +7721,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       containers:
       - args:
         - |
@@ -7892,6 +7892,42 @@ spec:
     - path:
         type: PathPrefix
         value: /commerce
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: commerce-user-data-ro
+  namespace: payments
+spec:
+  hostnames:
+  - db-ro.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-loudi
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-guangzhou
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-shanghai
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-hangzhou-nuclio
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-shanghai-nuclio
+    namespace: kube-system
+    sectionName: db-ro-https
+  rules:
+  - backendRefs:
+    - name: commerce-api
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /commerce/v1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -8080,30 +8116,30 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: re8ch-catalog-public
+  name: re8ch-catalog-db-ro
   namespace: payments
 spec:
   hostnames:
-  - api.re8ch.com
+  - db-ro.re8ch.com
   parentRefs:
   - name: re8ch-gateway-canary
     namespace: kube-system
-    sectionName: api-https
+    sectionName: db-ro-https
   - name: re8ch-region-loudi
     namespace: kube-system
-    sectionName: api-https
+    sectionName: db-ro-https
   - name: re8ch-region-guangzhou
     namespace: kube-system
-    sectionName: api-https
+    sectionName: db-ro-https
   - name: re8ch-region-shanghai
     namespace: kube-system
-    sectionName: api-https
+    sectionName: db-ro-https
   - name: re8ch-region-hangzhou-nuclio
     namespace: kube-system
-    sectionName: api-https
+    sectionName: db-ro-https
   - name: re8ch-region-shanghai-nuclio
     namespace: kube-system
-    sectionName: api-https
+    sectionName: db-ro-https
   rules:
   - backendRefs:
     - name: re8ch-catalog
@@ -8111,7 +8147,43 @@ spec:
     matches:
     - path:
         type: PathPrefix
-        value: /catalog
+        value: /catalog/v1
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: re8ch-catalog-db-rw
+  namespace: payments
+spec:
+  hostnames:
+  - db-rw.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-loudi
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-guangzhou
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-shanghai
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-hangzhou-nuclio
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-shanghai-nuclio
+    namespace: kube-system
+    sectionName: db-rw-https
+  rules:
+  - backendRefs:
+    - name: re8ch-catalog
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /catalog/v1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -8148,6 +8220,78 @@ spec:
     - path:
         type: PathPrefix
         value: /payment
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: re8ch-payment-registry-db-ro
+  namespace: payments
+spec:
+  hostnames:
+  - db-ro.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-loudi
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-guangzhou
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-shanghai
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-hangzhou-nuclio
+    namespace: kube-system
+    sectionName: db-ro-https
+  - name: re8ch-region-shanghai-nuclio
+    namespace: kube-system
+    sectionName: db-ro-https
+  rules:
+  - backendRefs:
+    - name: nuclio-payment-registry-api
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /payment/v1
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: re8ch-payment-registry-db-rw
+  namespace: payments
+spec:
+  hostnames:
+  - db-rw.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-loudi
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-guangzhou
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-shanghai
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-hangzhou-nuclio
+    namespace: kube-system
+    sectionName: db-rw-https
+  - name: re8ch-region-shanghai-nuclio
+    namespace: kube-system
+    sectionName: db-rw-https
+  rules:
+  - backendRefs:
+    - name: nuclio-payment-registry-api
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /payment/v1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -8248,7 +8392,7 @@ spec:
                   - name: harbor-hyperswitch-admin
                 containers:
                   - name: superposition
-                    # restricted-node-6dc3f140f9 has this verified Harbor manifest preloaded into
+                    # R640 has this verified Harbor manifest preloaded into
                     # containerd; its pod cannot use the slow external blob
                     # redirect path during a live rollout.
                     image: registry.re8ch.com/hyperswitch/superposition:re8ch-45fa7d15222dce436f7851e1bb32a30f550966db
@@ -8281,7 +8425,7 @@ spec:
             template:
               spec:
                 nodeSelector:
-                  kubernetes.io/hostname: restricted-node-6dc3f140f9
+                  kubernetes.io/hostname: r640
         target:
           group: apps
           kind: Deployment
@@ -8322,7 +8466,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
     hyperswitch-app:
       clickhouse:
         enabled: false
