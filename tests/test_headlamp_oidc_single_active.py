@@ -43,4 +43,9 @@ def test_single_node_rollout_does_not_compete_for_host_ports():
     assert not pod.get("hostNetwork", False)
     for container in pod["containers"]:
         assert all(not port.get("hostPort") for port in container.get("ports", []))
-        assert not any(env["name"].startswith("KUBERNETES_SERVICE_") for env in container.get("env", []))
+    headlamp = next(c for c in pod["containers"] if c["name"] == "headlamp")
+    env = {item["name"]: item["value"] for item in headlamp["env"]}
+    assert env["KUBERNETES_SERVICE_HOST"] == "kubernetes.default.svc"
+    assert env["KUBERNETES_SERVICE_PORT_HTTPS"] == "443"
+    assert pod["hostNetwork"] is False
+    assert pod["dnsPolicy"] == "ClusterFirst"

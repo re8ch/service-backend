@@ -125,6 +125,13 @@ spec:
         - -oidc-use-access-token
         - -oidc-use-cookie
         - -plugins-dir=/headlamp/plugins
+        env:
+        - name: KUBERNETES_SERVICE_HOST
+          value: kubernetes.default.svc
+        - name: KUBERNETES_SERVICE_PORT
+          value: '443'
+        - name: KUBERNETES_SERVICE_PORT_HTTPS
+          value: '443'
         image: registry.re8ch.com/functions-shared/headlamp@sha256:db3f0e0fc58d358d41daa3fe7fc852437552c7ee873c3645470f7b86a8e0db49
         imagePullPolicy: IfNotPresent
         livenessProbe:
@@ -181,10 +188,12 @@ spec:
         - mountPath: /etc/nginx/conf.d
           name: oidc-landing
           readOnly: true
+      dnsPolicy: ClusterFirst
       hostAliases:
       - hostnames:
         - db-rw.re8ch.com
         ip: 192.0.2.213
+      hostNetwork: false
       initContainers:
       - args:
         - 'target=/headlamp/plugins/runtime-anatomy-0.2.0
