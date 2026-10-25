@@ -13,7 +13,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with: {persist-credentials: false}
@@ -21,7 +22,8 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: validate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
