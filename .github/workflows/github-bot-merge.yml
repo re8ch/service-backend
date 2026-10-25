@@ -21,7 +21,7 @@ concurrency:
 jobs:
   merge:
     if: github.actor == 'Woomou' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 5
     environment: gitops-merge
     steps:
@@ -31,6 +31,10 @@ jobs:
           persist-credentials: false
       - id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        env:
+          # R640 runners inherit the approved outbound proxy. Node must opt in
+          # for both token creation and the action's post-job token revocation.
+          NODE_USE_ENV_PROXY: '1'
         with:
           app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
           private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
