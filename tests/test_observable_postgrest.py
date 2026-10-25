@@ -34,10 +34,36 @@ def test_observable_postgrest_stays_on_database_route_verified_nodes():
     assert expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        "values": ["a1-wsl-zt", "b1-wsl-zt"],
     }
     assert deployment["spec"]["replicas"] == 2
     assert deployment["spec"]["strategy"]["rollingUpdate"]["maxUnavailable"] == 1
     assert "requiredDuringSchedulingIgnoredDuringExecution" in pod_spec["affinity"][
         "podAntiAffinity"
+    ]
+
+
+def test_observable_retirement_uses_resource_qualified_delete_targets():
+    resources = [
+        item
+        for item in yaml.safe_load_all(
+            (
+                ROOT
+                / "clusters/re8ch/components/ops/retire-unused-observable-ontology.yaml"
+            ).read_text()
+        )
+        if item
+    ]
+    job = next(item for item in resources if item["kind"] == "Job")
+    step = job["spec"]["template"]["spec"]["initContainers"][0]
+    assert step["args"] == [
+        "--namespace",
+        "observable",
+        "delete",
+        "deployment/observable-postgrest",
+        "service/observable-postgrest",
+        "horizontalpodautoscaler/observable-postgrest",
+        "poddisruptionbudget/observable-postgrest",
+        "--ignore-not-found=true",
+        "--wait=true",
     ]

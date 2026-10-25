@@ -97,7 +97,7 @@ spec:
         name: delete-observable-runtime
         image: registry.k8s.io/kubectl:v1.34.1@sha256:59bafa07ff3a6d4b417e7633ddb9d79a9606ca98bf64bac080b3e65748669250
         command: [kubectl]
-        args: [--namespace, observable, delete, deployment,service,horizontalpodautoscaler,poddisruptionbudget, observable-postgrest, --ignore-not-found=true, --wait=true]
+        args: [--namespace, observable, delete, deployment/observable-postgrest, service/observable-postgrest, horizontalpodautoscaler/observable-postgrest, poddisruptionbudget/observable-postgrest, --ignore-not-found=true, --wait=true]
         resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 100m, memory: 64Mi}}
         securityContext: &securityContext {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}, readOnlyRootFilesystem: true, runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       - <<: *kubectlStep
