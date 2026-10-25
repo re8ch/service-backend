@@ -13,6 +13,37 @@ SPEC.loader.exec_module(OPS)
 
 
 class PostgresAdminSQLTests(unittest.TestCase):
+    def test_postgres_md5_password_authentication_is_rejected(self):
+        with self.assertRaisesRegex(OPS.PgProtocolError, "require SCRAM-SHA-256"):
+            OPS.pg_authenticate(mock.Mock(), "postgres", "not-a-real-password", b"\x00\x00\x00\x05salt")
+
+    def test_billing_write_sets_migrator_role(self):
+        args = {"database": "re8ch_billing", "sql": "select 1", "readOnly": False,
+                "approvalId": "re8ch/cloud-functions#141"}
+        planned = OPS.postgres_admin_sql(args)
+        args.update({"apply": True, "planHash": planned["planHash"]})
+        secret = base64.b64encode(b"not-a-real-password").decode("ascii")
+        fake_socket = mock.Mock()
+        with mock.patch.object(OPS, "kube_request", return_value={"data": {"POSTGRES_PASSWORD": secret}}), \
+             mock.patch.object(OPS, "pg_connect", return_value=fake_socket), \
+             mock.patch.object(OPS, "pg_execute_simple", return_value={"command": "COMMIT"}) as execute:
+            result = OPS.postgres_admin_sql(args)
+        self.assertEqual(result["status"], "executed")
+        self.assertTrue(any(call.args[1] == "SET ROLE re8ch_billing_migrator" for call in execute.call_args_list))
+
+    def test_billing_ownership_repair_is_fixed_and_uses_postgres(self):
+        args = {"approvalId": "re8ch/service-backend#123"}
+        planned = OPS.repair_re8ch_billing_ownership(args)
+        args.update({"apply": True, "planHash": planned["planHash"]})
+        secret = base64.b64encode(b"not-a-real-password").decode("ascii")
+        fake_socket = mock.Mock()
+        with mock.patch.object(OPS, "kube_request", return_value={"data": {"POSTGRES_PASSWORD": secret}}), \
+             mock.patch.object(OPS, "pg_connect", return_value=fake_socket) as connect, \
+             mock.patch.object(OPS, "pg_execute_simple", return_value={"command": "COMMIT"}):
+            result = OPS.repair_re8ch_billing_ownership(args)
+        self.assertEqual(result["status"], "executed")
+        self.assertEqual(connect.call_args.args[3], "postgres")
+
     def test_apply_returns_structured_postgres_rejection(self):
         args = {
             "database": "re8ch_billing",

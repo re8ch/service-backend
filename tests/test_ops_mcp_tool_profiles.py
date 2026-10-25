@@ -240,7 +240,7 @@ class ToolProfileTests(unittest.TestCase):
     def test_ceph_recovery_refuses_unready_host(self):
         module = load_profile("operate")
         module.get_ceph_recovery_status = lambda: {
-            "desired": 1, "ready": 0, "pods": [{"node": "restricted-node-1eb0570f74"}],
+            "desired": 1, "ready": 0, "pods": [{"node": "a1-wsl-zt"}],
         }
         calls = []
 
@@ -251,12 +251,12 @@ class ToolProfileTests(unittest.TestCase):
         module.kube_request = fake_request
         with self.assertRaisesRegex(ValueError, "not Ready"):
             module.restart_ceph_osd_1()
-        self.assertEqual(calls, [("GET", "/api/v1/nodes/restricted-node-1eb0570f74")])
+        self.assertEqual(calls, [("GET", "/api/v1/nodes/a1-wsl-zt")])
 
     def test_ceph_recovery_only_patches_reviewed_osd(self):
         module = load_profile("operate")
         module.get_ceph_recovery_status = lambda: {
-            "desired": 1, "ready": 0, "pods": [{"node": "restricted-node-1eb0570f74"}],
+            "desired": 1, "ready": 0, "pods": [{"node": "a1-wsl-zt"}],
         }
         calls = []
 
@@ -270,7 +270,7 @@ class ToolProfileTests(unittest.TestCase):
         result = module.restart_ceph_osd_1()
         self.assertEqual(result["deployment"], "rook-ceph-osd-1")
         self.assertEqual(calls, [
-            ("GET", "/api/v1/nodes/restricted-node-1eb0570f74"),
+            ("GET", "/api/v1/nodes/a1-wsl-zt"),
             ("PATCH", "/apis/apps/v1/namespaces/rook-ceph/deployments/rook-ceph-osd-1"),
         ])
 
@@ -312,8 +312,9 @@ class ToolProfileTests(unittest.TestCase):
         result = module.call_tool("postgres_admin_sql", {**args, "apply": True, "planHash": plan["planHash"]}, admin=True)
         self.assertEqual(result["status"], "executed")
         self.assertEqual(calls[0][1][3:5], ("supabase_admin", "test-only-password"))
-        self.assertIn("BEGIN;", calls[2][1])
-        self.assertIn("COMMIT;", calls[2][1])
+        self.assertEqual(calls[2][1], "SET ROLE re8ch_billing_migrator")
+        self.assertIn("BEGIN;", calls[3][1])
+        self.assertIn("COMMIT;", calls[3][1])
         self.assertNotIn("test-only-password", json.dumps(result))
         self.assertEqual(requests[0][1], "/api/v1/namespaces/supabase-pg-re8ch/secrets/supabase-pg-re8ch-secrets")
         with self.assertRaisesRegex(PermissionError, "readOnly admin SQL"):
@@ -371,7 +372,7 @@ class ToolProfileTests(unittest.TestCase):
     def test_metrics_summaries_expose_only_cpu_and_memory_usage(self):
         module = load_profile("observe")
         node = module.simplify_resource(
-            {"kind": "NodeMetrics", "metadata": {"name": "restricted-node-1eb0570f74"}, "timestamp": "2026-09-20T00:00:00Z", "window": "15s", "usage": {"cpu": "123m", "memory": "456Mi", "ephemeral-storage": "1Gi"}}
+            {"kind": "NodeMetrics", "metadata": {"name": "a1-wsl-zt"}, "timestamp": "2026-09-20T00:00:00Z", "window": "15s", "usage": {"cpu": "123m", "memory": "456Mi", "ephemeral-storage": "1Gi"}}
         )
         self.assertEqual(node["usage"], {"cpu": "123m", "memory": "456Mi"})
         self.assertNotIn("ephemeral-storage", node["usage"])
