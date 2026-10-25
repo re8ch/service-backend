@@ -74,7 +74,7 @@ def test_delivery_products_is_the_first_verified_main_domain_mapping():
 
 
 def test_profile_validator_rejects_cross_domain_environment(tmp_path, monkeypatch):
-    original = yaml.safe_load((ROOT / "contracts/releases/main-domain/main-operations-ui-headlamp.yaml").read_text())
+    original = yaml.safe_load((ROOT / "contracts/releases/main-domain/main-operations-ui-studio-toolkit.yaml").read_text())
     monkeypatch.setattr(profile, "CONTRACT_ROOT", tmp_path)
     path = tmp_path / "profile-validator-fixture.yaml"
     original["spec"]["provenance"]["environment"] = "release-executor-data-storage"

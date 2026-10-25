@@ -50,3 +50,5 @@ spec:
       name: service-backend
     - kind: Kustomization
       name: reconcile-main-legacy-data-storage
+    - kind: Kustomization
+      name: reconcile-main-legacy-operations-ui
