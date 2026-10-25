@@ -96,6 +96,9 @@ jobs:
     timeout-minutes: 15
     environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: read}
+    env:
+      # The executor refreshes OIDC tokens during SSA, after the login step.
+      EXECUTOR_AUDIENCE: '${{ needs.validate.outputs.audience }}'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -112,7 +115,6 @@ jobs:
       - name: Acquire exact OIDC identity and prove denials
         env:
           KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
-          EXECUTOR_AUDIENCE: '${{ needs.validate.outputs.audience }}'
           RELEASE_ID: '${{ needs.compile-sign.outputs.release-id }}'
           TARGET_NAMESPACE: '${{ needs.compile-sign.outputs.namespace }}'
         run: |

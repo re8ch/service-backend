@@ -115,3 +115,15 @@ def test_each_main_domain_contract_uses_its_own_protected_execution_profile():
         execution = profiles[domain]["execution"]
         assert contract["spec"]["provenance"]["environment"] == execution["protectedEnvironment"]
         assert contract["spec"]["provenance"]["audience"] == execution["audience"]
+
+
+def test_oidc_audience_reaches_login_and_ssa_token_refresh():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/main-domain-release.yml").read_text())
+    job = workflow["jobs"]["execute"]
+    steps = [step for step in job["steps"]
+             if "ACTIONS_ID_TOKEN_REQUEST_URL" in step.get("run", "")
+             or "ssa_executor.py" in step.get("run", "")]
+    assert len(steps) == 2
+    for step in steps:
+        effective_env = {**workflow.get("env", {}), **job.get("env", {}), **step.get("env", {})}
+        assert effective_env["EXECUTOR_AUDIENCE"] == "${{ needs.validate.outputs.audience }}"
