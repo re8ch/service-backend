@@ -15,7 +15,8 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_vulnerability_report_get",
 		"harbor_sbom_get", "harbor_accessory_list", "harbor_audit_log_list", "harbor_build_get", "harbor_build_list",
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
-		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate", "tenant_kubernetes_get", "artc_kubernetes_read":
+		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
+		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read":
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
@@ -39,7 +40,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
 		"harbor_tag_delete", "harbor_build_cancel", "grafana_exploration_save", "grafana_exploration_delete",
-		"grafana_render", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "tenant_organization_context_select", "platform_organization", "platform_user":
+		"grafana_render", "monitoring_dashboard", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "tenant_organization_context_select", "platform_organization", "platform_user":
 		// Includes updates/revocations and render's temporary dashboard cleanup.
 		destructive = true
 	default:
