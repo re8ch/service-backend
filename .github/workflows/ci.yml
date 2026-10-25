@@ -71,7 +71,7 @@ jobs:
       - name: Validate and test probe contracts offline
         run: |
           python operations/k6/validate.py
-          pytest -q tests/test_k6_contracts.py tests/test_k6_summary.py
+          python -m pytest -q tests/test_k6_contracts.py tests/test_k6_summary.py
       - name: Load k6 script without executing production probes
         run: |
           docker run --rm --network none \
@@ -121,7 +121,7 @@ jobs:
       - name: Run selected domain tests
         env: {TESTS: "${{ needs.impact.outputs.tests }}"}
         run: |
-          python - <<'PY' | xargs -r pytest -q
+          python - <<'PY' | xargs -r python -m pytest -q
           import json, os
           print(*json.loads(os.environ["TESTS"]), sep="\n")
           PY
@@ -178,7 +178,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: git submodule update --init catalogs/platform/modules/connectool/source
       - run: python -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
-      - run: pytest -q tests/test_connectool_delivery.py tests/test_tenant_release_signing.py
+      - run: python -m pytest -q tests/test_connectool_delivery.py tests/test_tenant_release_signing.py
 
   policy:
     needs: impact
@@ -219,7 +219,7 @@ jobs:
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with: {version: v4.2.3}
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
-      - run: pytest -q ${{ matrix.tests }}
+      - run: python -m pytest -q ${{ matrix.tests }}
 
   control-plane-validate:
     name: control-plane-validate
