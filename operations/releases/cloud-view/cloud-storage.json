@@ -1,0 +1,17 @@
+{
+  "provider": "cloudflare",
+  "accountId": "6317b796fb47e67fadec3bc9a5ef0e8e",
+  "worker": "re8ch-flux-static",
+  "bucket": "re8ch-flux-public-status",
+  "publicView": "https://flux-status.re8ch.com/",
+  "publicSnapshot": "https://flux-status.re8ch.com/latest.json",
+  "publisherAudience": "https://flux-status.re8ch.com/api/snapshot",
+  "sourceRepository": "re8ch/headlamp-flux-static-github-ops",
+  "sourceRevision": "13a9961a9237a24ef12821a74aa4b879c1ca2996",
+  "configurationPath": "worker/wrangler.jsonc",
+  "writeIdentity": "GitHub Actions OIDC: main node-contract-observer in cluster-observation",
+  "readIdentity": "anonymous",
+  "githubEvidenceIdentity": "re8ch-gitops-executor",
+  "freshnessSeconds": 900,
+  "browserRefreshSeconds": 15
+}
