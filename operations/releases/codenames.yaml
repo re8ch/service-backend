@@ -1222,6 +1222,8 @@ modules:
       digest: sha256:4e9eef05e13408b9469cdeef8d39daab56803e7326aa7692aedd2ad82552f0da
     - codename: eddy-aquamarine
       digest: sha256:771f5df3b6e8066728a31fa41e42b99092a6274485cba058b426aacf8ead3ace
+    - codename: gulfstream-aquamarine
+      digest: sha256:f065fb38780daf07e1e0592a1ffd8ce95db3ce8f0bbed8af3e11380db34b2a5d
   platform/hyperswitch:
     releases:
     - codename: anchor
