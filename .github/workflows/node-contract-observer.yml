@@ -3,7 +3,13 @@ name: NodeContract observer
 on:
   schedule:
     - cron: "17 3 * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      scope:
+        type: choice
+        options: [nodes, flux]
+        default: nodes
 
 concurrency:
   group: node-contract-observer
@@ -11,6 +17,7 @@ concurrency:
 
 jobs:
   observe:
+    if: github.event.schedule == '17 3 * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope != 'flux')
     name: NodeContract live parity
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
@@ -140,7 +147,7 @@ jobs:
 
   governance:
     name: NodeContract governance
-    if: always() && needs.observe.result != 'cancelled'
+    if: always() && needs.observe.result != 'cancelled' && needs.observe.result != 'skipped'
     needs: observe
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
@@ -164,3 +171,38 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITOPS_MAINTENANCE_PROJECT: "1"
         run: python operations/github-maintenance/node_contract_governance.py node-contract-evidence.json
+
+  flux:
+    name: Flux runtime evidence
+    env:
+      NODE_USE_ENV_PROXY: '1'
+    if: github.ref == 'refs/heads/main' && (github.event.schedule == '*/5 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'flux'))
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    timeout-minutes: 8
+    environment: cluster-observation
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '24'}
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+        with: {version: v1.33.1}
+      - run: python -m pip install 'PyYAML>=6.0.2'
+      - name: Read existing federation authority
+        run: python -c 'import json,yaml; print(json.dumps(yaml.safe_load(open("operations/flux-federation/authority.yaml"))))' > "$RUNNER_TEMP/flux-authority.json"
+      - id: reporter
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_EXECUTOR_APP_ID }}
+          private-key: ${{ secrets.GITOPS_EXECUTOR_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: service-backend
+          permission-checks: write
+      - name: Publish bounded read-only Flux inventory
+        env:
+          GH_TOKEN: ${{ steps.reporter.outputs.token }}
+          KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
+        run: node operations/releases/cloud-view/observe.mjs "$RUNNER_TEMP/flux-authority.json"

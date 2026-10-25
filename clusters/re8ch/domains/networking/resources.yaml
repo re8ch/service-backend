@@ -126,6 +126,62 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: github-actions-flux-observer
+  namespace: flux-agent-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-identity-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-network-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-observability-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: among-clusters-legacy-agent-cleanup
   namespace: flux-system
 rules:
@@ -146,6 +202,20 @@ rules:
   - jobs
   verbs:
   - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -289,6 +359,39 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - gitrepositories
+  - ocirepositories
+  - helmrepositories
+  - helmcharts
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - kustomize.toolkit.fluxcd.io
+  resources:
+  - kustomizations
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - notification.toolkit.fluxcd.io
+  resources:
+  - alerts
+  - providers
+  - receivers
+  verbs:
+  - get
+  - list
 - nonResourceURLs:
   - /api
   - /api/*
@@ -356,6 +459,62 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: github-actions-flux-observer
+  namespace: flux-agent-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-flux-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-identity-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-flux-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-network-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-flux-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-flux-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: among-clusters-legacy-agent-cleanup
   namespace: flux-system
 roleRef:
@@ -366,6 +525,20 @@ subjects:
 - kind: ServiceAccount
   name: among-clusters-legacy-agent-cleanup
   namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-flux-observer
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-flux-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

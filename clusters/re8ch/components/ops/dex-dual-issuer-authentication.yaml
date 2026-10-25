@@ -32,7 +32,11 @@ jwt:
         - https://kube-api.re8ch.com/release-artifact-publisher
       audienceMatchPolicy: MatchAny
     claimValidationRules:
-      - {expression: "claims.repository_visibility == 'private'", message: repository must remain private}
+      - expression: >-
+          claims.repository_visibility == 'private' ||
+          (claims.repository_visibility == 'public' &&
+           claims.aud == 'https://kube-api.re8ch.com/observer')
+        message: public repository tokens are restricted to the observer route
       - {expression: "claims.runner_environment == 'self-hosted'", message: release and observer identities require the enterprise self-hosted runner plane}
       - expression: >-
           (claims.repository_id == '1367237854' &&

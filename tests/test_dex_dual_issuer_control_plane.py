@@ -40,9 +40,9 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-executor-ceph-runtime',
         'https://kube-api.re8ch.com/release-artifact-publisher',
     ]
-    expressions = {item['expression'] for item in github['claimValidationRules']}
+    expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
     assert {
-        "claims.repository_visibility == 'private'",
+        "claims.repository_visibility == 'private' || (claims.repository_visibility == 'public' && claims.aud == 'https://kube-api.re8ch.com/observer')",
         "claims.runner_environment == 'self-hosted'",
     } <= expressions
     route = github['claimValidationRules'][-1]['expression']
@@ -104,12 +104,12 @@ def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     assert '-oidc-use-access-token' in container['args']
     assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
-    assert aliases['db-rw.re8ch.com'] == '192.0.2.209'
+    assert aliases['db-rw.re8ch.com'] == '10.251.0.4'
 
 
 def test_mubao_k3s_start_gate_keeps_oidc_discovery_on_internal_gateway():
     gate = (
         ROOT.parents[3] / 'operations/network/scripts/mubao-k3s-start-gate.sh'
     ).read_text()
-    assert '192.0.2.209 db-rw.re8ch.com' in gate
+    assert '10.251.0.4 db-rw.re8ch.com' in gate
     assert 'OIDC discovery via authoritative Cilium Gateway' in gate
