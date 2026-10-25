@@ -277,6 +277,153 @@
     "name": "tenant_human_access_issue"
   },
   {
+    "description": "Inspect the authenticated tenant's runtime-image project, repositories, artifacts, security reports, OCI accessories and audit events.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "get_project",
+            "list_repositories",
+            "list_artifacts",
+            "get_artifact",
+            "get_vulnerabilities",
+            "get_sbom",
+            "list_accessories",
+            "list_audit"
+          ],
+          "type": "string"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "credential_ref"
+      ],
+      "type": "object"
+    },
+    "name": "runtime_image_catalog"
+  },
+  {
+    "description": "Preview or apply runtime-image scan and tag lifecycle actions in the authenticated tenant project.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "start_scan",
+            "create_tag",
+            "delete_tag"
+          ],
+          "type": "string"
+        },
+        "apply": {
+          "type": "boolean"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "runtime_image_manage"
+  },
+  {
+    "description": "Start, inspect, list or cancel tenant runtime-image builds with SBOM and provenance attestations.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "start",
+            "get",
+            "list",
+            "cancel"
+          ],
+          "type": "string"
+        },
+        "apply": {
+          "type": "boolean"
+        },
+        "build_args": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "context": {
+          "type": "string"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "dockerfile": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "enum": [
+              "linux/amd64",
+              "linux/arm64"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "scan": {
+          "type": "boolean"
+        },
+        "sign": {
+          "type": "boolean"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    "name": "runtime_image_build"
+  },
+  {
     "description": "Read the authenticated tenant's Harbor project metadata and quota summary.",
     "inputSchema": {
       "additionalProperties": false,
@@ -1411,5 +1558,86 @@
       "type": "object"
     },
     "name": "artc_kubernetes_admin"
+  },
+  {
+    "name": "monitoring_catalog",
+    "description": "Discover monitoring capabilities and tenant-visible datasources without exposing the underlying provider as the product contract.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "enum": ["list_capabilities", "get_capability", "list_datasources", "get_datasource"]},
+        "capability_id": {"type": "string"},
+        "datasource_uid": {"type": "string"}
+      },
+      "required": ["action"]
+    }
+  },
+  {
+    "name": "monitoring_query",
+    "description": "Run bounded tenant-scoped monitoring queries and return normalized DataFrames.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "spec": {
+          "additionalProperties": false,
+          "type": "object",
+          "properties": {
+            "indicators": {"items": {"type": "object"}, "type": "array"},
+            "pipeline": {"items": {"type": "object"}, "type": "array"},
+            "queries": {"items": {"type": "object"}, "maxItems": 8, "minItems": 1, "type": "array"},
+            "timeRange": {"type": "object"},
+            "visualization": {"type": "object"}
+          },
+          "required": ["queries"]
+        }
+      },
+      "required": ["spec"]
+    }
+  },
+  {
+    "name": "monitoring_analyze",
+    "description": "Analyze numeric monitoring series with a pipeline, indicators, or correlation in one deterministic tool.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "enum": ["pipeline", "indicators", "correlate"]},
+        "pipeline": {"items": {"type": "object"}, "type": "array"},
+        "result_ref": {"type": "string"},
+        "series": {"additionalProperties": {"items": {"type": "number"}, "type": "array"}, "type": "object"},
+        "indicators": {"items": {"type": "object"}, "type": "array"},
+        "values": {"items": {"type": "number"}, "type": "array"},
+        "datasource_uid": {"type": "string"},
+        "left": {"items": {"type": "number"}, "type": "array"},
+        "right": {"items": {"type": "number"}, "type": "array"},
+        "max_lag": {"maximum": 100, "minimum": 0, "type": "integer"},
+        "method": {"enum": ["pearson", "spearman"], "type": "string"}
+      },
+      "required": ["action"]
+    }
+  },
+  {
+    "name": "monitoring_dashboard",
+    "description": "Render, save, or delete a tenant monitoring dashboard through one operator-only workflow tool.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "type": "object",
+      "properties": {
+        "action": {"type": "string", "enum": ["render", "save", "delete"]},
+        "dashboard": {"type": "object"},
+        "dashboard_uid": {"type": "string"},
+        "folder_uid": {"type": "string"},
+        "idempotency_key": {"type": "string"},
+        "message": {"type": "string"},
+        "from": {"type": ["string", "integer"]},
+        "to": {"type": ["string", "integer"]},
+        "panel_id": {"minimum": 1, "type": "integer"},
+        "height": {"maximum": 1600, "minimum": 200, "type": "integer"},
+        "width": {"maximum": 2400, "minimum": 320, "type": "integer"}
+      },
+      "required": ["action"]
+    }
   }
 ]

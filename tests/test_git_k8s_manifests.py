@@ -435,14 +435,25 @@ def test_work_evidence_requires_kubernetes_producer_identity():
 def test_stalwart_management_is_internal_and_digest_pinned():
     resources = documents(ROOT / "platform/stalwart/stalwart.yaml")
     service = next(item for item in resources if item["kind"] == "Service" and item["metadata"]["name"] == "stalwart")
+    direct_mail = next(
+        item for item in resources if item["kind"] == "Service" and item["metadata"]["name"] == "stalwart-direct-mail"
+    )
     stateful_set = next(item for item in resources if item["kind"] == "StatefulSet")
     image = stateful_set["spec"]["template"]["spec"]["containers"][0]["image"]
     assert service["spec"]["type"] == "ClusterIP"
+    assert "externalIPs" not in service["spec"]
+    assert direct_mail["spec"]["externalIPs"] == ["192.0.2.38"]
+    assert {port["port"] for port in direct_mail["spec"]["ports"]} == {25, 465, 587, 993, 4190}
     assert "@sha256:" in image
     pod_spec = stateful_set["spec"]["template"]["spec"]
     assert stateful_set["metadata"]["name"] == "stalwart-flk"
     assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "overseas-flk"}
-    assert pod_spec["volumes"][2]["persistentVolumeClaim"]["claimName"] == "stalwart-flk-data"
+    assert pod_spec["volumes"][2]["persistentVolumeClaim"]["claimName"] == "stalwart-flk-local-data"
+    container = pod_spec["containers"][0]
+    assert container["startupProbe"]["failureThreshold"] == 60
+    assert container["livenessProbe"]["timeoutSeconds"] == 10
+    assert container["livenessProbe"]["failureThreshold"] == 6
+    assert container["readinessProbe"]["timeoutSeconds"] == 10
 
 
 def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
@@ -453,7 +464,7 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     pod_spec = stateful_set["spec"]["template"]["spec"]
     assert pod_spec["nodeSelector"] == {"kubernetes.io/hostname": "overseas-flk"}
     data_volume = next(item for item in pod_spec["volumes"] if item["name"] == "data")
-    assert data_volume["persistentVolumeClaim"]["claimName"] == "stalwart-idp-flk-data"
+    assert data_volume["persistentVolumeClaim"]["claimName"] == "stalwart-idp-flk-local-data"
     container = stateful_set["spec"]["template"]["spec"]["containers"][0]
     assert container["securityContext"]["capabilities"]["add"] == ["NET_BIND_SERVICE"]
     assert {item["name"]: item["value"] for item in container["env"]}["STALWART_PUBLIC_URL"] == (

@@ -1511,6 +1511,73 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-toolhive-operator
+  namespace: toolhive-system
+rules:
+- apiGroups:
+  - apps
+  resourceNames:
+  - toolhive-operator
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - toolhive-operator
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-toolhive-operator
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - toolhive-operator-leader-election-role
+  resources:
+  - roles
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - toolhive-operator-leader-election-rolebinding
+  - toolhive-operator-manager-rolebinding
+  resources:
+  - rolebindings
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: api-conformance-pull-source
   namespace: toolhive-system
 rules:
@@ -1585,6 +1652,27 @@ rules:
   verbs:
   - get
   - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-toolhive-operator
+rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - toolhive-operator-manager-role
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+  - escalate
+  - bind
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -2266,6 +2354,22 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-toolhive-operator
+  namespace: toolhive-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-toolhive-operator
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: api-conformance-pull-source
   namespace: toolhive-system
 roleRef:
@@ -2310,6 +2414,21 @@ subjects:
 - kind: ServiceAccount
   name: retire-toolhive-session-redis
   namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-toolhive-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-runtime-toolhive-operator
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -8909,6 +9028,17 @@ metadata:
   namespace: toolhive-system
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/authority-domain: agent-runtime
+    delivery.re8ch.com/state: accepted
+  name: ssa-state-agent-runtime-toolhive-operator
+  namespace: toolhive-system
+---
+apiVersion: v1
 kind: Secret
 metadata:
   annotations:
@@ -12887,6 +13017,7 @@ spec:
   provider: generic
   ref:
     digest: sha256:4881731dd7ceaf0fefcdecdb23b1c87d16b1f60fe8aa5ee75304fd33f4fa4d22
+  suspend: true
   url: oci://ghcr.io/stacklok/toolhive/toolhive-operator
 ---
 apiVersion: toolhive.stacklok.dev/v1beta1

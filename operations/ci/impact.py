@@ -103,6 +103,7 @@ def load_catalog() -> dict:
 def select(paths: list[str], full: bool = False) -> dict:
     catalog = load_catalog()
     domains = catalog["domains"]
+    ci_metadata_paths = catalog.get("ci_metadata_paths", [])
     release_roots = {root.replace("/", "-") + ".yaml": root for config in domains.values() for root in config["roots"]}
     mapped = []
     has_release_lock = False
@@ -133,7 +134,8 @@ def select(paths: list[str], full: bool = False) -> dict:
         matches(path, pattern)
         for config in domains.values()
         for pattern in config["paths"]
-    ) or any(matches(path, pattern) for pattern in catalog["shared_paths"])
+    ) or any(matches(path, pattern) for pattern in catalog["shared_paths"]) \
+        or any(matches(path, pattern) for pattern in ci_metadata_paths)
     risky_unknown = [
         path for path in paths
         if (path.startswith(("clusters/", "platform/", "operations/", "schemas/", ".github/"))
@@ -143,6 +145,10 @@ def select(paths: list[str], full: bool = False) -> dict:
         selected = set(domains)
         shared = True
 
+    changed_tests = [
+        path for path in paths
+        if path.startswith("tests/test_") and path.endswith(".py") and (ROOT / path).is_file()
+    ]
     tests = list(catalog["always_tests"])
     roots: list[str] = []
     submodules: list[str] = []
@@ -156,7 +162,7 @@ def select(paths: list[str], full: bool = False) -> dict:
     if shared:
         tests = [str(path.relative_to(ROOT)) for path in (ROOT / "tests").glob("test_*.py")]
     else:
-        tests.extend(path for path in paths if path.startswith("tests/test_") and path.endswith(".py") and (ROOT / path).is_file())
+        tests.extend(changed_tests)
 
     result = {
         "domains": sorted(selected),
@@ -165,7 +171,7 @@ def select(paths: list[str], full: bool = False) -> dict:
         "submodules": sorted(set(submodules)),
         "full": shared,
         "risky_unknown": risky_unknown,
-        "run": bool(selected or paths),
+        "run": bool(selected or shared or changed_tests),
     }
     return result
 

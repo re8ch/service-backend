@@ -51,7 +51,7 @@ def test_pr_gate_is_offline_while_production_monitor_keeps_failure_signal():
     assert "operations/k6/validate.py" in commands
     assert "inspect smoke.js" in commands and "--network none" in commands
     assert "run smoke.js" not in commands
-    assert "k6-contracts" in ci["jobs"]["validate"]["needs"]
+    assert "k6-contracts" in ci["jobs"]["control-plane-validate"]["needs"]
     monitor = yaml.safe_load((root / ".github/workflows/k6-contracts.yml").read_text())
     live = monitor["jobs"]["contracts"]
     assert not live.get("continue-on-error", False)

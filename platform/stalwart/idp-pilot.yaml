@@ -72,10 +72,18 @@ spec:
             httpGet: {path: /healthz/live, port: http}
             initialDelaySeconds: 20
             periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 6
           readinessProbe:
             httpGet: {path: /healthz/ready, port: http}
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 10
+          startupProbe:
+            httpGet: {path: /healthz/live, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 60
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {cpu: 500m, memory: 512Mi}
@@ -94,7 +102,7 @@ spec:
         - {name: config, configMap: {name: stalwart-idp-config}}
         - {name: tmp, emptyDir: {}}
         - name: data
-          persistentVolumeClaim: {claimName: stalwart-idp-flk-data}
+          persistentVolumeClaim: {claimName: stalwart-idp-flk-local-data}
         - {name: oidc-keys, secret: {secretName: stalwart-idp-oidc-keys}}
 ---
 apiVersion: v1
@@ -127,7 +135,7 @@ spec:
     metadata: {labels: {app.kubernetes.io/name: stalwart-idp-bootstrap}}
     spec:
       restartPolicy: Never
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: r640}
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -226,7 +234,7 @@ metadata:
   labels: {networking.re8ch.com/dns-authority: public-edge}
   annotations:
     external-dns.alpha.kubernetes.io/hostname: id.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/provider: public-edge-manager

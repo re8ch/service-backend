@@ -42,6 +42,42 @@ ClusterIP Service. Hostnames are allocated below `apps.re8ch.com`; the shared
 Gateway, listener, DNS and TLS policy remain platform-owned. Raw Secret and
 Gateway access are not published.
 
+## Tool-call telemetry
+
+The native tenant MCP records completed authenticated `tools/call` requests at
+the SDK middleware boundary and exposes Prometheus metrics on `/metrics`:
+
+- `re8ch_mcp_tool_calls_total` records the canonical `tool_name`, `outcome`, and
+  a bounded `error_category` (`none`, `tool`, `protocol`, `timeout`, or
+  `canceled`);
+- `re8ch_mcp_tool_call_duration_seconds` records latency with the same labels.
+
+The metrics never contain tenant, user, session, arguments, results, bearer
+tokens, or free-form error text. Tool-name cardinality is capped; invalid or
+overflow names are aggregated as `__unknown__`. The endpoint has no public
+Gateway route and is reachable by the declared observability scraper through
+the namespace NetworkPolicy.
+
+Compatibility names are rewritten before MCP dispatch and are not included in
+`tools/list`. Authenticated use of a compatibility name increments
+`re8ch_mcp_tool_alias_calls_total` with only its bounded alias family and
+canonical tool name. This permits a measured deprecation window: publish the
+smaller canonical surface, retain old calls temporarily, and remove an alias
+only after its usage reaches zero.
+
+The monitoring product surface is provider-neutral and intentionally compact:
+`monitoring_catalog`, `monitoring_query`, `monitoring_analyze`, and
+`monitoring_dashboard`. Historical `grafana_*` calls remain hidden aliases for
+the measured migration window; Grafana remains an implementation detail and
+provider-specific resource URI until a separate resource migration is reviewed.
+
+The runtime-image surface similarly publishes three product-oriented tools:
+`runtime_image_catalog` for project, repository, artifact and security reads;
+`runtime_image_manage` for scan and tag lifecycle; and `runtime_image_build` for
+the integrated BuildKit/SBOM/provenance/signing/scan workflow. Historical
+`harbor_*` calls remain hidden measured aliases. Harbor is still the current OCI
+registry implementation, but it is no longer part of the public tool names.
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret

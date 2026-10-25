@@ -20,7 +20,7 @@ func (s *server) registerGrafanaTools(ms *mcp.Server) {
 	if err != nil {
 		panic(err)
 	}
-	for _, name := range []string{"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get", "grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate", "grafana_render", "grafana_exploration_save", "grafana_exploration_delete"} {
+	for _, name := range []string{"monitoring_catalog", "monitoring_query", "monitoring_analyze", "monitoring_dashboard"} {
 		definition := definitions[name]
 		if definition.Name == "" {
 			panic("missing tenant schema: " + name)
@@ -31,15 +31,66 @@ func (s *server) registerGrafanaTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
-				if name == "grafana_render" || name == "grafana_exploration_save" || name == "grafana_exploration_delete" {
+				if name == "monitoring_dashboard" {
 					if err := requireOperator(id); err != nil {
 						return nil, nil, err
 					}
 				}
-				value, err := s.callGrafana(ctx, id.Tenant, name, args)
+				operation, err := monitoringOperation(name, args)
+				if err != nil {
+					return nil, nil, err
+				}
+				value, err := s.callGrafana(ctx, id.Tenant, operation, args)
 				return nil, value, err
 			})
 	}
+}
+
+func monitoringOperation(name string, args map[string]any) (string, error) {
+	action := asString(args, "action")
+	switch name {
+	case "monitoring_catalog":
+		operations := map[string]string{
+			"list_capabilities": "grafana_capability_list",
+			"get_capability":    "grafana_capability_get",
+			"list_datasources":  "grafana_datasource_list",
+			"get_datasource":    "grafana_datasource_get",
+		}
+		if action == "get_capability" && asString(args, "capability_id") == "" {
+			return "", errors.New("capability_id is required")
+		}
+		if action == "get_datasource" && asString(args, "datasource_uid") == "" {
+			return "", errors.New("datasource_uid is required")
+		}
+		if operation := operations[action]; operation != "" {
+			return operation, nil
+		}
+	case "monitoring_query":
+		return "grafana_query", nil
+	case "monitoring_analyze":
+		operations := map[string]string{"pipeline": "grafana_analyze", "indicators": "grafana_indicators", "correlate": "grafana_correlate"}
+		if action == "indicators" && len(slice(args["indicators"])) == 0 {
+			return "", errors.New("indicators are required")
+		}
+		if operation := operations[action]; operation != "" {
+			return operation, nil
+		}
+	case "monitoring_dashboard":
+		operations := map[string]string{"render": "grafana_render", "save": "grafana_exploration_save", "delete": "grafana_exploration_delete"}
+		if action == "render" && args["panel_id"] == nil {
+			return "", errors.New("panel_id is required")
+		}
+		if action == "save" && (args["dashboard"] == nil || asString(args, "idempotency_key") == "") {
+			return "", errors.New("dashboard and idempotency_key are required")
+		}
+		if action == "delete" && asString(args, "dashboard_uid") == "" {
+			return "", errors.New("dashboard_uid is required")
+		}
+		if operation := operations[action]; operation != "" {
+			return operation, nil
+		}
+	}
+	return "", errors.New("unsupported monitoring action")
 }
 
 func withOperation(tenant, operation string, value map[string]any) map[string]any {

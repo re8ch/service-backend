@@ -23,8 +23,8 @@ export const TENANT_TOOL_GROUPS: ToolGroup[] = [
     tools: ['harbor-project-get', 'harbor-repository-list', 'harbor-artifact-list', 'harbor-artifact-get', 'harbor-artifact-scan-start', 'harbor-vulnerability-report-get', 'harbor-sbom-get', 'harbor-accessory-list', 'harbor-tag-create', 'harbor-tag-delete', 'harbor-audit-log-list', 'harbor-build-start', 'harbor-build-get', 'harbor-build-list', 'harbor-build-cancel'],
   },
   {
-    category: 'Grafana observability', resourceClass: 'observability.grafana.v1', disposition: 'local',
-    tools: ['grafana-capabilities', 'grafana-capability-get', 'grafana-datasource-list', 'grafana-datasource-get', 'grafana-query', 'grafana-render', 'grafana-analyze', 'grafana-correlate', 'grafana-indicators', 'grafana-exploration-save', 'grafana-exploration-delete'],
+    category: 'Monitoring', resourceClass: 'observability.grafana.v1', disposition: 'local',
+    tools: ['monitoring-catalog', 'monitoring-query', 'monitoring-analyze', 'monitoring-dashboard'],
   },
   {
     category: 'BYOC', resourceClass: 'external cluster identity', disposition: 'external',

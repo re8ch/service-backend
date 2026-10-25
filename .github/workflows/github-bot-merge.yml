@@ -21,7 +21,7 @@ concurrency:
 jobs:
   merge:
     if: github.actor == 'Woomou' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 5
     environment: gitops-merge
     steps:

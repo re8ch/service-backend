@@ -8,7 +8,7 @@ concurrency: {group: 'ceph-operation-${{ inputs.operation_id }}', cancel-in-prog
 jobs:
   infra:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 30
     environment: release-executor-ceph-infra
     outputs:
@@ -110,7 +110,7 @@ jobs:
       with: {name: 'ceph-infra-${{ inputs.operation_id }}', path: '${{ runner.temp }}/infra-result.json', retention-days: 30, if-no-files-found: ignore}
   runtime:
     needs: infra
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 35
     environment: release-executor-ceph-runtime
     steps:
@@ -202,7 +202,7 @@ jobs:
         if-no-files-found: error
   accept:
     needs: [infra, runtime]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 30
     environment: release-executor-ceph-infra
     steps:

@@ -16,7 +16,7 @@ func (s *server) registerHarborTools(ms *mcp.Server) {
 	if err != nil {
 		panic(err)
 	}
-	for _, name := range []string{"tenant_human_access_issue", "harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_artifact_scan_start", "harbor_vulnerability_report_get", "harbor_sbom_get", "harbor_accessory_list", "harbor_tag_create", "harbor_tag_delete", "harbor_audit_log_list", "harbor_build_start", "harbor_build_get", "harbor_build_list", "harbor_build_cancel"} {
+	for _, name := range []string{"tenant_human_access_issue", "runtime_image_catalog", "runtime_image_manage", "runtime_image_build"} {
 		definition := definitions[name]
 		if definition.Name == "" {
 			panic("missing tenant schema: " + name)
@@ -27,15 +27,85 @@ func (s *server) registerHarborTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
-				if name == "harbor_artifact_scan_start" || name == "harbor_tag_create" || name == "harbor_tag_delete" || name == "harbor_build_start" || name == "harbor_build_cancel" {
+				operation := name
+				if strings.HasPrefix(name, "runtime_image_") {
+					operation, err = runtimeImageOperation(name, args)
+					if err != nil {
+						return nil, nil, err
+					}
+				}
+				if operation == "harbor_artifact_scan_start" || operation == "harbor_tag_create" || operation == "harbor_tag_delete" || operation == "harbor_build_start" || operation == "harbor_build_cancel" {
 					if err := requireOperator(id); err != nil {
 						return nil, nil, err
 					}
 				}
-				value, err := s.callHarbor(ctx, id, name, args)
+				value, err := s.callHarbor(ctx, id, operation, args)
 				return nil, value, err
 			})
 	}
+}
+
+func runtimeImageOperation(name string, args map[string]any) (string, error) {
+	action := asString(args, "action")
+	require := func(keys ...string) error {
+		for _, key := range keys {
+			if asString(args, key) == "" {
+				return errors.New(key + " is required")
+			}
+		}
+		return nil
+	}
+	switch name {
+	case "runtime_image_catalog":
+		operations := map[string]string{
+			"get_project":         "harbor_project_get",
+			"list_repositories":   "harbor_repository_list",
+			"list_artifacts":      "harbor_artifact_list",
+			"get_artifact":        "harbor_artifact_get",
+			"get_vulnerabilities": "harbor_vulnerability_report_get",
+			"get_sbom":            "harbor_sbom_get",
+			"list_accessories":    "harbor_accessory_list",
+			"list_audit":          "harbor_audit_log_list",
+		}
+		operation := operations[action]
+		if operation == "" {
+			break
+		}
+		if action == "list_artifacts" {
+			return operation, require("repository")
+		}
+		if action == "get_artifact" || action == "get_vulnerabilities" || action == "get_sbom" || action == "list_accessories" {
+			return operation, require("repository", "reference")
+		}
+		return operation, nil
+	case "runtime_image_manage":
+		operations := map[string]string{"start_scan": "harbor_artifact_scan_start", "create_tag": "harbor_tag_create", "delete_tag": "harbor_tag_delete"}
+		operation := operations[action]
+		if operation == "" {
+			break
+		}
+		if err := require("repository", "reference"); err != nil {
+			return "", err
+		}
+		if action == "create_tag" || action == "delete_tag" {
+			return operation, require("tag")
+		}
+		return operation, nil
+	case "runtime_image_build":
+		operations := map[string]string{"start": "harbor_build_start", "get": "harbor_build_get", "list": "harbor_build_list", "cancel": "harbor_build_cancel"}
+		operation := operations[action]
+		if operation == "" {
+			break
+		}
+		if action == "start" {
+			return operation, require("credential_ref", "context", "repository", "tag", "idempotency_key")
+		}
+		if action == "get" || action == "cancel" {
+			return operation, require("operation_id")
+		}
+		return operation, nil
+	}
+	return "", errors.New("unsupported runtime-image action")
 }
 
 func flag(args map[string]any, key string, defaultValue bool) bool {
