@@ -6,6 +6,16 @@ import yaml
 ROOT = Path(__file__).parents[1]
 
 
+def test_tenant_publisher_and_signer_use_the_same_dedicated_registry_identity():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/tenant-go-release.yml").read_text())
+    for job in ("release", "finalize"):
+        assert workflow["jobs"][job]["environment"] == "production"
+        credential_steps = [s for s in workflow["jobs"][job]["steps"] if "HARBOR_PASSWORD" in s.get("env", {})]
+        assert len(credential_steps) == 1
+        assert credential_steps[0]["env"]["HARBOR_USERNAME"] == "${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}"
+        assert credential_steps[0]["env"]["HARBOR_PASSWORD"] == "${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}"
+
+
 def test_tenant_go_release_allows_cold_builder_pulls_within_job_budget():
     workflow = yaml.safe_load(
         (ROOT / ".github/workflows/tenant-go-release.yml").read_text()

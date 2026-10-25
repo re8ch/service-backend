@@ -4,7 +4,7 @@
 
 Product source: `platform/apps/tenant-mcp` (Go). The actual container build is
 the multi-stage Dockerfile in that directory. `tenant-go-release.yml` invokes
-the shared BuildKit publisher on the governed restricted-node-6dc3f140f9 builder (migrated on main
+the shared BuildKit publisher on the governed R640 builder (migrated on main
 before activation). The product is not moved here.
 
 Before this change, main compiled the image in validation, then compiled it
@@ -51,6 +51,21 @@ PR validation still builds a test image; it is deliberately separate from truste
 main publication. This change removes the duplicate **main** build, not PR checks.
 
 ## Activation and rollback
+
+Publication and cosign use the dedicated Harbor project robot
+`robot$image+github-tenant-mcp`, with repository pull/push in the private `image`
+project. Harbor project robots cannot narrow this grant to a single repository;
+no project administration, deletion, tenant access or user management is granted.
+The sole CI credential copy is held in GitHub's `production` environment as
+`TENANT_MCP_REGISTRY_USERNAME` and `TENANT_MCP_REGISTRY_PASSWORD`. The workflow
+does not use the shared `HARBOR_*` admin secrets or a tenant's `re8ch` robot.
+
+The robot is provisioned for 90 days. Rotate this dedicated robot before expiry
+through the platform administration path and replace these two GitHub secrets;
+do not rotate the Harbor administrator or copy its password into CI. GitHub's
+environment public key seals the values inside the platform boundary before
+transfer; neither plaintext nor a second Kubernetes credential copy is needed.
+Existing workflows using shared credentials are outside this product's cutover.
 
 Merge the service-backend change first, then wait for
 `flux-system/tenant-mcp-image` Ready and the ConfigMap to exist. The initial value
