@@ -10,6 +10,11 @@ spec:
   retryInterval: 1m
   timeout: 15m
   path: ./clusters/re8ch/domains/main-legacy/data-storage
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: supabase-rest
+      namespace: supabase-pg-re8ch
   prune: false
   wait: false
   sourceRef: {kind: GitRepository, name: service-backend}

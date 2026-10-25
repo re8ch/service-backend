@@ -24,10 +24,10 @@ metadata:
   annotations:
     storage.re8ch.com/ha: "false"
     storage.re8ch.com/usage-policy: A1-only local storage for node-owned, rebuildable
-      or externally backed state. Static PVs must enforce node affinity to restricted-node-1eb0570f74.
+      or externally backed state. Static PVs must enforce node affinity to a1-wsl-zt.
   labels:
     storage.re8ch.com/availability-class: node-local
-    storage.re8ch.com/failure-domain: restricted-node-1eb0570f74
+    storage.re8ch.com/failure-domain: a1-wsl-zt
     storage.re8ch.com/replication: "1"
   name: local-a1
 provisioner: kubernetes.io/no-provisioner
@@ -40,10 +40,10 @@ metadata:
   annotations:
     storage.re8ch.com/ha: "false"
     storage.re8ch.com/usage-policy: B1-only local storage for node-owned, rebuildable
-      or externally backed state. Static PVs must enforce node affinity to restricted-node-296f36f2fb.
+      or externally backed state. Static PVs must enforce node affinity to b1-wsl-zt.
   labels:
     storage.re8ch.com/availability-class: node-local
-    storage.re8ch.com/failure-domain: restricted-node-296f36f2fb
+    storage.re8ch.com/failure-domain: b1-wsl-zt
     storage.re8ch.com/replication: "1"
   name: local-b1
 provisioner: kubernetes.io/no-provisioner
@@ -81,13 +81,13 @@ data:
         "compocv-labor-r640": {
           "provider": "postgresql",
           "driver": "postgres-jdbc",
-          "name": "CompoCV Labor - restricted-node-6dc3f140f9",
+          "name": "CompoCV Labor - R640",
           "show-system-objects": false,
           "configuration": {
-            "host": "192.0.2.67",
+            "host": "10.181.22.73",
             "port": "15432",
             "database": "compocv_labor",
-            "url": "jdbc:postgresql://192.0.2.67:15432/compocv_labor",
+            "url": "jdbc:postgresql://10.181.22.73:15432/compocv_labor",
             "configurationType": "MANUAL",
             "type": "prod",
             "closeIdleConnection": true
@@ -184,9 +184,9 @@ data:
       "mode": "single-instance",
       "activeMembers": [
         {
-          "node": "restricted-node-6dc3f140f9",
+          "node": "r640",
           "member": "pg-re8ch-1",
-          "address": "192.0.2.205",
+          "address": "10.250.0.128",
           "port": 5432
         }
       ],
@@ -502,7 +502,7 @@ spec:
         - name: HTTPS_PROXY
           value: http://$(NODE_IP):17891
         - name: NO_PROXY
-          value: 127.0.0.1,localhost,.svc,.cluster.local,192.0.2.203/8,192.0.2.225/10
+          value: 127.0.0.1,localhost,.svc,.cluster.local,10.0.0.0/8,100.64.0.0/10
         - name: RCLONE_CONFIG
           value: /etc/rclone/rclone.conf
         - name: RCLONE_RC_USER
@@ -583,7 +583,7 @@ spec:
         - name: HTTPS_PROXY
           value: http://$(NODE_IP):17891
         - name: NO_PROXY
-          value: 127.0.0.1,localhost,.svc,.cluster.local,192.0.2.203/8,192.0.2.225/10
+          value: 127.0.0.1,localhost,.svc,.cluster.local,10.0.0.0/8,100.64.0.0/10
         image: ghcr.io/re8ch/cloud-disk-gateway@sha256:18c305d040f6591b76ae36866b77e1024d4f14ae5b9ae61d6db9f3d7014e47e3
         livenessProbe:
           httpGet:
@@ -680,7 +680,7 @@ spec:
       imagePullSecrets:
       - name: ghcr-re8ch
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 1000
         runAsGroup: 1000
@@ -809,6 +809,8 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    delivery.re8ch.com/reconciler: native-flux
   name: supabase-rest
   namespace: supabase-pg-re8ch
 spec:
@@ -879,7 +881,7 @@ spec:
             cpu: 40m
             memory: 128Mi
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -951,7 +953,7 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.205
+  - 10.250.0.128
   conditions:
     ready: true
 kind: EndpointSlice
@@ -1113,7 +1115,7 @@ spec:
       imagePullSecrets:
       - name: ghcr-re8ch
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
   proxyPort: 8080
   replicas: 1
   secrets:
@@ -1139,7 +1141,7 @@ metadata:
     storage.re8ch.com/role: local-control-plane
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
-  name: restricted-node-1eb0570f74
+  name: a1-wsl-zt
 ---
 apiVersion: v1
 kind: Node
@@ -1155,7 +1157,7 @@ metadata:
     storage.re8ch.com/role: coordinator-local
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
-  name: restricted-node-296f36f2fb
+  name: b1-wsl-zt
 spec:
   taints:
   - effect: NoSchedule
@@ -1175,4 +1177,4 @@ metadata:
     storage.re8ch.com/role: capacity-compute-osd
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
-  name: restricted-node-6dc3f140f9
+  name: r640
