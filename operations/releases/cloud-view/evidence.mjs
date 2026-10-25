@@ -17,6 +17,8 @@ export function stateOf(item) {
   }
   if(item.observedGeneration<item.generation) return 'processing';
   if(item.stalled) return 'failure';
+  // Flux retains Reconciling=True while retrying an explicit failure.
+  if(item.ready===false&&item.reason!=='Progressing') return 'failure';
   if(item.reconciling) return 'processing';
   if(item.ready===true) return 'success';
   if(item.ready===false) return 'failure';
@@ -26,7 +28,7 @@ export function project(object, domain, watched=true) {
   const metadata=object.metadata||{}, spec=object.spec||{}, status=object.status||{};
   const conditions=status.conditions||[], ready=conditions.find(c=>c.type==='Ready');
   const result={kind:object.kind,name:metadata.name,namespace:metadata.namespace,domain,
-    generation:metadata.generation??0,observedGeneration:status.observedGeneration??ready?.observedGeneration??-1,
+    generation:metadata.generation??0,observedGeneration:ready?.observedGeneration??status.observedGeneration??-1,
     suspended:spec.suspend===true,watched,ready:ready?.status==='True'?true:ready?.status==='False'?false:null,
     reason:ready?.reason||'',reconciling:conditions.some(c=>c.type==='Reconciling'&&c.status==='True'),
     stalled:conditions.some(c=>c.type==='Stalled'&&c.status==='True')};
