@@ -35,3 +35,12 @@ def test_headlamp_direct_api_context_uses_supabase_issuer():
     assert "-oidc-use-pkce" in container["args"]
     assert "-oidc-use-access-token" in container["args"]
     assert not any(arg.startswith("-oidc-client-secret=") for arg in container["args"])
+
+
+def test_single_node_rollout_does_not_compete_for_host_ports():
+    deployment = yaml.safe_load((ROOT / "platform/headlamp/deployment.yaml").read_text())
+    pod = deployment["spec"]["template"]["spec"]
+    assert not pod.get("hostNetwork", False)
+    for container in pod["containers"]:
+        assert all(not port.get("hostPort") for port in container.get("ports", []))
+        assert not any(env["name"].startswith("KUBERNETES_SERVICE_") for env in container.get("env", []))
