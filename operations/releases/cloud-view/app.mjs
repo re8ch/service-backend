@@ -8,7 +8,7 @@ async function api(path) {
   if (!r.ok) throw new Error(`GitHub HTTP ${r.status}`);
   return r.json();
 }
-function row(parent, title, detail, state='unknown', url) {
+function row(parent, title, detail, state='unknown', url, badgeLabel) {
   const el=document.createElement('div'); el.className='row';
   const body=document.createElement('div');
   const name=document.createElement(url ? 'a' : 'strong'); name.textContent=title;
@@ -16,7 +16,7 @@ function row(parent, title, detail, state='unknown', url) {
   const sub=document.createElement('div'); sub.className='detail';sub.textContent=detail;
   body.append(name,sub);
   const badge=document.createElement('span');badge.className=`badge ${['success','failure'].includes(state)?state:'unknown'}`;
-  badge.textContent=state==='success'?'已回报成功':state==='failure'?'已回报失败':'未知';
+  badge.textContent=badgeLabel || (state==='success'?'已回报成功':state==='failure'?'已回报失败':'未知');
   el.append(body,badge);parent.append(el);
 }
 function render() {
@@ -33,11 +33,11 @@ function render() {
     row(byId('runtime'),s.context,`${s.created_at} · ${result.reason} · ${s.description||''}`,result.state,s.target_url);
   }
   if (!checks.length) row(byId('checks'),'没有 Checks','不据此推断健康');
-  for (const c of checks) row(byId('checks'),c.name,`${c.status} / ${c.conclusion||'pending'} · ${c.completed_at||c.started_at||''}`,'unknown',c.html_url);
+  for (const c of checks) row(byId('checks'),c.name,`${c.status} / ${c.conclusion||'pending'} · ${c.completed_at||c.started_at||''}`,'unknown',c.html_url,c.conclusion||c.status);
   if (!deployments.length) row(byId('deployments'),'没有 Deployment 记录','不据此推断健康');
-  for (const d of deployments) row(byId('deployments'),d.environment,`${d.sha.slice(0,12)} · ${d.latest?.state||'no status'} · ${d.latest?.created_at||d.created_at}`,'unknown',`https://github.com/${REPO}/deployments`);
+  for (const d of deployments) row(byId('deployments'),d.environment,`${d.sha.slice(0,12)} · ${d.latest?.state||'no status'} · ${d.latest?.created_at||d.created_at}`,'unknown',`https://github.com/${REPO}/deployments`,d.latest?.state||'无状态');
   for (const s of latestStatuses(statuses).filter(s=>!s.context.startsWith('flux/kustomization/')))
-    row(byId('statuses'),s.context,`${s.state} · ${s.created_at}`,'unknown',s.target_url);
+    row(byId('statuses'),s.context,`${s.state} · ${s.created_at}`,'unknown',s.target_url,s.state);
 }
 async function refresh() {
   byId('refresh').disabled=true;
