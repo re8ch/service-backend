@@ -13,6 +13,8 @@ async function github(path,body,method=body?'POST':'GET') {
   return JSON.parse(execFileSync('gh',args,{input:body?JSON.stringify(body):undefined,
     encoding:'utf8',maxBuffer:8*1024*1024,timeout:45000,stdio:['pipe','pipe','pipe']}));
 }
+const pick=(value,keys)=>Object.fromEntries(keys.filter(k=>value?.[k]!==undefined).map(k=>[k,value[k]]));
+const evidenceCheck=c=>({...pick(c,['id','name','head_sha','status','conclusion']),app:{id:c.app.id},output:{text:c.output.text}});
 const snapshotURL='https://flux-status.re8ch.com/api/snapshot';
 async function publishSnapshot(body) {
   const url=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);url.searchParams.set('audience',snapshotURL);
@@ -82,7 +84,10 @@ try {
   stage='publish public cloud snapshot';
   const [statuses,checks,deployments]=await Promise.all([github(`/commits/${sha}/statuses?per_page=100`),github(`/commits/${sha}/check-runs?per_page=100`),github(`/deployments?sha=${sha}&per_page=3`)]);
   for(const d of deployments)d.latest=(await github(`/deployments/${d.id}/statuses?per_page=1`))[0];
-  await publishSnapshot({schema:1,repository:repo,sha,indexCheck,domainChecks,statuses,checks:checks.check_runs,deployments});
+  await publishSnapshot({schema:1,repository:repo,sha,indexCheck:evidenceCheck(indexCheck),domainChecks:domainChecks.map(evidenceCheck),
+    statuses:statuses.map(s=>pick(s,['context','target_url','state','created_at'])),
+    checks:checks.check_runs.map(c=>pick(c,['name','html_url','status','conclusion','completed_at','started_at'])),
+    deployments:deployments.map(d=>({...pick(d,['environment','sha','created_at']),latest:pick(d.latest,['state','created_at'])}))});
   console.log(JSON.stringify({batch,domains:published.map(d=>({id:d.id,count:d.count})),observedAt}));
 } catch(error){
   // Only allowlisted categories leave the process, never raw stderr or tokens.
