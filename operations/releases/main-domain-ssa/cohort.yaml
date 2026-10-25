@@ -11,9 +11,9 @@ sourceDomains:
 - delivery-products
 - operations-ui
 - tenant-runtime
-releaseCount: 16
-objectCount: 123
-legacyObjectCount: 109
+releaseCount: 14
+objectCount: 92
+legacyObjectCount: 140
 deferredSSAObjects: []
 executionProfiles:
 - domain: data-storage
@@ -54,7 +54,7 @@ legacyShards:
 - domain: delivery-products
   objects: 10
 - domain: operations-ui
-  objects: 12
+  objects: 43
 - domain: tenant-runtime
   objects: 57
 releases:
@@ -94,14 +94,6 @@ releases:
   domain: delivery-products
   namespace: re8ch-farseer
   objects: 5
-- name: main-operations-ui-headlamp
-  domain: operations-ui
-  namespace: headlamp
-  objects: 29
-- name: main-operations-ui-kube-system
-  domain: operations-ui
-  namespace: kube-system
-  objects: 2
 - name: main-operations-ui-studio-toolkit
   domain: operations-ui
   namespace: studio-toolkit

@@ -51,6 +51,7 @@ spec:
     - Woomou GitHub SSH signing key
     - GitHub web-flow merge signing key
   mainFluxOwns:
+    - native-annotated-main-domain-resources
     - flux-crds
     - autonomous-controller-lifecycle
     - namespaces

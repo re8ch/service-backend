@@ -26,3 +26,14 @@ https://github.com are allowed and all API text is rendered with textContent.
 Run `node --test operations/releases/cloud-view/model.test.mjs`.
 The standalone URL is https://re8ch.github.io/service-backend/ . Headlamp can
 embed the same public page; its native Flux views remain cluster diagnostics.
+
+Headlamp is owned by the existing main Flux operations-ui Kustomization. Its
+explicit health checks cover headlamp, headlamp-gateway-proxy and
+headlamp-active-elector Deployments. The existing GitHub Provider reports that
+Kustomization to the same commit status API; there is no Headlamp SSA release
+contract or separate promotion workflow. Native main Flux is the sole writer.
+
+The two Headlamp-authored public catalog ConfigMaps in kube-system also follow
+their authoring root into native Flux. Their separate SSA contract is removed.
+Rollback changes the reviewed plugin version/digest through a signed PR while
+retaining native ownership; do not reactivate the retired SSA writers.
