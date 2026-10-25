@@ -178,14 +178,16 @@ def main():
             # The Python runtime is only a compatibility baseline for domains that
             # have not moved to a consolidated Go-native catalog. Grafana's legacy
             # tools remain callable as hidden aliases, while tools/list publishes
-            # the provider-neutral monitoring_* surface.
-            p_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(python_url, "tools/list", {})["tools"] if not item["name"].startswith(("artc_", "grafana_"))}
+            # the provider-neutral monitoring_* and runtime_image_* surfaces.
+            p_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(python_url, "tools/list", {})["tools"] if not item["name"].startswith(("artc_", "grafana_", "harbor_"))}
             g_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(go_url, "tools/list", {})["tools"] if item["name"] in p_tools}
             equivalent("tools/list legacy schemas", p_tools, g_tools)
             go_tool_names = {item["name"] for item in mcp(go_url, "tools/list", {})["tools"]}
             assert not any(name.startswith("artc_") for name in go_tool_names), "Artchais tools leaked into acme catalog"
             assert {"monitoring_catalog", "monitoring_query", "monitoring_analyze", "monitoring_dashboard"} <= go_tool_names, "consolidated monitoring tools missing"
             assert not any(name.startswith("grafana_") for name in go_tool_names), "legacy Grafana aliases leaked into the public catalog"
+            assert {"runtime_image_catalog", "runtime_image_manage", "runtime_image_build"} <= go_tool_names, "consolidated runtime-image tools missing"
+            assert not any(name.startswith("harbor_") for name in go_tool_names), "legacy Harbor aliases leaked into the public catalog"
             for name, args in tool_cases:
                 p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))
                 g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))
