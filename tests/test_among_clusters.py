@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,5 +18,10 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
     assert "headlamp-advanced-fabric-v0261" in kustomization
     assert "scheduling.re8ch.com/placement-class: control-plane-critical" in deployment
     assert 'node-role.kubernetes.io/control-plane: "true"' in deployment
-    assert "github.com/re8ch/" not in deployment
+    # Bundled plugins must remain self-contained; separately published plugins
+    # may download their immutable, checksum-verified release packages.
+    installers = yaml.safe_load(deployment)["spec"]["template"]["spec"]["initContainers"]
+    for installer in installers:
+        if installer["name"] in {"install-among-clusters-plugin", "install-advanced-fabric-plugin"}:
+            assert "github.com/re8ch/" not in yaml.safe_dump(installer)
     assert not re.search(r"client-certificate-data|client-key-data|Bearer\\s+[A-Za-z0-9]", deployment, re.I)
