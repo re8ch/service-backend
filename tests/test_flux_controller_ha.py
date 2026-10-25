@@ -73,6 +73,11 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
         "operator": "Equal",
         "value": "true",
         "effect": "NoSchedule",
+    }, {
+        "key": "scheduling.re8ch.com/capacity-window",
+        "operator": "Equal",
+        "value": "closed",
+        "effect": "NoSchedule",
     }]
 
 
