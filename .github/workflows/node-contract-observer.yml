@@ -3,7 +3,7 @@ name: NodeContract observer
 on:
   schedule:
     - cron: "17 3 * * *"
-    - cron: "*/5 * * * *"
+    - cron: "2-57/5 * * * *"
   workflow_dispatch:
     inputs:
       scope:
@@ -12,7 +12,7 @@ on:
         default: nodes
 
 concurrency:
-  group: node-contract-observer
+  group: node-contract-observer-${{ inputs.scope || github.event.schedule }}
   cancel-in-progress: false
 
 jobs:
@@ -176,7 +176,7 @@ jobs:
     name: Flux runtime evidence
     env:
       NODE_USE_ENV_PROXY: '1'
-    if: github.ref == 'refs/heads/main' && (github.event.schedule == '*/5 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'flux'))
+    if: github.ref == 'refs/heads/main' && (github.event.schedule == '2-57/5 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'flux'))
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 8
     environment: cluster-observation
@@ -201,6 +201,8 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: service-backend
           permission-checks: write
+          permission-statuses: read
+          permission-deployments: read
       - name: Publish bounded read-only Flux inventory
         env:
           GH_TOKEN: ${{ steps.reporter.outputs.token }}

@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -24,7 +24,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: validate
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 10
     environment:
       name: github-pages
@@ -40,7 +40,7 @@ jobs:
       - name: Select static files without rebuilding or publishing repository contents
         run: |
           mkdir _site
-          cp operations/releases/cloud-view/{index.html,style.css,app.mjs,model.mjs,evidence.mjs} _site/
+          cp operations/releases/cloud-view/index.html _site/
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with: {path: _site}
       - id: deployment

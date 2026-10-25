@@ -28,7 +28,7 @@ spec:
       priorityClassName: system-cluster-critical
       # Resolve the Supabase issuer through the in-cluster Cilium Gateway.
       hostAliases:
-        - ip: "192.0.2.209"
+        - ip: "10.251.0.4"
           hostnames:
             - db-rw.re8ch.com
       nodeSelector:
@@ -55,6 +55,26 @@ spec:
       hostNetwork: false
       dnsPolicy: ClusterFirst
       initContainers:
+        - name: install-flux-static-github-ops
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              target=/headlamp/plugins/flux-static-github-ops-0.1.0
+              # Reuse the published package; no plugin rebuild or OCI promotion.
+              archive=/tmp/flux-static.tar.gz
+              wget -T 45 -O "$archive" https://github.com/re8ch/headlamp-flux-static-github-ops/releases/download/v0.1.0/re8ch-headlamp-flux-static-github-ops-0.1.0.tar.gz
+              echo 'd54f5c8034b121443b1bc48eb9b7509963f8857594a57f31cf35fb32c60eef4e  /tmp/flux-static.tar.gz' | sha256sum -c -
+              stage=$(mktemp -d /headlamp/plugins/.flux-static.XXXXXX)
+              tar -xzf "$archive" -C "$stage" --strip-components=1
+              if [ -d "$target" ]; then
+                cmp "$stage/main.js" "$target/main.js"
+                rm -rf "$stage"
+              else
+                mv "$stage" "$target"
+              fi
+          volumeMounts:
+            - {name: plugins, mountPath: /headlamp/plugins}
         - name: install-runtime-anatomy-plugin
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
           command: [/bin/sh, -ec]
@@ -339,7 +359,7 @@ spec:
       volumes:
         - name: plugins
           # Plugins are installed deterministically by init containers.
-          # Keep the runtime directory pod-local so restricted-node-6dc3f140f9 failover does not
+          # Keep the runtime directory pod-local so R640 failover does not
           # depend on a cross-node CephFS NodePublish operation.
           emptyDir: {}
         - name: birfucate-browser-plugin

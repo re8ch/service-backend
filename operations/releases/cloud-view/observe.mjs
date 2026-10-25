@@ -13,6 +13,17 @@ async function github(path,body,method=body?'POST':'GET') {
   return JSON.parse(execFileSync('gh',args,{input:body?JSON.stringify(body):undefined,
     encoding:'utf8',maxBuffer:8*1024*1024,timeout:45000,stdio:['pipe','pipe','pipe']}));
 }
+const pick=(value,keys)=>Object.fromEntries(keys.filter(k=>value?.[k]!==undefined).map(k=>[k,value[k]]));
+const evidenceCheck=c=>({...pick(c,['id','name','head_sha','status','conclusion']),app:{id:c.app.id},output:{text:c.output.text}});
+const snapshotURL='https://flux-status.re8ch.com/api/snapshot';
+async function publishSnapshot(body) {
+  const url=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);url.searchParams.set('audience',snapshotURL);
+  const identity=await fetch(url,{headers:{Authorization:`Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}`},signal:AbortSignal.timeout(15000)});
+  if(!identity.ok)throw new Error('Cloud publication identity unavailable');
+  const {value}=await identity.json();
+  const response=await fetch(snapshotURL,{method:'POST',headers:{Authorization:`Bearer ${value}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+  if(!response.ok)throw new Error(`Cloud publication HTTP ${response.status}`);
+}
 const update=(id,body)=>github(`/check-runs/${id}`,body,'PATCH');
 const authority=JSON.parse(readFileSync(process.argv[2],'utf8'));
 const domains=[{id:'main',namespace:'flux-system',repository:repo},...Object.entries(authority.spec.domains).map(([id,d])=>({id,namespace:d.controllerNamespace,repository:d.repository.replace(/^ssh:\/\/git@ssh.github.com:443\//,'').replace(/\.git$/,'')}))];
@@ -57,7 +68,7 @@ try {
       if(object.metadata.name.endsWith('-controller')) buckets.get(d.id).push(project(object,d.id));
     }
   }
-  const published=[];
+  const published=[],domainChecks=[];
   for(const domain of domains){
     stage=`publish ${domain.id}`;
     const items=buckets.get(domain.id).sort((a,b)=>`${a.kind}/${a.namespace}/${a.name}`.localeCompare(`${b.kind}/${b.namespace}/${b.name}`));
@@ -66,15 +77,24 @@ try {
     const failed=items.filter(x=>x.state==='failure').length;
     const check=await github('/check-runs',{name:`${SNAPSHOT_CHECK}/${domain.id}`,head_sha:sha,status:'completed',conclusion:failed?'failure':'neutral',external_id:batch,completed_at:new Date().toISOString(),output:{title:`${domain.id}: ${items.length} observed resources`,summary:`${failed} resources report failure. See the timestamped snapshot; this conclusion is not a perpetual health guarantee.`,text}});
     published.push({...domain,checkRunId:check.id,count:items.length});
+    domainChecks.push(check);
   }
   stage='complete inventory';
-  await update(index.id,{status:'completed',conclusion:'success',completed_at:new Date().toISOString(),output:{title:'Flux runtime inventory captured',summary:'Collection completed. Resource health is recorded separately; freshness expires after 15 minutes.',text:JSON.stringify({schema:1,headSha:sha,batch,observedAt,domains:published})}});
+  const indexCheck=await update(index.id,{status:'completed',conclusion:'success',completed_at:new Date().toISOString(),output:{title:'Flux runtime inventory captured',summary:'Collection completed. Resource health is recorded separately; freshness expires after 15 minutes.',text:JSON.stringify({schema:1,headSha:sha,batch,observedAt,domains:published})}});
+  stage='publish public cloud snapshot';
+  const [statuses,checks,deployments]=await Promise.all([github(`/commits/${sha}/statuses?per_page=100`),github(`/commits/${sha}/check-runs?per_page=100`),github(`/deployments?sha=${sha}&per_page=3`)]);
+  for(const d of deployments)d.latest=(await github(`/deployments/${d.id}/statuses?per_page=1`))[0];
+  await publishSnapshot({schema:1,repository:repo,sha,indexCheck:evidenceCheck(indexCheck),domainChecks:domainChecks.map(evidenceCheck),
+    statuses:statuses.map(s=>pick(s,['context','target_url','state','created_at'])),
+    checks:checks.check_runs.map(c=>pick(c,['name','html_url','status','conclusion','completed_at','started_at'])),
+    deployments:deployments.map(d=>({...pick(d,['environment','sha','created_at']),latest:pick(d.latest,['state','created_at'])}))});
   console.log(JSON.stringify({batch,domains:published.map(d=>({id:d.id,count:d.count})),observedAt}));
 } catch(error){
   // Only allowlisted categories leave the process, never raw stderr or tokens.
   const detail=String(error.cause?.stderr||error.stderr||error.cause?.message||error.message);
   const category=/certificate|x509|TLS/i.test(detail)?'TLS verification':/Unauthorized|credentials|logged in/i.test(detail)?'authentication':/forbidden/i.test(detail)?'authorization':/timeout|timed out|deadline/i.test(detail)?'timeout':/output bound/i.test(detail)?'output size':/GitHub [0-9]+/.test(detail)?'GitHub API':'unclassified';
   await update(index.id,{status:'completed',conclusion:'failure',completed_at:new Date().toISOString(),output:{title:'Flux runtime observation unavailable',summary:`Incomplete observation at ${stage}: ${category}. The cloud view must show Unknown.`}}).catch(()=>{});
+  await publishSnapshot({schema:1,repository:repo,sha,unavailable:true,batch,observedAt:new Date().toISOString()}).catch(()=>{});
   // Do not emit command stderr, object bodies or credentials into public logs.
   console.error(`Runtime observation failed at ${stage}: ${category}; no complete inventory was published.`);process.exitCode=1;
 } finally {rmSync(temp,{recursive:true,force:true});}
