@@ -33,7 +33,7 @@ TRUST_PROXY_CIDRS = tuple(
     for value in os.getenv("TRUST_PROXY_CIDRS", "").split(",")
     if value.strip()
 )
-KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://192.0.2.176:6443")
+KUBE_SERVER_PUBLIC = os.getenv("KUBE_SERVER_PUBLIC", "https://10.181.22.147:6443")
 REGISTRY_PUBLIC = os.getenv("REGISTRY_PUBLIC", "https://registry.re8ch.com")
 REGISTRY_ALT = os.getenv("REGISTRY_ALT", "https://registry.ynzs.com")
 GRAFANA_PUBLIC = os.getenv("GRAFANA_PUBLIC", "https://grafana.service.re8ch.com")
@@ -55,7 +55,7 @@ ADVANCED_FABRIC_STATUS_URL = os.getenv(
     "ADVANCED_FABRIC_STATUS_URL",
     "http://advanced-fabric-observation-api.kube-system.svc.cluster.local:8080/v1/status",
 )
-GRAFANA_INTERNAL = os.getenv("GRAFANA_INTERNAL", "http://192.0.2.192:3001/ui")
+GRAFANA_INTERNAL = os.getenv("GRAFANA_INTERNAL", "http://10.181.22.73:3001/ui")
 HARBOR_URL = os.getenv("HARBOR_URL", REGISTRY_PUBLIC).rstrip("/")
 HARBOR_API_URL = os.getenv("HARBOR_API_URL", HARBOR_URL).rstrip("/")
 HARBOR_SKIP_TLS_VERIFY = os.getenv("HARBOR_SKIP_TLS_VERIFY", "").lower() in ("1", "true", "yes")
@@ -93,7 +93,7 @@ SERVICE_ACCOUNT_TOKEN = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 SERVICE_ACCOUNT_CA = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 PG_SERVICE_ROUTES = {
     "writeService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "PostgreSQL primary service maintained by the Patroni role reconciler."},
-    "readService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "Single restricted-node-6dc3f140f9 PostgreSQL instance; use the read-only role for read access."},
+    "readService": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432", "purpose": "Single R640 PostgreSQL instance; use the read-only role for read access."},
     "poolRw": {"host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "6432", "purpose": "PgBouncer primary pool maintained by the Patroni role reconciler."},
     "postgrestWrite": {"url": "https://db-rw.re8ch.com/auth/ready", "purpose": "Auth PostgREST database readiness through the public write gateway."},
     "postgrestRead": {"url": "https://db-ro.re8ch.com/auth/ready", "purpose": "Auth PostgREST database readiness through the public read gateway."},
@@ -331,7 +331,7 @@ Recommended PostgreSQL routing:
 - Pooled app read/write direct PG: pgwrite.zt.re8ch.com:6432 when PgBouncer semantics fit the app.
 - Direct normal reads: pgread-sh.zt.re8ch.com:5434 or pgread-gz.zt.re8ch.com:5434, chosen by region and health.
 - CloudBeaver/DBeaver JDBC templates may use pgwrite.zt.re8ch.com:5432 for intentional instance-level GUI access, but do not treat 5432 as the HA write route.
-- Cloud functions should prefer the PostgREST HA gateway on :3080 for simple CRUD: Shanghai write/strong read http://192.0.2.89:3080, Shanghai read http://192.0.2.112:3080, Guangzhou read http://192.0.2.251:3080.
+- Cloud functions should prefer the PostgREST HA gateway on :3080 for simple CRUD: Shanghai write/strong read http://10.181.22.186:3080, Shanghai read http://10.181.22.79:3080, Guangzhou read http://10.181.22.47:3080.
 - PostgreSQL 5432 is the instance port. It is useful for DBA inspection and some GUI clients, but the tenant default write route is 5433 or PgBouncer 6432.
 - Ops MCP postgres_sql_proxy defaults to the current readService for read-only calls and writeService for writes. Both routes are selected from the server-side Pigsty service inventory.
 
@@ -532,11 +532,7 @@ def pg_authenticate(sock, user, password, auth_payload):
         pg_send_message(sock, b"p", password.encode("utf-8") + b"\x00")
         return
     if auth_code == 5:
-        salt = auth_payload[4:8]
-        inner = hashlib.md5((password + user).encode("utf-8")).hexdigest().encode("ascii")
-        outer = hashlib.md5(inner + salt).hexdigest()
-        pg_send_message(sock, b"p", ("md5" + outer).encode("ascii") + b"\x00")
-        return
+        raise PgProtocolError("PostgreSQL MD5 password authentication is disabled; require SCRAM-SHA-256")
     if auth_code == 10:
         mechanisms = [x.decode("ascii", errors="replace") for x in auth_payload[4:].split(b"\x00") if x]
         if "SCRAM-SHA-256" not in mechanisms:
@@ -1627,7 +1623,7 @@ def restart_ceph_osd_1():
     if before["desired"] != 1 or before["ready"] != 0 or len(before["pods"]) != 1:
         raise ValueError("OSD 1 is not in the reviewed single-pod failed state")
     node_name = before["pods"][0]["node"]
-    if node_name not in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb", "restricted-node-6dc3f140f9"):
+    if node_name not in ("a1-wsl-zt", "b1-wsl-zt", "r640"):
         raise ValueError("OSD 1 host is not a reviewed Ceph node")
     node = kube_request("GET", "/api/v1/nodes/%s" % urllib.parse.quote(node_name))
     ready = next((c.get("status") for c in node.get("status", {}).get("conditions", [])
@@ -2244,7 +2240,7 @@ def get_database_routing_status():
             "serviceRoutesWithReadyEndpoint": sum(item["readyEndpoints"] > 0 for item in slice_rows),
         },
         "routePolicy": {
-            "write": "restricted-node-6dc3f140f9 single-instance primary Service through AdvFab",
+            "write": "R640 single-instance primary Service through AdvFab",
             "read": "primary Service with read-only role grants; remote replicas retired",
             "pool": "PgBouncer for high-churn clients after role compatibility verification",
             "http": "PostgREST gateway with database roles/RLS; HTTP reachability does not grant row access",
@@ -4201,7 +4197,7 @@ def build_database_secret_values(database, passwords, read_host=None):
         "PGHOST_READ_SH": read_host,
         "PGHOST_READ_GZ": read_host,
         "PGHOST_POOL": write_host,
-        "PGROUTE_NOTE": "Single restricted-node-6dc3f140f9 instance via AdvFab: read and write roles use the primary Service on 5432; the primary pool uses 6432. Read-only access is enforced by role grants.",
+        "PGROUTE_NOTE": "Single R640 instance via AdvFab: read and write roles use the primary Service on 5432; the primary pool uses 6432. Read-only access is enforced by role grants.",
     }
     for suffix, password in passwords.items():
         if not password or str(password).startswith("<"):

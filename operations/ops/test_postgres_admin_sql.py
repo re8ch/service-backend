@@ -13,6 +13,10 @@ SPEC.loader.exec_module(OPS)
 
 
 class PostgresAdminSQLTests(unittest.TestCase):
+    def test_postgres_md5_password_authentication_is_rejected(self):
+        with self.assertRaisesRegex(OPS.PgProtocolError, "require SCRAM-SHA-256"):
+            OPS.pg_authenticate(mock.Mock(), "postgres", "not-a-real-password", b"\x00\x00\x00\x05salt")
+
     def test_billing_write_sets_migrator_role(self):
         args = {"database": "re8ch_billing", "sql": "select 1", "readOnly": False,
                 "approvalId": "re8ch/cloud-functions#141"}
