@@ -6,7 +6,9 @@ export AUDIT_ROOT="$RUNNER_TEMP/publication-audit"
 mkdir -p "$AUDIT_ROOT/reports" "$AUDIT_ROOT/raw" "$AUDIT_ROOT/bin"
 trap 'rm -rf "$AUDIT_ROOT/raw" "$AUDIT_ROOT/bin"' EXIT
 image=zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
-docker run --rm --user "$(id -u):$(id -g)" --entrypoint sh -v "$AUDIT_ROOT/bin:/out" "$image" -c 'cp "$(command -v gitleaks)" /out/gitleaks'
+docker run --rm --entrypoint sh "$image" -c 'cat "$(command -v gitleaks)"' > "$AUDIT_ROOT/bin/gitleaks"
+chmod 700 "$AUDIT_ROOT/bin/gitleaks"
+"$AUDIT_ROOT/bin/gitleaks" version
 gh api --paginate 'repos/re8ch/service-backend/actions/runs?per_page=100&status=completed' \
   --jq '.workflow_runs[] | "run \(.id)"' > "$AUDIT_ROOT/targets"
 gh api --paginate 'repos/re8ch/service-backend/actions/artifacts?per_page=100' \
