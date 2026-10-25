@@ -82,8 +82,8 @@ jobs:
           echo "TENANT_IMAGE_BUILDER=r640-mihomos" >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/image/re8ch-tenant-mcp
           TENANT_IMAGE_DOCKERFILE: platform/apps/tenant-mcp/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
@@ -134,8 +134,8 @@ jobs:
             "$image" >/dev/null
           echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
         env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
       - name: Create scoped promotion token
         id: promoter
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
