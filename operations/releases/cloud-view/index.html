@@ -3,16 +3,20 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.github.com; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'">
-<title>RE8CH · 云端发布</title><link rel="stylesheet" href="style.css">
+<title>Flux Overview · RE8CH</title><link rel="stylesheet" href="style.css">
 </head>
 <body><main>
-<header><span>RE8CH / DELIVERY</span><h1>云端发布</h1><p>从 GitHub 读取发布证据。此页面不连接 Kubernetes，也不持有凭据。</p></header>
-<div class="toolbar"><a href="https://github.com/re8ch/service-backend">re8ch/service-backend</a><button id="refresh">刷新 GitHub</button></div>
-<p id="message" role="status">正在读取 GitHub…</p>
-<p id="revision"></p>
-<section><h2>Flux 运行时证据</h2><p>仅展示 GitHub 上的 Flux Kustomization 状态。有效期 15 分钟；这不是整个集群的实时健康保证。没有新的回报就显示未知。</p><div id="runtime"></div></section>
-<section><h2>Checks</h2><p>构建与检查结果不等于部署健康。</p><div id="checks"></div></section>
-<section><h2>Deployments</h2><p>部署状态由 GitHub 记录；未附带有效运行时证据的 success 不代表当前健康。</p><div id="deployments"></div></section>
-<section><h2>其他提交状态</h2><div id="statuses"></div></section>
-<footer>静态页面 · GitHub API · 无认证代理 · 无集群查询<br>匿名 API 有速率限制；读取失败不会保留绿色健康结论。</footer>
+<header class="section-heading"><h1>Flux Overview</h1><div class="controls">
+<label>Sort By<select id="sort"><option value="failure">Most Failed First</option><option value="failure-asc">Least Failed First</option><option value="total">Most Total Resources</option><option value="total-asc">Least Total Resources</option><option value="success">Most Successful</option><option value="success-asc">Least Successful</option><option value="name">Alphabetical A-Z</option><option value="name-desc">Alphabetical Z-A</option></select></label>
+<label>Show<select id="show"><option value="all">All Resources</option><option value="reported">Reported Only</option></select></label>
+<button id="refresh" aria-label="Refresh GitHub evidence">↻ Refresh</button></div></header>
+<div id="health-banner" class="banner" role="status">Unknown · 正在读取 GitHub 证据</div>
+<p class="source-note">GitHub 云端视图 · 统计仅覆盖当前提交已回报的对象，不代表集群资源总量。证据有效期 15 分钟；缺失或过期显示 Unknown。</p>
+<div id="overview" class="cards" aria-label="Flux resource overview"></div>
+<section id="resource-section"><div class="section-heading"><h2>Resources</h2><div class="controls"><label>Resource<select id="resource-filter"><option value="all">All Resources</option></select></label><label>Search<input id="search" type="search" placeholder="Filter resources" autocomplete="off"></label></div></div><div class="table-scroll"><table><thead><tr><th>Name</th><th>Kind</th><th>Namespace</th><th>Status</th><th>Revision</th><th>Last Observed</th></tr></thead><tbody id="runtime"></tbody></table></div><p class="source-note">Namespace、Suspended 和 Processing 未由现有提交状态回报，保留为未知；不会从集群补查。</p></section>
+<section><h2>Flux Checks</h2><details open><summary>Controllers <span class="badge unknown">Unknown</span></summary><div class="table-scroll"><table><thead><tr><th>Name</th><th>Namespace</th><th>Ready</th><th>Image</th></tr></thead><tbody><tr><td colspan="4" class="empty">GitHub 未提供 Controller 副本和镜像证据，无法判断控制器健康。</td></tr></tbody></table></div></details></section>
+<section><h2>GitHub Checks</h2><div class="table-scroll"><table><thead><tr><th>Name</th><th>Status</th><th>Conclusion</th><th>Completed / Started</th></tr></thead><tbody id="checks"></tbody></table></div></section>
+<section><h2>Deployments</h2><div class="table-scroll"><table><thead><tr><th>Environment</th><th>Status</th><th>Revision</th><th>Last Observed</th></tr></thead><tbody id="deployments"></tbody></table></div></section>
+<section><h2>Commit Statuses</h2><div class="table-scroll"><table><thead><tr><th>Name</th><th>Status</th><th>Last Observed</th></tr></thead><tbody id="statuses"></tbody></table></div></section>
+<footer><a href="https://github.com/re8ch/service-backend">re8ch/service-backend</a><p id="revision"></p><p id="message" role="status"></p><p>格式遵循 Headlamp Flux Plugin。仅访问 GitHub API，无凭据、无集群查询。Checks / Deployments 的成功不等于当前运行时健康；匿名 API 读取失败不会保留绿色结论。</p></footer>
 </main><script type="module" src="app.mjs"></script></body></html>
