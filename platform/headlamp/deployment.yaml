@@ -50,10 +50,8 @@ spec:
         # while a control-plane node is reporting memory pressure. This only
         # tolerates admission; kubelet eviction policy remains authoritative.
         - {key: node.kubernetes.io/memory-pressure, operator: Exists, effect: NoSchedule}
-      # Use the selected control-plane node's local API listener. This removes
-      # the single remote node/transit address from Headlamp's watch path.
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      # Separate pod IPs let the replacement start while the active UI serves.
+      # In-cluster configuration uses Kubernetes' standard API Service.
       initContainers:
         - name: install-runtime-anatomy-plugin
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
@@ -287,16 +285,6 @@ spec:
             - -oidc-use-access-token
             - -oidc-use-cookie
             - -plugins-dir=/headlamp/plugins
-          env:
-            # The pod is placed on a control-plane node with host networking;
-            # use that node's local API listener. Kubernetes can recreate the
-            # pod on another eligible control plane without changing config.
-            - name: KUBERNETES_SERVICE_HOST
-              value: "127.0.0.1"
-            - name: KUBERNETES_SERVICE_PORT
-              value: "6443"
-            - name: KUBERNETES_SERVICE_PORT_HTTPS
-              value: "6443"
           ports:
             - name: http
               containerPort: 4466
