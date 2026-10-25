@@ -52,7 +52,7 @@ spec:
           name: runtime
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-1eb0570f74
+        kubernetes.io/hostname: a1-wsl-zt
       priorityClassName: system-cluster-critical
       tolerations:
       - effect: NoSchedule
@@ -192,9 +192,26 @@ spec:
       hostAliases:
       - hostnames:
         - db-rw.re8ch.com
-        ip: 192.0.2.213
+        ip: 10.251.0.4
       hostNetwork: false
       initContainers:
+      - args:
+        - "target=/headlamp/plugins/flux-static-github-ops-0.1.0\n# Reuse the published\
+          \ package; no plugin rebuild or OCI promotion.\narchive=/tmp/flux-static.tar.gz\n\
+          wget -T 45 -O \"$archive\" https://github.com/re8ch/headlamp-flux-static-github-ops/releases/download/v0.1.0/re8ch-headlamp-flux-static-github-ops-0.1.0.tar.gz\n\
+          echo 'd54f5c8034b121443b1bc48eb9b7509963f8857594a57f31cf35fb32c60eef4e \
+          \ /tmp/flux-static.tar.gz' | sha256sum -c -\nstage=$(mktemp -d /headlamp/plugins/.flux-static.XXXXXX)\n\
+          tar -xzf \"$archive\" -C \"$stage\" --strip-components=1\nif [ -d \"$target\"\
+          \ ]; then\n  cmp \"$stage/main.js\" \"$target/main.js\"\n  rm -rf \"$stage\"\
+          \nelse\n  mv \"$stage\" \"$target\"\nfi\n"
+        command:
+        - /bin/sh
+        - -ec
+        image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+        name: install-flux-static-github-ops
+        volumeMounts:
+        - mountPath: /headlamp/plugins
+          name: plugins
       - args:
         - 'target=/headlamp/plugins/runtime-anatomy-0.2.0
 
@@ -705,8 +722,8 @@ metadata:
 ---
 apiVersion: v1
 data:
-  relay.py: "import socket\nimport threading\n\nRELAYS = ((16443, \"192.0.2.125\"\
-    , 6443), (26443, \"192.0.2.154\", 6443))\n\ndef copy(source, target):\n    try:\n\
+  relay.py: "import socket\nimport threading\n\nRELAYS = ((16443, \"10.181.22.68\"\
+    , 6443), (26443, \"10.181.22.24\", 6443))\n\ndef copy(source, target):\n    try:\n\
     \        while data := source.recv(65536):\n            target.sendall(data)\n\
     \    except OSError:\n        pass\n    finally:\n        try:\n            target.shutdown(socket.SHUT_WR)\n\
     \        except OSError:\n            pass\n\ndef handle(client, target_host,\
@@ -757,14 +774,14 @@ data:
     , \"pod\": name, \"active\": active}), flush=True)\n\nwhile True:\n    try:\n\
     \        pods = request(f\"/api/v1/namespaces/{namespace}/pods?labelSelector={selector}\"\
     )[\"items\"]\n        # Prefer the R640-local backend for PublicEdge. Cross-node\
-    \ traffic\n        # to domain-ex remains the automatic fallback when restricted-node-6dc3f140f9 is\
+    \ traffic\n        # to domain-ex remains the automatic fallback when R640 is\
     \ absent.\n        healthy = sorted(\n            (pod for pod in pods if ready(pod)),\n\
     \            key=lambda pod: (\n                pod.get(\"spec\", {}).get(\"nodeName\"\
-    ) != \"restricted-node-6dc3f140f9\",\n                pod[\"metadata\"][\"name\"],\n            ),\n\
+    ) != \"r640\",\n                pod[\"metadata\"][\"name\"],\n            ),\n\
     \        )\n        current = [\n            pod for pod in healthy\n        \
     \    if pod[\"metadata\"].get(\"labels\", {}).get(\"traffic.re8ch.com/headlamp-active\"\
     ) == \"true\"\n        ]\n        preferred = [pod for pod in healthy if pod.get(\"\
-    spec\", {}).get(\"nodeName\") == \"restricted-node-6dc3f140f9\"]\n        selected = preferred[0] if\
+    spec\", {}).get(\"nodeName\") == \"r640\"]\n        selected = preferred[0] if\
     \ preferred else (current[0] if current else (healthy[0] if healthy else None))\n\
     \        for pod in pods:\n            set_active(pod, selected is not None and\
     \ pod[\"metadata\"][\"uid\"] == selected[\"metadata\"][\"uid\"])\n    except Exception\
@@ -3189,13 +3206,13 @@ spec:
       protocol: TCP
     to:
     - ipBlock:
-        cidr: 192.0.2.125/32
+        cidr: 10.181.22.68/32
   - ports:
     - port: 6443
       protocol: TCP
     to:
     - ipBlock:
-        cidr: 192.0.2.154/32
+        cidr: 10.181.22.24/32
   ingress:
   - from:
     - podSelector:
