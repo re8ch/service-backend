@@ -53,8 +53,8 @@ def test_headlamp_rollout_does_not_deadlock_on_stable_core_nodes():
         "operator": "Exists",
         "effect": "NoSchedule",
     } in pod_spec["tolerations"]
-    assert pod_spec["hostNetwork"] is True
-    assert pod_spec["dnsPolicy"] == "ClusterFirstWithHostNet"
+    assert pod_spec["hostNetwork"] is False
+    assert pod_spec["dnsPolicy"] == "ClusterFirst"
     pod_anti_affinity = deployment["spec"]["template"]["spec"]["affinity"]["podAntiAffinity"]
     assert "requiredDuringSchedulingIgnoredDuringExecution" not in pod_anti_affinity
     preferred = pod_anti_affinity["preferredDuringSchedulingIgnoredDuringExecution"]
@@ -77,9 +77,9 @@ def test_headlamp_uses_stable_control_plane_api_endpoint():
         for item in headlamp["env"]
     }
 
-    assert environment["KUBERNETES_SERVICE_HOST"] == "127.0.0.1"
-    assert environment["KUBERNETES_SERVICE_PORT"] == "6443"
-    assert environment["KUBERNETES_SERVICE_PORT_HTTPS"] == "6443"
+    assert environment["KUBERNETES_SERVICE_HOST"] == "kubernetes.default.svc"
+    assert environment["KUBERNETES_SERVICE_PORT"] == "443"
+    assert environment["KUBERNETES_SERVICE_PORT_HTTPS"] == "443"
 
 
 def test_advanced_fabric_publishes_read_only_network_evidence():
