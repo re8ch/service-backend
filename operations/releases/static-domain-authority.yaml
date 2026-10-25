@@ -3,9 +3,13 @@ kind: StaticDomainAuthority
 metadata:
   name: re8ch-nine-domain-static-gitops
 spec:
-  desiredState: independent-github-repository-and-signed-oci
+  # These execution profiles apply only to the remaining SSA contracts.
+  # Native ownership and autonomous controller boundaries live in the existing
+  # federation ledger; do not infer an SSA writer from a profile's presence.
+  desiredState: signed-git-native-flux-with-reviewed-ssa-exceptions
+  nativeAuthorityRef: operations/flux-federation/authority.yaml
   runtimeAuthority: kubernetes
-  compatibilityMode: flux-api-status-events-metrics-only
+  compatibilityMode: native-inventory-for-flux-owned-resources
   protectedEnvironmentPolicy:
     requiredReviewers: [Woomou]
     preventSelfReview: false
