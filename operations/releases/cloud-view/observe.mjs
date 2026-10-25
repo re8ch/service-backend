@@ -5,9 +5,15 @@ import {join} from 'node:path';
 import {project,SNAPSHOT_CHECK} from './evidence.mjs';
 const repo=process.env.GITHUB_REPOSITORY,sha=process.env.GITHUB_SHA,batch=`${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`;
 if(repo!=='re8ch/service-backend'||!/^[a-f0-9]{40}$/.test(sha||'')) throw new Error('Unexpected publication target');
-const token=process.env.GH_TOKEN;
-async function github(path,body){const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(30000)});if(!r.ok)throw new Error(`GitHub ${r.status}`);return r.json();}
-async function update(id,body){const r=await fetch(`https://api.github.com/repos/${repo}/check-runs/${id}`,{method:'PATCH',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});if(!r.ok)throw new Error(`GitHub ${r.status}`);}
+// Reuse the installed GitHub client and its approved proxy handling. Credentials
+// remain in GH_TOKEN; payloads go over stdin, never command arguments or logs.
+async function github(path,body,method=body?'POST':'GET') {
+  const args=['api',`repos/${repo}${path}`,'--method',method];
+  if(body)args.push('--input','-');
+  return JSON.parse(execFileSync('gh',args,{input:body?JSON.stringify(body):undefined,
+    encoding:'utf8',maxBuffer:8*1024*1024,timeout:45000,stdio:['pipe','pipe','pipe']}));
+}
+const update=(id,body)=>github(`/check-runs/${id}`,body,'PATCH');
 const authority=JSON.parse(readFileSync(process.argv[2],'utf8'));
 const domains=[{id:'main',namespace:'flux-system',repository:repo},...Object.entries(authority.spec.domains).map(([id,d])=>({id,namespace:d.controllerNamespace,repository:d.repository.replace(/^ssh:\/\/git@ssh.github.com:443\//,'').replace(/\.git$/,'')}))];
 // Capture incomplete first: readers must not silently use a previous successful batch.
