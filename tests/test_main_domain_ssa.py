@@ -32,7 +32,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
     cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
-    assert cohort["releaseCount"] == 17
+    assert cohort["releaseCount"] == 16
     source = {compiler.identity(item) for domain in DOMAINS
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
@@ -127,3 +127,18 @@ def test_oidc_audience_reaches_login_and_ssa_token_refresh():
     for step in steps:
         effective_env = {**workflow.get("env", {}), **job.get("env", {}), **step.get("env", {})}
         assert effective_env["EXECUTOR_AUDIENCE"] == "${{ needs.validate.outputs.audience }}"
+
+
+def test_supabase_rest_has_one_native_writer_and_no_ssa_authority():
+    identity = "apps/Deployment/supabase-pg-re8ch/supabase-rest"
+    legacy = documents(ROOT / "clusters/re8ch/domains/main-legacy/data-storage/resources.yaml")
+    assert identity in {compiler.identity(item) for item in legacy}
+    assert not (ROOT / "contracts/releases/main-domain/main-data-storage-supabase-pg-re8ch.yaml").exists()
+    assert not (ROOT / "operations/releases/main-domain-ssa/main-data-storage-supabase-pg-re8ch").exists()
+    rbac = documents(ROOT / "clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml")
+    assert all(item["metadata"]["name"] != "main-data-storage-supabase-pg-re8ch" for item in rbac)
+    owner = next(item for item in documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
+                 if item["metadata"]["name"] == "reconcile-main-legacy-data-storage")
+    assert owner["spec"]["suspend"] is False
+    assert owner["spec"]["healthChecks"] == [dict(apiVersion="apps/v1", kind="Deployment",
+                                               name="supabase-rest", namespace="supabase-pg-re8ch")]

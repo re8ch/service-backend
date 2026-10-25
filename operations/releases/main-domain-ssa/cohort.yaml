@@ -11,9 +11,9 @@ sourceDomains:
 - delivery-products
 - operations-ui
 - tenant-runtime
-releaseCount: 17
-objectCount: 124
-legacyObjectCount: 108
+releaseCount: 16
+objectCount: 123
+legacyObjectCount: 109
 deferredSSAObjects: []
 executionProfiles:
 - domain: data-storage
@@ -50,7 +50,7 @@ legacyShards:
 - domain: commerce-billing
   objects: 14
 - domain: data-storage
-  objects: 15
+  objects: 16
 - domain: delivery-products
   objects: 10
 - domain: operations-ui
@@ -74,10 +74,6 @@ releases:
   domain: data-storage
   namespace: pigsty-external
   objects: 5
-- name: main-data-storage-supabase-pg-re8ch
-  domain: data-storage
-  namespace: supabase-pg-re8ch
-  objects: 1
 - name: main-data-storage-toolhive-system
   domain: data-storage
   namespace: toolhive-system

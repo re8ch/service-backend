@@ -128,8 +128,9 @@ def compile_outputs() -> dict[Path, str]:
             seen[ident] = domain
             meta = item.get("metadata", {})
             namespace = meta.get("namespace")
+            native_flux = meta.get("annotations", {}).get("delivery.re8ch.com/reconciler") == "native-flux"
             retained_data = meta.get("labels", {}).get("delivery.re8ch.com/retention") == "retained-data"
-            if (retained_data or ident in DEFERRED_SSA or not namespace or namespace == "flux-system" or item["kind"] in CLUSTER_KINDS |
+            if (native_flux or retained_data or ident in DEFERRED_SSA or not namespace or namespace == "flux-system" or item["kind"] in CLUSTER_KINDS |
                     FLUX_KINDS | {"Secret"} or has_mutable_image(item)):
                 legacy[domain].append(item)
             else:
