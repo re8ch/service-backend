@@ -14,6 +14,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",
 		"harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_vulnerability_report_get",
 		"harbor_sbom_get", "harbor_accessory_list", "harbor_audit_log_list", "harbor_build_get", "harbor_build_list",
+		"runtime_image_catalog",
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
 		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read":
@@ -34,12 +35,12 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
-	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_tool_call", "harbor_build_start":
+	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_tool_call", "harbor_build_start", "runtime_image_build":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
-		"harbor_tag_delete", "harbor_build_cancel", "grafana_exploration_save", "grafana_exploration_delete",
+		"harbor_tag_delete", "harbor_build_cancel", "runtime_image_manage", "grafana_exploration_save", "grafana_exploration_delete",
 		"grafana_render", "monitoring_dashboard", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "tenant_organization_context_select", "platform_organization", "platform_user":
 		// Includes updates/revocations and render's temporary dashboard cleanup.
 		destructive = true
