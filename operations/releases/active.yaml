@@ -26,8 +26,6 @@ modules:
   wait: false
 - module: platform/apps/access-subscription
   wait: false
-- module: platform/connectool
-  wait: false
 - module: platform/hyperswitch
   wait: false
 - module: platform/public-edge-manager
