@@ -66,6 +66,7 @@
         "ensure_tenant_database_secrets": true,
         "ensure_tenant_database_bundle": true,
         "postgres_admin_sql": true,
+        "repair_re8ch_billing_ownership": true,
         "ensure_tenant_access": true,
         "ensure_harbor_tenant": true,
         "set_tool_publication_stage": true,
