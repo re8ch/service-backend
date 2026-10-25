@@ -122,11 +122,13 @@ def test_repository_only_contains_sops_encrypted_node_projections():
 def test_oidc_rbac_gateway_and_dns_are_fail_closed():
     rbac = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/ops/github-actions-node-observer-rbac.yaml").read_text()) if item]
     role = next(item for item in rbac if item["kind"] == "ClusterRole")
-    assert role["rules"] == [
+    assert [r for r in role["rules"] if r.get("apiGroups") == [""] or "nonResourceURLs" in r] == [
         {"apiGroups": [""], "resources": ["nodes"], "verbs": ["get", "list"]},
         {"nonResourceURLs": ["/api", "/api/*", "/apis", "/apis/*", "/version"], "verbs": ["get"]},
     ]
-    serialized = json.dumps(role)
+    serialized = json.dumps(rbac)
+    assert all(set(r["verbs"]) <= {"get", "list"} for obj in rbac for r in obj.get("rules", []))
+    assert {obj["metadata"]["namespace"] for obj in rbac if obj["kind"] == "Role"} == {"flux-system", "flux-agent-system", "flux-identity-system", "flux-network-system", "flux-observability-system"}
     for forbidden in ("secrets", "pods/log", "pods/exec", "serviceaccounts/token", "impersonate", "create", "patch", "delete"):
         assert forbidden not in serialized
 

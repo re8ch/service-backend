@@ -160,7 +160,7 @@ releases:
   declarationSha256: sha256:3ecc0f0eb2c99c0b1dd853864d4b7fa4dc5da8f7150e3568220cde061848eb0c
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 160
+    document: 170
   - file: platform/advanced-fabric/release.yaml
     document: 2
   classification:
@@ -206,7 +206,7 @@ releases:
   declarationSha256: sha256:cd50d7da52cbc0b32745914fba8b58371c8bec455cf89e8387b71687f68eb836
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 161
+    document: 171
   - file: platform/among-clusters/release.yaml
     document: 4
   classification:
@@ -252,7 +252,7 @@ releases:
   declarationSha256: sha256:71f225350564631f2dbd918f69347e04b3e87561e465fb4e3fb53910cbcb8468
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 162
+    document: 172
   - file: platform/among-clusters/release.yaml
     document: 2
   classification:
@@ -738,7 +738,7 @@ releases:
   declarationSha256: sha256:7abc4d72824fa08ad731ace720bbe1f9b3d07fea7ad39dbabbd90e586d7e80eb
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 163
+    document: 173
   - file: platform/public-edge-manager/release.yaml
     document: 2
   classification:
