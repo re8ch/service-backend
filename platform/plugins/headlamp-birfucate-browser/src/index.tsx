@@ -417,3 +417,17 @@ function Dashboard() {
 
 registerSidebarEntry({name:'birfucate-browser',url:'/birfucate',icon:'mdi:source-branch',parent:'',label:'Birfucate'});
 registerRoute({path:'/birfucate',sidebar:'birfucate-browser',name:'Birfucate Browser',component:()=> <Dashboard/>});
+
+const CLOUD_RELEASES_URL = 'https://re8ch.github.io/service-backend/';
+function CloudReleases() {
+  return <Box sx={{p:2}}>
+    <Typography variant="h5">云端发布 · GitHub</Typography>
+    <Typography sx={{my:1}}>此视图只读取 GitHub；原生 Flux 页面仍用于集群诊断。</Typography>
+    <Button href={CLOUD_RELEASES_URL} target="_blank" rel="noopener noreferrer">独立打开（不依赖集群）</Button>
+    <Box component="iframe" title="RE8CH cloud release evidence" src={CLOUD_RELEASES_URL}
+      referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      sx={{display:'block',width:'100%',height:'80vh',border:0,mt:2}} />
+  </Box>;
+}
+registerSidebarEntry({name:'cloud-releases',url:'/cloud-releases',icon:'mdi:github',parent:'',label:'云端发布'});
+registerRoute({path:'/cloud-releases',sidebar:'cloud-releases',name:'Cloud Releases',component:CloudReleases});
