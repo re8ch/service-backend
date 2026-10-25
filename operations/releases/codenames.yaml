@@ -1216,6 +1216,10 @@ modules:
       digest: sha256:9c54c80cdef500f408219a46f6ca3f372f6b21b6e60435460b6cf584831123f7
     - codename: cascade-aquamarine
       digest: sha256:9fb10415017ec7d8503fcd797ef48afc8e5a6ca1c1c5847f9b21827fb2c4fae1
+    - codename: confluence-aquamarine
+      digest: sha256:4e9eef05e13408b9469cdeef8d39daab56803e7326aa7692aedd2ad82552f0da
+    - codename: eddy-aquamarine
+      digest: sha256:771f5df3b6e8066728a31fa41e42b99092a6274485cba058b426aacf8ead3ace
   platform/hyperswitch:
     releases:
     - codename: anchor
