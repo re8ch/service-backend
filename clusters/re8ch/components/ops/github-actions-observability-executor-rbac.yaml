@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-kube-state-metrics
+  namespace: observability-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-kube-state-metrics
+  namespace: observability-system
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+rules:
+- apiGroups: [apps]
+  resources: [deployments]
+  resourceNames: [re8ch-kube-state-metrics]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [services, serviceaccounts]
+  resourceNames: [re8ch-kube-state-metrics]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [configmaps]
+  resourceNames: [ssa-state-observability-kube-state-metrics]
+  verbs: [get, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-kube-state-metrics
+  namespace: observability-system
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-kube-state-metrics
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: observability-kube-state-metrics
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+rules:
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [clusterroles]
+  resourceNames: [re8ch-kube-state-metrics]
+  verbs: [get, patch, update, delete, escalate, bind]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [clusterrolebindings]
+  resourceNames: [re8ch-kube-state-metrics]
+  verbs: [get, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: observability-kube-state-metrics
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: observability-kube-state-metrics
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering

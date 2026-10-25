@@ -175,10 +175,19 @@ def main():
             ]
             # The Go publication intentionally scopes Artchais cluster tools to that tenant.
             # The legacy Python server still lists them for the fixture's acme tenant.
-            p_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(python_url, "tools/list", {})["tools"] if not item["name"].startswith("artc_")}
+            # The Python runtime is only a compatibility baseline for domains that
+            # have not moved to a consolidated Go-native catalog. Grafana's legacy
+            # tools remain callable as hidden aliases, while tools/list publishes
+            # the provider-neutral monitoring_* and runtime_image_* surfaces.
+            p_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(python_url, "tools/list", {})["tools"] if not item["name"].startswith(("artc_", "grafana_", "harbor_"))}
             g_tools = {item["name"]: {key: item[key] for key in ("name", "description", "inputSchema")} for item in mcp(go_url, "tools/list", {})["tools"] if item["name"] in p_tools}
             equivalent("tools/list legacy schemas", p_tools, g_tools)
-            assert not any(item["name"].startswith("artc_") for item in mcp(go_url, "tools/list", {})["tools"]), "Artchais tools leaked into acme catalog"
+            go_tool_names = {item["name"] for item in mcp(go_url, "tools/list", {})["tools"]}
+            assert not any(name.startswith("artc_") for name in go_tool_names), "Artchais tools leaked into acme catalog"
+            assert {"monitoring_catalog", "monitoring_query", "monitoring_analyze", "monitoring_dashboard"} <= go_tool_names, "consolidated monitoring tools missing"
+            assert not any(name.startswith("grafana_") for name in go_tool_names), "legacy Grafana aliases leaked into the public catalog"
+            assert {"runtime_image_catalog", "runtime_image_manage", "runtime_image_build"} <= go_tool_names, "consolidated runtime-image tools missing"
+            assert not any(name.startswith("harbor_") for name in go_tool_names), "legacy Harbor aliases leaked into the public catalog"
             for name, args in tool_cases:
                 p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))
                 g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))
@@ -198,10 +207,13 @@ def main():
             p = mcp(python_url, "resources/list", {})
             g = mcp(go_url, "resources/list", {})
             equivalent("resources/list", sorted(p["resources"], key=lambda item: item["uri"]), sorted(g["resources"], key=lambda item: item["uri"]))
-            for uri in ["re8ch://tenant/acme/catalog", "re8ch://tenant/acme/instances", "re8ch://tenant/acme/bindings", "re8ch://tenant/acme/service-usage", "re8ch://tenant/acme/claims", "re8ch://tenant/acme/grafana/capabilities", "re8ch://tenant/acme/byoc/registrations", "re8ch://tenant/acme/byoc/connections"]:
+            for uri in ["re8ch://tenant/acme/catalog", "re8ch://tenant/acme/instances", "re8ch://tenant/acme/bindings", "re8ch://tenant/acme/service-usage", "re8ch://tenant/acme/claims", "re8ch://tenant/acme/byoc/registrations", "re8ch://tenant/acme/byoc/connections"]:
                 p = mcp(python_url, "resources/read", {"uri": uri})
                 g = mcp(go_url, "resources/read", {"uri": uri})
                 equivalent("resources/read " + uri, json.loads(p["contents"][0]["text"]), json.loads(g["contents"][0]["text"]))
+            monitoring_capabilities = json.loads(mcp(go_url, "resources/read", {"uri": "re8ch://tenant/acme/grafana/capabilities"})["contents"][0]["text"])
+            capability_tools = {name for item in monitoring_capabilities["items"] for name in item.get("tools", [])}
+            assert capability_tools <= {"monitoring_query", "monitoring_analyze", "monitoring_dashboard"}, "capability resource advertises legacy Grafana tools"
             for path in ["/billing/usage?from=2026-09-30T00:00:00Z&to=2026-10-01T00:00:00Z", "/.well-known/oauth-protected-resource/mcp"]:
                 equivalent("HTTP " + path, request(python_url + path), request(go_url + path))
             exchanged = [token_exchange(base) for base in (python_url, go_url)]

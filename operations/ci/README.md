@@ -16,7 +16,7 @@ mandatory for every PR.
 | identity/access roots | identity-access only |
 | metering | metering only |
 | catalogs, indexes, workspace | control-plane only |
-| docs only | governance baseline; no Kustomize render |
+| docs or a domain-specific workflow only | governance baseline; no Kustomize render |
 | shared CI/schema/root Flux changes or unknown manifests | fail closed to every test and root |
 
 Deleted paths and both sides of a rename participate in impact calculation.
@@ -26,10 +26,15 @@ Changed test files are selected directly. Adding a Kustomize root without an
 owner is an error. Daily 02:00 China time, published releases and manual dispatch
 run full regression; incremental PR checks do not replace these safety nets.
 
-The eight legacy required check names remain present during migration. `validate`
-rejects failures and cancellations, including failure of the impact planner.
-GitHub-hosted execution remains active until a controlled Linux runner has been
-registered and verified; existing Macmini audit is unchanged.
+`control-plane-validate` rejects failures and cancellations from every selected
+internal job, including failure of the impact planner. `tenant-go-validate` is a
+lightweight successful router on unrelated pull requests and runs its full Go,
+GitOps, differential, and image checks only for tenant-runtime changes. These two
+stable aggregators replace ambiguous duplicate `validate` check names.
+Portable Linux execution uses the repository-scoped restricted-node-6dc3f140f9 runner class
+`[self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]`. Existing Macmini host-bound
+audits remain unchanged. The restricted-node-6dc3f140f9 runner has no standing cluster credentials;
+see `operations/ci/runners/README.md` for its trust and egress boundary.
 
 ## OCI cutover boundary
 

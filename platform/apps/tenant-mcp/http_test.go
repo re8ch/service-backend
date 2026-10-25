@@ -327,9 +327,14 @@ func TestMCPSharedPersonalClassRetainsOwnerAndPublishesResourceTools(t *testing.
 			for _, item := range listed.Result.Tools {
 				names[item.Name] = true
 			}
-			for _, name := range []string{"tenant_access_status", "service_catalog_list", "service_instance_create", "service_binding_list", "usage_summary_get", "tenant_claim_create", "tenant_kubernetes_get", "harbor_project_get", "grafana_capability_list", "byoc_cluster_register", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+			for _, name := range []string{"tenant_access_status", "service_catalog_list", "service_instance_create", "service_binding_list", "usage_summary_get", "tenant_claim_create", "tenant_kubernetes_get", "runtime_image_catalog", "runtime_image_manage", "runtime_image_build", "monitoring_catalog", "monitoring_query", "monitoring_analyze", "monitoring_dashboard", "byoc_cluster_register", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
 				if !names[name] {
 					t.Fatalf("shared class omitted resource tool %s", name)
+				}
+			}
+			for _, name := range []string{"grafana_capability_list", "grafana_query", "grafana_exploration_delete", "harbor_project_get", "harbor_tag_delete", "harbor_build_start"} {
+				if names[name] {
+					t.Fatalf("compatibility alias %s leaked into tools/list", name)
 				}
 			}
 		}
@@ -444,7 +449,7 @@ func TestMCPSharedPersonalViewerCannotMutateResourceFamilies(t *testing.T) {
 		{"tenant_claim_create", `{"claim":{},"claim_hash":"hash"}`},
 		{"byoc_cluster_register", `{"cluster_uid":"cluster","region_ref":"loudi","issuer":"https://example.com","public_key":"key"}`},
 		{"harbor_tag_delete", `{"credential_ref":"credential://harbor/owner/ref","repository":"repo","reference":"sha256:abc","tag":"tag"}`},
-		{"grafana_exploration_delete", `{"dashboard_uid":"dashboard"}`},
+		{"monitoring_dashboard", `{"action":"delete","dashboard_uid":"dashboard"}`},
 	} {
 		request := httptest.NewRequest("POST", "/mcp", strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"`+item.name+`","arguments":`+item.args+`}}`))
 		request.Header.Set("Authorization", "Bearer "+fixtureToken())
@@ -533,10 +538,21 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			}
 		}
 	}
+	hiddenAliases := 0
 	for name := range legacy {
 		if strings.HasPrefix(name, "artc_") {
 			if names[name] {
 				t.Errorf("tenant-specific tool %s leaked into generic catalog", name)
+			}
+			continue
+		}
+		if alias, ok := toolAliases[name]; ok {
+			hiddenAliases++
+			if names[name] {
+				t.Errorf("compatibility alias %s leaked into generic catalog", name)
+			}
+			if !names[alias.Canonical] {
+				t.Errorf("compatibility alias %s has unpublished canonical tool %s", name, alias.Canonical)
 			}
 			continue
 		}
@@ -549,8 +565,8 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy)+4 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)+4)
+	if len(names) != len(legacy)-hiddenAliases+4 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+4)
 	}
 }
 

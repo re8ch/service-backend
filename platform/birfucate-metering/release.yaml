@@ -39,13 +39,13 @@ spec:
       tag: 3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
       pullPolicy: IfNotPresent
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     tenantPlatform:
       enabled: true
-      # Keep the shared RWO state and both MCP backends on the restricted-node-6dc3f140f9 worker so
+      # Keep the shared RWO state and both MCP backends on the R640 worker so
       # loss of either WSL control-plane host cannot strand public tool access.
       placement:
-        nodeNames: [restricted-node-6dc3f140f9]
+        nodeNames: [r640]
       tolerations:
         - {operator: Exists}
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f751479965f23bbb102e6637cfefd2791004c962c15acb928dcd6d42949967d8
@@ -53,7 +53,7 @@ spec:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:e484a64ffa541ab4202e059e30e5e24b8615b69069983990bd2af1d740f16345
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:ee3cb1bc01d4db03e109ffaa2cdf8945daeab73a537f00ad4f4847df19319857
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         usersURL: https://api.re8ch.com/auth/v2/users
         # Verify login liveness and the durable platform entitlement through

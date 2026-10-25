@@ -13,6 +13,16 @@ spec:
     - {name: re8ch-region-shanghai-nuclio, namespace: kube-system, sectionName: db-rw-https}
   hostnames: [db-rw.re8ch.com]
   rules:
+    # Keep the public GoTrue token URL stable while normalizing non-RFC error
+    # responses in tenant-api for OAuth clients that refresh automatically.
+    - matches:
+        - {path: {type: Exact, value: /auth/v1/oauth/token}}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path: {type: ReplaceFullPath, replaceFullPath: /oauth/token/compat}
+      backendRefs:
+        - {name: tenant-api, namespace: tenant-infrastructure, port: 80}
     - matches:
         - {path: {type: PathPrefix, value: /auth/v1}}
       filters:
@@ -30,3 +40,14 @@ spec:
             path: {type: ReplaceFullPath, replaceFullPath: /.well-known/oauth-authorization-server}
       backendRefs:
         - {name: supabase-identity-auth, port: 9999}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-db-rw-auth-route-to-tenant-api
+  namespace: tenant-infrastructure
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: HTTPRoute, namespace: supabase-identity}
+  to:
+    - {group: '', kind: Service, name: tenant-api}

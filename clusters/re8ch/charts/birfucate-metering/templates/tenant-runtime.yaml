@@ -232,7 +232,10 @@ spec: {selector: {app: admin-api}, ports: [{name: http, port: 80, targetPort: ht
 ---
 apiVersion: v1
 kind: Service
-metadata: {name: tenant-api, namespace: tenant-infrastructure}
+metadata:
+  name: tenant-api
+  namespace: tenant-infrastructure
+  labels: {app: tenant-api, re8ch.com/metrics-surface: tenant-mcp}
 spec:
   selector: {app: tenant-api}
   ports:
@@ -352,6 +355,7 @@ spec:
   ingress:
     - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: toolhive-system}}}], ports: [{protocol: TCP, port: 19448}]}
     - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}}], ports: [{protocol: TCP, port: 19448}]}
+    - {from: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability-system}}}], ports: [{protocol: TCP, port: 19448}]}
     - from:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Release.Namespace }}}}
           podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
@@ -361,6 +365,15 @@ spec:
         - podSelector: {matchLabels: {app: admin-api}}
       ports: [{protocol: TCP, port: 19450}]
     {{- end }}
+{{- if .Values.tenantPlatform.tenantAPI.enabled }}
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata: {name: tenant-mcp-tool-usage, namespace: tenant-infrastructure}
+spec:
+  selector: {matchLabels: {re8ch.com/metrics-surface: tenant-mcp}}
+  endpoints: [{port: http, path: /metrics, interval: 30s}]
+{{- end }}
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy

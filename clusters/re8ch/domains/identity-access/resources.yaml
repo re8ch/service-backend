@@ -214,6 +214,37 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: identity-access
+  name: identity-access-telemetry-service-account
+  namespace: egress-fabric
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - access-telemetry
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-telemetry-service-account
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: stalwart-cloudflare-token-target
   namespace: mail-system
 rules:
@@ -355,6 +386,22 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: access-telemetry
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: identity-access
+  name: identity-access-telemetry-service-account
+  namespace: egress-fabric
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-telemetry-service-account
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1797,9 +1844,21 @@ metadata:
   namespace: egress-fabric
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/authority-domain: identity-access
+    delivery.re8ch.com/state: accepted
+  name: ssa-state-identity-access-telemetry-service-account
+  namespace: egress-fabric
+---
+apiVersion: v1
 data:
   plan.ndjson: |
     {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}},"re8ch-domain":{"name":"re8ch.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}
+    {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"mail.re8ch.com","mailExchangers":{"0":{"hostname":"mail.re8ch.com","priority":10}},"services":{"caldav":{"hostname":"mail.re8ch.com","cleartext":false},"carddav":{"hostname":"mail.re8ch.com","cleartext":false},"imap":{"hostname":"mail.re8ch.com","cleartext":false},"jmap":{"hostname":"mail.re8ch.com","cleartext":false},"managesieve":{"hostname":"mail.re8ch.com","cleartext":false},"pop3":{"hostname":"mail.re8ch.com","cleartext":false},"smtp":{"hostname":"mail.re8ch.com","cleartext":false},"webdav":{"hostname":"mail.re8ch.com","cleartext":false}}}}
     {"@type":"upsert","object":"NetworkListener","matchOn":["name"],"value":{"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"tlsImplicit":false},"imap":{"name":"imap","protocol":"imap","bind":{"[::]:143":true},"tlsImplicit":false}}}
     {"@type":"update","object":"Sharing","value":{"allowDirectoryQueries":false,"maxShares":25}}
 kind: ConfigMap
@@ -4542,6 +4601,36 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    governance.re8ch.com/exposure: overseas-flk-public-mail-only
+  name: stalwart-direct-mail
+  namespace: mail-system
+spec:
+  externalIPs:
+  - 192.0.2.38
+  ports:
+  - name: smtp
+    port: 25
+    targetPort: smtp
+  - name: smtps
+    port: 465
+    targetPort: smtps
+  - name: submission
+    port: 587
+    targetPort: submission
+  - name: imaps
+    port: 993
+    targetPort: imaps
+  - name: sieve
+    port: 4190
+    targetPort: sieve
+  selector:
+    app.kubernetes.io/name: stalwart
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: stalwart-headless
   namespace: mail-system
 spec:
@@ -5240,6 +5329,19 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  name: stalwart-flk-local-data
+  namespace: mail-system
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
   name: stalwart-idp-flk-data
   namespace: mail-system
 spec:
@@ -5249,6 +5351,19 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: rbd-r640
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: stalwart-idp-flk-local-data
+  namespace: mail-system
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-path
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -10093,11 +10208,13 @@ spec:
         image: ghcr.io/stalwartlabs/stalwart:v0.16.18@sha256:9ed1d343243b7aa72969e372a7240b7ddea07730781d4b68a0dc3d8d51c418bb
         imagePullPolicy: IfNotPresent
         livenessProbe:
+          failureThreshold: 6
           httpGet:
             path: /healthz/live
             port: management
           initialDelaySeconds: 20
           periodSeconds: 20
+          timeoutSeconds: 10
         name: stalwart
         ports:
         - containerPort: 25
@@ -10128,6 +10245,7 @@ spec:
             port: management
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 10
         resources:
           limits:
             cpu: "2"
@@ -10143,6 +10261,13 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /healthz/live
+            port: management
+          periodSeconds: 10
+          timeoutSeconds: 10
         volumeMounts:
         - mountPath: /etc/stalwart
           name: config
@@ -10214,7 +10339,7 @@ spec:
         name: tmp
       - name: data
         persistentVolumeClaim:
-          claimName: stalwart-flk-data
+          claimName: stalwart-flk-local-data
       - name: cloudflare-token
         secret:
           items:
@@ -10271,11 +10396,13 @@ spec:
         image: ghcr.io/stalwartlabs/stalwart:v0.16.18@sha256:9ed1d343243b7aa72969e372a7240b7ddea07730781d4b68a0dc3d8d51c418bb
         imagePullPolicy: IfNotPresent
         livenessProbe:
+          failureThreshold: 6
           httpGet:
             path: /healthz/live
             port: http
           initialDelaySeconds: 20
           periodSeconds: 20
+          timeoutSeconds: 10
         name: stalwart-idp
         ports:
         - containerPort: 8080
@@ -10286,6 +10413,7 @@ spec:
             port: http
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 10
         resources:
           limits:
             cpu: 500m
@@ -10301,6 +10429,13 @@ spec:
             drop:
             - ALL
           readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /healthz/live
+            port: http
+          periodSeconds: 10
+          timeoutSeconds: 10
         volumeMounts:
         - mountPath: /etc/stalwart
           name: config
@@ -10358,7 +10493,7 @@ spec:
         name: tmp
       - name: data
         persistentVolumeClaim:
-          claimName: stalwart-idp-flk-data
+          claimName: stalwart-idp-flk-local-data
       - name: oidc-keys
         secret:
           secretName: stalwart-idp-oidc-keys
@@ -11263,7 +11398,7 @@ kind: Job
 metadata:
   labels:
     governance.re8ch.com/change-plane: deploying
-  name: stalwart-bootstrap-reconciler-v7
+  name: stalwart-bootstrap-reconciler-v8
   namespace: mail-system
 spec:
   backoffLimit: 2
@@ -13712,6 +13847,20 @@ spec:
     sectionName: db-rw-https
   rules:
   - backendRefs:
+    - name: tenant-api
+      namespace: tenant-infrastructure
+      port: 80
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          replaceFullPath: /oauth/token/compat
+          type: ReplaceFullPath
+    matches:
+    - path:
+        type: Exact
+        value: /auth/v1/oauth/token
+  - backendRefs:
     - name: supabase-identity-auth
       port: 9999
     filters:
@@ -13864,6 +14013,21 @@ spec:
   - group: ""
     kind: Service
     name: supabase-identity-auth
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: allow-db-rw-auth-route-to-tenant-api
+  namespace: tenant-infrastructure
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    namespace: supabase-identity
+  to:
+  - group: ""
+    kind: Service
+    name: tenant-api
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: TCPRoute

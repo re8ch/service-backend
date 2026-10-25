@@ -1,0 +1,98 @@
+apiVersion: coordination.re8ch.com/enterprise-github-governance/v1alpha1
+kind: EnterpriseGitHubGovernance
+metadata:
+  name: re8ch-github-first-control-plane
+  observedAt: "2026-10-25T01:10:00+08:00"
+spec:
+  enterprise:
+    slug: re8ch
+    displayName: Reachieve LLC
+  principles:
+  - enterprise-policy-repository-execution
+  - least-privilege-selected-repositories
+  - short-lived-credentials-only
+  - no-github-hosted-runner-fallback
+  - protected-release-environment-required
+  controls:
+    actionsRunnerGroup:
+      scope: enterprise
+      name: GitOps restricted-node-6dc3f140f9
+      state: active
+      labels: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+      workflowAccess: selected-organizations-and-repositories
+      publicRepositoriesAllowed: false
+      hostContract: generic-no-repository-specific-tooling
+      pool:
+        host: restricted-node-6dc3f140f9
+        size: 8
+        runnerNamePrefix: r640-enterprise-
+      organizations:
+      - organization: re8ch-ai
+        repositories: [agent-gitops]
+      - organization: re8ch
+        repositories: [identity-gitops, service-backend]
+      - organization: siren-observer
+        repositories: [observability-gitops]
+      - organization: pillars-infra
+        repositories: [network-gitops]
+    githubApps:
+      scope: enterprise-owned-installation-scoped
+      desiredState: centralized-registration-and-key-custody
+      rules:
+      - register shared control-plane apps under the enterprise owner when GitHub supports it
+      - install each app only into explicitly approved organizations and repositories
+      - keep dispatcher observer promoter and executor permissions separated
+      - never grant Administration or organization-wide Contents write by default
+      - issue one-hour installation tokens with repository and permission narrowing
+      implementationState: migration-required
+    robotIdentities:
+      scope: enterprise-cataloged-domain-authorized
+      desiredState: no-shared-standing-personal-access-token
+      rules:
+      - catalog owner purpose credential issuer and rotation policy centrally
+      - authorize each robot per domain repository and protected workflow
+      - prefer GitHub App installation tokens or broker-issued short-lived credentials
+      - prohibit human accounts as unattended production identities
+      implementationState: inventory-required
+    oidc:
+      scope: enterprise-policy-repository-claims
+      desiredState: enterprise-standardized
+      requiredClaims:
+      - repository
+      - job_workflow_ref
+      - ref
+      - environment
+      - audience
+      rules:
+      - bind every Kubernetes grant to an exact domain audience and group
+      - do not trust an enterprise organization or runner label by itself
+      implementationState: domain-rollout
+    protectedEnvironments:
+      scope: repository
+      enterpriseRepresentation: centrally-declared-generated-and-audited
+      requiredPolicy:
+        deploymentBranches: [main]
+        administratorsMayBypass: false
+        requiredSecrets: [KUBE_API_CA_PEM]
+        requiredReviewers: [Woomou]
+        preventSelfReview: false
+      notes:
+      - GitHub protected environments are repository resources, not enterprise resources.
+      - Enable self-review prevention only after a second eligible reviewer is enrolled.
+      - Main-domain bootstrap environments must move to their independent repositories before authority transfer.
+      implementationState: nine-domain-bootstrap-complete
+  evidence:
+    runnerCanaries:
+    - repository: re8ch-ai/agent-gitops
+      pullRequest: 15
+      runner: r640-enterprise-01
+    - repository: re8ch/identity-gitops
+      pullRequest: 12
+      runner: r640-enterprise-08
+    - repository: siren-observer/observability-gitops
+      pullRequest: 17
+      runner: r640-enterprise-03
+    - repository: pillars-infra/network-gitops
+      pullRequest: 42
+      runner: r640-enterprise-02
+    protectedEnvironments: operations/migrations/github-first-control-plane/evidence/2026-10-24-nine-domain-protected-environments.md

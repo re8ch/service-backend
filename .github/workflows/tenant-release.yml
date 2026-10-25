@@ -69,7 +69,7 @@ jobs:
           BUILDKIT_NO_CLIENT_TOKEN: "1"
   finalize:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     permissions:
       contents: read
@@ -107,7 +107,7 @@ jobs:
           if-no-files-found: error
   canary:
     needs: finalize
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     permissions:
       contents: read

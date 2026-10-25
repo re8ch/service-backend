@@ -104,14 +104,11 @@ The repository already has four autonomous controller stacks (`agent`,
 domains, and a deliberate product-publisher boundary for high-cadence
 applications. This proposal preserves those ownership boundaries.
 
-At this revision, workflow declarations contain 45 `ubuntu-latest` jobs and
-seven Macmini jobs (five ordinary host-bound and two `trusted-audit`), with no
-explicit cluster-runner label found. Therefore enabling Code Quality does not,
-by itself, prove a reduction in Kubernetes load. The saving must be attributed
-to a specific retired cluster process/controller or duplicated workflow; the
-likely immediate effect is instead a shift from custom analysis to additional
-GitHub-hosted CodeQL runs plus reduced maintenance. Runner minutes and
-controller resource usage need separate baselines.
+At this revision, every declared workflow job targets a self-hosted runner.
+Portable Linux work uses the eight-instance R640 `untrusted-build` pool; host-
+bound and Buildx work uses the Macmini, with `trusted-audit` reserved for the
+two host inspection workflows. CodeQL is disabled. Runner capacity, queue time,
+registry egress, and controller resource usage retain separate baselines.
 
 ### 2.3 Prior decisions and operational evidence
 
@@ -121,7 +118,7 @@ following repository history is treated as architectural evidence:
 | Evidence | Established decision or observed fact | Consequence here |
 | --- | --- | --- |
 | PR #1-era commit `b14f3bf2a`, “establish GitHub-first coordination” | GitHub is collaboration authority; Git is durable transition log; Kubernetes remains runtime authority; raw telemetry stays outside Git | retain the existing authority grammar rather than inventing a second control plane |
-| PR #68, “retire GitLab control plane” | validation/release reactions moved to GitHub Actions; GitHub became generated control-plane authority; restricted-node-6dc3f140f9 GitLab runner state was removed | new static work defaults to GitHub-hosted Actions, not another cluster CI stack |
+| PR #68, “retire GitLab control plane” | validation/release reactions moved to GitHub Actions; GitHub became generated control-plane authority; R640 GitLab runner state was removed | new static work defaults to GitHub-hosted Actions, not another cluster CI stack |
 | PR #1922, “Define product runtime authority boundary” | external high-cadence products move to authenticated publishers; Flux retains platform guardrails | do not force all application delivery back through a central Flux owner |
 | PR #1926 and #1931, Flux federation/autonomy | domain controller stacks and repositories were intentionally isolated; ownership transfer uses freeze, canary, then prune | preserve domain autonomy and single-writer migration phases |
 | PRs #1988, #1992, #1993, #1996, #1997, #2002, #2006, #2009–#2011 | real reconciliation repeatedly required narrowly expanded RBAC for Helm storage, CRD adoption, leases and exact resource kinds | offline policy can reduce errors but cannot discover or safely grant runtime authority automatically |
@@ -555,7 +552,7 @@ not basic CI.
 No general CI job should receive a kubeconfig. Self-hosted runners must not be
 selected merely to save GitHub minutes; that would preserve cluster burden and
 increase trust exposure. Host-bound runners are reserved for `/Volumes/A1`,
-restricted-node-6dc3f140f9 networking, private endpoints and exact architecture/hardware tests.
+R640 networking, private endpoints and exact architecture/hardware tests.
 
 ### 6.3 Projects and Issues
 
@@ -608,11 +605,11 @@ reconciliation incident.
 | Attestations/provenance | bind artifact to workflow/repository/commit | guarantee runtime health |
 | Rulesets | protected state transitions | continuous runtime convergence |
 
-Code Quality and CodeQL should use GitHub-hosted runners unless a compiled
-language genuinely requires private build dependencies unavailable through
-approved caching. Generated bundles and vendored output should be excluded from
-quality scoring where supported, while still receiving manifest/security policy
-checks.
+CodeQL is disabled for this control-plane repository. Default setup and language
+auto-detection must remain off so application clients, compiled code, generated
+bundles, vendored output, and Swift cannot silently expand the scan or select a
+GitHub-hosted runner. Manifest, dependency, image, secret, and runtime security
+continue through their dedicated self-hosted policy and observation workflows.
 
 ## 7. Static compilation, dynamic observation, AI and executor boundary
 
@@ -767,7 +764,7 @@ The following are hard boundaries, not missing CI features:
 | Stale offline schema | high | CI accepts object rejected at runtime | pin schema source and perform bounded live dry-run before promotion |
 | Dependabot coverage gap | medium | untracked chart/image versions | explicit source catalog plus custom updater only where required |
 | Federated domain coupling returns | high | root failure blocks autonomous domains | preserve repository/controller authority boundaries |
-| Public network authority violation | critical | wrong restricted-node-6dc3f140f9 route/Gateway advertised | validate against sole inventory authority; runtime probe both paths |
+| Public network authority violation | critical | wrong R640 route/Gateway advertised | validate against sole inventory authority; runtime probe both paths |
 
 ## 11. Migration sequence and gates
 
@@ -890,7 +887,7 @@ maintenance loop for `re8ch/service-backend`.
 | Dependabot alerts | API returned active alerts, including High and Medium Vite findings | dependency graph/advisory detection exists |
 | Dependabot version config | declared for Actions, Python, npm and Go ecosystems | update cadence and bounded per-directory concurrency are reviewable |
 | Dependabot security updates | enabled | security alerts can become update PRs |
-| Code Security / code scanning | enabled with GitHub-hosted default CodeQL | SARIF findings are durable maintenance signals; the initial baseline must be triaged before enabling a zero-alert merge gate |
+| Code Security / code scanning | disabled; default setup and language auto-detection removed | no CodeQL runner is dispatched; any future re-enable requires an explicit cost, scope, capacity, and runner review |
 | Secret scanning / push protection | enabled | GitHub rejects supported secrets before they enter normal history |
 | Existing Checks | recent control-plane CI and policy-review workflows succeeded | Checks are a viable admission/output channel |
 | Existing dependency gate | custom Trivy filesystem scan and reviewed baseline | must be compared with, not blindly duplicated by, Dependency Review |
@@ -934,9 +931,10 @@ by `CODEOWNERS`.
    risk/owner mapping, dedupe key and automation identity.
 3. Add repository-owned Dependabot configuration for supported ecosystems;
    enable security updates only after PR concurrency/grouping is defined.
-4. Enable Code Security/default CodeQL and Code Quality deliberately, with a
-   GitHub-hosted runner and Actions/AI budget. Do not silently move scans to a
-   cluster runner.
+4. Keep CodeQL disabled for the control-plane repository. If a later threat
+   model justifies it, introduce it only through a separate reviewed workflow
+   with default setup disabled, explicit language/path allowlists, self-hosted
+   runner labels, cadence, timeout, and a compute budget.
 5. Enable secret scanning and push protection before granting any automation
    Contents write access.
 6. Run the first Issue pilot from an actual finding. The App must upsert by a

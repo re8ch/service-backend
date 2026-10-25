@@ -16,7 +16,7 @@ permissions: {contents: read, id-token: write}
 concurrency: {group: 'studio-toolkit-release-${{ github.event_name }}-${{ github.ref }}', cancel-in-progress: false}
 jobs:
   verify-release:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     permissions: {contents: read}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -32,7 +32,7 @@ jobs:
   build-hosted:
     needs: verify-release
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     timeout-minutes: 45
     steps:
@@ -109,7 +109,7 @@ jobs:
           mkdir -p "$stage/private" "$stage/release" "$stage/operations/studio-toolkit"
           export TMPDIR="$stage/private"
           port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')
-          ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -N -D "127.0.0.1:$port" restricted-node-6dc3f140f9 &
+          ssh -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -N -D "127.0.0.1:$port" r640 &
           proxy_pid=$!
           trap 'kill "$proxy_pid" 2>/dev/null || true; rm -rf "$stage/private"' EXIT
           export STUDIO_PUBLISH_PROXY="socks5h://127.0.0.1:$port"

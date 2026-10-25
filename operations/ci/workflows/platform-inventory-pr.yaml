@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   open-or-update-pr:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     steps:
       - uses: actions/checkout@v4
       - name: Open or update inventory PR

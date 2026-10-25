@@ -378,6 +378,8 @@ modules:
       digest: sha256:196c69f08b7becfd02b0d204dcf2098dc83c73b99c6e13655fd73a5fe59faf0e
     - codename: signal-violet
       digest: sha256:92e25082980a16d135ca4955e05dc263cc349f426f96ac17aa57180e146a2b5c
+    - codename: starfire-violet
+      digest: sha256:b1c4961b0212ac67dd69fc286f0202dc382a000d26a502fb089041eeb42ccda7
   platform/among-clusters:
     releases:
     - codename: bora
@@ -729,6 +731,8 @@ modules:
       digest: sha256:2320997ad38fb9d00f62af5d7baf2948def21085025e62c22546286dea9a0c56
     - codename: starfire-indigo
       digest: sha256:696ec798a2a9dee130dd08f469031f616840460a8a94849a16dd75763b279f15
+    - codename: torch-indigo
+      digest: sha256:ee991df4cf66365af1003f58a4fac00849a6ac1fda6daa857ed86b8af80058ba
   platform/apps/access-subscription:
     releases:
     - codename: aegis
@@ -1210,6 +1214,18 @@ modules:
       digest: sha256:233a759891a6367984d09ff514c64bf0ea923bc4a2e6c196b2cb37d2d61d6ec9
     - codename: springtide-amethyst
       digest: sha256:e4b54954185dd75e9404e09e0c52fae9fd2e9e89d7cf2289f69d12c880d3a0ae
+    - codename: tideway-amethyst
+      digest: sha256:9c54c80cdef500f408219a46f6ca3f372f6b21b6e60435460b6cf584831123f7
+    - codename: cascade-aquamarine
+      digest: sha256:9fb10415017ec7d8503fcd797ef48afc8e5a6ca1c1c5847f9b21827fb2c4fae1
+    - codename: confluence-aquamarine
+      digest: sha256:4e9eef05e13408b9469cdeef8d39daab56803e7326aa7692aedd2ad82552f0da
+    - codename: eddy-aquamarine
+      digest: sha256:771f5df3b6e8066728a31fa41e42b99092a6274485cba058b426aacf8ead3ace
+    - codename: gulfstream-aquamarine
+      digest: sha256:f065fb38780daf07e1e0592a1ffd8ce95db3ce8f0bbed8af3e11380db34b2a5d
+    - codename: riptide-aquamarine
+      digest: sha256:bad53c748480b0063ba986ca9925238ae436ac9b7df8416a5618fdaca0cadf8a
   platform/hyperswitch:
     releases:
     - codename: anchor
@@ -1588,6 +1604,8 @@ modules:
       digest: sha256:088ea7adbcb327190f9f8d997320fe5856ef5b8b8356abcd326a18ef3ad98195
     - codename: focus-amber
       digest: sha256:c5ba5d7ea31c9ea9f0fa3d7c2b0acab20c8100e29722c79b16a0b8e1110a7fd6
+    - codename: prism-amber
+      digest: sha256:9b575a00c4d44c65fbdaaab3081ce5191358bfb5234dc51428c4810a67be4efb
   platform/observability/opencost-recovery:
     releases:
     - codename: aperture

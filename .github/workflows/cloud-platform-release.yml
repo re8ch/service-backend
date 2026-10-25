@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -46,7 +46,7 @@ jobs:
           python3 operations/plugin-capabilities/audit.py --report operations/plugin-capabilities/declaration-coverage-report.json
           git diff --exit-code -- operations/plugin-capabilities/declaration-coverage-report.json
       - name: Build the actual runtime image
-        run: docker build -f operations/cloud-platform/Dockerfile -t re8ch-cloud-platform:pr .
+        run: docker build --load -f operations/cloud-platform/Dockerfile -t re8ch-cloud-platform:pr .
       - name: Smoke test packaged tool discovery
         run: |
           docker run --rm --network none --entrypoint python re8ch-cloud-platform:pr -c '
@@ -120,7 +120,7 @@ jobs:
           fi
   finalize:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     permissions:
       contents: read

@@ -40,7 +40,7 @@ spec:
     - headlamp-advanced-fabric-v0261-t9hc27t784
     - headlamp-among-clusters-v0324-87kcf6499d
     - headlamp-artc-kubeconfig-template
-    - headlamp-birfucate-browser-v046-75tm8fhd2h
+    - headlamp-birfucate-browser-v047-4bf287m876
     - headlamp-gateway-backend
     - headlamp-gateway-proxy
     - headlamp-mihomos-cluster-v013-kg28cgb9g9
@@ -53,7 +53,7 @@ spec:
     - headlamp-secretary-v030-d9c9k67m67
     allowClusterScoped: false
   inventory:
-    digest: sha256:73b1c33a6400ae9931f97acf149a3774e5aa058ae1a0073c02300da13509de6f
+    digest: sha256:0fd8d927ac5b30027d1974c300d35f1dc9a65c5a9868e76fe9564d0f96d80975
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -75,7 +75,7 @@ spec:
     - core/ConfigMap/headlamp/headlamp-advanced-fabric-v0261-t9hc27t784
     - core/ConfigMap/headlamp/headlamp-among-clusters-v0324-87kcf6499d
     - core/ConfigMap/headlamp/headlamp-artc-kubeconfig-template
-    - core/ConfigMap/headlamp/headlamp-birfucate-browser-v046-75tm8fhd2h
+    - core/ConfigMap/headlamp/headlamp-birfucate-browser-v047-4bf287m876
     - core/ConfigMap/headlamp/headlamp-gateway-proxy
     - core/ConfigMap/headlamp/headlamp-mihomos-cluster-v013-kg28cgb9g9
     - core/ConfigMap/headlamp/headlamp-oidc-landing

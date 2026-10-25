@@ -1,0 +1,77 @@
+apiVersion: delivery.re8ch.com/static-domain-standard/v1alpha1
+kind: StaticDomainStandard
+metadata:
+  name: github-static-gitops-v1
+spec:
+  authorityRef: operations/releases/static-domain-authority.yaml
+  dispatchRef: operations/migrations/github-first-control-plane/static-release-domain-dispatch.yaml
+  parameters:
+    required: [domain, risk, stabilityHours, repository, workflow, protectedEnvironment, audience, kubernetesGroup]
+    derived:
+      protectedEnvironment: release-executor-{domain}
+      audience: https://kube-api.re8ch.com/release-executor-{domain}
+      kubernetesGroup: re8ch:release-executor:{domain}
+      fieldManager: re8ch-release/{releaseId}
+      stateConfigMap: ssa-state-{releaseId}
+  runner:
+    labels: [self-hosted, Linux, X64, r640, untrusted-build]
+    githubHostedAllowed: false
+    isolatedPaths: [RUNNER_TEMP, DOCKER_CONFIG, cosign]
+    proxyAuthority: http://192.168.88.251:17891
+  protectedEnvironment:
+    deploymentBranches: [main]
+    requiredSecrets: [KUBE_API_CA_PEM]
+    preventSelfReview: false
+    administratorsMayBypass: false
+  phases:
+  - id: inventory
+    mutation: none
+    requires: [live-consumer-snapshot, immutable-source-locks, object-authority-classification]
+    produces: [release-contract, exact-inventory, rollback-policy]
+  - id: bootstrap
+    mutation: github-and-rbac
+    requires: [independent-repository, protected-environment, exact-oidc-claims]
+    produces: [minimal-executor-rbac, durable-state-configmap, self-hosted-workflow]
+  - id: shadow
+    mutation: artifact-only
+    requires: [deterministic-double-render, immutable-images, signed-oci]
+    produces: [verified-bundle-digest, zero-runtime-mutation-evidence]
+  - id: server-dry-run
+    mutation: apiserver-dry-run-only
+    requires: [exact-oidc-identity, deny-probes, validate-false]
+    produces: [accepted-inventory, exact-field-conflicts]
+  - id: suspend-old-owner
+    mutation: flux-consumer-suspend-only
+    requires: [last-healthy-flux-revision, rollback-digest, exact-consumer]
+    produces: [suspended-consumer, preserved-helm-history]
+  - id: takeover
+    mutation: bounded-ssa
+    requires: [reviewed-force-object-list, protected-environment-approval]
+    produces: [healthy-workload, static-managed-fields, durable-accepted-state]
+  - id: replay
+    mutation: bounded-ssa-without-force
+    requires: [healthy-takeover]
+    produces: [idempotent-replay-evidence, drift-recovery-evidence]
+  - id: stability
+    mutation: none
+    requires: [risk-window-elapsed, telemetry-continuity, rollback-probe]
+    produces: [cutover-accepted]
+  - id: controller-retirement
+    mutation: reviewed-controller-delete
+    requires: [real-consumer-count-zero, source-consumer-count-zero, zero-old-controller-writes, finalizers-orphaned-safely, compatibility-projections-healthy]
+    produces: [controller-removed]
+  riskProfiles:
+    low: {stabilityHours: 12, serial: false}
+    medium: {stabilityHours: 24, serial: true}
+    high: {stabilityHours: 48, serial: true}
+    critical: {stabilityHours: 72, serial: true, manualRollback: true}
+  invariants:
+  - github-main-is-the-only-git-authority
+  - kubernetes-is-runtime-authority
+  - one-repository-workflow-environment-audience-group-per-domain
+  - no-static-credentials-or-kubeconfig
+  - no-secret-read-pod-exec-tokenrequest-or-impersonation
+  - force-conflicts-only-for-dry-run-proven-object-identities
+  - old-consumer-suspended-before-takeover
+  - ordinary-replay-never-forces-conflicts
+  - controller-removal-is-last-and-consumer-count-gated

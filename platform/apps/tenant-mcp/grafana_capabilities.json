@@ -24,7 +24,7 @@
   "items": [
     {
       "id": "datasource-query",
-      "tools": ["grafana_query"],
+      "tools": ["monitoring_query"],
       "origin": "grafana-oss",
       "status": "implemented-legacy",
       "officialApi": {"path": "/api/ds/query", "generation": "legacy", "grafanaVersion": "13.x"},
@@ -35,7 +35,7 @@
     },
     {
       "id": "dashboard-save",
-      "tools": ["grafana_exploration_save", "grafana_render"],
+      "tools": ["monitoring_dashboard"],
       "origin": "grafana-oss",
       "status": "migration-required",
       "officialApi": {"path": "/apis/dashboard.grafana.app/v1beta1/namespaces/:namespace/dashboards", "fallbackPath": "/api/dashboards/db", "generation": "new-with-legacy-fallback", "grafanaVersion": "13.x"},
@@ -46,7 +46,7 @@
     },
     {
       "id": "native-correlations",
-      "tools": ["grafana_correlate"],
+      "tools": ["monitoring_analyze"],
       "origin": "grafana-oss",
       "status": "implemented-legacy",
       "officialApi": {"path": "/api/datasources/uid/:uid/correlations", "generation": "legacy", "grafanaVersion": "13.x"},
@@ -57,7 +57,7 @@
     },
     {
       "id": "jaeger-trace-search",
-      "tools": ["grafana_query"],
+      "tools": ["monitoring_query"],
       "origin": "datasource-plugin",
       "status": "discovery-only",
       "officialApi": {"path": "/api/ds/query", "generation": "legacy", "grafanaVersion": "13.x"},
@@ -68,7 +68,7 @@
     },
     {
       "id": "numeric-analysis",
-      "tools": ["grafana_analyze", "grafana_indicators", "grafana_correlate"],
+      "tools": ["monitoring_analyze"],
       "origin": "re8ch-analysis",
       "status": "partial",
       "officialApi": null,
@@ -80,7 +80,7 @@
     },
     {
       "id": "tenant-query-enforcement",
-      "tools": ["grafana_query"],
+      "tools": ["monitoring_query"],
       "origin": "re8ch-analysis",
       "status": "caller-matcher-required",
       "officialApi": null,
@@ -92,7 +92,7 @@
     },
     {
       "id": "sql-read-only",
-      "tools": ["grafana_query"],
+      "tools": ["monitoring_query"],
       "origin": "re8ch-analysis",
       "status": "validation-only",
       "officialApi": {"path": "/api/ds/query", "generation": "legacy", "grafanaVersion": "13.x"},

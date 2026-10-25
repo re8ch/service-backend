@@ -8,7 +8,7 @@ concurrency: {group: release-compat-controller, cancel-in-progress: false}
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
     timeout-minutes: 30
     environment: release-ceph-compiler
     steps:

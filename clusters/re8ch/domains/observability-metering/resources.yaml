@@ -103,6 +103,49 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+  namespace: observability-system
+rules:
+- apiGroups:
+  - apps
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - services
+  - serviceaccounts
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-kube-state-metrics
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: retire-legacy-qianwen-grafana
   namespace: qianwen-ops
 rules:
@@ -165,6 +208,38 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+rules:
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+  - escalate
+  - bind
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resourceNames:
+  - re8ch-kube-state-metrics
+  resources:
+  - clusterrolebindings
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
   name: re8ch-event-collector
 rules:
 - apiGroups:
@@ -193,6 +268,22 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-kube-state-metrics
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: retire-legacy-qianwen-grafana
   namespace: qianwen-ops
 roleRef:
@@ -203,6 +294,21 @@ subjects:
 - kind: ServiceAccount
   name: retire-legacy-qianwen-grafana
   namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: observability-metering
+  name: observability-kube-state-metrics
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: observability-kube-state-metrics
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -522,9 +628,9 @@ data:
         "Standard_D32as_v5": {"cpuCores": 32, "memoryGiB": 128, "storageGiB": 40}
       },
       "targets": [
-        {"name": "restricted-node-6dc3f140f9", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 80, "memoryGiB": 247.3, "storageGiB": 294.7, "bookMonthlyCNY": 1166.666667},
-        {"name": "restricted-node-1eb0570f74", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
-        {"name": "restricted-node-296f36f2fb", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
+        {"name": "r640", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 80, "memoryGiB": 247.3, "storageGiB": 294.7, "bookMonthlyCNY": 1166.666667},
+        {"name": "a1-wsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
+        {"name": "b1-wsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": 0},
         {"name": "amdwsl-zt", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": null, "memoryGiB": 12, "storageGiB": 300, "bookMonthlyCNY": null},
         {"name": "rancher-panel", "regionGroup": "cn-south", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 8.333333},
         {"name": "harbor-registry", "regionGroup": "cn-east", "resourceClass": "compute-storage", "cpuCores": 4, "memoryGiB": 4, "storageGiB": 40, "bookMonthlyCNY": 6.666667},
@@ -991,6 +1097,17 @@ metadata:
     app.kubernetes.io/part-of: re8ch-observability
     grafana_alert: "1"
   name: re8ch-observability-grafana-alerts
+  namespace: observability-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/authority-domain: observability-metering
+    delivery.re8ch.com/state: accepted
+  name: ssa-state-observability-kube-state-metrics
   namespace: observability-system
 ---
 apiVersion: v1
@@ -1688,7 +1805,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app.kubernetes.io/instance: restricted-node-6dc3f140f9
+    app.kubernetes.io/instance: r640
     app.kubernetes.io/name: globalping-probe
     app.kubernetes.io/part-of: public-edge-observability
   name: globalping-probe-r640
@@ -1697,14 +1814,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/instance: restricted-node-6dc3f140f9
+      app.kubernetes.io/instance: r640
       app.kubernetes.io/name: globalping-probe
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app.kubernetes.io/instance: restricted-node-6dc3f140f9
+        app.kubernetes.io/instance: r640
         app.kubernetes.io/name: globalping-probe
         app.kubernetes.io/part-of: public-edge-observability
     spec:
@@ -1739,7 +1856,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       volumes:
       - name: state
         persistentVolumeClaim:
@@ -1906,7 +2023,7 @@ spec:
         - mountPath: /tmp
           name: tmp
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       serviceAccountName: re8ch-fair-value-controller
       volumes:
       - configMap:
@@ -2081,7 +2198,7 @@ spec:
           readOnly: true
           subPath: composite-alerts.yaml
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 472
       serviceAccountName: re8ch-grafana
@@ -2174,7 +2291,7 @@ spec:
         - mountPath: /var/lib/postgresql/data
           name: data
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       volumes:
       - name: data
         persistentVolumeClaim:
@@ -2368,7 +2485,7 @@ spec:
       imagePullSecrets:
       - name: harbor-registry-pull
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
@@ -2872,7 +2989,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-296f36f2fb
+        kubernetes.io/hostname: b1-wsl-zt
       restartPolicy: OnFailure
       securityContext:
         seccompProfile:
@@ -2904,7 +3021,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       automountServiceAccountToken: false
       containers:
       - args:
@@ -2995,7 +3112,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       automountServiceAccountToken: false
       containers:
       - args:
@@ -3210,7 +3327,7 @@ spec:
     nodeCostAllocation:
       enabled: true
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     outbox:
       enabled: false
     pricing:
@@ -3224,7 +3341,7 @@ spec:
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f751479965f23bbb102e6637cfefd2791004c962c15acb928dcd6d42949967d8
       placement:
         nodeNames:
-        - restricted-node-6dc3f140f9
+        - r640
       provider:
         databaseBindings:
         - database: anysite
@@ -3246,7 +3363,7 @@ spec:
         required: false
       tenantAPI:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:e484a64ffa541ab4202e059e30e5e24b8615b69069983990bd2af1d740f16345
+        image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:ee3cb1bc01d4db03e109ffaa2cdf8945daeab73a537f00ad4f4847df19319857
         openAIAppsChallengeToken: 6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
@@ -3672,7 +3789,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       enabled: true
       extraEnv:
       - name: HTTP_PROXY
@@ -3680,7 +3797,7 @@ spec:
       - name: HTTPS_PROXY
         value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
       - name: NO_PROXY
-        value: .svc,.cluster.local,192.0.2.183/8,192.0.2.81/10
+        value: .svc,.cluster.local,10.0.0.0/8,100.64.0.0/10
       resources:
         limits:
           cpu: "1"
@@ -3709,7 +3826,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       enabled: true
       extraEnv:
       - name: HTTP_PROXY
@@ -3717,7 +3834,7 @@ spec:
       - name: HTTPS_PROXY
         value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
       - name: NO_PROXY
-        value: .svc,.cluster.local,192.0.2.183/8,192.0.2.81/10
+        value: .svc,.cluster.local,10.0.0.0/8,100.64.0.0/10
       resources:
         limits:
           cpu: 500m
@@ -3736,14 +3853,14 @@ spec:
               - key: kubernetes.io/hostname
                 operator: NotIn
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
       extraEnv:
       - name: HTTP_PROXY
         value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
       - name: HTTPS_PROXY
         value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
       - name: NO_PROXY
-        value: .svc,.cluster.local,192.0.2.183/8,192.0.2.81/10
+        value: .svc,.cluster.local,10.0.0.0/8,100.64.0.0/10
       replicaCount: 1
       resources:
         limits:
@@ -3774,6 +3891,7 @@ spec:
     remediation:
       retries: 3
   interval: 3m
+  suspend: true
   upgrade:
     remediation:
       remediateLastFailure: true
@@ -3814,7 +3932,7 @@ spec:
     - services=[app.kubernetes.io/name,app.kubernetes.io/component,observability.re8ch.com/tier,observability.re8ch.com/scrape]
     - persistentvolumeclaims=[app.kubernetes.io/name,app.kubernetes.io/component,tenant,resource_ref,birfucate.re8ch.com/metered]
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     replicas: 1
     resources:
       limits:
@@ -3869,7 +3987,7 @@ spec:
           cpu: 25m
           memory: 96Mi
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     pdb:
       create: true
       minAvailable: 1
@@ -3912,7 +4030,7 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-              - restricted-node-6dc3f140f9
+              - r640
     crds:
       cleanup:
         enabled: false
@@ -3920,7 +4038,7 @@ spec:
       plain: false
     env:
     - name: KUBERNETES_SERVICE_HOST
-      value: 192.0.2.116
+      value: 10.250.0.1
     - name: KUBERNETES_SERVICE_PORT
       value: "6443"
     operator:
@@ -3952,10 +4070,10 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: oncall.tools.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/dns-authority: public-edge
-    networking.re8ch.com/selected-public-edge: restricted-node-6dc3f140f9
+    networking.re8ch.com/selected-public-edge: r640
   labels:
     networking.re8ch.com/dns-authority: public-edge
     public.re8ch.com/external-dns: enabled
@@ -3996,7 +4114,7 @@ spec:
       protocol: TCP
     to:
     - ipBlock:
-        cidr: 192.0.2.179/32
+        cidr: 10.250.0.128/32
   - ports:
     - port: 17891
       protocol: TCP
@@ -4005,9 +4123,9 @@ spec:
         matchLabels:
           kubernetes.io/metadata.name: egress-fabric
     - ipBlock:
-        cidr: 192.0.2.20/24
+        cidr: 10.181.22.0/24
     - ipBlock:
-        cidr: 192.0.2.65/16
+        cidr: 10.250.0.0/16
   - ports:
     - port: 443
       protocol: TCP
@@ -4110,9 +4228,9 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-1eb0570f74
-            - restricted-node-296f36f2fb
-            - restricted-node-6dc3f140f9
+            - a1-wsl-zt
+            - b1-wsl-zt
+            - r640
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
       - labelSelector:
@@ -4180,9 +4298,9 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-1eb0570f74
-            - restricted-node-296f36f2fb
-            - restricted-node-6dc3f140f9
+            - a1-wsl-zt
+            - b1-wsl-zt
+            - r640
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
       - labelSelector:
@@ -4437,7 +4555,7 @@ spec:
     loggerFormat: json
     retention.maxDiskSpaceUsageBytes: 90GiB
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/hostname: r640
   resources:
     limits:
       cpu: "2"
@@ -4471,9 +4589,9 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-              - restricted-node-1eb0570f74
-              - restricted-node-296f36f2fb
-              - restricted-node-6dc3f140f9
+              - a1-wsl-zt
+              - b1-wsl-zt
+              - r640
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
         - podAffinityTerm:
@@ -4503,9 +4621,9 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-              - restricted-node-1eb0570f74
-              - restricted-node-296f36f2fb
-              - restricted-node-6dc3f140f9
+              - a1-wsl-zt
+              - b1-wsl-zt
+              - r640
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
         - podAffinityTerm:
@@ -4528,7 +4646,7 @@ spec:
       operator: Exists
   storage:
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     replicaCount: 1
     resources:
       limits:
@@ -4564,7 +4682,7 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-6dc3f140f9
+            - r640
   externalLabelName: vmagent_ha
   externalLabels:
     cluster: re8ch
@@ -4610,14 +4728,14 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-6dc3f140f9
+            - r640
         weight: 100
       - preference:
           matchExpressions:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-296f36f2fb
+            - b1-wsl-zt
         weight: 80
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -4625,9 +4743,9 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-1eb0570f74
-            - restricted-node-296f36f2fb
-            - restricted-node-6dc3f140f9
+            - a1-wsl-zt
+            - b1-wsl-zt
+            - r640
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
       - labelSelector:
@@ -4691,14 +4809,14 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-6dc3f140f9
+            - r640
         weight: 100
       - preference:
           matchExpressions:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-296f36f2fb
+            - b1-wsl-zt
         weight: 80
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -4706,9 +4824,9 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-1eb0570f74
-            - restricted-node-296f36f2fb
-            - restricted-node-6dc3f140f9
+            - a1-wsl-zt
+            - b1-wsl-zt
+            - r640
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
       - labelSelector:
@@ -4769,14 +4887,14 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-6dc3f140f9
+            - r640
         weight: 100
       - preference:
           matchExpressions:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-296f36f2fb
+            - b1-wsl-zt
         weight: 80
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -4784,9 +4902,9 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - restricted-node-1eb0570f74
-            - restricted-node-296f36f2fb
-            - restricted-node-6dc3f140f9
+            - a1-wsl-zt
+            - b1-wsl-zt
+            - r640
     podAntiAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
       - labelSelector:
@@ -4829,7 +4947,7 @@ spec:
     repository: registry.re8ch.com/library/re8ch-vmauth
     tag: v1.142.0@sha256:d1afe40a8e466e84566ddc151b57d208f6f64df5ea71fa9f173c41d1319aabf8
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/hostname: r640
   replicaCount: 1
   resources:
     limits:
@@ -4859,7 +4977,7 @@ spec:
   retentionPeriod: 90d
   vminsert:
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     replicaCount: 1
     resources:
       limits:
@@ -4872,7 +4990,7 @@ spec:
     extraArgs:
       dedup.minScrapeInterval: 15s
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     replicaCount: 1
     resources:
       limits:
@@ -4885,7 +5003,7 @@ spec:
     extraArgs:
       dedup.minScrapeInterval: 15s
     nodeSelector:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
     replicaCount: 1
     resources:
       limits:
@@ -6064,7 +6182,7 @@ metadata:
   namespace: observability-system
 spec:
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/hostname: r640
   resources:
     limits:
       cpu: "2"
@@ -6090,7 +6208,7 @@ metadata:
   namespace: observability-system
 spec:
   nodeSelector:
-    kubernetes.io/hostname: restricted-node-6dc3f140f9
+    kubernetes.io/hostname: r640
   resources:
     limits:
       cpu: "2"
