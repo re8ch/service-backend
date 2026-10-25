@@ -56,9 +56,9 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: tenant-go-validate
-    # Harbor layer uploads from hosted runners stall at the public edge.
-    # Use the trusted Macmini runner's direct registry path, as tenant-release does.
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    # Build and publish on restricted-node-6dc3f140f9 through its region-pinned Mihomos BuildKit.
+    # Macmini is intentionally excluded from the tenant MCP release path.
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 30
     environment: production
     permissions:
@@ -67,26 +67,19 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: |
+      - name: Prepare isolated restricted-node-6dc3f140f9 release authentication
+        run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
-          printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          # Docker Desktop's inherited resolver returns a 198.18/15 fake IP for
-          # registry.re8ch.com. Use public DNS only inside this disposable builder.
-          printf '[dns]\nnameservers = ["1.1.1.1"]\n' > "$RUNNER_TEMP/tenant-go-buildkitd.toml"
-          docker buildx create --name "tenant-go-release-${GITHUB_RUN_ID}" --driver docker-container \
-            --buildkitd-config "$RUNNER_TEMP/tenant-go-buildkitd.toml" --use
-          docker buildx inspect --bootstrap "tenant-go-release-${GITHUB_RUN_ID}" >/dev/null
-          builder_container="buildx_buildkit_tenant-go-release-${GITHUB_RUN_ID}0"
-          docker exec "$builder_container" sh -ec 'printf "nameserver 1.1.1.1\n" > /etc/resolv.conf'
-          registry_ip="$(docker exec "$builder_container" getent hosts registry.re8ch.com | awk 'NR == 1 {print $1}')"
-          case "$registry_ip" in
-            ""|198.18.*|198.19.*) echo "Registry DNS did not resolve to a public authority" >&2; exit 1 ;;
-          esac
-          echo "Builder resolves registry.re8ch.com to $registry_ip"
-          echo "TENANT_IMAGE_BUILDER=tenant-go-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          # Keep the governed builder index separate from the disposable
+          # registry authentication config.
+          export BUILDX_CONFIG="${HOME}/.docker/buildx"
+          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
+          docker buildx inspect --bootstrap r640-mihomos >/dev/null
+          echo "TENANT_IMAGE_BUILDER=r640-mihomos" >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
@@ -96,19 +89,21 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          # Cold base-image and module pulls on the Macmini builder can exceed
+          # Cold base-image and module pulls on the restricted-node-6dc3f140f9 builder can exceed
           # the generic five-minute publisher default.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
-          # Keep Harbor OAuth token requests in BuildKit, whose disposable DNS
-          # config resolves the public registry authority instead of fake IPs.
+          # Keep Harbor OAuth token requests in the region-pinned BuildKit.
           BUILDKIT_NO_CLIENT_TOKEN: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-go-release-${{ github.sha }}
           path: tenant-mcp.image
           if-no-files-found: error
-      - if: always()
-        run: docker buildx rm "tenant-go-release-${GITHUB_RUN_ID}" || true
+      - name: Remove temporary registry authorization
+        if: always()
+        run: |
+          rm -f "$DOCKER_CONFIG/config.json"
+          rmdir "$DOCKER_CONFIG" || true
   finalize:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: release

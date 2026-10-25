@@ -71,6 +71,13 @@ The monitoring product surface is provider-neutral and intentionally compact:
 the measured migration window; Grafana remains an implementation detail and
 provider-specific resource URI until a separate resource migration is reviewed.
 
+The runtime-image surface similarly publishes three product-oriented tools:
+`runtime_image_catalog` for project, repository, artifact and security reads;
+`runtime_image_manage` for scan and tag lifecycle; and `runtime_image_build` for
+the integrated BuildKit/SBOM/provenance/signing/scan workflow. Historical
+`harbor_*` calls remain hidden measured aliases. Harbor is still the current OCI
+registry implementation, but it is no longer part of the public tool names.
+
 ## Dynamic skills
 
 Dynamic skills are reviewed workflow text for the current Agent to interpret

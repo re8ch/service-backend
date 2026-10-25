@@ -4,8 +4,8 @@
 
 Product source: `platform/apps/tenant-mcp` (Go). The actual container build is
 the multi-stage Dockerfile in that directory. `tenant-go-release.yml` invokes
-the shared BuildKit publisher on Macmini, because the existing public Harbor
-upload path from hosted workers is unreliable. The product is not moved here.
+the shared BuildKit publisher on the governed restricted-node-6dc3f140f9 builder (migrated on main
+before activation). The product is not moved here.
 
 Before this change, main compiled the image in validation, then compiled it
 again for publication. BuildKit produced an SBOM and finalize scanned it again.
@@ -22,7 +22,9 @@ The observed image was `sha256:dbd60536580fdbed4915871aee6ee81806c18f9bce1aa8f80
 Its HelmRelease was reconciling at inspection time; this audit is not a health certificate.
 During implementation, observability main advanced to `ed719549` with image
 `sha256:00ce4a96b6077a878f5358099ff1be41f3b7701307ea303245c7655b33b6b5fb`.
-The handoff is seeded from that newer desired state to avoid rolling it back.
+At activation, observability main `020cf862` and the Ready live HelmRelease both
+use `sha256:ee3cb1bc01d4db03e109ffaa2cdf8945daeab73a537f00ad4f4847df19319857`.
+The handoff is seeded from this latest state to avoid rolling it back.
 
 ## Replacement
 

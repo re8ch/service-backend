@@ -23,14 +23,32 @@ def test_auth_v1_routes_to_isolated_supabase_without_replacing_static_root():
 
 
 def test_db_rw_auth_path_preserved_without_retired_postgrest_fallback():
-    route = yaml.safe_load((ROOT / "operations/supabase-identity/db-rw-auth-route.yaml").read_text())
+    resources = list(yaml.safe_load_all(
+        (ROOT / "operations/supabase-identity/db-rw-auth-route.yaml").read_text()
+    ))
+    route = next(item for item in resources if item["kind"] == "HTTPRoute")
+    grant = next(item for item in resources if item["kind"] == "ReferenceGrant")
     assert route["metadata"]["namespace"] == "supabase-identity"
     assert route["spec"]["hostnames"] == ["db-rw.re8ch.com"]
     assert route["spec"]["rules"][0]["matches"][0]["path"] == {
+        "type": "Exact", "value": "/auth/v1/oauth/token"
+    }
+    assert route["spec"]["rules"][0]["backendRefs"] == [{
+        "name": "tenant-api", "namespace": "tenant-infrastructure", "port": 80
+    }]
+    assert route["spec"]["rules"][0]["filters"][0]["urlRewrite"]["path"] == {
+        "type": "ReplaceFullPath", "replaceFullPath": "/oauth/token/compat"
+    }
+    assert route["spec"]["rules"][1]["matches"][0]["path"] == {
         "type": "PathPrefix", "value": "/auth/v1"
     }
-    assert route["spec"]["rules"][0]["backendRefs"] == [{"name": "supabase-identity-auth", "port": 9999}]
-    assert route["spec"]["rules"][0]["filters"][0]["urlRewrite"]["path"]["replacePrefixMatch"] == "/"
+    assert route["spec"]["rules"][1]["backendRefs"] == [{"name": "supabase-identity-auth", "port": 9999}]
+    assert route["spec"]["rules"][1]["filters"][0]["urlRewrite"]["path"]["replacePrefixMatch"] == "/"
+    assert grant["metadata"]["namespace"] == "tenant-infrastructure"
+    assert grant["spec"]["from"] == [{
+        "group": "gateway.networking.k8s.io", "kind": "HTTPRoute", "namespace": "supabase-identity"
+    }]
+    assert grant["spec"]["to"] == [{"group": "", "kind": "Service", "name": "tenant-api"}]
     postgrest = list(yaml.safe_load_all((ROOT / "clusters/re8ch/components/observable/postgrest-ha.yaml").read_text()))
     fallback = next(item for item in postgrest if item and item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "observable-postgrest-rw")
     assert all(match["path"]["value"] != "/" for rule in fallback["spec"]["rules"] for match in rule["matches"])
@@ -49,7 +67,11 @@ def test_identity_data_routes_keep_ro_and_rw_separate():
 
 
 def test_rfc8414_discovery_reaches_auth_instead_of_postgrest():
-    route = yaml.safe_load((ROOT / "operations/supabase-identity/db-rw-auth-route.yaml").read_text())
+    route = next(
+        item for item in yaml.safe_load_all(
+            (ROOT / "operations/supabase-identity/db-rw-auth-route.yaml").read_text()
+        ) if item["kind"] == "HTTPRoute"
+    )
     rule = next(rule for rule in route["spec"]["rules"]
                 if rule["matches"][0]["path"]["value"] == "/.well-known/oauth-authorization-server/auth/v1")
     assert rule["matches"][0]["path"]["type"] == "Exact"

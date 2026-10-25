@@ -277,6 +277,153 @@
     "name": "tenant_human_access_issue"
   },
   {
+    "description": "Inspect the authenticated tenant's runtime-image project, repositories, artifacts, security reports, OCI accessories and audit events.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "get_project",
+            "list_repositories",
+            "list_artifacts",
+            "get_artifact",
+            "get_vulnerabilities",
+            "get_sbom",
+            "list_accessories",
+            "list_audit"
+          ],
+          "type": "string"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "credential_ref"
+      ],
+      "type": "object"
+    },
+    "name": "runtime_image_catalog"
+  },
+  {
+    "description": "Preview or apply runtime-image scan and tag lifecycle actions in the authenticated tenant project.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "start_scan",
+            "create_tag",
+            "delete_tag"
+          ],
+          "type": "string"
+        },
+        "apply": {
+          "type": "boolean"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "credential_ref",
+        "repository",
+        "reference"
+      ],
+      "type": "object"
+    },
+    "name": "runtime_image_manage"
+  },
+  {
+    "description": "Start, inspect, list or cancel tenant runtime-image builds with SBOM and provenance attestations.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            "start",
+            "get",
+            "list",
+            "cancel"
+          ],
+          "type": "string"
+        },
+        "apply": {
+          "type": "boolean"
+        },
+        "build_args": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "context": {
+          "type": "string"
+        },
+        "credential_ref": {
+          "type": "string"
+        },
+        "dockerfile": {
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string"
+        },
+        "platforms": {
+          "items": {
+            "enum": [
+              "linux/amd64",
+              "linux/arm64"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        "repository": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "scan": {
+          "type": "boolean"
+        },
+        "sign": {
+          "type": "boolean"
+        },
+        "tag": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    "name": "runtime_image_build"
+  },
+  {
     "description": "Read the authenticated tenant's Harbor project metadata and quota summary.",
     "inputSchema": {
       "additionalProperties": false,

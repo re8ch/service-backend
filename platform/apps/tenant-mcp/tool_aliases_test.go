@@ -12,6 +12,7 @@ func TestNormalizeToolNameSupportsPrefixesAndHiddenAliases(t *testing.T) {
 	}{
 		{input: "monitoring_query", canonical: "monitoring_query"},
 		{input: "grafana_query", canonical: "monitoring_query", changed: true},
+		{input: "harbor_build_start", canonical: "runtime_image_build", changed: true},
 		{input: "re8ch_review_demo.grafana_query", canonical: "monitoring_query", changed: true},
 		{input: "re8ch.monitoring_query", canonical: "monitoring_query", changed: true},
 	}
@@ -26,6 +27,24 @@ func TestNormalizeToolNameSupportsPrefixesAndHiddenAliases(t *testing.T) {
 	}
 	if got := toolAliasMetricName("grafana_query"); got != "grafana_query" {
 		t.Fatalf("explicit alias metric label = %q", got)
+	}
+}
+
+func TestRuntimeImageAliasRewriteInjectsCanonicalAction(t *testing.T) {
+	request := map[string]any{"method": "tools/call", "params": map[string]any{
+		"name":      "harbor_tag_delete",
+		"arguments": map[string]any{"action": "create_tag", "repository": "app", "reference": "sha256:abc", "tag": "old"},
+	}}
+	uses := []toolAliasUse{}
+	if !rewriteToolNames(request, &uses) {
+		t.Fatal("legacy Harbor call was not rewritten")
+	}
+	params := object(request["params"])
+	if params["name"] != "runtime_image_manage" || object(params["arguments"])["action"] != "delete_tag" {
+		t.Fatalf("unexpected rewritten call: %#v", request)
+	}
+	if len(uses) != 1 || uses[0].Alias != "harbor_tag_delete" || uses[0].Canonical != "runtime_image_manage" {
+		t.Fatalf("unexpected alias observation: %#v", uses)
 	}
 }
 
