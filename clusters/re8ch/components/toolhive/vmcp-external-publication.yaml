@@ -38,6 +38,7 @@ spec:
     - ensure_tenant_database_secrets
     - ensure_tenant_database_bundle
     - postgres_admin_sql
+    - repair_re8ch_billing_ownership
     - ensure_tenant_access
     - ensure_harbor_tenant
     - set_tool_publication_stage
@@ -70,7 +71,7 @@ spec:
     headerName: X-Ops-Token
     valueSecretRef: {name: ops-mcp-admin-upstream, key: x-ops-token}
 ---
-# Keep each internal workload on the restricted-node-6dc3f140f9 service anchor. The generated proxy
+# Keep each internal workload on the R640 service anchor. The generated proxy
 # waits for every backend replica before serving, so declaring A/B replicas
 # makes the whole tool unavailable when either WSL control-plane host is down.
 apiVersion: toolhive.stacklok.dev/v1beta1
@@ -101,7 +102,7 @@ spec:
     # reach this port (see the
     # vmcp-internal-backends NetworkPolicy), so trust the cluster Pod CIDR at
     # this final hop while vMCP continues to inject the workload token.
-    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
+    - {name: TRUST_PROXY_CIDRS, value: "10.42.0.0/16"}
     - {name: HARBOR_URL, value: "https://registry.re8ch.com"}
     - {name: HARBOR_API_URL, value: "https://registry.re8ch.com"}
     - {name: HARBOR_SKIP_TLS_VERIFY, value: "true"}
@@ -161,7 +162,7 @@ spec:
     - {name: EXTERNAL_MCP_RESOURCE, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
     - {name: EXTERNAL_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
     - {name: EXTERNAL_AUTH_ORIGIN, value: "https://db-rw.re8ch.com/auth/v1"}
-    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
+    - {name: TRUST_PROXY_CIDRS, value: "10.42.0.0/16"}
     - {name: TENANT_NAMESPACE, value: platform}
     # The authenticated tenant gateway forwards X-Re8ch-Tenant. The backend
     # accepts only this explicit allowlist at the trusted final hop.
@@ -220,7 +221,7 @@ spec:
   env:
     - {name: LISTEN_PORT, value: "8088"}
     - {name: OPS_TOOL_PROFILE, value: operate}
-    - {name: TRUST_PROXY_CIDRS, value: "192.0.2.57/16"}
+    - {name: TRUST_PROXY_CIDRS, value: "10.42.0.0/16"}
   toolConfigRef: {name: ops-operate-tools}
   telemetryConfigRef: {name: platform-tools-telemetry, serviceName: re8ch-ops-operate-vmcp-internal}
   audit: {enabled: true}
