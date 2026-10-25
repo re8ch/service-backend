@@ -32,7 +32,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
     cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
-    assert cohort["releaseCount"] == 16
+    assert cohort["releaseCount"] == 14
     source = {compiler.identity(item) for domain in DOMAINS
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
@@ -142,3 +142,24 @@ def test_supabase_rest_has_one_native_writer_and_no_ssa_authority():
     assert owner["spec"]["suspend"] is False
     assert owner["spec"]["healthChecks"] == [dict(apiVersion="apps/v1", kind="Deployment",
                                                name="supabase-rest", namespace="supabase-pg-re8ch")]
+
+
+def test_headlamp_has_native_health_reporting_and_no_ssa_writer():
+    legacy = documents(ROOT / "clusters/re8ch/domains/main-legacy/operations-ui/resources.yaml")
+    names = {item["metadata"]["name"] for item in legacy
+             if item["kind"] == "Deployment" and item["metadata"].get("namespace") == "headlamp"}
+    expected = {"headlamp", "headlamp-gateway-proxy", "headlamp-active-elector"}
+    assert expected <= names
+    assert not (ROOT / "contracts/releases/main-domain/main-operations-ui-headlamp.yaml").exists()
+    assert not (ROOT / "operations/releases/main-domain-ssa/main-operations-ui-headlamp").exists()
+    rbac = documents(ROOT / "clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml")
+    assert all(item["metadata"]["name"] not in {"main-operations-ui-headlamp", "main-operations-ui-kube-system"}
+               for item in rbac)
+    assert not (ROOT / "contracts/releases/main-domain/main-operations-ui-kube-system.yaml").exists()
+    owner = next(item for item in documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
+                 if item["metadata"]["name"] == "reconcile-main-legacy-operations-ui")
+    assert owner["spec"]["suspend"] is False
+    assert {item["name"] for item in owner["spec"]["healthChecks"]} == expected
+    alerts = documents(ROOT / "clusters/re8ch/flux-system/github-control-plane.yaml")
+    assert any(source.get("name") == owner["metadata"]["name"]
+               for item in alerts if item["kind"] == "Alert" for source in item["spec"]["eventSources"])

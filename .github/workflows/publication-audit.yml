@@ -6,7 +6,10 @@ concurrency: {group: publication-audit, cancel-in-progress: false}
 jobs:
   audit:
     if: github.ref == 'refs/heads/main' && github.actor == 'Woomou'
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    strategy:
+      fail-fast: false
+      matrix: {shard: [0, 1, 2, 3]}
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -23,11 +26,13 @@ jobs:
       - name: Scan retained Actions records without printing credential material
         env:
           GH_TOKEN: ${{ steps.observer.outputs.token }}
+          AUDIT_SHARD: ${{ matrix.shard }}
+          AUDIT_SHARDS: 4
         run: bash operations/releases/cloud-view/audit-actions.sh
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: publication-audit-redacted
+          name: publication-audit-redacted-${{ matrix.shard }}
           path: ${{ runner.temp }}/publication-audit/reports
           retention-days: 7
           if-no-files-found: error
