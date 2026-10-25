@@ -11,6 +11,7 @@ data:
       cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
     proxies:
       - {name: GLOBAL-FABRIC, type: socks5, server: mihomos-global-exit.{{ .Release.Namespace }}.svc.cluster.local, port: {{ .Values.exits.port }}}
+      - {name: GITHUB-FABRIC, type: socks5, server: mihomos-global-exit-github.{{ .Release.Namespace }}.svc.cluster.local, port: {{ .Values.exits.port }}}
     proxy-groups:
       - name: GLOBAL
         type: fallback
@@ -22,11 +23,11 @@ data:
       # endpoint instead of assuming that a generic Google probe proves it.
       - name: GITHUB
         type: fallback
-        proxies: [GLOBAL-FABRIC]
+        proxies: [GITHUB-FABRIC]
         url: "https://github.com/login/oauth/access_token"
         interval: 30
         lazy: false
-    rules: ["IP-CIDR,192.0.2.203/8,DIRECT,no-resolve", "IP-CIDR,192.0.2.225/10,DIRECT,no-resolve", "IP-CIDR,192.0.2.179/12,DIRECT,no-resolve", "IP-CIDR,192.0.2.148/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,github.com,GITHUB", "DOMAIN-SUFFIX,githubusercontent.com,GITHUB", "DOMAIN-SUFFIX,cn,DIRECT", "RULE-SET,cn-ip,DIRECT", "MATCH,GLOBAL"]
+    rules: ["IP-CIDR,10.0.0.0/8,DIRECT,no-resolve", "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve", "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve", "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,github.com,GITHUB", "DOMAIN-SUFFIX,githubusercontent.com,GITHUB", "DOMAIN-SUFFIX,cn,DIRECT", "RULE-SET,cn-ip,DIRECT", "MATCH,GLOBAL"]
   global.yaml: |
     mixed-port: {{ .Values.nodeProxy.port }}
     external-controller: 0.0.0.0:{{ .Values.nodeProxy.controllerPort }}
@@ -54,7 +55,7 @@ data:
         url: "https://connectivitycheck.gstatic.com/generate_204"
         interval: 30
         lazy: false
-    rules: ["IP-CIDR,192.0.2.203/8,DIRECT,no-resolve", "IP-CIDR,192.0.2.225/10,DIRECT,no-resolve", "IP-CIDR,192.0.2.179/12,DIRECT,no-resolve", "IP-CIDR,192.0.2.148/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,CN", "RULE-SET,cn-ip,CN", "MATCH,DIRECT"]
+    rules: ["IP-CIDR,10.0.0.0/8,DIRECT,no-resolve", "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve", "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve", "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,CN", "RULE-SET,cn-ip,CN", "MATCH,DIRECT"]
   exit.yaml: |
     mixed-port: {{ .Values.exits.port }}
     allow-lan: true
@@ -154,5 +155,17 @@ spec:
   selector: {app.kubernetes.io/name: mihomos-{{ $geo }}-exit}
   ports: [{name: socks, port: {{ $.Values.exits.port }}, targetPort: socks}]
 ---
+{{- if eq $geo "global" }}
+apiVersion: v1
+kind: Service
+metadata: {name: mihomos-global-exit-github, namespace: {{ $.Release.Namespace }}}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: mihomos-global-exit
+    topology.kubernetes.io/region: {{ $.Values.exits.githubRegion }}
+  ports: [{name: socks, port: {{ $.Values.exits.port }}, targetPort: socks}]
+---
+{{- end }}
 {{- end }}
 {{- end }}
