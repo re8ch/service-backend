@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/birfucate-metering
-codename: gulfstream-aquamarine
+codename: riptide-aquamarine
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-birfucate-metering
-  digest: sha256:f065fb38780daf07e1e0592a1ffd8ce95db3ce8f0bbed8af3e11380db34b2a5d
+  digest: sha256:bad53c748480b0063ba986ca9925238ae436ac9b7df8416a5618fdaca0cadf8a
   signature: cosign-keyless
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
