@@ -18,14 +18,23 @@ sort -u "$AUDIT_ROOT/targets" -o "$AUDIT_ROOT/targets"
 awk '{n[$1]++} END {for (kind in n) print kind, n[kind]}' "$AUDIT_ROOT/targets" > "$AUDIT_ROOT/reports/inventory.txt"
 # Keep the one-off audit bounded, and fail closed on unexpectedly large inventories.
 test "$(wc -l < "$AUDIT_ROOT/targets")" -le 15000
+awk -v shard="${AUDIT_SHARD:-0}" -v count="${AUDIT_SHARDS:-1}" '$2 % count == shard' "$AUDIT_ROOT/targets" > "$AUDIT_ROOT/selected"
 scan_record() {
-  local kind="$1" id="$2" path output result
+  local kind="$1" id="$2" path output result attempt downloaded=false
   [[ "$id" =~ ^[0-9]+$ ]] || return 1
   path="actions/runs/$id/logs"
   [ "$kind" != artifact ] || path="actions/artifacts/$id/zip"
   output="$AUDIT_ROOT/raw/$kind-$id"
   mkdir -p "$output"
-  if ! gh api "repos/re8ch/service-backend/$path" > "$output/archive.zip" 2>"$output/error"; then
+  for attempt in 1 2 3; do
+    if gh api "repos/re8ch/service-backend/$path" > "$output/archive.zip" 2>"$output/error"; then
+      downloaded=true
+      break
+    fi
+    grep -Eq 'HTTP (404|410)' "$output/error" && break
+    sleep "$((attempt * 2))"
+  done
+  if [ "$downloaded" != true ]; then
     # Expired or removed logs cannot be exposed through the download endpoint.
     if grep -Eq 'HTTP (404|410)' "$output/error"; then
       printf '%s %s unavailable\n' "$kind" "$id" > "$AUDIT_ROOT/reports/$kind-$id.result"
@@ -45,7 +54,7 @@ scan_record() {
   rm -rf "$output"
 }
 export -f scan_record
-xargs -P 8 -n 2 bash -c 'scan_record "$1" "$2"' _ < "$AUDIT_ROOT/targets"
+xargs -P 8 -n 2 bash -c 'scan_record "$1" "$2"' _ < "$AUDIT_ROOT/selected"
 cat "$AUDIT_ROOT"/reports/*.result > "$AUDIT_ROOT/reports/summary.txt"
 awk '{n[$3]++} END {for (s in n) print s, n[s]}' "$AUDIT_ROOT/reports/summary.txt"
 ! grep -Eq ' (findings|download-error|scan-error)$' "$AUDIT_ROOT/reports/summary.txt"
