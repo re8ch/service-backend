@@ -83,3 +83,49 @@ For rollback, suspend the autonomous Kustomization before restoring the old
 reconciler at its recorded revision. Never allow two `prune: true` owners for
 one object. A controller rollback does not authorize moving an application
 runtime back under Flux.
+
+## Coordinated upgrades without a second controller
+
+`lock` is a historical cutover baseline, not a pin on autonomous `main`. Read
+GitRepository artifact revision, signature condition and Kustomization applied
+revision for current state. Do not update four baseline SHAs after every merge.
+
+Main Flux owns shared Flux CRDs, the sixteen autonomous controller Deployments,
+controller namespaces and their permission boundaries. A domain owns its signed
+repository's workload inventory and explicitly delegated product CRDs/RBAC.
+Shared gateway authority follows the network inventory, not whichever domain
+happens to consume it. Existing frozen snapshots are migration evidence only.
+An object must have one active writer even when both writers use `prune: false`.
+
+Ordinary domain configuration changes merge independently. A shared API, CRD,
+permission or controller change requires linked PRs recording the provider,
+consumers, supported old/new contracts, deployment order and revert order:
+
+1. Provider expands support while retaining the old contract. Pass checks and
+   verify the provider's exact signed revision and actual readiness.
+2. Consumers migrate one domain at a time; reuse the same immutable images.
+   Record each applied revision and functional acceptance in the linked PRs.
+3. Remove the old contract only after all consumers pass. A failure stops the
+   next incompatible merge; revert the consumer before removing its provider.
+
+Use native `dependsOn` and `healthChecks` inside a controller's watched scope.
+Do not make every domain depend on the main root: it watches only its namespace,
+contains intentionally suspended objects, and is not an aggregate health gate.
+Cross-controller references are not assumed to work through namespace isolation;
+use compatible contracts and reviewed merge sequencing until scoped visibility
+is explicitly supported and tested. No synthetic Ready objects or global poller.
+For Flux upgrades, validate shared CRDs against old and new controller versions,
+upgrade one domain stack, verify its source/apply/Helm health, then proceed.
+Main-root failure must not halt an already running independent domain.
+
+## Retired connectool OCI owner
+
+`flux-system/domain-platform-connectool` is suspended with `prune: false`.
+Its deleted HelmRelease `flux-system/connectool` leaves `flux tree` dangling.
+The surviving HTTPRoute and Ingress are now in Agent's native inventory. Remove
+only the obsolete Kustomization and its same-named OCIRepository after this PR
+is applied; retain all workload/routing objects. Root pruning stays disabled.
+Before deletion, archive the old spec/inventory, verify suspension/non-pruning
+and the Agent owner, then use the platform tool's server dry-run and deletion.
+Do not patch inventory/status or recreate a dummy HelmRelease. Git history
+preserves the retired declaration; restoring it requires an ownership review.
