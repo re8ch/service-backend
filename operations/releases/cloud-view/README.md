@@ -37,3 +37,12 @@ The two Headlamp-authored public catalog ConfigMaps in kube-system also follow
 their authoring root into native Flux. Their separate SSA contract is removed.
 Rollback changes the reviewed plugin version/digest through a signed PR while
 retaining native ownership; do not reactivate the retired SSA writers.
+
+The presentation follows the existing Headlamp Flux plugin overview: resource
+cards with rings, sorting, resource tables and Flux Checks / Controllers.
+Reference: https://github.com/headlamp-k8s/plugins/tree/main/flux/src/overview .
+Counts include only objects reported to the selected GitHub revision, never an
+invented cluster inventory. Missing namespace, suspension, controller replicas
+and images remain unknown. Sorting and filtering operate on the fetched snapshot;
+they do not issue Kubernetes requests. The static page retains its four-file
+publication and requires no Headlamp plugin rebuild for layout changes.

@@ -16,3 +16,23 @@ export function latestStatuses(statuses) {
   }
   return [...result.values()];
 }
+
+export const RESOURCE_TYPES = [
+  ['kustomization', 'Kustomizations'], ['helmrelease', 'Helm Releases'],
+  ['gitrepository', 'Git Repositories'], ['ocirepository', 'OCI Repositories'],
+  ['helmrepository', 'Helm Repositories'], ['helmchart', 'Helm Charts'],
+  ['alert', 'Alerts'], ['provider', 'Providers'], ['receiver', 'Receivers'],
+];
+export function resourceGroups(statuses, sha, now = Date.now()) {
+  const latest = latestStatuses(statuses);
+  return RESOURCE_TYPES.map(([kind, title]) => {
+    const resources = latest.filter(s => s.context.startsWith(`flux/${kind}/`)).map(s => ({
+      ...s, name: s.context.slice(`flux/${kind}/`.length), kind,
+      evidence: runtimeState({...s, sha}, sha, now),
+    }));
+    return {kind, title, resources, total: resources.length,
+      success: resources.filter(s => s.evidence.state === 'success').length,
+      failure: resources.filter(s => s.evidence.state === 'failure').length,
+      unknown: resources.filter(s => s.evidence.state === 'unknown').length};
+  });
+}
