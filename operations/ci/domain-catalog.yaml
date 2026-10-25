@@ -169,6 +169,8 @@ domains:
       - operations/tenant-conformance/**
       - operations/mcp-conformance/release-tenant-infrastructure.sh
       - platform/apps/tenant-mcp/**
+      - clusters/re8ch/tenant-mcp-image/**
+      - clusters/re8ch/flux-system/tenant-mcp-image.yaml
       - platform/cloud-platform/**
       - platform/runtime-anatomy/**
       - platform/scheduling-fabric/**
@@ -181,6 +183,7 @@ domains:
       - clusters/re8ch/domains/main-legacy/**
     roots:
       - platform/cloud-platform
+      - clusters/re8ch/tenant-mcp-image
       - platform/runtime-anatomy
       - platform/scheduling-fabric
       - platform/scheduling-fabric/resources
@@ -206,6 +209,7 @@ domains:
       - tests/test_tenant_control_controller.py
       - tests/test_tenant_infrastructure.py
       - tests/test_tenant_infrastructure_gitops.py
+      - tests/test_tenant_image_delivery.py
       - tests/test_scheduling_governance.py
       - tests/test_ceph_static_release.py
       - tests/test_ssa_release_executor.py

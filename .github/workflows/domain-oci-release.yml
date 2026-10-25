@@ -7,7 +7,13 @@ on:
       revoke_orphan_run: {description: Revoke unused bootstrap robot from this exact failed run, type: string, default: ''}
   push:
     branches: [main]
-    paths: ['platform/**', 'clusters/re8ch/components/**', 'clusters/re8ch/charts/**']
+    paths:
+      - 'platform/**'
+      - 'clusters/re8ch/components/**'
+      - 'clusters/re8ch/charts/**'
+      - '!platform/apps/tenant-mcp/**'
+      - '!platform/birfucate-metering/**'
+      - '!clusters/re8ch/charts/birfucate-metering/**'
 permissions: {contents: read, id-token: write}
 concurrency: {group: domain-oci-production, cancel-in-progress: false}
 jobs:
