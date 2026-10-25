@@ -378,6 +378,8 @@ modules:
       digest: sha256:196c69f08b7becfd02b0d204dcf2098dc83c73b99c6e13655fd73a5fe59faf0e
     - codename: signal-violet
       digest: sha256:92e25082980a16d135ca4955e05dc263cc349f426f96ac17aa57180e146a2b5c
+    - codename: starfire-violet
+      digest: sha256:b1c4961b0212ac67dd69fc286f0202dc382a000d26a502fb089041eeb42ccda7
   platform/among-clusters:
     releases:
     - codename: bora
