@@ -36,3 +36,12 @@ test('refresh does not extend TTL; future, expired, invalid timestamps are Unkno
  assert.equal(evidenceItems({...index,observedAt:'invalid'},[payload],now)[0].state,'unknown');
  assert.equal(evidenceItems(index,[{items:[{...item,state:'suspended'}]}],now+TTL)[0].state,'unknown');
 });
+
+test('retrying Git/Helm failures stay failed while ordinary progress stays processing',()=>{
+ for(const reason of ['GitOperationFailed','ValuesError','UpgradeFailed','DependencyNotReady']) {
+  const result=project({kind:'HelmRelease',metadata:{name:'retry',namespace:'flux-system',generation:3},status:{observedGeneration:2,conditions:[{type:'Ready',status:'False',reason,observedGeneration:3},{type:'Reconciling',status:'True',observedGeneration:3}]}},'main');
+  assert.equal(result.state,'failure',reason);
+ }
+ assert.equal(stateOf({...item,ready:false,reconciling:true,reason:'Progressing'}),'processing');
+ assert.equal(stateOf({...item,ready:true,reconciling:true}),'processing');
+});
