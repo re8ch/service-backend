@@ -50,6 +50,8 @@ def test_tenant_go_release_builds_on_r640_without_mac_network_mutation():
 
     assert release["runs-on"] == ["self-hosted", "Linux", "X64", "restricted-node-6dc3f140f9", "untrusted-build"]
     assert "r640-mihomos" in prepare
+    assert 'BUILDX_CONFIG="${HOME}/.docker/buildx"' in prepare
+    assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare
     assert "macmini" not in prepare.lower()
     assert "docker exec" not in prepare
     assert "/etc/resolv.conf" not in prepare

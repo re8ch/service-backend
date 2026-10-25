@@ -74,6 +74,10 @@ jobs:
           umask 077
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+          # Keep the governed builder index separate from the disposable
+          # registry authentication config.
+          export BUILDX_CONFIG="${HOME}/.docker/buildx"
+          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
           docker buildx inspect --bootstrap r640-mihomos >/dev/null
           echo "TENANT_IMAGE_BUILDER=r640-mihomos" >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
