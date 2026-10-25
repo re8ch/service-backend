@@ -40,11 +40,6 @@ migration gates without treating runtime tokens or live status as Git data.
 
 ## Target topology
 
-The destination is the [GitHub-native static control plane](github-native-static-target.md):
-compile Flux decisions ahead of execution, use GitHub services for admission
-and GitHub Apps for event integration, and retain bounded runtime effects and
-observation. The Actions workflows below describe the current migration path.
-
 The controller-reduction implementation is split into two coupled task
 documents. They are designed to proceed together and converge on one executor:
 

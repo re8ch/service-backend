@@ -14,6 +14,7 @@ resources:
 - flux-system/service-backend-github-socks.yaml
 - flux-system/service-backend-control-plane-proxy.yaml
 - flux-system/gotk-sync.yaml
+- flux-system/tenant-mcp-image.yaml
 - flux-system/github-control-plane.yaml
 - flux-system/github-webhook-route.yaml
 - flux-system/controller-ha.yaml

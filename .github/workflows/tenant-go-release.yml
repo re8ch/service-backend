@@ -48,13 +48,13 @@ jobs:
       - if: steps.select.outputs.run == 'true'
         run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
       - if: steps.select.outputs.run == 'true'
-        run: python3 -m pytest tests/test_tenant_infrastructure_gitops.py -q
+        run: python3 -m pytest tests/test_tenant_infrastructure_gitops.py tests/test_tenant_image_delivery.py -q
       - if: steps.select.outputs.run == 'true'
         run: python3 platform/apps/tenant-mcp/differential_test.py
-      - if: steps.select.outputs.run == 'true'
+      - if: steps.select.outputs.run == 'true' && github.event_name == 'pull_request'
         run: docker build -f platform/apps/tenant-mcp/Dockerfile -t re8ch-tenant-mcp:pr .
   release:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: tenant-go-validate
     # Harbor layer uploads from hosted runners stall at the public edge.
     # Use the trusted Macmini runner's direct registry path, as tenant-release does.
@@ -110,7 +110,7 @@ jobs:
       - if: always()
         run: docker buildx rm "tenant-go-release-${GITHUB_RUN_ID}" || true
   finalize:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: release
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     environment: production
@@ -124,7 +124,6 @@ jobs:
         with:
           name: tenant-go-release-${{ github.sha }}
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
-      - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
       - run: |
           image="$(cat tenant-mcp.image)"
           if [[ ! "$image" =~ ^registry\.re8ch\.com/image/re8ch-tenant-mcp@sha256:[0-9a-f]{64}$ ]]; then
@@ -132,7 +131,7 @@ jobs:
             exit 1
           fi
           printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
-          syft "$image" -o spdx-json > tenant-mcp.spdx.json
+          # BuildKit already publishes SBOM and provenance attestations in the OCI index.
           cosign sign --yes "$image"
           cosign verify \
             --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main' \
@@ -152,13 +151,49 @@ jobs:
           repositories: service-backend
           permission-contents: write
           permission-pull-requests: write
-      - name: Open GitHub-signed tenant MCP promotion PR
-        env: {GH_TOKEN: '${{ steps.promoter.outputs.token }}'}
-        run: python operations/releases/promote_tenant_mcp.py --image "$TENANT_MCP_IMAGE"
+      - name: Check out current desired state
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+          path: desired-state
+      - name: Update the single image reference
+        id: image
+        working-directory: desired-state
+        run: |
+          # Do not let an old rerun roll back a newer source or build definition.
+          if ! git diff --quiet "$GITHUB_SHA" HEAD -- platform/apps/tenant-mcp .github/workflows/tenant-go-release.yml operations/mcp-conformance/release-tenant-infrastructure.sh; then
+            echo 'Source changed since this build; leave desired state unchanged.'
+            exit 0
+          fi
+          sed -i "s|^  image: .*|  image: $TENANT_MCP_IMAGE|" clusters/re8ch/tenant-mcp-image/image.yaml
+          echo 'current=true' >> "$GITHUB_OUTPUT"
+      - name: Open one GitHub-signed image PR
+        if: steps.image.outputs.current == 'true'
+        id: image-pr
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          token: ${{ steps.promoter.outputs.token }}
+          path: desired-state
+          base: main
+          branch: codex/tenant-mcp-image
+          sign-commits: true
+          add-paths: clusters/re8ch/tenant-mcp-image/image.yaml
+          commit-message: 'chore(tenant-mcp): advance verified image reference'
+          title: 'chore(tenant-mcp): advance verified image reference'
+          body: |
+            Image: `${{ env.TENANT_MCP_IMAGE }}`
+            Source: ${{ github.sha }}
+            Build and signature verification: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Flux syncs this reference to the active observability HelmRelease. No domain bundle is published.
+      - name: Request merge through repository rules
+        if: steps.image-pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ steps.promoter.outputs.token }}
+          PR: ${{ steps.image-pr.outputs.pull-request-number }}
+        run: gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --auto --squash
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-go-finalized-${{ github.sha }}
-          path: |
-            tenant-mcp.image
-            tenant-mcp.spdx.json
+          path: tenant-mcp.image
           if-no-files-found: error

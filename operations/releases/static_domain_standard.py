@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parents[2]
 STANDARD = ROOT / "operations/releases/static-domain-standard.yaml"
 AUTHORITY = ROOT / "operations/releases/static-domain-authority.yaml"
 DISPATCH = ROOT / "operations/migrations/github-first-control-plane/static-release-domain-dispatch.yaml"
-TARGET = ROOT / "operations/releases/static-control-plane.yaml"
 
 
 def load(path: Path) -> dict:
@@ -126,30 +125,6 @@ def plan(domain: str, standard: dict, authority: dict, dispatch: dict | None = N
     }
 
 
-def target_plan(domain: str, standard: dict, authority: dict, dispatch: dict) -> dict:
-    current = plan(domain, standard, authority, dispatch)["spec"]
-    target = load(TARGET)["spec"]
-    return {
-        "apiVersion": "delivery.re8ch.com/static-control-plane-plan/v1alpha1",
-        "kind": "StaticControlPlanePlan",
-        "metadata": {"name": domain},
-        "spec": {
-            "status": target["status"],
-            "executionAuthorized": False,
-            "domain": domain,
-            "risk": current["risk"],
-            "currentExecution": {key: current[key] for key in (
-                "repository", "ref", "workflow", "protectedEnvironment", "audience",
-                "kubernetesGroup", "runnerLabels",
-            )},
-            "target": target,
-            "migrationGates": current["gates"],
-            "stabilityHours": current["stabilityHours"],
-            "controllerDeletionConditions": current["controllerDeletionConditions"],
-        },
-    }
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -157,17 +132,13 @@ def main() -> int:
     plan_parser = subparsers.add_parser("plan")
     plan_parser.add_argument("--domain", required=True)
     plan_parser.add_argument("--output", type=Path)
-    target_parser = subparsers.add_parser("target", help="derive the unactivated GitHub-native target")
-    target_parser.add_argument("--domain", required=True)
-    target_parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     standard, authority, dispatch = load(STANDARD), load(AUTHORITY), load(DISPATCH)
     if args.command == "validate":
         validate(standard, authority, dispatch)
         print("validated static GitOps standard for 9 domains")
         return 0
-    make_plan = target_plan if args.command == "target" else plan
-    rendered = yaml.safe_dump(make_plan(args.domain, standard, authority, dispatch), sort_keys=False)
+    rendered = yaml.safe_dump(plan(args.domain, standard, authority, dispatch), sort_keys=False)
     if args.output:
         args.output.write_text(rendered, encoding="utf-8")
     else:

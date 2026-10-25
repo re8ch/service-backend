@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # This publisher needs the Macmini shell runner, not the validation container.
-for tool in docker python3 cosign; do
+for tool in docker python3; do
   command -v "$tool" >/dev/null || {
     echo "Missing $tool; use the macmini-service-backend-shell runner" >&2
     exit 127
@@ -11,9 +11,12 @@ done
 echo "Checking Docker daemon and Buildx"
 docker info >/dev/null
 docker buildx version >/dev/null
-if ! docker sbom version >/dev/null 2>&1 && ! command -v syft >/dev/null; then
-  echo "Missing docker sbom or syft" >&2
-  exit 127
+if [[ "${TENANT_IMAGE_SKIP_FINALIZE:-}" != "1" ]]; then
+  command -v cosign >/dev/null || { echo 'Missing cosign' >&2; exit 127; }
+  if ! docker sbom version >/dev/null 2>&1 && ! command -v syft >/dev/null; then
+    echo "Missing docker sbom or syft" >&2
+    exit 127
+  fi
 fi
 
 # The Macmini runner may keep a remote restricted-node-6dc3f140f9 builder selected even while its
