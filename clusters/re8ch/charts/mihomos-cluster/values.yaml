@@ -16,6 +16,9 @@ exits:
   globalLabel: networking.re8ch.com/mihomo-exit
   cnLabel: networking.re8ch.com/mihomo-exit-cn
   port: 1080
+  # Release-critical GitHub downloads use the measured high-throughput exit
+  # instead of being randomly assigned across every healthy global exit.
+  githubRegion: us-ca
   # Ready exit Pods are discovered through the headless Services. The node
   # proxy configuration no longer pins a historical list of node addresses.
 
