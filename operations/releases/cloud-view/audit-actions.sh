@@ -9,10 +9,13 @@ image=zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9
 docker run --rm --entrypoint sh "$image" -c 'cat "$(command -v gitleaks)"' > "$AUDIT_ROOT/bin/gitleaks"
 chmod 700 "$AUDIT_ROOT/bin/gitleaks"
 "$AUDIT_ROOT/bin/gitleaks" version
-gh api --paginate 'repos/re8ch/service-backend/actions/runs?per_page=100&status=completed' \
-  --jq '.workflow_runs[] | "run \(.id)"' > "$AUDIT_ROOT/targets"
+# GitHub caps filtered workflow-run searches at 1,000; filter only after pagination.
+gh api --paginate 'repos/re8ch/service-backend/actions/runs?per_page=100' \
+  --jq '.workflow_runs[] | select(.status == "completed") | "run \(.id)"' > "$AUDIT_ROOT/targets"
 gh api --paginate 'repos/re8ch/service-backend/actions/artifacts?per_page=100' \
   --jq '.artifacts[] | select(.expired == false) | "artifact \(.id)"' >> "$AUDIT_ROOT/targets"
+sort -u "$AUDIT_ROOT/targets" -o "$AUDIT_ROOT/targets"
+awk '{n[$1]++} END {for (kind in n) print kind, n[kind]}' "$AUDIT_ROOT/targets" > "$AUDIT_ROOT/reports/inventory.txt"
 # Keep the one-off audit bounded, and fail closed on unexpectedly large inventories.
 test "$(wc -l < "$AUDIT_ROOT/targets")" -le 15000
 scan_record() {
