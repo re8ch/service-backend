@@ -83,3 +83,33 @@ Native documentation:
 [reconcile requests](https://fluxcd.io/flux/components/kustomize/kustomizations/#triggering-a-reconcile),
 [multi-tenancy](https://fluxcd.io/flux/installation/configuration/multitenancy/),
 [Flux tree](https://fluxcd.io/flux/cmd/flux_tree_kustomization/).
+
+## Main-domain native pilot: supabase-rest
+
+`clusters/re8ch/components/supabase-pg-re8ch/supabase-rest-runtime.yaml` is the
+editable declaration. Its `delivery.re8ch.com/reconciler: native-flux` annotation
+keeps it out of the SSA partition. The existing domain render includes it in
+`clusters/re8ch/domains/main-legacy/data-storage`, owned by
+`flux-system/reconcile-main-legacy-data-storage`. The shard also owns retained
+configuration/secrets; it now explicitly checks the Deployment's rollout.
+
+A signed main merge is sufficient: the existing verified GitRepository (30s
+interval plus existing GitHub Receiver) triggers this native Kustomization.
+Its events use the existing GitHub Provider/Alert. No workflow_dispatch, release
+bundle, cosign packaging or promotion is required for this unit. Other SSA
+units keep their existing execution path until individually migrated.
+
+Before cutover, confirm no main-domain-release execution is active. After the
+merged root removes the SSA declaration, delete only the old RoleBinding and
+Role named `main-data-storage-supabase-pg-re8ch` in `supabase-pg-re8ch` through
+the audited platform path (server dry-run first). Root prune=false does not
+remove these automatically. Retain the historical operation-state ConfigMap
+as audit evidence; it is not a writer. Never re-enable the old contract while
+native reconciliation is active.
+
+Acceptance: exact signed source/applied revision, native inventory containing
+Deployment/supabase-pg-re8ch/supabase-rest, Ready deployment and a functional
+HTTP response. Check GitHub commit status separately from runtime health.
+This ownership-only cutover deliberately does not restart a healthy Pod.
+Rollback is a signed desired-state revert; moving back to SSA requires first
+stopping the native writer and reviewing the old contract and permissions.

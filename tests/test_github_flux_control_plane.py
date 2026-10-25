@@ -22,6 +22,7 @@ def test_github_flux_reactions_target_promoted_source():
     assert docs["Alert"]["spec"]["eventSources"] == [
         {"kind": "GitRepository", "name": "service-backend"},
         {"kind": "Kustomization", "name": "service-backend"},
+        {"kind": "Kustomization", "name": "reconcile-main-legacy-data-storage"},
     ]
 
 
