@@ -23,6 +23,7 @@ def test_github_flux_reactions_target_promoted_source():
         {"kind": "GitRepository", "name": "service-backend"},
         {"kind": "Kustomization", "name": "service-backend"},
         {"kind": "Kustomization", "name": "reconcile-main-legacy-data-storage"},
+        {"kind": "Kustomization", "name": "reconcile-main-legacy-operations-ui"},
     ]
 
 
