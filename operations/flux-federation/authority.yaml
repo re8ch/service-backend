@@ -3,6 +3,17 @@ kind: FluxFederationAuthority
 metadata:
   name: re8ch
 spec:
+  # Historical cutover SHAs below are bootstrap/rollback evidence, not moving
+  # deployment pins. Steady-state revisions come from signed GitRepository status.
+  lockSemantics: cutover-baseline
+  coordination:
+    objectOwnership: single-active-writer
+    domainUpdates: independent-signed-main
+    sharedAPIUpgrade: expand-migrate-contract
+    controllerUpgrade: shared-crds-then-one-domain-at-a-time
+    crossControllerDependencies: reviewed-compatible-contracts
+    readinessEvidence: source-signature-revision-and-runtime-health
+    rollback: owner-revert-before-dependent-contract-removal
   migrationOrder:
     - observability-metering
     - agent-runtime
