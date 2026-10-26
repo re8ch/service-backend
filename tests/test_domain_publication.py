@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 import pytest
+import sys
 import yaml
 import subprocess
 
@@ -36,6 +37,25 @@ def test_public_harbor_project_is_rejected_before_robot_creation(monkeypatch, tm
     with pytest.raises(RuntimeError, match="private"):
         publication.provision_reader(tmp_path)
     assert calls == ["GET"]
+
+
+def test_normal_publication_does_not_require_harbor_project_management(monkeypatch, tmp_path):
+    module = yaml.safe_load((ROOT / "operations/releases/active.yaml").read_text())["modules"][0]["module"]
+    monkeypatch.setattr(publication, "harbor", lambda *args, **kwargs: pytest.fail("project management API used"))
+    impact = type("Impact", (), {
+        "changed_paths": staticmethod(lambda *args: []),
+        "load_catalog": staticmethod(lambda: {"external_inputs": {}}),
+        "root_affected": staticmethod(lambda *args: False),
+        "matches": staticmethod(lambda *args: False),
+    })
+    monkeypatch.setattr(publication, "load_module", lambda *args: impact)
+    published = []
+    monkeypatch.setattr(publication, "publish", lambda modules, output, bootstrap=False: published.extend(modules))
+    monkeypatch.setattr(sys, "argv", ["domain_publish.py", "--output", str(tmp_path), "--module", module])
+
+    publication.main()
+
+    assert [entry["module"] for entry in published] == [module]
 
 
 @pytest.mark.parametrize("module", ["platform/runtime-anatomy", "platform/birfucate-metering"])
