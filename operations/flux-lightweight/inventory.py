@@ -2,6 +2,7 @@
 """Inventory repository-declared Flux resources without cluster access."""
 
 import argparse
+import sys
 import json
 from collections import Counter
 from pathlib import Path
@@ -13,6 +14,11 @@ YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
 ROOT = Path(__file__).resolve().parents[2]
+# Support both direct CLI execution and importlib-loaded validation consumers.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from operations.ci.input_snapshot import yaml_document, yaml_documents
+
 CATALOG = Path(__file__).with_name("controller-capabilities.yaml")
 DEFAULT_SCAN_ROOTS = ("clusters/re8ch", "platform")
 SKIP_PARTS = {".git", "templates"}
@@ -24,7 +30,7 @@ def api_group(api_version: str) -> str:
 
 
 def load_capabilities(path: Path = CATALOG) -> tuple[dict[tuple[str, str], str], dict[str, dict]]:
-    catalog = yaml.load(path.read_text(), Loader=YAML_SAFE_LOADER)
+    catalog = yaml_document(path, loader=YAML_SAFE_LOADER)
     controllers = catalog["spec"]["controllers"]
     kinds: dict[tuple[str, str], str] = {}
     for controller, definition in controllers.items():
@@ -82,7 +88,7 @@ def inventory(scan_roots: list[Path]) -> dict:
     parse_errors = []
     for path in yaml_paths(scan_roots):
         try:
-            documents = yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER)
+            documents = yaml_documents(path, loader=YAML_SAFE_LOADER)
             for document_index, item in enumerate(documents, 1):
                 if not isinstance(item, dict):
                     continue

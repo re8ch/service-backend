@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import fnmatch
 import importlib.util
 import json
@@ -18,6 +19,11 @@ import yaml
 YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 ROOT = Path(__file__).resolve().parents[2]
+# Support both direct CLI execution and importlib-loaded validation consumers.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from operations.ci.input_snapshot import yaml_document
+
 CATALOG = ROOT / "operations/ci/domain-catalog.yaml"
 _SPEC = importlib.util.spec_from_file_location("ci_unit_catalog", Path(__file__).with_name("unit_catalog.py"))
 unit_catalog = importlib.util.module_from_spec(_SPEC)
@@ -94,7 +100,7 @@ def root_affected(root: str, paths: list[str], visited: set[str] | None = None, 
             raise ValueError(f"ambiguous definition: {root}")
         if files[0].resolve() != files[0]:
             raise ValueError("symlink definitions require full validation")
-        config = yaml.load(files[0].read_text(), Loader=YAML_SAFE_LOADER) or {}
+        config = yaml_document(files[0], loader=YAML_SAFE_LOADER) or {}
     if not isinstance(config, dict) or set(config) - render_inputs.FIELDS - {"helmCharts"}:
         raise ValueError(f"unsupported dependency fields: {root}")
     refs = [ref for field in ("resources", "components", "bases", "configurations", "crds")
@@ -130,7 +136,7 @@ def root_affected(root: str, paths: list[str], visited: set[str] | None = None, 
 
 
 def load_catalog() -> dict:
-    catalog = yaml.load(CATALOG.read_text(), Loader=YAML_SAFE_LOADER)
+    catalog = yaml_document(CATALOG, loader=YAML_SAFE_LOADER)
     if catalog.get("version") != 1 or not catalog.get("domains"):
         raise SystemExit("invalid CI domain catalog")
     declared = [root for domain in catalog["domains"].values() for root in domain["roots"]]

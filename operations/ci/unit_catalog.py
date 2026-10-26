@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import fnmatch
 import json
 import os
@@ -10,6 +11,11 @@ from pathlib import Path, PurePosixPath
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+# Support both direct CLI execution and importlib-loaded validation consumers.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from operations.ci.input_snapshot import yaml_document
+
 LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
@@ -27,7 +33,7 @@ def patterns(value):
 
 
 def load_catalog(root=ROOT):
-    catalog = yaml.load((root / "operations/ci/domain-catalog.yaml").read_text(), Loader=LOADER)
+    catalog = yaml_document(root / "operations/ci/domain-catalog.yaml", loader=LOADER)
     defaults = catalog["unit_defaults"]
     for field in ("helpers", "environment"):
         patterns(defaults[field])

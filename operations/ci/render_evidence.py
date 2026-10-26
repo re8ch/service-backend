@@ -7,6 +7,7 @@ local input closure and matches evidence; it never publishes or applies releases
 from __future__ import annotations
 
 import argparse
+import sys
 import hashlib
 import json
 import os
@@ -17,6 +18,11 @@ import subprocess
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+# Support both direct CLI execution and importlib-loaded validation consumers.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from operations.ci.input_snapshot import yaml_document
+
 # Unknown fields may introduce inputs. Fall back to a real render until reviewed.
 FIELDS = set("apiVersion kind metadata resources bases components patches patchesStrategicMerge patchesJson6902 configMapGenerator secretGenerator generatorOptions configurations crds openapi namePrefix nameSuffix namespace commonLabels commonAnnotations labels annotations images replicas replacements buildMetadata sortOptions".split())
 
@@ -66,7 +72,7 @@ def input_key(root: str, toolchain: dict) -> str | None:
             raise Uncacheable("ambiguous definition")
         definition = definitions[0]
         record(definition)
-        config = yaml.safe_load(definition.read_text())
+        config = yaml_document(definition)
         if not isinstance(config, dict) or set(config) - FIELDS:
             raise Uncacheable("unsupported kustomize fields")
         for field in ("resources", "bases", "components", "configurations", "crds"):
@@ -113,6 +119,7 @@ def toolchain_identity() -> dict:
         "python": platform.python_version(), "os": platform.system(), "arch": platform.machine(),
         "yaml": yaml.__version__,
         "validator": digest(Path(__file__).read_bytes()),
+        "input_parser": digest((Path(__file__).parent / "input_snapshot.py").read_bytes()),
         "workflow": digest((ROOT / ".github/workflows/full-regression.yml").read_bytes()),
         "tests": digest((ROOT / "tests/test_render_evidence.py").read_bytes()),
     }
