@@ -205,6 +205,7 @@ def select(paths: list[str], full: bool = False) -> dict:
         "tenant-select": bool(shared or "tenant-runtime" in selected),
     }
     result = {
+        "paths": sorted(source_paths),
         "jobs": jobs,
         "checks": checks,
         "domains": sorted(selected),
