@@ -31,7 +31,7 @@ jobs:
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
       - name: Install pinned SOPS
         run: |
-          curl -fsSL --retry 4 --retry-delay 2 --retry-max-time 90 --connect-timeout 10 --max-time 30 https://github.com/getsops/sops/releases/download/v3.13.1/sops-v3.13.1.linux.amd64 -o "$RUNNER_TEMP/sops"
+          curl -fsSL --retry 4 --retry-all-errors --retry-delay 2 --retry-max-time 900 --connect-timeout 10 --max-time 600 https://github.com/getsops/sops/releases/download/v3.13.1/sops-v3.13.1.linux.amd64 -o "$RUNNER_TEMP/sops"
           echo "620a9d7e3352ababeca6908cea24a6e8b14ce89a448ddbd3f94f1ef3398f470a  $RUNNER_TEMP/sops" | sha256sum --check
           chmod +x "$RUNNER_TEMP/sops"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
