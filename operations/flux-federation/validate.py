@@ -6,6 +6,9 @@ import sys
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 FEDERATION = ROOT / "clusters/re8ch/flux-federation"
@@ -34,7 +37,7 @@ R640_LOCAL_ENDPOINTS = {
 
 
 def documents(path: Path) -> list[dict]:
-    return [doc for doc in yaml.safe_load_all(path.read_text()) if doc]
+    return [doc for doc in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if doc]
 
 
 def require(condition: bool, message: str) -> None:
@@ -59,8 +62,8 @@ def main() -> None:
         }
         if metadata["namespace"] in {"flux-agent-system", "flux-observability-system"}:
             require(
-                item["spec"]["template"]["spec"].get("nodeSelector", {}).get("kubernetes.io/hostname") == "restricted-node-6dc3f140f9",
-                f"controller is not pinned to the restricted-node-6dc3f140f9 service plane: {metadata}",
+                item["spec"]["template"]["spec"].get("nodeSelector", {}).get("kubernetes.io/hostname") == "r640",
+                f"controller is not pinned to the R640 service plane: {metadata}",
             )
             require(
                 env.get("KUBERNETES_SERVICE_HOST", {}).get("valueFrom", {}).get("fieldRef", {}).get("fieldPath")
@@ -77,11 +80,11 @@ def main() -> None:
                     for port in item["spec"]["template"]["spec"]["containers"][0]["ports"]
                 }
                 require(
-                    f"--storage-adv-addr=192.0.2.179:{endpoints['artifacts']}" in args,
+                    f"--storage-adv-addr=10.250.0.128:{endpoints['artifacts']}" in args,
                     f"source artifacts still depend on the cluster Service path: {metadata}",
                 )
                 require(
-                    f"--events-addr=http://192.0.2.179:{endpoints['events']}/" in args,
+                    f"--events-addr=http://10.250.0.128:{endpoints['events']}/" in args,
                     f"source events still depend on cluster DNS: {metadata}",
                 )
                 require(ports["http"].get("hostPort") == endpoints["artifacts"],
@@ -572,7 +575,7 @@ def main() -> None:
     sources = [doc for doc in registrations if doc["kind"] == "GitRepository"]
     reconciliations = [doc for doc in registrations if doc["kind"] == "Kustomization"]
     require(len(sources) == len(reconciliations) == 4, "expected four sources and four Kustomizations")
-    authority = yaml.safe_load((ROOT / "operations/flux-federation/authority.yaml").read_text())
+    authority = yaml.load((ROOT / "operations/flux-federation/authority.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     domains = authority["spec"]["domains"]
     for item in sources + reconciliations:
         require(item["metadata"]["namespace"] in NAMESPACES, "registration outside autonomous namespace")
@@ -585,7 +588,7 @@ def main() -> None:
         require(item["spec"].get("suspend") is (state == "staged"), f"Kustomization suspension disagrees with {domain} state")
         require(item["spec"].get("prune") is (state == "autonomous"), f"Kustomization pruning disagrees with {domain} state")
 
-    kustomization = yaml.safe_load((FEDERATION / "kustomization.yaml").read_text())
+    kustomization = yaml.load((FEDERATION / "kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     resources = set(kustomization["resources"])
     active_guardrails = {f"guardrails/{domain}.yaml" for domain, entry in domains.items() if entry["state"] != "staged"}
     require({path for path in resources if path.startswith("guardrails/")} == active_guardrails, "guardrail resources disagree with authority states")

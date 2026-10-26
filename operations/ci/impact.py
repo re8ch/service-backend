@@ -12,6 +12,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "operations/ci/domain-catalog.yaml"
 
@@ -43,7 +46,7 @@ def root_affected(root: str, paths: list[str], visited: set[str] | None = None) 
     definition = base / "kustomization.yaml"
     if not definition.is_file():
         return False
-    config = yaml.safe_load(definition.read_text()) or {}
+    config = yaml.load(definition.read_text(), Loader=YAML_SAFE_LOADER) or {}
     refs = list(config.get("resources", [])) + list(config.get("components", [])) + list(config.get("bases", []))
     for patch in config.get("patches", []):
         if isinstance(patch, dict) and patch.get("path"):
@@ -69,7 +72,7 @@ def root_affected(root: str, paths: list[str], visited: set[str] | None = None) 
 
 
 def load_catalog() -> dict:
-    catalog = yaml.safe_load(CATALOG.read_text())
+    catalog = yaml.load(CATALOG.read_text(), Loader=YAML_SAFE_LOADER)
     if catalog.get("version") != 1 or not catalog.get("domains"):
         raise SystemExit("invalid CI domain catalog")
     declared = [root for domain in catalog["domains"].values() for root in domain["roots"]]

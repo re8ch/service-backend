@@ -17,6 +17,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMAS = ROOT / "schemas"
 CLUSTER_SCOPED = {
@@ -76,7 +79,7 @@ def normalize_documents(rendered: bytes, contract: dict) -> tuple[list[dict], li
     allow_cluster = authorization.get("allowClusterScoped", False)
     documents: list[dict] = []
     identities: set[str] = set()
-    for position, raw in enumerate(yaml.safe_load_all(rendered), start=1):
+    for position, raw in enumerate(yaml.load_all(rendered, Loader=YAML_SAFE_LOADER), start=1):
         if raw is None:
             continue
         if not isinstance(raw, dict) or not all(key in raw for key in ("apiVersion", "kind", "metadata")):
@@ -174,7 +177,7 @@ def main() -> int:
     parser.add_argument("--rendered", type=Path, required=True, help="Helm or Kustomize rendered multi-document YAML")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    contract = yaml.safe_load(args.contract.read_text(encoding="utf-8"))
+    contract = yaml.load(args.contract.read_text(encoding="utf-8"), Loader=YAML_SAFE_LOADER)
     archive, manifest = compile_bundle(contract, args.rendered.read_bytes())
     args.output.write_bytes(archive)
     print(json.dumps({**manifest, "payloadDigest": digest(archive)}, sort_keys=True))

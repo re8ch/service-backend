@@ -2,6 +2,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAINS = ROOT / "clusters/re8ch/domains"
@@ -14,7 +17,7 @@ MAIN_DOMAINS = {"data-storage", "commerce-billing", "delivery-products", "operat
 
 
 def load_all(path: Path) -> list[dict]:
-    return [item for item in yaml.safe_load_all(path.read_text()) if isinstance(item, dict)]
+    return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if isinstance(item, dict)]
 
 
 def test_every_domain_has_one_desired_state_reconciler():
@@ -24,7 +27,7 @@ def test_every_domain_has_one_desired_state_reconciler():
                   for item in reconcilers if item["metadata"]["name"].startswith("reconcile-main-legacy-")}
     legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers
               if not item["metadata"]["name"].startswith("reconcile-main-legacy")}
-    federation = yaml.safe_load(FEDERATION_AUTHORITY.read_text())["spec"]["domains"]
+    federation = yaml.load(FEDERATION_AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)["spec"]["domains"]
     registrations = {
         item["metadata"]["namespace"]: item
         for item in load_all(FEDERATION_REGISTRATIONS)
@@ -71,7 +74,7 @@ def test_domain_bundles_are_local_and_secrets_have_one_owner():
             continue
         if domain.name == "main-legacy":
             continue  # generated transition mirror is covered by test_main_domain_ssa.py
-        runtime = yaml.safe_load((domain / "kustomization.yaml").read_text())
+        runtime = yaml.load((domain / "kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER)
         assert runtime["resources"] == ["resources.yaml"]
         assert (domain / "resources.yaml").is_file()
         for item in load_all(domain / "resources.yaml"):
@@ -85,7 +88,7 @@ def test_domain_bundles_are_local_and_secrets_have_one_owner():
             )
             object_owners[identity] = domain.name
 
-        source = yaml.safe_load((domain / "source/kustomization.yaml").read_text())
+        source = yaml.load((domain / "source/kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER)
         for resource in source.get("resources", []):
             if not resource.endswith(".sops.yaml"):
                 continue
@@ -160,7 +163,7 @@ def test_network_controller_has_only_referencegrant_authority_in_default():
 
 
 def test_external_fast_changing_products_target_product_runtime():
-    policy = yaml.safe_load(AUTHORITY.read_text())
+    policy = yaml.load(AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)
     assert policy["selectionPolicy"]["externalAndFastChanging"] == "product-runtime"
     authorities = policy["authorities"]
     assert set(authorities) == {"commerce-billing", "identity", "connectool"}
@@ -175,7 +178,7 @@ def test_external_fast_changing_products_target_product_runtime():
 
 
 def test_flux_handoff_is_fail_closed_until_publisher_exists():
-    policy = yaml.safe_load(AUTHORITY.read_text())
+    policy = yaml.load(AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)
     for name, authority in policy["authorities"].items():
         if authority["currentAuthority"] in {"flux", "split"}:
             assert authority["migrationPhase"] in {"publisher-required", "business-api-live"}, name
