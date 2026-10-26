@@ -211,7 +211,7 @@ def select(paths: list[str], full: bool = False) -> dict:
         "submodules": sorted(set(submodules)),
         "full": shared,
         "risky_unknown": risky_unknown,
-        "run": bool(selected or shared or changed_tests),
+        "run": bool(selected or shared or changed_tests or selected_suites),
     }
     return result
 
