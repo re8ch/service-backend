@@ -65,4 +65,17 @@ func TestProviderBindingsOnlyExposeCurrentOwnedOpaqueAccess(t *testing.T) {
 	if len(providerBindings(items, "acme", "service://acme/unrelated")) != 0 {
 		t.Fatal("resource filter was ignored")
 	}
+
+	machine := map[string]any{
+		"metadata": map[string]any{"name": "build-registry", "uid": "uid-2", "generation": float64(3)},
+		"spec":     map[string]any{"tenantRef": "acme", "serviceClass": "registry.harbor.v1"},
+		"status": map[string]any{
+			"phase": "Ready", "observedGeneration": float64(3),
+			"access": map[string]any{"robotCredentialRef": "credential://harbor/acme/machine"},
+		},
+	}
+	machineBindings := providerBindings([]any{machine}, "acme", "service://acme/build-registry")
+	if len(machineBindings) != 1 || machineBindings[0]["accessRef"] != "credential://harbor/acme/machine" {
+		t.Fatalf("machine Harbor credential was not projected: %v", machineBindings)
+	}
 }
