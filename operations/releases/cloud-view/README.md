@@ -1,5 +1,23 @@
 # Flux public runtime evidence
 
+## Publication withdrawal
+
+Detailed public inventory publication is withdrawn while the restricted
+configuration and aggregate-only public status contracts are implemented.
+The existing main observer workflow now replaces the public snapshot with an
+`unavailable` envelope and publishes a neutral Check with no resource payload.
+The public viewer must show Unknown; this is not a cluster health result.
+The job no longer obtains a Kubernetes identity or reads cluster resources.
+Use authenticated Headlamp / platform APIs for detailed inspection.
+
+This does not erase historical Checks, Git history, caches or third-party
+copies. History cleanup follows configuration migration and acceptance.
+Containment is verified only after the main workflow succeeds and an anonymous
+GET of `latest.json` contains `unavailable: true` with no resource inventory.
+
+The description below records the prior publication architecture; its detailed
+inventory publisher is no longer active after this change is deployed.
+
 The viewer is independently released at https://github.com/re8ch/headlamp-flux-static-github-ops .
 https://re8ch.github.io/service-backend/ redirects existing Headlamp links to
 https://flux-status.re8ch.com/ . No browser GitHub API requests remain.
