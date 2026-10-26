@@ -1,4 +1,4 @@
-"""Describe unit selection without changing the existing impact decision."""
+"""Shared unit inputs and human-readable impact decisions; reuse remains disabled."""
 from __future__ import annotations
 
 import argparse
@@ -35,8 +35,11 @@ def load_catalog(root=ROOT):
         patterns([test])
         if not test.startswith("tests/test_") or not test.endswith(".py") or not (root / test).is_file():
             raise ValueError(f"invalid validation unit: {test}")
-        if set(unit) != {"sources", "data", "helpers", "tools", "reuse"}:
+        if set(unit) - {"roots"} != {"sources", "data", "helpers", "tools", "reuse"}:
             raise ValueError(f"invalid unit fields: {test}")
+        for pattern in patterns(unit.get("roots", [])):
+            if any(char in pattern for char in "*?["):
+                raise ValueError(f"render roots cannot be patterns: {test}")
         for field in ("sources", "data", "helpers"):
             patterns(unit[field])
         if unit["reuse"] not in {"candidate", "never"}:
@@ -52,11 +55,12 @@ def inputs_for(test, catalog):
         return []
     defaults = catalog["unit_defaults"]
     return sorted(set([test, *defaults["helpers"], *defaults["environment"],
-                       *unit["sources"], *unit["data"], *unit["helpers"]]))
+                       *unit["sources"], *unit["data"], *unit["helpers"],
+                       *(root + "/**" for root in unit.get("roots", []))]))
 
 
 def describe(plan, root=ROOT, catalog=None):
-    """Selection reasons describe today's rules; declarations are observation-only."""
+    """Describe selection separately from execution or future success reuse."""
     catalog = load_catalog(root) if catalog is None else catalog
     paths = plan.get("paths", [])
     selected = set(plan["tests"]) if plan["jobs"]["unit"] else set()
@@ -66,24 +70,37 @@ def describe(plan, root=ROOT, catalog=None):
         reasons = []
         if test in selected:
             if plan["full"]:
-                shared = [p for p in paths if any(matches(p, pattern) for pattern in catalog["shared_paths"])]
-                reasons.append({"code": "full", "paths": shared, "unknown": plan["risky_unknown"]})
+                common = catalog["shared_paths"] + catalog["unit_defaults"]["helpers"] + catalog["unit_defaults"]["environment"]
+                shared = [p for p in paths if any(matches(p, pattern) for pattern in common)]
+                reasons.append({"code": "full", "paths": shared, "unknown": plan["risky_unknown"],
+                                "fallback": plan.get("fallback_reason"), "reason": plan.get("full_reason", "requested-full")})
             else:
                 if test in catalog["always_tests"]:
                     reasons.append({"code": "baseline"})
                 if test in paths:
                     reasons.append({"code": "changed-test", "paths": [test]})
+                if test in plan.get("unit_reasons", {}):
+                    reasons.append({"code": "unit-input", "paths": plan["unit_reasons"][test]})
+                if test in plan.get("unit_roots", {}):
+                    reasons.append({"code": "render-dependency", "roots": plan["unit_roots"][test]})
                 for field, catalog_field in (("domains", "domains"), ("focused_suites", "focused_suites")):
                     for name in plan[field]:
                         config = catalog[catalog_field][name]
                         if test in config.get("tests", []):
                             reasons.append({"code": field, "name": name, "changed_paths": paths,
                                             "patterns": config["paths"]})
+                            if field == "domains":
+                                roots = {r: plan["dependency_reasons"][r] for r in config["roots"]
+                                         if r in plan.get("dependency_reasons", {})}
+                                if roots:
+                                    reasons.append({"code": "base-head-dependencies", "roots": roots})
                 if not reasons:
                     reasons.append({"code": "explicit-selection"})
         else:
             reasons.append({"code": "unit-disabled" if not plan["jobs"]["unit"] else "not-selected",
-                            "changed_paths": paths})
+                            "changed_paths": paths, "input_patterns": inputs_for(test, catalog),
+                            "domain_owners": [name for name, config in catalog["domains"].items()
+                                              if test in config.get("tests", [])]})
         declared = test in catalog["validation_units"]
         records[test] = {
             "status": "planned" if test in selected else "unaffected",
@@ -99,7 +116,7 @@ def summary(report):
     # JSON is authoritative; escape all repository-controlled text in Markdown.
     def cell(value):
         return str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("|", "&#124;").replace("`", "&#96;").replace("\n", " ").replace("\r", " ")
-    lines = ["### Unit selection (observation only; reuse disabled)", "",
+    lines = ["### Unit selection (input-aware; reuse disabled)", "",
              "| Test file | Status | Selection reason | Declaration | Outcomes | Seconds |",
              "|---|---|---|---|---|---|"]
     for test, record in report["units"].items():
