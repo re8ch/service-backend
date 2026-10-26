@@ -109,6 +109,7 @@ jobs:
     needs: release
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     environment: production
+    timeout-minutes: 12
     permissions:
       contents: read
       id-token: write
@@ -118,24 +119,48 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: tenant-go-release-${{ github.sha }}
-      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
-      - run: |
+      - name: Sign and verify immutable Harbor image with pinned Cosign
+        timeout-minutes: 6
+        run: |
           image="$(cat tenant-mcp.image)"
           if [[ ! "$image" =~ ^registry\.re8ch\.com/image/re8ch-tenant-mcp@sha256:[0-9a-f]{64}$ ]]; then
             echo "Invalid tenant MCP image reference" >&2
             exit 1
           fi
+
+          export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-finalize-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          umask 077
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
           printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+
+          run_cosign() {
+            timeout --signal=TERM --kill-after=30s 5m docker run --rm --network host \
+              --env ACTIONS_ID_TOKEN_REQUEST_URL \
+              --env ACTIONS_ID_TOKEN_REQUEST_TOKEN \
+              --env DOCKER_CONFIG=/auth \
+              --volume "$DOCKER_CONFIG:/auth:ro" \
+              --entrypoint /ko-app/cosign \
+              "$COSIGN_IMAGE" "$@"
+          }
+
           # BuildKit already publishes SBOM and provenance attestations in the OCI index.
-          cosign sign --yes "$image"
-          cosign verify \
+          run_cosign sign --yes "$image"
+          run_cosign verify \
             --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main' \
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "$image" >/dev/null
           echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
         env:
+          COSIGN_IMAGE: registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870
           HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
+      - name: Remove temporary registry authorization
+        if: always()
+        run: |
+          finalize_config="${RUNNER_TEMP}/tenant-go-finalize-docker"
+          rm -f "$finalize_config/config.json"
+          rmdir "$finalize_config" || true
       - name: Create scoped promotion token
         id: promoter
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
