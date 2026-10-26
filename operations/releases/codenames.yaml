@@ -651,6 +651,8 @@ modules:
       digest: sha256:cb6627da8b156511bf860f966fa1e82e515c39e2e51316dc4757a96ccc49cc25
     - codename: zephyr-pearl
       digest: sha256:3057ffd02d7a9ab2d1a84251e200e86989a5017d73e8fe3e50789a61a978b94a
+    - codename: bora-silver
+      digest: sha256:824c73b78522e343ca8e5722f78132daf2ce75e3b67aca1e79708ea8432c5ddd
   platform/git-workspaces:
     releases:
     - codename: andromeda
@@ -733,6 +735,8 @@ modules:
       digest: sha256:696ec798a2a9dee130dd08f469031f616840460a8a94849a16dd75763b279f15
     - codename: torch-indigo
       digest: sha256:ee991df4cf66365af1003f58a4fac00849a6ac1fda6daa857ed86b8af80058ba
+    - codename: aurora-jade
+      digest: sha256:2a6b8bfe4a2772d166cca7a7a978114994ce8a7a69ed0d91a74f8c04ff95d137
   platform/apps/access-subscription:
     releases:
     - codename: aegis

@@ -5,17 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: torch-indigo
+    delivery.re8ch.com/codename: aurora-jade
+    delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:ee991df4cf66365af1003f58a4fac00849a6ac1fda6daa857ed86b8af80058ba
-  verify:
-    provider: cosign
-    matchOIDCIdentity:
-    - issuer: ^https://token\.actions\.githubusercontent\.com$
-      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+    digest: sha256:2a6b8bfe4a2772d166cca7a7a978114994ce8a7a69ed0d91a74f8c04ff95d137
   secretRef:
     name: gitops-oci-reader
 ---
@@ -26,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: torch-indigo
+    delivery.re8ch.com/codename: aurora-jade
 spec:
   interval: 1m
   retryInterval: 1m
