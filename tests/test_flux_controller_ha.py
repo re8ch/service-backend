@@ -4,6 +4,9 @@ import subprocess
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 CLUSTER = ROOT / "clusters/re8ch"
@@ -19,7 +22,7 @@ EDGE_FAILOVER_NODES = ["overseas-kl", "restricted-node-6dc3f140f9"]
 def rendered_documents():
     command = ["kustomize", "build"] if shutil.which("kustomize") else ["kubectl", "kustomize"]
     output = subprocess.check_output([*command, str(CLUSTER)], text=True)
-    return list(yaml.safe_load_all(output))
+    return list(yaml.load_all(output, Loader=YAML_SAFE_LOADER))
 
 
 def test_flux_core_controllers_use_kl_r640_active_standby():
@@ -121,7 +124,7 @@ def test_source_controller_uses_kl_r640_scheduler_failover():
 
 
 def test_replicated_controllers_have_quorum_disruption_budgets():
-    budgets = list(yaml.safe_load_all((CLUSTER / "flux-system/controller-ha.yaml").read_text()))
+    budgets = list(yaml.load_all((CLUSTER / "flux-system/controller-ha.yaml").read_text(), Loader=YAML_SAFE_LOADER))
     assert {item["metadata"]["name"] for item in budgets} == DISRUPTION_BUDGETED
     for item in budgets:
         assert item["kind"] == "PodDisruptionBudget"
@@ -130,7 +133,7 @@ def test_replicated_controllers_have_quorum_disruption_budgets():
 
 
 def test_root_kustomization_applies_ha_overlay_without_editing_generated_flux():
-    root = yaml.safe_load((CLUSTER / "kustomization.yaml").read_text())
+    root = yaml.load((CLUSTER / "kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert "flux-system/controller-ha.yaml" in root["resources"]
     assert any(
         patch.get("target", {}).get("name")
@@ -140,6 +143,6 @@ def test_root_kustomization_applies_ha_overlay_without_editing_generated_flux():
 
 
 def test_root_kustomization_allows_slow_artifact_delivery():
-    sync = list(yaml.safe_load_all((CLUSTER / "flux-system/gotk-sync.yaml").read_text()))
+    sync = list(yaml.load_all((CLUSTER / "flux-system/gotk-sync.yaml").read_text(), Loader=YAML_SAFE_LOADER))
     root = next(item for item in sync if item["kind"] == "Kustomization")
     assert root["spec"]["timeout"] == "20m"

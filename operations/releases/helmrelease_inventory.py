@@ -8,6 +8,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOTS = ("clusters/re8ch", "platform")
@@ -116,7 +119,7 @@ def declarations(scan_roots: list[Path]) -> tuple[dict[str, dict], list[dict]]:
     parse_errors = []
     for path in yaml_paths(scan_roots):
         try:
-            documents = yaml.safe_load_all(path.read_text(encoding="utf-8"))
+            documents = yaml.load_all(path.read_text(encoding="utf-8"), Loader=YAML_SAFE_LOADER)
             for document_number, document in enumerate(documents, 1):
                 if not isinstance(document, dict) or document.get("kind") != "HelmRelease":
                     continue
@@ -162,7 +165,7 @@ def declarations(scan_roots: list[Path]) -> tuple[dict[str, dict], list[dict]]:
 
 
 def load_decisions(path: Path) -> dict[str, dict]:
-    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    document = yaml.load(path.read_text(encoding="utf-8"), Loader=YAML_SAFE_LOADER)
     entries = document.get("releases", []) if isinstance(document, dict) else []
     decisions = {}
     for entry in entries:

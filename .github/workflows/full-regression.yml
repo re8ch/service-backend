@@ -16,6 +16,7 @@ jobs:
       - run: git submodule update --init catalogs/platform/modules/connectool/source
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
+      - uses: ./.github/actions/setup-native-yaml
       - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1'
       - run: |
           python operations/releases/compile_domain_bundles.py --check
@@ -23,7 +24,7 @@ jobs:
           python tests/validate_schemas.py
           python operations/scripts/validate-r640-public-authority.py
           python tests/check_no_plaintext_secrets.py
-          python -m pytest -q
+          python -m pytest -q --durations=20
       - name: Render every owned Kustomize root
         run: |
           python operations/ci/impact.py --full --path README.md > "$RUNNER_TEMP/plan.json"

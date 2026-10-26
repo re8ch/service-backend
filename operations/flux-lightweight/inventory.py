@@ -8,6 +8,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 CATALOG = Path(__file__).with_name("controller-capabilities.yaml")
@@ -21,7 +24,7 @@ def api_group(api_version: str) -> str:
 
 
 def load_capabilities(path: Path = CATALOG) -> tuple[dict[tuple[str, str], str], dict[str, dict]]:
-    catalog = yaml.safe_load(path.read_text())
+    catalog = yaml.load(path.read_text(), Loader=YAML_SAFE_LOADER)
     controllers = catalog["spec"]["controllers"]
     kinds: dict[tuple[str, str], str] = {}
     for controller, definition in controllers.items():
@@ -79,7 +82,7 @@ def inventory(scan_roots: list[Path]) -> dict:
     parse_errors = []
     for path in yaml_paths(scan_roots):
         try:
-            documents = yaml.safe_load_all(path.read_text())
+            documents = yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER)
             for document_index, item in enumerate(documents, 1):
                 if not isinstance(item, dict):
                     continue

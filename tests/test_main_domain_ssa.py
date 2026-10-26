@@ -5,6 +5,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAINS = {"data-storage", "commerce-billing", "delivery-products", "operations-ui", "tenant-runtime"}
@@ -24,12 +27,12 @@ bundle = load_module("main_domain_bundle", Path("operations/releases/unified_bun
 
 
 def documents(path):
-    return [item for item in yaml.safe_load_all(path.read_text()) if item]
+    return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if item]
 
 
 def test_generated_partition_is_current_complete_and_excludes_autonomous_domains():
     subprocess.run([sys.executable, "operations/releases/compile_main_domain_ssa.py", "--check"], cwd=ROOT, check=True)
-    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
     assert cohort["releaseCount"] == 14
@@ -49,7 +52,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
 
 def test_every_ssa_release_is_signed_bundle_eligible_and_exactly_scoped():
     for contract_path in sorted((ROOT / "contracts/releases/main-domain").glob("*.yaml")):
-        contract = yaml.safe_load(contract_path.read_text())
+        contract = yaml.load(contract_path.read_text(), Loader=YAML_SAFE_LOADER)
         package = ROOT / contract["spec"]["source"]["path"] / "resources.yaml"
         items = documents(package)
         namespace = contract["spec"]["target"]["namespace"]
@@ -64,7 +67,7 @@ def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover()
     roles = [item for item in docs if item["kind"] == "Role"]
     bindings = [item for item in docs if item["kind"] == "RoleBinding"]
     states = [item for item in docs if item["kind"] == "ConfigMap"]
-    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert len(roles) == len(bindings) == len(states) == cohort["releaseCount"]
     for role in roles:
         assert all(rule.get("resourceNames") for rule in role["rules"])
@@ -104,13 +107,13 @@ def test_temporary_legacy_domain_is_safe_by_default_and_workflow_is_bound():
 
 
 def test_each_main_domain_contract_uses_its_own_protected_execution_profile():
-    authority = yaml.safe_load((ROOT / "operations/releases/static-domain-authority.yaml").read_text())
+    authority = yaml.load((ROOT / "operations/releases/static-domain-authority.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     profiles = authority["spec"]["domains"]
-    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     declared = {item["domain"]: item for item in cohort["executionProfiles"]}
     assert set(declared) == DOMAINS
     for contract_path in sorted((ROOT / "contracts/releases/main-domain").glob("*.yaml")):
-        contract = yaml.safe_load(contract_path.read_text())
+        contract = yaml.load(contract_path.read_text(), Loader=YAML_SAFE_LOADER)
         domain = contract["spec"]["authorityDomain"]
         execution = profiles[domain]["execution"]
         assert contract["spec"]["provenance"]["environment"] == execution["protectedEnvironment"]
@@ -118,7 +121,7 @@ def test_each_main_domain_contract_uses_its_own_protected_execution_profile():
 
 
 def test_oidc_audience_reaches_login_and_ssa_token_refresh():
-    workflow = yaml.safe_load((ROOT / ".github/workflows/main-domain-release.yml").read_text())
+    workflow = yaml.load((ROOT / ".github/workflows/main-domain-release.yml").read_text(), Loader=YAML_SAFE_LOADER)
     job = workflow["jobs"]["execute"]
     steps = [step for step in job["steps"]
              if "ACTIONS_ID_TOKEN_REQUEST_URL" in step.get("run", "")

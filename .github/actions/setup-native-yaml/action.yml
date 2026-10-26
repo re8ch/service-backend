@@ -1,0 +1,21 @@
+name: Native safe YAML parser
+description: Install an ABI-compatible pinned PyYAML wheel without changing shared runner packages.
+runs:
+  using: composite
+  steps:
+    - name: Install isolated LibYAML wheel
+      shell: bash
+      run: |
+        target="$RUNNER_TEMP/native-yaml-$GITHUB_JOB-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+        # Runner pip defaults to --user; override only this isolated installation.
+        PIP_USER=0 python -m pip install --disable-pip-version-check --only-binary=:all: --no-deps \
+          --target "$target" 'PyYAML==6.0.3'
+        echo "PYTHONPATH=$target${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
+    - name: Verify native safe YAML parser
+      shell: bash
+      run: |
+        python - <<'PY'
+        import sys, yaml
+        print(f"Python {sys.version}; PyYAML {yaml.__version__}; LibYAML={yaml.__with_libyaml__}")
+        assert yaml.__version__ == "6.0.3" and hasattr(yaml, "CSafeLoader"), "CI requires the pinned LibYAML wheel"
+        PY
