@@ -16,6 +16,10 @@ def test_workflow_uses_native_attestation_without_runtime_cosign():
     assert "cosign-installer" not in workflow
     assert "cosign sign" not in workflow
     assert "needs: [publish, attest]" in workflow
+    assert "secrets.DOMAIN_REGISTRY_USERNAME" in workflow
+    assert "secrets.DOMAIN_REGISTRY_PASSWORD" in workflow
+    assert "secrets.HARBOR_USERNAME" not in workflow
+    assert "secrets.HARBOR_PASSWORD" not in workflow
 
 
 def release():
