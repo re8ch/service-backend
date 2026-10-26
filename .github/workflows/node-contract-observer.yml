@@ -204,6 +204,8 @@ jobs:
 
   governance:
     name: NodeContract governance
+    env:
+      NODE_USE_ENV_PROXY: '1'
     if: always() && needs.observe.result != 'cancelled' && needs.observe.result != 'skipped'
     needs: observe
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
