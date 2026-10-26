@@ -16,7 +16,7 @@ concurrency:
 jobs:
   tenant-go-validate:
     name: tenant-go-validate
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: 2}
@@ -56,9 +56,9 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: tenant-go-validate
-    # Build and publish on restricted-node-6dc3f140f9 through its region-pinned Mihomos BuildKit.
+    # Build and publish on R640 through its region-pinned Mihomos BuildKit.
     # Macmini is intentionally excluded from the tenant MCP release path.
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 30
     environment: production
     permissions:
@@ -67,7 +67,7 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Prepare isolated restricted-node-6dc3f140f9 release authentication
+      - name: Prepare isolated R640 release authentication
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
@@ -89,7 +89,7 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          # Cold base-image and module pulls on the restricted-node-6dc3f140f9 builder can exceed
+          # Cold base-image and module pulls on the R640 builder can exceed
           # the generic five-minute publisher default.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
           # Keep Harbor OAuth token requests in the region-pinned BuildKit.
@@ -107,7 +107,7 @@ jobs:
   finalize:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: release
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     timeout-minutes: 12
     permissions:
@@ -142,6 +142,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
       - name: Attest immutable Harbor image
+        id: attest
         timeout-minutes: 2
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
@@ -149,15 +150,6 @@ jobs:
           subject-digest: ${{ steps.subject.outputs.digest }}
           push-to-registry: true
           create-storage-record: false
-      - name: Verify GitHub build provenance
-        timeout-minutes: 2
-        run: |
-          gh attestation verify "oci://${{ steps.subject.outputs.image }}" \
-            --repo re8ch/service-backend \
-            --signer-workflow re8ch/service-backend/.github/workflows/tenant-go-release.yml \
-            >/dev/null
-        env:
-          GH_TOKEN: ${{ github.token }}
       - name: Create scoped promotion token
         id: promoter
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
@@ -201,7 +193,8 @@ jobs:
           body: |
             Image: `${{ env.TENANT_MCP_IMAGE }}`
             Source: ${{ github.sha }}
-            Build and signature verification: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            GitHub attestation: ${{ steps.attest.outputs.attestation-url }}
+            Build run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
             Flux syncs this reference to the active observability HelmRelease. No domain bundle is published.
       - name: Request merge through repository rules
         if: steps.image-pr.outputs.pull-request-number != ''
@@ -212,5 +205,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-go-finalized-${{ github.sha }}
-          path: tenant-mcp.image
+          path: |
+            tenant-mcp.image
+            ${{ steps.attest.outputs.bundle-path }}
           if-no-files-found: error
