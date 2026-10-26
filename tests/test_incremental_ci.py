@@ -100,3 +100,12 @@ def test_digest_promotion_does_not_trigger_overall_regression():
 
 def test_codename_history_alone_fails_closed():
     assert impact.select(["operations/releases/codenames.yaml"])["full"]
+
+
+def test_focused_source_only_still_runs_tests():
+    plan = impact.select(["operations/releases/domain_publish.py"])
+    assert plan["focused_suites"] == ["domain-publication"]
+    assert plan["run"]
+    assert not plan["full"]
+    assert plan["domains"] == []
+    assert "tests/test_domain_publication.py" in plan["tests"]
