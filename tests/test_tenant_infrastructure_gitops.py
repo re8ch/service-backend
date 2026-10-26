@@ -5,11 +5,14 @@ import tempfile
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 ROOT = Path(__file__).parents[1]
 
 
 def documents(path):
-    return [item for item in yaml.safe_load_all(path.read_text()) if item]
+    return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if item]
 
 
 def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
@@ -24,7 +27,7 @@ def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
         command,
         check=True, capture_output=True, text=True,
     ).stdout
-    return [item for item in yaml.safe_load_all(rendered) if item]
+    return [item for item in yaml.load_all(rendered, Loader=YAML_SAFE_LOADER) if item]
 
 
 def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
@@ -67,9 +70,9 @@ def test_identity_gateway_can_check_deletion_dependencies_without_broad_access()
     # Identity dependency reachability must not depend on a healthy Helm
     # upgrade of the entire tenant runtime platform.
     path = "components/auth/dependency-policy.yaml"
-    domain = yaml.safe_load((ROOT / "clusters/re8ch/domains/identity-access/source/kustomization.yaml").read_text())
+    domain = yaml.load((ROOT / "clusters/re8ch/domains/identity-access/source/kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert "../../../" + path in domain["resources"]
-    documents = list(yaml.safe_load_all((ROOT / "clusters/re8ch" / path).read_text()))
+    documents = list(yaml.load_all((ROOT / "clusters/re8ch" / path).read_text(), Loader=YAML_SAFE_LOADER))
     policy = next(item for item in documents if item["kind"] == "NetworkPolicy")
     assert policy["metadata"]["namespace"] == "tenant-infrastructure"
     assert policy["spec"]["podSelector"] == {"matchLabels": {"app": "tenant-control-controller"}}
@@ -107,7 +110,7 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         assert deployment["spec"]["strategy"] == {"type": "Recreate"}
         pod = deployment["spec"]["template"]["spec"]
         node_terms = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
-        assert node_terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]}]}]
+        assert node_terms == [{"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["a1-wsl-zt", "b1-wsl-zt"]}]}]
         assert "nodeSelector" not in pod
         assert pod["automountServiceAccountToken"] is (name == "tenant-api")
         volume_names = {item["name"] for item in pod["volumes"]}
@@ -171,7 +174,7 @@ def test_tenant_control_plane_is_ab_ha_and_prefers_local_traffic():
     assert expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        "values": ["a1-wsl-zt", "b1-wsl-zt"],
     }
     anti_affinity = pod_spec["affinity"]["podAntiAffinity"][
         "requiredDuringSchedulingIgnoredDuringExecution"
@@ -213,7 +216,7 @@ def test_tenant_control_plane_is_ab_ha_and_prefers_local_traffic():
     cache_expression = cache_spec["affinity"]["nodeAffinity"][
         "requiredDuringSchedulingIgnoredDuringExecution"
     ]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert cache_expression["values"] == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+    assert cache_expression["values"] == ["a1-wsl-zt", "b1-wsl-zt"]
 
 
 def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
@@ -384,7 +387,7 @@ def test_tenant_ci_can_request_harbor_from_its_declared_catalog_project():
     docs = tenant_chart_documents()
     tenant = next(item for item in docs if item["kind"] == "Tenant" and item["metadata"]["name"] == "tenant-ci")
     assert tenant["spec"]["harborProjectRef"] == "tenant-ci"
-    catalogs = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text())
+    catalogs = [item for item in yaml.load_all((ROOT / "clusters/re8ch/components/ai-operations/platform.yaml").read_text(), Loader=YAML_SAFE_LOADER)
                 if item and item.get("kind") == "ConfigMap" and item.get("metadata", {}).get("name") == "harbor-tenant-catalog"]
     assert len(catalogs) == 2
     assert all("tenant-ci" in json.loads(item["data"]["harbor-tenants.json"])["tenants"] for item in catalogs)
@@ -434,7 +437,7 @@ def test_dex_refresh_rotation_has_bounded_reuse_window():
 
 
 def test_plugin_definition_is_tenant_self_and_denies_financial_mutation():
-    plugins = [yaml.safe_load((ROOT / "plugins" / name).read_text()) for name in ("admin.yaml", "tenant.yaml")]
+    plugins = [yaml.load((ROOT / "plugins" / name).read_text(), Loader=YAML_SAFE_LOADER) for name in ("admin.yaml", "tenant.yaml")]
     assert {item["metadata"]["name"] for item in plugins} == {"admin", "tenant"}
     assert next(item for item in plugins if item["metadata"]["name"] == "admin")["spec"]["policy"]["resourceScopes"] == ["admin"]
     for plugin in plugins:
@@ -461,7 +464,7 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
     assert all("nodeSelector" not in item["spec"]["template"]["spec"] for item in deployments)
     assert all(
         item["spec"]["template"]["spec"]["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
-        == ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"]
+        == ["a1-wsl-zt", "b1-wsl-zt"]
         for item in deployments
     )
     assert all("@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6" in item["spec"]["template"]["spec"]["containers"][0]["image"] for item in deployments)
@@ -482,15 +485,15 @@ def test_claim_public_edge_uses_declared_r640_authority():
     assert {"key": "saas.re8ch.com/tenant", "operator": "Exists"} in apps["allowedRoutes"]["namespaces"]["selector"]["matchExpressions"]
     dns = documents(ROOT / "clusters/re8ch/components/public-exposure/external-dns-cloudflare.yaml")
     authority = next(item for item in dns if item.get("metadata", {}).get("name") == "tenant-apps-wildcard-dns-authority")
-    assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.79"
+    assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
 
 
 def test_tenant_compute_has_controlled_metered_egress_gateway():
     docs = documents(ROOT / "clusters/re8ch/components/egress-fabric/identity-egress.yaml")
     policy = next(item for item in docs if item["kind"] == "CiliumEgressGatewayPolicy")
     assert policy["spec"]["selectors"][0]["podSelector"]["matchLabels"]["networking.re8ch.com/egress-class"] == "metered-public"
-    assert policy["spec"]["egressGateway"]["nodeSelector"]["matchLabels"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
-    assert "192.0.2.203/8" in policy["spec"]["excludedCIDRs"]
+    assert policy["spec"]["egressGateway"]["nodeSelector"]["matchLabels"] == {"kubernetes.io/hostname": "r640"}
+    assert "10.0.0.0/8" in policy["spec"]["excludedCIDRs"]
 
 
 def test_tenant_bootstrap_binds_controller_only_inside_runtime_namespace():
@@ -585,9 +588,9 @@ def test_database_metrics_bindings_limit_provider_reads_to_pinned_re8ch_credenti
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as values:
         json.dump(release["spec"]["values"], values)
         values.flush()
-        docs = [item for item in yaml.safe_load_all(subprocess.run(
+        docs = [item for item in yaml.load_all(subprocess.run(
             ["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name],
-            check=True, capture_output=True, text=True).stdout) if item]
+            check=True, capture_output=True, text=True).stdout, Loader=YAML_SAFE_LOADER) if item]
     roles = [item for item in docs if item["kind"] == "Role" and item["metadata"]["name"].startswith("tenant-provider-database-metrics-")]
     assert {(item["metadata"]["namespace"], item["rules"][0]["resourceNames"][0]) for item in roles} == {
         (item["namespace"], item["secretName"]) for item in bindings}
@@ -621,7 +624,7 @@ def test_shared_session_authority_is_opt_in_and_only_on_go_tenant():
         "--set", "tenantPlatform.tenantAPI.enabled=true", "--set", "tenantPlatform.tenantAPI.image=" + tenant_image,
         "--set", "tenantPlatform.tenantAPI.platformSessionURL=" + endpoint,
     ], text=True)
-    docs = list(yaml.safe_load_all(rendered))
+    docs = list(yaml.load_all(rendered, Loader=YAML_SAFE_LOADER))
     for name in ("tenant-api", "admin-api"):
         deployment = next(d for d in docs if d and d.get("kind") == "Deployment" and d["metadata"]["name"] == name)
         env = {v["name"]: v.get("value") for v in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
@@ -635,21 +638,21 @@ def test_shared_session_authority_is_opt_in_and_only_on_go_tenant():
 
 
 def test_production_controller_rollout_fits_single_r640_worker():
-    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    release = yaml.load((ROOT / "platform/birfucate-metering/release.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as values:
         yaml.safe_dump(release["spec"]["values"], values)
         values.flush()
         rendered = subprocess.run(["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name], check=True, capture_output=True, text=True).stdout
-    controller = next(item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-control-controller")
+    controller = next(item for item in yaml.load_all(rendered, Loader=YAML_SAFE_LOADER) if item and item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-control-controller")
     assert controller["spec"]["replicas"] == 1
     assert controller["spec"]["strategy"]["rollingUpdate"] == {"maxUnavailable": 1, "maxSurge": 0}
     affinity = controller["spec"]["template"]["spec"]["affinity"]
     assert "podAntiAffinity" not in affinity
-    assert affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
+    assert affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"] == ["r640"]
 
 
 def test_shared_personal_runtime_class_has_owner_resource_policy():
-    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    release = yaml.load((ROOT / "platform/birfucate-metering/release.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     tenants = release["spec"]["values"]["tenantPlatform"]["tenants"]
     shared = next(item for item in tenants if item["name"] == "personal-standard")
     assert shared["identityBindings"] == []

@@ -17,6 +17,9 @@ from pathlib import Path
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 from operation_materialize import state_configmap_name
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -43,7 +46,7 @@ PLURALS = {
     "Role": "roles", "RoleBinding": "rolebindings", "MCPServer": "mcpservers",
 }
 def execution_profiles() -> dict[str, dict]:
-    authority = yaml.safe_load(AUTHORITY.read_text())
+    authority = yaml.load(AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)
     profiles = authority["spec"]["domains"]
     missing = set(DOMAINS) - set(profiles)
     if missing:
@@ -52,7 +55,7 @@ def execution_profiles() -> dict[str, dict]:
 
 
 def docs(path: Path) -> list[dict]:
-    return [item for item in yaml.safe_load_all(path.read_text()) if isinstance(item, dict)]
+    return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if isinstance(item, dict)]
 
 
 def group(api_version: str) -> str:

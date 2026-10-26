@@ -18,6 +18,9 @@ from typing import Any
 
 import yaml
 
+# LibYAML keeps SafeLoader constructors; pure Python remains a supported fallback.
+YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 class WorkspaceError(RuntimeError):
     pass
@@ -92,7 +95,7 @@ class Registry:
     def _load_modules(self) -> dict[str, Module]:
         modules: dict[str, Module] = {}
         for path in sorted(self.root.glob("catalogs/*/modules/*/module.yaml")):
-            doc = yaml.safe_load(path.read_text())
+            doc = yaml.load(path.read_text(), Loader=YAML_SAFE_LOADER)
             meta, spec = doc["metadata"], doc["spec"]
             source = spec["source"]
             module = Module(
@@ -141,7 +144,7 @@ class Controller:
     def __init__(self, root: Path):
         self.root = root
         self.registry = Registry(root)
-        self.sources = yaml.safe_load((root / "workspace/sources.yaml").read_text())["spec"]
+        self.sources = yaml.load((root / "workspace/sources.yaml").read_text(), Loader=YAML_SAFE_LOADER)["spec"]
 
     def list(self) -> dict[str, Any]:
         return operation("workspace.list", [module.__dict__ | {"source": str(module.source.relative_to(self.root))} for module in self.registry.modules.values()])
@@ -215,7 +218,7 @@ class Controller:
     def build_indexes(self) -> dict[str, Any]:
         projects, knowledge, tools, deployments = [], [], [], []
         for module in self.registry.modules.values():
-            doc = yaml.safe_load(module.source.read_text())
+            doc = yaml.load(module.source.read_text(), Loader=YAML_SAFE_LOADER)
             spec = doc["spec"]
             projects.append({
                 "id": module.name,
@@ -249,7 +252,7 @@ class Controller:
         for module in self.registry.modules.values():
             if module_name and module.name != module_name:
                 continue
-            doc = yaml.safe_load(module.source.read_text())
+            doc = yaml.load(module.source.read_text(), Loader=YAML_SAFE_LOADER)
             spec = doc["spec"]
             memory_path = module.source.parent / "MEMORY.md"
             row = {
@@ -301,7 +304,7 @@ class Controller:
 
     def _read_lock(self) -> dict[str, Any]:
         path = self.root / "workspace/workspace.lock.yaml"
-        return yaml.safe_load(path.read_text()) if path.exists() else {"modules": {}}
+        return yaml.load(path.read_text(), Loader=YAML_SAFE_LOADER) if path.exists() else {"modules": {}}
 
     def _module_source(self, module: Module) -> str:
         if module.source_kind == "root":
