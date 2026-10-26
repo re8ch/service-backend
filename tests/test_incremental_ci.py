@@ -1,3 +1,4 @@
+import ast
 import importlib.util
 from pathlib import Path
 
@@ -73,7 +74,7 @@ def test_network_change_is_incremental():
 
 
 def test_shared_ci_change_fails_safe_to_full():
-    for path in ("operations/ci/impact.py", "tests/conftest.py", "tests/kustomize_render.py"):
+    for path in ("operations/ci/impact.py", "tests/conftest.py", "pyproject.toml"):
         plan = impact.select([path])
         assert plan["full"], path
         assert len(plan["domains"]) == len(impact.load_catalog()["domains"])
@@ -128,7 +129,7 @@ def test_focused_repository_tool_does_not_expand_to_full_regression():
     assert plan["risky_unknown"] == []
     assert plan["run"]
     assert not plan["full"]
-    assert set(plan["tests"]) == set(impact.load_catalog()["always_tests"])
+    assert set(plan["tests"]) == set(impact.load_catalog()["always_tests"]) | {"tests/test_domain_publication.py"}
 
 
 def test_control_plane_workflow_has_one_stable_aggregate_gate():
@@ -160,3 +161,15 @@ def test_focused_source_only_still_runs_tests():
     assert not plan["full"]
     assert plan["domains"] == []
     assert "tests/test_domain_publication.py" in plan["tests"]
+
+
+def test_fixture_and_parser_consumers_are_all_accounted_for():
+    files = {str(p.relative_to(ROOT)) for p in (ROOT / "tests").glob("test_*.py")
+             if any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "kustomize_documents"
+                    for n in ast.walk(ast.parse(p.read_text())))}
+    assert files <= set(impact.select(["tests/kustomize_render.py"])["tests"])
+    parser = ast.parse((ROOT / "tests/test_native_yaml_loader.py").read_text())
+    targets = next(ast.literal_eval(node.value) for node in parser.body if isinstance(node, ast.Assign)
+                   and any(isinstance(t, ast.Name) and t.id == "TARGETS" for t in node.targets))
+    catalog = impact.load_catalog()
+    assert set(targets) <= set(catalog["focused_suites"]["native-yaml-contract"]["paths"])

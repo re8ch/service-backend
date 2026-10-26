@@ -23,8 +23,8 @@ shared_paths:
   - clusters/re8ch/secrets/cluster-node-inventory.sops.yaml
   - clusters/re8ch/secrets/ai-operations-inventory.sops.yaml
   - tests/conftest.py
-  - tests/kustomize_render.py
   - tests/validate_schemas.py
+  - operations/releases/codenames.yaml
   - clusters/re8ch/kustomization.yaml
   - clusters/re8ch/domain-sources/kustomization.yaml
   - clusters/re8ch/flux-system/**
@@ -37,16 +37,7 @@ ci_metadata_paths:
   - .github/dependabot.yml
 
 always_tests:
-  - tests/test_github_bot_merge.py
-  - tests/test_infrastructure_contracts.py
-  - tests/test_git_k8s_manifests.py
-  - tests/test_git_governance_gate.py
   - tests/test_incremental_ci.py
-  - tests/test_release_codenames.py
-  - tests/test_domain_oci_release.py
-  - tests/test_domain_publication.py
-  - tests/test_live_domain_sources.py
-  - tests/test_domain_reconcilers.py
 
 # Repository tools that validate or compile desired state but do not own a
 # deployable Kustomize root. Keeping these mappings explicit lets CI run their
@@ -57,6 +48,35 @@ focused_suites:
       - operations/releases/domain_publish.py
     tests:
       - tests/test_domain_publication.py
+
+  kustomize-render:
+    paths:
+    - tests/kustomize_render.py
+    tests:
+    - tests/test_kustomize_render.py
+  native-yaml-contract:
+    paths:
+    - operations/releases/helmrelease_inventory.py
+    - operations/flux-lightweight/inventory.py
+    - operations/ci/impact.py
+    - operations/releases/compile_main_domain_ssa.py
+    - operations/releases/unified_bundle.py
+    - operations/workspace-controller/workspace.py
+    - operations/flux-federation/validate.py
+    - tests/test_domain_reconcilers.py
+    - tests/test_main_domain_ssa.py
+    - tests/test_flux_controller_ha.py
+    - tests/test_flux_fast_reconcile.py
+    - tests/test_flux_image_controller_retirement.py
+    - tests/test_tenant_infrastructure_gitops.py
+    - tests/test_release_codenames.py
+    - operations/releases/helmrelease-inventory.yaml
+    - operations/releases/helmrelease-classifications.yaml
+    - operations/ci/domain-catalog.yaml
+    - clusters/re8ch/flux-federation/controllers.yaml
+    - clusters/re8ch/domains/identity-access/resources.yaml
+    tests:
+    - tests/test_native_yaml_loader.py
 
 domains:
   control-plane:
@@ -312,7 +332,7 @@ check_paths:
   domain_bundles: [clusters/re8ch/domains/**, operations/releases/compile_domain_bundles.py]
   federation: [operations/flux-federation/**, clusters/re8ch/flux-federation/**]
 
-# Observation-only declarations: reuse candidates do not skip tests.
+# Input declarations select tests; reuse candidates still execute normally.
 # Directory patterns include new and removed members, not just existing files.
 unit_defaults:
   helpers:
@@ -436,11 +456,7 @@ validation_units:
     reuse: candidate
   tests/test_flux_controller_ha.py:
     sources: []
-    data:
-    - clusters/re8ch/**
-    - platform/**
-    - operations/flux-lightweight/controller-capabilities.yaml
-    - operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist
+    data: []
     helpers:
     - tests/kustomize_render.py
     - operations/ci/render_evidence.py
@@ -448,12 +464,11 @@ validation_units:
     - kubectl
     - kustomize
     reuse: candidate
+    roots:
+    - clusters/re8ch
   tests/test_flux_fast_reconcile.py:
     sources: []
     data:
-    - clusters/re8ch/**
-    - platform/**
-    - operations/flux-lightweight/controller-capabilities.yaml
     - operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist
     helpers:
     - tests/kustomize_render.py
@@ -462,13 +477,13 @@ validation_units:
     - kubectl
     - kustomize
     reuse: candidate
+    roots:
+    - clusters/re8ch
+    - clusters/re8ch/domains/networking
   tests/test_flux_image_controller_retirement.py:
     sources: []
     data:
-    - clusters/re8ch/**
-    - platform/**
     - operations/flux-lightweight/controller-capabilities.yaml
-    - operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist
     helpers:
     - tests/kustomize_render.py
     - operations/ci/render_evidence.py
@@ -476,6 +491,8 @@ validation_units:
     - kubectl
     - kustomize
     reuse: candidate
+    roots:
+    - clusters/re8ch
   tests/test_flux_lightweight_inventory.py:
     sources:
     - operations/flux-lightweight/inventory.py
