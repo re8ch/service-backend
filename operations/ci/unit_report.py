@@ -68,6 +68,7 @@ class Observer:
     def __init__(self, directory, config):
         self.directory = directory
         self.root = Path(config.rootpath)
+        self.config = config
         self.started = time.perf_counter()
         self.cases = {}
         self.collection_errors = []
@@ -125,6 +126,7 @@ class Observer:
                 unit["status"] = "blocked"
         observation.update({"exit_code": int(exitstatus), "pytest_seconds": elapsed,
                             "collection_seconds": self.collection_seconds,
+                            "input_snapshot": getattr(self.config, "_validation_input_statistics", None),
                             "collection_errors": self.collection_errors, "toolchain": toolchain(),
                             "identity": {key: os.environ.get(key) for key in (
                                 "GITHUB_SHA", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_REPOSITORY",
@@ -136,4 +138,7 @@ class Observer:
             with open(path, "a") as stream:
                 stream.write(f"### Unit execution\n\nExit code: {int(exitstatus)}; pytest: {elapsed:.2f}s; "
                              f"status counts: {dict(counts)}. Full phase timings and toolchain: unit-observation artifact.\n\n")
+                if statistics := observation["input_snapshot"]:
+                    stream.write(f"Session input parsing: {statistics['parsed']} parsed, {statistics['reused']} reused. "
+                                 "Reuse requires identical content and parser; every selected test still executes.\n\n")
                 stream.write(unit_catalog.summary(observation))

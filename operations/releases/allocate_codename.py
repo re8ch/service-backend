@@ -4,18 +4,24 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import re
 from pathlib import Path
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+# Support both direct CLI execution and importlib-loaded validation consumers.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from operations.ci.input_snapshot import yaml_document
+
 STATE = ROOT / "operations/releases/codenames.yaml"
 CATALOG = ROOT / "operations/ci/domain-catalog.yaml"
 
 
 def module_themes() -> dict[str, str]:
-    catalog = yaml.safe_load(CATALOG.read_text())
+    catalog = yaml_document(CATALOG)
     return {
         root: config["theme"]
         for config in catalog["domains"].values()
@@ -45,7 +51,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.semver and not re.fullmatch(r"v?\d+\.\d+\.\d+(?:[-+].+)?", args.semver):
         raise SystemExit("invalid SemVer annotation")
-    state = yaml.safe_load(STATE.read_text())
+    state = yaml_document(STATE)
     name = proposed(args.module, state)
     if not re.fullmatch(r"[a-z]+(?:-[a-z]+)?", name):
         raise SystemExit(f"invalid codename: {name}")

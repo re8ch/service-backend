@@ -2,6 +2,7 @@
 """Build a secret-safe inventory of repository-declared HelmReleases."""
 
 import argparse
+import sys
 import hashlib
 import json
 from pathlib import Path
@@ -13,6 +14,11 @@ YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
 ROOT = Path(__file__).resolve().parents[2]
+# Support both direct CLI execution and importlib-loaded validation consumers.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from operations.ci.input_snapshot import yaml_document, yaml_documents
+
 DEFAULT_ROOTS = ("clusters/re8ch", "platform")
 DECISIONS = ROOT / "operations/releases/helmrelease-classifications.yaml"
 DEFAULT_INVENTORY = ROOT / "operations/releases/helmrelease-inventory.yaml"
@@ -119,7 +125,7 @@ def declarations(scan_roots: list[Path]) -> tuple[dict[str, dict], list[dict]]:
     parse_errors = []
     for path in yaml_paths(scan_roots):
         try:
-            documents = yaml.load_all(path.read_text(encoding="utf-8"), Loader=YAML_SAFE_LOADER)
+            documents = yaml_documents(path, loader=YAML_SAFE_LOADER)
             for document_number, document in enumerate(documents, 1):
                 if not isinstance(document, dict) or document.get("kind") != "HelmRelease":
                     continue
@@ -165,7 +171,7 @@ def declarations(scan_roots: list[Path]) -> tuple[dict[str, dict], list[dict]]:
 
 
 def load_decisions(path: Path) -> dict[str, dict]:
-    document = yaml.load(path.read_text(encoding="utf-8"), Loader=YAML_SAFE_LOADER)
+    document = yaml_document(path, loader=YAML_SAFE_LOADER)
     entries = document.get("releases", []) if isinstance(document, dict) else []
     decisions = {}
     for entry in entries:
