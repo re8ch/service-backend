@@ -295,3 +295,17 @@ domains:
     tests:
       - tests/test_payment_postgrest_resources.py
       - tests/test_supabase_billing_stack.py
+
+# Inputs of standalone CI checks. Shared/unknown changes enable every check.
+# These declarations narrow execution, not ownership or required status checks.
+check_paths:
+  workspace: [catalogs/**, indexes/**, workspace/**, workspace.yaml, operations/workspace-controller/**]
+  helm_inventory: [clusters/**, platform/**, operations/releases/helmrelease_inventory.py, operations/releases/helmrelease-*.yaml]
+  commerce: [operations/commerce/**]
+  k6: [operations/k6/**, clusters/re8ch/components/synthetic-monitoring/**, tests/test_k6*]
+  schemas: [schemas/**, plugins/**, inventory/**, catalogs/**, .re8ch/**, deployments/**, releases/**, tenant-claims/**, workspace/**, tests/validate_schemas.py]
+  fabric: [operations/network/**, clusters/re8ch/components/network/**, contracts/infrastructure/**]
+  encrypted: [contracts/infrastructure/**, operations/infrastructure-contract/**, clusters/re8ch/secrets/**]
+  public_authority: [operations/network/**, platform/advanced-fabric/**, platform/among-clusters/**, operations/scripts/validate-r640-public-authority.py]
+  domain_bundles: [clusters/re8ch/domains/**, operations/releases/compile_domain_bundles.py]
+  federation: [operations/flux-federation/**, clusters/re8ch/flux-federation/**]
