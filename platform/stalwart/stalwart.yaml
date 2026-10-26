@@ -48,7 +48,7 @@ spec:
   type: ClusterIP
   # overseas-flk owns this provider address. Keep the management and web
   # ports on the separate cluster-internal Service above.
-  externalIPs: [192.0.2.101]
+  externalIPs: [2.28.106.230]
   selector: {app.kubernetes.io/name: stalwart}
   ports:
     - {name: smtp, port: 25, targetPort: smtp}
@@ -81,7 +81,7 @@ spec:
       # lookups for delivery, DNSBL/Pyzor, Cloudflare DNS management and ACME.
       dnsPolicy: None
       dnsConfig:
-        nameservers: [1.1.1.1, 192.0.2.109]
+        nameservers: [1.1.1.1, 1.0.0.1]
         options:
           - {name: ndots, value: "1"}
       terminationGracePeriodSeconds: 120
@@ -151,6 +151,7 @@ spec:
             - {name: config, mountPath: /etc/stalwart, readOnly: true}
             - {name: data, mountPath: /var/lib/stalwart}
             - {name: tmp, mountPath: /tmp}
+            - {name: mail-tls, mountPath: /var/run/stalwart-tls, readOnly: true}
             - {name: cloudflare-token, mountPath: /var/run/stalwart-secrets/cloudflare, readOnly: true}
             - {name: cloudflare-re8ch-token, mountPath: /var/run/stalwart-secrets/cloudflare-re8ch, readOnly: true}
             - {name: oidc-keys, mountPath: /var/run/stalwart-idp, readOnly: true}
@@ -159,6 +160,9 @@ spec:
         - {name: tmp, emptyDir: {}}
         - name: data
           persistentVolumeClaim: {claimName: stalwart-flk-local-data}
+        - name: mail-tls
+          secret:
+            secretName: stalwart-mail-re8ch-tls
         - name: cloudflare-token
           secret:
             # Dedicated least-privilege token for the phonaid.com zone.

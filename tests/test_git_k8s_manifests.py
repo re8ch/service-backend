@@ -456,6 +456,48 @@ def test_stalwart_management_is_internal_and_digest_pinned():
     assert container["readinessProbe"]["timeoutSeconds"] == 10
 
 
+def test_stalwart_mail_tls_is_issued_mounted_and_reloaded():
+    tls_resources = documents(ROOT / "platform/stalwart/tls.yaml")
+    certificate = next(item for item in tls_resources if item["kind"] == "Certificate")
+    assert certificate["metadata"]["namespace"] == "mail-system"
+    assert certificate["spec"]["dnsNames"] == ["mail.re8ch.com"]
+    assert certificate["spec"]["issuerRef"] == {
+        "kind": "ClusterIssuer",
+        "name": "re8ch-cloudflare-dns01",
+    }
+    assert certificate["spec"]["secretName"] == "stalwart-mail-re8ch-tls"
+
+    reloader = next(item for item in tls_resources if item["kind"] == "CronJob")
+    command = reloader["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]["args"][0]
+    assert "Action/ReloadTlsCertificates" in command
+
+    stateful_set = next(
+        item for item in documents(ROOT / "platform/stalwart/stalwart.yaml")
+        if item["kind"] == "StatefulSet"
+    )
+    pod_spec = stateful_set["spec"]["template"]["spec"]
+    tls_volume = next(item for item in pod_spec["volumes"] if item["name"] == "mail-tls")
+    assert tls_volume["secret"]["secretName"] == "stalwart-mail-re8ch-tls"
+    tls_mount = next(
+        item for item in pod_spec["containers"][0]["volumeMounts"]
+        if item["name"] == "mail-tls"
+    )
+    assert tls_mount == {
+        "name": "mail-tls",
+        "mountPath": "/var/run/stalwart-tls",
+        "readOnly": True,
+    }
+
+    plan = next(
+        item
+        for item in documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
+        if item["kind"] == "ConfigMap"
+    )["data"]["plan.ndjson"]
+    assert '"object":"Certificate"' in plan
+    assert '"filePath":"/var/run/stalwart-tls/tls.crt"' in plan
+    assert '"defaultCertificateId":"#mail-re8ch-com"' in plan
+
+
 def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
     resources = documents(ROOT / "platform/stalwart/idp-pilot.yaml")
     stateful_set = next(item for item in resources if item["kind"] == "StatefulSet")
