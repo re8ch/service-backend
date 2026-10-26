@@ -1,4 +1,5 @@
 import importlib.util
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -9,6 +10,11 @@ MODULE_PATH = ROOT / "operations/flux-lightweight/inventory.py"
 SPEC = importlib.util.spec_from_file_location("flux_lightweight_inventory", MODULE_PATH)
 INVENTORY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(INVENTORY)
+
+
+@lru_cache(maxsize=None)
+def inventory(*roots: str):
+    return INVENTORY.inventory([ROOT / root for root in roots])
 
 
 def test_every_catalog_kind_has_one_controller():
@@ -33,7 +39,7 @@ def test_active_controller_versions_match_flux_v261_release():
 
 
 def test_repository_flux_inventory_is_parseable_and_has_core_resources():
-    report = INVENTORY.inventory([ROOT / "clusters/re8ch", ROOT / "platform"])
+    report = inventory("clusters/re8ch", "platform")
     assert report["parseErrors"] == []
     assert report["resourceCount"] > 20
     assert report["uniqueResourceCount"] <= report["resourceCount"]
@@ -45,7 +51,7 @@ def test_repository_flux_inventory_is_parseable_and_has_core_resources():
 
 
 def test_root_flux_dependencies_and_secret_references_are_visible():
-    report = INVENTORY.inventory([ROOT / "clusters/re8ch"])
+    report = inventory("clusters/re8ch")
     root = next(
         item for item in report["resources"]
         if item["kind"] == "Kustomization"

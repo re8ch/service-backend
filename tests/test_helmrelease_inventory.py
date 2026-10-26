@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "operations/releases/helmrelease_inventory.py"
@@ -9,12 +11,13 @@ INVENTORY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(INVENTORY)
 
 
+@pytest.fixture(scope="session")
 def report():
     return INVENTORY.build([ROOT / "clusters/re8ch", ROOT / "platform"])
 
 
-def test_every_declared_helmrelease_has_an_explicit_classification():
-    result = report()
+def test_every_declared_helmrelease_has_an_explicit_classification(report):
+    result = report
     assert result["parseErrors"] == []
     assert result["releaseCount"] > 0
     assert result["classificationComplete"] is True
@@ -23,8 +26,8 @@ def test_every_declared_helmrelease_has_an_explicit_classification():
     assert all(item["classification"]["rollbackOwner"] for item in result["releases"])
 
 
-def test_inventory_does_not_publish_inline_values_or_secret_values():
-    result = report()
+def test_inventory_does_not_publish_inline_values_or_secret_values(report):
+    result = report
     serialized = INVENTORY.render(result)
     assert "inlineSha256" in serialized
     assert "inlinePresent" in serialized
@@ -34,14 +37,14 @@ def test_inventory_does_not_publish_inline_values_or_secret_values():
             assert set(reference) == {"kind", "name", "valuesKey", "optional"}
 
 
-def test_checked_inventory_matches_declarations_and_decisions():
-    expected = INVENTORY.render(report())
+def test_checked_inventory_matches_declarations_and_decisions(report):
+    expected = INVENTORY.render(report)
     actual = (ROOT / "operations/releases/helmrelease-inventory.yaml").read_text()
     assert actual == expected
 
 
-def test_high_blast_radius_releases_are_not_ssa_candidates():
-    releases = {item["id"]: item for item in report()["releases"]}
+def test_high_blast_radius_releases_are_not_ssa_candidates(report):
+    releases = {item["id"]: item for item in report["releases"]}
     protected = {
         "helmrelease:flux-system:advanced-fabric",
         "helmrelease:flux-system:kyverno",
