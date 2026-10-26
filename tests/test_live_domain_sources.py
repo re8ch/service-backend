@@ -25,11 +25,15 @@ def test_active_sources_are_private_verified_and_digest_locked():
         assert source["spec"]["secretRef"] == {"name": "gitops-oci-reader"}
         assert source["spec"]["ref"] == {"digest": release["bundle"]["digest"]}
         assert source["spec"]["url"] == release["bundle"]["url"]
-        assert source["spec"]["verify"]["provider"] == "cosign"
-        assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
-            "issuer": "^" + re.escape(release["bundle"]["issuer"]) + "$",
-            "subject": "^" + re.escape(release["bundle"]["identity"]) + "$",
-        }]
+        if release["bundle"]["signature"] == "github-attestation":
+            assert "verify" not in source["spec"]
+            assert source["metadata"]["annotations"]["delivery.re8ch.com/attestation"] == "github-native"
+        else:
+            assert source["spec"]["verify"]["provider"] == "cosign"
+            assert source["spec"]["verify"]["matchOIDCIdentity"] == [{
+                "issuer": "^" + re.escape(release["bundle"]["issuer"]) + "$",
+                "subject": "^" + re.escape(release["bundle"]["identity"]) + "$",
+            }]
         trusted = yaml.safe_load((ROOT / "operations/releases/publishers.yaml").read_text())["modules"][module]
         assert trusted == {"issuer": release["bundle"]["issuer"], "identity": release["bundle"]["identity"]}
         reconciliation = next(doc for doc in children if doc["metadata"]["name"] == entry["name"]) if entry.get("name") else documents[1]
