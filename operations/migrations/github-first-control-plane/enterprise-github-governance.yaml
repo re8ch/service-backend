@@ -2,7 +2,7 @@ apiVersion: coordination.re8ch.com/enterprise-github-governance/v1alpha1
 kind: EnterpriseGitHubGovernance
 metadata:
   name: re8ch-github-first-control-plane
-  observedAt: "2026-10-25T01:10:00+08:00"
+  observedAt: "2026-10-26T08:10:00+08:00"
 spec:
   enterprise:
     slug: re8ch
@@ -16,14 +16,14 @@ spec:
   controls:
     actionsRunnerGroup:
       scope: enterprise
-      name: GitOps restricted-node-6dc3f140f9
+      name: GitOps R640
       state: active
-      labels: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+      labels: [self-hosted, Linux, X64, r640, untrusted-build]
       workflowAccess: selected-organizations-and-repositories
       publicRepositoriesAllowed: false
       hostContract: generic-no-repository-specific-tooling
       pool:
-        host: restricted-node-6dc3f140f9
+        host: r640
         size: 8
         runnerNamePrefix: r640-enterprise-
       organizations:
@@ -36,6 +36,8 @@ spec:
         - re8ch-wechat-miniprogram
         - service-backend
         - user-hub
+      - organization: re8ch-business
+        repositories: [catalog]
       - organization: siren-observer
         repositories: [observability-gitops]
       - organization: pillars-infra
