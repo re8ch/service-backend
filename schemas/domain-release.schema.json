@@ -15,12 +15,12 @@
       "properties": {
         "url": {"type": "string", "pattern": "^oci://"},
         "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
-        "signature": {"enum": ["cosign-keyless", "cosign-key", "notation"]}
+        "signature": {"enum": ["github-attestation", "cosign-keyless", "cosign-key", "notation"]}
         ,"identity": {"type": "string", "minLength": 1}
         ,"issuer": {"type": "string", "const": "https://token.actions.githubusercontent.com"}
       },
       "additionalProperties": false,
-      "allOf": [{"if": {"properties": {"signature": {"const": "cosign-keyless"}}}, "then": {"required": ["identity", "issuer"]}}]
+      "allOf": [{"if": {"properties": {"signature": {"enum": ["github-attestation", "cosign-keyless"]}}}, "then": {"required": ["identity", "issuer"]}}]
     },
     "images": {
       "type": "array",

@@ -8,12 +8,14 @@ ROOT = Path(__file__).parents[1]
 
 def test_tenant_publisher_and_signer_use_the_same_dedicated_registry_identity():
     workflow = yaml.safe_load((ROOT / ".github/workflows/tenant-go-release.yml").read_text())
-    for job in ("release", "finalize"):
-        assert workflow["jobs"][job]["environment"] == "production"
-        credential_steps = [s for s in workflow["jobs"][job]["steps"] if "HARBOR_PASSWORD" in s.get("env", {})]
-        assert len(credential_steps) == 1
-        assert credential_steps[0]["env"]["HARBOR_USERNAME"] == "${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}"
-        assert credential_steps[0]["env"]["HARBOR_PASSWORD"] == "${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}"
+    release = workflow["jobs"]["release"]
+    finalize = workflow["jobs"]["finalize"]
+    assert release["environment"] == finalize["environment"] == "production"
+
+    publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
+    login = next(s for s in finalize["steps"] if s.get("uses", "").startswith("docker/login-action@"))
+    assert publisher["env"]["HARBOR_USERNAME"] == login["with"]["username"] == "${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}"
+    assert publisher["env"]["HARBOR_PASSWORD"] == login["with"]["password"] == "${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}"
 
 
 def test_tenant_go_release_allows_cold_builder_pulls_within_job_budget():
@@ -55,10 +57,10 @@ def test_tenant_go_release_builds_on_r640_without_mac_network_mutation():
     prepare = next(
         step["run"]
         for step in release["steps"]
-        if step.get("name") == "Prepare isolated restricted-node-6dc3f140f9 release authentication"
+        if step.get("name") == "Prepare isolated R640 release authentication"
     )
 
-    assert release["runs-on"] == ["self-hosted", "Linux", "X64", "restricted-node-6dc3f140f9", "untrusted-build"]
+    assert release["runs-on"] == ["self-hosted", "Linux", "X64", "r640", "untrusted-build"]
     assert "r640-mihomos" in prepare
     assert 'BUILDX_CONFIG="${HOME}/.docker/buildx"' in prepare
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish reviewed Kustomize roots as private, signed, immutable OCI bundles."""
+"""Publish reviewed Kustomize roots as private immutable OCI bundles for native attestation."""
 from __future__ import annotations
 import argparse
 import base64
@@ -187,18 +187,12 @@ def immutable_target(module, state, allocator, repository, revision):
         # A publication can become stale while its promotion waits for main.
         # Preserve the already verified immutable name as an unused historical
         # claim, then allocate the next name. Never overwrite or deploy it.
-        reference = repository + "@" + existing["digest"]
-        try:
-            subprocess.run(["cosign", "verify", "--certificate-identity", IDENTITY,
-                            "--certificate-oidc-issuer", ISSUER, reference], check=True, stdout=subprocess.DEVNULL)
-            release = {"codename": codename, "digest": existing["digest"]}
-            print("Preserved unused verified codename: " + module + ":" + codename, flush=True)
-        except subprocess.CalledProcessError:
-            # An old registry artifact is never eligible for deployment without
-            # a valid signature. Quarantine its immutable name so allocation can
-            # progress to a new name; do not retry, overwrite, or promote it.
-            release = {"codename": codename, "digest": existing["digest"], "quarantined": "missing-or-invalid-signature"}
-            print("Quarantined unsigned historical codename: " + module + ":" + codename, flush=True)
+        # A stale registry artifact is never eligible for deployment merely
+        # because its tag exists. Native attestation is produced later by the
+        # workflow for the exact digest selected in this run, so reserve this
+        # historical name and advance without a runner-side verification tool.
+        release = {"codename": codename, "digest": existing["digest"], "quarantined": "missing-or-invalid-signature"}
+        print("Quarantined stale unattested codename: " + module + ":" + codename, flush=True)
         state["modules"].setdefault(module, {"releases": []})["releases"].append(release)
 
 
@@ -207,6 +201,7 @@ def publish(modules, out, bootstrap=False):
     state = yaml.safe_load(allocator.STATE.read_text())
     releases = out / "releases"
     releases.mkdir(exist_ok=True)
+    subjects = []
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     for entry in modules:
         module = entry["module"]
@@ -229,18 +224,16 @@ def publish(modules, out, bootstrap=False):
                 # default so a successful registry commit is not abandoned.
                 "--timeout", "15m", "--reproducible", "--output", "json"], cwd=ROOT)
             digest = json.loads(raw)["digest"]
-        reference = repository + "@" + digest
-        subprocess.run(["cosign", "sign", "--yes", reference], check=True)
-        subprocess.run(["cosign", "verify", "--certificate-identity", IDENTITY,
-                        "--certificate-oidc-issuer", ISSUER, reference], check=True, stdout=subprocess.DEVNULL)
         descriptor = {"apiVersion": "delivery.re8ch.com/v1alpha1", "kind": "DomainRelease", "module": module,
             "codename": codename, "bundle": {"url": "oci://" + repository, "digest": digest,
-            "signature": "cosign-keyless", "identity": IDENTITY, "issuer": ISSUER}, "images": []}
+            "signature": "github-attestation", "identity": IDENTITY, "issuer": ISSUER}, "images": []}
         (releases / (slug + ".yaml")).write_text(yaml.safe_dump(descriptor, sort_keys=False))
+        subjects.append({"module": module, "slug": slug, "name": repository, "digest": digest})
         state["modules"].setdefault(module, {"releases": []})["releases"].append({"codename": codename, "digest": digest})
-        print(f"Published and verified {module}:{codename}@{digest}", flush=True)
+        print(f"Published {module}:{codename}@{digest} for native attestation", flush=True)
     (out / "codenames.yaml").write_text(yaml.safe_dump(state, sort_keys=False))
     (out / "active.yaml").write_text(yaml.safe_dump({"version": 1, "modules": modules}, sort_keys=False))
+    (out / "subjects.json").write_text(json.dumps(subjects, separators=(",", ":")))
 
 
 def affected_modules(entries, paths):

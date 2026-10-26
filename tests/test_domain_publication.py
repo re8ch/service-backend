@@ -67,13 +67,10 @@ def test_stale_verified_tag_is_preserved_not_overwritten(monkeypatch):
     first = allocator.proposed(module, state)
     digest = "sha256:" + "2" * 64
     monkeypatch.setattr(publication, "harbor", lambda method, path: (200, {"digest": digest, "annotations": {"delivery.re8ch.com/revision": "old"}}) if path.endswith("/" + first) else (404, None))
-    calls = []
-    monkeypatch.setattr(publication.subprocess, "run", lambda argv, **kwargs: calls.append(argv))
     name, existing = publication.immutable_target(module, state, allocator, "registry.example/module", "current")
     assert name != first and existing is None
-    assert state["modules"][module]["releases"][-1] == {"codename": first, "digest": digest}
-    assert len(calls) == 1 and calls[0][:2] == ["cosign", "verify"]
-    assert calls[0][-1] == "registry.example/module@" + digest
+    assert state["modules"][module]["releases"][-1] == {
+        "codename": first, "digest": digest, "quarantined": "missing-or-invalid-signature"}
 
 
 def test_unverifiable_existing_tag_is_quarantined_and_never_claimed(monkeypatch):
@@ -81,9 +78,6 @@ def test_unverifiable_existing_tag_is_quarantined_and_never_claimed(monkeypatch)
     state = yaml.safe_load(allocator.STATE.read_text())
     first = allocator.proposed("platform/adapter", state)
     monkeypatch.setattr(publication, "harbor", lambda method, path: (200, {"digest": "sha256:" + "3" * 64}) if path.endswith("/" + first) else (404, None))
-    def reject(argv, **kwargs):
-        raise subprocess.CalledProcessError(1, argv)
-    monkeypatch.setattr(publication.subprocess, "run", reject)
     name, existing = publication.immutable_target("platform/adapter", state, allocator, "registry.example/module", "current")
     assert existing is None
     assert name != first
