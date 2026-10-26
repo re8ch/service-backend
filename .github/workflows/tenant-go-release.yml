@@ -119,6 +119,12 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: tenant-go-release-${{ github.sha }}
+      - name: Authenticate native attestation publisher to Harbor
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
+          password: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
       - name: Prepare immutable Harbor subject
         id: subject
         timeout-minutes: 1
@@ -129,23 +135,12 @@ jobs:
             exit 1
           fi
 
-          export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-finalize-docker"
-          install -d -m 700 "$DOCKER_CONFIG"
-          umask 077
-          printf '{}\n' > "$DOCKER_CONFIG/config.json"
-          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
           {
             echo "name=${image%@*}"
             echo "digest=${image##*@}"
             echo "image=$image"
           } >> "$GITHUB_OUTPUT"
-          {
-            echo "DOCKER_CONFIG=$DOCKER_CONFIG"
-            echo "TENANT_MCP_IMAGE=$image"
-          } >> "$GITHUB_ENV"
-        env:
-          HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
+          echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
       - name: Attest immutable Harbor image
         timeout-minutes: 2
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
@@ -163,12 +158,6 @@ jobs:
             >/dev/null
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Remove temporary registry authorization
-        if: always()
-        run: |
-          finalize_config="${RUNNER_TEMP}/tenant-go-finalize-docker"
-          rm -f "$finalize_config/config.json"
-          rmdir "$finalize_config" || true
       - name: Create scoped promotion token
         id: promoter
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
