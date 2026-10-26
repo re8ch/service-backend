@@ -27,8 +27,17 @@ jobs:
       - name: Render every owned Kustomize root
         run: |
           python operations/ci/impact.py --full --path README.md > "$RUNNER_TEMP/plan.json"
-          python - <<'PY' > "$RUNNER_TEMP/roots"
+          python - <<'PY' > "$RUNNER_TEMP/render-roots.json"
           import json, os
-          print(*json.load(open(os.environ["RUNNER_TEMP"] + "/plan.json"))["roots"], sep="\n")
+          print(json.dumps(json.load(open(os.environ["RUNNER_TEMP"] + "/plan.json"))["roots"]))
           PY
-          while IFS= read -r root; do kubectl kustomize "$root" >/dev/null; done < "$RUNNER_TEMP/roots"
+          python operations/ci/render_evidence.py --roots "$RUNNER_TEMP/render-roots.json" \
+            --output "$RUNNER_TEMP/module-render-result/evidence.json"
+      - name: Publish successful main render evidence
+        if: github.ref == 'refs/heads/main' && github.event_name != 'release'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: module-render-evidence
+          path: ${{ runner.temp }}/module-render-result/evidence.json
+          if-no-files-found: error
+          retention-days: 14
