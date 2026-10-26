@@ -22,6 +22,8 @@ jobs:
       run: ${{ steps.plan.outputs.run }}
       full: ${{ steps.plan.outputs.full }}
       plan: ${{ steps.plan.outputs.plan }}
+      jobs: ${{ steps.plan.outputs.jobs }}
+      checks: ${{ steps.plan.outputs.checks }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: "${{ github.event_name == 'pull_request' && 2 || 0 }}"}
@@ -45,24 +47,24 @@ jobs:
 
   contract:
     needs: impact
-    if: needs.impact.outputs.run == 'true'
+    if: fromJSON(needs.impact.outputs.jobs)['contract']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: "${{ github.event_name == 'pull_request' && 2 || 0 }}"}
       - run: python -m pip install 'PyYAML>=6.0.2'
-      - run: |
-          python operations/workspace-controller/workspace.py doctor
-          python operations/releases/helmrelease_inventory.py --check
-          python operations/ci/impact.py --path README.md >/dev/null
-          python operations/k6/validate.py --base "${{ github.event.pull_request.base.sha || format('origin/{0}', github.event.repository.default_branch) }}"
-          python operations/commerce/test_check_image_vulnerabilities.py
+      - if: fromJSON(needs.impact.outputs.checks).workspace
+        run: python operations/workspace-controller/workspace.py doctor
+      - if: fromJSON(needs.impact.outputs.checks).helm_inventory
+        run: python operations/releases/helmrelease_inventory.py --check
+      - if: fromJSON(needs.impact.outputs.checks).commerce
+        run: python operations/commerce/test_check_image_vulnerabilities.py
 
   # Production health is reported by k6-contracts.yml. A production outage
   # must not prevent merging the change that repairs it.
   k6-contracts:
     needs: impact
-    if: needs.impact.outputs.full == 'true' || contains(needs.impact.outputs.domains, 'observability')
+    if: fromJSON(needs.impact.outputs.jobs)['k6-contracts']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
     steps:
@@ -83,20 +85,23 @@ jobs:
 
   schema:
     needs: impact
-    if: needs.impact.outputs.run == 'true'
+    if: fromJSON(needs.impact.outputs.jobs)['schema']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
-      - run: python operations/network/fabric/fabric_model.py check
-      - run: python operations/infrastructure-contract/compiler.py verify-encrypted
-      - run: |
-          python tests/validate_schemas.py
-          python operations/scripts/validate-r640-public-authority.py
+      - if: fromJSON(needs.impact.outputs.checks).fabric
+        run: python operations/network/fabric/fabric_model.py check
+      - if: fromJSON(needs.impact.outputs.checks).encrypted
+        run: python operations/infrastructure-contract/compiler.py verify-encrypted
+      - if: fromJSON(needs.impact.outputs.checks).schemas
+        run: python tests/validate_schemas.py
+      - if: fromJSON(needs.impact.outputs.checks).public_authority
+        run: python operations/scripts/validate-r640-public-authority.py
 
   unit:
     needs: impact
-    if: needs.impact.outputs.run == 'true'
+    if: fromJSON(needs.impact.outputs.jobs)['unit']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -129,7 +134,7 @@ jobs:
   render:
     permissions: {contents: read, actions: read}
     needs: impact
-    if: needs.impact.outputs.run == 'true'
+    if: fromJSON(needs.impact.outputs.jobs)['render']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -151,9 +156,11 @@ jobs:
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/module-render-baseline-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Verify compiled domain bundles
-        run: |
-          python operations/releases/compile_domain_bundles.py --check
-          python operations/flux-federation/validate.py
+        if: fromJSON(needs.impact.outputs.checks).domain_bundles
+        run: python operations/releases/compile_domain_bundles.py --check
+      - name: Verify federation ownership
+        if: fromJSON(needs.impact.outputs.checks).federation
+        run: python operations/flux-federation/validate.py
       - name: Render only affected deployable roots
         env: {ROOTS: "${{ needs.impact.outputs.roots }}"}
         run: |
@@ -170,7 +177,7 @@ jobs:
 
   dependency-review:
     needs: impact
-    if: needs.impact.outputs.full == 'true'
+    if: fromJSON(needs.impact.outputs.jobs)['dependency-review']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -185,7 +192,7 @@ jobs:
 
   supply-chain:
     needs: impact
-    if: contains(needs.impact.outputs.domains, 'delivery') || contains(needs.impact.outputs.domains, 'tenant-runtime')
+    if: fromJSON(needs.impact.outputs.jobs)['supply-chain']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -208,7 +215,7 @@ jobs:
 
   tenant-select:
     needs: impact
-    if: needs.impact.outputs.full == 'true' || contains(needs.impact.outputs.domains, 'tenant-runtime')
+    if: fromJSON(needs.impact.outputs.jobs)['tenant-select']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     outputs: {matrix: "${{ steps.select.outputs.matrix }}"}
     steps:

@@ -52,3 +52,15 @@ it starts empty and is never populated from an untrusted release payload.
 The promoter App is `4950282`, installation `161846815`. It has no workflow,
 secrets, administration or branch-rule bypass permission. Its private key must
 be stored as an Actions secret, never as a file in this repository or in chat.
+
+## Job-level impact
+
+The plan includes `jobs` and `checks`. Workflow job conditions consume the
+former; schema/contract/render steps consume the latter. `check_paths` declares
+standalone check inputs. Focused publisher changes run unit tests without
+workspace, inventory, schema or render jobs. Release locks still validate schemas
+and their owning roots. Kustomize dependencies select compiled bundle checks.
+Full or unknown risky changes enable every check. Secret scanning, policy and
+the stable aggregate gate remain mandatory. A skipped job means unaffected by
+the diff, not reused successful test evidence. This uses existing Actions job
+conditions and the existing impact selector; no new controller or service.

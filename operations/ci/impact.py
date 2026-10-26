@@ -101,6 +101,7 @@ def load_catalog() -> dict:
 
 
 def select(paths: list[str], full: bool = False) -> dict:
+    source_paths = paths
     catalog = load_catalog()
     domains = catalog["domains"]
     focused_suites = catalog.get("focused_suites", {})
@@ -177,7 +178,32 @@ def select(paths: list[str], full: bool = False) -> dict:
     else:
         tests.extend(changed_tests)
 
+    # Keep original paths: release locks and external chart inputs are mapped
+    # to synthetic roots above, but checks consume the actual files as well.
+    checks = {
+        name: bool(shared or any(matches(path, pattern)
+                                 for path in source_paths for pattern in patterns))
+        for name, patterns in catalog["check_paths"].items()
+    }
+    checks["helm_inventory"] |= bool(roots)
+    checks["federation"] |= bool(roots)
+    checks["domain_bundles"] |= any(
+        root_affected(str(path.parent.relative_to(ROOT)), source_paths)
+        for path in (ROOT / "clusters/re8ch/domains").glob("*/source/kustomization.yaml")
+    )
+    jobs = {
+        "contract": any(checks[key] for key in ("workspace", "helm_inventory", "commerce")),
+        "schema": any(checks[key] for key in ("schemas", "fabric", "encrypted", "public_authority")),
+        "unit": bool(selected or shared or changed_tests or selected_suites),
+        "render": bool(roots or checks["domain_bundles"] or checks["federation"]),
+        "k6-contracts": bool(shared or checks["k6"] or "observability" in selected),
+        "dependency-review": bool(shared),
+        "supply-chain": bool(shared or selected.intersection({"delivery", "tenant-runtime"})),
+        "tenant-select": bool(shared or "tenant-runtime" in selected),
+    }
     result = {
+        "jobs": jobs,
+        "checks": checks,
         "domains": sorted(selected),
         "focused_suites": selected_suites,
         "tests": sorted(set(tests)),
@@ -185,7 +211,7 @@ def select(paths: list[str], full: bool = False) -> dict:
         "submodules": sorted(set(submodules)),
         "full": shared,
         "risky_unknown": risky_unknown,
-        "run": bool(selected or shared or changed_tests),
+        "run": bool(selected or shared or changed_tests or selected_suites),
     }
     return result
 
@@ -203,7 +229,7 @@ def main() -> None:
     print(json.dumps(result, indent=2))
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a", encoding="utf-8") as handle:
-            for key in ("domains", "tests", "roots", "submodules"):
+            for key in ("domains", "tests", "roots", "submodules", "jobs", "checks"):
                 handle.write(f"{key}={json.dumps(result[key], separators=(',', ':'))}\n")
             handle.write(f"run={str(result['run']).lower()}\n")
             handle.write(f"full={str(result['full']).lower()}\n")
