@@ -1,6 +1,4 @@
 from pathlib import Path
-import shutil
-import subprocess
 
 import yaml
 
@@ -16,19 +14,13 @@ CORE_CONTROLLERS = {
     "kustomize-controller",
 }
 DISRUPTION_BUDGETED = {"helm-controller", "notification-controller"}
-EDGE_FAILOVER_NODES = ["overseas-kl", "restricted-node-6dc3f140f9"]
+EDGE_FAILOVER_NODES = ["overseas-kl", "r640"]
 
 
-def rendered_documents():
-    command = ["kustomize", "build"] if shutil.which("kustomize") else ["kubectl", "kustomize"]
-    output = subprocess.check_output([*command, str(CLUSTER)], text=True)
-    return list(yaml.load_all(output, Loader=YAML_SAFE_LOADER))
-
-
-def test_flux_core_controllers_use_kl_r640_active_standby():
+def test_flux_core_controllers_use_kl_r640_active_standby(kustomize_documents):
     deployments = {
         item["metadata"]["name"]: item
-        for item in rendered_documents()
+        for item in kustomize_documents("clusters/re8ch")
         if item and item["kind"] == "Deployment" and item["metadata"].get("namespace") == "flux-system"
     }
     for name in {"helm-controller", "notification-controller"}:
@@ -45,7 +37,7 @@ def test_flux_core_controllers_use_kl_r640_active_standby():
         assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["overseas-kl"]
         assert pod.get("dnsPolicy", "ClusterFirst") == "ClusterFirst"
         env = {item["name"]: item for item in pod["containers"][0]["env"]}
-        assert env["KUBERNETES_SERVICE_HOST"]["value"] == "192.0.2.220"
+        assert env["KUBERNETES_SERVICE_HOST"]["value"] == "10.250.0.1"
         assert env["KUBERNETES_SERVICE_PORT"]["value"] == "6443"
         assert env["KUBERNETES_SERVICE_PORT_HTTPS"]["value"] == "6443"
         assert "dnsConfig" not in pod
@@ -54,9 +46,9 @@ def test_flux_core_controllers_use_kl_r640_active_standby():
             assert "--concurrent=1" in pod["containers"][0]["args"]
 
 
-def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_proxy():
+def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_proxy(kustomize_documents):
     deployment = next(
-        item for item in rendered_documents()
+        item for item in kustomize_documents("clusters/re8ch")
         if item and item["kind"] == "Deployment"
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "kustomize-controller"
@@ -65,10 +57,10 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == ["restricted-node-296f36f2fb"]
+    assert expression["values"] == ["b1-wsl-zt"]
     assert "podAntiAffinity" not in pod["affinity"]
     env = {item["name"]: item["value"] for item in pod["containers"][0]["env"] if "value" in item}
-    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.173"
+    assert env["KUBERNETES_SERVICE_HOST"] == "10.250.0.147"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     assert "--concurrent=4" in pod["containers"][0]["args"]
     assert pod["tolerations"] == [{
@@ -84,8 +76,8 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
     }]
 
 
-def test_source_controller_uses_kl_r640_scheduler_failover():
-    documents = rendered_documents()
+def test_source_controller_uses_kl_r640_scheduler_failover(kustomize_documents):
+    documents = kustomize_documents("clusters/re8ch")
     deployment = next(
         item for item in documents
         if item and item["kind"] == "Deployment"
@@ -96,18 +88,18 @@ def test_source_controller_uses_kl_r640_scheduler_failover():
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression["values"] == ["restricted-node-1eb0570f74", "restricted-node-6dc3f140f9"]
+    assert expression["values"] == ["a1-wsl-zt", "r640"]
     assert pod["nodeSelector"] == {"kubernetes.io/os": "linux"}
     preferred = pod["affinity"]["nodeAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
     assert preferred[0]["weight"] == 100
-    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["restricted-node-1eb0570f74"]
-    assert preferred[1]["preference"]["matchExpressions"][0]["values"] == ["restricted-node-6dc3f140f9"]
+    assert preferred[0]["preference"]["matchExpressions"][0]["values"] == ["a1-wsl-zt"]
+    assert preferred[1]["preference"]["matchExpressions"][0]["values"] == ["r640"]
     assert pod["hostNetwork"] is False
     assert pod["dnsPolicy"] == "ClusterFirst"
     assert "dnsConfig" not in pod
     manager = pod["containers"][0]
     env = {item["name"]: item.get("value") for item in manager["env"]}
-    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.173"
+    assert env["KUBERNETES_SERVICE_HOST"] == "10.250.0.147"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     assert "--storage-adv-addr=source-controller.$(RUNTIME_NAMESPACE).svc.cluster.local." in manager["args"]
     assert "--enable-leader-election" in manager["args"]

@@ -1,7 +1,5 @@
 """Guard the fast reconciliation entrypoint and stateless controller failover."""
 import plistlib
-import shutil
-import subprocess
 from pathlib import Path
 
 import yaml
@@ -35,13 +33,9 @@ def test_root_frequency_and_local_sync():
     assert config['StartInterval'] == 30
 
 
-def test_rendered_controller_failover_and_source_cache_safety():
-    command = ['kustomize', 'build'] if shutil.which('kustomize') else ['kubectl', 'kustomize']
-    rendered = subprocess.check_output([*command, str(ROOT / 'clusters/re8ch')], text=True)
-    rendered += "\n---\n" + subprocess.check_output(
-        [*command, str(ROOT / 'clusters/re8ch/domains/networking')], text=True
-    )
-    docs = list(yaml.load_all(rendered, Loader=YAML_SAFE_LOADER))
+def test_rendered_controller_failover_and_source_cache_safety(kustomize_documents):
+    docs = kustomize_documents("clusters/re8ch")
+    docs += kustomize_documents("clusters/re8ch/domains/networking")
     services = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Service'}
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
     for name in ('helm-controller', 'notification-controller'):
@@ -52,18 +46,18 @@ def test_rendered_controller_failover_and_source_cache_safety():
         expression = pod['affinity']['nodeAffinity'][
             'requiredDuringSchedulingIgnoredDuringExecution'
         ]['nodeSelectorTerms'][0]['matchExpressions'][0]
-        assert expression['values'] == ['overseas-kl', 'restricted-node-6dc3f140f9']
+        assert expression['values'] == ['overseas-kl', 'r640']
     kustomize = deployments['kustomize-controller']
     assert kustomize['spec']['replicas'] == 1
     expression = kustomize['spec']['template']['spec']['affinity']['nodeAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'
     ]['nodeSelectorTerms'][0]['matchExpressions'][0]
-    assert expression['values'] == ['restricted-node-296f36f2fb']
+    assert expression['values'] == ['b1-wsl-zt']
     kustomize_env = {
         item['name']: item.get('value')
         for item in kustomize['spec']['template']['spec']['containers'][0]['env']
     }
-    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.173'
+    assert kustomize_env['KUBERNETES_SERVICE_HOST'] == '10.250.0.147'
     assert '--concurrent=4' in kustomize['spec']['template']['spec']['containers'][0]['args']
     assert 'podAntiAffinity' not in kustomize['spec']['template']['spec']['affinity']
     # Source artifacts use pod-local storage and a non-leader replica does not
@@ -84,9 +78,9 @@ def test_rendered_controller_failover_and_source_cache_safety():
     assert expression == {
         'key': 'kubernetes.io/hostname',
         'operator': 'In',
-        'values': ['restricted-node-1eb0570f74', 'restricted-node-6dc3f140f9'],
+        'values': ['a1-wsl-zt', 'r640'],
     }
     source_env = {item['name']: item.get('value') for item in manager['env']}
-    assert source_env['KUBERNETES_SERVICE_HOST'] == '192.0.2.173'
+    assert source_env['KUBERNETES_SERVICE_HOST'] == '10.250.0.147'
     assert '--concurrent=4' in manager['args']
     assert services['identity-egress-control-plane']['spec']['internalTrafficPolicy'] == 'Local'
