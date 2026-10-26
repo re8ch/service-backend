@@ -342,6 +342,7 @@ unit_defaults:
   - .github/workflows/ci.yml
   - .github/workflows/full-regression.yml
   - .github/actions/setup-native-yaml/**
+  - operations/ci/input_snapshot.py
   - operations/ci/unit_catalog.py
   - operations/ci/unit_report.py
 validation_units:

@@ -180,7 +180,7 @@ def test_github_outputs_match_printed_plan(tmp_path, args):
 
 def test_unsupported_dependency_fields_cli_falls_back_to_full(graph):
     root, write = graph
-    for name in ("impact.py", "unit_catalog.py", "render_evidence.py"):
+    for name in ("impact.py", "unit_catalog.py", "render_evidence.py", "input_snapshot.py"):
         shutil.copyfile(ROOT / "operations/ci" / name, root / "operations/ci" / name)
     write("platform/a/kustomization.yaml", {"generators": ["../../fixtures/plugin.yaml"]})
     result = subprocess.run([sys.executable, "operations/ci/impact.py", "--path", "fixtures/plugin.yaml"],
@@ -196,7 +196,7 @@ def test_selected_real_consumer_detects_a_broken_allocator(tmp_path):
     test = "tests/test_release_codenames.py"
     source = "operations/releases/allocate_codename.py"
     assert test in impact.select([source])["tests"]
-    for path in (test, source, "operations/releases/codenames.yaml", "operations/ci/domain-catalog.yaml"):
+    for path in (test, source, "operations/ci/input_snapshot.py", "operations/releases/codenames.yaml", "operations/ci/domain-catalog.yaml"):
         target = tmp_path / path
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / path, target)
