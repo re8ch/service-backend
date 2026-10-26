@@ -5,6 +5,37 @@ bundle is stored only as the `INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64` secret in
 the `cluster-observation` GitHub Environment. The Kubernetes API CA is stored
 separately as the `KUBE_API_CA_PEM` Environment secret.
 
+## Versioned loading and member/App diagnostics
+
+The existing source digest on the three encrypted projections is the immutable
+version pin. `operations/infrastructure-contract/bundle.py` verifies the
+Environment bundle against all three pins before materialization, rejects extra
+files, links, duplicates and oversized archives, and runs the compiler's render
+and check operations. Plaintext is written only outside the checkout with private
+permissions. Schema errors never print source documents to public logs.
+
+Members with Actions write access can validate the current configuration using:
+
+```sh
+gh workflow run node-contract-observer.yml --ref main -f scope=config
+```
+
+The job consumes the existing protected Environment Secret. The Executor App
+then verifies access to the signed template revision and publishes only a bounded
+validation Check. Apps with existing Actions write authorization may dispatch
+the same workflow; Observer/Executor Apps do not gain Actions write or permission
+to retrieve secret values. This is a validation/debug operation, not a Secret
+download API. Full runtime inspection remains behind existing platform/Kubernetes
+authentication. Do not expose a public artifact to transfer configuration to a
+member; use the approved credential custody path for authorized source edits.
+
+Run `scope=nodes` separately for live parity. A successful configuration-only
+validation does not prove live parity or direct App access to Kubernetes.
+The legacy secret remains the source; no private configuration repository or new
+configuration service is introduced by this pilot. History cleanup is deferred.
+The node observer now obtains its API server, OIDC audience host and expected
+node count from this verified source instead of hardcoded workflow values.
+
 Git contains schemas, the deterministic compiler, and SOPS-encrypted Secret
 projections only:
 
