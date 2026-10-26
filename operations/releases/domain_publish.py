@@ -66,6 +66,49 @@ def harbor(method, path, body=None):
         raise RuntimeError(f"Harbor {method} {path} failed: HTTP {error.code}") from None
 
 
+def registry_manifest(repository, reference):
+    """Read an OCI manifest through the distribution API using pull-only credentials."""
+    name = repository.removeprefix(REGISTRY + "/")
+    url = "https://" + REGISTRY + "/v2/" + name + "/manifests/" + urllib.parse.quote(reference, safe="")
+    basic = "Basic " + base64.b64encode(
+        (os.environ["HARBOR_USERNAME"] + ":" + os.environ["HARBOR_PASSWORD"]).encode()).decode()
+    accept = "application/vnd.oci.image.manifest.v1+json"
+
+    def fetch(authorization):
+        request = urllib.request.Request(url, headers={"Authorization": authorization, "Accept": accept})
+        return urllib.request.urlopen(request, timeout=60)
+
+    try:
+        response = fetch(basic)
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return 404, None
+        if error.code != 401 or not error.headers.get("WWW-Authenticate", "").startswith("Bearer "):
+            raise RuntimeError(f"OCI manifest GET {name}:{reference} failed: HTTP {error.code}") from None
+        challenge = error.headers["WWW-Authenticate"][len("Bearer "):]
+        parameters = {}
+        for item in urllib.request.parse_http_list(challenge):
+            key, value = item.split("=", 1)
+            parameters[key] = value.strip('"')
+        realm = parameters.pop("realm")
+        token_request = urllib.request.Request(
+            realm + "?" + urllib.parse.urlencode(parameters), headers={"Authorization": basic})
+        try:
+            with urllib.request.urlopen(token_request, timeout=60) as token_response:
+                token_document = json.load(token_response)
+            response = fetch("Bearer " + (token_document.get("token") or token_document["access_token"]))
+        except urllib.error.HTTPError as token_error:
+            if token_error.code == 404:
+                return 404, None
+            raise RuntimeError(f"OCI manifest GET {name}:{reference} failed: HTTP {token_error.code}") from None
+    with response:
+        document = json.load(response)
+        digest = response.headers.get("Docker-Content-Digest")
+    if not digest:
+        raise RuntimeError(f"OCI manifest GET {name}:{reference} omitted Docker-Content-Digest")
+    return 200, {"digest": digest, "annotations": document.get("annotations", {})}
+
+
 def identity(document):
     meta = document["metadata"]
     return (document["apiVersion"], document["kind"], meta.get("namespace", ""), meta["name"])
@@ -181,7 +224,7 @@ def provision_reader(out):
 def immutable_target(module, state, allocator, repository, revision):
     while True:
         codename = allocator.proposed(module, state)
-        status, existing = harbor("GET", "projects/" + PROJECT + "/repositories/" + module.replace("/", "-") + "/artifacts/" + codename)
+        status, existing = registry_manifest(repository, codename)
         if status == 404 or (existing.get("annotations") or {}).get("delivery.re8ch.com/revision") == revision:
             return codename, existing
         # A publication can become stale while its promotion waits for main.
