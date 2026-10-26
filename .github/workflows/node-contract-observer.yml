@@ -18,8 +18,10 @@ concurrency:
 jobs:
   config:
     name: Restricted configuration validation
+    env:
+      NODE_USE_ENV_PROXY: '1'
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.scope == 'config'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 5
     environment: cluster-observation
     permissions:
