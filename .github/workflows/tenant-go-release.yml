@@ -134,8 +134,20 @@ jobs:
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
 
+          pull_cosign() {
+            local attempt
+            for attempt in 1 2; do
+              if timeout --signal=TERM --kill-after=15s 75s docker pull "$COSIGN_IMAGE"; then
+                return 0
+              fi
+              echo "Pinned Cosign image pull attempt ${attempt}/2 failed" >&2
+              sleep 5
+            done
+            return 1
+          }
+
           run_cosign() {
-            timeout --signal=TERM --kill-after=30s 5m docker run --rm --network host \
+            timeout --signal=TERM --kill-after=15s 90s docker run --rm --pull never --network host \
               --env ACTIONS_ID_TOKEN_REQUEST_URL \
               --env ACTIONS_ID_TOKEN_REQUEST_TOKEN \
               --env DOCKER_CONFIG=/auth \
@@ -145,6 +157,7 @@ jobs:
           }
 
           # BuildKit already publishes SBOM and provenance attestations in the OCI index.
+          pull_cosign
           run_cosign sign --yes "$image"
           run_cosign verify \
             --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main' \
@@ -152,7 +165,9 @@ jobs:
             "$image" >/dev/null
           echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
         env:
-          COSIGN_IMAGE: registry.re8ch.com/functions-shared/cosign@sha256:57c0e93a829ae213ab4273b5bd31bc24812043183040882d7cc215a12b5a6870
+          # Linux/amd64 manifest for cosign v2.6.0. Avoid the installer bootstrap
+          # and do not rely on the oversized internal mirror being warm.
+          COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign@sha256:faa13f289a3e2fca3b82cd0632402d33a2b06577a6a5a2e0eb3ddbb131828e32
           HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
       - name: Remove temporary registry authorization
