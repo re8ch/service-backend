@@ -119,7 +119,7 @@ def test_control_center_stays_on_r640_with_cached_vendor_image():
     )
     rendered = yaml.safe_load(control_center["patch"])
     assert rendered["spec"]["template"]["spec"]["nodeSelector"] == {
-        "kubernetes.io/hostname": "restricted-node-6dc3f140f9"
+        "kubernetes.io/hostname": "r640"
     }
 
 
@@ -272,6 +272,8 @@ def test_public_routes_use_dedicated_tls_listeners():
         "pay.service.re8ch.com",
         "pay-api.service.re8ch.com",
         "api.re8ch.com",
+        "db-ro.re8ch.com",
+        "db-rw.re8ch.com",
     }
     for route in http_routes:
         assert len(route["spec"]["parentRefs"]) == 6
@@ -299,6 +301,19 @@ def test_public_routes_use_dedicated_tls_listeners():
         "matches": [{"path": {"type": "PathPrefix", "value": "/payment"}}],
         "backendRefs": [{"name": "nuclio-payment-registry-api", "port": 8080}],
     }]
+
+    for hostname, listener in (
+        ("db-ro.re8ch.com", "db-ro-https"),
+        ("db-rw.re8ch.com", "db-rw-https"),
+    ):
+        route = next(
+            item for item in http_routes if item["spec"]["hostnames"] == [hostname]
+        )
+        assert all(ref["sectionName"] == listener for ref in route["spec"]["parentRefs"])
+        assert route["spec"]["rules"] == [{
+            "matches": [{"path": {"type": "PathPrefix", "value": "/payment/v1"}}],
+            "backendRefs": [{"name": "nuclio-payment-registry-api", "port": 8080}],
+        }]
 
     assert all(route["kind"] != "Ingress" for route in routes)
 
