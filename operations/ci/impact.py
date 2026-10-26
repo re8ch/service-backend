@@ -343,6 +343,7 @@ def main() -> None:
     except (ValueError, TypeError, AttributeError, yaml.YAMLError):
         result = select(paths, True, fallback_reason="dependencies-unreadable")
     result["dependency_base"] = base
+    compact = json.dumps(result, separators=(",", ":"))
     print(json.dumps(result, indent=2))
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a", encoding="utf-8") as handle:

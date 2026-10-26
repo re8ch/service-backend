@@ -149,13 +149,33 @@ def test_current_external_render_dependency_selects_test_consumer(graph):
     assert "platform/a" in plan["unit_roots"]["tests/test_dependency.py"]
 
 
-def test_missing_base_falls_back_to_full_with_reason():
+def test_missing_base_falls_back_to_full_with_reason(tmp_path):
     result = subprocess.run([sys.executable, "operations/ci/impact.py", "--base", "refs/heads/nonexistent-fixture-ref"],
-                            cwd=ROOT, text=True, capture_output=True)
+                            cwd=ROOT, env={**os.environ, "GITHUB_OUTPUT": str(tmp_path / "output")},
+                            text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     plan = json.loads(result.stdout)
     assert plan["full"] and all(plan["jobs"].values())
     assert plan["fallback_reason"] == "base-dependencies-unavailable"
+
+
+@pytest.mark.parametrize("args", [
+    ["--path", "operations/releases/allocate_codename.py"],
+    ["--base", "HEAD", "--head", "HEAD"],
+])
+def test_github_outputs_match_printed_plan(tmp_path, args):
+    output = tmp_path / "github-output"
+    result = subprocess.run([sys.executable, "operations/ci/impact.py", *args], cwd=ROOT,
+                            env={**os.environ, "GITHUB_OUTPUT": str(output)}, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    plan = json.loads(result.stdout)
+    if "--base" in args:
+        assert plan["dependency_base"] == subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        assert plan["fallback_reason"] is None
+    values = dict(line.split("=", 1) for line in output.read_text().splitlines())
+    assert json.loads(values["plan"]) == plan
+    for key in ("domains", "tests", "roots", "submodules", "jobs", "checks", "run", "full"):
+        assert json.loads(values[key]) == plan[key]
 
 
 def test_unsupported_dependency_fields_cli_falls_back_to_full(graph):
@@ -164,7 +184,8 @@ def test_unsupported_dependency_fields_cli_falls_back_to_full(graph):
         shutil.copyfile(ROOT / "operations/ci" / name, root / "operations/ci" / name)
     write("platform/a/kustomization.yaml", {"generators": ["../../fixtures/plugin.yaml"]})
     result = subprocess.run([sys.executable, "operations/ci/impact.py", "--path", "fixtures/plugin.yaml"],
-                            cwd=root, text=True, capture_output=True)
+                            cwd=root, env={**os.environ, "GITHUB_OUTPUT": str(root / "output")},
+                            text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     plan = json.loads(result.stdout)
     assert plan["full"] and all(plan["jobs"].values())
