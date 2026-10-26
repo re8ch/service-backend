@@ -96,7 +96,6 @@ jobs:
           cleanup() { rm -f "$token_json" "$kubeconfig" "$observed" "$RUNNER_TEMP/re8ch-ca.crt"; rm -rf "$RUNNER_TEMP/infrastructure-contracts"; }
           trap cleanup EXIT
           api_server="$(python -c 'import os,pathlib,yaml; c=yaml.safe_load((pathlib.Path(os.environ["RUNNER_TEMP"])/"infrastructure-contracts/cluster.yaml").read_text()); a=c["spec"]["api"]; print("https://{}:{}".format(a["publicFQDN"],a["publicPort"]))')"
-          observer_audience="$(python -c 'import os,pathlib,yaml; c=yaml.safe_load((pathlib.Path(os.environ["RUNNER_TEMP"])/"infrastructure-contracts/cluster.yaml").read_text()); print("https://"+c["spec"]["api"]["publicFQDN"]+"/observer")')"
           unauthenticated_status="$(curl --fail-with-body --silent --show-error \
             --cacert "$RUNNER_TEMP/re8ch-ca.crt" \
             --output /dev/null --write-out '%{http_code}' \
@@ -190,6 +189,16 @@ jobs:
             exit 1
           fi
           exit "$PARITY_STATUS"
+      - name: Remove private observation inputs after any outcome
+        if: always()
+        run: |
+          python - <<'PY'
+          import os, pathlib, shutil
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          shutil.rmtree(root / 'infrastructure-contracts', ignore_errors=True)
+          for name in ('re8ch-ca.crt', 'node-observer.kubeconfig', 'oidc.json', 'nodes.json'):
+              (root / name).unlink(missing_ok=True)
+          PY
 
   governance:
     name: NodeContract governance
