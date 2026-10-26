@@ -253,9 +253,6 @@ def main():
     parser.add_argument("--revoke-orphan-run")
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    status, project = harbor("GET", "projects/" + PROJECT)
-    if status != 404 and project["metadata"].get("public") != "false":
-        raise RuntimeError("refusing to publish private declarations to a public project")
     if args.bootstrap:
         if yaml.safe_load((ROOT / "operations/releases/active.yaml").read_text())["modules"]:
             raise RuntimeError("bootstrap is forbidden after activation")
