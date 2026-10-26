@@ -11478,7 +11478,7 @@ kind: Job
 metadata:
   labels:
     governance.re8ch.com/change-plane: deploying
-  name: stalwart-bootstrap-reconciler-v9
+  name: stalwart-bootstrap-reconciler-v10
   namespace: mail-system
 spec:
   backoffLimit: 2
@@ -11534,7 +11534,7 @@ spec:
         - mountPath: /cache
           name: cache
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: overseas-flk
       restartPolicy: Never
       securityContext:
         runAsGroup: 65532
@@ -11542,6 +11542,15 @@ spec:
         runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
       volumes:
       - configMap:
           name: stalwart-bootstrap-plan

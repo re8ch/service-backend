@@ -14,7 +14,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-bootstrap-reconciler-v9
+  name: stalwart-bootstrap-reconciler-v10
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
@@ -26,7 +26,10 @@ spec:
       labels: {app.kubernetes.io/name: stalwart-bootstrap-reconciler}
     spec:
       restartPolicy: Never
-      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
