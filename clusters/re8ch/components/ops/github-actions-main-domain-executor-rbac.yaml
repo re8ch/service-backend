@@ -86,13 +86,17 @@ rules:
   - commerce-db-ro
   - commerce-db-rw
   - commerce-public-api
+  - commerce-user-data-ro
   - hyperswitch-control-center-public
   - hyperswitch-router-public
   - hyperswitch-web-public
   - payment-postgrest-ro
   - payment-postgrest-rw
-  - re8ch-catalog-public
+  - re8ch-catalog-db-ro
+  - re8ch-catalog-db-rw
   - re8ch-payment-registry-auth-center
+  - re8ch-payment-registry-db-ro
+  - re8ch-payment-registry-db-rw
   - re8ch-payment-registry-public
   verbs:
   - get

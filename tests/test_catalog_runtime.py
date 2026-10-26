@@ -28,13 +28,19 @@ def test_catalog_runtime_uses_signed_digest_and_existing_billing_secret():
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
 
 
-def test_catalog_route_is_bound_to_api_catalog_prefix():
-    route = next(item for item in objects() if item["kind"] == "HTTPRoute")
-    assert route["spec"]["hostnames"] == ["api.re8ch.com"]
-    assert route["spec"]["rules"][0]["matches"][0]["path"] == {
-        "type": "PathPrefix",
-        "value": "/catalog",
+def test_catalog_routes_are_bound_to_database_catalog_prefixes():
+    routes = {
+        item["metadata"]["name"]: item
+        for item in objects()
+        if item["kind"] == "HTTPRoute"
     }
-    assert route["spec"]["rules"][0]["backendRefs"] == [
-        {"name": "re8ch-catalog", "port": 8080}
-    ]
+    for access, hostname in (("ro", "db-ro.re8ch.com"), ("rw", "db-rw.re8ch.com")):
+        route = routes[f"re8ch-catalog-db-{access}"]
+        assert route["spec"]["hostnames"] == [hostname]
+        assert route["spec"]["rules"][0]["matches"][0]["path"] == {
+            "type": "PathPrefix",
+            "value": "/catalog/v1",
+        }
+        assert route["spec"]["rules"][0]["backendRefs"] == [
+            {"name": "re8ch-catalog", "port": 8080}
+        ]
