@@ -22,8 +22,8 @@ def synthetic_contracts(root: Path) -> None:
         "spec": {
             "expectedNodeCount": 1,
             "k3s": {"versionLockRef": "operations/test/version-lock.yaml"},
-            "api": {"internalVIP": "192.0.2.211", "publicFQDN": "kube-api.re8ch.com", "publicPort": 6443, "caBundleRef": "secret://cluster-observation/KUBE_API_CA_PEM"},
-            "publicAuthorityRef": "operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority",
+            "api": {"internalVIP": "10.0.0.1", "publicFQDN": "kube-api.re8ch.com", "publicPort": 6443, "caBundleRef": "secret://cluster-observation/KUBE_API_CA_PEM"},
+            "publicAuthorityRef": "operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority",
             "authenticationRef": "clusters/re8ch/components/ops/dex-dual-issuer-authentication.yaml",
             "nodeContractsRef": "secret://cluster-observation/INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64#nodes.yaml",
             "observationPolicyRef": "secret://cluster-observation/INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64#observation-policy.yaml",
@@ -37,9 +37,9 @@ def synthetic_contracts(root: Path) -> None:
             "roles": ["worker"], "services": ["k3s-agent"], "capabilities": ["test"],
             "transport": {"type": "ssh", "address": "node.invalid", "credentialRef": "test/node-ssh", "commands": {"read": ["hostname"], "write": [], "rollback": []}},
             "network": {
-                "zeroTierIP": "192.0.2.132", "kubeletInternalIP": "192.0.2.31", "acceleratedIP": "192.0.2.31", "podCIDR": "192.0.2.57/24",
+                "zeroTierIP": "10.0.0.2", "kubeletInternalIP": "10.0.0.3", "acceleratedIP": "10.0.0.3", "podCIDR": "10.42.0.0/24",
                 "legacyNetwork": {"region": "test-region", "zone": "test-zone", "uplinkMbps": 100},
-                "fabric": {"role": "leaf", "class": "C", "failureDomain": "test", "provider": "synthetic", "internalIP": "192.0.2.132", "podCIDR": "192.0.2.57/24", "acceleratedIP": "192.0.2.31", "asn": 65001, "publicAuthority": False, "inventoryComplete": True},
+                "fabric": {"role": "leaf", "class": "C", "failureDomain": "test", "provider": "synthetic", "internalIP": "10.0.0.2", "podCIDR": "10.42.0.0/24", "acceleratedIP": "10.0.0.3", "asn": 65001, "publicAuthority": False, "inventoryComplete": True},
             },
             "kubernetes": {"bootstrapLabels": {}, "gitOpsOwnedLabels": {"example.test/owned": "true"}, "controllerDerivedLabelPrefixes": ["kubernetes.io/"], "taints": [], "nodeProfile": "synthetic"},
             "host": {"parameters": {"cpu": 1, "memoryKi": 1024, "ephemeralStorageKi": 2048, "osImage": "Synthetic Linux", "kernelVersion": "1.0"}},
@@ -98,7 +98,7 @@ def test_compiler_is_deterministic_and_evidence_is_redacted(tmp_path):
         "items": [{
             "metadata": {"name": "synthetic-node", "uid": "ffffffff-ffff-4fff-8fff-ffffffffffff", "labels": {"example.test/owned": "false"}},
             "spec": {"taints": []},
-            "status": {"addresses": [{"type": "InternalIP", "address": "192.0.2.198"}], "conditions": [{"type": "Ready", "status": "True"}]},
+            "status": {"addresses": [{"type": "InternalIP", "address": "192.0.2.99"}], "conditions": [{"type": "Ready", "status": "True"}]},
         }]
     }
     observed_path = tmp_path / "observed.json"
@@ -110,7 +110,7 @@ def test_compiler_is_deterministic_and_evidence_is_redacted(tmp_path):
     )
     assert result.returncode == 2
     assert "synthetic-node" not in result.stdout
-    assert "192.0.2.198" not in result.stdout
+    assert "192.0.2.99" not in result.stdout
     assert "ffffffff-ffff-4fff-8fff-ffffffffffff" not in result.stdout
     assert '"contractRef": "20000000-0000-4000-8000-000000000001"' in result.stdout
 
@@ -139,7 +139,7 @@ def test_oidc_rbac_gateway_and_dns_are_fail_closed():
     route = next(item for item in gateway if item["kind"] == "TCPRoute" and item["metadata"]["name"] == "kube-api-public")
     assert route["spec"]["rules"][0]["backendRefs"] == [{"name": "kubernetes", "namespace": "default", "port": 443}]
     dns = next(item for item in gateway if item["kind"] == "Ingress" and item["metadata"]["name"] == "kube-api-public-dns-authority")
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
 
 
 def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():
@@ -153,7 +153,10 @@ def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():
     assert "secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64" in text
     assert "secrets.KUBE_API_CA_PEM" in text
     assert "vars.INFRASTRUCTURE" not in text
-    assert "observer expected 14 Nodes" in text
+    assert 'contract["spec"]["expectedNodeCount"]' in text
+    assert "api['publicFQDN'], api['publicPort']" in text
+    assert '--token="$oidc_token"' not in text
+    assert 'operations/infrastructure-contract/bundle.py' in text
     for denial_probe in ("secret-list", "pod-log", "pod-exec", "token-request"):
         assert denial_probe in text
 

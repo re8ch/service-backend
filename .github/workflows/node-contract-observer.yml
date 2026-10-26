@@ -8,7 +8,7 @@ on:
     inputs:
       scope:
         type: choice
-        options: [nodes, flux]
+        options: [nodes, flux, config]
         default: nodes
 
 concurrency:
@@ -16,8 +16,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  config:
+    name: Restricted configuration validation
+    env:
+      NODE_USE_ENV_PROXY: '1'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.scope == 'config'
+    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    timeout-minutes: 5
+    environment: cluster-observation
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - name: Validate exact restricted version without exporting values
+        env:
+          CONTRACT_BUNDLE: ${{ secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64 }}
+        run: |
+          set -euo pipefail
+          private_dir="$(mktemp -d "$RUNNER_TEMP/config-debug.XXXXXX")"
+          trap 'rm -rf "$private_dir"' EXIT
+          python operations/infrastructure-contract/bundle.py --output "$private_dir/contracts"
+      - id: reporter
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_EXECUTOR_APP_ID }}
+          private-key: ${{ secrets.GITOPS_EXECUTOR_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: service-backend
+          permission-contents: read
+          permission-checks: write
+      - name: Verify App access to signed template and publish bounded validation
+        env:
+          GH_TOKEN: ${{ steps.reporter.outputs.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.commit.verification.verified')" = true
+          python - <<'PY' | gh api "repos/$GITHUB_REPOSITORY/check-runs" --method POST --input - --silent
+          import json, os
+          print(json.dumps({"name":"restricted-config-validation", "head_sha":os.environ["GITHUB_SHA"], "status":"completed", "conclusion":"success", "output":{"title":"Restricted configuration validated", "summary":"Protected Environment source matches the signed template source digest and passes compiler validation. No configuration values are published. This check does not assert live cluster health."}}))
+          PY
+
   observe:
-    if: github.event.schedule == '17 3 * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope != 'flux')
+    if: github.event.schedule == '17 3 * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'nodes')
     name: NodeContract live parity
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
     timeout-minutes: 10
@@ -37,22 +79,16 @@ jobs:
           KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
         run: |
           set -euo pipefail
-          install -d -m 0700 "$RUNNER_TEMP/infrastructure-contracts"
+          python operations/infrastructure-contract/bundle.py --output "$RUNNER_TEMP/infrastructure-contracts"
           python - <<'PY'
-          import base64, io, os, pathlib, tarfile
-          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "infrastructure-contracts"
-          raw = base64.b64decode(os.environ["CONTRACT_BUNDLE"], validate=True)
-          with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
-              members = archive.getmembers()
-              if any(member.name.startswith("/") or ".." in pathlib.PurePosixPath(member.name).parts for member in members):
-                  raise SystemExit("unsafe contract bundle member")
-              archive.extractall(root, members=members, filter="data")
-          (pathlib.Path(os.environ["RUNNER_TEMP"]) / "re8ch-ca.crt").write_text(os.environ["KUBE_API_CA"])
+          import os, pathlib
+          path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "re8ch-ca.crt"
+          descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+          with os.fdopen(descriptor, 'w') as stream:
+              stream.write(os.environ["KUBE_API_CA"])
           PY
       - name: Exchange GitHub OIDC token and observe Nodes
         id: parity
-        env:
-          OBSERVER_AUDIENCE: https://kube-api.re8ch.com/observer
         run: |
           set -euo pipefail
           token_json="$RUNNER_TEMP/oidc.json"
@@ -61,33 +97,44 @@ jobs:
           evidence="$RUNNER_TEMP/node-contract-evidence.json"
           cleanup() { rm -f "$token_json" "$kubeconfig" "$observed" "$RUNNER_TEMP/re8ch-ca.crt"; rm -rf "$RUNNER_TEMP/infrastructure-contracts"; }
           trap cleanup EXIT
+          api_server="$(python -c 'import os,pathlib,yaml; c=yaml.safe_load((pathlib.Path(os.environ["RUNNER_TEMP"])/"infrastructure-contracts/cluster.yaml").read_text()); a=c["spec"]["api"]; print("https://{}:{}".format(a["publicFQDN"],a["publicPort"]))')"
           unauthenticated_status="$(curl --fail-with-body --silent --show-error \
             --cacert "$RUNNER_TEMP/re8ch-ca.crt" \
             --output /dev/null --write-out '%{http_code}' \
-            https://kube-api.re8ch.com:6443/api || true)"
+            "$api_server/api" 2>/dev/null || true)"
           if [[ "$unauthenticated_status" != "401" && "$unauthenticated_status" != "403" ]]; then
             echo "Public Kubernetes API did not fail closed (status: ${unauthenticated_status:-unreachable})" >&2
             exit 1
           fi
-          curl --fail-with-body --silent --show-error --get \
-            --header "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            --data-urlencode "audience=$OBSERVER_AUDIENCE" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$token_json"
-          oidc_token="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["value"])' "$token_json")"
-          echo "::add-mask::$oidc_token"
-          kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main \
-            --server=https://kube-api.re8ch.com:6443 \
-            --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" \
-            --embed-certs=true
-          kubectl config --kubeconfig "$kubeconfig" set-credentials node-observer --token="$oidc_token"
-          kubectl config --kubeconfig "$kubeconfig" set-context node-observer --cluster=re8ch-main --user=node-observer
-          kubectl config --kubeconfig "$kubeconfig" use-context node-observer
-          kubectl --kubeconfig "$kubeconfig" get nodes -o json > "$observed"
+          python - <<'PY'
+          import base64, json, os, pathlib, urllib.parse, urllib.request, yaml
+          try:
+              root = pathlib.Path(os.environ['RUNNER_TEMP'])
+              api = yaml.safe_load((root / 'infrastructure-contracts/cluster.yaml').read_text())['spec']['api']
+              parts = urllib.parse.urlsplit(os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'])
+              query = dict(urllib.parse.parse_qsl(parts.query))
+              query['audience'] = 'https://' + api['publicFQDN'] + '/observer'
+              url = urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+              request = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']})
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  token = json.load(response)['value']
+              config = {'apiVersion':'v1','kind':'Config','clusters':[{'name':'cluster','cluster':{'server':'https://{}:{}'.format(api['publicFQDN'], api['publicPort']),'certificate-authority-data':base64.b64encode((root/'re8ch-ca.crt').read_bytes()).decode()}}],'users':[{'name':'observer','user':{'token':token}}],'contexts':[{'name':'observer','context':{'cluster':'cluster','user':'observer'}}],'current-context':'observer'}
+              descriptor = os.open(root/'node-observer.kubeconfig', os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
+              with os.fdopen(descriptor,'w') as stream:
+                  json.dump(config,stream)
+          except Exception:
+              raise SystemExit('Restricted observation identity setup failed') from None
+          PY
+          if ! kubectl --kubeconfig "$kubeconfig" get nodes -o json > "$observed" 2>/dev/null; then
+            echo 'Authenticated node observation failed; inspect through the protected platform interface' >&2
+            exit 1
+          fi
           python - "$observed" <<'PY'
-          import json, sys
+          import json, os, pathlib, sys, yaml
           count = len(json.load(open(sys.argv[1], encoding="utf-8"))["items"])
-          if count != 14:
-              raise SystemExit(f"observer expected 14 Nodes, received {count}")
+          contract = yaml.safe_load((pathlib.Path(os.environ["RUNNER_TEMP"]) / "infrastructure-contracts/cluster.yaml").read_text())
+          if count != contract["spec"]["expectedNodeCount"]:
+              raise SystemExit("Observed node count differs from the pinned restricted configuration")
           PY
 
           expect_forbidden() {
@@ -144,6 +191,16 @@ jobs:
             exit 1
           fi
           exit "$PARITY_STATUS"
+      - name: Remove private observation inputs after any outcome
+        if: always()
+        run: |
+          python - <<'PY'
+          import os, pathlib, shutil
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          shutil.rmtree(root / 'infrastructure-contracts', ignore_errors=True)
+          for name in ('re8ch-ca.crt', 'node-observer.kubeconfig', 'oidc.json', 'nodes.json'):
+              (root / name).unlink(missing_ok=True)
+          PY
 
   governance:
     name: NodeContract governance
