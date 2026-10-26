@@ -82,8 +82,8 @@ resource inclusion in the same reviewed migration that adds this source pair.
 
 Unit tests cover numeric/mutable tags, unknown modules, digest pins, exact signer
 matching and source isolation. Integration CI renders affected local roots.
- Live cutover verification checks registry signatures, private Flux source
- readiness and each unsuspended Kustomization's applied digest. Workload health
+ Live cutover verification checks GitHub native attestation-gated promotion,
+ private Flux source readiness and each unsuspended Kustomization's applied digest. Workload health
  remains a separate check; `wait:false` is not a promise that every Pod is healthy.
 
 ## Live ownership and promotion
@@ -95,9 +95,12 @@ parent bundle: they do not gain a duplicate Flux owner. Core Flux, credentials,
 and root-level infrastructure declarations remain under signed Git authority.
 
 `domain-sources` carries the private Harbor OCI sources and independent module
-reconciliations. Sources pin digests and verify the exact main-branch publishing
-workflow's GitHub OIDC certificate. The SOPS-encrypted pull-only robot is not a
-publishing credential. Production observability remains suspended; source
+reconciliations. New publications pin digests whose GitHub native attestations
+must succeed before the promotion job can open its protected PR. Legacy Cosign
+releases retain Flux's exact OIDC identity verification. Flux does not natively
+verify GitHub private attestations, so the immutable digest and protected
+promotion PR form the runtime handoff. The SOPS-encrypted pull-only robot is not
+a publishing credential. Production observability remains suspended; source
 cutover must not silently lift that gate.
 
 Main-branch changes to activated module declarations publish only affected

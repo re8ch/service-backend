@@ -10,12 +10,20 @@ flux_oci = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(flux_oci)
 
 
+def test_workflow_uses_native_attestation_without_runtime_cosign():
+    workflow = (ROOT / ".github/workflows/domain-oci-release.yml").read_text()
+    assert "actions/attest@" in workflow
+    assert "cosign-installer" not in workflow
+    assert "cosign sign" not in workflow
+    assert "needs: [publish, attest]" in workflow
+
+
 def release():
     return {
         "apiVersion": "delivery.re8ch.com/v1alpha1", "kind": "DomainRelease",
         "module": "platform/advanced-fabric", "codename": "bora",
         "bundle": {"url": "oci://ghcr.io/re8ch/advanced-fabric", "digest": "sha256:" + "a" * 64,
-                   "signature": "cosign-keyless", "issuer": "https://token.actions.githubusercontent.com",
+                   "signature": "github-attestation", "issuer": "https://token.actions.githubusercontent.com",
                    "identity": "https://github.com/re8ch/advanced-fabric/.github/workflows/release.yml@refs/heads/main"},
         "images": [{"name": "ghcr.io/re8ch/advanced-fabric", "tag": "bora", "digest": "sha256:" + "b" * 64}],
     }
@@ -36,8 +44,16 @@ def test_source_is_digest_pinned_and_only_target_module_reconciles():
     assert reconciliation["spec"]["prune"] is False
 
 
-def test_signer_is_anchored_not_wildcard():
+def test_native_attestation_is_recorded_without_unsupported_flux_verifier():
     source, _ = flux_oci.manifests(release())
+    assert "verify" not in source["spec"]
+    assert source["metadata"]["annotations"]["delivery.re8ch.com/attestation"] == "github-native"
+
+
+def test_legacy_cosign_release_keeps_flux_identity_verification():
+    data = release()
+    data["bundle"]["signature"] = "cosign-keyless"
+    source, _ = flux_oci.manifests(data)
     identity = source["spec"]["verify"]["matchOIDCIdentity"][0]
     assert identity["subject"].startswith("^") and identity["subject"].endswith("$")
 

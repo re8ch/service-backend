@@ -71,6 +71,9 @@ def changes(directory):
         if source["spec"]["url"] != release["bundle"]["url"]:
             raise ValueError("automatic promotion cannot change registry authority")
         source["spec"]["ref"] = {"digest": release["bundle"]["digest"]}
+        if release["bundle"]["signature"] == "github-attestation":
+            source["spec"].pop("verify", None)
+            source["metadata"]["annotations"]["delivery.re8ch.com/attestation"] = "github-native"
         source["metadata"]["annotations"]["delivery.re8ch.com/codename"] = release["codename"]
         for document in documents:
             if document["kind"] == "Kustomization":
@@ -102,14 +105,14 @@ def main():
     api("repos/" + REPO + "/git/refs", {"ref": "refs/heads/" + branch, "sha": head})
     query = "mutation($input:CreateCommitOnBranchInput!){createCommitOnBranch(input:$input){commit{oid}}}"
     result = graphql(query, {"input": {"branch": {"repositoryNameWithOwner": REPO, "branchName": branch},
-        "expectedHeadOid": head, "message": {"headline": "chore(gitops): promote signed domain digests"},
+        "expectedHeadOid": head, "message": {"headline": "chore(gitops): promote attested domain digests"},
         "fileChanges": {"additions": [{"path": path, "contents": base64.b64encode(content.encode()).decode()} for path, content in additions]}}})
     commit = result["createCommitOnBranch"]["commit"]["oid"]
     verification = api("repos/" + REPO + "/commits/" + commit)["commit"]["verification"]
     if not verification["verified"]:
         raise RuntimeError("GitHub App commit signature was not verified; refusing promotion")
-    pr = api("repos/" + REPO + "/pulls", {"title": "chore(gitops): promote verified domain OCI digests",
-        "head": branch, "base": "main", "body": "Signed OCI bundles verified against exact GitHub OIDC publisher identities. This PR changes only active module digest locks and append-only codename history. CI and branch protections remain mandatory."})
+    pr = api("repos/" + REPO + "/pulls", {"title": "chore(gitops): promote attested domain OCI digests",
+        "head": branch, "base": "main", "body": "Immutable Harbor OCI bundles received GitHub native attestations before this promotion job was allowed to run. This PR changes only active module digest locks and append-only codename history. CI and branch protections remain mandatory."})
     graphql("mutation($input:EnablePullRequestAutoMergeInput!){enablePullRequestAutoMerge(input:$input){pullRequest{number}}}",
             {"input": {"pullRequestId": pr["node_id"], "mergeMethod": "SQUASH"}})
     print("Automatic promotion PR: " + pr["html_url"])
