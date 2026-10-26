@@ -50,6 +50,16 @@ def test_every_planned_job_is_wired_and_aggregated():
     assert "if" not in jobs["policy"]
 
 
+def test_generated_fabric_consumers_and_public_authority_keep_their_checks():
+    spec = importlib.util.spec_from_file_location("fabric_model", ROOT / "operations/network/fabric/fabric_model.py")
+    fabric = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fabric)
+    consumers = [path for paths in fabric.OUTPUTS.values() for path in paths]
+    for path in consumers + [fabric.HOST_CONTRACT]:
+        assert impact.select([path])["checks"]["fabric"], path
+    assert impact.select(["platform/among-clusters/release.yaml"])["checks"]["public_authority"]
+
+
 def test_every_kustomize_root_has_one_owner():
     impact.load_catalog()
 
