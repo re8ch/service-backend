@@ -1,7 +1,9 @@
 import importlib.util
+import io
 from pathlib import Path
 import pytest
 import sys
+import urllib.error
 import yaml
 import subprocess
 
@@ -58,6 +60,40 @@ def test_normal_publication_does_not_require_harbor_project_management(monkeypat
     assert [entry["module"] for entry in published] == [module]
 
 
+def test_registry_manifest_uses_pull_scope_bearer_challenge(monkeypatch):
+    class Response(io.BytesIO):
+        def __init__(self, body, headers=None):
+            super().__init__(body)
+            self.headers = headers or {}
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            self.close()
+
+    calls = []
+    def urlopen(request, timeout):
+        calls.append(request)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(request.full_url, 401, "Unauthorized", {
+                "WWW-Authenticate": 'Bearer realm="https://registry.re8ch.com/service/token",service="harbor-registry",scope="repository:gitops-controlplane/platform-stalwart:pull"'}, None)
+        if len(calls) == 2:
+            return Response(b'{"token":"scoped-token"}')
+        return Response(b'{"annotations":{"delivery.re8ch.com/revision":"main"}}', {
+            "Docker-Content-Digest": "sha256:" + "4" * 64})
+
+    monkeypatch.setenv("HARBOR_USERNAME", "robot")
+    monkeypatch.setenv("HARBOR_PASSWORD", "secret")
+    monkeypatch.setattr(publication.urllib.request, "urlopen", urlopen)
+
+    status, manifest = publication.registry_manifest(
+        "registry.re8ch.com/gitops-controlplane/platform-stalwart", "bora-silver")
+
+    assert status == 200
+    assert manifest["digest"] == "sha256:" + "4" * 64
+    assert "scope=repository%3Agitops-controlplane%2Fplatform-stalwart%3Apull" in calls[1].full_url
+    assert calls[2].headers["Authorization"] == "Bearer scoped-token"
+
+
 @pytest.mark.parametrize("module", ["platform/runtime-anatomy", "platform/birfucate-metering"])
 def test_local_chart_sources_are_module_local_commit_pinned_and_signed(module):
     documents = publication.bundle_documents(module)
@@ -86,7 +122,7 @@ def test_stale_verified_tag_is_preserved_not_overwritten(monkeypatch):
     module = "platform/adapter"
     first = allocator.proposed(module, state)
     digest = "sha256:" + "2" * 64
-    monkeypatch.setattr(publication, "harbor", lambda method, path: (200, {"digest": digest, "annotations": {"delivery.re8ch.com/revision": "old"}}) if path.endswith("/" + first) else (404, None))
+    monkeypatch.setattr(publication, "registry_manifest", lambda repository, reference: (200, {"digest": digest, "annotations": {"delivery.re8ch.com/revision": "old"}}) if reference == first else (404, None))
     name, existing = publication.immutable_target(module, state, allocator, "registry.example/module", "current")
     assert name != first and existing is None
     assert state["modules"][module]["releases"][-1] == {
@@ -97,7 +133,7 @@ def test_unverifiable_existing_tag_is_quarantined_and_never_claimed(monkeypatch)
     allocator = publication.load_module("untrusted_names", "operations/releases/allocate_codename.py")
     state = yaml.safe_load(allocator.STATE.read_text())
     first = allocator.proposed("platform/adapter", state)
-    monkeypatch.setattr(publication, "harbor", lambda method, path: (200, {"digest": "sha256:" + "3" * 64}) if path.endswith("/" + first) else (404, None))
+    monkeypatch.setattr(publication, "registry_manifest", lambda repository, reference: (200, {"digest": "sha256:" + "3" * 64}) if reference == first else (404, None))
     name, existing = publication.immutable_target("platform/adapter", state, allocator, "registry.example/module", "current")
     assert existing is None
     assert name != first
