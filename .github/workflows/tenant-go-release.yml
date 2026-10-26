@@ -119,8 +119,9 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: tenant-go-release-${{ github.sha }}
-      - name: Sign and verify immutable Harbor image with pinned Cosign
-        timeout-minutes: 6
+      - name: Prepare immutable Harbor subject
+        id: subject
+        timeout-minutes: 1
         run: |
           image="$(cat tenant-mcp.image)"
           if [[ ! "$image" =~ ^registry\.re8ch\.com/image/re8ch-tenant-mcp@sha256:[0-9a-f]{64}$ ]]; then
@@ -133,43 +134,35 @@ jobs:
           umask 077
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
-
-          pull_cosign() {
-            local attempt
-            for attempt in 1 2; do
-              if timeout --signal=TERM --kill-after=15s 75s docker pull "$COSIGN_IMAGE"; then
-                return 0
-              fi
-              echo "Pinned Cosign image pull attempt ${attempt}/2 failed" >&2
-              sleep 5
-            done
-            return 1
-          }
-
-          run_cosign() {
-            timeout --signal=TERM --kill-after=15s 90s docker run --rm --pull never --network host \
-              --env ACTIONS_ID_TOKEN_REQUEST_URL \
-              --env ACTIONS_ID_TOKEN_REQUEST_TOKEN \
-              --env DOCKER_CONFIG=/auth \
-              --volume "$DOCKER_CONFIG:/auth:ro" \
-              --entrypoint /ko-app/cosign \
-              "$COSIGN_IMAGE" "$@"
-          }
-
-          # BuildKit already publishes SBOM and provenance attestations in the OCI index.
-          pull_cosign
-          run_cosign sign --yes "$image"
-          run_cosign verify \
-            --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/tenant-go-release.yml@refs/heads/main' \
-            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-            "$image" >/dev/null
-          echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
+          {
+            echo "name=${image%@*}"
+            echo "digest=${image##*@}"
+            echo "image=$image"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "DOCKER_CONFIG=$DOCKER_CONFIG"
+            echo "TENANT_MCP_IMAGE=$image"
+          } >> "$GITHUB_ENV"
         env:
-          # Linux/amd64 manifest for cosign v2.6.0. Avoid the installer bootstrap
-          # and do not rely on the oversized internal mirror being warm.
-          COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign@sha256:faa13f289a3e2fca3b82cd0632402d33a2b06577a6a5a2e0eb3ddbb131828e32
           HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
+      - name: Attest immutable Harbor image
+        timeout-minutes: 2
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ steps.subject.outputs.name }}
+          subject-digest: ${{ steps.subject.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false
+      - name: Verify GitHub build provenance
+        timeout-minutes: 2
+        run: |
+          gh attestation verify "oci://${{ steps.subject.outputs.image }}" \
+            --repo re8ch/service-backend \
+            --signer-workflow re8ch/service-backend/.github/workflows/tenant-go-release.yml \
+            >/dev/null
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Remove temporary registry authorization
         if: always()
         run: |
