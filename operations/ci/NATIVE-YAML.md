@@ -5,14 +5,23 @@ Measured hotspots use PyYAML's LibYAML-backed `CSafeLoader` explicitly, with
 safe; neither `Loader`, `CLoader` nor `UnsafeLoader` is used. There is no global
 PyYAML monkeypatch, additional cache, worker fanout or reduction in test scope.
 The existing Python emitter is retained so checked-in generated YAML stays stable.
-CI verifies that LibYAML is present and records the slowest 20 test phases.
+CI installs the pinned PyYAML 6.0.3 binary wheel in a job-specific RUNNER_TEMP
+folder and exposes it through PYTHONPATH, including Python subprocesses. Shared
+runner site-packages remain untouched. Every Python job in control-plane CI and
+full regression uses the local setup action, verifies LibYAML and prints versions;
+unit/full regression also record the slowest 20 test phases.
+
+The first CI attempt confirmed Python 3.14.4 plus distro PyYAML 6.0.2 reported
+`LibYAML=False`. A permissive `PyYAML>=6.0.2` install kept that incompatible copy.
+PyPI supplies a CPython 3.14 Linux x86_64 wheel for 6.0.3. `--only-binary=:all:`
+avoids silently building another pure-Python installation.
 
 ## Local before/after evidence
 
 Base: `dbc9d37f6` (merged #2396). Machine: Macmini, Python 3.13.3, PyYAML 6.0.2
 with LibYAML, pytest 8.4.2. Only the selected connectool gitlink was initialized.
 Each measurement ran the same 1,240 existing cases: 1,239 passed, one skipped.
-These timings exclude the 44 new parser compatibility cases and are not restricted-node-6dc3f140f9 CI
+These timings exclude the 44 new parser compatibility cases and are not R640 CI
 predictions. No parallel tests or reused test results were involved.
 
 | Execution | Pure Python | Native C |
@@ -64,5 +73,5 @@ or alter ownership, signature, release or runtime health contracts.
   The measured inventory bottleneck does not require replacing our custom rules.
 - [pytest-xdist fixtures](https://pytest-xdist.readthedocs.io/en/stable/how-to.html):
   session fixtures execute per worker unless coordinated. Increasing workers can
-  multiply inventory scans and compete with other jobs on the same restricted-node-6dc3f140f9 host;
+  multiply inventory scans and compete with other jobs on the same R640 host;
   retain serial execution while measuring the parser change independently.

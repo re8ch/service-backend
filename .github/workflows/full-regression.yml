@@ -16,14 +16,8 @@ jobs:
       - run: git submodule update --init catalogs/platform/modules/connectool/source
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
+      - uses: ./.github/actions/setup-native-yaml
       - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1'
-      - name: Verify native safe YAML parser
-        run: |
-          python - <<'PY'
-          import sys, yaml
-          print(f"Python {sys.version}; PyYAML {yaml.__version__}; LibYAML={yaml.__with_libyaml__}")
-          assert hasattr(yaml, "CSafeLoader"), "CI requires the PyYAML LibYAML extension"
-          PY
       - run: |
           python operations/releases/compile_domain_bundles.py --check
           python operations/workspace-controller/workspace.py doctor
