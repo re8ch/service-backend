@@ -36,6 +36,8 @@ Portable Linux execution uses the repository-scoped restricted-node-6dc3f140f9 r
 audits remain unchanged. The restricted-node-6dc3f140f9 runner has no standing cluster credentials;
 see `operations/ci/runners/README.md` for its trust and egress boundary.
 
+Module render reuse is documented in [RENDER-EVIDENCE.md](RENDER-EVIDENCE.md).
+
 ## OCI cutover boundary
 
 The release schema is `schemas/domain-release.schema.json`; human-facing image

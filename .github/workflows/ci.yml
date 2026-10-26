@@ -132,6 +132,7 @@ jobs:
           PY
 
   render:
+    permissions: {contents: read, actions: read}
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['render']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
@@ -139,6 +140,21 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
+      - run: python -m pip install 'PyYAML>=6.0.2'
+      - name: Locate successful main regression evidence
+        id: baseline
+        if: needs.impact.outputs.full != 'true'
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: python operations/ci/render_evidence.py --find-baseline
+      - name: Download trusted baseline
+        if: steps.baseline.outputs.run_id != ''
+        continue-on-error: true # Expiry or unavailable artifacts cause a fresh render.
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: module-render-evidence
+          run-id: ${{ steps.baseline.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/module-render-baseline-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Verify compiled domain bundles
         if: fromJSON(needs.impact.outputs.checks).domain_bundles
         run: python operations/releases/compile_domain_bundles.py --check
@@ -148,13 +164,10 @@ jobs:
       - name: Render only affected deployable roots
         env: {ROOTS: "${{ needs.impact.outputs.roots }}"}
         run: |
-          python - <<'PY' > "$RUNNER_TEMP/roots"
-          import json, os
-          print(*json.loads(os.environ["ROOTS"]), sep="\n")
-          PY
-          while IFS= read -r root; do
-            [[ -z "$root" ]] || kubectl kustomize "$root" >/dev/null
-          done < "$RUNNER_TEMP/roots"
+          echo "$ROOTS" > "$RUNNER_TEMP/render-roots.json"
+          python operations/ci/render_evidence.py --roots "$RUNNER_TEMP/render-roots.json" \
+            --baseline "$RUNNER_TEMP/module-render-baseline-${{ github.run_id }}-${{ github.run_attempt }}/evidence.json" \
+            --output "$RUNNER_TEMP/module-render-result/evidence.json"
 
   secret-scan:
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
