@@ -86,8 +86,8 @@ def test_control_plane_workflow_has_one_stable_aggregate_gate():
 
     assert "validate" not in jobs
     assert jobs["control-plane-validate"]["name"] == "control-plane-validate"
-    assert jobs["contract"]["if"] == "needs.impact.outputs.run == 'true'"
-    assert jobs["dependency-review"]["if"] == "needs.impact.outputs.full == 'true'"
+    assert jobs["contract"]["if"] == "fromJSON(needs.impact.outputs.jobs)['contract']"
+    assert jobs["dependency-review"]["if"] == "fromJSON(needs.impact.outputs.jobs)['dependency-review']"
     assert "&& 2 || 0" in jobs["impact"]["steps"][0]["with"]["fetch-depth"]
 
 
@@ -100,3 +100,43 @@ def test_digest_promotion_does_not_trigger_overall_regression():
 
 def test_codename_history_alone_fails_closed():
     assert impact.select(["operations/releases/codenames.yaml"])["full"]
+
+
+def test_focused_source_runs_unit_without_unrelated_scans():
+    plan = impact.select(["operations/releases/domain_publish.py"])
+    assert plan["jobs"]["unit"]
+    assert not any(value for key, value in plan["jobs"].items() if key != "unit")
+    assert not any(plan["checks"].values())
+
+
+def test_docs_skip_optional_jobs_and_full_enables_them():
+    assert not any(impact.select(["README.md"])["jobs"].values())
+    plan = impact.select([], full=True)
+    assert all(plan["jobs"].values())
+    assert all(plan["checks"].values())
+
+
+def test_release_lock_keeps_schema_and_render_checks():
+    plan = impact.select(["releases/platform-adapter.yaml"])
+    assert plan["jobs"]["schema"] and plan["jobs"]["render"]
+    assert plan["checks"]["schemas"]
+    assert not plan["checks"]["fabric"]
+
+
+def test_unknown_input_enables_every_check():
+    plan = impact.select(["operations/new-validator.py"])
+    assert all(plan["jobs"].values())
+    assert all(plan["checks"].values())
+
+
+def test_changed_domain_source_selects_bundle_verification():
+    assert impact.select(["clusters/re8ch/domains/networking/source/kustomization.yaml"])["checks"]["domain_bundles"]
+
+
+def test_every_planned_job_is_wired_and_aggregated():
+    jobs = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())["jobs"]
+    for name in impact.select([], full=True)["jobs"]:
+        assert jobs[name]["if"] == f"fromJSON(needs.impact.outputs.jobs)['{name}']"
+        assert name in jobs["control-plane-validate"]["needs"]
+    assert "if" not in jobs["secret-scan"]
+    assert "if" not in jobs["policy"]
