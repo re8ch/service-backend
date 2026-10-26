@@ -311,3 +311,188 @@ check_paths:
   public_authority: [operations/network/**, platform/advanced-fabric/**, platform/among-clusters/**, operations/scripts/validate-r640-public-authority.py]
   domain_bundles: [clusters/re8ch/domains/**, operations/releases/compile_domain_bundles.py]
   federation: [operations/flux-federation/**, clusters/re8ch/flux-federation/**]
+
+# Observation-only declarations: reuse candidates do not skip tests.
+# Directory patterns include new and removed members, not just existing files.
+unit_defaults:
+  helpers:
+  - tests/conftest.py
+  environment:
+  - pyproject.toml
+  - .github/workflows/ci.yml
+  - .github/workflows/full-regression.yml
+  - .github/actions/setup-native-yaml/**
+  - operations/ci/unit_catalog.py
+  - operations/ci/unit_report.py
+validation_units:
+  tests/test_github_bot_merge.py:
+    sources:
+    - operations/github-maintenance/bot_merge.py
+    data:
+    - .github/workflows/github-bot-merge.yml
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_infrastructure_contracts.py:
+    sources:
+    - operations/infrastructure-contract/**
+    data:
+    - schemas/**
+    - contracts/infrastructure/**
+    - clusters/re8ch/**
+    - operations/network/**
+    - .github/workflows/node-contract-observer.yml
+    helpers: []
+    tools:
+    - python
+    reuse: candidate
+  tests/test_git_k8s_manifests.py:
+    sources: []
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - operations/network/**
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_git_governance_gate.py:
+    sources: []
+    data:
+    - platform/git-workspaces/**
+    - platform/workspace-controller/**
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_incremental_ci.py:
+    sources:
+    - operations/ci/**
+    data:
+    - clusters/**
+    - platform/**
+    - operations/network/**
+    - .github/workflows/ci.yml
+    - tests/test_*.py
+    helpers: []
+    tools: []
+    reuse: never
+  tests/test_release_codenames.py:
+    sources:
+    - operations/releases/allocate_codename.py
+    data:
+    - operations/releases/codenames.yaml
+    - operations/ci/domain-catalog.yaml
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_domain_oci_release.py:
+    sources:
+    - operations/releases/flux_oci.py
+    data:
+    - operations/releases/publishers.yaml
+    - operations/ci/domain-catalog.yaml
+    - schemas/domain-release.schema.json
+    - .github/workflows/domain-oci-release.yml
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_domain_publication.py:
+    sources:
+    - operations/releases/**
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - releases/**
+    - schemas/**
+    - operations/ci/domain-catalog.yaml
+    - .github/workflows/ci.yml
+    helpers: []
+    tools:
+    - git
+    - kubectl
+    reuse: candidate
+  tests/test_live_domain_sources.py:
+    sources:
+    - operations/releases/promote.py
+    - operations/releases/allocate_codename.py
+    - operations/ci/impact.py
+    data:
+    - operations/releases/*.yaml
+    - operations/ci/domain-catalog.yaml
+    - releases/**
+    - clusters/re8ch/**
+    - platform/**
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_domain_reconcilers.py:
+    sources: []
+    data:
+    - clusters/re8ch/**
+    - operations/releases/runtime-authority.yaml
+    - operations/flux-federation/**
+    - platform/**
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_flux_controller_ha.py:
+    sources: []
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - operations/flux-lightweight/controller-capabilities.yaml
+    - operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist
+    helpers:
+    - tests/kustomize_render.py
+    - operations/ci/render_evidence.py
+    tools:
+    - kubectl
+    - kustomize
+    reuse: candidate
+  tests/test_flux_fast_reconcile.py:
+    sources: []
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - operations/flux-lightweight/controller-capabilities.yaml
+    - operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist
+    helpers:
+    - tests/kustomize_render.py
+    - operations/ci/render_evidence.py
+    tools:
+    - kubectl
+    - kustomize
+    reuse: candidate
+  tests/test_flux_image_controller_retirement.py:
+    sources: []
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - operations/flux-lightweight/controller-capabilities.yaml
+    - operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist
+    helpers:
+    - tests/kustomize_render.py
+    - operations/ci/render_evidence.py
+    tools:
+    - kubectl
+    - kustomize
+    reuse: candidate
+  tests/test_flux_lightweight_inventory.py:
+    sources:
+    - operations/flux-lightweight/inventory.py
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - operations/flux-lightweight/*.yaml
+    helpers: []
+    tools: []
+    reuse: candidate
+  tests/test_helmrelease_inventory.py:
+    sources:
+    - operations/releases/helmrelease_inventory.py
+    data:
+    - clusters/re8ch/**
+    - platform/**
+    - operations/releases/helmrelease-*.yaml
+    helpers: []
+    tools: []
+    reuse: candidate

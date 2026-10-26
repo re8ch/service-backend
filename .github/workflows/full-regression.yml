@@ -24,7 +24,15 @@ jobs:
           python tests/validate_schemas.py
           python operations/scripts/validate-r640-public-authority.py
           python tests/check_no_plaintext_secrets.py
-          python -m pytest -q --durations=20
+          python -m pytest -q --durations=20 -p operations.ci.unit_report --unit-report-dir="$RUNNER_TEMP/unit-observation" --junitxml="$RUNNER_TEMP/unit-observation/junit.xml"
+      - name: Upload full unit execution observations
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-observation
+          path: ${{ runner.temp }}/unit-observation/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Render every owned Kustomize root
         run: |
           python operations/ci/impact.py --full --path README.md > "$RUNNER_TEMP/plan.json"
