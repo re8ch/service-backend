@@ -7,7 +7,8 @@ runs:
       shell: bash
       run: |
         target="$RUNNER_TEMP/native-yaml-$GITHUB_JOB-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-        python -m pip install --disable-pip-version-check --only-binary=:all: --no-deps \
+        # Runner pip defaults to --user; override only this isolated installation.
+        PIP_USER=0 python -m pip install --disable-pip-version-check --only-binary=:all: --no-deps \
           --target "$target" 'PyYAML==6.0.3'
         echo "PYTHONPATH=$target${PYTHONPATH:+:$PYTHONPATH}" >> "$GITHUB_ENV"
     - name: Verify native safe YAML parser
