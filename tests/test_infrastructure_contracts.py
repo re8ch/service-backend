@@ -153,7 +153,9 @@ def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():
     assert "secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64" in text
     assert "secrets.KUBE_API_CA_PEM" in text
     assert "vars.INFRASTRUCTURE" not in text
-    assert "observer expected 14 Nodes" in text
+    assert 'contract["spec"]["expectedNodeCount"]' in text
+    assert '--server="$api_server"' in text
+    assert 'operations/infrastructure-contract/bundle.py' in text
     for denial_probe in ("secret-list", "pod-log", "pod-exec", "token-request"):
         assert denial_probe in text
 
