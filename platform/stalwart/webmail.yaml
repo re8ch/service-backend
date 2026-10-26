@@ -85,7 +85,7 @@ metadata:
   annotations:
     networking.re8ch.com/dns-authority: public-edge
     external-dns.alpha.kubernetes.io/hostname: mail.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 2.28.106.230
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
 spec:

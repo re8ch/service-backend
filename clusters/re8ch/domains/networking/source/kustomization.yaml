@@ -12,6 +12,7 @@ resources:
 - ../../../components/cilium/gateway-api-canary.yaml
 - ../../../components/cilium/service-zone-wave-15.yaml
 - ../../../components/cilium/advfab-worker-node-ips.yaml
+- ../../../components/cilium/overseas-flk-public-service-device.yaml
 - ../../../components/cilium/native-routing-rollout.yaml
 - ../../../components/cilium/r640-policy-update-budget.yaml
 - ../../../components/egress-fabric/identity-egress.yaml

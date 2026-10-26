@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: overseas-flk-public-service-device
+  namespace: kube-system
+spec:
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: overseas-flk
+  defaults:
+    # The FLK node owns 2.28.106.230 on eth0. Cilium must attach its service
+    # datapath there so the Stalwart ExternalIP listeners receive public mail.
+    devices: eth0,wg-pt-a1,wg-pt-b1
+    direct-routing-device: wg-pt-a1
+    auto-direct-node-routes: "false"
+    direct-routing-skip-unreachable: "false"

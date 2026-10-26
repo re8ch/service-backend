@@ -514,8 +514,8 @@ data:
       refuse_any: true
       # AdGuard's upstream bootstrap resolver cannot resolve cluster.local.
       # This Service IP is explicitly reserved below and verified by GitOps.
-      upstream_dns: [192.0.2.54:5353]
-      bootstrap_dns: [192.0.2.58, 192.0.2.95]
+      upstream_dns: [10.43.66.51:5353]
+      bootstrap_dns: [223.5.5.5, 119.29.29.29]
       cache_size: 4194304
       cache_ttl_min: 60
       cache_ttl_max: 86400
@@ -552,8 +552,8 @@ data:
         args:
           concurrent: 2
           upstreams:
-            - {addr: https://dns.alidns.com/dns-query, dial_addr: 192.0.2.58}
-            - {addr: https://doh.pub/dns-query, dial_addr: 192.0.2.95}
+            - {addr: https://dns.alidns.com/dns-query, dial_addr: 223.5.5.5}
+            - {addr: https://doh.pub/dns-query, dial_addr: 119.29.29.29}
       - tag: forward_global
         type: forward
         args:
@@ -706,7 +706,7 @@ data:
     \"/api/v1/nodes\").get(\"items\", [])\n        pods = kube_request(\"GET\", f\"/api/v1/namespaces/{NAMESPACE}/pods?labelSelector=app.kubernetes.io%2Fname%3Dedge-access-anytls\").get(\"items\",
     [])\n        # The EdgeAccess Pod readiness probe and the reviewed node capacity
     are\n        # the in-cluster publication gates. Do not probe the node's public
-    IP\n        # from restricted-node-6dc3f140f9 here: RouterOS does not provide that cross-edge hairpin,
+    IP\n        # from R640 here: RouterOS does not provide that cross-edge hairpin,
     so\n        # a healthy public listener would be incorrectly removed from every\n
     \       # generated subscription.\n        return DEFAULT_NODES + edge_access_nodes(nodes,
     pods)\n    except (OSError, ValueError, KeyError) as exc:\n        print(json.dumps({\"level\":
@@ -1175,7 +1175,7 @@ data:
     re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261020-edge-discovery-2\"\n\n#
     Emergency publication gate: overseas-edge-50 is retired and overseas-kl is\n#
     still recovering. Keep the two independently reachable LA listeners and the\n#
-    verified restricted-node-6dc3f140f9 AnyTLS listener published. The restricted-node-6dc3f140f9 listener terminates the\n# mainland
+    verified R640 AnyTLS listener published. The R640 listener terminates the\n# mainland
     connection locally, then delegates destination-aware egress to the\n# node-local
     smart fabric: CN destinations stay direct and international\n# destinations use
     a healthy Global provider. Re-enable other candidates only\n# after their host
@@ -1354,8 +1354,8 @@ data:
     {behavior}\", \"    format: mrs\",\n                    f\"    url: {base_url}/r/{token}/current/{name}.mrs\",
     f\"    path: ./rules/{name}.mrs\", \"    interval: 86400\"])\n    out.extend([\"dns:\",
     \"  enable: true\", \"  ipv6: false\", \"  enhanced-mode: fake-ip\", \"  fake-ip-range:
-    192.0.2.99/16\",\n                \"  default-nameserver:\", \"    - 192.0.2.58\",
-    \"    - 192.0.2.95\",\n                \"  proxy-server-nameserver:\", \"    -
+    198.18.0.1/16\",\n                \"  default-nameserver:\", \"    - 223.5.5.5\",
+    \"    - 119.29.29.29\",\n                \"  proxy-server-nameserver:\", \"    -
     https://dns.alidns.com/dns-query\", \"    - https://doh.pub/dns-query\",\n                \"
     \ direct-nameserver:\", \"    - https://dns.alidns.com/dns-query\", \"    - https://doh.pub/dns-query\",\n
     \               \"  nameserver:\", \"    - https://1.1.1.1/dns-query#PROXY\",
@@ -1396,9 +1396,9 @@ data:
     = [node.name for node in preferred]\n    backup_names = [node.name for node in
     backup]\n    config_url = f\"{base_url}/s/{token}/shadowrocket.conf?v={SHADOWROCKET_PROFILE_REVISION}\"\n
     \   lines = [\"[General]\", \"bypass-system = true\", \"ipv6 = false\", \"prefer-ipv6
-    = false\",\n             \"skip-proxy = 192.0.2.136/16, 192.0.2.183/8, 192.0.2.33/12,
+    = false\",\n             \"skip-proxy = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12,
     127.0.0.0/8, localhost, *.local, todesk.com, *.todesk.com\",\n             \"tun-excluded-routes
-    = 192.0.2.183/8, 192.0.2.81/10, 127.0.0.0/8, 192.0.2.95/16, 192.0.2.33/12, 192.0.2.136/16,
+    = 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16,
     224.0.0.0/4\",\n             \"dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query\",\n
     \            \"fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query\",\n
     \            \"dns-direct-system = false\", \"dns-fallback-system = false\",\n
@@ -2488,7 +2488,7 @@ data:
       - name: LEDGER_REGION_TTL_SECONDS
         value: '300'
       - name: SAAS_DNS_SERVERS
-        value: 192.0.2.58:53,192.0.2.95:53,1.1.1.1:53
+        value: 223.5.5.5:53,119.29.29.29:53,1.1.1.1:53
       - name: SAAS_FUNCTION
         value: api-gateway
       - name: SAAS_LAYER
@@ -2597,7 +2597,7 @@ data:
       - name: POSTGREST_BASE_URL
         value: https://db-ro.re8ch.com/ledger
       - name: SAAS_DNS_SERVERS
-        value: 192.0.2.58:53,192.0.2.95:53,1.1.1.1:53
+        value: 223.5.5.5:53,119.29.29.29:53,1.1.1.1:53
       - name: SAAS_FUNCTION
         value: gnucash-report-runner
       - name: SAAS_LAYER
@@ -4314,7 +4314,7 @@ metadata:
   name: auth-postgrest
   namespace: auth
 spec:
-  clusterIP: 192.0.2.3
+  clusterIP: 10.43.181.184
   ports:
   - name: http
     port: 3000
@@ -4364,7 +4364,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    lbipam.cilium.io/ips: 192.0.2.53
+    lbipam.cilium.io/ips: 10.251.0.12
   labels:
     networking.re8ch.com/bgp-advertise: enabled
     networking.re8ch.com/lb-pool: service-vip
@@ -4418,7 +4418,7 @@ metadata:
   name: mosdns
   namespace: egress-fabric
 spec:
-  clusterIP: 192.0.2.54
+  clusterIP: 10.43.66.51
   internalTrafficPolicy: Local
   ports:
   - name: dns-udp
@@ -4461,7 +4461,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    lbipam.cilium.io/ips: 192.0.2.224
+    lbipam.cilium.io/ips: 10.251.0.11
   labels:
     networking.re8ch.com/bgp-advertise: enabled
     networking.re8ch.com/lb-pool: service-vip
@@ -4481,7 +4481,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    lbipam.cilium.io/ips: 192.0.2.244
+    lbipam.cilium.io/ips: 10.251.0.14
   labels:
     networking.re8ch.com/bgp-advertise: enabled
     networking.re8ch.com/lb-pool: service-vip
@@ -4501,7 +4501,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    lbipam.cilium.io/ips: 192.0.2.191
+    lbipam.cilium.io/ips: 10.251.0.13
   labels:
     networking.re8ch.com/bgp-advertise: enabled
     networking.re8ch.com/lb-pool: service-vip
@@ -4608,7 +4608,7 @@ metadata:
   namespace: mail-system
 spec:
   externalIPs:
-  - 192.0.2.38
+  - 2.28.106.230
   ports:
   - name: smtp
     port: 25
@@ -5251,7 +5251,7 @@ metadata:
   name: supabase-identity-rest
   namespace: supabase-identity
 spec:
-  clusterIP: 192.0.2.93
+  clusterIP: 10.43.201.43
   ports:
   - name: http
     port: 3000
@@ -5265,7 +5265,7 @@ metadata:
   name: supabase-identity-rest-ro
   namespace: supabase-identity
 spec:
-  clusterIP: 192.0.2.107
+  clusterIP: 10.43.111.83
   ports:
   - name: http
     port: 3000
@@ -5703,7 +5703,7 @@ spec:
           name: config
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       priorityClassName: system-cluster-critical
       securityContext:
         fsGroup: 65532
@@ -5793,7 +5793,7 @@ spec:
           name: github-app
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 65532
         runAsGroup: 65532
@@ -5958,7 +5958,7 @@ spec:
           name: rules
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 65532
         runAsGroup: 65532
@@ -6008,7 +6008,7 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
             weight: 100
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
@@ -6016,9 +6016,9 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
-                - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
+                - r640
+                - a1-wsl-zt
+                - b1-wsl-zt
                 - amdwsl-zt
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -6149,7 +6149,7 @@ spec:
             drop:
             - ALL
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsGroup: 65532
         runAsNonRoot: true
@@ -6251,7 +6251,7 @@ spec:
           name: controller
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       priorityClassName: system-node-critical
       securityContext:
         fsGroup: 65532
@@ -6920,7 +6920,7 @@ spec:
           name: runtime
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       volumes:
       - configMap:
           name: opensandbox-orchestra-proxy
@@ -7009,7 +7009,7 @@ spec:
         terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -7056,7 +7056,7 @@ spec:
         - "8000"
         env:
         - name: SCALE_DATABASE_URL
-          value: http://192.0.2.174:3000
+          value: http://10.43.70.93:3000
         - name: SCALE_POSTGREST_JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -7113,7 +7113,7 @@ spec:
           name: cache
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -7161,7 +7161,7 @@ spec:
         - scale.worker
         env:
         - name: SCALE_DATABASE_URL
-          value: http://192.0.2.174:3000
+          value: http://10.43.70.93:3000
         - name: SCALE_POSTGREST_JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -7192,7 +7192,7 @@ spec:
           name: cache
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -7294,7 +7294,7 @@ spec:
           name: files
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
         storage.re8ch.com/ceph-client: "true"
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -7381,9 +7381,9 @@ spec:
         - name: LEDGER_EDGE_NAME
           value: api
         - name: LEDGER_EDGE_REGION
-          value: restricted-node-6dc3f140f9
+          value: r640
         - name: LEDGER_EDGE_REGIONS
-          value: api,restricted-node-6dc3f140f9,ok
+          value: api,r640,ok
         - name: LEDGER_POSTGREST_RO_URL
           value: https://db-ro.re8ch.com/ledger
         - name: LEDGER_POSTGREST_RW_URL
@@ -7395,7 +7395,7 @@ spec:
         - name: LEDGER_REGION_TTL_SECONDS
           value: "300"
         - name: SAAS_DNS_SERVERS
-          value: 192.0.2.58:53,192.0.2.95:53,1.1.1.1:53
+          value: 223.5.5.5:53,119.29.29.29:53,1.1.1.1:53
         - name: SAAS_FUNCTION
           value: api-gateway
         - name: SAAS_LAYER
@@ -7464,7 +7464,7 @@ spec:
           name: processor-config-volume
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -7552,7 +7552,7 @@ spec:
         - name: POSTGREST_BASE_URL
           value: https://db-ro.re8ch.com/ledger
         - name: SAAS_DNS_SERVERS
-          value: 192.0.2.58:53,192.0.2.95:53,1.1.1.1:53
+          value: 223.5.5.5:53,119.29.29.29:53,1.1.1.1:53
         - name: SAAS_FUNCTION
           value: gnucash-report-runner
         - name: SAAS_LAYER
@@ -7618,7 +7618,7 @@ spec:
           name: processor-config-volume
       dnsPolicy: ClusterFirst
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -7870,7 +7870,7 @@ spec:
       imagePullSecrets:
       - name: harbor-ledger-admin
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
@@ -7945,7 +7945,7 @@ spec:
           name: config
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         fsGroup: 1000
         runAsNonRoot: true
@@ -8118,7 +8118,7 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -8181,7 +8181,7 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -8238,7 +8238,7 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -8330,7 +8330,7 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -8411,7 +8411,7 @@ spec:
             - ALL
           readOnlyRootFilesystem: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -8561,7 +8561,7 @@ spec:
       imagePullSecrets:
       - name: supabase-billing-harbor-pull
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -8631,7 +8631,7 @@ spec:
           name: storage-data
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -8735,7 +8735,7 @@ spec:
           readOnly: true
           subPath: kong-entrypoint.sh
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -8829,7 +8829,7 @@ spec:
           tcpSocket:
             port: http
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -8951,7 +8951,7 @@ spec:
           tcpSocket:
             port: http
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -9037,7 +9037,7 @@ spec:
             port: admin
           periodSeconds: 5
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -9126,7 +9126,7 @@ spec:
             port: admin
           periodSeconds: 5
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -9233,7 +9233,7 @@ spec:
         - mountPath: /var/lib/storage
           name: storage-data
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -9346,7 +9346,7 @@ spec:
           tcpSocket:
             port: http
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -9421,7 +9421,7 @@ spec:
       imagePullSecrets:
       - name: supabase-identity-harbor-pull
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsGroup: 65532
         runAsNonRoot: true
@@ -9465,7 +9465,7 @@ spec:
         - name: HTTP_PROXY
           value: http://mihomos-node-cn-local.egress-fabric.svc.cluster.local:17891
         - name: NO_PROXY
-          value: localhost,127.0.0.1,::1,.svc,.cluster.local,id.re8ch.com,192.0.2.183/8,192.0.2.33/12,192.0.2.136/16
+          value: localhost,127.0.0.1,::1,.svc,.cluster.local,id.re8ch.com,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
         - name: GOTRUE_DB_DRIVER
           value: postgres
         - name: GOTRUE_DB_DATABASE_URL
@@ -9655,14 +9655,14 @@ spec:
       hostAliases:
       - hostnames:
         - id.re8ch.com
-        ip: 192.0.2.138
+        ip: 223.159.210.222
       - hostnames:
         - pg-re8ch-primary.pigsty-external.svc.cluster.local
-        ip: 192.0.2.202
+        ip: 10.43.141.120
       imagePullSecrets:
       - name: supabase-identity-harbor-pull
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -9750,7 +9750,7 @@ spec:
           readOnly: true
           subPath: kong-entrypoint.sh
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -9830,7 +9830,7 @@ spec:
             cpu: 40m
             memory: 96Mi
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -9936,7 +9936,7 @@ spec:
           tcpSocket:
             port: http
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -10012,7 +10012,7 @@ spec:
             cpu: 40m
             memory: 128Mi
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -10082,7 +10082,7 @@ spec:
             cpu: 40m
             memory: 128Mi
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -10170,7 +10170,7 @@ spec:
             cpu: 80m
             memory: 256Mi
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -10292,7 +10292,7 @@ spec:
       dnsConfig:
         nameservers:
         - 1.1.1.1
-        - 192.0.2.48
+        - 1.0.0.1
         options:
         - name: ndots
           value: "1"
@@ -10611,7 +10611,7 @@ spec:
       dnsPolicy: ClusterFirst
       enableServiceLinks: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
@@ -10744,7 +10744,7 @@ spec:
       dnsPolicy: ClusterFirst
       enableServiceLinks: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
@@ -10893,7 +10893,7 @@ spec:
       dnsPolicy: ClusterFirst
       enableServiceLinks: false
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext:
@@ -11672,7 +11672,7 @@ spec:
           name: app
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       securityContext:
         runAsGroup: 65532
@@ -11751,7 +11751,7 @@ spec:
         - mountPath: /cache
           name: cache
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       securityContext:
         runAsGroup: 65532
@@ -11905,7 +11905,7 @@ spec:
         - mountPath: /cache
           name: cache
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       securityContext:
         runAsGroup: 65532
@@ -12070,7 +12070,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12128,7 +12128,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12186,7 +12186,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12235,7 +12235,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12284,7 +12284,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12333,7 +12333,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12382,7 +12382,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12431,7 +12431,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12514,7 +12514,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12572,7 +12572,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12630,7 +12630,7 @@ spec:
           name: sql
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       restartPolicy: Never
       tolerations:
       - effect: NoSchedule
@@ -12695,8 +12695,8 @@ spec:
       app.kubernetes.io/name: access-adguard
   ingress:
   - fromCIDR:
-    - 192.0.2.18/24
-    - 192.0.2.57/16
+    - 192.168.88.0/24
+    - 10.42.0.0/16
     toPorts:
     - ports:
       - port: "5353"
@@ -12873,12 +12873,12 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.111
+  - 179.255.126.104
   conditions:
     ready: true
   zone: us-la
 - addresses:
-  - 192.0.2.145
+  - 198.20.153.89
   conditions:
     ready: true
   zone: my-kul
@@ -12897,7 +12897,7 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.145
+  - 198.20.153.89
   conditions:
     ready: true
   zone: my-kul
@@ -12916,12 +12916,12 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.111
+  - 179.255.126.104
   conditions:
     ready: true
   zone: us-la
 - addresses:
-  - 192.0.2.145
+  - 198.20.153.89
   conditions:
     ready: true
   zone: my-kul
@@ -12940,7 +12940,7 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.111
+  - 179.255.126.104
   conditions:
     ready: true
   zone: us-la
@@ -12959,7 +12959,7 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.145
+  - 198.20.153.89
   conditions:
     ready: true
   zone: my-kul
@@ -12978,7 +12978,7 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.111
+  - 179.255.126.104
   conditions:
     ready: true
   zone: us-la
@@ -12997,7 +12997,7 @@ addressType: IPv4
 apiVersion: discovery.k8s.io/v1
 endpoints:
 - addresses:
-  - 192.0.2.111
+  - 179.255.126.104
   conditions:
     ready: true
   zone: us-la
@@ -14220,7 +14220,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/tls-mode: passthrough
   labels:
@@ -14296,7 +14296,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
     external-dns.alpha.kubernetes.io/hostname: auth-origin.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -14323,7 +14323,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: direct-ca.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.111
+    external-dns.alpha.kubernetes.io/target: 179.255.126.104
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14340,7 +14340,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: direct-cn.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14357,7 +14357,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: direct-kl.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.145
+    external-dns.alpha.kubernetes.io/target: 198.20.153.89
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14374,7 +14374,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: direct-la.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.111
+    external-dns.alpha.kubernetes.io/target: 179.255.126.104
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14391,7 +14391,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: dns.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14408,7 +14408,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com,sub.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14427,7 +14427,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: route-la.access.re8ch.com,route-kl.access.re8ch.com,my-kul.access.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -14445,7 +14445,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: collab.tools.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -14472,7 +14472,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: id.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -14499,7 +14499,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: mail.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 2.28.106.230
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/dns-authority: public-edge
   labels:
@@ -14565,7 +14565,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     kustomize.toolkit.fluxcd.io/name: service-backend
@@ -14618,7 +14618,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: billing-supabase.re8ch.com,billing-studio.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -14655,7 +14655,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: supabase.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -14863,9 +14863,9 @@ spec:
     - ipBlock:
         cidr: 0.0.0.0/0
         except:
-        - 192.0.2.183/8
-        - 192.0.2.33/12
-        - 192.0.2.136/16
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
   ingress:
   - from:
     - namespaceSelector:

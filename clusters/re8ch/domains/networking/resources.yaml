@@ -18380,7 +18380,6 @@ spec:
       - muaya-lightweight
       - muaya-ecs
       - zan
-      - overseas-flk
       - overseas-la-2
 ---
 apiVersion: cilium.io/v2
@@ -18435,6 +18434,21 @@ spec:
       values:
       - restricted-node-1eb0570f74
       - restricted-node-296f36f2fb
+---
+apiVersion: cilium.io/v2
+kind: CiliumNodeConfig
+metadata:
+  name: overseas-flk-public-service-device
+  namespace: kube-system
+spec:
+  defaults:
+    auto-direct-node-routes: "false"
+    devices: eth0,wg-pt-a1,wg-pt-b1
+    direct-routing-device: wg-pt-a1
+    direct-routing-skip-unreachable: "false"
+  nodeSelector:
+    matchLabels:
+      kubernetes.io/hostname: overseas-flk
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNodeConfig

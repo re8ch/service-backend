@@ -80,8 +80,8 @@ def test_live_nodes_receive_optional_mihomos_placement():
         ROOT / "clusters/re8ch/components/egress-fabric/live-node-egress-labels.yaml"
     ) + documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
     live_nodes = {
-        "restricted-node-1eb0570f74", "amdwsl-zt", "restricted-node-296f36f2fb", "domain-ex", "muaya-ecs",
-        "muaya-lightweight", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk", "restricted-node-6dc3f140f9",
+        "a1-wsl-zt", "amdwsl-zt", "b1-wsl-zt", "domain-ex", "muaya-ecs",
+        "muaya-lightweight", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk", "r640",
         "suxunji", "vm-20-12-ubuntu", "zan",
     }
     by_name = {item["metadata"]["name"]: item for item in node_documents}
@@ -98,7 +98,7 @@ def test_control_plane_proxy_uses_the_r640_node_local_endpoint():
     proxy = yaml.safe_load(
         (ROOT / "clusters/re8ch/flux-system/service-backend-control-plane-proxy.yaml").read_text()
     )
-    assert proxy["stringData"]["address"] == "http://192.0.2.179:17891"
+    assert proxy["stringData"]["address"] == "http://10.250.0.128:17891"
 
 
 
@@ -133,6 +133,40 @@ def test_external_dns_is_only_a_public_edge_execution_layer():
         item.get("kind") == "Deployment"
         and item.get("metadata", {}).get("name") == "external-dns-cloudflare"
         for item in retirement
+    )
+
+
+def test_stalwart_public_mail_is_owned_by_the_flk_edge():
+    webmail = documents(ROOT / "platform/stalwart/webmail.yaml")
+    authority = next(
+        item
+        for item in webmail
+        if item["kind"] == "Ingress"
+        and item["metadata"]["name"] == "stalwart-webmail-public"
+    )
+    assert authority["metadata"]["annotations"][
+        "external-dns.alpha.kubernetes.io/target"
+    ] == "2.28.106.230"
+
+    shared = yaml.safe_load(
+        (ROOT / "clusters/re8ch/components/cilium/advfab-worker-node-ips.yaml").read_text()
+    )
+    shared_nodes = shared["spec"]["nodeSelector"]["matchExpressions"][0]["values"]
+    assert "overseas-flk" not in shared_nodes
+
+    flk = yaml.safe_load(
+        (
+            ROOT
+            / "clusters/re8ch/components/cilium/overseas-flk-public-service-device.yaml"
+        ).read_text()
+    )
+    assert flk["spec"]["nodeSelector"]["matchLabels"] == {
+        "kubernetes.io/hostname": "overseas-flk"
+    }
+    assert flk["spec"]["defaults"]["devices"] == "eth0,wg-pt-a1,wg-pt-b1"
+    assert (
+        "../../../components/cilium/overseas-flk-public-service-device.yaml"
+        in domain_resources("networking")
     )
 
 
@@ -195,7 +229,7 @@ def test_tools_dns_writer_remains_active_for_legacy_mcp_clients():
         "public-edge-manager"
     )
     assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == (
-        "192.0.2.138"
+        "223.159.210.222"
     )
 
 
@@ -217,7 +251,7 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
         "scheduling.re8ch.com/pool-service-core-r640": "true",
         "scheduling.re8ch.com/network-serving": "true",
     }
-    assert toolhive["runtimePolicy"]["nodeNames"] == ["restricted-node-6dc3f140f9"]
+    assert toolhive["runtimePolicy"]["nodeNames"] == ["r640"]
     assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
     assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"
 
@@ -237,7 +271,7 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
         assert spec["sessionStorage"] == {"provider": "memory"}
         assert next(
             item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
-        ) == "192.0.2.57/16"
+        ) == "10.42.0.0/16"
         expected_generation = (
             "admin-postgres-sql-2026-10-10"
             if server["metadata"]["name"] == "ops-admin-vmcp-internal"
@@ -311,7 +345,7 @@ def test_mcp_registry_database_is_ab_only():
     assert expression == {
         "key": "kubernetes.io/hostname",
         "operator": "In",
-        "values": ["restricted-node-1eb0570f74", "restricted-node-296f36f2fb"],
+        "values": ["a1-wsl-zt", "b1-wsl-zt"],
     }
     claim = database["spec"]["template"]["spec"]["volumes"][0][
         "persistentVolumeClaim"
@@ -365,9 +399,9 @@ def test_toolhive_controls_and_plugin_runtime_are_r640_local():
     assert values["image"] == "ghcr.io/stacklok/toolhive/operator@sha256:7998095e6b998d2ae50f93393fa8c969d41a1422457d1775aef81c81dfa24b67"
     assert values["toolhiveRunnerImage"] == "ghcr.io/stacklok/toolhive/proxyrunner@sha256:1ee5a4d66763180fdfdb95c4da9afb7112946e90531516fb9a1fd279f2c9cd29"
     assert values["vmcpImage"] == "ghcr.io/stacklok/toolhive/vmcp@sha256:22b6bb5c642c45e913afef0ea0ca696b1f12cd7dd26d74a8e8cb0b794cd2774c"
-    assert values["nodeSelector"] == {"kubernetes.io/hostname": "restricted-node-6dc3f140f9"}
+    assert values["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
     env = {item["name"]: item["value"] for item in values["env"]}
-    assert env["KUBERNETES_SERVICE_HOST"] == "192.0.2.179"
+    assert env["KUBERNETES_SERVICE_HOST"] == "10.250.0.128"
     assert env["KUBERNETES_SERVICE_PORT"] == "6443"
     expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
     assert expressions == [
@@ -442,7 +476,7 @@ def test_stalwart_management_is_internal_and_digest_pinned():
     image = stateful_set["spec"]["template"]["spec"]["containers"][0]["image"]
     assert service["spec"]["type"] == "ClusterIP"
     assert "externalIPs" not in service["spec"]
-    assert direct_mail["spec"]["externalIPs"] == ["192.0.2.38"]
+    assert direct_mail["spec"]["externalIPs"] == ["2.28.106.230"]
     assert {port["port"] for port in direct_mail["spec"]["ports"]} == {25, 465, 587, 993, 4190}
     assert "@sha256:" in image
     pod_spec = stateful_set["spec"]["template"]["spec"]
@@ -571,7 +605,7 @@ def test_stalwart_idp_public_route_serves_oidc_and_jmap_from_mail_instance():
     assert route["spec"]["parentRefs"][0]["sectionName"] == "id-https"
     dns = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public-dns")
     assert dns["spec"]["rules"][0]["host"] == "id.re8ch.com"
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
     paths = {
         match["path"]["value"]
         for rule in route["spec"]["rules"]
@@ -589,7 +623,7 @@ def test_stalwart_collab_alias_remains_available_during_migration():
     assert route["spec"]["hostnames"] == ["collab.tools.re8ch.com"]
     assert next(rule for rule in route["spec"]["rules"] if "backendRefs" in rule)["backendRefs"] == [{"name": "stalwart", "port": 8080}]
     dns = next(item for item in resources if item["metadata"]["name"] == "stalwart-collaboration-public-dns")
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "192.0.2.138"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
 
 
 def test_stalwart_admin_uses_an_isolated_hostname_and_management_paths():
@@ -667,7 +701,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "service.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."
     ]
     assert values["dns"]["nameserversConfigMap"] == "public-edge-nameservers"
-    assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://192.0.2.116:6443", "https://192.0.2.178:6443"]
+    assert values["workload"]["kubernetesApiFallbackUrls"] == ["https://10.250.0.1:6443", "https://10.181.22.128:6443"]
     assert values["workload"]["maxUnavailable"] == 2
     assert values["discovery"]["excludedNodeNames"] == ["overseas-kl", "overseas-la", "overseas-la-2"]
     assert values["discovery"]["addressZones"] == ["api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"]
@@ -677,7 +711,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     assert values["discovery"]["dnsPolicy"] == "None"
     assert values["discovery"]["dnsNameservers"] == ["1.1.1.1", "8.8.8.8"]
     assert set(values["dns"]["axfrZones"]) == {"auth.re8ch.com.", "service.re8ch.com.", "api.re8ch.com.", "db-ro.re8ch.com.", "db-rw.re8ch.com.", "functions.re8ch.com.", "test.re8ch.com."}
-    assert set(values["dns"]["axfrAllowedCidrs"]) == {"192.0.2.192/32", "192.0.2.62/32", "192.0.2.197/32", "192.0.2.86/32", "192.0.2.192/32"}
+    assert set(values["dns"]["axfrAllowedCidrs"]) == {"216.218.133.2/32", "124.220.77.50/32", "47.103.114.218/32", "101.34.217.95/32", "1.14.174.244/32"}
     assert values["bundlePublisher"] == {
         "enabled": False,
         "nodeName": "",
@@ -686,7 +720,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "hmacSecretName": "",
     }
     router = json.loads((ROOT / "operations/network/manifests/network/public-mesh/routeros-authority.json").read_text())
-    assert router["bundleUrl"] == "http://192.0.2.169:18553/v1/authority-bundle"
+    assert router["bundleUrl"] == "http://192.168.88.251:18553/v1/authority-bundle"
     assert router["bundleDirectory"] == "/state"
     assert "upstreams" not in router and "axfrPrimary" not in router
     root_kustomization = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
@@ -694,7 +728,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     authorities = {item["id"]: item for item in values["discovery"]["externalAuthorities"]}
     assert authorities["routeros-r640"]["enabled"] is False
     assert {"tencent-domain-ex", "aliyun-muaya-lightweight", "tencent-suxunji", "tencent-zan"} <= authorities.keys()
-    assert values["discovery"]["excludedAuthorityNodeNames"] == ["restricted-node-6dc3f140f9", "domain-ex", "muaya-lightweight", "suxunji", "zan", "overseas-la-2"]
+    assert values["discovery"]["excludedAuthorityNodeNames"] == ["r640", "domain-ex", "muaya-lightweight", "suxunji", "zan", "overseas-la-2"]
     assert values["services"]["headlamp.service.re8ch.com."]["service"] == "headlamp-service"
     assert values["dns"]["externalRecords"]["_acme-challenge.service.re8ch.com."][0]["value"] == "_acme-challenge.re8ch.com."
     assert values["dns"]["externalRecords"]["dnshenet-key.service.re8ch.com."][0]["type"] == "TXT"
@@ -704,7 +738,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
     patches = release["spec"]["postRenderers"][0]["kustomize"]["patches"]
     manager_patch = next(item for item in patches if item["target"]["name"] == "public-edge-manager")
     assert "KUBERNETES_SERVICE_HOST" in manager_patch["patch"]
-    assert "192.0.2.242" in manager_patch["patch"]
+    assert "10.250.0.147" in manager_patch["patch"]
     assert "KUBERNETES_SERVICE_PORT_HTTPS" in manager_patch["patch"]
     assert "authorityNodes" not in values and "publicEdges" not in values
     assert values["discovery"]["replicas"] == 2
@@ -728,7 +762,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         "acceptedStatuses": [200],
     }]
     assert values["candidateSelection"]["localNodeBonus"] == 0
-    assert values["routeSnapshot"]["endpoint"] == "https://192.0.2.38:8443/v1/route-snapshot"
+    assert values["routeSnapshot"]["endpoint"] == "https://2.28.106.230:8443/v1/route-snapshot"
     assert values["transferTopology"] == {
         "httpPort": 18081,
         "primary": {
@@ -751,7 +785,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
         if item["kind"] == "Certificate" and item["metadata"]["name"] == "public-edge-hidden-primary"
     )
     assert primary_certificate["spec"]["dnsNames"] == ["hidden-primary.service.re8ch.com"]
-    assert primary_certificate["spec"]["ipAddresses"] == ["192.0.2.38"]
+    assert primary_certificate["spec"]["ipAddresses"] == ["2.28.106.230"]
     assert values["fabricEvidence"] == {
         "mode": "Required",
         "apiGroup": "networking.re8ch.com",
