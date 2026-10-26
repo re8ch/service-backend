@@ -106,6 +106,7 @@ def test_baseline_lookup_falls_back_without_gh(monkeypatch):
 
 def test_workflows_publish_only_main_and_force_full_ignores_evidence():
     full = yaml.safe_load((ROOT / ".github/workflows/full-regression.yml").read_text())
+    assert any("python -m pytest -q" in step.get("run", "") for step in full["jobs"]["regression"]["steps"])
     upload = full["jobs"]["regression"]["steps"][-1]
     assert "refs/heads/main" in upload["if"]
     ci = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())

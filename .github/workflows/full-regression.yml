@@ -23,7 +23,7 @@ jobs:
           python tests/validate_schemas.py
           python operations/scripts/validate-r640-public-authority.py
           python tests/check_no_plaintext_secrets.py
-          pytest -q
+          python -m pytest -q
       - name: Render every owned Kustomize root
         run: |
           python operations/ci/impact.py --full --path README.md > "$RUNNER_TEMP/plan.json"
