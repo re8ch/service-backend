@@ -34,8 +34,8 @@ def manifests(release: dict) -> list[dict]:
     if release["module"] not in owned:
         raise ValueError("release module has no reviewed Kustomize owner")
     bundle = release["bundle"]
-    if bundle["signature"] != "cosign-keyless":
-        raise ValueError("only reviewed GitHub OIDC keyless bundles are supported for automatic promotion")
+    if bundle["signature"] not in {"github-attestation", "cosign-keyless"}:
+        raise ValueError("only reviewed GitHub OIDC bundles are supported for automatic promotion")
     if not bundle["identity"].startswith("https://github.com/re8ch/"):
         raise ValueError("bundle signer must belong to the reviewed re8ch organization")
     publisher = approved_publishers().get(release["module"])
@@ -51,14 +51,15 @@ def manifests(release: dict) -> list[dict]:
     source = {
         "apiVersion": "source.toolkit.fluxcd.io/v1", "kind": "OCIRepository",
         "metadata": metadata,
-        "spec": {
-            "interval": "1m", "url": bundle["url"], "ref": {"digest": bundle["digest"]},
-            "verify": {"provider": "cosign", "matchOIDCIdentity": [{
-                "issuer": "^" + re.escape(bundle["issuer"]) + "$",
-                "subject": "^" + re.escape(bundle["identity"]) + "$",
-            }]},
-        },
+        "spec": {"interval": "1m", "url": bundle["url"], "ref": {"digest": bundle["digest"]}},
     }
+    if bundle["signature"] == "cosign-keyless":
+        source["spec"]["verify"] = {"provider": "cosign", "matchOIDCIdentity": [{
+            "issuer": "^" + re.escape(bundle["issuer"]) + "$",
+            "subject": "^" + re.escape(bundle["identity"]) + "$",
+        }]}
+    else:
+        metadata["annotations"]["delivery.re8ch.com/attestation"] = "github-native"
     reconciliation = {
         "apiVersion": "kustomize.toolkit.fluxcd.io/v1", "kind": "Kustomization",
         "metadata": metadata,
