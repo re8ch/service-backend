@@ -35,6 +35,7 @@ spec:
     - commerce-postgrest-ro
     - commerce-postgrest-rw
     - commerce-public-api
+    - commerce-user-data-ro
     - hyperswitch-control-center-public
     - hyperswitch-router-public
     - hyperswitch-superposition-local-key
@@ -47,12 +48,15 @@ spec:
     - payment-postgrest-ro
     - payment-postgrest-rw
     - re8ch-catalog
-    - re8ch-catalog-public
+    - re8ch-catalog-db-ro
+    - re8ch-catalog-db-rw
     - re8ch-payment-registry-auth-center
+    - re8ch-payment-registry-db-ro
+    - re8ch-payment-registry-db-rw
     - re8ch-payment-registry-public
     allowClusterScoped: false
   inventory:
-    digest: sha256:ee65067de8ef6ec5a9b0493ddc2e41048d135ede16c74b9a48f742f17f384c99
+    digest: sha256:21c22ac3e386b7119e18b8eb6bbee5c38c0adaa42479db126896451a1423d090
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -82,11 +86,15 @@ spec:
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-db-ro
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-public-api
+    - gateway.networking.k8s.io/HTTPRoute/payments/commerce-user-data-ro
     - gateway.networking.k8s.io/HTTPRoute/payments/hyperswitch-control-center-public
     - gateway.networking.k8s.io/HTTPRoute/payments/hyperswitch-router-public
     - gateway.networking.k8s.io/HTTPRoute/payments/hyperswitch-web-public
     - gateway.networking.k8s.io/HTTPRoute/payments/payment-postgrest-ro
     - gateway.networking.k8s.io/HTTPRoute/payments/payment-postgrest-rw
-    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-catalog-public
+    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-catalog-db-ro
+    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-catalog-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-auth-center
+    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-ro
+    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-public
