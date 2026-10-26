@@ -46,6 +46,16 @@ always_tests:
   - tests/test_live_domain_sources.py
   - tests/test_domain_reconcilers.py
 
+# Repository tools that validate or compile desired state but do not own a
+# deployable Kustomize root. Keeping these mappings explicit lets CI run their
+# contract tests without treating the path as an unknown, repository-wide risk.
+focused_suites:
+  domain-publication:
+    paths:
+      - operations/releases/domain_publish.py
+    tests:
+      - tests/test_domain_publication.py
+
 domains:
   control-plane:
     theme: constellations
