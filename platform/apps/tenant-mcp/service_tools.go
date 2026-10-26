@@ -66,6 +66,15 @@ func providerBindings(instances []any, tenant, ref string) []map[string]any {
 		serviceClass := asString(spec, "serviceClass")
 		resourceRef := "service://" + tenant + "/" + name
 		credentialRef := asString(status, "humanCredentialRef")
+		// Machine Harbor plans publish their broker reference under status.access,
+		// not status.humanCredentialRef. Prefer that reference so callers do not
+		// create a generic access:// binding that runtime-image tools cannot use.
+		if serviceClass == "registry.harbor.v1" {
+			credentialRef = asString(object(status["access"]), "robotCredentialRef")
+			if credentialRef == "" {
+				credentialRef = asString(status, "humanCredentialRef")
+			}
+		}
 		provider := map[string]string{"registry.harbor.v1": "harbor", "observability.grafana.v1": "grafana"}[serviceClass]
 		if asString(spec, "tenantRef") != tenant || provider == "" || name == "" || uid == "" ||
 			status["phase"] != "Ready" || (ref != "" && ref != resourceRef) ||
