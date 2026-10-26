@@ -66,6 +66,20 @@ def test_changed_test_is_not_silently_skipped():
     assert "tests/test_pipeline_archive.py" in impact.select(["tests/test_pipeline_archive.py"])["tests"]
 
 
+def test_focused_repository_tool_does_not_expand_to_full_regression():
+    plan = impact.select([
+        "operations/releases/domain_publish.py",
+        "tests/test_domain_publication.py",
+    ])
+    assert plan["focused_suites"] == ["domain-publication"]
+    assert plan["domains"] == []
+    assert plan["roots"] == []
+    assert plan["risky_unknown"] == []
+    assert plan["run"]
+    assert not plan["full"]
+    assert set(plan["tests"]) == set(impact.load_catalog()["always_tests"])
+
+
 def test_control_plane_workflow_has_one_stable_aggregate_gate():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
     jobs = workflow["jobs"]

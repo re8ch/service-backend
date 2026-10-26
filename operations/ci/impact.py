@@ -103,6 +103,7 @@ def load_catalog() -> dict:
 def select(paths: list[str], full: bool = False) -> dict:
     catalog = load_catalog()
     domains = catalog["domains"]
+    focused_suites = catalog.get("focused_suites", {})
     ci_metadata_paths = catalog.get("ci_metadata_paths", [])
     release_roots = {root.replace("/", "-") + ".yaml": root for config in domains.values() for root in config["roots"]}
     mapped = []
@@ -135,6 +136,11 @@ def select(paths: list[str], full: bool = False) -> dict:
         for config in domains.values()
         for pattern in config["paths"]
     ) or any(matches(path, pattern) for pattern in catalog["shared_paths"]) \
+        or any(
+            matches(path, pattern)
+            for config in focused_suites.values()
+            for pattern in config["paths"]
+        ) \
         or any(matches(path, pattern) for pattern in ci_metadata_paths)
     risky_unknown = [
         path for path in paths
@@ -150,6 +156,13 @@ def select(paths: list[str], full: bool = False) -> dict:
         if path.startswith("tests/test_") and path.endswith(".py") and (ROOT / path).is_file()
     ]
     tests = list(catalog["always_tests"])
+    selected_suites = sorted(
+        name
+        for name, config in focused_suites.items()
+        if any(matches(path, pattern) for path in paths for pattern in config["paths"])
+    )
+    for name in selected_suites:
+        tests.extend(focused_suites[name]["tests"])
     roots: list[str] = []
     submodules: list[str] = []
     for name in sorted(selected):
@@ -166,6 +179,7 @@ def select(paths: list[str], full: bool = False) -> dict:
 
     result = {
         "domains": sorted(selected),
+        "focused_suites": selected_suites,
         "tests": sorted(set(tests)),
         "roots": sorted(set(roots)),
         "submodules": sorted(set(submodules)),
