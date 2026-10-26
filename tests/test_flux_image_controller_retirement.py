@@ -1,4 +1,3 @@
-import subprocess
 from pathlib import Path
 
 import yaml
@@ -9,9 +8,8 @@ YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_unused_image_controllers_render_at_zero_replicas():
-    rendered = subprocess.check_output(["kubectl", "kustomize", "clusters/re8ch"], cwd=ROOT)
-    objects = list(yaml.load_all(rendered, Loader=YAML_SAFE_LOADER))
+def test_unused_image_controllers_render_at_zero_replicas(kustomize_documents):
+    objects = kustomize_documents("clusters/re8ch", kubectl=True)
     deployments = {
         item["metadata"]["name"]: item
         for item in objects

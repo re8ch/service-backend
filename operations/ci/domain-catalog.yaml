@@ -22,6 +22,8 @@ shared_paths:
   - clusters/re8ch/secrets/infrastructure-contracts.sops.yaml
   - clusters/re8ch/secrets/cluster-node-inventory.sops.yaml
   - clusters/re8ch/secrets/ai-operations-inventory.sops.yaml
+  - tests/conftest.py
+  - tests/kustomize_render.py
   - tests/validate_schemas.py
   - clusters/re8ch/kustomization.yaml
   - clusters/re8ch/domain-sources/kustomization.yaml

@@ -73,9 +73,10 @@ def test_network_change_is_incremental():
 
 
 def test_shared_ci_change_fails_safe_to_full():
-    plan = impact.select(["operations/ci/impact.py"])
-    assert plan["full"]
-    assert len(plan["domains"]) == len(impact.load_catalog()["domains"])
+    for path in ("operations/ci/impact.py", "tests/conftest.py", "tests/kustomize_render.py"):
+        plan = impact.select([path])
+        assert plan["full"], path
+        assert len(plan["domains"]) == len(impact.load_catalog()["domains"])
 
 
 def test_domain_workflow_change_does_not_expand_to_every_domain():
