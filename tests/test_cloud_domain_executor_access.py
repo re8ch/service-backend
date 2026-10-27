@@ -8,7 +8,7 @@ PATH = ROOT / 'clusters/re8ch/components/ops/github-actions-cloud-domains-execut
 def test_cloud_domain_adoption_is_named_and_non_destructive():
     docs = list(yaml.safe_load_all(PATH.read_text()))
     states = [d for d in docs if d['kind'] == 'ConfigMap']
-    assert len(states) == 77
+    assert len(states) == 80
     for d in docs:
         if d['kind'] == 'ConfigMap':
             assert 'data' not in d
@@ -70,3 +70,26 @@ def test_transferred_domain_authority_has_no_old_writer_overlap():
         assert ('', 'configmaps', name) not in edge
     for name in ('public-edge-manager', 'public-edge-manager-records'):
         assert ('', 'configmaps', name) in edge
+
+
+def test_new_identity_adoption_targets_are_exact_and_group_bound():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    by_name = {(d['kind'], d['metadata']['name']): d for d in docs}
+    pg = by_name['Role', 'identity-access-domain-supabase-pg-re8ch']
+    assert pg['metadata']['namespace'] == 'supabase-pg-re8ch'
+    assert pg['rules'] == [
+        {'apiGroups': ['apps'], 'resources': ['deployments'], 'resourceNames': ['supabase-rest'], 'verbs': ['get', 'patch', 'update']},
+        {'apiGroups': [''], 'resources': ['configmaps'], 'resourceNames': ['ssa-state-identity-access-domain-supabase-pg-re8ch'], 'verbs': ['get', 'patch', 'update']},
+    ]
+    for name in ('identity-access-domain-payments', 'identity-access-domain-supabase-pg-re8ch'):
+        binding = by_name['RoleBinding', name]
+        assert binding['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group', 'name': 're8ch:release-executor:identity-access'}]
+
+
+def test_litellm_adoption_has_only_five_runtime_objects_plus_state():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'agent-runtime-domain-llm-gateway')
+    names = {(resource, name) for rule in role['rules'] for resource in rule['resources'] for name in rule['resourceNames']}
+    assert names == {('deployments', 'litellm'), ('deployments', 'litellm-postgresql'),
+                     ('configmaps', 'litellm-config'), ('configmaps', 'ssa-state-agent-runtime-domain-llm-gateway'),
+                     ('services', 'litellm'), ('services', 'litellm-postgresql')}

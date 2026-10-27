@@ -6613,3 +6613,226 @@ subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
   name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-payments
+  namespace: payments
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-payments
+  namespace: payments
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - commerce-postgrest-ro
+  - commerce-postgrest-rw
+  - hyperswitch-web
+  - payment-postgrest
+  - payment-postgrest-ro
+  - re8ch-catalog
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - hyperswitch-superposition-schema
+  - hyperswitch-superposition-seed
+  - ssa-state-identity-access-domain-payments
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - hyperswitch-superposition-local-key
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - commerce-api
+  - commerce-postgrest-ro
+  - commerce-postgrest-rw
+  - hyperswitch-web
+  - nuclio-payment-registry-api
+  - payment-postgrest
+  - payment-postgrest-ro
+  - re8ch-catalog
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - commerce-db-ro
+  - commerce-db-rw
+  - commerce-public-api
+  - hyperswitch-control-center-public
+  - hyperswitch-router-public
+  - hyperswitch-web-public
+  - payment-postgrest-ro
+  - payment-postgrest-rw
+  - re8ch-catalog-public
+  - re8ch-payment-registry-auth-center
+  - re8ch-payment-registry-public
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-payments
+  namespace: payments
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-payments
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - supabase-rest
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-supabase-pg-re8ch
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-supabase-pg-re8ch
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-llm-gateway
+  namespace: llm-gateway
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-llm-gateway
+  namespace: llm-gateway
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - litellm
+  - litellm-postgresql
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - litellm-config
+  - ssa-state-agent-runtime-domain-llm-gateway
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - litellm
+  - litellm-postgresql
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-llm-gateway
+  namespace: llm-gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-llm-gateway
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
