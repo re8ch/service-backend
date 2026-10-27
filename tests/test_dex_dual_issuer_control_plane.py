@@ -39,6 +39,10 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-executor-ceph-infra',
         'https://kube-api.re8ch.com/release-executor-ceph-runtime',
         'https://kube-api.re8ch.com/release-artifact-publisher',
+        'https://kube-api.re8ch.com/release-reconciler-data-storage',
+        'https://kube-api.re8ch.com/release-reconciler-commerce-billing',
+        'https://kube-api.re8ch.com/release-reconciler-operations-ui',
+        'https://kube-api.re8ch.com/release-reconciler-tenant-runtime',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
     public_rule, runner_rule = github['claimValidationRules'][:2]
@@ -142,3 +146,21 @@ def test_mubao_k3s_start_gate_keeps_oidc_discovery_on_internal_gateway():
     ).read_text()
     assert '10.251.0.4 db-rw.re8ch.com' in gate
     assert 'OIDC discovery via authoritative Cilium Gateway' in gate
+
+
+def test_replay_identity_is_bound_to_reviewed_hosted_workflow():
+    config = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())
+    github = next(j for j in config['jwt'] if j['issuer']['url'] == 'https://token.actions.githubusercontent.com')
+    for rule in github['claimValidationRules']:
+        route = rule['expression'].rsplit('|| (claims.repository_visibility', 1)[-1]
+        assert "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-reconcile.yml@refs/heads/main'" in route
+        assert "claims.repository_id == '1367237854'" in route
+        assert "claims.ref == 'refs/heads/main'" in route
+        assert "claims.aud == 'https://kube-api.re8ch.com/' + claims.environment" in route
+        assert "claims.repository_owner_id == '283958313'" in route
+        assert "claims.runner_environment == 'github-hosted'" in route
+        assert "claims.event_name in ['workflow_dispatch', 'schedule', 'push']" in route
+    for domain in ('data-storage', 'commerce-billing', 'operations-ui', 'tenant-runtime'):
+        audience = 'https://kube-api.re8ch.com/release-reconciler-' + domain
+        assert audience in github['issuer']['audiences']
+        assert audience in github['claimMappings']['groups']['expression']
