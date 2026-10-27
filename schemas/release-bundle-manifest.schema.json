@@ -4,7 +4,7 @@
   "title": "Immutable release bundle manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "releaseId", "renderer", "revision", "contractDigest", "renderedDigest", "inventoryDigest", "inventory", "stages", "objectsFile"],
+  "required": ["schemaVersion", "releaseId", "renderer", "revision", "contractDigest", "renderedDigest", "inventoryDigest", "inventory", "objectsFile"],
   "properties": {
     "schemaVersion": {"const": "delivery.re8ch.com/release-bundle/v1alpha1"},
     "releaseId": {"type": "string", "minLength": 1},
@@ -15,6 +15,7 @@
     "inventoryDigest": {"$ref": "#/$defs/digest"},
     "inventory": {"type": "array", "minItems": 1, "items": {"type": "string"}},
     "stages": {
+      "description": "New compilers emit stages. Previously signed v1alpha1 bundles omit this field and execute their complete inventory as one runtime stage.",
       "type": "array", "minItems": 1,
       "items": {
         "type": "object", "required": ["name", "inventory"], "additionalProperties": false,

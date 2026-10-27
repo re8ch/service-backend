@@ -1,0 +1,8 @@
+{
+  "main-data-storage-cloud-disk": {
+    "fromContractDigest": "sha256:01e60c94c35f4a6685bf369bac0ecf344338503dddb7d2b1dca2c8aad518ee65",
+    "toContractDigest": "sha256:1f457f6b18696aa1eeb35b07d202551b7091b0c0dad5fef6b5fe5cc3cea6b36f",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-cloud-disk",
+    "bundleDigest": "sha256:2ebc979731bb6ada7411461c96e70db26d4ad08902dcb8bb3d6f9851b4a93144"
+  }
+}
