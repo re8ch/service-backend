@@ -43,6 +43,7 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-reconciler-commerce-billing',
         'https://kube-api.re8ch.com/release-reconciler-operations-ui',
         'https://kube-api.re8ch.com/release-reconciler-tenant-runtime',
+        'https://kube-api.re8ch.com/release-reconciler-networking',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
     public_rule, runner_rule = github['claimValidationRules'][:2]
@@ -164,3 +165,25 @@ def test_replay_identity_is_bound_to_reviewed_hosted_workflow():
         audience = 'https://kube-api.re8ch.com/release-reconciler-' + domain
         assert audience in github['issuer']['audiences']
         assert audience in github['claimMappings']['groups']['expression']
+
+
+def test_network_replay_has_exact_identity_and_existing_permission_group():
+    github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
+    for rule in github['claimValidationRules']:
+        branches = rule['expression'].split('|| (claims.repository_visibility')
+        branch = next(b for b in branches if 'networking-reconcile.yml' in b)
+        for constraint in [
+            "claims.repository_id == '1435935851'",
+            "claims.repository_owner_id == '334604858'",
+            "claims.repository == 'pillars-infra/network-gitops'",
+            "claims.ref == 'refs/heads/main'",
+            "claims.runner_environment == 'github-hosted'",
+            "claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/networking-reconcile.yml@refs/heads/main'",
+            "claims.environment == 'release-reconciler-networking'",
+            "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking'",
+            "claims.event_name in ['workflow_dispatch', 'schedule', 'push']",
+        ]:
+            assert constraint in branch
+        assert 'static-release.yml' not in branch
+    assert "'github-actions:release-reconciler-networking:' + claims.run_id" in github['claimMappings']['username']['expression']
+    assert "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? ['re8ch:release-executor:networking']" in github['claimMappings']['groups']['expression']

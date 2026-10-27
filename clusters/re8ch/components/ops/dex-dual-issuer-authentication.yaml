@@ -34,6 +34,7 @@ jwt:
         - https://kube-api.re8ch.com/release-reconciler-commerce-billing
         - https://kube-api.re8ch.com/release-reconciler-operations-ui
         - https://kube-api.re8ch.com/release-reconciler-tenant-runtime
+        - https://kube-api.re8ch.com/release-reconciler-networking
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - expression: >-
@@ -70,6 +71,16 @@ jwt:
            claims.environment == 'release-executor-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')))
+          || (claims.repository_visibility == 'public' &&
+           claims.repository_id == '1435935851' &&
+           claims.repository_owner_id == '334604858' &&
+           claims.repository == 'pillars-infra/network-gitops' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.runner_environment == 'github-hosted' &&
+           claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/networking-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           claims.environment == 'release-reconciler-networking' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking')
           || (claims.repository_visibility == 'public' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
@@ -114,6 +125,16 @@ jwt:
            claims.environment == 'release-executor-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')))
+          || (claims.repository_visibility == 'public' &&
+           claims.repository_id == '1435935851' &&
+           claims.repository_owner_id == '334604858' &&
+           claims.repository == 'pillars-infra/network-gitops' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.runner_environment == 'github-hosted' &&
+           claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/networking-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           claims.environment == 'release-reconciler-networking' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking')
           || (claims.repository_visibility == 'public' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
@@ -217,6 +238,16 @@ jwt:
            claims.environment == 'release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')
           || (claims.repository_visibility == 'public' &&
+           claims.repository_id == '1435935851' &&
+           claims.repository_owner_id == '334604858' &&
+           claims.repository == 'pillars-infra/network-gitops' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.runner_environment == 'github-hosted' &&
+           claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/networking-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           claims.environment == 'release-reconciler-networking' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking')
+          || (claims.repository_visibility == 'public' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
            claims.repository == 're8ch/service-backend' &&
@@ -230,6 +261,7 @@ jwt:
     claimMappings:
       username:
         expression: >-
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? 'github-actions:release-reconciler-networking:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? 'github-actions:release-reconciler-data-storage:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? 'github-actions:release-reconciler-commerce-billing:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? 'github-actions:release-reconciler-operations-ui:' + claims.run_id :
@@ -263,6 +295,7 @@ jwt:
                                   : 'github-actions:release-artifact-publisher:' + claims.run_id
       groups:
         expression: >-
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? ['re8ch:release-executor:networking'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? ['re8ch:release-executor:data-storage'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? ['re8ch:release-executor:commerce-billing'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? ['re8ch:release-executor:operations-ui'] :
