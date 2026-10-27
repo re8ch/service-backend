@@ -64,3 +64,17 @@ def test_generated_access_matches_current_authorities_and_cannot_read_secrets():
             assert rule['verbs']==['get'] and rule['resourceNames']
             assert set(rule['resources']) <= {'configmaps','deployments','statefulsets','daemonsets'}
     assert 'toolkit.fluxcd.io' not in json.dumps(docs)
+
+
+def test_blocked_state_never_claims_synchronized_from_old_complete_result():
+    assert collect.sync_state({'blocked':True},{'application':{'status':'complete'}},{'status':'succeeded','observedAt':None})=='failed'
+
+
+def test_old_run_rerun_is_selected_by_update_not_creation(monkeypatch):
+    monkeypatch.setenv('AGENT_OBSERVER_TOKEN','PRIVATE')
+    runs=[{'id':1,'created_at':'2026-10-20T00:00:00Z','updated_at':'2026-10-28T02:00:00Z','status':'completed','conclusion':'failure'},
+          {'id':2,'created_at':'2026-10-28T00:00:00Z','updated_at':'2026-10-28T01:00:00Z','status':'completed','conclusion':'success'}]
+    monkeypatch.setattr(collect,'request_json',lambda *args: {'total_count':2,'workflow_runs':runs})
+    assert collect.operation('agent-runtime')['status']=='failed'
+    monkeypatch.setattr(collect,'request_json',lambda *args: {'total_count':1001,'workflow_runs':runs})
+    assert collect.operation('agent-runtime')=={'status':'unknown','observedAt':None}

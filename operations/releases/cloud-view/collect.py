@@ -35,14 +35,14 @@ def sync_state(accepted, result, operation):
     latest = max(epoch(result.get('finishedAt')), epoch(accepted.get('updatedAt')))
     if operation['status'] == 'unknown' or (operation['status'] in ('failed', 'running') and epoch(operation['observedAt']) > latest):
         return 'unknown'
+    if accepted.get('blocked'):
+        return 'failed'
     if result.get('application', {}).get('status') == 'complete':
         return 'synced'
     if result.get('outcome') == 'failed':
         return 'failed'
     if result.get('outcome') == 'rolled-back':
         return 'drifted'
-    if accepted.get('blocked'):
-        return 'failed'
     if result.get('outcome') == 'healthy' and result.get('observedDigest') == result.get('approvedDigest') and result.get('observedDigest'):
         return 'synced'
     return 'unknown'
@@ -77,11 +77,22 @@ def operation(domain):
     try:
         runs = []
         for workflow in workflows:
-            data = request_json(f'https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs?branch=main&per_page=1', token)
-            runs += data['workflow_runs']
+            base = f'https://api.github.com/repos/{repo}/actions/workflows/{workflow}/runs?branch=main&per_page=100'
+            data = request_json(base, token)
+            total = data['total_count']
+            # Reruns keep created_at. Read the complete bounded history rather than
+            # selecting the newest-created run and silently missing an old rerun.
+            if total > 1000:
+                return unknown
+            history = data['workflow_runs']
+            for page in range(2, (total+99)//100+1):
+                history += request_json(base+f'&page={page}', token)['workflow_runs']
+            if len({r['id'] for r in history}) != total:
+                return unknown
+            runs += history
         if not runs:
             return unknown
-        latest = max(runs, key=lambda r: epoch(r['created_at']))
+        latest = max(runs, key=lambda r: epoch(r['updated_at']))
         state = 'running' if latest['status'] != 'completed' else ('succeeded' if latest['conclusion'] == 'success' else 'failed')
         return {'status': state, 'observedAt': latest['updated_at']}
     except Exception:
