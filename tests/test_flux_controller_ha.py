@@ -25,7 +25,7 @@ def test_flux_core_controllers_use_kl_r640_active_standby(kustomize_documents):
     }
     for name in {"helm-controller", "notification-controller"}:
         deployment = deployments[name]
-        assert deployment["spec"]["replicas"] == 2
+        assert deployment["spec"]["replicas"] == 0
         assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -53,7 +53,7 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "kustomize-controller"
     )
-    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["replicas"] == 0
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -84,7 +84,7 @@ def test_source_controller_uses_kl_r640_scheduler_failover(kustomize_documents):
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "source-controller"
     )
-    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["replicas"] == 0
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -138,3 +138,37 @@ def test_root_kustomization_allows_slow_artifact_delivery():
     sync = list(yaml.load_all((CLUSTER / "flux-system/gotk-sync.yaml").read_text(), Loader=YAML_SAFE_LOADER))
     root = next(item for item in sync if item["kind"] == "Kustomization")
     assert root["spec"]["timeout"] == "20m"
+
+
+"""Retire local GitOps writers without removing their workloads or history."""
+CONTROLLERS = {'source-controller', 'kustomize-controller', 'helm-controller',
+               'notification-controller', 'image-reflector-controller', 'image-automation-controller'}
+
+
+def test_all_five_flux_stacks_are_dormant(kustomize_documents):
+    docs = kustomize_documents('clusters/re8ch')
+    controllers = [d for d in docs if d.get('kind') == 'Deployment'
+                   and d['metadata']['name'] in CONTROLLERS
+                   and d['metadata'].get('namespace', '').startswith('flux-')]
+    assert {d['metadata']['namespace'] for d in controllers} == {
+        'flux-system', 'flux-agent-system', 'flux-identity-system',
+        'flux-network-system', 'flux-observability-system'}
+    assert all(d['spec']['replicas'] == 0 for d in controllers)
+    assert any(d.get('kind') == 'CustomResourceDefinition'
+               and d['metadata']['name'] == 'helmreleases.helm.toolkit.fluxcd.io' for d in docs)
+
+
+def test_root_cannot_reactivate_or_prune_legacy_owners(kustomize_documents):
+    docs = kustomize_documents('clusters/re8ch')
+    owners = [d for d in docs if d.get('apiVersion', '').split('/')[0] in {
+        'kustomize.toolkit.fluxcd.io', 'helm.toolkit.fluxcd.io'}
+        and d.get('kind') in {'Kustomization', 'HelmRelease'}]
+    assert owners
+    for d in owners:
+        assert d['spec']['suspend'] is True
+        if d['kind'] == 'Kustomization':
+            assert d['spec']['prune'] is False
+    # Flux retirement must not scale unrelated runtime controllers.
+    for d in docs:
+        if d.get('kind') == 'Deployment' and d['metadata']['name'] not in CONTROLLERS:
+            assert d['metadata'].get('namespace') not in {'flux-agent-system', 'flux-network-system', 'flux-identity-system', 'flux-observability-system'} or d['spec'].get('replicas', 1) != 0

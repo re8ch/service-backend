@@ -2,11 +2,11 @@ version: 1
 
 # Runtime authority is selected from product behavior, not from where its YAML
 # happens to live today.  Externally consumed, frequently changing products use
-# an authenticated release or business API.  Flux retains only platform
-# guardrails and slow-moving infrastructure.
+# an authenticated release or business API.  Cloud SSA also adopts platform guardrails and infrastructure. Legacy inventory
+# remains recorded while local Flux is stopped.
 selectionPolicy:
   externalAndFastChanging: product-runtime
-  platformInfrastructure: flux
+  platformInfrastructure: cloud-ssa
   businessState: application-api
 
 authorities:
@@ -21,6 +21,7 @@ authorities:
       - commerce API image rollout
       - payment-channel availability and catalog state
       - checkout behavior and provider adapters
+    # Legacy platform inventory awaiting or undergoing cloud adoption.
     fluxOwned:
       - namespace and workload security policy
       - Secret references and emergency platform brake
@@ -38,6 +39,7 @@ authorities:
       - auth gateway and user-facing identity runtime releases
       - provider enablement and user lifecycle business state
       - User Hub release cadence
+    # Legacy platform inventory awaiting or undergoing cloud adoption.
     fluxOwned:
       - namespace, quotas, NetworkPolicy and RBAC
       - encrypted Secret material and Secret references
@@ -55,6 +57,7 @@ authorities:
       - signed chart and session-router releases
       - MCP publication, distribution and compatibility contracts
       - product-owned rollout and rollback
+    # Legacy platform inventory awaiting or undergoing cloud adoption.
     fluxOwned:
       - namespace, quota, NetworkPolicy and bounded RBAC
       - shared OIDC issuer, Gateway and certificate authority
@@ -62,8 +65,10 @@ authorities:
     cutoverGate: authenticated product release publisher
 
 cutoverRules:
-  - Never suspend or remove an active Flux owner before an explicit replacement
-    owner has adopted the same immutable revision and a rollback point exists.
+  - During the authorized construction cutover, freeze local Flux writers after
+    preserving their inventories and release history. Missing cloud coverage is
+    tracked explicitly and repaired through the cloud API path; do not restart
+    Flux merely because a resource has not yet been adopted.
   - A product publisher must use short-lived identity, immutable signed
     artifacts, a namespace/resource allowlist, server-side apply ownership and
     append-only release evidence.

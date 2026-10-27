@@ -315,3 +315,39 @@ patches:
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --concurrent=4
+
+# Cloud GitOps cutover: retain objects and controller configuration, stop local writers.
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: (source-controller|kustomize-controller|helm-controller|notification-controller|image-reflector-controller|image-automation-controller)
+    namespace: flux-.*
+  patch: |-
+    - op: add
+      path: /spec/replicas
+      value: 0
+- target:
+    group: kustomize.toolkit.fluxcd.io
+    kind: Kustomization
+  patch: |-
+    - op: add
+      path: /spec/suspend
+      value: true
+    - op: add
+      path: /spec/prune
+      value: false
+- target:
+    group: helm.toolkit.fluxcd.io
+    kind: HelmRelease
+  patch: |-
+    - op: add
+      path: /spec/suspend
+      value: true
+- target:
+    group: source.toolkit.fluxcd.io
+    kind: (GitRepository|OCIRepository|HelmRepository|Bucket)
+  patch: |-
+    - op: add
+      path: /spec/suspend
+      value: true

@@ -6,10 +6,10 @@ spec:
   # These execution profiles apply only to the remaining SSA contracts.
   # Native ownership and autonomous controller boundaries live in the existing
   # federation ledger; do not infer an SSA writer from a profile's presence.
-  desiredState: signed-git-native-flux-with-reviewed-ssa-exceptions
+  desiredState: signed-git-cloud-ssa
   nativeAuthorityRef: operations/flux-federation/authority.yaml
   runtimeAuthority: kubernetes
-  compatibilityMode: native-inventory-for-flux-owned-resources
+  compatibilityMode: frozen-legacy-inventory-during-cloud-adoption
   protectedEnvironmentPolicy:
     requiredReviewers: [Woomou]
     preventSelfReview: false
