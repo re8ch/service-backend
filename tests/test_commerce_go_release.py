@@ -15,4 +15,6 @@ def test_commerce_release_uses_rotated_domain_registry_identity():
     assert "docker/setup-buildx-action" not in workflow
     assert "docker buildx version" in workflow
     assert 'printf \'{}\\n\' > "$DOCKER_CONFIG/config.json"' in workflow
+    assert 'ln -s "${HOME}/.docker/cli-plugins/docker-buildx" "$DOCKER_CONFIG/cli-plugins/docker-buildx"' in workflow
     assert 'rm -f "$DOCKER_CONFIG/config.json"' in workflow
+    assert 'rm -f "$DOCKER_CONFIG/cli-plugins/docker-buildx"' in workflow
