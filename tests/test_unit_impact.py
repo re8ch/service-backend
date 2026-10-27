@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
     ("operations/releases/domain_publish.py", {"domain_publication"}),
     ("operations/releases/allocate_codename.py", {"release_codenames", "domain_publication", "live_domain_sources"}),
     ("operations/flux-lightweight/inventory.py", {"flux_lightweight_inventory", "native_yaml_loader"}),
-    ("tests/kustomize_render.py", {"kustomize_render", "flux_controller_ha", "flux_fast_reconcile", "flux_image_controller_retirement"}),
+    ("tests/kustomize_render.py", {"kustomize_render", "flux_controller_ha", "flux_fast_reconcile", "flux_image_controller_retirement", "flux_retirement"}),
 ])
 def test_known_tools_select_all_declared_consumers_without_global_fallback(path, expected):
     plan = impact.select([path])

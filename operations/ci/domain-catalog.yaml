@@ -469,6 +469,23 @@ validation_units:
     helpers: []
     tools: []
     reuse: candidate
+  tests/test_flux_retirement.py:
+    sources:
+    - operations/releases/promote_release_compat.py
+    data:
+    - operations/releases/flux-retirement-inventory.json
+    - .github/workflows/release-compat-controller.yml
+    helpers:
+    - tests/kustomize_render.py
+    - operations/ci/render_evidence.py
+    tools:
+    - kubectl
+    - kustomize
+    reuse: candidate
+    roots:
+    - clusters/re8ch
+    - clusters/re8ch/flux-federation
+    - clusters/re8ch/components/release-compat
   tests/test_flux_controller_ha.py:
     sources: []
     data: []
