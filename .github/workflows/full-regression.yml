@@ -9,22 +9,32 @@ permissions: {contents: read}
 concurrency: {group: full-regression, cancel-in-progress: false}
 jobs:
   regression:
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: git submodule update --init catalogs/platform/modules/connectool/source
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with: {version: v4.2.3}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with: {node-version: '24'}
+      - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
+        with: {kustomize-version: '5.7.1'}
       - uses: ./.github/actions/setup-native-yaml
-      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1'
+      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1' 'cryptography==50.0.2'
       - run: |
           python operations/releases/compile_domain_bundles.py --check
           python operations/workspace-controller/workspace.py doctor
           python tests/validate_schemas.py
           python operations/scripts/validate-r640-public-authority.py
           python tests/check_no_plaintext_secrets.py
-          python -m pytest -q --durations=20 -p operations.ci.unit_report --unit-report-dir="$RUNNER_TEMP/unit-observation" --junitxml="$RUNNER_TEMP/unit-observation/junit.xml"
+          if [[ "$GITHUB_REF" == "refs/heads/main" && "$GITHUB_EVENT_NAME" != "release" ]]; then
+            python -m operations.ci.unit_baseline --full --output "$RUNNER_TEMP/unit-observation"
+          else
+            python -m pytest -q --durations=20 -p operations.ci.unit_report --unit-report-dir="$RUNNER_TEMP/unit-observation" --junitxml="$RUNNER_TEMP/unit-observation/junit.xml"
+          fi
       - name: Upload full unit execution observations
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -48,5 +58,13 @@ jobs:
         with:
           name: module-render-evidence
           path: ${{ runner.temp }}/module-render-result/evidence.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish refreshed main unit success evidence
+        if: github.ref == 'refs/heads/main' && github.event_name != 'release'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-success-evidence
+          path: ${{ runner.temp }}/unit-observation/evidence.json
           if-no-files-found: error
           retention-days: 14

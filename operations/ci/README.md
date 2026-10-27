@@ -3,7 +3,8 @@
 `domain-catalog.yaml` owns every deployable Kustomize root. A pull request first
 runs `impact.py`, publishes its exact tests and render roots in the Actions
 summary, and then executes only that surface. Main pushes no longer repeat the
-PR test workflow. Secret scanning and the small governance baseline remain
+PR test workflow; a separate [unit success baseline](UNIT-VALIDATION.md) job
+validates impacted units and refreshes bounded main evidence. Secret scanning and the small governance baseline remain
 mandatory for every PR.
 
 | Change | Domain tests / render |
