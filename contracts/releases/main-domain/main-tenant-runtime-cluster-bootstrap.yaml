@@ -73,6 +73,7 @@ spec:
     - vm-20-12-ubuntu
     - zan
     allowClusterScoped: true
+    requireExisting: true
   inventory:
     digest: sha256:b43e5e160cbd3b4aa7f8922cf89ae6009398379ead08b49984fc19ebd3b3bc8c
   lifecycle:
