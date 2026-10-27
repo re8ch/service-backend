@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when a repository workflow can dispatch to a GitHub-hosted runner."""
+"""Keep existing runner policy, with one bounded private-document isolation job."""
 
 from pathlib import Path
 
@@ -21,6 +21,22 @@ def labels(value: object) -> set[str]:
     raise AssertionError(f"unsupported runs-on declaration: {value!r}")
 
 
+def isolated_private_docs(path: Path, job_name: str, document: dict, job: dict) -> bool:
+    # Private Project bodies and the App key must not share the PR build pool.
+    # Keep this exception restricted to the reviewed manual, protected-main job.
+    triggers = document.get('on', document.get(True))
+    return (
+        path == Path('.github/workflows/private-operations-docs.yml')
+        and job_name == 'verify'
+        and job.get('runs-on') == 'ubuntu-latest'
+        and isinstance(triggers, dict) and set(triggers) == {'workflow_dispatch'}
+        and document.get('permissions') == {'contents': 'read'}
+        and job.get('permissions', {'contents': 'read'}) == {'contents': 'read'}
+        and job.get('if') == "github.ref == 'refs/heads/main'"
+        and job.get('environment') == 'gitops-merge'
+    )
+
+
 def main() -> None:
     failures: list[str] = []
     for root in ROOTS:
@@ -34,7 +50,7 @@ def main() -> None:
                 except AssertionError as error:
                     failures.append(f"{path}:{job_name}: {error}")
                     continue
-                if "self-hosted" not in runner_labels:
+                if "self-hosted" not in runner_labels and not isolated_private_docs(path, job_name, document, job):
                     failures.append(
                         f"{path}:{job_name}: must target a self-hosted runner, got "
                         f"{sorted(runner_labels)!r}"
