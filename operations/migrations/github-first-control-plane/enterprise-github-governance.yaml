@@ -34,6 +34,7 @@ spec:
         - cloud-functions
         - delivery-products-gitops
         - identity-gitops
+        - re8ch
         - re8ch-wechat-miniprogram
         - service-backend
         - user-hub
