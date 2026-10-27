@@ -230,6 +230,8 @@ modules:
       digest: sha256:1170189c9d888ff22e21a3bf40ce2f5ec7c8634c089ae28b3ce3f65099bc6cd9
     - codename: bora-violet
       digest: sha256:268475391e98d4ee1fb519962dc927c9b319bee47e8427640968aae5c786b30a
+    - codename: chinook-violet
+      digest: sha256:7b58d10d36b2b26dea4faf76b0cb8aa666f5500427eeb88af3df6658b016c161
   clusters/re8ch/components/personal-access:
     releases:
     - codename: aegis
