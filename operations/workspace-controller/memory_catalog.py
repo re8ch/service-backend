@@ -88,14 +88,14 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     if module.name == "service-backend":
         purpose = "Read the root README and contracts/network-topology/README.md. Production topology is available only through authenticated context."
     if module.catalog == "platform" and re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", purpose):
-        purpose = "Infrastructure details are available through contracts/network-topology/README.md; inspect the authenticated runtime context rather than a copied repository synopsis."
+        purpose = module.name.replace("-", " ").title() + " module. Infrastructure details are available through contracts/network-topology/README.md; inspect the authenticated runtime context rather than a copied repository synopsis."
     if module.catalog == "platform":
         purpose = re.sub(r"\b(?:qwen|qianwen)\b", "tenant workload", purpose, flags=re.IGNORECASE)
     catalog_overview, shared_context = catalog_context(root, module.catalog)
     authority_section = []
     if module.catalog == "platform":
         authority_section = [
-            "## restricted-node-6dc3f140f9 public network authority",
+            "## R640 public network authority",
             "",
             public_authority_context(root),
             "",

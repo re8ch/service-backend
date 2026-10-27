@@ -773,7 +773,7 @@
     "kind": "agent-memory",
     "module": "cloud-functions",
     "ref": "catalogs/platform/modules/cloud-functions/MEMORY.md",
-    "sha256": "b14e1b3c9b25359c0d4ed34daba70eb6c440ff9371cd0401bafdea5101e15b12"
+    "sha256": "528f714ae27a5c32a166cb9380e60cd446d9739ef8d55084577f9a84e6e2edb0"
   },
   {
     "module": "cluster-website",
