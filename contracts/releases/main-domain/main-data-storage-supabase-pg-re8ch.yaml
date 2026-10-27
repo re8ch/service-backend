@@ -1,0 +1,42 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-data-storage-supabase-pg-re8ch
+spec:
+  authorityDomain: data-storage
+  target:
+    cluster: re8ch
+    namespace: supabase-pg-re8ch
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-data-storage-supabase-pg-re8ch
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-executor-data-storage
+    audience: https://kube-api.re8ch.com/release-executor-data-storage
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-data-storage-supabase-pg-re8ch
+    resources:
+    - apps/Deployment
+    objectNames:
+    - supabase-rest
+    allowClusterScoped: false
+  inventory:
+    digest: sha256:099635a0d33cb8472fd78dd4a4195d3fd71a532120e36810a293957a2e313571
+  lifecycle:
+    prune: true
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - Namespace
+    - CustomResourceDefinition
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - StorageClass
+    deletionAllowlist:
+    - apps/Deployment/supabase-pg-re8ch/supabase-rest
