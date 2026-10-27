@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "operations/releases"))
-from unified_bundle import canonical, compile_bundle, digest
+from unified_bundle import canonical, compile_bundle, deterministic_archive, digest
 
 SPEC = importlib.util.spec_from_file_location("ssa_executor", ROOT / "operations/releases/ssa_executor.py")
 executor = importlib.util.module_from_spec(SPEC)
@@ -178,6 +178,40 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     count = len(runner.calls)
     assert instance.reconcile(value, operation, bundle_path, tmp_path / "state", verify_signature=False) == result
     assert len(runner.calls) == count
+
+
+@pytest.mark.parametrize("fault", [None, "payload", "inventory", "empty-stages"])
+def test_signed_legacy_bundle_replays_without_repacking_or_skipping_validation(tmp_path, fault):
+    from jsonschema import ValidationError
+    value, operation, bundle_path = prepare(tmp_path)
+    manifest, objects = executor.load_archive(bundle_path)
+    del manifest["stages"]
+    if fault == "inventory":
+        manifest["inventoryDigest"] = "sha256:" + "0" * 64
+    if fault == "empty-stages":
+        manifest["stages"] = []
+    legacy = deterministic_archive({"manifest.json": canonical(manifest), "objects.json": canonical(objects)})
+    bundle_path.write_bytes(legacy)
+    operation["bundle"]["digest"] = digest(legacy)
+    operation["bundle"]["payloadDigest"] = digest(legacy)
+    if fault == "payload":
+        operation["bundle"]["payloadDigest"] = "sha256:" + "0" * 64
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
+    if fault:
+        with pytest.raises((executor.Rejected, ValidationError)):
+            instance.reconcile(value, operation, bundle_path, tmp_path / "state")
+        assert not [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+        return
+    result = instance.reconcile(value, operation, bundle_path, tmp_path / "state")
+    assert result["outcome"] == "healthy"
+    assert result["observedDigest"] == digest(legacy)
+    assert bundle_path.read_bytes() == legacy
+    assert any(call[0][:2] == ["cosign", "verify"] for call in runner.calls)
+    applies = [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    assert len(applies) == 2
+    assert "--dry-run=server" in applies[0][0]
+    assert json.loads(applies[1][1])["metadata"]["name"] == "demo"
 
 
 def test_explicit_empty_stage_selection_finalizes_without_applying_objects(tmp_path):
