@@ -125,13 +125,18 @@ def test_collection_failure_and_interruption_are_not_success(tmp_path, monkeypat
     assert report["units"]["tests/test_incremental_ci.py"]["status"] == "blocked"
 
 
-def test_both_workflows_observe_and_upload_without_enabling_reuse():
+def test_both_workflows_keep_actual_execution_observations():
     for file, job in (("ci.yml", "unit"), ("full-regression.yml", "regression")):
         workflow = yaml.safe_load((ROOT / ".github/workflows" / file).read_text())
         steps = workflow["jobs"][job]["steps"]
         commands = "\n".join(step.get("run", "") for step in steps)
-        assert "-p operations.ci.unit_report" in commands
-        assert '--junitxml="$RUNNER_TEMP/unit-observation/junit.xml"' in commands
+        if file == "ci.yml":
+            assert "python -m operations.ci.unit_pr" in commands
+            adapter = (ROOT / "operations/ci/unit_baseline.py").read_text()
+            assert "'operations.ci.unit_report'" in adapter and "'--junitxml='" in adapter
+        else:
+            assert "-p operations.ci.unit_report" in commands
+            assert '--junitxml="$RUNNER_TEMP/unit-observation/junit.xml"' in commands
         upload = next(step for step in steps if step.get("with", {}).get("name") == "unit-observation")
         assert upload["if"] == "always()"
         assert upload["with"]["retention-days"] == 14

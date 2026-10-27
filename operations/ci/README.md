@@ -32,10 +32,13 @@ internal job, including failure of the impact planner. `tenant-go-validate` is a
 lightweight successful router on unrelated pull requests and runs its full Go,
 GitOps, differential, and image checks only for tenant-runtime changes. These two
 stable aggregators replace ambiguous duplicate `validate` check names.
-Portable Linux execution uses the repository-scoped restricted-node-6dc3f140f9 runner class
-`[self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]`. Existing Macmini host-bound
-audits remain unchanged. The restricted-node-6dc3f140f9 runner has no standing cluster credentials;
+Portable Linux execution uses the repository-scoped R640 runner class
+`[self-hosted, Linux, X64, r640, untrusted-build]`. Existing Macmini host-bound
+audits remain unchanged. The R640 runner has no standing cluster credentials;
 see `operations/ci/runners/README.md` for its trust and egress boundary.
+
+Selected unit success reuse and its trust/fallback boundaries are documented in
+[UNIT-VALIDATION.md](UNIT-VALIDATION.md). PRs only consume main evidence.
 
 Module render reuse is documented in [RENDER-EVIDENCE.md](RENDER-EVIDENCE.md).
 

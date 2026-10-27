@@ -1,4 +1,4 @@
-"""Main-only unit baseline runner. PR consumers are deliberately not enabled."""
+"""Shared unit execution and evidence verification; main-only publication CLI."""
 import argparse
 from collections import Counter
 import json
@@ -30,7 +30,7 @@ def fingerprint_for_unit(tree, test, catalog, environment):
         return None, 'unreadable-input'
 
 
-def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-baseline', full=False, lookup_seconds=0):
+def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-baseline', full=False, lookup_seconds=0, publish=True):
     started = time.monotonic()
     root, output = Path(root), Path(output).resolve()
     force = full or plan.get('full', False)
@@ -39,10 +39,19 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
     success.unlink(missing_ok=True)
     catalog = unit_catalog.load_catalog(root)
     eligible = evidence.candidates(catalog)
-    selected = sorted(set(plan['tests']) | set(eligible) | set(catalog['always_tests']))
-    plan = {**plan, 'tests': selected, 'jobs': {**plan['jobs'], 'unit': True}, 'run': True}
+    selected = set(plan['tests'])
+    if publish:
+        selected |= set(eligible) | set(catalog['always_tests'])
+    selected = sorted(selected)
+    plan = {**plan, 'tests': selected, 'jobs': {**plan['jobs'], 'unit': bool(selected)}, 'run': bool(selected)}
     observation = unit_catalog.describe(plan, root, catalog)
     observation['reuse_enabled'] = not force
+    phases = {'lookup': lookup_seconds}
+    if not selected:
+        observation.update(exit_code=0, wall_seconds=time.monotonic() - started + lookup_seconds,
+                           phases_seconds=phases, counts=dict(Counter(u['status'] for u in observation['units'].values())))
+        write(output / 'units.json', observation)
+        return 0
     environment = unit_report.toolchain()
     environment['execution'] = {'pytest': '-q --durations=20', 'plugins': ['operations.ci.unit_report'],
                                 'config': 'pyproject.toml', 'locale': os.environ.get('LANG'),
@@ -52,22 +61,33 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
     collection.unlink(missing_ok=True)
     env = {**os.environ, 'UNIT_COLLECTION_FILE': str(collection)}
     command = [sys.executable, '-m', 'pytest']
+    phase_started = time.monotonic()
     result = subprocess.run([*command, '--collect-only', '-q', '-p', 'operations.ci.unit_collection', *selected],
                             cwd=root, env=env, capture_output=True, text=True)
+    phases['collection'] = time.monotonic() - phase_started
     if result.returncode or not collection.exists():
         print(result.stdout + result.stderr)
         for test in selected:
             observation['units'][test].update(status='blocked', reasons=[{'code': 'collection-failed'}])
+        observation.update(exit_code=result.returncode or 1, wall_seconds=time.monotonic() - started + lookup_seconds, phases_seconds=phases)
         write(output / 'units.json', observation)
+        if summary := os.environ.get('GITHUB_STEP_SUMMARY'):
+            with open(summary, 'a') as stream:
+                stream.write('### Unit collection failed\n\n' + unit_catalog.summary(observation))
         return result.returncode or 1
     cases = json.loads(collection.read_text())
-    inputs = input_tree(root)
+    phase_started = time.monotonic()
+    needs_fingerprints = publish or (baseline is not None and not force)
+    inputs = input_tree(root) if needs_fingerprints else None
     fingerprints, reused, execution = {}, {}, []
     for test in selected:
         unit = observation['units'][test]
         reason, fingerprint = 'reuse-not-enabled', None
-        if test in eligible:
-            fingerprint, reason = fingerprint_for_unit(inputs, test, catalog, environment)
+        if test in eligible and test not in catalog['always_tests']:
+            if needs_fingerprints:
+                fingerprint, reason = fingerprint_for_unit(inputs, test, catalog, environment)
+            else:
+                reason = eligible[test].get('reuse_blocked') or baseline_reason
             fingerprints[test] = fingerprint
         if unsafe:
             fingerprint, reason = None, 'unclosed-pytest-environment'
@@ -90,6 +110,7 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
                 'url': f"https://github.com/{publisher['repository']}/actions/runs/{record['origin']['run_id']}"})
         else:
             execution.append(test)
+    phases['fingerprint'] = time.monotonic() - phase_started
     execution_plan = {**plan, 'tests': execution}
     summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
     execution_env = {**os.environ, 'UNIT_PLAN': json.dumps(execution_plan)}
@@ -98,6 +119,7 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
     actual = output / 'execution'
     for stale in ('units.json', 'junit.xml'):
         (actual / stale).unlink(missing_ok=True)
+    phase_started = time.monotonic()
     if execution:
         result = subprocess.run([*command, '-q', '--durations=20', '-p', 'operations.ci.unit_report',
                                  '--unit-report-dir=' + str(actual), '--junitxml=' + str(actual / 'junit.xml'),
@@ -105,10 +127,17 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
         code = result.returncode
     else:
         code = 0
-    report = json.loads((actual / 'units.json').read_text()) if (actual / 'units.json').exists() else {}
+    phases['execution'] = time.monotonic() - phase_started
+    phase_started = time.monotonic()
+    try:
+        report = json.loads((actual / 'units.json').read_text())
+    except (OSError, ValueError):
+        report = {}
+        if execution:
+            code = code or 1
     records = {}
     # Re-read inputs after execution: mutations cannot certify an old fingerprint.
-    after = input_tree(root)
+    after = input_tree(root) if publish or reused else None
     for test in selected:
         unit = observation['units'][test]
         if test in reused:
@@ -116,7 +145,7 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
             if fresh != fingerprints[test]:
                 unit.update(status='blocked', reasons=[{'code': 'inputs-mutated-during-validation'}])
                 code = 1
-            else:
+            elif publish:
                 records[test] = {key: reused[test][key] for key in ('fingerprint', 'cases', 'result', 'seconds', 'verified_at', 'origin')}
                 records[test]['inherited_from'] = baseline['publisher']
             continue
@@ -127,7 +156,12 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
             unit['reasons'] = reasons
         else:
             unit['status'] = 'blocked'
-        if test not in eligible or not fingerprints.get(test):
+        actual_cases = unit.get('cases', {})
+        if (sorted(actual_cases) != sorted(cases.get(test, [])) or not actual_cases
+                or any(not records or records[-1]['phase'] != 'teardown' for records in actual_cases.values())):
+            unit.update(status='blocked')
+            unit['reasons'].append({'code': 'execution-incomplete-or-case-set-changed'})
+        if not publish or test not in eligible or not fingerprints.get(test):
             continue
         fresh, _ = fingerprint_for_unit(after, test, catalog, environment)
         expected = sorted(cases.get(test, []))
@@ -140,21 +174,26 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
     # Any unit failure prevents publishing even previously successful inherited records.
     if code == 0 and any(observation['units'][test]['status'] in {'blocked', 'failed'} for test in selected):
         code = 1
-    observation.update(exit_code=code, wall_seconds=time.monotonic() - started + lookup_seconds, lookup_seconds=lookup_seconds, toolchain=environment,
-                       baseline_reason=baseline_reason, publisher=publisher,
+    phases['post_validation'] = time.monotonic() - phase_started
+    observation.update(exit_code=code, phases_seconds=phases, mode='main-publisher' if publish else 'pr-consumer', wall_seconds=time.monotonic() - started + lookup_seconds, lookup_seconds=lookup_seconds, toolchain=environment,
+                       baseline_reason=baseline_reason,
                        counts=dict(Counter(u['status'] for u in observation['units'].values())))
+    observation['publisher' if publish else 'consumer'] = publisher
     write(output / 'units.json', observation)
-    if code == 0:
+    if code == 0 and publish:
         payload = {'version': evidence.VERSION, 'publisher': publisher, 'units': records}
         if len(json.dumps(payload).encode()) > evidence.MAX_BYTES:
             raise ValueError('unit evidence exceeds bounded size')
         write(success, payload)
     if summary_path:
         with open(summary_path, 'a') as stream:
-            stream.write(f"### Main unit evidence\n\n{observation['counts']}; wall {observation['wall_seconds']:.2f}s. "
-                         f"Baseline: {baseline_reason}. Latest only; retention 14 days.\n\n")
+            stream.write(f"### {'Main' if publish else 'PR'} unit evidence\n\n{observation['counts']}; wall {observation['wall_seconds']:.2f}s. "
+                         f"Baseline: {baseline_reason}. Latest only; retention 14 days.\n\n"
+                         f"Phase seconds: {phases}. JUnit contains actual execution only.\n\n")
             stream.write(unit_catalog.summary(observation).replace('input-aware; reuse disabled', 'exact success evidence'))
             for test in reused:
+                if observation['units'][test]['status'] != 'reused':
+                    continue
                 info = observation['units'][test]['evidence']
                 stream.write(f"\nReused `{test}`: `{info['fingerprint']}`; [original run]({info['url']}), "
                              f"SHA `{info['origin']['sha']}`, {info['case_count']} cases, age {info['age_seconds']:.0f}s.\n")

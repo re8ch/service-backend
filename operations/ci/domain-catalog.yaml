@@ -43,6 +43,11 @@ always_tests:
 # deployable Kustomize root. Keeping these mappings explicit lets CI run their
 # contract tests without treating the path as an unknown, repository-wide risk.
 focused_suites:
+  unit-evidence-consumers:
+    paths:
+    - tests/test_unit_evidence.py
+    tests:
+    - tests/test_unit_pr.py
   domain-publication:
     paths:
       - operations/releases/domain_publish.py
@@ -345,6 +350,7 @@ unit_defaults:
   - .github/actions/setup-native-yaml/**
   - operations/ci/unit_evidence.py
   - operations/ci/unit_collection.py
+  - operations/ci/unit_pr.py
   - operations/ci/unit_baseline.py
   - .github/workflows/main-unit-baseline.yml
   - operations/ci/input_snapshot.py
