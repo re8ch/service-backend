@@ -118,6 +118,33 @@ def persist(state_dir: Path, release_id: str, result_path: Path, output: Path) -
     }))
 
 
+def state_patch(configmap: Path, state_dir: Path, release_id: str, result_path: Path, output: Path) -> None:
+    """Persist changed state even after failure, without overwriting concurrent edits."""
+    cm = json.loads(configmap.read_text())
+    metadata = cm.get("metadata", {})
+    if metadata.get("name") != state_configmap_name(release_id) or not metadata.get("resourceVersion"):
+        raise ValueError("state patch requires the original release ConfigMap and resourceVersion")
+    state = json.loads((state_dir / "state" / f"{release_id}.json").read_text())
+    validate_schema(state, "release-accepted-state.schema.json")
+    if state["releaseId"] != release_id:
+        raise ValueError("state patch belongs to another release")
+    original = cm.get("data", {})
+    changed = {}
+    if state != json.loads(original.get("accepted-state.json", "{}")):
+        changed["accepted-state.json"] = compact(state)
+    if result_path.exists() and result_path.stat().st_size:
+        result = json.loads(result_path.read_text())
+        validate_schema(result, "release-operation-result.schema.json")
+        if result["releaseId"] != release_id:
+            raise ValueError("result belongs to another release")
+        if result != json.loads(original.get("last-result.json", "{}")):
+            changed["last-result.json"] = compact(result)
+    if changed:
+        output.write_text(compact({"metadata": {"resourceVersion": metadata["resourceVersion"]}, "data": changed}))
+    else:
+        output.unlink(missing_ok=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -138,11 +165,18 @@ def main() -> int:
     accepted = sub.add_parser("accepted-bundle")
     accepted.add_argument("--configmap", type=Path, required=True)
     accepted.add_argument("--contract", type=Path, required=True)
+    patch = sub.add_parser("state-patch")
+    patch.add_argument("--configmap", type=Path, required=True)
+    patch.add_argument("--state-dir", type=Path, required=True)
+    patch.add_argument("--release-id", required=True)
+    patch.add_argument("--result", type=Path, required=True)
+    patch.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "hydrate": hydrate(args.configmap, args.state_dir, args.release_id)
     elif args.command == "request": request(args.contract, args.metadata, args.state_dir, args.reference, args.digest, args.output, args.action, args.force_object)
     elif args.command == "persist": persist(args.state_dir, args.release_id, args.result, args.output)
     elif args.command == "accepted-bundle": print(compact(accepted_bundle(args.configmap, args.contract)))
+    elif args.command == "state-patch": state_patch(args.configmap, args.state_dir, args.release_id, args.result, args.output)
     else: print(state_configmap_name(args.release_id))
     return 0
 

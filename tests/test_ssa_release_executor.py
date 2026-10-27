@@ -455,6 +455,79 @@ def test_rollback_pull_keeps_oci_scheme(tmp_path):
                for item in applied)
 
 
+def test_failed_rollback_remains_blocked_on_next_cloud_worker(tmp_path, monkeypatch):
+    value, operation, bundle_path = prepare(tmp_path)
+    state_root = tmp_path / "state"
+    instance = executor.Executor(runner=Runner(), now=lambda: NOW, sleeper=lambda _: None)
+    instance.reconcile(value, operation, bundle_path, state_root, verify_signature=False)
+    previous = executor.Store(state_root, "demo").state()
+    cm = {"metadata": {"name": "ssa-state-demo", "namespace": "demo", "resourceVersion": "71"},
+          "data": {"accepted-state.json": json.dumps(previous)}}
+    cm_path = tmp_path / "original-cm.json"
+    cm_path.write_text(json.dumps(cm))
+    _, replay, _ = prepare(tmp_path, sequence=2, previous=previous["appliedDigest"])
+    monkeypatch.setattr(instance, "wait_healthy", lambda *args: (False, "not ready"))
+    def failed_rollback(*args):
+        raise executor.Rejected("previous artifact could not recover health")
+    monkeypatch.setattr(instance, "rollback", failed_rollback)
+    with pytest.raises(executor.Rejected, match="rollback failed"):
+        instance.reconcile(value, replay, bundle_path, state_root, verify_signature=False)
+    result_path = tmp_path / "result.json"
+    result_path.write_text("")  # CLI failed before producing a successful result.
+    patch_path = tmp_path / "patch.json"
+    materialize.state_patch(cm_path, state_root, "demo", result_path, patch_path)
+    patch = json.loads(patch_path.read_text())
+    assert patch["metadata"] == {"resourceVersion": "71"}
+    assert set(patch["data"]) == {"accepted-state.json"}
+    assert json.loads(patch["data"]["accepted-state.json"])["blocked"] is True
+    cm["data"].update(patch["data"])
+    cm_path.write_text(json.dumps(cm))
+    next_root = tmp_path / "fresh-cloud-worker"
+    materialize.hydrate(cm_path, next_root, "demo")
+    runner = Runner()
+    with pytest.raises(executor.Rejected, match="release is blocked"):
+        executor.Executor(runner=runner, now=lambda: NOW).reconcile(value, replay, bundle_path, next_root)
+    assert runner.calls == []
+
+
+def test_state_patch_does_not_write_unchanged_state_after_rejection(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    root = tmp_path / "state"
+    result = executor.Executor(runner=Runner(), now=lambda: NOW).reconcile(
+        value, operation, bundle_path, root, verify_signature=False)
+    state = executor.Store(root, "demo").state()
+    cm_path = tmp_path / "cm.json"
+    cm_path.write_text(json.dumps({"metadata": {"name": "ssa-state-demo", "resourceVersion": "72"},
+                                  "data": {"accepted-state.json": json.dumps(state), "last-result.json": json.dumps(result)}}))
+    result_path = tmp_path / "result.json"
+    result_path.write_text("")
+    patch_path = tmp_path / "patch.json"
+    patch_path.write_text("stale patch from earlier attempt")
+    materialize.state_patch(cm_path, root, "demo", result_path, patch_path)
+    assert not patch_path.exists()
+
+
+def test_state_patch_persists_new_result_with_original_version(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    root = tmp_path / "state"
+    instance = executor.Executor(runner=Runner(), now=lambda: NOW)
+    first = instance.reconcile(value, operation, bundle_path, root, verify_signature=False)
+    previous = executor.Store(root, "demo").state()
+    cm_path = tmp_path / "cm.json"
+    cm_path.write_text(json.dumps({"metadata": {"name": "ssa-state-demo", "resourceVersion": "73"},
+                                  "data": {"accepted-state.json": json.dumps(previous), "last-result.json": json.dumps(first)}}))
+    _, replay, _ = prepare(tmp_path, sequence=2, previous=previous["appliedDigest"])
+    result = instance.reconcile(value, replay, bundle_path, root, verify_signature=False)
+    result_path = tmp_path / "result.json"
+    result_path.write_text(json.dumps(result))
+    patch_path = tmp_path / "patch.json"
+    materialize.state_patch(cm_path, root, "demo", result_path, patch_path)
+    patch = json.loads(patch_path.read_text())
+    assert patch["metadata"]["resourceVersion"] == "73"
+    assert json.loads(patch["data"]["accepted-state.json"])["sequence"] == 2
+    assert json.loads(patch["data"]["last-result.json"]) == result
+
+
 def test_explicit_rollback_restores_only_runtime_stage_and_records_history(tmp_path):
     value, old_archive, old_manifest, old_path = staged_release(tmp_path, "old", "old", "stable")
     new_value, new_archive, new_manifest, new_path = staged_release(

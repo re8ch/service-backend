@@ -146,6 +146,9 @@ def test_cloud_replay_skips_build_and_keeps_release_identity_and_serialization()
     assert "kubectl kustomize" not in commands and "flux push" not in commands
     assert "--force-conflicts" not in commands
     assert "cosign verify" in commands and "ssa_executor.py" in commands
+    assert "|| executor_status=$?" in commands
+    assert commands.index("operation_materialize.py state-patch") < commands.index('exit "$executor_status"')
+    assert '.outcome == "healthy" and .health.status == "healthy"' in commands
 
 
 def test_supabase_rest_has_one_native_writer_and_no_ssa_authority():
