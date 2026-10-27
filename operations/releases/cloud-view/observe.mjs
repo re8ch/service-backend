@@ -1,4 +1,7 @@
-// Public inventory publication is withdrawn pending an aggregate-only contract.
+// Publish only bounded cloud aggregates, never raw Kubernetes or Actions payloads.
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {aggregate} from './snapshot.mjs';
 import {execFileSync} from 'node:child_process';
 try {
   const env=process.env,repository=env.GITHUB_REPOSITORY,sha=env.GITHUB_SHA;
@@ -11,21 +14,20 @@ try {
   if(!identity.ok)throw new Error('Publication identity unavailable');
   const {value}=await identity.json();
   if(typeof value!=='string'||!value)throw new Error('Publication identity unavailable');
-  // Overwrite the public object before reporting success. No Kubernetes data,
-  // GitHub Checks, deployment metadata or raw error bodies enter this payload.
-  const snapshot={schema:1,repository,sha,unavailable:true,
-    batch:`${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT}`,observedAt:new Date().toISOString()};
+  let input;
+  try { input=JSON.parse(readFileSync(join(env.RUNNER_TEMP,'cloud-runtime-snapshot.json'),'utf8')); } catch {}
+  const snapshot=aggregate(input,{repository,sha,batch:`${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT}`});
   const response=await fetch(endpoint,{method:'POST',headers:{Authorization:`Bearer ${value}`,'Content-Type':'application/json'},body:JSON.stringify(snapshot),signal:AbortSignal.timeout(30000)});
-  if(!response.ok)throw new Error('Public snapshot withdrawal failed');
+  if(!response.ok)throw new Error('Cloud aggregate publication failed');
   execFileSync('gh',['api',`repos/${repository}/check-runs`,'--method','POST','--input','-'],{
     input:JSON.stringify({name:'flux-runtime',head_sha:sha,status:'completed',conclusion:'neutral',
-      output:{title:'Detailed runtime evidence requires authentication',
-        summary:'Public inventory publication is withdrawn. This check makes no cluster health assertion. Use authenticated platform inspection.'}}),
+      output:{title:'Cloud synchronization and runtime health observed separately',
+        summary:'Public aggregate only. Unknown observations and failed synchronization are not successful health checks; detailed evidence requires authenticated platform inspection.'}}),
     encoding:'utf8',timeout:45000,stdio:['pipe','pipe','pipe']});
-  console.log('Public inventory withdrawn; use authenticated platform inspection.');
+  console.log('Cloud aggregate published; detailed evidence requires authenticated platform inspection.');
 } catch {
   // HTTP responses and subprocess errors may contain private data.
-  console.error('Public inventory withdrawal failed; verify the public snapshot before claiming containment.');
+  console.error('Cloud aggregate publication failed; previous observations must expire normally.');
   process.exitCode=1;
 }
 

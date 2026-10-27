@@ -1,0 +1,1248 @@
+[
+  {
+    "domain": "agent-runtime",
+    "namespace": "ai-operations",
+    "name": "ssa-state-agent-runtime-domain-ai-operations",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "ai-operations",
+        "name": "stagehand-service"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "api-conformance-system",
+    "name": "ssa-state-agent-runtime-domain-api-conformance-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "api-conformance-system",
+        "name": "api-conformance-controller"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "auth",
+    "name": "ssa-state-agent-runtime-domain-auth",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "auth",
+        "name": "api-conformance-result-proxy"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "codex-archive",
+    "name": "ssa-state-agent-runtime-domain-codex-archive",
+    "workloads": []
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "cosyvoice",
+    "name": "ssa-state-agent-runtime-domain-cosyvoice",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "cosyvoice",
+        "name": "cosyvoice"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "credential-broker",
+    "name": "ssa-state-agent-runtime-domain-credential-broker",
+    "workloads": []
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "cube-trial",
+    "name": "ssa-state-agent-runtime-domain-cube-trial",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "oauth2-proxy-cube"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "flux-system",
+    "name": "ssa-state-agent-runtime-domain-flux-system",
+    "workloads": []
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "git-workspaces",
+    "name": "ssa-state-agent-runtime-domain-git-workspaces",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "git-workspaces",
+        "name": "git-workspace-controller"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "llm-gateway",
+    "name": "ssa-state-agent-runtime-domain-llm-gateway",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "llm-gateway",
+        "name": "litellm"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "llm-gateway",
+        "name": "litellm-postgresql"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "mail-system",
+    "name": "ssa-state-agent-runtime-domain-mail-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "mail-system",
+        "name": "stalwart-webmail"
+      },
+      {
+        "kind": "StatefulSet",
+        "namespace": "mail-system",
+        "name": "stalwart-flk"
+      },
+      {
+        "kind": "StatefulSet",
+        "namespace": "mail-system",
+        "name": "stalwart-idp-flk"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "mcp-registry",
+    "name": "ssa-state-agent-runtime-domain-mcp-registry",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "mcp-registry",
+        "name": "mcp-registry"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "toolhive-system",
+    "name": "ssa-state-agent-runtime-domain-toolhive-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "toolhive-system",
+        "name": "re8ch-plugin-runtime"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "toolhive-system",
+        "name": "toolhive-cloud-ui"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "toolhive-system",
+    "name": "ssa-state-agent-runtime-toolhive-operator",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "toolhive-system",
+        "name": "toolhive-operator"
+      }
+    ]
+  },
+  {
+    "domain": "delivery-products",
+    "namespace": "aesthete",
+    "name": "ssa-state-main-delivery-products-aesthete",
+    "workloads": []
+  },
+  {
+    "domain": "delivery-products",
+    "namespace": "anycam",
+    "name": "ssa-state-main-delivery-products-anycam",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "anycam",
+        "name": "anycam-model-downloader"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "anycam",
+        "name": "anycam-model-registry"
+      }
+    ]
+  },
+  {
+    "domain": "delivery-products",
+    "namespace": "farseer",
+    "name": "ssa-state-main-delivery-products-farseer",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "farseer",
+        "name": "farseer-web"
+      }
+    ]
+  },
+  {
+    "domain": "delivery-products",
+    "namespace": "re8ch-farseer",
+    "name": "ssa-state-main-delivery-products-re8ch-farseer",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "re8ch-farseer",
+        "name": "farseer-web"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "ai-operations",
+    "name": "ssa-state-identity-access-domain-ai-operations",
+    "workloads": []
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "auth",
+    "name": "ssa-state-identity-access-domain-auth",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "auth",
+        "name": "auth-postgrest"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "egress-fabric",
+    "name": "ssa-state-identity-access-domain-egress-fabric",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "egress-fabric",
+        "name": "edge-access-anytls"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "access-adguard"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "access-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "access-rule-sync"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "access-subscription"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "mosdns"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "oauth2-proxy-access-dns"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "personal-access-cn-loudi"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "personal-access-my-kul"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "personal-access-us-ca"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "personal-access-us-la"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "egress-fabric",
+    "name": "ssa-state-identity-access-telemetry-service-account",
+    "workloads": []
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "opensandbox-system",
+    "name": "ssa-state-identity-access-domain-opensandbox-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "opensandbox-system",
+        "name": "opensandbox-orchestra-proxy"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "payments",
+    "name": "ssa-state-identity-access-domain-payments",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "payments",
+        "name": "commerce-postgrest-ro"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "payments",
+        "name": "commerce-postgrest-rw"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "payments",
+        "name": "hyperswitch-web"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "payments",
+        "name": "payment-postgrest"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "payments",
+        "name": "payment-postgrest-ro"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "payments",
+        "name": "re8ch-catalog"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "re8ch-anysite",
+    "name": "ssa-state-identity-access-domain-re8ch-anysite",
+    "workloads": []
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "re8ch-dataspace",
+    "name": "ssa-state-identity-access-domain-re8ch-dataspace",
+    "workloads": []
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "re8ch-ledger",
+    "name": "ssa-state-identity-access-domain-re8ch-ledger",
+    "workloads": []
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "re8ch-neo4j",
+    "name": "ssa-state-identity-access-domain-re8ch-neo4j",
+    "workloads": []
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "re8ch-secretary",
+    "name": "ssa-state-identity-access-domain-re8ch-secretary",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "re8ch-secretary",
+        "name": "secretary-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "re8ch-secretary",
+        "name": "secretary-cluster-watcher"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "re8ch-secretary",
+        "name": "secretary-delivery-manager"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "re8ch-secretary",
+        "name": "secretary-projector"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "re8ch-secretary",
+        "name": "secretary-runtime"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "supabase-billing",
+    "name": "ssa-state-identity-access-domain-supabase-billing",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-billing",
+        "name": "supabase-billing-auth"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-billing",
+        "name": "supabase-billing-realtime"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-billing",
+        "name": "supabase-billing-rest-ro"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-billing",
+        "name": "supabase-billing-rest-rw"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "supabase-identity",
+    "name": "ssa-state-identity-access-domain-supabase-identity",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-identity",
+        "name": "identity-avatar-worker"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-identity",
+        "name": "supabase-identity-auth"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-identity",
+        "name": "supabase-identity-realtime"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-identity",
+        "name": "supabase-identity-rest"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-identity",
+        "name": "supabase-identity-rest-ro"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "supabase-pg-re8ch",
+    "name": "ssa-state-identity-access-domain-supabase-pg-re8ch",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "supabase-pg-re8ch",
+        "name": "supabase-rest"
+      }
+    ]
+  },
+  {
+    "domain": "identity-access",
+    "namespace": "tenant-infrastructure",
+    "name": "ssa-state-identity-access-domain-tenant-infrastructure",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "ai-operations",
+    "name": "ssa-state-main-tenant-runtime-ai-operations",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "ai-operations",
+        "name": "re8ch-cloud-platform"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "api-conformance-runners",
+    "name": "re8ch-release-state-api-conformance-runner-projection",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "cloud-disk",
+    "name": "ssa-state-main-data-storage-cloud-disk",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "cloud-disk",
+        "name": "cloud-disk"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "headlamp",
+    "name": "ssa-state-main-operations-ui-headlamp",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "headlamp",
+        "name": "controlled-cluster-relay"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "headlamp",
+        "name": "headlamp"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "headlamp",
+        "name": "headlamp-active-elector"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "headlamp",
+        "name": "headlamp-gateway-proxy"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "kube-system",
+    "name": "ssa-state-main-operations-ui-kube-system",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "ops",
+    "name": "ssa-state-main-commerce-billing-cluster-bootstrap",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "ops",
+    "name": "ssa-state-main-data-storage-cluster-bootstrap",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "ops",
+    "name": "ssa-state-main-data-storage-ops",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "ops",
+        "name": "cloudbeaver"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "ops",
+    "name": "ssa-state-main-operations-ui-cluster-bootstrap",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "ops",
+    "name": "ssa-state-main-tenant-runtime-cluster-bootstrap",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "pigsty-external",
+    "name": "ssa-state-main-data-storage-pigsty-external",
+    "workloads": []
+  },
+  {
+    "domain": "main",
+    "namespace": "scheduler-system",
+    "name": "ssa-state-main-tenant-runtime-scheduler-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "scheduler-system",
+        "name": "scheduler-plugins"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "scheduling-system",
+    "name": "ssa-state-main-tenant-runtime-scheduling-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "scheduling-system",
+        "name": "penrose-controller"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "studio-toolkit",
+    "name": "ssa-state-main-operations-ui-studio-toolkit",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "studio-toolkit",
+        "name": "studio-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "studio-toolkit",
+        "name": "studio-db-ro"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "studio-toolkit",
+        "name": "studio-db-rw"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "studio-toolkit",
+        "name": "studio-worker-r640"
+      }
+    ]
+  },
+  {
+    "domain": "main",
+    "namespace": "toolhive-system",
+    "name": "ssa-state-main-data-storage-toolhive-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "advfab-system",
+    "name": "ssa-state-networking-native-advfab-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "advfab-system",
+        "name": "external-dns-advfab"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "ai-operations",
+    "name": "ssa-state-networking-native-ai-operations",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "among-clusters",
+    "name": "ssa-state-networking-helm-among-clusters-agent-among-clusters",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "among-clusters",
+        "name": "among-clusters-agent"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "among-clusters",
+        "name": "among-clusters-gateway"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "among-clusters",
+    "name": "ssa-state-networking-helm-among-clusters-hub-among-clusters",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "among-clusters",
+        "name": "among-clusters-hub"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "among-clusters",
+    "name": "ssa-state-networking-native-among-clusters",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "artchais",
+    "name": "ssa-state-networking-native-artchais",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "byoc-pilot",
+    "name": "ssa-state-networking-native-byoc-pilot",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "cert-manager",
+    "name": "ssa-state-networking-native-cert-manager",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "codex-platform",
+    "name": "ssa-state-networking-native-codex-platform",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "credential-broker",
+    "name": "ssa-state-networking-helm-among-clusters-hub-credential-broker",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "credential-broker",
+        "name": "among-clusters-credential-broker"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "credential-broker",
+    "name": "ssa-state-networking-native-credential-broker",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "dataspace",
+    "name": "ssa-state-networking-native-dataspace",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "egress-fabric",
+    "name": "ssa-state-networking-native-egress-fabric",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "egress-fabric",
+        "name": "mihomo-node-labeler"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "flux-network-system",
+    "name": "ssa-state-networking-native-flux-network-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "flux-system",
+    "name": "ssa-state-networking-native-flux-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "headlamp",
+    "name": "ssa-state-networking-native-headlamp",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "kube-system",
+    "name": "ssa-state-networking-helm-advanced-fabric-kube-system",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "advanced-fabric-agent"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "advanced-fabric-pod-conformance"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "advanced-fabric-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "advanced-fabric-doh"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "advanced-fabric-virtual-ingress"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "kube-system",
+    "name": "ssa-state-networking-helm-among-clusters-hub-kube-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "kube-system",
+    "name": "ssa-state-networking-helm-cilium-kube-system",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "cilium"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "cilium-operator"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "hubble-relay"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "hubble-ui"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "kube-system",
+    "name": "ssa-state-networking-native-kube-system",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "control-api-source"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "control-dns-reachability"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "control-transit-controller"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "host-network-controller"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "podcidr-fabric-reconciler"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "kube-system",
+        "name": "public-mesh-podcidr-reconciler"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "kube-api-observer-proxy"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "kube-api-overseas-relay"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "zerotier-planet"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "llm-gateway",
+    "name": "ssa-state-networking-native-llm-gateway",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "mail-system",
+    "name": "ssa-state-networking-native-mail-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "nuclio",
+    "name": "ssa-state-networking-native-nuclio",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "observability-system",
+    "name": "ssa-state-networking-native-observability-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "opensandbox-system",
+    "name": "ssa-state-networking-native-opensandbox-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "ops",
+    "name": "ssa-state-networking-native-ops",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "ops",
+        "name": "routeros-public-forward-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "ops",
+        "name": "routeros-transit-controller"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "payments",
+    "name": "ssa-state-networking-native-payments",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "qianwen-ops",
+    "name": "ssa-state-networking-native-qianwen-ops",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "qianwen-ops",
+        "name": "external-dns-cloudflare"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "re8ch-secretary",
+    "name": "ssa-state-networking-native-re8ch-secretary",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "regional-routing",
+    "name": "ssa-state-networking-helm-public-edge-manager-regional-routing",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "regional-routing",
+        "name": "public-edge-manager"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "regional-routing",
+        "name": "public-edge-manager-redirector"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "regional-routing",
+        "name": "public-edge-manager-cli"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "regional-routing",
+        "name": "public-edge-manager-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "regional-routing",
+        "name": "public-edge-manager-globalping"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "regional-routing",
+        "name": "public-edge-manager-hidden-primary"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "regional-routing",
+    "name": "ssa-state-networking-native-regional-routing",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "regional-routing",
+        "name": "powerdns-cloud-authorities"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "supabase-pg-re8ch",
+    "name": "ssa-state-networking-native-supabase-pg-re8ch",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "toolhive-system",
+    "name": "ssa-state-networking-native-toolhive-system",
+    "workloads": []
+  },
+  {
+    "domain": "networking",
+    "namespace": "voice-observability",
+    "name": "ssa-state-networking-native-voice-observability",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "flux-system",
+    "name": "ssa-state-observability-domain-flux-system",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "globalping-system",
+    "name": "ssa-state-observability-domain-globalping-system",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "incidentrelay",
+    "name": "ssa-state-observability-chart-incidentrelay",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "incidentrelay",
+        "name": "incidentrelay-scheduler"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "incidentrelay",
+        "name": "incidentrelay-telegram"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "incidentrelay",
+        "name": "incidentrelay-web"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "incidentrelay",
+    "name": "ssa-state-observability-domain-incidentrelay",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "kube-system",
+    "name": "ssa-state-observability-chart-birfucate-metering-kube-system",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "kube-system",
+    "name": "ssa-state-observability-domain-kube-system",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "observability-ai",
+    "name": "ssa-state-observability-chart-birfucate-metering",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "observability-ai",
+        "name": "birfucate-metering"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "observability-ai",
+        "name": "birfucate-metering-discovery"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "observability-system",
+    "name": "ssa-state-observability-chart-birfucate-metering-obs-3153d8794b",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "observability-system",
+    "name": "ssa-state-observability-chart-victoria-metrics-operator",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "observability-system",
+        "name": "victoria-metrics-operator"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "observability-system",
+    "name": "ssa-state-observability-domain-grafana",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "observability-system",
+        "name": "re8ch-grafana"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "observability-system",
+        "name": "re8ch-grafana-postgresql"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "observability-system",
+        "name": "re8ch-grafana-renderer"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "observability-system",
+    "name": "ssa-state-observability-domain-observability-system",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "observability-system",
+        "name": "re8ch-fair-value-controller"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "observability-system",
+    "name": "ssa-state-observability-kube-state-metrics",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "observability-system",
+        "name": "re8ch-kube-state-metrics"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "opencost",
+    "name": "ssa-state-observability-domain-opencost",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "opentelemetry-operator",
+    "name": "ssa-state-observability-chart-re8ch-opentelemetry-operator",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "opentelemetry-operator",
+        "name": "otel-operator-opentelemetry-operator"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "supabase-pg-re8ch",
+    "name": "ssa-state-observability-domain-supabase-pg-re8ch",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "synthetic-monitoring",
+    "name": "ssa-state-observability-domain-synthetic-monitoring",
+    "workloads": []
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "tenant-infrastructure",
+    "name": "ssa-state-observability-chart-birfucate-metering-ten-dff87672e0",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-runtime-image-cache"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "admin-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-control-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-provider-reconciler"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "tenant-infrastructure",
+    "name": "ssa-state-observability-domain-tenant-infrastructure",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "harbor-supply-chain"
+      }
+    ]
+  },
+  {
+    "domain": "observability-metering",
+    "namespace": "toolhive-system",
+    "name": "ssa-state-observability-chart-birfucate-metering-too-25959610d0",
+    "workloads": []
+  }
+]

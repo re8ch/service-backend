@@ -13,6 +13,7 @@ ROOTS = (
 )
 
 CLOUD_JOBS = {
+    ".github/workflows/node-contract-observer.yml": {"flux"},
     ".github/workflows/ci.yml": {
         "impact", "contract", "k6-contracts", "schema", "unit", "render",
         "secret-scan", "dependency-review", "supply-chain", "policy",

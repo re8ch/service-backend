@@ -128,7 +128,8 @@ def test_oidc_rbac_gateway_and_dns_are_fail_closed():
     ]
     serialized = json.dumps(rbac)
     assert all(set(r["verbs"]) <= {"get", "list"} for obj in rbac for r in obj.get("rules", []))
-    assert {obj["metadata"]["namespace"] for obj in rbac if obj["kind"] == "Role"} == {"flux-system", "flux-agent-system", "flux-identity-system", "flux-network-system", "flux-observability-system"}
+    assert all(r["resourceNames"] and r["verbs"] == ["get"] for obj in rbac if obj["kind"] == "Role" for r in obj["rules"])
+    assert "toolkit.fluxcd.io" not in serialized
     for forbidden in ("secrets", "pods/log", "pods/exec", "serviceaccounts/token", "impersonate", "create", "patch", "delete"):
         assert forbidden not in serialized
 
