@@ -85,10 +85,12 @@ def test_ceph_executor_identities_deny_forbidden_capabilities_by_construction():
     assert not runtime_writes & cluster_resources
 
 
-def test_workflow_accepts_only_operation_id_and_splits_identities():
+def test_workflow_accepts_cloud_requests_and_splits_identities():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ceph-static-release.yml").read_text())
     inputs = workflow[True]["workflow_dispatch"]["inputs"]
-    assert set(inputs) == {"operation_id"}
+    assert set(inputs) == {"operation_id", "release", "action", "approved_digest", "reason", "approval_ref", "force_objects"}
+    assert inputs["operation_id"]["required"] is False
+    assert workflow["concurrency"] == {"group": "ceph-runtime-operations", "cancel-in-progress": False, "queue": "max"}
     text = (ROOT / ".github/workflows/ceph-static-release.yml").read_text()
     assert "release-executor-ceph-infra" in text
     assert "release-executor-ceph-runtime" in text
@@ -255,3 +257,64 @@ def test_mirror_wait_refreshes_only_the_exact_actions_oidc_audience(monkeypatch)
     monkeypatch.setenv("ACTIONS_ID_TOKEN_REQUEST_URL", "https://example.com/token")
     with pytest.raises(RuntimeError, match="unexpected Actions OIDC endpoint"):
         module.fresh_actions_token()
+
+
+def cloud_request_module():
+    import importlib.util
+    import sys
+    sys.path.insert(0, str(ROOT / "operations/releases"))
+    spec = importlib.util.spec_from_file_location("ceph_cloud_request", ROOT / "operations/releases/ceph_cloud_request.py")
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    return module
+
+
+def test_direct_ceph_request_is_deterministic_git_bound_and_needs_no_local_cr():
+    module = cloud_request_module()
+    inputs = {"release": "rook-ceph", "action": "reconcile"}
+    one, release = module.prepare(inputs, run_id="12345", actor="test-actor")
+    two, _ = module.prepare(inputs, run_id="12345", actor="test-actor")
+    assert one == two
+    assert one["spec"]["approvedDigest"] == release["spec"]["bundleDigest"]
+    assert one["spec"]["contractDigest"] == release["spec"]["contractDigest"]
+    assert "bundleRepository" not in one["spec"]
+    other, _ = module.prepare(inputs, run_id="12346", actor="test-actor")
+    assert other["metadata"]["uid"] != one["metadata"]["uid"]
+
+
+@pytest.mark.parametrize("change", [
+    {"release": "other"}, {"action": "delete"}, {"approved_digest": "sha256:" + "f" * 64},
+    {"action": "rollback"}, {"force_objects": '["core/Secret/rook-ceph/token"]'},
+    {"action": "force-reconcile", "force_objects": '["core/Secret/rook-ceph/token"]'},
+    {"reason": "a" * 513}, {"force_objects": '{}'}])
+def test_direct_ceph_request_rejects_unreviewed_inputs(change):
+    module = cloud_request_module()
+    with pytest.raises(ValueError):
+        module.prepare({"release": "rook-ceph", **change}, run_id="12345", actor="test")
+
+
+def test_legacy_ceph_operation_is_expiry_checked_and_cannot_mix_direct_inputs():
+    import datetime as dt
+    module = cloud_request_module()
+    legacy, _ = module.prepare({"release": "rook-ceph"}, run_id="12345", actor="test")
+    legacy["metadata"]["creationTimestamp"] = dt.datetime.now(dt.timezone.utc).isoformat()
+    assert module.prepare({}, run_id="12346", actor="test", legacy=legacy)[0] == legacy
+    with pytest.raises(ValueError, match="combined"):
+        module.prepare({"release": "rook-ceph"}, run_id="12346", actor="test", legacy=legacy)
+    legacy["metadata"]["creationTimestamp"] = "2020-01-01T00:00:00Z"
+    with pytest.raises(ValueError, match="expired"):
+        module.prepare({}, run_id="12346", actor="test", legacy=legacy)
+
+
+def test_ceph_jobs_share_cloud_snapshot_and_preserve_failed_evidence():
+    raw = (ROOT / ".github/workflows/ceph-static-release.yml").read_text()
+    workflow = yaml.safe_load(raw)
+    assert raw.count("name: 'ceph-request-${{ github.run_id }}'") == 3
+    assert "kubectl get releaseoperation" not in raw
+    assert "kubectl get staticrelease" not in raw
+    assert "set-credentials" not in raw and "Authorization: bearer" not in raw
+    for job in workflow["jobs"].values():
+        evidence = [step for step in job["steps"] if step.get("name") == "Preserve workflow failure evidence"]
+        assert len(evidence) == 1 and evidence[0]["if"] == "failure()"
+        uploads = [step for step in job["steps"] if "upload-artifact" in step.get("uses", "") and "result.json" in step.get("with", {}).get("path", "")]
+        assert len(uploads) == 1 and uploads[0]["if"] == "always()"
+        assert "workflow-failure.json" in uploads[0]["with"]["path"]

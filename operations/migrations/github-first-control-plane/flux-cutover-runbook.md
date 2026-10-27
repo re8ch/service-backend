@@ -1,5 +1,13 @@
 # GitHub–Flux cutover runbook
 
+Current operation entry: dispatch `ceph-static-release.yml` on `main` with
+`release` and `action` using the existing protected Environments. See
+[cloud Ceph operations](static-release-domain-handoff.md#current-cloud-operation-entry-2026-10-28).
+The dispatcher App Secret described below is historical and is not required for
+new cloud requests. Do not provision or reactivate a local dispatcher to execute
+an operation. Flux CLI compatibility is deferred.
+
+
 This rollout deliberately creates a second, suspended Flux source before changing
 the root source. It prevents an authentication or webhook mistake from stranding
 the reconciler that must perform the rollback.
