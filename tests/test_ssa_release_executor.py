@@ -269,9 +269,10 @@ def test_contract_migration_reuses_only_reviewed_accepted_artifact(tmp_path, mon
         assert store.state()["sequence"] == 2
 
 
-def test_cloud_disk_migration_only_changes_reviewed_domain_provenance():
+@pytest.mark.parametrize("release_id", sorted(json.loads(executor.CONTRACT_MIGRATIONS.read_text())))
+def test_accepted_migration_only_changes_reviewed_domain_provenance(release_id):
     import yaml
-    value = yaml.safe_load((ROOT / "contracts/releases/main-domain/main-data-storage-cloud-disk.yaml").read_text())
+    value = yaml.safe_load((ROOT / f"contracts/releases/main-domain/{release_id}.yaml").read_text())
     migration = json.loads(executor.CONTRACT_MIGRATIONS.read_text())[value["metadata"]["name"]]
     assert digest(canonical(value)) == migration["toContractDigest"]
     del value["spec"]["authorityDomain"]
