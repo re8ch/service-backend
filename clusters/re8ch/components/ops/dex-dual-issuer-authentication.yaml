@@ -30,6 +30,10 @@ jwt:
         - https://kube-api.re8ch.com/release-executor-ceph-infra
         - https://kube-api.re8ch.com/release-executor-ceph-runtime
         - https://kube-api.re8ch.com/release-artifact-publisher
+        - https://kube-api.re8ch.com/release-reconciler-data-storage
+        - https://kube-api.re8ch.com/release-reconciler-commerce-billing
+        - https://kube-api.re8ch.com/release-reconciler-operations-ui
+        - https://kube-api.re8ch.com/release-reconciler-tenant-runtime
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - expression: >-
@@ -66,6 +70,16 @@ jwt:
            claims.environment == 'release-executor-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')))
+          || (claims.repository_visibility == 'public' &&
+           claims.repository_id == '1367237854' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/service-backend' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.runner_environment == 'github-hosted' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           claims.environment in ['release-reconciler-data-storage', 'release-reconciler-commerce-billing', 'release-reconciler-operations-ui', 'release-reconciler-tenant-runtime'] &&
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
         message: public tokens require the observer or exact protected cloud release route
       - expression: >-
           claims.runner_environment == 'self-hosted' ||
@@ -100,6 +114,16 @@ jwt:
            claims.environment == 'release-executor-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')))
+          || (claims.repository_visibility == 'public' &&
+           claims.repository_id == '1367237854' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/service-backend' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.runner_environment == 'github-hosted' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           claims.environment in ['release-reconciler-data-storage', 'release-reconciler-commerce-billing', 'release-reconciler-operations-ui', 'release-reconciler-tenant-runtime'] &&
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
         message: hosted execution is limited to protected cloud release workflows
       - expression: >-
           (claims.repository_id == '1367237854' &&
@@ -192,10 +216,24 @@ jwt:
            claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
            claims.environment == 'release-executor-networking' &&
            claims.event_name == 'workflow_dispatch')
+          || (claims.repository_visibility == 'public' &&
+           claims.repository_id == '1367237854' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/service-backend' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.runner_environment == 'github-hosted' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           claims.environment in ['release-reconciler-data-storage', 'release-reconciler-commerce-billing', 'release-reconciler-operations-ui', 'release-reconciler-tenant-runtime'] &&
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
         message: token audience and workflow context must match one reviewed credential contract
     claimMappings:
       username:
         expression: >-
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? 'github-actions:release-reconciler-data-storage:' + claims.run_id :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? 'github-actions:release-reconciler-commerce-billing:' + claims.run_id :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? 'github-actions:release-reconciler-operations-ui:' + claims.run_id :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-tenant-runtime' ? 'github-actions:release-reconciler-tenant-runtime:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/observer'
           ? 'github-actions:node-observer:' + claims.run_id
           : claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'
@@ -225,6 +263,10 @@ jwt:
                                   : 'github-actions:release-artifact-publisher:' + claims.run_id
       groups:
         expression: >-
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? ['re8ch:release-executor:data-storage'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? ['re8ch:release-executor:commerce-billing'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? ['re8ch:release-executor:operations-ui'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-tenant-runtime' ? ['re8ch:release-executor:tenant-runtime'] :
           claims.aud == 'https://kube-api.re8ch.com/observer'
           ? ['re8ch:credential-contract:node-observer']
           : claims.aud == 'https://kube-api.re8ch.com/release-executor-api-conformance'
