@@ -22,18 +22,14 @@ PUBLIC_AUTHORITY_INVENTORY = Path("operations/network/manifests/network/public-m
 
 
 def public_authority_context(root: Path) -> str:
-    document = json.loads((root / PUBLIC_AUTHORITY_INVENTORY).read_text())
-    node = next(item for item in document["nodes"] if item["name"] == "restricted-node-6dc3f140f9")
-    authority = node["publicAuthority"]
     return (
-        f"Source of truth: `{PUBLIC_AUTHORITY_INVENTORY}` (`restricted-node-6dc3f140f9.publicAuthority`). "
-        f"restricted-node-6dc3f140f9 public delivery is provider-owned `{node['publicIp']} -> "
-        f"{authority['type']} DNAT/eBGP -> {authority['gatewayVIP']}/Cilium Gateway` "
-        f"with `{authority['fallbackLanBackend']}/restricted-node-6dc3f140f9` as the declared fallback. "
-        f"The ZeroTier address `{node['ztIp']}` and `re8chzt128` dummy interface are "
-        "routing/service identities, not directly attached public endpoints. Before changing "
-        "an restricted-node-6dc3f140f9 public IP, route, Gateway, listener, DNAT, eBGP, ZeroTier, or dummy-interface "
-        "state, read and validate this authority. Never add an ad-hoc host route to bypass it."
+        'Source of truth: `operations/network/manifests/network/public-mesh/inventory.json`\n'
+        'is a pinned restricted reference. Resolve it using the authenticated runtime API\n'
+        'in `contracts/network-topology/README.md` before any public IP, route, Gateway,\n'
+        'listener, DNAT, eBGP, overlay or dummy-interface change. Routing/service identities\n'
+        'are not directly attached public endpoints. Preserve the declared provider-owned\n'
+        'authority and fallback distinction. Never invent a host route or promote a\n'
+        'fallback when the restricted source is unavailable; stop and restore access.'
     )
 
 
@@ -89,13 +85,17 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     existing_agents = checkout / "AGENTS.md" if checkout else None
     readme = checkout / "README.md" if checkout else None
     purpose = synopsis(readme) if readme else ""
+    if module.name == "service-backend":
+        purpose = "Read the root README and contracts/network-topology/README.md. Production topology is available only through authenticated context."
+    if module.catalog == "platform" and re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", purpose):
+        purpose = module.name.replace("-", " ").title() + " module. Infrastructure details are available through contracts/network-topology/README.md; inspect the authenticated runtime context rather than a copied repository synopsis."
     if module.catalog == "platform":
         purpose = re.sub(r"\b(?:qwen|qianwen)\b", "tenant workload", purpose, flags=re.IGNORECASE)
     catalog_overview, shared_context = catalog_context(root, module.catalog)
     authority_section = []
     if module.catalog == "platform":
         authority_section = [
-            "## restricted-node-6dc3f140f9 public network authority",
+            "## R640 public network authority",
             "",
             public_authority_context(root),
             "",

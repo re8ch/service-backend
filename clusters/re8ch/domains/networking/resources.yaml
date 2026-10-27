@@ -10812,14 +10812,14 @@ data:
         if [ -n "${peer}" ]; then
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
           original="${allowed}"
-          for prefix in 192.0.2.116/32 $(jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json); do
+          for prefix in 10.250.0.1/32 $(jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json); do
             case ",${allowed}," in *",${prefix},"*) : ;; *) allowed="${allowed},${prefix}" ;; esac
           done
           [ "${allowed}" = "${original}" ] || host wg set "${iface}" peer "${peer}" allowed-ips "${allowed}"
         fi
         # ECMP can send a socket sourced from either tunnel across this iface.
         for source_fabric in 93 94; do
-          for api_ip in 192.0.2.116 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+          for api_ip in 10.250.0.1 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
             rule="ip saddr 172.31.${source_fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
             host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
               host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${source_fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
@@ -10962,7 +10962,7 @@ apiVersion: v1
 data:
   adoption.json: |
     {
-      "node": "restricted-node-abb3f27a69",
+      "node": "mubao-wsl",
       "scope": "control-transit-peer",
       "peerKeys": [
         "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10="
@@ -11047,7 +11047,7 @@ data:
         extra = p.get('additionalWireguard', [])
         adopted_extra = adoption.get('additionalPeerKeys', {})
         if extra or adopted_extra:
-            if p['scope'] != 'control-transit-peer' or p['node'] != 'restricted-node-abb3f27a69' or len(extra) != 1:
+            if p['scope'] != 'control-transit-peer' or p['node'] != 'mubao-wsl' or len(extra) != 1:
                 raise ValueError('additional interface scope not reviewed')
             if {w['interface'] for w in extra} != {'wg-public-mesh'} or set(adopted_extra) != {'wg-public-mesh'}:
                 raise ValueError('additional interface adoption differs')
@@ -11057,7 +11057,7 @@ data:
                          {'node': p['node'], 'scope': 'public-mesh-peers', 'peerKeys': adopted_extra[w['interface']],
                           'prefixLists': []})
         wg = p['wireguard']
-        expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'restricted-node-abb3f27a69': 'wg-cp-mubao'}.get(p['node'])
+        expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'mubao-wsl': 'wg-cp-mubao'}.get(p['node'])
         if wg['interface'] != expected_interface or not 1120 <= wg['mtu'] <= 1420:
             raise ValueError('invalid interface/MTU')
         seen = set()
@@ -11069,9 +11069,9 @@ data:
             seen.add(peer['publicKey'])
             if not 5 <= peer['keepalive'] <= 120:
                 raise ValueError('invalid keepalive')
-            roots = ('192.0.2.246/24', '192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')
+            roots = ('172.31.92.0/24', '10.250.0.0/24', '10.251.0.0/24', '10.42.0.0/16')
             if p['scope'] == 'control-transit-peer':
-                roots += ('192.0.2.34/28', '192.0.2.95/24', '192.0.2.240/32')
+                roots += ('172.31.96.0/28', '172.31.97.0/24', '192.168.88.1/32')
             for prefix in peer['allowedIPs']:
                 n = ipaddress.ip_network(prefix)
                 if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
@@ -11094,7 +11094,7 @@ data:
                     raise ValueError('invalid FRR prefix-list statement')
                 n = ipaddress.ip_network(line.split()[-1])
                 if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
-                           ('192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')):
+                           ('10.250.0.0/24', '10.251.0.0/24', '10.42.0.0/16')):
                     raise ValueError('FRR prefix outside authority')
         if not p['health']['bgpPeers'] or not p['health']['checks']:
             raise ValueError('health gates required')
@@ -11408,8 +11408,8 @@ data:
 
 
     PODS = {
-        "restricted-node-1eb0570f74": "192.0.2.48/24",
-        "restricted-node-296f36f2fb": "192.0.2.234/24",
+        "a1-wsl-zt": "10.42.10.0/24",
+        "b1-wsl-zt": "10.42.13.0/24",
     }
     ROUTE_SUFFIX = " PodCIDR via WireGuard"
     RULE_SUFFIX = " PodCIDR forward "
@@ -11420,7 +11420,7 @@ data:
 
     def load_inventory(path):
         data = json.loads(pathlib.Path(path).read_text())
-        if data.get("authority") != "RouterOS" or data.get("managementIp") != "192.0.2.240":
+        if data.get("authority") != "RouterOS" or data.get("managementIp") != "192.168.88.1":
             raise ValueError("unexpected RouterOS authority")
         links = {link["node"]: link for link in data["links"]}
         if set(links) != set(PODS):
@@ -11541,7 +11541,7 @@ data:
         for prefix in transit_sources:
             network = ipaddress.ip_network(prefix)
             if not any(network.subnet_of(ipaddress.ip_network(root)) for root in
-                       ("192.0.2.65/24", "192.0.2.57/16")):
+                       ("10.250.0.0/24", "10.42.0.0/16")):
                 raise ValueError("transit source outside fabric authority")
         managed_sources = remote_pods + transit_sources
         direct_pairs = {tuple(pair) for pair in policy["directPairs"]}
@@ -11681,7 +11681,7 @@ data:
         else:
             if args.node:
                 parser.error("--node is only valid for node actions")
-            router = RouterOS(data["managementIp"], "https://192.0.2.223:6443")
+            router = RouterOS(data["managementIp"], "https://10.250.0.29:6443")
             result = (router_stage(router, data, links) if args.action == "stage-router"
                       else router_rollback(router, data, links))
         print(json.dumps(result, sort_keys=True))
@@ -11822,7 +11822,7 @@ data:
         main()
   package.json: |
     {
-      "node": "restricted-node-abb3f27a69",
+      "node": "mubao-wsl",
       "scope": "control-transit-peer",
       "revision": "54d1ec3aaa108cfbb5e2e43c7f45d346ebfda4eb14a99b9085689fc06c7757ba",
       "timeout": 180,
@@ -11833,46 +11833,46 @@ data:
           {
             "publicKey": "jOsDyHstKjYUxkSiTinda0FApoBqAV8k/9PdU3mZH10=",
             "allowedIPs": [
-              "192.0.2.65/24",
-              "192.0.2.147/32",
-              "192.0.2.48/32",
-              "192.0.2.179/32",
-              "192.0.2.152/32",
-              "192.0.2.46/32",
-              "192.0.2.214/32",
-              "192.0.2.148/32",
-              "192.0.2.147/32",
-              "192.0.2.117/32",
-              "192.0.2.18/32",
-              "192.0.2.81/32",
-              "192.0.2.223/32",
-              "192.0.2.246/32",
-              "192.0.2.160/32",
-              "192.0.2.149/32",
-              "192.0.2.32/32",
-              "192.0.2.57/24",
-              "192.0.2.110/24",
-              "192.0.2.48/24",
-              "192.0.2.4/24",
-              "192.0.2.96/24",
-              "192.0.2.234/24",
-              "192.0.2.207/24",
-              "192.0.2.79/24",
-              "192.0.2.237/24",
-              "192.0.2.89/24",
-              "192.0.2.114/24",
-              "192.0.2.128/24",
-              "192.0.2.94/24",
-              "192.0.2.203/24",
-              "192.0.2.165/24",
-              "192.0.2.140/24",
-              "192.0.2.134/24",
-              "192.0.2.6/24",
-              "192.0.2.34/28",
-              "192.0.2.95/24",
-              "192.0.2.240/32"
+              "10.250.0.0/24",
+              "10.250.0.104/32",
+              "10.250.0.105/32",
+              "10.250.0.128/32",
+              "10.250.0.16/32",
+              "10.250.0.186/32",
+              "10.250.0.217/32",
+              "10.250.0.220/32",
+              "10.250.0.24/32",
+              "10.250.0.38/32",
+              "10.250.0.47/32",
+              "10.250.0.50/32",
+              "10.250.0.73/32",
+              "10.250.0.77/32",
+              "10.250.0.79/32",
+              "10.250.0.89/32",
+              "10.250.0.95/32",
+              "10.42.0.0/24",
+              "10.42.1.0/24",
+              "10.42.10.0/24",
+              "10.42.11.0/24",
+              "10.42.12.0/24",
+              "10.42.13.0/24",
+              "10.42.14.0/24",
+              "10.42.16.0/24",
+              "10.42.17.0/24",
+              "10.42.19.0/24",
+              "10.42.2.0/24",
+              "10.42.20.0/24",
+              "10.42.21.0/24",
+              "10.42.3.0/24",
+              "10.42.4.0/24",
+              "10.42.6.0/24",
+              "10.42.7.0/24",
+              "10.42.9.0/24",
+              "172.31.96.0/28",
+              "172.31.97.0/24",
+              "192.168.88.1/32"
             ],
-            "endpoint": "192.0.2.138:51895",
+            "endpoint": "223.159.210.222:51895",
             "keepalive": 25
           }
         ]
@@ -11881,27 +11881,27 @@ data:
       "health": {
         "tcpTargets": [
           {
-            "ip": "192.0.2.116",
+            "ip": "10.250.0.1",
             "port": 6443
           },
           {
-            "ip": "192.0.2.242",
+            "ip": "10.250.0.147",
             "port": 6443
           },
           {
-            "ip": "192.0.2.1",
+            "ip": "10.250.0.125",
             "port": 6443
           },
           {
-            "ip": "192.0.2.223",
+            "ip": "10.250.0.29",
             "port": 6443
           }
         ],
-        "egressProxy": "http://192.0.2.179:17891",
+        "egressProxy": "http://10.250.0.128:17891",
         "egressURL": "https://www.gstatic.com/generate_204",
-        "sourceIdentity": "192.0.2.223",
+        "sourceIdentity": "10.250.0.29",
         "bgpPeers": [
-          "192.0.2.47"
+          "172.31.96.9"
         ],
         "bfdPeers": [],
         "checks": [
@@ -11916,21 +11916,21 @@ data:
             {
               "publicKey": "X5AoshjmQeQ5ejwsKdbLmDF0btUcOG6T23uMkfk/KX8=",
               "allowedIPs": [
-                "192.0.2.154/32",
-                "192.0.2.48/32",
-                "192.0.2.165/24"
+                "172.31.92.105/32",
+                "10.250.0.105/32",
+                "10.42.4.0/24"
               ],
-              "endpoint": "192.0.2.38:51888",
+              "endpoint": "2.28.106.230:51888",
               "keepalive": 15
             },
             {
               "publicKey": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs=",
               "allowedIPs": [
-                "192.0.2.206/32",
-                "192.0.2.148/32",
-                "192.0.2.203/24"
+                "172.31.92.220/32",
+                "10.250.0.220/32",
+                "10.42.3.0/24"
               ],
-              "endpoint": "192.0.2.146:51888",
+              "endpoint": "179.253.231.159:51888",
               "keepalive": 15
             }
           ]
@@ -12094,39 +12094,39 @@ data:
         "node": "overseas-flk",
         "scope": "public-mesh-peers",
         "peerNames": [
-          "restricted-node-6dc3f140f9",
+          "r640",
           "overseas-la-2"
         ],
         "publicKeys": {
-          "restricted-node-6dc3f140f9": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
+          "r640": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
           "overseas-la-2": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs="
         },
         "health": {
           "tcpTargets": [
             {
-              "ip": "192.0.2.116",
+              "ip": "10.250.0.1",
               "port": 6443
             },
             {
-              "ip": "192.0.2.242",
+              "ip": "10.250.0.147",
               "port": 6443
             },
             {
-              "ip": "192.0.2.1",
+              "ip": "10.250.0.125",
               "port": 6443
             }
           ],
-          "egressProxy": "http://192.0.2.179:17891",
+          "egressProxy": "http://10.250.0.128:17891",
           "egressURL": "https://www.gstatic.com/generate_204",
-          "sourceIdentity": "192.0.2.48"
+          "sourceIdentity": "10.250.0.105"
         }
       },
       "controlTransitControllers": [],
       "nodes": {
-        "restricted-node-1eb0570f74": {
-          "node": "restricted-node-1eb0570f74",
-          "identity": "192.0.2.242",
-          "podCIDR": "192.0.2.48/24",
+        "a1-wsl-zt": {
+          "node": "a1-wsl-zt",
+          "identity": "10.250.0.147",
+          "podCIDR": "10.42.10.0/24",
           "asn": 4200010147,
           "mode": "inventory",
           "applyEligible": false,
@@ -12134,7 +12134,7 @@ data:
             {
               "name": "wg-pt-a1",
               "modelSection": "privateTransit",
-              "inventoryName": "restricted-node-1eb0570f74",
+              "inventoryName": "a1-wsl-zt",
               "fabric": "a1",
               "declaredWriters": [
                 "host-wg-quick",
@@ -12177,19 +12177,19 @@ data:
           ],
           "controlPodRoutePolicy": [
             [
-              "restricted-node-1eb0570f74",
-              "restricted-node-296f36f2fb"
+              "a1-wsl-zt",
+              "b1-wsl-zt"
             ],
             [
-              "restricted-node-296f36f2fb",
-              "restricted-node-1eb0570f74"
+              "b1-wsl-zt",
+              "a1-wsl-zt"
             ]
           ]
         },
         "amdwsl-zt": {
           "node": "amdwsl-zt",
-          "identity": "192.0.2.117",
-          "podCIDR": "192.0.2.134/24",
+          "identity": "10.250.0.38",
+          "podCIDR": "10.42.7.0/24",
           "asn": 4200010038,
           "mode": "inventory",
           "applyEligible": false,
@@ -12212,10 +12212,10 @@ data:
           ],
           "controlPodRoutePolicy": []
         },
-        "restricted-node-296f36f2fb": {
-          "node": "restricted-node-296f36f2fb",
-          "identity": "192.0.2.1",
-          "podCIDR": "192.0.2.234/24",
+        "b1-wsl-zt": {
+          "node": "b1-wsl-zt",
+          "identity": "10.250.0.125",
+          "podCIDR": "10.42.13.0/24",
           "asn": 4200010125,
           "mode": "inventory",
           "applyEligible": false,
@@ -12223,7 +12223,7 @@ data:
             {
               "name": "wg-pt-b1",
               "modelSection": "privateTransit",
-              "inventoryName": "restricted-node-296f36f2fb",
+              "inventoryName": "b1-wsl-zt",
               "fabric": "b1",
               "declaredWriters": [
                 "host-wg-quick",
@@ -12266,19 +12266,19 @@ data:
           ],
           "controlPodRoutePolicy": [
             [
-              "restricted-node-1eb0570f74",
-              "restricted-node-296f36f2fb"
+              "a1-wsl-zt",
+              "b1-wsl-zt"
             ],
             [
-              "restricted-node-296f36f2fb",
-              "restricted-node-1eb0570f74"
+              "b1-wsl-zt",
+              "a1-wsl-zt"
             ]
           ]
         },
         "domain-ex": {
           "node": "domain-ex",
-          "identity": "192.0.2.46",
-          "podCIDR": "192.0.2.94/24",
+          "identity": "10.250.0.186",
+          "podCIDR": "10.42.21.0/24",
           "asn": 4200000186,
           "mode": "inventory",
           "applyEligible": false,
@@ -12287,7 +12287,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "pg-re8ch-replica-186",
-              "transportIp": "192.0.2.171",
+              "transportIp": "172.31.92.186",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12337,8 +12337,8 @@ data:
         },
         "muaya-ecs": {
           "node": "muaya-ecs",
-          "identity": "192.0.2.32",
-          "podCIDR": "192.0.2.237/24",
+          "identity": "10.250.0.95",
+          "podCIDR": "10.42.17.0/24",
           "asn": 4200000095,
           "mode": "inventory",
           "applyEligible": false,
@@ -12347,7 +12347,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "harbor-registry",
-              "transportIp": "192.0.2.108",
+              "transportIp": "172.31.92.95",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12397,8 +12397,8 @@ data:
         },
         "muaya-lightweight": {
           "node": "muaya-lightweight",
-          "identity": "192.0.2.160",
-          "podCIDR": "192.0.2.89/24",
+          "identity": "10.250.0.79",
+          "podCIDR": "10.42.19.0/24",
           "asn": 4200000079,
           "mode": "inventory",
           "applyEligible": false,
@@ -12407,7 +12407,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "qianwen-nuclio-79",
-              "transportIp": "192.0.2.121",
+              "transportIp": "172.31.92.79",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12457,8 +12457,8 @@ data:
         },
         "overseas-edge-50": {
           "node": "overseas-edge-50",
-          "identity": "192.0.2.81",
-          "podCIDR": "192.0.2.4/24",
+          "identity": "10.250.0.50",
+          "podCIDR": "10.42.11.0/24",
           "asn": 4200000050,
           "mode": "inventory",
           "applyEligible": false,
@@ -12467,7 +12467,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "overseas-edge-50",
-              "transportIp": "192.0.2.4",
+              "transportIp": "172.31.92.50",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12517,8 +12517,8 @@ data:
         },
         "overseas-flk": {
           "node": "overseas-flk",
-          "identity": "192.0.2.48",
-          "podCIDR": "192.0.2.165/24",
+          "identity": "10.250.0.105",
+          "podCIDR": "10.42.4.0/24",
           "asn": 4200000105,
           "mode": "canary",
           "applyEligible": true,
@@ -12527,7 +12527,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "overseas-flk",
-              "transportIp": "192.0.2.154",
+              "transportIp": "172.31.92.105",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12577,8 +12577,8 @@ data:
         },
         "overseas-kl": {
           "node": "overseas-kl",
-          "identity": "192.0.2.149",
-          "podCIDR": "192.0.2.110/24",
+          "identity": "10.250.0.89",
+          "podCIDR": "10.42.1.0/24",
           "asn": 4200000089,
           "mode": "inventory",
           "applyEligible": false,
@@ -12624,8 +12624,8 @@ data:
         },
         "overseas-la": {
           "node": "overseas-la",
-          "identity": "192.0.2.147",
-          "podCIDR": "192.0.2.114/24",
+          "identity": "10.250.0.104",
+          "podCIDR": "10.42.2.0/24",
           "asn": 4200000104,
           "mode": "inventory",
           "applyEligible": false,
@@ -12634,7 +12634,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "overseas-la",
-              "transportIp": "192.0.2.188",
+              "transportIp": "172.31.92.104",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12684,8 +12684,8 @@ data:
         },
         "overseas-la-2": {
           "node": "overseas-la-2",
-          "identity": "192.0.2.148",
-          "podCIDR": "192.0.2.203/24",
+          "identity": "10.250.0.220",
+          "podCIDR": "10.42.3.0/24",
           "asn": 4200000220,
           "mode": "inventory",
           "applyEligible": false,
@@ -12694,7 +12694,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "overseas-la-2",
-              "transportIp": "192.0.2.206",
+              "transportIp": "172.31.92.220",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12744,8 +12744,8 @@ data:
         },
         "qwen-1": {
           "node": "qwen-1",
-          "identity": "192.0.2.147",
-          "podCIDR": "192.0.2.96/24",
+          "identity": "10.250.0.24",
+          "podCIDR": "10.42.12.0/24",
           "asn": 4200010024,
           "mode": "inventory",
           "applyEligible": false,
@@ -12770,8 +12770,8 @@ data:
         },
         "qwen-2": {
           "node": "qwen-2",
-          "identity": "192.0.2.214",
-          "podCIDR": "192.0.2.207/24",
+          "identity": "10.250.0.217",
+          "podCIDR": "10.42.14.0/24",
           "asn": 4200010217,
           "mode": "inventory",
           "applyEligible": false,
@@ -12796,8 +12796,8 @@ data:
         },
         "qwen-3": {
           "node": "qwen-3",
-          "identity": "192.0.2.18",
-          "podCIDR": "192.0.2.6/24",
+          "identity": "10.250.0.47",
+          "podCIDR": "10.42.9.0/24",
           "asn": 4200010047,
           "mode": "inventory",
           "applyEligible": false,
@@ -12819,10 +12819,10 @@ data:
           ],
           "controlPodRoutePolicy": []
         },
-        "restricted-node-6dc3f140f9": {
-          "node": "restricted-node-6dc3f140f9",
-          "identity": "192.0.2.179",
-          "podCIDR": "192.0.2.140/24",
+        "r640": {
+          "node": "r640",
+          "identity": "10.250.0.128",
+          "podCIDR": "10.42.6.0/24",
           "asn": 4200000128,
           "mode": "inventory",
           "applyEligible": false,
@@ -12830,8 +12830,8 @@ data:
             {
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
-              "inventoryName": "restricted-node-6dc3f140f9",
-              "transportIp": "192.0.2.125",
+              "inventoryName": "r640",
+              "transportIp": "172.31.92.128",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12842,7 +12842,7 @@ data:
             {
               "name": "wg-pt-a1",
               "modelSection": "privateTransit",
-              "inventoryName": "restricted-node-6dc3f140f9",
+              "inventoryName": "r640",
               "fabric": "a1",
               "declaredWriters": [
                 "host-wg-quick",
@@ -12852,7 +12852,7 @@ data:
             {
               "name": "wg-pt-b1",
               "modelSection": "privateTransit",
-              "inventoryName": "restricted-node-6dc3f140f9",
+              "inventoryName": "r640",
               "fabric": "b1",
               "declaredWriters": [
                 "host-wg-quick",
@@ -12881,8 +12881,8 @@ data:
         },
         "suxunji": {
           "node": "suxunji",
-          "identity": "192.0.2.246",
-          "podCIDR": "192.0.2.79/24",
+          "identity": "10.250.0.77",
+          "podCIDR": "10.42.16.0/24",
           "asn": 4200000077,
           "mode": "inventory",
           "applyEligible": false,
@@ -12891,7 +12891,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "artchais-nuclio-1",
-              "transportIp": "192.0.2.61",
+              "transportIp": "172.31.92.77",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -12941,8 +12941,8 @@ data:
         },
         "vm-20-12-ubuntu": {
           "node": "vm-20-12-ubuntu",
-          "identity": "192.0.2.223",
-          "podCIDR": "192.0.2.57/24",
+          "identity": "10.250.0.73",
+          "podCIDR": "10.42.0.0/24",
           "asn": 4200000073,
           "mode": "inventory",
           "applyEligible": false,
@@ -12951,7 +12951,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "vm-20-12-ubuntu",
-              "transportIp": "192.0.2.124",
+              "transportIp": "172.31.92.73",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -13001,8 +13001,8 @@ data:
         },
         "zan": {
           "node": "zan",
-          "identity": "192.0.2.152",
-          "podCIDR": "192.0.2.128/24",
+          "identity": "10.250.0.16",
+          "podCIDR": "10.42.20.0/24",
           "asn": 4200000016,
           "mode": "inventory",
           "applyEligible": false,
@@ -13011,7 +13011,7 @@ data:
               "name": "wg-public-mesh",
               "modelSection": "publicMesh",
               "inventoryName": "rancher-panel",
-              "transportIp": "192.0.2.219",
+              "transportIp": "172.31.92.16",
               "mtu": 1280,
               "privateKeyRef": "host:/etc/wireguard/wg-public-mesh.key",
               "declaredWriters": [
@@ -13063,820 +13063,820 @@ data:
       "modelDigest": "sha256:4bf4fb03d8769b78db8939df1121d28cf170a13d00ae74a92d8dcab029ffa465",
       "transitPaths": {
         "sources": [
-          "192.0.2.147/32",
-          "192.0.2.48/32",
-          "192.0.2.179/32",
-          "192.0.2.152/32",
-          "192.0.2.46/32",
-          "192.0.2.214/32",
-          "192.0.2.148/32",
-          "192.0.2.147/32",
-          "192.0.2.117/32",
-          "192.0.2.18/32",
-          "192.0.2.81/32",
-          "192.0.2.223/32",
-          "192.0.2.246/32",
-          "192.0.2.160/32",
-          "192.0.2.149/32",
-          "192.0.2.32/32",
-          "192.0.2.57/24",
-          "192.0.2.110/24",
-          "192.0.2.4/24",
-          "192.0.2.96/24",
-          "192.0.2.207/24",
-          "192.0.2.79/24",
-          "192.0.2.237/24",
-          "192.0.2.89/24",
-          "192.0.2.114/24",
-          "192.0.2.128/24",
-          "192.0.2.94/24",
-          "192.0.2.203/24",
-          "192.0.2.165/24",
-          "192.0.2.140/24",
-          "192.0.2.134/24",
-          "192.0.2.6/24"
+          "10.250.0.104/32",
+          "10.250.0.105/32",
+          "10.250.0.128/32",
+          "10.250.0.16/32",
+          "10.250.0.186/32",
+          "10.250.0.217/32",
+          "10.250.0.220/32",
+          "10.250.0.24/32",
+          "10.250.0.38/32",
+          "10.250.0.47/32",
+          "10.250.0.50/32",
+          "10.250.0.73/32",
+          "10.250.0.77/32",
+          "10.250.0.79/32",
+          "10.250.0.89/32",
+          "10.250.0.95/32",
+          "10.42.0.0/24",
+          "10.42.1.0/24",
+          "10.42.11.0/24",
+          "10.42.12.0/24",
+          "10.42.14.0/24",
+          "10.42.16.0/24",
+          "10.42.17.0/24",
+          "10.42.19.0/24",
+          "10.42.2.0/24",
+          "10.42.20.0/24",
+          "10.42.21.0/24",
+          "10.42.3.0/24",
+          "10.42.4.0/24",
+          "10.42.6.0/24",
+          "10.42.7.0/24",
+          "10.42.9.0/24"
         ],
         "paths": [
           {
-            "sourceNode": "restricted-node-6dc3f140f9",
+            "sourceNode": "r640",
             "sourcePrefixes": [
-              "192.0.2.179/32",
-              "192.0.2.140/24"
+              "10.250.0.128/32",
+              "10.42.6.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
-              "restricted-node-6dc3f140f9",
-              "restricted-node-296f36f2fb",
+              "r640",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
-            "sourceNode": "restricted-node-6dc3f140f9",
+            "sourceNode": "r640",
             "sourcePrefixes": [
-              "192.0.2.179/32",
-              "192.0.2.140/24"
+              "10.250.0.128/32",
+              "10.42.6.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
-              "restricted-node-6dc3f140f9",
-              "restricted-node-1eb0570f74",
+              "r640",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
-            ],
-            "eligibility": "bidirectional-host-and-pod-probe"
-          },
-          {
-            "sourceNode": "amdwsl-zt",
-            "sourcePrefixes": [
-              "192.0.2.117/32",
-              "192.0.2.134/24"
-            ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
-            "forward": [
-              "amdwsl-zt",
-              "restricted-node-296f36f2fb",
-              "RouterOS",
-              "restricted-node-1eb0570f74"
-            ],
-            "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
-            "receivers": [
-              "restricted-node-296f36f2fb",
-              "RouterOS",
-              "restricted-node-1eb0570f74"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "amdwsl-zt",
             "sourcePrefixes": [
-              "192.0.2.117/32",
-              "192.0.2.134/24"
+              "10.250.0.38/32",
+              "10.42.7.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "amdwsl-zt",
-              "restricted-node-1eb0570f74",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "a1-wsl-zt"
+            ],
+            "eligibility": "bidirectional-host-and-pod-probe"
+          },
+          {
+            "sourceNode": "amdwsl-zt",
+            "sourcePrefixes": [
+              "10.250.0.38/32",
+              "10.42.7.0/24"
+            ],
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
+            "forward": [
+              "amdwsl-zt",
+              "a1-wsl-zt",
+              "RouterOS",
+              "b1-wsl-zt"
+            ],
+            "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
+            "receivers": [
+              "a1-wsl-zt",
+              "RouterOS",
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-edge-50",
             "sourcePrefixes": [
-              "192.0.2.81/32",
-              "192.0.2.4/24"
+              "10.250.0.50/32",
+              "10.42.11.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "overseas-edge-50",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-edge-50",
             "sourcePrefixes": [
-              "192.0.2.81/32",
-              "192.0.2.4/24"
+              "10.250.0.50/32",
+              "10.42.11.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "overseas-edge-50",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-flk",
             "sourcePrefixes": [
-              "192.0.2.48/32",
-              "192.0.2.165/24"
+              "10.250.0.105/32",
+              "10.42.4.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "overseas-flk",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-flk",
             "sourcePrefixes": [
-              "192.0.2.48/32",
-              "192.0.2.165/24"
+              "10.250.0.105/32",
+              "10.42.4.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "overseas-flk",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-kl",
             "sourcePrefixes": [
-              "192.0.2.149/32",
-              "192.0.2.110/24"
+              "10.250.0.89/32",
+              "10.42.1.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "overseas-kl",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-kl",
             "sourcePrefixes": [
-              "192.0.2.149/32",
-              "192.0.2.110/24"
+              "10.250.0.89/32",
+              "10.42.1.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "overseas-kl",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-la",
             "sourcePrefixes": [
-              "192.0.2.147/32",
-              "192.0.2.114/24"
+              "10.250.0.104/32",
+              "10.42.2.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "overseas-la",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-la",
             "sourcePrefixes": [
-              "192.0.2.147/32",
-              "192.0.2.114/24"
+              "10.250.0.104/32",
+              "10.42.2.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "overseas-la",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-la-2",
             "sourcePrefixes": [
-              "192.0.2.148/32",
-              "192.0.2.203/24"
+              "10.250.0.220/32",
+              "10.42.3.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "overseas-la-2",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "overseas-la-2",
             "sourcePrefixes": [
-              "192.0.2.148/32",
-              "192.0.2.203/24"
+              "10.250.0.220/32",
+              "10.42.3.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "overseas-la-2",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "suxunji",
             "sourcePrefixes": [
-              "192.0.2.246/32",
-              "192.0.2.79/24"
+              "10.250.0.77/32",
+              "10.42.16.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "suxunji",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "suxunji",
             "sourcePrefixes": [
-              "192.0.2.246/32",
-              "192.0.2.79/24"
+              "10.250.0.77/32",
+              "10.42.16.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "suxunji",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "muaya-lightweight",
             "sourcePrefixes": [
-              "192.0.2.160/32",
-              "192.0.2.89/24"
+              "10.250.0.79/32",
+              "10.42.19.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "muaya-lightweight",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "muaya-lightweight",
             "sourcePrefixes": [
-              "192.0.2.160/32",
-              "192.0.2.89/24"
+              "10.250.0.79/32",
+              "10.42.19.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "muaya-lightweight",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "muaya-ecs",
             "sourcePrefixes": [
-              "192.0.2.32/32",
-              "192.0.2.237/24"
+              "10.250.0.95/32",
+              "10.42.17.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "muaya-ecs",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "muaya-ecs",
             "sourcePrefixes": [
-              "192.0.2.32/32",
-              "192.0.2.237/24"
+              "10.250.0.95/32",
+              "10.42.17.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "muaya-ecs",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "zan",
             "sourcePrefixes": [
-              "192.0.2.152/32",
-              "192.0.2.128/24"
+              "10.250.0.16/32",
+              "10.42.20.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "zan",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "zan",
             "sourcePrefixes": [
-              "192.0.2.152/32",
-              "192.0.2.128/24"
+              "10.250.0.16/32",
+              "10.42.20.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "zan",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "domain-ex",
             "sourcePrefixes": [
-              "192.0.2.46/32",
-              "192.0.2.94/24"
+              "10.250.0.186/32",
+              "10.42.21.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "domain-ex",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "domain-ex",
             "sourcePrefixes": [
-              "192.0.2.46/32",
-              "192.0.2.94/24"
+              "10.250.0.186/32",
+              "10.42.21.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "domain-ex",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "qwen-1",
             "sourcePrefixes": [
-              "192.0.2.147/32",
-              "192.0.2.96/24"
+              "10.250.0.24/32",
+              "10.42.12.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "qwen-1",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "qwen-1",
             "sourcePrefixes": [
-              "192.0.2.147/32",
-              "192.0.2.96/24"
+              "10.250.0.24/32",
+              "10.42.12.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "qwen-1",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "qwen-2",
             "sourcePrefixes": [
-              "192.0.2.214/32",
-              "192.0.2.207/24"
+              "10.250.0.217/32",
+              "10.42.14.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "qwen-2",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "qwen-2",
             "sourcePrefixes": [
-              "192.0.2.214/32",
-              "192.0.2.207/24"
+              "10.250.0.217/32",
+              "10.42.14.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "qwen-2",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "qwen-3",
             "sourcePrefixes": [
-              "192.0.2.18/32",
-              "192.0.2.6/24"
+              "10.250.0.47/32",
+              "10.42.9.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "qwen-3",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "qwen-3",
             "sourcePrefixes": [
-              "192.0.2.18/32",
-              "192.0.2.6/24"
+              "10.250.0.47/32",
+              "10.42.9.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "qwen-3",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "vm-20-12-ubuntu",
             "sourcePrefixes": [
-              "192.0.2.223/32",
-              "192.0.2.57/24"
+              "10.250.0.73/32",
+              "10.42.0.0/24"
             ],
-            "destinationNode": "restricted-node-1eb0570f74",
-            "destinationPrefix": "192.0.2.48/24",
+            "destinationNode": "a1-wsl-zt",
+            "destinationPrefix": "10.42.10.0/24",
             "forward": [
               "vm-20-12-ubuntu",
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-296f36f2fb",
+              "b1-wsl-zt",
               "RouterOS",
-              "restricted-node-1eb0570f74"
+              "a1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           },
           {
             "sourceNode": "vm-20-12-ubuntu",
             "sourcePrefixes": [
-              "192.0.2.223/32",
-              "192.0.2.57/24"
+              "10.250.0.73/32",
+              "10.42.0.0/24"
             ],
-            "destinationNode": "restricted-node-296f36f2fb",
-            "destinationPrefix": "192.0.2.234/24",
+            "destinationNode": "b1-wsl-zt",
+            "destinationPrefix": "10.42.13.0/24",
             "forward": [
               "vm-20-12-ubuntu",
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "returnRequirement": "FRR-approved-route-to-source-and-receive-prefix-closure",
             "receivers": [
-              "restricted-node-1eb0570f74",
+              "a1-wsl-zt",
               "RouterOS",
-              "restricted-node-296f36f2fb"
+              "b1-wsl-zt"
             ],
             "eligibility": "bidirectional-host-and-pod-probe"
           }
         ],
         "linuxReceivers": {
-          "restricted-node-1eb0570f74": {
+          "a1-wsl-zt": {
             "interface": "wg-cp-a1",
             "peerPublicKey": "Zl6S03B5xdedeDrbS48biCM+EpOzRN/tOsoLS/Deano=",
             "transitSources": [
-              "192.0.2.147/32",
-              "192.0.2.48/32",
-              "192.0.2.179/32",
-              "192.0.2.152/32",
-              "192.0.2.46/32",
-              "192.0.2.214/32",
-              "192.0.2.148/32",
-              "192.0.2.147/32",
-              "192.0.2.117/32",
-              "192.0.2.18/32",
-              "192.0.2.81/32",
-              "192.0.2.223/32",
-              "192.0.2.246/32",
-              "192.0.2.160/32",
-              "192.0.2.149/32",
-              "192.0.2.32/32",
-              "192.0.2.57/24",
-              "192.0.2.110/24",
-              "192.0.2.4/24",
-              "192.0.2.96/24",
-              "192.0.2.207/24",
-              "192.0.2.79/24",
-              "192.0.2.237/24",
-              "192.0.2.89/24",
-              "192.0.2.114/24",
-              "192.0.2.128/24",
-              "192.0.2.94/24",
-              "192.0.2.203/24",
-              "192.0.2.165/24",
-              "192.0.2.140/24",
-              "192.0.2.134/24",
-              "192.0.2.6/24"
+              "10.250.0.104/32",
+              "10.250.0.105/32",
+              "10.250.0.128/32",
+              "10.250.0.16/32",
+              "10.250.0.186/32",
+              "10.250.0.217/32",
+              "10.250.0.220/32",
+              "10.250.0.24/32",
+              "10.250.0.38/32",
+              "10.250.0.47/32",
+              "10.250.0.50/32",
+              "10.250.0.73/32",
+              "10.250.0.77/32",
+              "10.250.0.79/32",
+              "10.250.0.89/32",
+              "10.250.0.95/32",
+              "10.42.0.0/24",
+              "10.42.1.0/24",
+              "10.42.11.0/24",
+              "10.42.12.0/24",
+              "10.42.14.0/24",
+              "10.42.16.0/24",
+              "10.42.17.0/24",
+              "10.42.19.0/24",
+              "10.42.2.0/24",
+              "10.42.20.0/24",
+              "10.42.21.0/24",
+              "10.42.3.0/24",
+              "10.42.4.0/24",
+              "10.42.6.0/24",
+              "10.42.7.0/24",
+              "10.42.9.0/24"
             ]
           },
-          "restricted-node-296f36f2fb": {
+          "b1-wsl-zt": {
             "interface": "wg-cp-b1",
             "peerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk=",
             "transitSources": [
-              "192.0.2.147/32",
-              "192.0.2.48/32",
-              "192.0.2.179/32",
-              "192.0.2.152/32",
-              "192.0.2.46/32",
-              "192.0.2.214/32",
-              "192.0.2.148/32",
-              "192.0.2.147/32",
-              "192.0.2.117/32",
-              "192.0.2.18/32",
-              "192.0.2.81/32",
-              "192.0.2.223/32",
-              "192.0.2.246/32",
-              "192.0.2.160/32",
-              "192.0.2.149/32",
-              "192.0.2.32/32",
-              "192.0.2.57/24",
-              "192.0.2.110/24",
-              "192.0.2.4/24",
-              "192.0.2.96/24",
-              "192.0.2.207/24",
-              "192.0.2.79/24",
-              "192.0.2.237/24",
-              "192.0.2.89/24",
-              "192.0.2.114/24",
-              "192.0.2.128/24",
-              "192.0.2.94/24",
-              "192.0.2.203/24",
-              "192.0.2.165/24",
-              "192.0.2.140/24",
-              "192.0.2.134/24",
-              "192.0.2.6/24"
+              "10.250.0.104/32",
+              "10.250.0.105/32",
+              "10.250.0.128/32",
+              "10.250.0.16/32",
+              "10.250.0.186/32",
+              "10.250.0.217/32",
+              "10.250.0.220/32",
+              "10.250.0.24/32",
+              "10.250.0.38/32",
+              "10.250.0.47/32",
+              "10.250.0.50/32",
+              "10.250.0.73/32",
+              "10.250.0.77/32",
+              "10.250.0.79/32",
+              "10.250.0.89/32",
+              "10.250.0.95/32",
+              "10.42.0.0/24",
+              "10.42.1.0/24",
+              "10.42.11.0/24",
+              "10.42.12.0/24",
+              "10.42.14.0/24",
+              "10.42.16.0/24",
+              "10.42.17.0/24",
+              "10.42.19.0/24",
+              "10.42.2.0/24",
+              "10.42.20.0/24",
+              "10.42.21.0/24",
+              "10.42.3.0/24",
+              "10.42.4.0/24",
+              "10.42.6.0/24",
+              "10.42.7.0/24",
+              "10.42.9.0/24"
             ]
           }
         }
@@ -13974,7 +13974,7 @@ data:
         extra = p.get('additionalWireguard', [])
         adopted_extra = adoption.get('additionalPeerKeys', {})
         if extra or adopted_extra:
-            if p['scope'] != 'control-transit-peer' or p['node'] != 'restricted-node-abb3f27a69' or len(extra) != 1:
+            if p['scope'] != 'control-transit-peer' or p['node'] != 'mubao-wsl' or len(extra) != 1:
                 raise ValueError('additional interface scope not reviewed')
             if {w['interface'] for w in extra} != {'wg-public-mesh'} or set(adopted_extra) != {'wg-public-mesh'}:
                 raise ValueError('additional interface adoption differs')
@@ -13984,7 +13984,7 @@ data:
                          {'node': p['node'], 'scope': 'public-mesh-peers', 'peerKeys': adopted_extra[w['interface']],
                           'prefixLists': []})
         wg = p['wireguard']
-        expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'restricted-node-abb3f27a69': 'wg-cp-mubao'}.get(p['node'])
+        expected_interface = 'wg-public-mesh' if p['scope'] == 'public-mesh-peers' else {'mubao-wsl': 'wg-cp-mubao'}.get(p['node'])
         if wg['interface'] != expected_interface or not 1120 <= wg['mtu'] <= 1420:
             raise ValueError('invalid interface/MTU')
         seen = set()
@@ -13996,9 +13996,9 @@ data:
             seen.add(peer['publicKey'])
             if not 5 <= peer['keepalive'] <= 120:
                 raise ValueError('invalid keepalive')
-            roots = ('192.0.2.246/24', '192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')
+            roots = ('172.31.92.0/24', '10.250.0.0/24', '10.251.0.0/24', '10.42.0.0/16')
             if p['scope'] == 'control-transit-peer':
-                roots += ('192.0.2.34/28', '192.0.2.95/24', '192.0.2.240/32')
+                roots += ('172.31.96.0/28', '172.31.97.0/24', '192.168.88.1/32')
             for prefix in peer['allowedIPs']:
                 n = ipaddress.ip_network(prefix)
                 if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
@@ -14021,7 +14021,7 @@ data:
                     raise ValueError('invalid FRR prefix-list statement')
                 n = ipaddress.ip_network(line.split()[-1])
                 if not any(n.subnet_of(ipaddress.ip_network(root)) for root in
-                           ('192.0.2.65/24', '192.0.2.121/24', '192.0.2.57/16')):
+                           ('10.250.0.0/24', '10.251.0.0/24', '10.42.0.0/16')):
                     raise ValueError('FRR prefix outside authority')
         if not p['health']['bgpPeers'] or not p['health']['checks']:
             raise ValueError('health gates required')
@@ -14459,59 +14459,59 @@ data:
           {
             "publicKey": "kaA9Uy2hS5mhGBD41QoTtyzAQK18S4VycqAewRHK2ks=",
             "allowedIPs": [
-              "192.0.2.125/32",
-              "192.0.2.179/32",
-              "192.0.2.140/24"
+              "172.31.92.128/32",
+              "10.250.0.128/32",
+              "10.42.6.0/24"
             ],
-            "endpoint": "192.0.2.138:51888",
+            "endpoint": "223.159.210.222:51888",
             "keepalive": 15
           },
           {
             "publicKey": "/Uu95o48yV3ZDsi6N/Tr4lxe4U2Hf1sp5yqgNOeeNHs=",
             "allowedIPs": [
-              "192.0.2.206/32",
-              "192.0.2.148/32",
-              "192.0.2.203/24"
+              "172.31.92.220/32",
+              "10.250.0.220/32",
+              "10.42.3.0/24"
             ],
-            "endpoint": "192.0.2.146:51888",
+            "endpoint": "179.253.231.159:51888",
             "keepalive": 15
           }
         ]
       },
       "prefixLists": {
         "FROM-128": [
-          "ip prefix-list FROM-128 seq 10 permit 192.0.2.179/32",
-          "ip prefix-list FROM-128 seq 20 permit 192.0.2.140/24"
+          "ip prefix-list FROM-128 seq 10 permit 10.250.0.128/32",
+          "ip prefix-list FROM-128 seq 20 permit 10.42.6.0/24"
         ],
         "FROM-220": [
-          "ip prefix-list FROM-220 seq 10 permit 192.0.2.148/32"
+          "ip prefix-list FROM-220 seq 10 permit 10.250.0.220/32"
         ]
       },
       "health": {
         "tcpTargets": [
           {
-            "ip": "192.0.2.116",
+            "ip": "10.250.0.1",
             "port": 6443
           },
           {
-            "ip": "192.0.2.242",
+            "ip": "10.250.0.147",
             "port": 6443
           },
           {
-            "ip": "192.0.2.1",
+            "ip": "10.250.0.125",
             "port": 6443
           }
         ],
-        "egressProxy": "http://192.0.2.179:17891",
+        "egressProxy": "http://10.250.0.128:17891",
         "egressURL": "https://www.gstatic.com/generate_204",
-        "sourceIdentity": "192.0.2.48",
+        "sourceIdentity": "10.250.0.105",
         "bgpPeers": [
-          "192.0.2.125",
-          "192.0.2.206"
+          "172.31.92.128",
+          "172.31.92.220"
         ],
         "bfdPeers": [
-          "192.0.2.125",
-          "192.0.2.206"
+          "172.31.92.128",
+          "172.31.92.220"
         ],
         "checks": [
           "/usr/local/lib/re8ch-host-network/checks/fabric"
@@ -14577,9 +14577,9 @@ metadata:
 ---
 apiVersion: v1
 data:
-  forbidden-advertisement: 192.0.2.20/24
-  order: dual-FRR/full-RIB -> workers -> restricted-node-6dc3f140f9 -> restricted-node-1eb0570f74,restricted-node-296f36f2fb
-  pod-cidr: 192.0.2.57/16
+  forbidden-advertisement: 10.181.22.0/24
+  order: dual-FRR/full-RIB -> workers -> r640 -> a1-wsl-zt,b1-wsl-zt
+  pod-cidr: 10.42.0.0/16
 kind: ConfigMap
 metadata:
   name: native-routing-rollout-order
@@ -14589,47 +14589,47 @@ apiVersion: v1
 data:
   inventory.json: |
     {
-      "nativeRoutingCIDR": "192.0.2.57/16",
-      "acceleratedCIDR": "192.0.2.65/24",
-      "serviceCIDR": "192.0.2.121/24",
+      "nativeRoutingCIDR": "10.42.0.0/16",
+      "acceleratedCIDR": "10.250.0.0/24",
+      "serviceCIDR": "10.251.0.0/24",
       "removeCiliumDirectRoutes": true,
       "readinessPodCIDRs": [
-        "192.0.2.140/24",
-        "192.0.2.48/24",
-        "192.0.2.234/24"
+        "10.42.6.0/24",
+        "10.42.10.0/24",
+        "10.42.13.0/24"
       ],
       "controlPlaneNodes": [
-        "restricted-node-1eb0570f74",
-        "restricted-node-296f36f2fb",
-        "restricted-node-6dc3f140f9"
+        "a1-wsl-zt",
+        "b1-wsl-zt",
+        "r640"
       ],
       "relayNodes": [],
       "routeServers": [
         {
-          "name": "restricted-node-1eb0570f74",
-          "internalIp": "192.0.2.176",
-          "transportIp": "192.0.2.178",
-          "rrInterconnectIp": "192.0.2.148",
-          "podCIDR": "192.0.2.48/24",
-          "acceleratedIp": "192.0.2.242",
+          "name": "a1-wsl-zt",
+          "internalIp": "10.181.22.147",
+          "transportIp": "172.31.93.147",
+          "rrInterconnectIp": "172.31.251.1",
+          "podCIDR": "10.42.10.0/24",
+          "acceleratedIp": "10.250.0.147",
           "asn": 4200010147
         },
         {
-          "name": "restricted-node-296f36f2fb",
-          "internalIp": "192.0.2.4",
-          "transportIp": "192.0.2.101",
-          "rrInterconnectIp": "192.0.2.12",
-          "podCIDR": "192.0.2.234/24",
-          "acceleratedIp": "192.0.2.1",
+          "name": "b1-wsl-zt",
+          "internalIp": "10.181.22.125",
+          "transportIp": "172.31.94.125",
+          "rrInterconnectIp": "172.31.251.2",
+          "podCIDR": "10.42.13.0/24",
+          "acceleratedIp": "10.250.0.125",
           "asn": 4200010125
         }
       ],
       "nodes": [
         {
-          "name": "restricted-node-6dc3f140f9",
-          "internalIp": "192.0.2.178",
-          "podCIDR": "192.0.2.140/24",
-          "acceleratedIp": "192.0.2.179",
+          "name": "r640",
+          "internalIp": "10.181.22.128",
+          "podCIDR": "10.42.6.0/24",
+          "acceleratedIp": "10.250.0.128",
           "asn": 4200000128,
           "peerMode": "transport",
           "publicMeshIdentityPeers": [
@@ -14638,221 +14638,221 @@ data:
           "publicMeshPodCIDRPeers": [
             "vm-20-12-ubuntu"
           ],
-          "routerOsPeer": "192.0.2.240",
+          "routerOsPeer": "192.168.88.1",
           "serviceVipExports": [
-            "192.0.2.213/32"
+            "10.251.0.4/32"
           ]
         },
         {
           "name": "amdwsl-zt",
-          "internalIp": "192.0.2.10",
-          "podCIDR": "192.0.2.134/24",
-          "acceleratedIp": "192.0.2.117",
+          "internalIp": "10.181.22.38",
+          "podCIDR": "10.42.7.0/24",
+          "acceleratedIp": "10.250.0.38",
           "asn": 4200010038,
           "peerMode": "identity"
         },
         {
           "name": "overseas-edge-50",
-          "internalIp": "192.0.2.79",
-          "podCIDR": "192.0.2.4/24",
-          "acceleratedIp": "192.0.2.81",
+          "internalIp": "10.181.22.50",
+          "podCIDR": "10.42.11.0/24",
+          "acceleratedIp": "10.250.0.50",
           "asn": 4200000050,
           "peerMode": "identity"
         },
         {
           "name": "overseas-flk",
-          "internalIp": "192.0.2.39",
-          "kubernetesNodeIp": "192.0.2.48",
-          "podCIDR": "192.0.2.165/24",
-          "acceleratedIp": "192.0.2.48",
+          "internalIp": "10.181.22.105",
+          "kubernetesNodeIp": "10.250.0.105",
+          "podCIDR": "10.42.4.0/24",
+          "acceleratedIp": "10.250.0.105",
           "asn": 4200000105,
           "peerMode": "transport"
         },
         {
           "name": "overseas-kl",
-          "internalIp": "192.0.2.245",
-          "podCIDR": "192.0.2.110/24",
-          "acceleratedIp": "192.0.2.149",
+          "internalIp": "10.181.22.89",
+          "podCIDR": "10.42.1.0/24",
+          "acceleratedIp": "10.250.0.89",
           "asn": 4200000089,
           "peerMode": "transport"
         },
         {
           "name": "overseas-la",
-          "internalIp": "192.0.2.110",
-          "podCIDR": "192.0.2.114/24",
-          "acceleratedIp": "192.0.2.147",
+          "internalIp": "10.181.22.104",
+          "podCIDR": "10.42.2.0/24",
+          "acceleratedIp": "10.250.0.104",
           "asn": 4200000104,
           "peerMode": "transport"
         },
         {
           "name": "overseas-la-2",
-          "internalIp": "192.0.2.47",
-          "kubernetesNodeIp": "192.0.2.148",
-          "podCIDR": "192.0.2.203/24",
-          "acceleratedIp": "192.0.2.148",
+          "internalIp": "10.181.22.220",
+          "kubernetesNodeIp": "10.250.0.220",
+          "podCIDR": "10.42.3.0/24",
+          "acceleratedIp": "10.250.0.220",
           "asn": 4200000220,
           "peerMode": "transport"
         },
         {
           "name": "suxunji",
-          "internalIp": "192.0.2.182",
-          "podCIDR": "192.0.2.79/24",
-          "acceleratedIp": "192.0.2.246",
+          "internalIp": "10.181.22.77",
+          "podCIDR": "10.42.16.0/24",
+          "acceleratedIp": "10.250.0.77",
           "asn": 4200000077,
           "peerMode": "transport"
         },
         {
           "name": "muaya-lightweight",
-          "internalIp": "192.0.2.112",
-          "podCIDR": "192.0.2.89/24",
-          "acceleratedIp": "192.0.2.160",
+          "internalIp": "10.181.22.79",
+          "podCIDR": "10.42.19.0/24",
+          "acceleratedIp": "10.250.0.79",
           "asn": 4200000079,
           "peerMode": "transport"
         },
         {
           "name": "muaya-ecs",
-          "internalIp": "192.0.2.74",
-          "kubernetesNodeIp": "192.0.2.32",
-          "podCIDR": "192.0.2.237/24",
-          "acceleratedIp": "192.0.2.32",
+          "internalIp": "10.181.22.95",
+          "kubernetesNodeIp": "10.250.0.95",
+          "podCIDR": "10.42.17.0/24",
+          "acceleratedIp": "10.250.0.95",
           "asn": 4200000095,
           "peerMode": "transport"
         },
         {
           "name": "zan",
-          "internalIp": "192.0.2.138",
-          "podCIDR": "192.0.2.128/24",
-          "acceleratedIp": "192.0.2.152",
+          "internalIp": "10.181.22.16",
+          "podCIDR": "10.42.20.0/24",
+          "acceleratedIp": "10.250.0.16",
           "asn": 4200000016,
           "peerMode": "transport"
         },
         {
           "name": "domain-ex",
-          "internalIp": "192.0.2.89",
-          "podCIDR": "192.0.2.94/24",
-          "acceleratedIp": "192.0.2.46",
+          "internalIp": "10.181.22.186",
+          "podCIDR": "10.42.21.0/24",
+          "acceleratedIp": "10.250.0.186",
           "asn": 4200000186,
           "peerMode": "transport"
         },
         {
           "name": "qwen-1",
-          "internalIp": "192.0.2.154",
-          "podCIDR": "192.0.2.96/24",
-          "acceleratedIp": "192.0.2.147",
+          "internalIp": "10.181.22.24",
+          "podCIDR": "10.42.12.0/24",
+          "acceleratedIp": "10.250.0.24",
           "asn": 4200010024,
           "peerMode": "identity"
         },
         {
           "name": "qwen-2",
-          "internalIp": "192.0.2.111",
-          "podCIDR": "192.0.2.207/24",
-          "acceleratedIp": "192.0.2.214",
+          "internalIp": "10.181.22.217",
+          "podCIDR": "10.42.14.0/24",
+          "acceleratedIp": "10.250.0.217",
           "asn": 4200010217,
           "peerMode": "identity"
         },
         {
           "name": "qwen-3",
-          "internalIp": "192.0.2.251",
-          "podCIDR": "192.0.2.6/24",
-          "acceleratedIp": "192.0.2.18",
+          "internalIp": "10.181.22.47",
+          "podCIDR": "10.42.9.0/24",
+          "acceleratedIp": "10.250.0.47",
           "asn": 4200010047,
           "peerMode": "identity"
         },
         {
           "name": "vm-20-12-ubuntu",
-          "internalIp": "192.0.2.192",
-          "podCIDR": "192.0.2.57/24",
-          "acceleratedIp": "192.0.2.223",
+          "internalIp": "10.181.22.73",
+          "podCIDR": "10.42.0.0/24",
+          "acceleratedIp": "10.250.0.73",
           "asn": 4200000073,
           "peerMode": "identity",
           "publicMeshIdentityPeers": [
-            "restricted-node-6dc3f140f9"
+            "r640"
           ],
           "publicMeshPodCIDRPeers": [
-            "restricted-node-6dc3f140f9"
+            "r640"
           ]
         }
       ],
       "hostSourceIdentity": {
         "overseas-flk": {
-          "source": "192.0.2.48",
+          "source": "10.250.0.105",
           "destinations": [
-            "192.0.2.57/24",
-            "192.0.2.110/24",
-            "192.0.2.48/24",
-            "192.0.2.4/24",
-            "192.0.2.96/24",
-            "192.0.2.234/24",
-            "192.0.2.207/24",
-            "192.0.2.79/24",
-            "192.0.2.237/24",
-            "192.0.2.89/24",
-            "192.0.2.114/24",
-            "192.0.2.128/24",
-            "192.0.2.94/24",
-            "192.0.2.203/24",
-            "192.0.2.140/24",
-            "192.0.2.134/24",
-            "192.0.2.6/24"
+            "10.42.0.0/24",
+            "10.42.1.0/24",
+            "10.42.10.0/24",
+            "10.42.11.0/24",
+            "10.42.12.0/24",
+            "10.42.13.0/24",
+            "10.42.14.0/24",
+            "10.42.16.0/24",
+            "10.42.17.0/24",
+            "10.42.19.0/24",
+            "10.42.2.0/24",
+            "10.42.20.0/24",
+            "10.42.21.0/24",
+            "10.42.3.0/24",
+            "10.42.6.0/24",
+            "10.42.7.0/24",
+            "10.42.9.0/24"
           ],
           "prefixMatches": [
-            "192.0.2.57/16 ge 24 le 24",
-            "192.0.2.65/24 ge 32 le 32",
-            "192.0.2.121/24 ge 32 le 32"
+            "10.42.0.0/16 ge 24 le 24",
+            "10.250.0.0/24 ge 32 le 32",
+            "10.251.0.0/24 ge 32 le 32"
           ]
         },
         "overseas-kl": {
-          "source": "192.0.2.149",
+          "source": "10.250.0.89",
           "destinations": [
-            "192.0.2.57/24",
-            "192.0.2.48/24",
-            "192.0.2.4/24",
-            "192.0.2.96/24",
-            "192.0.2.234/24",
-            "192.0.2.207/24",
-            "192.0.2.79/24",
-            "192.0.2.237/24",
-            "192.0.2.89/24",
-            "192.0.2.114/24",
-            "192.0.2.128/24",
-            "192.0.2.94/24",
-            "192.0.2.203/24",
-            "192.0.2.165/24",
-            "192.0.2.140/24",
-            "192.0.2.134/24",
-            "192.0.2.6/24"
+            "10.42.0.0/24",
+            "10.42.10.0/24",
+            "10.42.11.0/24",
+            "10.42.12.0/24",
+            "10.42.13.0/24",
+            "10.42.14.0/24",
+            "10.42.16.0/24",
+            "10.42.17.0/24",
+            "10.42.19.0/24",
+            "10.42.2.0/24",
+            "10.42.20.0/24",
+            "10.42.21.0/24",
+            "10.42.3.0/24",
+            "10.42.4.0/24",
+            "10.42.6.0/24",
+            "10.42.7.0/24",
+            "10.42.9.0/24"
           ],
           "prefixMatches": [
-            "192.0.2.57/16 ge 24 le 24",
-            "192.0.2.65/24 ge 32 le 32",
-            "192.0.2.121/24 ge 32 le 32"
+            "10.42.0.0/16 ge 24 le 24",
+            "10.250.0.0/24 ge 32 le 32",
+            "10.251.0.0/24 ge 32 le 32"
           ]
         },
         "overseas-la-2": {
-          "source": "192.0.2.148",
+          "source": "10.250.0.220",
           "destinations": [
-            "192.0.2.57/24",
-            "192.0.2.110/24",
-            "192.0.2.48/24",
-            "192.0.2.4/24",
-            "192.0.2.96/24",
-            "192.0.2.234/24",
-            "192.0.2.207/24",
-            "192.0.2.79/24",
-            "192.0.2.237/24",
-            "192.0.2.89/24",
-            "192.0.2.114/24",
-            "192.0.2.128/24",
-            "192.0.2.94/24",
-            "192.0.2.165/24",
-            "192.0.2.140/24",
-            "192.0.2.134/24",
-            "192.0.2.6/24"
+            "10.42.0.0/24",
+            "10.42.1.0/24",
+            "10.42.10.0/24",
+            "10.42.11.0/24",
+            "10.42.12.0/24",
+            "10.42.13.0/24",
+            "10.42.14.0/24",
+            "10.42.16.0/24",
+            "10.42.17.0/24",
+            "10.42.19.0/24",
+            "10.42.2.0/24",
+            "10.42.20.0/24",
+            "10.42.21.0/24",
+            "10.42.4.0/24",
+            "10.42.6.0/24",
+            "10.42.7.0/24",
+            "10.42.9.0/24"
           ],
           "prefixMatches": [
-            "192.0.2.57/16 ge 24 le 24",
-            "192.0.2.65/24 ge 32 le 32",
-            "192.0.2.121/24 ge 32 le 32"
+            "10.42.0.0/16 ge 24 le 24",
+            "10.250.0.0/24 ge 32 le 32",
+            "10.251.0.0/24 ge 32 le 32"
           ]
         }
       },
@@ -14980,7 +14980,7 @@ data:
           printf '%s' "${summary}" | jq -e --argjson asn "${asn}" --arg peer "${rr_peer}" \
             '.as == $asn and .peers[$peer].state == "Established"' >/dev/null && peers_ready=true
         elif [ "${control_plane_node}" = true ]; then
-          # restricted-node-6dc3f140f9 must retain both A1 and B1 sessions.  A single surviving RR is
+          # R640 must retain both A1 and B1 sessions.  A single surviving RR is
           # degraded service, not a completed reconciliation.
           printf '%s' "${summary}" | jq -e --argjson asn "${asn}" --arg a1 "${a1_peer}" --arg b1 "${b1_peer}" \
             '.as == $asn and .peers[$a1].state == "Established" and .peers[$b1].state == "Established"' >/dev/null && peers_ready=true
@@ -15056,7 +15056,7 @@ data:
         host ip link show "${iface}" >/dev/null 2>&1 || continue
         # ECMP can send a socket sourced from either tunnel across this iface.
         for source_fabric in 93 94; do
-          for api_ip in 192.0.2.116 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
+          for api_ip in 10.250.0.1 $(jq -r '.routeServers[], .relayNodes[]? | .acceleratedIp' /config/inventory.json); do
             rule="ip saddr 172.31.${source_fabric}.${last} ip daddr ${api_ip} tcp dport 6443 oifname \"${iface}\" snat to ${identity}"
             host nft list chain ip re8ch_control_api_snat postrouting | grep -Fq "${rule}" ||
               host nft add rule ip re8ch_control_api_snat postrouting ip saddr "172.31.${source_fabric}.${last}/32" ip daddr "${api_ip}/32" tcp dport 6443 oifname "${iface}" snat to "${identity}"
@@ -15067,24 +15067,24 @@ data:
 
     reconcile_control_api_spoke_symmetry() {
       [ -n "${route_server}" ] || return 0
-      if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then cp_iface=wg-cp-a1; else cp_iface=wg-cp-b1; fi
+      if [ "${NODE_NAME}" = a1-wsl-zt ]; then cp_iface=wg-cp-a1; else cp_iface=wg-cp-b1; fi
       host ip link show "${cp_iface}" >/dev/null 2>&1 || return 0
       local_ip="$(printf '%s' "${route_server}" | jq -r '.acceleratedIp')"
       for relay_ip in $(jq -r '.relayNodes[]? | .acceleratedIp' /config/inventory.json); do
-        for spoke_ip in $(jq -r '.nodes[] | select(.peerMode == "transport" and .name != "restricted-node-6dc3f140f9") | .acceleratedIp' /config/inventory.json); do
+        for spoke_ip in $(jq -r '.nodes[] | select(.peerMode == "transport" and .name != "r640") | .acceleratedIp' /config/inventory.json); do
           host ip rule show | grep -Fq "from ${spoke_ip} to ${relay_ip} ipproto tcp dport 6443 lookup 15300" ||
             host ip rule add pref 11519 from "${spoke_ip}/32" to "${relay_ip}/32" ipproto tcp dport 6443 lookup 15300
           host ip rule show | grep -Fq "to ${spoke_ip} iif ${cp_iface} lookup main" ||
             host ip rule add pref 11522 iif "${cp_iface}" to "${spoke_ip}/32" lookup main
-          for reply_ip in "${local_ip}" 192.0.2.116; do
+          for reply_ip in "${local_ip}" 10.250.0.1; do
             host ip rule show | grep -Fq "from ${reply_ip} to ${spoke_ip} ipproto tcp sport 6443 lookup main" ||
               host ip rule add pref 11522 from "${reply_ip}/32" to "${spoke_ip}/32" ipproto tcp sport 6443 lookup main
           done
         done
       done
       for node_ip in $(jq -r '.nodes[].acceleratedIp' /config/inventory.json); do
-        host ip rule show | grep -Fq "from 192.0.2.116 to ${node_ip} ipproto tcp sport 6443 lookup main" ||
-          host ip rule add pref 11522 from 192.0.2.116/32 to "${node_ip}/32" ipproto tcp sport 6443 lookup main
+        host ip rule show | grep -Fq "from 10.250.0.1 to ${node_ip} ipproto tcp sport 6443 lookup main" ||
+          host ip rule add pref 11522 from 10.250.0.1/32 to "${node_ip}/32" ipproto tcp sport 6443 lookup main
       done
     }
 
@@ -15106,7 +15106,7 @@ data:
             host vtysh -c 'configure terminal' -c "ip route ${other_transport_cidr} ${other_interconnect} wg-wsl-lan 5" -c end
           done
         fi
-        if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
+        if [ "${NODE_NAME}" = a1-wsl-zt ]; then iface=wg-pt-a1; fabric_octet=93; else iface=wg-pt-b1; fabric_octet=94; fi
         host ip link show "${iface}" >/dev/null 2>&1 || return 0
         jq -c '.nodes[] | select(.peerMode == "transport")' /config/inventory.json | while read -r spoke; do
           last="$(printf '%s' "${spoke}" | jq -r '.internalIp | split(".")[3]')"
@@ -15116,7 +15116,7 @@ data:
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
           case ",${allowed}," in *",${prefix},"*) : ;; *) host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed},${prefix}" ;; esac
         done
-        # Relayed identities use restricted-node-6dc3f140f9's existing tunnel, never a direct A/B peer.
+        # Relayed identities use R640's existing tunnel, never a direct A/B peer.
         r640_peer="$(host wg show "${iface}" allowed-ips | awk -v transit="172.31.${fabric_octet}.128/32" '{ for (i=2; i<=NF; i++) if ($i == transit) { print $1; exit } }')"
         if [ -n "${r640_peer}" ]; then
           allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${r640_peer}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
@@ -15135,9 +15135,9 @@ data:
         [ -n "${peer_key}" ] || continue
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key {for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit}')"
         remote_pods="$(jq -r --arg own "${pod_cidr}" '.routeServers[], .relayNodes[]?, .nodes[] | .podCIDR | select(. != $own)' /config/inventory.json | paste -sd, -)"
-        relay_identities="192.0.2.116/32,$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
+        relay_identities="10.250.0.1/32,$(jq -r '.relayNodes[]? | .acceleratedIp + "/32"' /config/inventory.json | paste -sd, -)"
         if [ "${peer_mode}" = transport ]; then
-          if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=192.0.2.63/24; else transport_cidr=192.0.2.208/24; fi
+          if [ "${iface}" = wg-pt-a1 ]; then transport_cidr=172.31.93.0/24; else transport_cidr=172.31.94.0/24; fi
           case ",${allowed}," in *",${transport_cidr},"*) : ;; *) allowed="${allowed},${transport_cidr}" ;; esac
           host vtysh -c 'configure terminal' -c "ip route ${transport_cidr} ${iface} 5" -c end
         fi
@@ -15194,7 +15194,7 @@ data:
     }
 
     reconcile_transit_forwarding() {
-      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      [ "${NODE_NAME}" = r640 ] || return 0
       chain=RE8CH-FABRIC-FORWARD
       if ! jq -e --arg node "${NODE_NAME}" '.transitForwarding[$node] | length > 0' /config/inventory.json >/dev/null; then
         if host iptables -w -S "${chain}" >/dev/null 2>&1; then
@@ -15221,14 +15221,14 @@ data:
     }
 
     reconcile_r640_identity_transit_nat() {
-      [ "${NODE_NAME}" = restricted-node-1eb0570f74 ] || return 0
+      [ "${NODE_NAME}" = a1-wsl-zt ] || return 0
       host ip link show wg-pt-a1 >/dev/null 2>&1 || return 0
       host nft list table ip re8ch_fabric >/dev/null 2>&1 || host nft add table ip re8ch_fabric
       host nft list chain ip re8ch_fabric postrouting >/dev/null 2>&1 ||
         host nft 'add chain ip re8ch_fabric postrouting { type nat hook postrouting priority srcnat; policy accept; }'
       jq -r '.nodes[] | select(.peerMode == "identity") | .podCIDR' /config/inventory.json | while read -r peer_pods; do
         host nft list chain ip re8ch_fabric postrouting | grep -Fq "ip daddr ${peer_pods}" ||
-          host nft add rule ip re8ch_fabric postrouting ip saddr 192.0.2.86/32 ip daddr "${peer_pods}" masquerade
+          host nft add rule ip re8ch_fabric postrouting ip saddr 172.31.93.128/32 ip daddr "${peer_pods}" masquerade
       done
     }
 
@@ -15256,17 +15256,17 @@ data:
 
     cleanup_retired_panel_api_dnat() {
       [ "${NODE_NAME}" = vm-20-12-ubuntu ] || return 0
-      # This bootstrap-only redirect makes a connection addressed to restricted-node-6dc3f140f9
+      # This bootstrap-only redirect makes a connection addressed to R640
       # register its K3s remotedialer session on A1 instead. Remove only the
       # exact historical rule; do not alter any other OUTPUT NAT policy.
       while host iptables -t nat -C OUTPUT \
-        -d 192.0.2.178/32 -p tcp --dport 6443 \
+        -d 10.181.22.128/32 -p tcp --dport 6443 \
         -m comment --comment 'RE8CH panel K3s API recovery via A1' \
-        -j DNAT --to-destination 192.0.2.176:6443 2>/dev/null; do
+        -j DNAT --to-destination 10.181.22.147:6443 2>/dev/null; do
         host iptables -t nat -D OUTPUT \
-          -d 192.0.2.178/32 -p tcp --dport 6443 \
+          -d 10.181.22.128/32 -p tcp --dport 6443 \
           -m comment --comment 'RE8CH panel K3s API recovery via A1' \
-          -j DNAT --to-destination 192.0.2.176:6443
+          -j DNAT --to-destination 10.181.22.147:6443
       done
     }
 
@@ -15276,14 +15276,14 @@ data:
       # order is not routing authority.
       identity_iface="$(host ip -o -4 addr show | awk -v own="${internal_ip}" '$4 ~ ("^" own "/") {print $2; exit}')"
       # Control-plane identities are certificate and etcd authorities, not a
-      # generic optimization domain. restricted-node-6dc3f140f9 has no ordinary Linux ZeroTier L2
+      # generic optimization domain. R640 has no ordinary Linux ZeroTier L2
       # endpoint: B1 reaches it directly through wg-pt-b1, while A1 reaches it
       # directly through wg-pt-a1 over the public underlay. Never overwrite those paths with a
-      # 192.0.2.178/32 route via the ZeroTier interface.
+      # 10.181.22.128/32 route via the ZeroTier interface.
       # Identity-mode BGP speakers preserve their Kubernetes InternalIP as the
       # next hop. Pin those /32 identities to the interface which owns this
       # node's InternalIP so a broad underlay/default route cannot capture
-      # recursive BGP next-hop resolution. This must run before the restricted-node-6dc3f140f9/B1
+      # recursive BGP next-hop resolution. This must run before the R640/B1
       # control-plane exception below.
       if [ -n "${identity_iface}" ]; then
         jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshIdentityPeers // []) as $mesh | $root.nodes[] | select(.name != $own and .peerMode == "identity" and (.name as $name | $mesh | index($name) | not)) | .internalIp' /config/inventory.json | while read -r peer_ip; do
@@ -15293,11 +15293,11 @@ data:
           host vtysh -c 'configure terminal' -c "no ip route ${peer_ip}/32 ${identity_iface} 5" -c end
         done
       fi
-      # restricted-node-6dc3f140f9's ZeroTier membership cannot currently reach the Qwen identity
+      # R640's ZeroTier membership cannot currently reach the Qwen identity
       # peers directly, while its private A1 transit is healthy and already
       # authorizes every remote PodCIDR. Resolve identity-mode leaf PodCIDRs
       # through that transit so the public edge can reach their workloads.
-      if [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] && host ip link show wg-pt-a1 >/dev/null 2>&1; then
+      if [ "${NODE_NAME}" = r640 ] && host ip link show wg-pt-a1 >/dev/null 2>&1; then
         jq -r --arg own "${NODE_NAME}" '. as $root | ($root.nodes[] | select(.name == $own) | .publicMeshPodCIDRPeers // []) as $mesh | $root.nodes[] | select(.name != $own and .peerMode == "identity" and (.name as $name | $mesh | index($name) | not)) | .podCIDR' /config/inventory.json | while read -r peer_pods; do
           host vtysh -c 'configure terminal' -c "ip route ${peer_pods} wg-pt-a1 5" -c end
         done
@@ -15305,14 +15305,14 @@ data:
           host vtysh -c 'configure terminal' -c "no ip route ${peer_pods} wg-pt-a1 5" -c end
         done
       fi
-      if [ "${NODE_NAME}" = restricted-node-1eb0570f74 ]; then
+      if [ "${NODE_NAME}" = a1-wsl-zt ]; then
         host vtysh -c 'configure terminal' \
-          -c "no ip route 192.0.2.178/32 ${identity_iface} 5" \
-          -c 'ip route 192.0.2.178/32 wg-pt-a1 5' \
+          -c "no ip route 10.181.22.128/32 ${identity_iface} 5" \
+          -c 'ip route 10.181.22.128/32 wg-pt-a1 5' \
           -c end
         return 0
       fi
-      if [ "${NODE_NAME}" = restricted-node-296f36f2fb ] || [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ]; then
+      if [ "${NODE_NAME}" = b1-wsl-zt ] || [ "${NODE_NAME}" = r640 ]; then
         return 0
       fi
       [ -n "${identity_iface}" ] || return 0
@@ -15343,22 +15343,22 @@ data:
       host vtysh <<EOF
     configure terminal
     no ip prefix-list MUBAO-R640-IN
-    ip prefix-list MUBAO-R640-IN seq 10 permit 192.0.2.179/32
-    ip prefix-list MUBAO-R640-IN seq 15 permit 192.0.2.116/32
-    ip prefix-list MUBAO-R640-IN seq 20 permit 192.0.2.242/32
-    ip prefix-list MUBAO-R640-IN seq 30 permit 192.0.2.1/32
-    ip prefix-list MUBAO-R640-IN seq 40 permit 192.0.2.57/16 ge 24 le 24
-    ip prefix-list MUBAO-R640-IN seq 50 permit 192.0.2.156/12 ge 24 le 24
+    ip prefix-list MUBAO-R640-IN seq 10 permit 10.250.0.128/32
+    ip prefix-list MUBAO-R640-IN seq 15 permit 10.250.0.1/32
+    ip prefix-list MUBAO-R640-IN seq 20 permit 10.250.0.147/32
+    ip prefix-list MUBAO-R640-IN seq 30 permit 10.250.0.125/32
+    ip prefix-list MUBAO-R640-IN seq 40 permit 10.42.0.0/16 ge 24 le 24
+    ip prefix-list MUBAO-R640-IN seq 50 permit 10.64.0.0/12 ge 24 le 24
     ip prefix-list MUBAO-R640-IN seq 1000 deny any
     no ip prefix-list MUBAO-SELF-OUT
     ${owned_prefix_lines}
     ip prefix-list MUBAO-SELF-OUT seq 300 permit ${identity}/32
-    ip prefix-list MUBAO-SELF-OUT seq 310 permit 192.0.2.116/32
+    ip prefix-list MUBAO-SELF-OUT seq 310 permit 10.250.0.1/32
     ip prefix-list MUBAO-SELF-OUT seq 1000 deny any
     no ip prefix-list ROS-CP-FIB-PEERS
-    ip prefix-list ROS-CP-FIB-PEERS seq 10 permit 192.0.2.242/32
-    ip prefix-list ROS-CP-FIB-PEERS seq 20 permit 192.0.2.1/32
-    ip prefix-list ROS-CP-FIB-PEERS seq 30 permit 192.0.2.156/12 ge 24 le 24
+    ip prefix-list ROS-CP-FIB-PEERS seq 10 permit 10.250.0.147/32
+    ip prefix-list ROS-CP-FIB-PEERS seq 20 permit 10.250.0.125/32
+    ip prefix-list ROS-CP-FIB-PEERS seq 30 permit 10.64.0.0/12 ge 24 le 24
     route-map ROS-CP-FIB-SRC permit 10
     match ip address prefix-list ROS-CP-FIB-PEERS
     set src ${identity}
@@ -15378,7 +15378,7 @@ data:
     address-family ipv4 unicast
     ${owned_network_lines}
     network ${identity}/32
-    network 192.0.2.116/32
+    network 10.250.0.1/32
     neighbor ${r640_transport} activate
     neighbor ${r640_transport} prefix-list MUBAO-R640-IN in
     neighbor ${r640_transport} prefix-list MUBAO-SELF-OUT out
@@ -15392,7 +15392,7 @@ data:
         peer_key="$(host wg show "${iface}" allowed-ips | awk 'NR == 1 { print $1 }')"
         [ -n "${peer_key}" ] || return 1
         allowed="$(host wg show "${iface}" allowed-ips | awk -v key="${peer_key}" '$1 == key { for (i=2; i<=NF; i++) printf "%s%s", (i==2 ? "" : ","), $i; print ""; exit }')"
-        case ",${allowed}," in *",192.0.2.156/12,"*) : ;; *) allowed="${allowed},192.0.2.156/12" ;; esac
+        case ",${allowed}," in *",10.64.0.0/12,"*) : ;; *) allowed="${allowed},10.64.0.0/12" ;; esac
         host wg set "${iface}" peer "${peer_key}" allowed-ips "${allowed}"
       done
       sleep 4
@@ -15427,8 +15427,8 @@ data:
         jq -r '.routeServers[], .nodes[] | .podCIDR' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " NR * 10 " permit " $0}'
         jq -r '.routeServers[], .nodes[] | .acceleratedIp + "/32"' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 300 + NR * 10 " permit " $0}'
         jq -r '.relayNodes[]? | (.acceleratedIp + "/32"), (.podCIDR // empty)' /config/inventory.json | awk '{print "ip prefix-list POD-FABRIC-OUT seq " 600 + NR * 10 " permit " $0}'
-        echo 'ip prefix-list POD-FABRIC-OUT seq 850 permit 192.0.2.156/12 ge 24 le 24'
-        echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 192.0.2.121/24 ge 32 le 32'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 850 permit 10.64.0.0/12 ge 24 le 24'
+        echo 'ip prefix-list POD-FABRIC-OUT seq 900 permit 10.251.0.0/24 ge 32 le 32'
         echo 'ip prefix-list POD-FABRIC-OUT seq 1000 deny any'
         echo 'no ip prefix-list POD-FABRIC-RR-SELF'
         printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip prefix-list POD-FABRIC-RR-SELF seq " NR * 10 " permit " $0}'
@@ -15455,7 +15455,7 @@ data:
         echo 'route-map POD-FABRIC-RR-TRANSPORT-OUT permit 20'
         echo 'match ip address prefix-list POD-FABRIC-OUT'
         echo 'exit'
-        echo 'no ip route 192.0.2.6/24 Null0 254'
+        echo 'no ip route 10.42.9.0/24 Null0 254'
         printf '%s\n' "${owned_pod_cidrs}" | awk '{print "ip route " $0 " Null0 254"}'
         echo "router bgp ${asn}"
         jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
@@ -15486,7 +15486,7 @@ data:
           echo "neighbor ${peer} disable-connected-check"
         done
         echo 'address-family ipv4 unicast'
-        echo 'no network 192.0.2.6/24'
+        echo 'no network 10.42.9.0/24'
         printf '%s\n' "${owned_pod_cidrs}" | awk '{print "network " $0}'
         echo "network ${accelerated_ip}/32"
         jq -c '.nodes[]' /config/inventory.json | while read -r spoke; do
@@ -15580,23 +15580,23 @@ data:
     internal_ip="$(printf '%s' "${node}" | jq -r .internalIp)"
     peer_mode="$(printf '%s' "${node}" | jq -r .peerMode)"
     if [ "${peer_mode}" = transport ]; then
-      a1_peer=192.0.2.178
-      b1_peer=192.0.2.101
-      stale_a1_peer=192.0.2.176
-      stale_b1_peer=192.0.2.4
+      a1_peer=172.31.93.147
+      b1_peer=172.31.94.125
+      stale_a1_peer=10.181.22.147
+      stale_b1_peer=10.181.22.125
       last="$(printf '%s' "${internal_ip}" | awk -F. '{print $4}')"
       a1_update_source="172.31.93.${last}"
       b1_update_source="172.31.94.${last}"
     else
-      a1_peer=192.0.2.176
-      b1_peer=192.0.2.4
-      stale_a1_peer=192.0.2.178
-      stale_b1_peer=192.0.2.101
+      a1_peer=10.181.22.147
+      b1_peer=10.181.22.125
+      stale_a1_peer=172.31.93.147
+      stale_b1_peer=172.31.94.125
       a1_update_source="${internal_ip}"
       b1_update_source="${internal_ip}"
     fi
-    a1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-1eb0570f74") | .asn' /config/inventory.json)"
-    b1_asn="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .asn' /config/inventory.json)"
+    a1_asn="$(jq -r '.routeServers[] | select(.name == "a1-wsl-zt") | .asn' /config/inventory.json)"
+    b1_asn="$(jq -r '.routeServers[] | select(.name == "b1-wsl-zt") | .asn' /config/inventory.json)"
     owned_pod_cidrs="$(local_pod_cidrs)"
 
     apply_fabric() {
@@ -15607,10 +15607,10 @@ data:
       host vtysh <<EOF
     configure terminal
     no ip prefix-list POD-FABRIC-IN
-    ip prefix-list POD-FABRIC-IN seq 10 permit 192.0.2.57/16 ge 24 le 24
-    ip prefix-list POD-FABRIC-IN seq 15 permit 192.0.2.156/12 ge 24 le 24
-    ip prefix-list POD-FABRIC-IN seq 20 permit 192.0.2.65/24 ge 32 le 32
-    ip prefix-list POD-FABRIC-IN seq 30 permit 192.0.2.121/24 ge 32 le 32
+    ip prefix-list POD-FABRIC-IN seq 10 permit 10.42.0.0/16 ge 24 le 24
+    ip prefix-list POD-FABRIC-IN seq 15 permit 10.64.0.0/12 ge 24 le 24
+    ip prefix-list POD-FABRIC-IN seq 20 permit 10.250.0.0/24 ge 32 le 32
+    ip prefix-list POD-FABRIC-IN seq 30 permit 10.251.0.0/24 ge 32 le 32
     ip prefix-list POD-FABRIC-IN seq 1000 deny any
     no ip prefix-list POD-FABRIC-SELF
     ${owned_prefix_lines}
@@ -15661,27 +15661,27 @@ data:
     }
 
     reconcile_relay_nodes() {
-      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
+      [ "${NODE_NAME}" = r640 ] || return 0
       jq -c '.relayNodes[]?' /config/inventory.json | while read -r relay; do
         peer="$(printf '%s' "${relay}" | jq -r .transportIp)"
         relay_ip="$(printf '%s' "${relay}" | jq -r .relayIp)"
         relay_asn="$(printf '%s' "${relay}" | jq -r .asn)"
         identity="$(printf '%s' "${relay}" | jq -r .acceleratedIp)"
         pod_prefix="$(printf '%s' "${relay}" | jq -r .podCIDR)"
-        [ "$(printf '%s' "${relay}" | jq -r .name)" = restricted-node-abb3f27a69 ] || { echo "unsupported relay node" >&2; return 1; }
-        [ "${relay_ip}" = 192.0.2.198 ] || { echo "unsupported relay source: ${relay_ip}" >&2; return 1; }
+        [ "$(printf '%s' "${relay}" | jq -r .name)" = mubao-wsl ] || { echo "unsupported relay node" >&2; return 1; }
+        [ "${relay_ip}" = 172.31.95.128 ] || { echo "unsupported relay source: ${relay_ip}" >&2; return 1; }
         host vtysh <<EOF
     configure terminal
     ip prefix-list MUBAO-IN seq 10 permit ${identity}/32
     ip prefix-list MUBAO-IN seq 20 permit ${pod_prefix}
-    ip prefix-list MUBAO-IN seq 30 permit 192.0.2.156/12 ge 24 le 24
+    ip prefix-list MUBAO-IN seq 30 permit 10.64.0.0/12 ge 24 le 24
     ip prefix-list MUBAO-IN seq 1000 deny any
-    ip prefix-list MUBAO-OUT seq 10 permit 192.0.2.179/32
-    ip prefix-list MUBAO-OUT seq 15 permit 192.0.2.116/32
-    ip prefix-list MUBAO-OUT seq 20 permit 192.0.2.242/32
-    ip prefix-list MUBAO-OUT seq 30 permit 192.0.2.1/32
-    ip prefix-list MUBAO-OUT seq 40 permit 192.0.2.57/16 ge 24 le 24
-    ip prefix-list MUBAO-OUT seq 50 permit 192.0.2.156/12 ge 24 le 24
+    ip prefix-list MUBAO-OUT seq 10 permit 10.250.0.128/32
+    ip prefix-list MUBAO-OUT seq 15 permit 10.250.0.1/32
+    ip prefix-list MUBAO-OUT seq 20 permit 10.250.0.147/32
+    ip prefix-list MUBAO-OUT seq 30 permit 10.250.0.125/32
+    ip prefix-list MUBAO-OUT seq 40 permit 10.42.0.0/16 ge 24 le 24
+    ip prefix-list MUBAO-OUT seq 50 permit 10.64.0.0/12 ge 24 le 24
     ip prefix-list MUBAO-OUT seq 1000 deny any
     router bgp ${asn}
     neighbor ${peer} remote-as ${relay_asn}
@@ -15710,14 +15710,14 @@ data:
         host nft list table ip re8ch_multipool_relay >/dev/null 2>&1 || host nft add table ip re8ch_multipool_relay
         host nft list chain ip re8ch_multipool_relay postrouting >/dev/null 2>&1 ||
           host nft 'add chain ip re8ch_multipool_relay postrouting { type nat hook postrouting priority srcnat; policy accept; }'
-        for spec in 'wg-pt-a1 192.0.2.86' 'wg-pt-b1 192.0.2.77'; do
+        for spec in 'wg-pt-a1 172.31.93.128' 'wg-pt-b1 172.31.94.128'; do
           set -- ${spec}
           iface="$1"
           source="$2"
-          rule="ip saddr ${identity} ip daddr 192.0.2.156/12 oifname \"${iface}\" snat to ${source}"
+          rule="ip saddr ${identity} ip daddr 10.64.0.0/12 oifname \"${iface}\" snat to ${source}"
           host nft list chain ip re8ch_multipool_relay postrouting | grep -Fq "${rule}" ||
             host nft add rule ip re8ch_multipool_relay postrouting ip saddr "${identity}/32" \
-              ip daddr 192.0.2.156/12 oifname "${iface}" snat to "${source}"
+              ip daddr 10.64.0.0/12 oifname "${iface}" snat to "${source}"
         done
       done
     }
@@ -15750,15 +15750,15 @@ data:
     }
 
     reconcile_r640_b1_podcidr_authority() {
-      [ "${NODE_NAME}" = restricted-node-6dc3f140f9 ] || return 0
-      prefix="$(jq -r '.routeServers[] | select(.name == "restricted-node-296f36f2fb") | .podCIDR' /config/inventory.json)"
+      [ "${NODE_NAME}" = r640 ] || return 0
+      prefix="$(jq -r '.routeServers[] | select(.name == "b1-wsl-zt") | .podCIDR' /config/inventory.json)"
       [ -n "${prefix}" ] || return 1
       # A historical low-metric route through RouterOS can override the valid
       # FRR path and blackhole B1 DNS while its Pod remains locally Ready.
       host vtysh -c "show bgp ipv4 unicast ${prefix} json" 2>/dev/null |
         jq -e '[.paths[]? | select(.valid == true)] | length > 0' >/dev/null || return 1
       while host ip -4 route show exact "${prefix}" | grep -Eq 'via 192\.168\.88\.1 dev eno2np1'; do
-        host ip route del "${prefix}" via 192.0.2.240 dev eno2np1 || return 1
+        host ip route del "${prefix}" via 192.168.88.1 dev eno2np1 || return 1
       done
       host ip -4 route show exact "${prefix}" | grep -Eq 'dev wg-pt-(a1|b1)' || return 1
     }
@@ -15802,327 +15802,101 @@ metadata:
 ---
 apiVersion: v1
 data:
-  inventory.json: |
-    {
-      "interface": "wg-public-mesh",
-      "listenPort": 51888,
-      "mtu": 1280,
-      "transportPrefix": "192.0.2.246/24",
-      "nodes": [
-        {
-          "id": "73",
-          "name": "vm-20-12-ubuntu",
-          "ztIp": "192.0.2.192",
-          "transportIp": "192.0.2.124",
-          "publicIp": "192.0.2.122",
-          "asn": 4200000073,
-          "rollout": 0,
-          "publicMode": "static",
-          "podCIDR": "192.0.2.57/24",
-          "podCIDRPeers": [
-            "restricted-node-6dc3f140f9"
-          ],
-          "peerCompatibility": {
-            "disableFqdnCapabilityFrom": [
-              "restricted-node-6dc3f140f9"
-            ]
-          },
-          "rescueRoutes": [
-            {
-              "prefix": "192.0.2.178/32",
-              "via": "192.0.2.48",
-              "distance": 250
-            }
-          ]
-        },
-        {
-          "id": "128",
-          "name": "restricted-node-6dc3f140f9",
-          "ztIp": "192.0.2.178",
-          "transportIp": "192.0.2.125",
-          "publicIp": "192.0.2.138",
-          "asn": 4200000128,
-          "rollout": 0,
-          "publicMode": "mikrotik-dnat",
-          "podCIDR": "192.0.2.140/24",
-          "podCIDRPeers": [
-            "vm-20-12-ubuntu",
-            "overseas-flk",
-            "overseas-la"
-          ]
-        },
-        {
-          "id": "79",
-          "name": "qianwen-nuclio-79",
-          "ztIp": "192.0.2.112",
-          "transportIp": "192.0.2.121",
-          "publicIp": "192.0.2.197",
-          "asn": 4200000079,
-          "rollout": 1,
-          "publicMode": "static",
-          "throughputProbeEnabled": false
-        },
-        {
-          "id": "77",
-          "name": "artchais-nuclio-1",
-          "ztIp": "192.0.2.182",
-          "transportIp": "192.0.2.61",
-          "publicIp": "192.0.2.86",
-          "asn": 4200000077,
-          "rollout": 2,
-          "publicMode": "static"
-        },
-        {
-          "id": "95",
-          "name": "harbor-registry",
-          "ztIp": "192.0.2.74",
-          "transportIp": "192.0.2.108",
-          "publicIp": "192.0.2.185",
-          "asn": 4200000095,
-          "rollout": 3,
-          "publicMode": "static"
-        },
-        {
-          "id": "16",
-          "name": "rancher-panel",
-          "ztIp": "192.0.2.138",
-          "transportIp": "192.0.2.219",
-          "publicIp": "192.0.2.192",
-          "asn": 4200000016,
-          "rollout": 4,
-          "publicMode": "static"
-        },
-        {
-          "id": "186",
-          "name": "pg-re8ch-replica-186",
-          "ztIp": "192.0.2.89",
-          "transportIp": "192.0.2.171",
-          "publicIp": "192.0.2.62",
-          "asn": 4200000186,
-          "rollout": 5,
-          "publicMode": "static"
-        },
-        {
-          "id": "50",
-          "name": "overseas-edge-50",
-          "ztIp": "192.0.2.79",
-          "transportIp": "192.0.2.4",
-          "publicIp": "192.0.2.189",
-          "asn": 4200000050,
-          "rollout": 6,
-          "publicMode": "static",
-          "region": "overseas",
-          "includedEgressGiB": 1024
-        },
-        {
-          "id": "105",
-          "name": "overseas-flk",
-          "ztIp": "192.0.2.39",
-          "transportIp": "192.0.2.154",
-          "acceleratedIp": "192.0.2.48",
-          "publicIp": "192.0.2.38",
-          "asn": 4200000105,
-          "rollout": 7,
-          "publicMode": "static",
-          "podCIDR": "192.0.2.165/24",
-          "podCIDRPeers": [
-            "restricted-node-6dc3f140f9"
-          ],
-          "meshPeers": [
-            "restricted-node-6dc3f140f9",
-            "overseas-la-2",
-            "overseas-la"
-          ]
-        },
-        {
-          "id": "220",
-          "name": "overseas-la-2",
-          "ztIp": "192.0.2.47",
-          "transportIp": "192.0.2.206",
-          "acceleratedIp": "192.0.2.148",
-          "publicIp": "192.0.2.146",
-          "asn": 4200000220,
-          "rollout": 8,
-          "publicMode": "static",
-          "meshPeers": [
-            "restricted-node-6dc3f140f9",
-            "overseas-flk"
-          ]
-        },
-        {
-          "id": "104",
-          "name": "overseas-la",
-          "ztIp": "192.0.2.110",
-          "transportIp": "192.0.2.188",
-          "acceleratedIp": "192.0.2.147",
-          "publicIp": "192.0.2.111",
-          "asn": 4200000104,
-          "rollout": 10,
-          "publicMode": "static",
-          "podCIDR": "192.0.2.114/24",
-          "podCIDRPeers": [
-            "restricted-node-6dc3f140f9"
-          ],
-          "apiVipVia": {
-            "peer": "restricted-node-6dc3f140f9",
-            "prefix": "192.0.2.116/32"
-          },
-          "meshPeers": [
-            "restricted-node-6dc3f140f9",
-            "overseas-flk"
-          ]
-        }
-      ]
-    }
-  public-mesh-podcidr-reconcile.sh: |
-    #!/bin/sh
-    # Reconcile only explicitly paired public-mesh PodCIDR BGP policies.
-    set -eu
-
-    host() { nsenter -t 1 -n chroot /host "$@"; }
-    loaded_revision="$(sha256sum /config/public-mesh.json /config/reconcile.sh)"
-    node="$(jq -c --arg name "$NODE_NAME" '.nodes[] | select(.name == $name)' /config/public-mesh.json)"
-    [ -n "$node" ] || exit 2
-    own_id="$(printf '%s' "$node" | jq -r .id)"
-    own_asn="$(printf '%s' "$node" | jq -r .asn)"
-    own_pod="$(printf '%s' "$node" | jq -r .podCIDR)"
-    [ "$own_pod" != null ] || exit 2
-
-    reconcile_peer() {
-      peer_name="$1"
-      peer="$(jq -c --arg name "$peer_name" '.nodes[] | select(.name == $name)' /config/public-mesh.json)"
-      [ -n "$peer" ] || return 1
-      printf '%s' "$peer" | jq -e --arg name "$NODE_NAME" '.podCIDRPeers | index($name) != null' >/dev/null
-      peer_id="$(printf '%s' "$peer" | jq -r .id)"
-      peer_ip="$(printf '%s' "$peer" | jq -r .transportIp)"
-      peer_pod="$(printf '%s' "$peer" | jq -r .podCIDR)"
-      [ "$peer_pod" != null ] || return 1
-      # Never advertise a PodCIDR into a tunnel that cannot carry the return path.
-      host wg show wg-public-mesh allowed-ips | awk -v transport="${peer_ip}/32" -v pod="$peer_pod" '
-        { found_transport=0; found_pod=0; for(i=2;i<=NF;i++){if($i==transport)found_transport=1;if($i==pod)found_pod=1} if(found_transport && found_pod)ok=1 }
-        END { exit !ok }' || return 1
-      host vtysh -c 'show bgp ipv4 unicast summary json' | jq -e --arg ip "$peer_ip" '.peers[$ip].state == "Established"' >/dev/null || return 1
-
-      config="$(host vtysh -c 'show running-config')"
-      printf '%s\n' "$config" | grep -Fqx "  network $own_pod" || return 1
-      inbound="FROM-$peer_id"
-      outbound="RE8CH-POD-TO-$peer_id"
-      # LA1 receives the API VIP as an additional restricted-node-6dc3f140f9 prefix.
-      maximum=2
-      if printf '%s' "$node" | jq -e --arg name "$peer_name" '.apiVipVia.peer == $name' >/dev/null; then
-        maximum=3
-      fi
-      relay_vip="$(printf '%s' "$peer" | jq -r --arg name "$NODE_NAME" 'if .apiVipVia.peer == $name then .apiVipVia.prefix else empty end')"
-      identity="10.250.0.$own_id/32"
-      if ! printf '%s\n' "$config" | grep -Fqx "ip prefix-list $inbound seq 20 permit $peer_pod" &&
-         ! printf '%s\n' "$config" | grep -Fqx "ip prefix-list $inbound seq 30 permit $peer_pod"; then
-        sequence=20
-        if printf '%s\n' "$config" | grep -Fq "ip prefix-list $inbound seq 20 "; then sequence=30; fi
-        if printf '%s\n' "$config" | grep -Fq "ip prefix-list $inbound seq $sequence "; then return 1; fi
-        host vtysh -c 'configure terminal' -c "ip prefix-list $inbound seq $sequence permit $peer_pod" -c end
-      fi
-      config="$(host vtysh -c 'show running-config')"
-      if printf '%s\n' "$config" | grep -Fqx "ip prefix-list $outbound seq 10 permit $identity" &&
-         printf '%s\n' "$config" | grep -Fqx "ip prefix-list $outbound seq 20 permit $own_pod" &&
-         printf '%s\n' "$config" | grep -Fqx "  neighbor $peer_ip prefix-list $outbound out" &&
-         printf '%s\n' "$config" | grep -Fqx "  neighbor $peer_ip maximum-prefix $maximum 90 restart 5"; then
-        if [ -z "$relay_vip" ] || printf '%s\n' "$config" | grep -Fqx "ip prefix-list $outbound seq 30 permit $relay_vip"; then return 0; fi
-      fi
-      # The owned list is scoped to this one neighbor. Keep all other FRR policy.
-      host vtysh -c 'configure terminal' -c "no ip prefix-list $outbound" -c "ip prefix-list $outbound seq 10 permit $identity" -c "ip prefix-list $outbound seq 20 permit $own_pod" -c end
-      if [ -n "$relay_vip" ]; then
-        host vtysh -c 'configure terminal' -c "ip prefix-list $outbound seq 30 permit $relay_vip" -c end
-      fi
-      host vtysh -c 'configure terminal' -c "router bgp $own_asn" -c 'address-family ipv4 unicast' -c "neighbor $peer_ip maximum-prefix $maximum 90 restart 5" -c "neighbor $peer_ip prefix-list $outbound out" -c end
-      host vtysh -c "clear ip bgp $peer_ip soft"
-      host vtysh -c 'write memory'
-    }
-
-    while :; do
-      if [ "$loaded_revision" != "$(sha256sum /config/public-mesh.json /config/reconcile.sh)" ]; then
-        exec /bin/sh /config/reconcile.sh
-      fi
-      printf '%s' "$node" | jq -r '.podCIDRPeers[]' | while read -r peer_name; do
-        reconcile_peer "$peer_name" || echo "$NODE_NAME: public-mesh PodCIDR peer $peer_name not yet ready" >&2
-      done
-      sleep 30
-    done
+  inventory.json: ENC[AES256_GCM,data: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,iv:bzhX/oP1FtlEfu/IPL5vyzEtx+W7rNSnIuAyfkkMDNY=,tag:h5ub8GdhZn/006P7Ee6+aQ==,type:str]
+  public-mesh-podcidr-reconcile.sh: ENC[AES256_GCM,data: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,iv:OwyIDt7vfajXwyoKIVaJfyIiU/eYZ+EMFAOfOPnenGs=,tag:zHnU41dbpCrvZxtxBaxiPw==,type:str]
 kind: ConfigMap
 metadata:
+  annotations:
+    operations.re8ch.com/source-digest: sha256:0a25eb8106bea53a63730ad08d5dc5be3b14f28103d0b97a4f5aa551a208f7d0
   name: public-mesh-podcidr
   namespace: kube-system
+sops:
+  age:
+  - enc: |
+      -----BEGIN AGE ENCRYPTED FILE-----
+      YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBVdGJzZkZSR3JrWkVHbzU1
+      SXhOaDFRZkFBWTMwN2M5Z2JoaUZXajNKZTJBCk9xMmdNSGFWRlF3SEEzVHN4Nktm
+      M3g5dXBTc2dRZXFpeGtpZzMxQlFtSTAKLS0tIFB0RXRLS2hNODdhYWJRaEFxVVps
+      a1RXTDIxSHhBSjJ3K3NEZzBPNWpjTm8KZIPJMA9uKtPvc/5bEpRIHc47SjJplimB
+      hCzjUg+iFzXoiDowR44/BOHiuioY80c2j7f4A0gl3tluhvwVlLDrtw==
+      -----END AGE ENCRYPTED FILE-----
+    recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
+  encrypted_regex: ^(data|stringData)$
+  lastmodified: "2026-10-27T07:49:58Z"
+  mac: ENC[AES256_GCM,data:mHvDr/g510Q9+tR3Ou4RsHu3T/46BZ9TbI2ZMeY5eMVCTyzvSE2Y70CIX9dF5XGAA/f8wqhs+mI+Ht6MEieEEpzdSRlxKIDzZKOdS+42jK8rJckxtedUUNnMqbfamT6f6mWG24SSpKFe5/Wi8dNOH7yE/kxYPD+kw6SbmFP92Ho=,iv:uYBUiUCon69jigIiFG71628idIkhvWj+xzc3BpVdMxw=,tag:VfawE86UcT/tSmKRH7pEIA==,type:str]
+  version: 3.13.3
 ---
 apiVersion: v1
 data:
   routeros-transit.json: |
     {
-      "managementIp": "192.0.2.240",
-      "publicEndpoint": "192.0.2.138",
+      "managementIp": "192.168.88.1",
+      "publicEndpoint": "223.159.210.222",
       "commentPrefix": "RE8CH FABRIC TRANSIT",
       "addressList": "re8ch-fabric-transit-sources",
       "sources": [
-        "192.0.2.147/32",
-        "192.0.2.48/32",
-        "192.0.2.179/32",
-        "192.0.2.152/32",
-        "192.0.2.46/32",
-        "192.0.2.214/32",
-        "192.0.2.148/32",
-        "192.0.2.147/32",
-        "192.0.2.117/32",
-        "192.0.2.18/32",
-        "192.0.2.81/32",
-        "192.0.2.223/32",
-        "192.0.2.246/32",
-        "192.0.2.160/32",
-        "192.0.2.149/32",
-        "192.0.2.32/32",
-        "192.0.2.57/24",
-        "192.0.2.110/24",
-        "192.0.2.4/24",
-        "192.0.2.96/24",
-        "192.0.2.207/24",
-        "192.0.2.79/24",
-        "192.0.2.237/24",
-        "192.0.2.89/24",
-        "192.0.2.114/24",
-        "192.0.2.128/24",
-        "192.0.2.94/24",
-        "192.0.2.203/24",
-        "192.0.2.165/24",
-        "192.0.2.140/24",
-        "192.0.2.134/24",
-        "192.0.2.6/24"
+        "10.250.0.104/32",
+        "10.250.0.105/32",
+        "10.250.0.128/32",
+        "10.250.0.16/32",
+        "10.250.0.186/32",
+        "10.250.0.217/32",
+        "10.250.0.220/32",
+        "10.250.0.24/32",
+        "10.250.0.38/32",
+        "10.250.0.47/32",
+        "10.250.0.50/32",
+        "10.250.0.73/32",
+        "10.250.0.77/32",
+        "10.250.0.79/32",
+        "10.250.0.89/32",
+        "10.250.0.95/32",
+        "10.42.0.0/24",
+        "10.42.1.0/24",
+        "10.42.11.0/24",
+        "10.42.12.0/24",
+        "10.42.14.0/24",
+        "10.42.16.0/24",
+        "10.42.17.0/24",
+        "10.42.19.0/24",
+        "10.42.2.0/24",
+        "10.42.20.0/24",
+        "10.42.21.0/24",
+        "10.42.3.0/24",
+        "10.42.4.0/24",
+        "10.42.6.0/24",
+        "10.42.7.0/24",
+        "10.42.9.0/24"
       ],
       "ingressNodes": [
-        "restricted-node-1eb0570f74",
-        "restricted-node-296f36f2fb"
+        "a1-wsl-zt",
+        "b1-wsl-zt"
       ],
       "links": [
         {
-          "node": "restricted-node-1eb0570f74",
+          "node": "a1-wsl-zt",
           "interface": "wg-cp-a1",
           "listenPort": 51893,
-          "routerAddress": "192.0.2.78/30",
-          "peerAddress": "192.0.2.227/32",
-          "identity": "192.0.2.242/32",
-          "podCIDR": "192.0.2.48/24",
+          "routerAddress": "172.31.96.1/30",
+          "peerAddress": "172.31.96.2/32",
+          "identity": "10.250.0.147/32",
+          "podCIDR": "10.42.10.0/24",
           "fallbackIdentities": [],
-          "probeIdentity": "192.0.2.76/32",
+          "probeIdentity": "172.31.97.147/32",
           "asn": 4200010147,
           "peerPublicKey": "RyAp0lPekfg6w17DK7CbI6+YphPMlNhap+6dDMRqPiE=",
           "routerPublicKey": "Zl6S03B5xdedeDrbS48biCM+EpOzRN/tOsoLS/Deano="
         },
         {
-          "node": "restricted-node-296f36f2fb",
+          "node": "b1-wsl-zt",
           "interface": "wg-cp-b1",
           "listenPort": 51894,
-          "routerAddress": "192.0.2.52/30",
-          "peerAddress": "192.0.2.239/32",
-          "identity": "192.0.2.1/32",
-          "podCIDR": "192.0.2.234/24",
+          "routerAddress": "172.31.96.5/30",
+          "peerAddress": "172.31.96.6/32",
+          "identity": "10.250.0.125/32",
+          "podCIDR": "10.42.13.0/24",
           "fallbackIdentities": [],
-          "probeIdentity": "192.0.2.71/32",
+          "probeIdentity": "172.31.97.125/32",
           "asn": 4200010125,
           "peerPublicKey": "jFAsQtg6M+QLqf3KNCzwZMXj7T9X5UBI4trTjLXY2V0=",
           "routerPublicKey": "Pp8Jmi1E8XjIhzkxiLu/zi0HSythETibuyOAgQDUPhk="
@@ -16141,17 +15915,17 @@ data:
 
 
     def validate(spec):
-        if spec['managementIp'] != '192.0.2.240' or spec['publicEndpoint'] != '192.0.2.138':
+        if spec['managementIp'] != '192.168.88.1' or spec['publicEndpoint'] != '223.159.210.222':
             raise ValueError('RouterOS authority differs')
         if spec['addressList'] != 're8ch-fabric-transit-sources' or spec['commentPrefix'] != 'RE8CH FABRIC TRANSIT':
             raise ValueError('ownership prefix differs')
         links = {x['node']: x for x in spec['links']}
-        if set(links) != {'restricted-node-1eb0570f74','restricted-node-296f36f2fb'} or set(spec['ingressNodes']) != {'restricted-node-1eb0570f74','restricted-node-296f36f2fb'}:
+        if set(links) != {'a1-wsl-zt','b1-wsl-zt'} or set(spec['ingressNodes']) != {'a1-wsl-zt','b1-wsl-zt'}:
             raise ValueError('unexpected transit topology')
         for prefix in spec['sources']:
             n = ipaddress.ip_network(prefix)
-            if not (n.subnet_of(ipaddress.ip_network('192.0.2.65/24')) and n.prefixlen == 32 or
-                    n.subnet_of(ipaddress.ip_network('192.0.2.57/16')) and n.prefixlen == 24):
+            if not (n.subnet_of(ipaddress.ip_network('10.250.0.0/24')) and n.prefixlen == 32 or
+                    n.subnet_of(ipaddress.ip_network('10.42.0.0/16')) and n.prefixlen == 24):
                 raise ValueError('source outside cluster authority')
         if not spec['sources']:
             raise ValueError('empty transit source declaration')
@@ -16271,19 +16045,19 @@ metadata:
 apiVersion: v1
 data:
   named.conf: |
-    zone "api.re8ch.com" { type slave; file "/var/lib/powerdns/api.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "db-ro.re8ch.com" { type slave; file "/var/lib/powerdns/db-ro.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "db-rw.re8ch.com" { type slave; file "/var/lib/powerdns/db-rw.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "service.re8ch.com" { type slave; file "/var/lib/powerdns/service.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "functions.re8ch.com" { type slave; file "/var/lib/powerdns/functions.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
-    zone "test.re8ch.com" { type slave; file "/var/lib/powerdns/test.re8ch.com.zone"; masters { 192.0.2.38; 192.0.2.111; }; };
+    zone "api.re8ch.com" { type slave; file "/var/lib/powerdns/api.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "db-ro.re8ch.com" { type slave; file "/var/lib/powerdns/db-ro.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "db-rw.re8ch.com" { type slave; file "/var/lib/powerdns/db-rw.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "service.re8ch.com" { type slave; file "/var/lib/powerdns/service.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "functions.re8ch.com" { type slave; file "/var/lib/powerdns/functions.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
+    zone "test.re8ch.com" { type slave; file "/var/lib/powerdns/test.re8ch.com.zone"; masters { 2.28.106.230; 179.255.126.104; }; };
   pdns.conf: |
     launch=bind
     bind-config=/etc/powerdns/named.conf
     local-port=53
     secondary=yes
     primary=no
-    allow-notify-from=192.0.2.38,192.0.2.111
+    allow-notify-from=2.28.106.230,179.255.126.104
     version-string=anonymous
 kind: ConfigMap
 metadata:
@@ -16568,7 +16342,7 @@ metadata:
   name: identity-egress-control-plane
   namespace: egress-fabric
 spec:
-  clusterIP: 192.0.2.18
+  clusterIP: 10.43.179.196
   internalTrafficPolicy: Local
   ports:
   - name: proxy
@@ -16614,7 +16388,7 @@ metadata:
   name: mihomos-byoc-egress
   namespace: egress-fabric
 spec:
-  clusterIP: 192.0.2.217
+  clusterIP: 10.43.252.214
   internalTrafficPolicy: Local
   ports:
   - name: mixed
@@ -16679,9 +16453,9 @@ spec:
         - --domain-filter=advfab.org
         - --zone-id-filter=3f2022acc23ec9fa69c5d7acd99c34d9
         - --label-filter=networking.advfab.org/dns-authority=public-edge
-        - --exclude-target-net=192.0.2.183/8
-        - --exclude-target-net=192.0.2.33/12
-        - --exclude-target-net=192.0.2.136/16
+        - --exclude-target-net=10.0.0.0/8
+        - --exclude-target-net=172.16.0.0/12
+        - --exclude-target-net=192.168.0.0/16
         - --policy=upsert-only
         - --registry=txt
         - --txt-owner-id=advanced-fabrics-public-edge
@@ -16755,7 +16529,7 @@ spec:
                 values:
                 - overseas-kl
                 - overseas-la
-                - restricted-node-6dc3f140f9
+                - r640
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
@@ -16819,7 +16593,7 @@ spec:
       hostNetwork: true
       initContainers:
       - args:
-        - 'if [ "$NODE_NAME" = restricted-node-6dc3f140f9 ]; then cp /base/config.yaml /work/config.yaml;
+        - 'if [ "$NODE_NAME" = r640 ]; then cp /base/config.yaml /work/config.yaml;
           else sed "s|bind-address: 0.0.0.0|bind-address: ${POD_IP}|" /base/config.yaml
           > /work/config.yaml; fi'
         command:
@@ -16906,7 +16680,7 @@ spec:
           name: code
           readOnly: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       securityContext:
         runAsGroup: 65532
         runAsNonRoot: true
@@ -16946,8 +16720,8 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
+                - a1-wsl-zt
+                - b1-wsl-zt
       containers:
       - command:
         - python
@@ -17226,17 +17000,17 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
+                - a1-wsl-zt
+                - b1-wsl-zt
       containers:
       - args:
         - --source=ingress
         - --provider=cloudflare
         - --domain-filter=re8ch.com
         - --label-filter=networking.re8ch.com/dns-authority=public-edge
-        - --exclude-target-net=192.0.2.183/8
-        - --exclude-target-net=192.0.2.33/12
-        - --exclude-target-net=192.0.2.136/16
+        - --exclude-target-net=10.0.0.0/8
+        - --exclude-target-net=172.16.0.0/12
+        - --exclude-target-net=192.168.0.0/16
         - --policy=upsert-only
         - --registry=noop
         - --interval=1m
@@ -17404,10 +17178,10 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
-                - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
-                - restricted-node-abb3f27a69
+                - r640
+                - a1-wsl-zt
+                - b1-wsl-zt
+                - mubao-wsl
       containers:
       - command:
         - python3
@@ -17494,7 +17268,7 @@ spec:
       hostNetwork: true
       hostPID: true
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-abb3f27a69
+        kubernetes.io/hostname: mubao-wsl
       serviceAccountName: host-network-controller
       tolerations:
       - operator: Exists
@@ -17602,10 +17376,10 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
-                - restricted-node-1eb0570f74
-                - restricted-node-296f36f2fb
-                - restricted-node-abb3f27a69
+                - r640
+                - a1-wsl-zt
+                - b1-wsl-zt
+                - mubao-wsl
                 - overseas-flk
                 - overseas-kl
                 - overseas-la
@@ -17712,10 +17486,10 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - restricted-node-6dc3f140f9
+                - r640
                 - overseas-flk
                 - overseas-la
-                - restricted-node-abb3f27a69
+                - mubao-wsl
       containers:
       - command:
         - /bin/sh
@@ -18078,7 +17852,7 @@ spec:
   - hidden-primary.service.re8ch.com
   duration: 2160h
   ipAddresses:
-  - 192.0.2.38
+  - 2.28.106.230
   issuerRef:
     kind: Issuer
     name: public-edge-transfer-ca
@@ -18261,14 +18035,14 @@ spec:
   egressGateway:
     nodeSelector:
       matchLabels:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
   excludedCIDRs:
-  - 192.0.2.183/8
-  - 192.0.2.81/10
+  - 10.0.0.0/8
+  - 100.64.0.0/10
   - 127.0.0.0/8
-  - 192.0.2.95/16
-  - 192.0.2.33/12
-  - 192.0.2.136/16
+  - 169.254.0.0/16
+  - 172.16.0.0/12
+  - 192.168.0.0/16
   - 224.0.0.0/4
   selectors:
   - namespaceSelector:
@@ -18389,7 +18163,7 @@ metadata:
   namespace: kube-system
 spec:
   defaults:
-    k8s-api-server: https://192.0.2.116:6443
+    k8s-api-server: https://10.250.0.1:6443
   nodeSelector:
     matchLabels:
       kubernetes.io/hostname: domain-ex
@@ -18403,15 +18177,15 @@ spec:
   defaults:
     auto-direct-node-routes: "false"
     direct-routing-skip-unreachable: "false"
-    ipv4-native-routing-cidr: 192.0.2.57/16
+    ipv4-native-routing-cidr: 10.42.0.0/16
     routing-mode: native
   nodeSelector:
     matchExpressions:
     - key: kubernetes.io/hostname
       operator: NotIn
       values:
-      - restricted-node-1eb0570f74
-      - restricted-node-296f36f2fb
+      - a1-wsl-zt
+      - b1-wsl-zt
     matchLabels:
       networking.re8ch.com/native-routing-canary: enabled
 ---
@@ -18425,15 +18199,15 @@ spec:
     auto-direct-node-routes: "false"
     direct-routing-device: zto5uhdriy
     direct-routing-skip-unreachable: "false"
-    ipv4-native-routing-cidr: 192.0.2.57/16
+    ipv4-native-routing-cidr: 10.42.0.0/16
     routing-mode: native
   nodeSelector:
     matchExpressions:
     - key: kubernetes.io/hostname
       operator: In
       values:
-      - restricted-node-1eb0570f74
-      - restricted-node-296f36f2fb
+      - a1-wsl-zt
+      - b1-wsl-zt
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNodeConfig
@@ -18460,7 +18234,7 @@ spec:
     endpoint-policy-update-timeout: 60s
   nodeSelector:
     matchLabels:
-      kubernetes.io/hostname: restricted-node-6dc3f140f9
+      kubernetes.io/hostname: r640
 ---
 apiVersion: cilium.io/v2alpha1
 kind: CiliumGatewayClassConfig
@@ -18486,7 +18260,7 @@ spec:
   gatewayClassName: cilium-re8ch
   infrastructure:
     annotations:
-      lbipam.cilium.io/ips: 192.0.2.213
+      lbipam.cilium.io/ips: 10.251.0.4
     labels:
       networking.re8ch.com/bgp-advertise: enabled
       networking.re8ch.com/lb-pool: service-vip
@@ -19441,7 +19215,7 @@ kind: HTTPRoute
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   name: headlamp-public
   namespace: headlamp
@@ -20415,19 +20189,19 @@ spec:
           # API endpoint until the guarded control-plane VIP is healthy.
           - op: add
             path: /spec/template/spec/containers/2/env/-
-            value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+            value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
           - op: add
             path: /spec/template/spec/containers/2/env/-
             value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
           - op: add
             path: /spec/template/spec/containers/3/env/-
-            value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+            value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
           - op: add
             path: /spec/template/spec/containers/3/env/-
             value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
           - op: add
             path: /spec/template/spec/containers/4/env/-
-            value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+            value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
           - op: add
             path: /spec/template/spec/containers/4/env/-
             value: {name: KUBERNETES_SERVICE_PORT_HTTPS, value: "6443"}
@@ -20461,20 +20235,20 @@ spec:
       retries: 0
   values:
     advancedFabric:
-      acceleratedCIDR: 192.0.2.65/24
+      acceleratedCIDR: 10.250.0.0/24
       applyEnabled: true
       componentAPI:
         publishAssessments: true
         validitySeconds: 300
       controlPlaneApi:
         eligibleNodes:
-        - restricted-node-6dc3f140f9
-        - restricted-node-1eb0570f74
+        - r640
+        - a1-wsl-zt
         enabled: true
         fallbackTransport: zerotier
         guardedNodes:
-        - restricted-node-6dc3f140f9
-        - restricted-node-1eb0570f74
+        - r640
+        - a1-wsl-zt
         healthCheck:
           address: 127.0.0.1
           failureThreshold: 3
@@ -20486,49 +20260,49 @@ spec:
         mode: healthy-ecmp
         nodeOperations:
         - fallbackRoutes:
-          - destination: 192.0.2.176/32
+          - destination: 10.181.22.147/32
             dev: eno2np1
             metric: 500
-            src: 192.0.2.178
-            via: 192.0.2.240
-          - destination: 192.0.2.4/32
+            src: 10.181.22.128
+            via: 192.168.88.1
+          - destination: 10.181.22.125/32
             dev: eno2np1
             metric: 500
-            src: 192.0.2.178
-            via: 192.0.2.240
+            src: 10.181.22.128
+            via: 192.168.88.1
           forwardRules:
-          - destination: 192.0.2.116/32
+          - destination: 10.250.0.1/32
             inInterface: wg-public-mesh
             outInterface: wg-pt-a1
             port: 6443
             protocol: tcp
-            source: 192.0.2.4/32
+            source: 172.31.92.50/32
           frrExportPrefixLists:
           - POD-FABRIC-SELF
           frrImportPrefixLists:
           - SELF
           frrNeighborPolicies:
           - maximumPrefixes: 8
-            neighbor: 192.0.2.4
+            neighbor: 172.31.92.50
           frrNetworks:
-          - 192.0.2.4/32
+          - 172.31.92.50/32
           frrPrefixEntries:
           - list: POD-FABRIC-SELF
-            prefix: 192.0.2.4/32
+            prefix: 172.31.92.50/32
             sequence: 30
           localAsn: 4200000128
-          name: restricted-node-6dc3f140f9
+          name: r640
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             port: 2380
             protocol: tcp
-            source: 192.0.2.179
-          - destination: 192.0.2.65/24
-            source: 192.0.2.179
+            source: 10.250.0.128
+          - destination: 10.250.0.0/24
+            source: 10.250.0.128
           vipInterface: lo
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
@@ -20536,36 +20310,36 @@ spec:
           - POD-FABRIC-OUT
           frrPrefixEntries:
           - list: POD-FABRIC-OUT
-            prefix: 192.0.2.4/32
+            prefix: 172.31.92.50/32
             sequence: 500
           localAsn: 4200010147
-          name: restricted-node-1eb0570f74
+          name: a1-wsl-zt
           routingPolicyRules:
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             destinationPort: 2379-2380
             priority: 11520
             protocol: tcp
             table: main
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             destinationPort: "6443"
             priority: 11521
             protocol: tcp
             table: main
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             port: 2380
             protocol: tcp
-            source: 192.0.2.242
-          - destination: 192.0.2.65/24
-            source: 192.0.2.242
+            source: 10.250.0.147
+          - destination: 10.250.0.0/24
+            source: 10.250.0.147
           vipInterface: lo
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces: []
           wireguardPeerPolicies:
           - allowedPrefixes:
-            - 192.0.2.4/32
+            - 172.31.92.50/32
             interface: wg-pt-a1
             peer: pEho3VmmtSBsMbUglwD3/NDi8Vw2sFvRVEvToqWypx8=
         - frrExportPrefixLists:
@@ -20575,133 +20349,133 @@ spec:
           frrImportPrefixSequence: 305
           frrPrefixEntries:
           - list: POD-FABRIC-OUT
-            prefix: 192.0.2.140/24
+            prefix: 10.42.6.0/24
             sequence: 30
           localAsn: 4200010125
-          name: restricted-node-296f36f2fb
+          name: b1-wsl-zt
           routingPolicyRules:
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             destinationPort: 2379-2380
             priority: 11520
             protocol: tcp
             table: main
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             destinationPort: "6443"
             priority: 11521
             protocol: tcp
             table: main
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
+          - destination: 10.250.0.0/24
             port: 2380
             protocol: tcp
-            source: 192.0.2.1
-          - destination: 192.0.2.65/24
-            source: 192.0.2.1
+            source: 10.250.0.125
+          - destination: 10.250.0.0/24
+            source: 10.250.0.125
           vipInterface: lo
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-wsl-lan
         - name: overseas-la
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.147
-          - destination: 192.0.2.121/24
-            source: 192.0.2.147
+          - destination: 10.250.0.0/24
+            source: 10.250.0.104
+          - destination: 10.251.0.0/24
+            source: 10.250.0.104
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-b1
           wireguardPeerPolicies:
           - allowedPrefixes:
-            - 192.0.2.101/32
-            - 192.0.2.4/32
-            - 192.0.2.57/16
-            - 192.0.2.65/24
-            - 192.0.2.121/24
+            - 172.31.94.125/32
+            - 10.181.22.125/32
+            - 10.42.0.0/16
+            - 10.250.0.0/24
+            - 10.251.0.0/24
             interface: wg-pt-b1
             peer: ETC/pX4zvVrz+vBXlPuM0DUwHP4E+AdrMl9Xd5tv/XY=
         - name: overseas-kl
           wireguardAllowedPrefixes:
-          - 192.0.2.116/32
+          - 10.250.0.1/32
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: vm-20-12-ubuntu
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.223
+          - destination: 10.250.0.0/24
+            source: 10.250.0.73
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: suxunji
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.246
+          - destination: 10.250.0.0/24
+            source: 10.250.0.77
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: muaya-lightweight
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.160
+          - destination: 10.250.0.0/24
+            source: 10.250.0.79
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: muaya-ecs
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.32
+          - destination: 10.250.0.0/24
+            source: 10.250.0.95
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: zan
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.152
+          - destination: 10.250.0.0/24
+            source: 10.250.0.16
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: domain-ex
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.46
+          - destination: 10.250.0.0/24
+            source: 10.250.0.186
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         - name: amdwsl-zt
           sourceIdentityRules:
-          - destination: 192.0.2.65/24
-            source: 192.0.2.117
+          - destination: 10.250.0.0/24
+            source: 10.250.0.38
           wireguardAllowedPrefixes:
-          - 192.0.2.65/24
-          - 192.0.2.121/24
+          - 10.250.0.0/24
+          - 10.251.0.0/24
           wireguardInterfaces:
           - wg-pt-a1
           - wg-pt-b1
         port: 6443
         primaryTransport: wireguard
-        vip: 192.0.2.116/32
+        vip: 10.250.0.1/32
       controller:
         affinity:
           nodeAffinity:
@@ -20711,8 +20485,8 @@ spec:
                 - key: kubernetes.io/hostname
                   operator: In
                   values:
-                  - restricted-node-1eb0570f74
-                  - restricted-node-6dc3f140f9
+                  - a1-wsl-zt
+                  - r640
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
@@ -20745,9 +20519,9 @@ spec:
                 - key: kubernetes.io/hostname
                   operator: In
                   values:
-                  - restricted-node-1eb0570f74
-                  - restricted-node-296f36f2fb
-                  - restricted-node-6dc3f140f9
+                  - a1-wsl-zt
+                  - b1-wsl-zt
+                  - r640
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
@@ -20757,38 +20531,38 @@ spec:
         clusterDomain: cluster.local
         conditionalForwarders:
           ynzs.com:
-          - 192.0.2.58
-          - 192.0.2.216
+          - 223.5.5.5
+          - 114.114.114.114
           zt.re8ch.com:
-          - 192.0.2.192
-          - 192.0.2.138
-          - 192.0.2.74
+          - 10.181.22.73
+          - 10.181.22.16
+          - 10.181.22.95
         doh:
           caSecretName: advanced-fabric-doh-tls
           serviceName: advanced-fabric-doh
         enabled: true
         image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
         kubernetesApiEndpoints:
-        - https://192.0.2.242:6443
-        - https://192.0.2.1:6443
+        - https://10.250.0.147:6443
+        - https://10.250.0.125:6443
         migration:
           phase: active
         pdbMinAvailable: 2
         replicas: 3
         service:
-          clusterIP: 192.0.2.149
+          clusterIP: 10.43.65.40
           name: advanced-fabric-dns
         testNodeSelector:
-          kubernetes.io/hostname: restricted-node-6dc3f140f9
+          kubernetes.io/hostname: r640
         ttlSeconds: 30
         upstreams:
-        - 192.0.2.58
-        - 192.0.2.95
+        - 223.5.5.5
+        - 119.29.29.29
         - 1.1.1.1
       emergencyDisable: false
       enabled: true
       mode: guarded-apply
-      nativeRoutingCIDR: 192.0.2.57/16
+      nativeRoutingCIDR: 10.42.0.0/16
       networkQuality:
         dns:
           maximumFailureRatio: 0.001
@@ -20816,7 +20590,7 @@ spec:
         victoriaMetricsServiceScrape: false
       observeDays: 7
       runtimeNamespace: kube-system
-      serviceCIDR: 192.0.2.121/24
+      serviceCIDR: 10.251.0.0/24
       timezone: Asia/Shanghai
       virtualIngress:
         adoption:
@@ -20831,8 +20605,8 @@ spec:
                 - key: kubernetes.io/hostname
                   operator: In
                   values:
-                  - restricted-node-1eb0570f74
-                  - restricted-node-296f36f2fb
+                  - a1-wsl-zt
+                  - b1-wsl-zt
           podAntiAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
@@ -20846,7 +20620,7 @@ spec:
           namespace: kube-system
           sectionName: http
         pdbMinAvailable: 1
-        publicAddress: 192.0.2.138
+        publicAddress: 223.159.210.222
         reconcileIntervalSeconds: 15
         replicas: 2
         tolerations:
@@ -20929,10 +20703,10 @@ spec:
   values:
     apiServer:
       cidrs:
-      - 192.0.2.248/32
-      - 192.0.2.4/32
-      - 192.0.2.178/32
-      - 192.0.2.176/32
+      - 10.43.0.1/32
+      - 10.181.22.125/32
+      - 10.181.22.128/32
+      - 10.181.22.147/32
       port: 6443
     ciliumPolicy:
       enabled: false
@@ -20955,9 +20729,9 @@ spec:
         enabled: true
         hostPort: 8443
         port: 8443
-        publicEndpoint: quic://192.0.2.138:8443
+        publicEndpoint: quic://223.159.210.222:8443
       nodeSelector:
-        kubernetes.io/hostname: restricted-node-6dc3f140f9
+        kubernetes.io/hostname: r640
       peerBundleSecret: among-clusters-peer-bundle
       peerIdentities:
         re8ch-artc:
@@ -20972,11 +20746,11 @@ spec:
         - udp
         - tcp
         edgeType: RouterOS
-        fallbackLanBackend: 192.0.2.169
+        fallbackLanBackend: 192.168.88.251
         gatewayRef: kube-system/re8ch-gateway-canary
-        gatewayVIP: 192.0.2.213
+        gatewayVIP: 10.251.0.4
         ownership: provider
-        publicIP: 192.0.2.138
+        publicIP: 223.159.210.222
         requiredForwardPorts:
         - 25
         - 53
@@ -20988,11 +20762,11 @@ spec:
         - 993
         - 4190
         routingAuthority: AdvancedFabric
-        sourceRef: operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
+        sourceRef: operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority
     hostAliases:
     - hostnames:
       - among-clusters.re8ch.com
-      ip: 192.0.2.192
+      ip: 10.43.158.127
     hubEndpoint: https://among-clusters.service.re8ch.com
     image:
       digest: sha256:36065d8d2335e0a447d24a0b07562c859b54cee1cfb1e824e536addfe2d6557a
@@ -21061,12 +20835,12 @@ spec:
       imageDigest: sha256:3a6b90956f55914d595a9e24d8382b1697a8ef0ad51a65e60b77faa76ed7b692
       providerBundleDigest: sha256:1c033ad2260b1064dd46705361dce35d1c47e8332864a88d239a90b5ffa557e8
       providerBundleSecret: among-clusters-agent-identity
-      providerQUICEndpoint: quic://192.0.2.138:8443
+      providerQUICEndpoint: quic://223.159.210.222:8443
       providerSPIFFEID: spiffe://re8ch.internal/cluster/re8ch
       publicEndpoint: https://among-clusters.service.re8ch.com
       tenant: byoc-pilot
     publication:
-      bootstrapTarget: 192.0.2.138
+      bootstrapTarget: 223.159.210.222
       selectedEdge: loudi-r640
     replicaCount: 1
 ---
@@ -21093,7 +20867,7 @@ spec:
             path: /spec/template/spec/containers/0/env/-
             value:
               name: KUBERNETES_SERVICE_HOST
-              value: 192.0.2.242
+              value: 10.250.0.147
           - op: add
             path: /spec/template/spec/containers/0/env/-
             value:
@@ -21140,15 +20914,15 @@ spec:
       priorityWeight: 1
       resolverCidrs:
         CN:
-        - 192.0.2.52/24
-        - 192.0.2.208/24
-        - 192.0.2.174/24
+        - 223.5.5.0/24
+        - 119.29.29.0/24
+        - 114.114.114.0/24
         EU:
-        - 192.0.2.26/24
-        - 192.0.2.202/24
+        - 80.80.80.0/24
+        - 9.9.9.0/24
         US:
-        - 192.0.2.204/24
-        - 192.0.2.89/24
+        - 8.8.8.0/24
+        - 8.8.4.0/24
     crd:
       install: true
     discovery:
@@ -21176,7 +20950,7 @@ spec:
       dnsPolicy: None
       enabled: true
       excludedAuthorityNodeNames:
-      - restricted-node-6dc3f140f9
+      - r640
       - domain-ex
       - muaya-lightweight
       - suxunji
@@ -21187,27 +20961,27 @@ spec:
       - overseas-la
       - overseas-la-2
       externalAuthorities:
-      - address: 192.0.2.138
+      - address: 223.159.210.222
         enabled: false
         id: routeros-r640
         nameserver: ns-routeros.re8ch.com.
         region: cn-hunan
-      - address: 192.0.2.62
+      - address: 124.220.77.50
         enabled: true
         id: tencent-domain-ex
         nameserver: ns-domain-ex.re8ch.com.
         region: cn-shanghai
-      - address: 192.0.2.197
+      - address: 47.103.114.218
         enabled: true
         id: aliyun-muaya-lightweight
         nameserver: ns-muaya-lightweight.re8ch.com.
         region: cn-shanghai
-      - address: 192.0.2.86
+      - address: 101.34.217.95
         enabled: true
         id: tencent-suxunji
         nameserver: ns-suxunji.re8ch.com.
         region: cn-shanghai
-      - address: 192.0.2.192
+      - address: 1.14.174.244
         enabled: true
         id: tencent-zan
         nameserver: ns-zan.re8ch.com.
@@ -21251,11 +21025,11 @@ spec:
         value: closed
     dns:
       axfrAllowedCidrs:
-      - 192.0.2.192/32
-      - 192.0.2.62/32
-      - 192.0.2.197/32
-      - 192.0.2.86/32
-      - 192.0.2.192/32
+      - 216.218.133.2/32
+      - 124.220.77.50/32
+      - 47.103.114.218/32
+      - 101.34.217.95/32
+      - 1.14.174.244/32
       axfrZones:
       - auth.re8ch.com.
       - service.re8ch.com.
@@ -21464,7 +21238,7 @@ spec:
         - externalCDN: true
           provider: public-edge-xot
           type: A
-          value: 192.0.2.38
+          value: 2.28.106.230
         tencent.anycam.functions.re8ch.com.:
         - externalCDN: true
           provider: tencent-scf
@@ -21530,10 +21304,10 @@ spec:
         path: /auth/ready
       enabled: true
       extraAuthorityAddresses:
-      - 192.0.2.62
-      - 192.0.2.197
-      - 192.0.2.86
-      - 192.0.2.192
+      - 124.220.77.50
+      - 47.103.114.218
+      - 101.34.217.95
+      - 1.14.174.244
       httpTargets:
       - acceptedStatuses:
         - 200
@@ -21581,7 +21355,7 @@ spec:
         cpu: 20m
         memory: 32Mi
     routeSnapshot:
-      endpoint: https://192.0.2.38:8443/v1/route-snapshot
+      endpoint: https://2.28.106.230:8443/v1/route-snapshot
       maxStaleSeconds: 900
       publicKeyRef: public-edge-route-snapshot-public-key
       refreshSeconds: 15
@@ -21592,53 +21366,53 @@ spec:
       defaultRegion: default
       regions:
         CN:
-        - id: restricted-node-6dc3f140f9
-          ip: 192.0.2.138
+        - id: r640
+          ip: 223.159.210.222
           region: CN
         - id: overseas-flk
-          ip: 192.0.2.38
+          ip: 2.28.106.230
           region: EU
         - id: overseas-la
-          ip: 192.0.2.111
+          ip: 179.255.126.104
           region: US
         EU:
         - id: overseas-flk
-          ip: 192.0.2.38
+          ip: 2.28.106.230
           region: EU
         - id: overseas-la
-          ip: 192.0.2.111
+          ip: 179.255.126.104
           region: US
-        - id: restricted-node-6dc3f140f9
-          ip: 192.0.2.138
+        - id: r640
+          ip: 223.159.210.222
           region: CN
         US:
         - id: overseas-la
-          ip: 192.0.2.111
+          ip: 179.255.126.104
           region: US
         - id: overseas-flk
-          ip: 192.0.2.38
+          ip: 2.28.106.230
           region: EU
-        - id: restricted-node-6dc3f140f9
-          ip: 192.0.2.138
+        - id: r640
+          ip: 223.159.210.222
           region: CN
         default:
-        - id: restricted-node-6dc3f140f9
-          ip: 192.0.2.138
+        - id: r640
+          ip: 223.159.210.222
           region: CN
         - id: overseas-flk
-          ip: 192.0.2.38
+          ip: 2.28.106.230
           region: EU
         - id: overseas-la
-          ip: 192.0.2.111
+          ip: 179.255.126.104
           region: US
       trustedEcsPrefixes:
-      - 192.0.2.52/24
-      - 192.0.2.208/24
-      - 192.0.2.174/24
-      - 192.0.2.204/24
-      - 192.0.2.89/24
-      - 192.0.2.26/24
-      - 192.0.2.202/24
+      - 223.5.5.0/24
+      - 119.29.29.0/24
+      - 114.114.114.0/24
+      - 8.8.8.0/24
+      - 8.8.4.0/24
+      - 80.80.80.0/24
+      - 9.9.9.0/24
     runtime:
       configMapName: public-edge-runtime
     service:
@@ -21862,8 +21636,8 @@ spec:
         runAsUser: 0
       httpPort: 18080
       kubernetesApiFallbackUrls:
-      - https://192.0.2.116:6443
-      - https://192.0.2.178:6443
+      - https://10.250.0.1:6443
+      - https://10.181.22.128:6443
       maxUnavailable: 2
       tolerations:
       - effect: NoSchedule
@@ -21883,7 +21657,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -21908,7 +21682,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     public.re8ch.com/external-dns: enabled
@@ -21934,9 +21708,9 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: kube-api.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
-    networking.re8ch.com/public-authority: operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
+    networking.re8ch.com/public-authority: operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority
   labels:
     public.re8ch.com/external-dns: enabled
   name: kube-api-public-dns-authority
@@ -21987,7 +21761,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: grafana.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -22013,7 +21787,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     app.kubernetes.io/name: opensandbox-server
@@ -22040,7 +21814,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: '*.apps.re8ch.com'
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
     networking.re8ch.com/dns-authority: public-edge
@@ -22092,7 +21866,7 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: operate.tools.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 192.0.2.138
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     networking.re8ch.com/provider: public-edge-manager
   labels:
@@ -22117,7 +21891,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   annotations:
-    re8ch.com/network-authority: public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority
+    re8ch.com/network-authority: public-mesh/inventory.json#r640.publicAuthority
     re8ch.com/r640-dummy-purpose: internal-host-endpoint-only-not-public
   labels:
     app.kubernetes.io/component: mihomos-pilot
@@ -22137,9 +21911,9 @@ spec:
         matchLabels:
           app.kubernetes.io/name: mihomos-node-cn
     - ipBlock:
-        cidr: 192.0.2.178/32
+        cidr: 10.181.22.128/32
     - ipBlock:
-        cidr: 192.0.2.217/32
+        cidr: 10.43.252.214/32
   podSelector:
     matchLabels:
       app.kubernetes.io/name: among-clusters-gateway
@@ -22172,12 +21946,12 @@ spec:
     - ipBlock:
         cidr: 0.0.0.0/0
         except:
-        - 192.0.2.183/8
-        - 192.0.2.81/10
+        - 10.0.0.0/8
+        - 100.64.0.0/10
         - 127.0.0.0/8
-        - 192.0.2.95/16
-        - 192.0.2.33/12
-        - 192.0.2.136/16
+        - 169.254.0.0/16
+        - 172.16.0.0/12
+        - 192.168.0.0/16
   ingress:
   - from:
     - namespaceSelector:
@@ -22283,7 +22057,7 @@ metadata:
   name: re8ch-artc
   namespace: artchais
 spec:
-  localGateway: quic://192.0.2.138:8443
+  localGateway: quic://223.159.210.222:8443
   peerRef: re8ch-artc
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
   transport: quic-mtls
@@ -22296,7 +22070,7 @@ metadata:
   name: re8ch-artc
   namespace: byoc-pilot
 spec:
-  localGateway: quic://192.0.2.138:8443
+  localGateway: quic://223.159.210.222:8443
   peerRef: re8ch-artc
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
   transport: quic-mtls
@@ -22309,7 +22083,7 @@ metadata:
   name: re8ch-qwen
   namespace: byoc-pilot
 spec:
-  localGateway: quic://192.0.2.138:8443
+  localGateway: quic://223.159.210.222:8443
   peerRef: re8ch-qwen
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
   transport: quic-mtls
@@ -22322,7 +22096,7 @@ metadata:
   name: re8ch-sijie
   namespace: byoc-pilot
 spec:
-  localGateway: quic://192.0.2.138:8443
+  localGateway: quic://223.159.210.222:8443
   peerRef: re8ch-sijie
   sessionIdentity: spiffe://re8ch.internal/cluster/re8ch
   transport: quic-mtls

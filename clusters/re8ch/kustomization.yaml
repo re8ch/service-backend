@@ -2,6 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - namespaces.yaml
+- secrets/restricted-topology-context.sops.yaml
+- components/ops/github-actions-topology-reader-rbac.yaml
 - flux-system/gotk-components.yaml
 - flux-system/verification-keys.yaml
 - flux-system/sops-canary.sops.yaml
@@ -135,7 +137,7 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [restricted-node-1eb0570f74, restricted-node-6dc3f140f9]
+                values: [a1-wsl-zt, r640]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector: {}
@@ -166,11 +168,11 @@ patches:
       - weight: 100
         preference:
           matchExpressions:
-          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-abb3f27a69]}
+          - {key: kubernetes.io/hostname, operator: In, values: [mubao-wsl]}
       - weight: 80
         preference:
           matchExpressions:
-          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
+          - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt]}
 - target:
     group: apps
     version: v1
@@ -187,11 +189,11 @@ patches:
       - weight: 100
         preference:
           matchExpressions:
-          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-abb3f27a69]}
+          - {key: kubernetes.io/hostname, operator: In, values: [mubao-wsl]}
       - weight: 80
         preference:
           matchExpressions:
-          - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-1eb0570f74]}
+          - {key: kubernetes.io/hostname, operator: In, values: [a1-wsl-zt]}
     - op: add
       path: /spec/template/spec/containers/0/args/-
       value: --concurrent=1
@@ -203,7 +205,7 @@ patches:
     namespace: flux-system
   patch: |-
     # Run two replicas with Flux's default leader election. Keep one replica on
-    # the preferred overseas delivery node and one on the restricted-node-6dc3f140f9 recovery anchor.
+    # the preferred overseas delivery node and one on the R640 recovery anchor.
     - op: replace
       path: /spec/replicas
       value: 2
@@ -221,7 +223,7 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [overseas-kl, restricted-node-6dc3f140f9]
+                values: [overseas-kl, r640]
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
             preference:
@@ -230,7 +232,7 @@ patches:
           - weight: 50
             preference:
               matchExpressions:
-              - {key: kubernetes.io/hostname, operator: In, values: [restricted-node-6dc3f140f9]}
+              - {key: kubernetes.io/hostname, operator: In, values: [r640]}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector: {}
@@ -243,7 +245,7 @@ patches:
       - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
     - op: add
       path: /spec/template/spec/containers/0/env/-
-      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.116"}
+      value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.1"}
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
@@ -275,7 +277,7 @@ patches:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [restricted-node-296f36f2fb]
+                values: [b1-wsl-zt]
     - op: add
       path: /spec/template/spec/tolerations
       value:
@@ -288,7 +290,7 @@ patches:
       value: --concurrent=4
     - op: add
       path: /spec/template/spec/containers/0/env/-
-      value: {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.242"}
+      value: {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.147"}
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value: {name: KUBERNETES_SERVICE_PORT, value: "6443"}
