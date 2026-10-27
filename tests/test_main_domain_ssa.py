@@ -239,3 +239,16 @@ def test_admission_api_defaults_preserve_explicit_constraints():
     assert constraints["matchPolicy"] == "Exact"
     assert constraints["namespaceSelector"] == {"matchLabels": {"team": "ops"}}
     assert constraints["resourceRules"][0]["scope"] == "Namespaced"
+
+
+def test_kyverno_crd_defaults_preserve_explicit_policy_values():
+    item = {"apiVersion": "kyverno.io/v1", "kind": "ClusterPolicy", "spec": {"rules": [
+        {"name": "defaulted", "validate": {"message": "unchanged"}},
+        {"name": "explicit", "skipBackgroundRequests": False, "validate": {"allowExistingViolations": False}}]}}
+    compiler.canonical_admission_defaults(item)
+    assert item["spec"]["admission"] is True and item["spec"]["emitWarning"] is False
+    first, second = item["spec"]["rules"]
+    assert first["skipBackgroundRequests"] is True
+    assert first["validate"] == {"message": "unchanged", "allowExistingViolations": True}
+    assert second["skipBackgroundRequests"] is False
+    assert second["validate"]["allowExistingViolations"] is False

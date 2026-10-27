@@ -154,6 +154,15 @@ def legacy_reason(item: dict, domain: str | None = None) -> str | None:
 
 def canonical_admission_defaults(item: dict) -> None:
     """Make API-defaulted atomic match constraints explicit without changing policy."""
+    if item.get("apiVersion") == "kyverno.io/v1" and item.get("kind") == "ClusterPolicy":
+        spec = item["spec"]
+        spec.setdefault("admission", True)
+        spec.setdefault("emitWarning", False)
+        for rule in spec.get("rules", []):
+            rule.setdefault("skipBackgroundRequests", True)
+            if "validate" in rule:
+                rule["validate"].setdefault("allowExistingViolations", True)
+        return
     if item.get("apiVersion") != "admissionregistration.k8s.io/v1" or item.get("kind") != "ValidatingAdmissionPolicy":
         return
     constraints = item["spec"]["matchConstraints"]
