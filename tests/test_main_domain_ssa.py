@@ -224,3 +224,18 @@ def test_headlamp_rbac_stays_platform_owned_and_cannot_be_pruned_on_handoff():
     legacy = documents(ROOT / 'clusters/re8ch/domains/main-legacy/operations-ui/resources.yaml')
     assert {(item['kind'], item['metadata']['name']) for item in legacy if item['kind'] in compiler.RBAC_KINDS} >= {
         ('Role', 'headlamp-active-elector'), ('RoleBinding', 'headlamp-active-elector')}
+
+
+def test_configmap_binary_data_matches_api_canonical_base64_without_changing_bytes():
+    import base64
+    source = {compiler.identity(item): item for item in documents(
+        ROOT / "clusters/re8ch/domains/operations-ui/resources.yaml") if item.get("binaryData")}
+    rendered = documents(ROOT / "operations/releases/main-domain-ssa/main-operations-ui-headlamp/resources.yaml")
+    checked = 0
+    for item in rendered:
+        for key, value in item.get("binaryData", {}).items():
+            original = source[compiler.identity(item)]["binaryData"][key]
+            assert value == base64.b64encode(base64.b64decode(original)).decode()
+            assert not any(char.isspace() for char in value)
+            checked += 1
+    assert checked == 6
