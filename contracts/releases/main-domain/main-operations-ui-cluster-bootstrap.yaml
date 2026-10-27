@@ -27,6 +27,7 @@ spec:
     objectNames:
     - studio-toolkit
     allowClusterScoped: true
+    requireExisting: true
   inventory:
     digest: sha256:64ecbe3a95c8afd3f51e682d16ab2babaa3916f850502f238428b52143512c7c
   lifecycle:

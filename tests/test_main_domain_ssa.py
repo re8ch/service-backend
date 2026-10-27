@@ -212,6 +212,7 @@ def test_cluster_bootstrap_has_no_rbac_mutation_or_deletion_authority():
         assert not contract['spec']['lifecycle']['deletionAllowlist']
         assert set(contract['spec']['lifecycle']['protectedKinds']) >= compiler.CLUSTER_EXECUTABLE
         assert contract['spec']['authorization']['allowClusterScoped'] is True
+        assert contract['spec']['authorization']['requireExisting'] is True
 
 
 def test_headlamp_rbac_stays_platform_owned_and_cannot_be_pruned_on_handoff():

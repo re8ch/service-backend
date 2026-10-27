@@ -215,6 +215,8 @@ def compile_outputs() -> dict[Path, str]:
                               "deletionAllowlist": [] if not prune else [x for x in inventory if "/PersistentVolumeClaim/" not in x]},
             },
         }
+        if cluster:
+            contract["spec"]["authorization"]["requireExisting"] = True
         files[CONTRACTS / f"{name}.yaml"] = yaml.safe_dump(contract, sort_keys=False)
         state_name = state_configmap_name(name)
         rbac_docs.extend([

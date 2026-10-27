@@ -29,6 +29,7 @@ spec:
     - hyperswitch-superposition-local-key-r640
     - payments
     allowClusterScoped: true
+    requireExisting: true
   inventory:
     digest: sha256:010ff456666eed2dee44308ffada4dfb8aa4bf26967103126be4c6ba536cedc7
   lifecycle:

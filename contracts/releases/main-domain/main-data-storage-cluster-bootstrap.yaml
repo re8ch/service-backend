@@ -37,6 +37,7 @@ spec:
     - r640
     - replicated-storage-whitelist.re8ch.com
     allowClusterScoped: true
+    requireExisting: true
   inventory:
     digest: sha256:3db9cec80f345184fc83fa0e491e2be1140a85d0adb4cadfd9fa3213fbfbaead
   lifecycle:
