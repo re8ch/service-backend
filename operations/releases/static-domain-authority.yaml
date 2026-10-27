@@ -37,12 +37,12 @@ spec:
       stabilityHours: 24
       state: shadow
       source:
-        organization: re8ch-ai
-        repository: re8ch-ai/agent-gitops
+        organization: 8iops
+        repository: 8iops/agent-gitops
         ref: refs/heads/main
         mappingState: verified
       execution:
-        repository: re8ch-ai/agent-gitops
+        repository: 8iops/agent-gitops
         workflow: .github/workflows/static-release.yml
         protectedEnvironment: release-executor-agent-runtime
         audience: https://kube-api.re8ch.com/release-executor-agent-runtime
