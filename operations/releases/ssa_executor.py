@@ -308,12 +308,14 @@ class Executor:
                       "--certificate-oidc-issuer", bundle["issuer"], reference], timeout=120)
 
     @staticmethod
-    def with_audit(objects: list[dict], operation: dict) -> list[dict]:
+    def with_audit(objects: list[dict], operation: dict, *, artifact_digest: str | None = None) -> list[dict]:
+        # Per-attempt IDs belong in durable state/results, not replayed object metadata.
         annotated = json.loads(json.dumps(objects))
         for item in annotated:
             annotations = item.setdefault("metadata", {}).setdefault("annotations", {})
             annotations["delivery.re8ch.com/release-id"] = operation["releaseId"]
-            annotations["delivery.re8ch.com/operation-id"] = operation["operationId"]
+            annotations.pop("delivery.re8ch.com/operation-id", None)
+            annotations["delivery.re8ch.com/artifact-digest"] = artifact_digest or operation["bundle"]["digest"]
         return annotated
 
     def with_existing_versions(self, objects: list[dict]) -> list[dict]:
@@ -443,7 +445,7 @@ class Executor:
                     raise Rejected("rollback bundle payload is unavailable or has the wrong digest")
                 store.cache_bundle(fetched, rollback_digest)
         _, rollback_objects = load_archive(rollback_path)
-        rollback_objects = self.with_audit(rollback_objects, operation)
+        rollback_objects = self.with_audit(rollback_objects, operation, artifact_digest=rollback_digest)
         if contract["spec"]["authorization"].get("requireExisting", False):
             initial_uids = {object_identity(item): item["metadata"].get("uid") for item in attempted_objects}
             for item in rollback_objects:

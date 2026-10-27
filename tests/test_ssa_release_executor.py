@@ -445,13 +445,16 @@ def test_rollback_pull_keeps_oci_scheme(tmp_path):
     }
     runner = Runner(pulled_bundle=archive)
     instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
-    observed, _ = instance.rollback(previous, manifest, objects, value, operation, "re8ch-release/demo",
+    failed_operation = json.loads(json.dumps(operation))
+    failed_operation["bundle"]["digest"] = "sha256:" + "f" * 64
+    observed, _ = instance.rollback(previous, manifest, objects, value, failed_operation, "re8ch-release/demo",
                                     executor.Store(tmp_path / "state", "demo"), "drill")
     pull = next(call[0] for call in runner.calls if call[0][:3] == ["flux", "pull", "artifact"])
     assert pull[3].startswith("oci://registry.example/releases/demo@sha256:")
     assert observed == operation["bundle"]["digest"]
     applied = [json.loads(call[1]) for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
-    assert all(item["metadata"]["annotations"]["delivery.re8ch.com/operation-id"] == operation["operationId"]
+    assert all(item["metadata"]["annotations"]["delivery.re8ch.com/artifact-digest"] == previous["appliedDigest"]
+               and "delivery.re8ch.com/operation-id" not in item["metadata"]["annotations"]
                for item in applied)
 
 
@@ -809,3 +812,37 @@ def test_timeout_retains_type_without_credential_argv_or_captured_streams(monkey
     rendered=''.join(traceback.format_exception(type(error),error,error.__traceback__))
     assert 'fixture-credential' not in rendered
     assert 'fixture-captured-output' not in rendered and 'fixture-captured-error' not in rendered
+
+
+def test_same_digest_reconcile_preserves_object_payload_and_distinct_result_audit(tmp_path):
+    value, first, bundle = prepare(tmp_path)
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW)
+    root = tmp_path / "state"
+    one = instance.reconcile(value, first, bundle, root, verify_signature=False)
+    first_payloads = [call[1] for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    runner.calls.clear()
+    _, second, _ = prepare(tmp_path, sequence=2, previous=first["bundle"]["digest"])
+    two = instance.reconcile(value, second, bundle, root, verify_signature=False)
+    second_payloads = [call[1] for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    assert first_payloads == second_payloads
+    assert one["operationId"] != two["operationId"]
+    store = executor.Store(root, "demo")
+    assert store.result(first["operationId"])["operationId"] == first["operationId"]
+    assert store.result(second["operationId"])["operationId"] == second["operationId"]
+    assert store.state()["lastOperationId"] == second["operationId"]
+
+
+def test_stable_object_audit_removes_legacy_attempt_id_without_mutating_bundle(tmp_path):
+    _, op, bundle = prepare(tmp_path)
+    _, objects = executor.load_archive(bundle)
+    annotations = {"delivery.re8ch.com/operation-id": "old-attempt", "example.com/owner": "kept"}
+    objects[0]["metadata"]["annotations"] = annotations.copy()
+    result = executor.Executor.with_audit(objects, op)
+    assert objects[0]["metadata"]["annotations"] == annotations
+    assert result[0]["metadata"]["annotations"] == {
+        "example.com/owner": "kept", "delivery.re8ch.com/release-id": op["releaseId"],
+        "delivery.re8ch.com/artifact-digest": op["bundle"]["digest"]}
+    next_op = json.loads(json.dumps(op)); next_op["bundle"]["digest"] = "sha256:" + "f" * 64
+    updated = executor.Executor.with_audit(objects, next_op)
+    assert updated[0]["metadata"]["annotations"]["delivery.re8ch.com/artifact-digest"] != result[0]["metadata"]["annotations"]["delivery.re8ch.com/artifact-digest"]
