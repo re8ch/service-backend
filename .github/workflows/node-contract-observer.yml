@@ -286,11 +286,11 @@ jobs:
         run: python operations/github-maintenance/node_contract_governance.py node-contract-evidence.fernet
 
   flux:
-    name: Flux runtime evidence
+    name: Cloud synchronization and runtime observation
     env:
       NODE_USE_ENV_PROXY: '1'
     if: github.ref == 'refs/heads/main' && (github.event.schedule == '2-57/5 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'flux'))
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-latest
     timeout-minutes: 8
     environment: cluster-observation
     permissions:
@@ -301,6 +301,42 @@ jobs:
         with: {persist-credentials: false}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: {node-version: '24'}
+      - id: observe-re8ch
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
+          private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: service-backend,identity-gitops,delivery-products-gitops
+          permission-actions: read
+      - id: observe-network
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
+          private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
+          owner: pillars-infra
+          repositories: network-gitops
+          permission-actions: read
+      - id: observe-agent
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
+          private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
+          owner: 8iops
+          repositories: agent-gitops
+          permission-actions: read
+      - id: observe-observability
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
+          private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
+          owner: siren-observer
+          repositories: observability-gitops
+          permission-actions: read
       - id: reporter
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
@@ -309,7 +345,17 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: service-backend
           permission-checks: write
-      - name: Withdraw public resource inventory
+      - name: Collect bounded cloud state and live workload health
+        if: always()
+        env:
+          KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
+          RE8CH_OBSERVER_TOKEN: ${{ steps.observe-re8ch.outputs.token }}
+          NETWORK_OBSERVER_TOKEN: ${{ steps.observe-network.outputs.token }}
+          AGENT_OBSERVER_TOKEN: ${{ steps.observe-agent.outputs.token }}
+          OBSERVABILITY_OBSERVER_TOKEN: ${{ steps.observe-observability.outputs.token }}
+        run: python operations/releases/cloud-view/collect.py
+      - name: Publish aggregate cloud evidence
+        if: always()
         env:
           GH_TOKEN: ${{ steps.reporter.outputs.token }}
         run: node operations/releases/cloud-view/observe.mjs
