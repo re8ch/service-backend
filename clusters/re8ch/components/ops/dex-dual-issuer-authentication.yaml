@@ -35,9 +35,28 @@ jwt:
       - expression: >-
           claims.repository_visibility == 'private' ||
           (claims.repository_visibility == 'public' &&
-           claims.aud == 'https://kube-api.re8ch.com/observer')
-        message: public repository tokens are restricted to the observer route
-      - {expression: "claims.runner_environment == 'self-hosted'", message: release and observer identities require the enterprise self-hosted runner plane}
+           (claims.aud == 'https://kube-api.re8ch.com/observer' ||
+            (claims.repository_id == '1367237854' &&
+             claims.repository_owner_id == '283958313' &&
+             claims.repository == 're8ch/service-backend' &&
+             claims.ref == 'refs/heads/main' &&
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.event_name == 'workflow_dispatch' &&
+             claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
+             claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)))
+        message: public tokens require the observer or exact protected main-domain release route
+      - expression: >-
+          claims.runner_environment == 'self-hosted' ||
+          (claims.runner_environment == 'github-hosted' &&
+           claims.repository_id == '1367237854' &&
+           claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/service-backend' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+           claims.event_name == 'workflow_dispatch' &&
+           claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
+        message: hosted execution is limited to the protected main-domain workflow
       - expression: >-
           (claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
