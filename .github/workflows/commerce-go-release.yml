@@ -42,6 +42,8 @@ jobs:
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/commerce-go-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
+          install -d -m 700 "$DOCKER_CONFIG/cli-plugins"
+          ln -s "${HOME}/.docker/cli-plugins/docker-buildx" "$DOCKER_CONFIG/cli-plugins/docker-buildx"
           umask 077
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
@@ -95,4 +97,6 @@ jobs:
         if: always()
         run: |
           rm -f "$DOCKER_CONFIG/config.json"
+          rm -f "$DOCKER_CONFIG/cli-plugins/docker-buildx"
+          rmdir "$DOCKER_CONFIG/cli-plugins" || true
           rmdir "$DOCKER_CONFIG" || true
