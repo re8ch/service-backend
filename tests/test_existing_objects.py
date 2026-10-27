@@ -2,7 +2,7 @@ import json
 import subprocess
 from pathlib import Path
 import pytest
-from test_ssa_release_executor import prepare,executor,NOW,Runner,compile_bundle,canonical,digest
+from test_ssa_release_executor import prepare,executor,NOW,Runner,compile_bundle,canonical,digest,operation_for
 
 class ExistingRunner(Runner):
     def __init__(self,fault=None):super().__init__();self.fault=fault;self.written=False
@@ -118,3 +118,35 @@ def test_version_retries_are_bounded_and_never_adopt_replacements(tmp_path, faul
     assert runner.applies == expected_applies
     assert runner.writes == 0
     assert not (tmp_path/'state/state/demo.json').exists()
+
+
+def test_health_failure_cannot_rollback_onto_replacement_uid(tmp_path, monkeypatch):
+    value, op, path = fixture(tmp_path)
+    runner = MovingVersionRunner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW)
+    root = tmp_path / "state"
+    instance.reconcile(value, op, path, root)
+    manifest, _ = executor.load_archive(path)
+    next_op = operation_for(value, path.read_bytes(), manifest, 2, previous=op["bundle"]["digest"])
+    def replaced_during_health(*args):
+        runner.fault = "replaced-before-write"
+        return False, "object replaced during health wait"
+    monkeypatch.setattr(instance, "wait_healthy", replaced_during_health)
+    with pytest.raises(executor.Rejected, match="rollback failed.*missing or replaced"):
+        instance.reconcile(value, next_op, path, root)
+    assert runner.writes == 2  # Initial publish + attempted update; no rollback write.
+    assert runner.applies == 4
+    assert executor.Store(root, "demo").state()["blocked"] is True
+
+
+def test_rollback_rejects_objects_outside_initial_adoption_snapshot(tmp_path):
+    value, op, path = fixture(tmp_path)
+    manifest, objects = executor.load_archive(path)
+    store = executor.Store(tmp_path / "state", "demo")
+    store.cache_bundle(path, op["bundle"]["digest"])
+    previous = {"appliedDigest": op["bundle"]["digest"]}
+    runner = MovingVersionRunner()
+    with pytest.raises(executor.Rejected, match="not bound in this adoption attempt"):
+        executor.Executor(runner=runner, now=lambda: NOW).rollback(
+            previous, manifest, [], value, op, "re8ch-release/demo", store, "health failed")
+    assert runner.reads == runner.applies == runner.writes == 0

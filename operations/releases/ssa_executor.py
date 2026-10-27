@@ -441,6 +441,12 @@ class Executor:
         _, rollback_objects = load_archive(rollback_path)
         rollback_objects = self.with_audit(rollback_objects, operation)
         if contract["spec"]["authorization"].get("requireExisting", False):
+            initial_uids = {object_identity(item): item["metadata"].get("uid") for item in attempted_objects}
+            for item in rollback_objects:
+                identity = object_identity(item)
+                if not initial_uids.get(identity):
+                    raise Rejected(f"rollback object was not bound in this adoption attempt: {identity}")
+                item["metadata"]["uid"] = initial_uids[identity]
             rollback_objects = self.with_existing_versions(rollback_objects)
         manual = set(contract["spec"]["lifecycle"].get("manualRollbackKinds", []))
         if any(item["kind"] in manual or item["kind"] in PROTECTED_KINDS for item in attempted_objects):
