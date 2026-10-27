@@ -35,7 +35,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
     cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
-    assert cohort["releaseCount"] == 14
+    assert cohort["releaseCount"] == 17
     source = {compiler.identity(item) for domain in DOMAINS
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
@@ -151,37 +151,36 @@ def test_cloud_replay_skips_build_and_keeps_release_identity_and_serialization()
     assert '.outcome == "healthy" and .health.status == "healthy"' in commands
 
 
-def test_supabase_rest_has_one_native_writer_and_no_ssa_authority():
-    identity = "apps/Deployment/supabase-pg-re8ch/supabase-rest"
-    legacy = documents(ROOT / "clusters/re8ch/domains/main-legacy/data-storage/resources.yaml")
-    assert identity in {compiler.identity(item) for item in legacy}
-    assert not (ROOT / "contracts/releases/main-domain/main-data-storage-supabase-pg-re8ch.yaml").exists()
-    assert not (ROOT / "operations/releases/main-domain-ssa/main-data-storage-supabase-pg-re8ch").exists()
-    rbac = documents(ROOT / "clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml")
-    assert all(item["metadata"]["name"] != "main-data-storage-supabase-pg-re8ch" for item in rbac)
-    owner = next(item for item in documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
-                 if item["metadata"]["name"] == "reconcile-main-legacy-data-storage")
-    assert owner["spec"]["suspend"] is False
-    assert owner["spec"]["healthChecks"] == [dict(apiVersion="apps/v1", kind="Deployment",
-                                               name="supabase-rest", namespace="supabase-pg-re8ch")]
+def test_former_native_namespaced_objects_have_bounded_cloud_contracts():
+    expected = {
+        "main-data-storage-supabase-pg-re8ch": {"apps/Deployment/supabase-pg-re8ch/supabase-rest"},
+        "main-operations-ui-headlamp": {"apps/Deployment/headlamp/headlamp", "apps/Deployment/headlamp/headlamp-gateway-proxy", "apps/Deployment/headlamp/headlamp-active-elector"},
+        "main-operations-ui-kube-system": {"core/ConfigMap/kube-system/public-edge-catalog", "core/ConfigMap/kube-system/public-site-governance"},
+    }
+    legacy = {compiler.identity(item) for path in (ROOT / "clusters/re8ch/domains/main-legacy").glob("*/resources.yaml") for item in documents(path)}
+    for release, identities in expected.items():
+        path = ROOT / "contracts/releases/main-domain" / f"{release}.yaml"
+        contract = yaml.load(path.read_text(), Loader=YAML_SAFE_LOADER)
+        items = documents(ROOT / contract["spec"]["source"]["path"] / "resources.yaml")
+        assert identities <= {compiler.identity(item) for item in items}
+        assert not identities & legacy
+        assert contract["spec"]["authorization"]["allowClusterScoped"] is False
 
 
-def test_headlamp_has_native_health_reporting_and_no_ssa_writer():
-    legacy = documents(ROOT / "clusters/re8ch/domains/main-legacy/operations-ui/resources.yaml")
-    names = {item["metadata"]["name"] for item in legacy
-             if item["kind"] == "Deployment" and item["metadata"].get("namespace") == "headlamp"}
-    expected = {"headlamp", "headlamp-gateway-proxy", "headlamp-active-elector"}
-    assert expected <= names
-    assert not (ROOT / "contracts/releases/main-domain/main-operations-ui-headlamp.yaml").exists()
-    assert not (ROOT / "operations/releases/main-domain-ssa/main-operations-ui-headlamp").exists()
-    rbac = documents(ROOT / "clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml")
-    assert all(item["metadata"]["name"] not in {"main-operations-ui-headlamp", "main-operations-ui-kube-system"}
-               for item in rbac)
-    assert not (ROOT / "contracts/releases/main-domain/main-operations-ui-kube-system.yaml").exists()
-    owner = next(item for item in documents(ROOT / "clusters/re8ch/flux-system/domain-reconcilers.yaml")
-                 if item["metadata"]["name"] == "reconcile-main-legacy-operations-ui")
-    assert owner["spec"]["suspend"] is False
-    assert {item["name"] for item in owner["spec"]["healthChecks"]} == expected
-    alerts = documents(ROOT / "clusters/re8ch/flux-system/github-control-plane.yaml")
-    assert any(source.get("name") == owner["metadata"]["name"]
-               for item in alerts if item["kind"] == "Alert" for source in item["spec"]["eventSources"])
+def test_legacy_report_exposes_every_remaining_capability_gap():
+    cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
+    legacy = {compiler.identity(item): item for path in (ROOT / "clusters/re8ch/domains/main-legacy").glob("*/resources.yaml") for item in documents(path)}
+    report = {item["identity"]: item["reason"] for item in cohort["remainingObjects"]}
+    assert set(report) == set(legacy)
+    assert len(report) == cohort["legacyObjectCount"]
+    assert sum(cohort["remainingCapabilities"].values()) == len(legacy)
+    assert {identity: compiler.legacy_reason(item) for identity, item in legacy.items()} == report
+    assert all(report[identity] == "approved-secret-injection-required" for identity, item in legacy.items()
+               if item["kind"] == "Secret" and item["metadata"].get("labels", {}).get("delivery.re8ch.com/retention") != "retained-data")
+
+
+def test_old_native_hint_does_not_block_eligible_namespaced_workload():
+    item = {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "test", "namespace": "ops", "annotations": {"delivery.re8ch.com/reconciler": "native-flux"}}}
+    assert compiler.legacy_reason(item) is None
+    item["metadata"]["labels"] = {"delivery.re8ch.com/retention": "retained-data"}
+    assert compiler.legacy_reason(item) == "retained-data-no-automatic-mutation"

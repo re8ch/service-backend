@@ -12,7 +12,7 @@ import argparse
 import hashlib
 import json
 import shutil
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
@@ -118,11 +118,34 @@ def role_rules(items: list[dict], state_name: str) -> list[dict]:
     return result
 
 
+def legacy_reason(item: dict) -> str | None:
+    """Return the remaining capability gap, never an obsolete Flux ownership hint."""
+    meta = item.get("metadata", {})
+    if meta.get("labels", {}).get("delivery.re8ch.com/retention") == "retained-data":
+        return "retained-data-no-automatic-mutation"
+    if identity(item) in DEFERRED_SSA:
+        return "explicitly-deferred"
+    if item["kind"] == "Secret":
+        return "approved-secret-injection-required"
+    if item["kind"] == "HelmRelease":
+        return "cloud-helm-rendering-required"
+    if item["kind"] in FLUX_KINDS:
+        return "replace-flux-lifecycle-reference"
+    if not meta.get("namespace") or item["kind"] in CLUSTER_KINDS:
+        return "cluster-scoped-executor-profile-required"
+    if meta["namespace"] == "flux-system":
+        return "bootstrap-namespace-executor-profile-required"
+    if has_mutable_image(item):
+        return "immutable-image-digest-required"
+    return None
+
+
 def compile_outputs() -> dict[Path, str]:
     profiles = execution_profiles()
     releases: dict[tuple[str, str], list[dict]] = defaultdict(list)
     legacy: dict[str, list[dict]] = defaultdict(list)
     seen: dict[str, str] = {}
+    remaining: list[dict] = []
     for domain in DOMAINS:
         for item in docs(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml"):
             ident = identity(item)
@@ -131,11 +154,10 @@ def compile_outputs() -> dict[Path, str]:
             seen[ident] = domain
             meta = item.get("metadata", {})
             namespace = meta.get("namespace")
-            native_flux = meta.get("annotations", {}).get("delivery.re8ch.com/reconciler") == "native-flux"
-            retained_data = meta.get("labels", {}).get("delivery.re8ch.com/retention") == "retained-data"
-            if (native_flux or retained_data or ident in DEFERRED_SSA or not namespace or namespace == "flux-system" or item["kind"] in CLUSTER_KINDS |
-                    FLUX_KINDS | {"Secret"} or has_mutable_image(item)):
+            reason = legacy_reason(item)
+            if reason:
                 legacy[domain].append(item)
+                remaining.append({"domain": domain, "identity": ident, "reason": reason})
             else:
                 releases[(domain, namespace)].append(item)
 
@@ -206,6 +228,8 @@ def compile_outputs() -> dict[Path, str]:
         "releaseCount": len(releases), "objectCount": sum(map(len, releases.values())),
         "legacyObjectCount": sum(map(len, legacy.values())),
         "deferredSSAObjects": sorted(DEFERRED_SSA),
+        "remainingCapabilities": dict(sorted(Counter(item["reason"] for item in remaining).items())),
+        "remainingObjects": sorted(remaining, key=lambda item: (item["domain"], item["identity"])),
         "executionProfiles": [{"domain": domain, "repository": profiles[domain]["repository"],
                                "workflow": profiles[domain]["workflow"],
                                "protectedEnvironment": profiles[domain]["protectedEnvironment"],
