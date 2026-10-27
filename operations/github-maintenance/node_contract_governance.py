@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import json
 import os
@@ -18,6 +19,42 @@ OWNER = REPO.split("/", 1)[0]
 PROJECT_NUMBER = os.environ.get("GITOPS_MAINTENANCE_PROJECT", "1")
 TITLE_PREFIX = "[NodeContract drift]"
 ACTIVE_TITLE = f"{TITLE_PREFIX} active reconciliation"
+EVIDENCE_SIZE = 256 * 1024
+
+
+def evidence_cipher():
+    from cryptography.fernet import Fernet
+    # Dedicated random Environment secret; never derive encryption from public digests.
+    key = os.environ["NODE_EVIDENCE_KEY"]
+    if len(base64.urlsafe_b64decode(key)) != 32:
+        raise ValueError("Invalid evidence key")
+    return Fernet(key.encode())
+
+
+def seal_evidence(source: Path, destination: Path, run_id: str) -> None:
+    evidence = json.loads(source.read_text(encoding="utf-8"))
+    envelope = json.dumps({"repository": REPO, "runId": run_id, "evidence": evidence}).encode()
+    if len(envelope) >= EVIDENCE_SIZE:
+        raise ValueError("Evidence exceeds sealed size limit")
+    # Constant-size padding avoids exposing node/drift counts through artifact length.
+    token = evidence_cipher().encrypt(envelope.ljust(EVIDENCE_SIZE, b"\0"))
+    with destination.open("xb") as stream:
+        stream.write(token)
+
+
+def load_evidence(path: Path, run_id: str) -> dict[str, Any]:
+    if path.stat().st_size > EVIDENCE_SIZE * 2:
+        raise ValueError("Invalid sealed evidence")
+    raw = evidence_cipher().decrypt(path.read_bytes())
+    if len(raw) != EVIDENCE_SIZE:
+        raise ValueError("Invalid sealed evidence size")
+    envelope = json.loads(raw.rstrip(b"\0"))
+    if envelope["repository"] != REPO or envelope["runId"] != run_id:
+        raise ValueError("Evidence provenance mismatch")
+    evidence = envelope["evidence"]
+    if evidence.get("schemaVersion") != "v1alpha1" or not isinstance(evidence.get("drift"), list):
+        raise ValueError("Invalid evidence schema")
+    return evidence
 
 
 def gh(*args: str) -> str:
@@ -44,15 +81,16 @@ def historical_evidence() -> list[tuple[dt.datetime, dict[str, Any]]]:
     history: list[tuple[dt.datetime, dict[str, Any]]] = []
     for run in completed:
         run_id = str(run["id"])
-        artifact_name = f"node-contract-evidence-{run_id}"
+        artifact_name = f"node-contract-evidence-sealed-{run_id}"
         artifacts = api(f"repos/{REPO}/actions/runs/{run_id}/artifacts").get("artifacts", [])
         if not any(item.get("name") == artifact_name and not item.get("expired") for item in artifacts):
             break
         with tempfile.TemporaryDirectory(prefix="node-contract-history-") as directory:
             try:
                 gh("run", "download", run_id, "--repo", REPO, "--name", artifact_name, "--dir", directory)
-                evidence = json.loads((Path(directory) / "node-contract-evidence.json").read_text(encoding="utf-8"))
-            except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+                evidence = load_evidence(Path(directory) / "node-contract-evidence.fernet", run_id)
+            except Exception:
+                # Missing, legacy, rotated or tampered history breaks the streak; never fall back to plaintext.
                 break
         created_at = dt.datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
         history.append((created_at, evidence))
@@ -99,29 +137,15 @@ def issue_key(drift: dict[str, Any]) -> str:
 
 
 def render_body(actionable: list[dict[str, Any]], evidence: dict[str, Any]) -> str:
-    breakdown: dict[tuple[str, str], int] = {}
-    for drift in actionable:
-        key = (drift["severity"], drift["type"])
-        breakdown[key] = breakdown.get(key, 0) + 1
-    summary = "\n".join(
-        f"- `{severity}/{kind}`: {count}"
-        for (severity, kind), count in sorted(breakdown.items())
-    )
-    return f"""## NodeContract reconciliation drift
+    return f"""## NodeContract reconciliation review
 
-This issue was opened by the Maintenance App from sanitized observer evidence.
-It has no assignee and intentionally mentions no user.
-
-Actionable drift count: `{len(actionable)}`
-
-{summary}
-
-Expected nodes: `{evidence['expectedNodeCount']}`
-
-Observed nodes: `{evidence['observedNodeCount']}`
+The protected observer requires internal review.
 Observer run: `{os.environ.get('GITHUB_RUN_ID', 'unknown')}`
 
-Per-node details remain only in the access-controlled Actions artifact.
+Detailed evidence is encrypted before upload. Public Actions artifacts are not
+an internal access boundary. Authorized operators inspect runtime details through
+the authenticated platform interface; no node identifiers, counts, conditions or
+drift categories are published in this issue.
 
 Project status is governance metadata only and never grants Kubernetes access.
 """
@@ -164,9 +188,16 @@ def publish(evidence: dict[str, Any]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("evidence", type=Path)
+    parser.add_argument("--seal", type=Path, help="Encrypt evidence to this output instead of publishing")
     args = parser.parse_args()
-    evidence = json.loads(args.evidence.read_text(encoding="utf-8"))
-    publish(evidence)
+    try:
+        run_id = os.environ["GITHUB_RUN_ID"]
+        if args.seal:
+            seal_evidence(args.evidence, args.seal, run_id)
+        else:
+            publish(load_evidence(args.evidence, run_id))
+    except Exception:
+        raise SystemExit("Protected evidence operation failed; use authenticated diagnostics") from None
 
 
 if __name__ == "__main__":
