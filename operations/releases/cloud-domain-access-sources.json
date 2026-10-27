@@ -45,5 +45,21 @@
   ],
   "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance. Retired roles retain no permissions.",
   "objects": 227,
-  "states": 75
+  "states": 75,
+  "platformDiagnosticAccess": [
+    {
+      "owner": "re8ch/service-backend",
+      "path": "clusters/re8ch/components/ops/github-actions-networking-topology-read.yaml",
+      "purpose": "Read the pinned restricted topology source in protected networking adoption parity; no plaintext logs or artifacts.",
+      "namespace": "ops",
+      "resource": "configmaps",
+      "resourceNames": [
+        "restricted-topology-context"
+      ],
+      "verbs": [
+        "get"
+      ],
+      "group": "re8ch:release-executor:networking"
+    }
+  ]
 }
