@@ -83,6 +83,9 @@ def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover()
             role_contract = yaml.load((ROOT / "contracts/releases/main-domain" / (role["metadata"]["name"] + ".yaml")).read_text(), Loader=YAML_SAFE_LOADER)
             if role_contract["spec"]["lifecycle"]["prune"]:
                 expected.add("delete")
+            retired = yaml.safe_load((ROOT / "operations/releases/static-domain-authority.yaml").read_text())["spec"].get("retiredReleases", {})
+            if role["metadata"]["name"] in retired:
+                expected = {"get"}
             assert set(rule["verbs"]) == expected
         assert all("*" not in rule.get("resources", []) + rule.get("resourceNames", []) for rule in role["rules"])
     assert {subject["name"] for binding in bindings for subject in binding["subjects"]} == {
