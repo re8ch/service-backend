@@ -3,6 +3,96 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: ssa-state-main-commerce-billing-cluster-bootstrap
+  namespace: ops
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: commerce-billing
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: main-commerce-billing-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: commerce-billing
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-main-commerce-billing-cluster-bootstrap
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: main-commerce-billing-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: commerce-billing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: main-commerce-billing-cluster-bootstrap
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:commerce-billing
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: main-commerce-billing-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: commerce-billing
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  resourceNames:
+  - payments
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumes
+  resourceNames:
+  - hyperswitch-superposition-local-key-r640
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: main-commerce-billing-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: commerce-billing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: main-commerce-billing-cluster-bootstrap
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:commerce-billing
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: ssa-state-main-commerce-billing-payments
   namespace: payments
   annotations:
@@ -241,6 +331,129 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: main-data-storage-cloud-disk
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:data-storage
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-main-data-storage-cluster-bootstrap
+  namespace: ops
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: data-storage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: main-data-storage-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: data-storage
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-main-data-storage-cluster-bootstrap
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: main-data-storage-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: data-storage
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: main-data-storage-cluster-bootstrap
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:data-storage
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: main-data-storage-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: data-storage
+rules:
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingadmissionpolicies
+  resourceNames:
+  - replicated-storage-whitelist.re8ch.com
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - validatingadmissionpolicybindings
+  resourceNames:
+  - replicated-storage-whitelist.re8ch.com
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  resourceNames:
+  - cloud-disk
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  resourceNames:
+  - a1-wsl-zt
+  - b1-wsl-zt
+  - r640
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  resourceNames:
+  - local-a1
+  - local-b1
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: main-data-storage-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: data-storage
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: main-data-storage-cluster-bootstrap
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
@@ -884,6 +1097,86 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: ssa-state-main-operations-ui-cluster-bootstrap
+  namespace: ops
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: operations-ui
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: main-operations-ui-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: operations-ui
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-main-operations-ui-cluster-bootstrap
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: main-operations-ui-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: operations-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: main-operations-ui-cluster-bootstrap
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:operations-ui
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: main-operations-ui-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: operations-ui
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  resourceNames:
+  - studio-toolkit
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: main-operations-ui-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: operations-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: main-operations-ui-cluster-bootstrap
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:operations-ui
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: ssa-state-main-operations-ui-headlamp
   namespace: headlamp
   annotations:
@@ -914,7 +1207,6 @@ rules:
   - get
   - patch
   - update
-  - delete
 - apiGroups:
   - autoscaling
   resources:
@@ -925,7 +1217,6 @@ rules:
   - get
   - patch
   - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -950,7 +1241,6 @@ rules:
   - get
   - patch
   - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -961,7 +1251,6 @@ rules:
   - get
   - patch
   - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -976,7 +1265,6 @@ rules:
   - get
   - patch
   - update
-  - delete
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -987,7 +1275,6 @@ rules:
   - get
   - patch
   - update
-  - delete
 - apiGroups:
   - policy
   resources:
@@ -998,31 +1285,6 @@ rules:
   - get
   - patch
   - update
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - rolebindings
-  resourceNames:
-  - headlamp-active-elector
-  verbs:
-  - get
-  - patch
-  - update
-  - delete
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  resourceNames:
-  - headlamp-active-elector
-  verbs:
-  - get
-  - patch
-  - update
-  - delete
-  - escalate
-  - bind
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1357,6 +1619,172 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: main-tenant-runtime-ai-operations
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:tenant-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-main-tenant-runtime-cluster-bootstrap
+  namespace: ops
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/cohort: main-domain
+    delivery.re8ch.com/authority-domain: tenant-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: main-tenant-runtime-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: tenant-runtime
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-main-tenant-runtime-cluster-bootstrap
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: main-tenant-runtime-cluster-bootstrap
+  namespace: ops
+  labels:
+    delivery.re8ch.com/rbac-profile: tenant-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: main-tenant-runtime-cluster-bootstrap
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:tenant-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: main-tenant-runtime-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: tenant-runtime
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  resourceNames:
+  - disturbancewindows.scheduling.re8ch.com
+  - nodeprofiles.scheduling.re8ch.com
+  - penroseoperations.scheduling.re8ch.com
+  - placementclasses.scheduling.re8ch.com
+  - schedulerprofiles.scheduling.re8ch.com
+  - serviceoutcomepolicies.scheduling.re8ch.com
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  resourceNames:
+  - kueue-system
+  - kyverno
+  - scheduler-system
+  - scheduling-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - kyverno.io
+  resources:
+  - clusterpolicies
+  resourceNames:
+  - comfy-cloud-runtime-boundary
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - scheduling.re8ch.com
+  resources:
+  - nodeprofiles
+  resourceNames:
+  - a1-wsl-zt
+  - amdwsl-zt
+  - b1-wsl-zt
+  - domain-ex
+  - muaya-ecs
+  - muaya-lightweight
+  - mubao-wsl
+  - overseas-edge-50
+  - overseas-flk
+  - overseas-kl
+  - overseas-la
+  - overseas-la-2
+  - r640
+  - suxunji
+  - vm-20-12-ubuntu
+  - zan
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - scheduling.re8ch.com
+  resources:
+  - placementclasses
+  resourceNames:
+  - batch-opportunistic
+  - control-plane-critical
+  - egress
+  - function-execution
+  - gpu-rocm
+  - node-bootstrap
+  - node-serving-agent
+  - online-reliable
+  - public-edge
+  - service-core-ab
+  - service-core-local
+  - service-core-r640
+  - stateful-ceph
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - scheduling.re8ch.com
+  resources:
+  - schedulerprofiles
+  resourceNames:
+  - re8ch-dynamic
+  - upstream-default
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: main-tenant-runtime-cluster-bootstrap
+  labels:
+    delivery.re8ch.com/rbac-profile: tenant-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: main-tenant-runtime-cluster-bootstrap
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group

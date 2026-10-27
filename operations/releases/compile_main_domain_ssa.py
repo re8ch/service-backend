@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Partition main-domain Flux inventories into bounded SSA releases.
 
-Secret payloads, cluster-scoped resources, Flux source/lifecycle objects and
-HelmRelease objects remain in the temporary main-legacy reconciliation domain.
-Everything else is split by owning domain and namespace so every executor
-identity can be expressed as an exact namespaced Role.
+Secret payloads, platform-owned RBAC, Flux lifecycle references and HelmRelease
+objects remain explicit bootstrap gaps. Namespaced workloads and non-RBAC
+cluster bootstrap objects use separate exact contracts; cluster bootstrap never
+prunes and receives no create, delete, bind or escalate authorization.
 """
 from __future__ import annotations
 
@@ -34,7 +34,13 @@ AUTHORITY = ROOT / "operations/releases/static-domain-authority.yaml"
 CLUSTER_KINDS = {
     "APIService", "ClusterRole", "ClusterRoleBinding", "CustomResourceDefinition", "Namespace",
     "Node", "PersistentVolume", "StorageClass", "ValidatingWebhookConfiguration", "MutatingWebhookConfiguration",
+    "ValidatingAdmissionPolicy", "ValidatingAdmissionPolicyBinding", "ClusterPolicy",
+    "NodeProfile", "PlacementClass", "SchedulerProfile", "TenantNamespace",
 }
+RBAC_KINDS = {"Role", "RoleBinding", "ClusterRole", "ClusterRoleBinding"}
+CLUSTER_EXECUTABLE = CLUSTER_KINDS - RBAC_KINDS
+CLUSTER_PARTITION = "cluster-bootstrap"
+CLUSTER_STATE_NAMESPACE = "ops"
 FLUX_KINDS = {"HelmRelease", "Kustomization", "GitRepository", "HelmRepository", "OCIRepository", "HelmChart"}
 PLURALS = {
     "ServiceAccount": "serviceaccounts", "Service": "services", "ConfigMap": "configmaps",
@@ -43,7 +49,11 @@ PLURALS = {
     "HorizontalPodAutoscaler": "horizontalpodautoscalers", "PodDisruptionBudget": "poddisruptionbudgets",
     "NetworkPolicy": "networkpolicies", "Ingress": "ingresses", "EndpointSlice": "endpointslices",
     "HTTPRoute": "httproutes", "CiliumNetworkPolicy": "ciliumnetworkpolicies",
-    "Role": "roles", "RoleBinding": "rolebindings", "MCPServer": "mcpservers",
+    "MCPServer": "mcpservers", "Namespace": "namespaces", "Node": "nodes",
+    "PersistentVolume": "persistentvolumes", "StorageClass": "storageclasses",
+    "CustomResourceDefinition": "customresourcedefinitions", "ClusterPolicy": "clusterpolicies",
+    "NodeProfile": "nodeprofiles", "PlacementClass": "placementclasses", "SchedulerProfile": "schedulerprofiles",
+    "ValidatingAdmissionPolicy": "validatingadmissionpolicies", "ValidatingAdmissionPolicyBinding": "validatingadmissionpolicybindings",
 }
 def execution_profiles() -> dict[str, dict]:
     authority = yaml.load(AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)
@@ -93,22 +103,18 @@ def has_mutable_image(value: object) -> bool:
     return False
 
 
-def role_rules(items: list[dict], state_name: str) -> list[dict]:
+def role_rules(items: list[dict], state_name: str | None, *, allow_delete: bool = True) -> list[dict]:
     rules: dict[tuple[str, str], set[str]] = defaultdict(set)
     for item in items:
         plural = PLURALS.get(item["kind"])
         if not plural:
             raise ValueError(f'no RBAC plural mapping for {item["apiVersion"]}/{item["kind"]}')
         rules[(group(item["apiVersion"]), plural)].add(item["metadata"]["name"])
-    rules[("core", "configmaps")].add(state_name)
+    if state_name:
+        rules[("core", "configmaps")].add(state_name)
     result = []
     for (api_group, resource), names in sorted(rules.items()):
-        verbs = ["get", "patch", "update", "delete"]
-        if api_group == "rbac.authorization.k8s.io" and resource == "roles":
-            # Kubernetes protects Role and RoleBinding writes from privilege
-            # escalation. Keep those exceptional verbs constrained to the
-            # exact Role names already present in this signed bundle.
-            verbs.extend(["escalate", "bind"])
+        verbs = ["get", "patch", "update"] + (["delete"] if allow_delete else [])
         result.append({
             "apiGroups": ["" if api_group == "core" else api_group],
             "resources": [resource],
@@ -118,13 +124,15 @@ def role_rules(items: list[dict], state_name: str) -> list[dict]:
     return result
 
 
-def legacy_reason(item: dict) -> str | None:
+def legacy_reason(item: dict, domain: str | None = None) -> str | None:
     """Return the remaining capability gap, never an obsolete Flux ownership hint."""
     meta = item.get("metadata", {})
     if meta.get("labels", {}).get("delivery.re8ch.com/retention") == "retained-data":
         return "retained-data-no-automatic-mutation"
     if identity(item) in DEFERRED_SSA:
         return "explicitly-deferred"
+    if item["kind"] in RBAC_KINDS:
+        return "platform-owned-rbac-bootstrap"
     if item["kind"] == "Secret":
         return "approved-secret-injection-required"
     if item["kind"] == "HelmRelease":
@@ -132,7 +140,11 @@ def legacy_reason(item: dict) -> str | None:
     if item["kind"] in FLUX_KINDS:
         return "replace-flux-lifecycle-reference"
     if not meta.get("namespace") or item["kind"] in CLUSTER_KINDS:
-        return "cluster-scoped-executor-profile-required"
+        if item["kind"] not in CLUSTER_EXECUTABLE:
+            return "cluster-scoped-executor-profile-required"
+        if domain and execution_profiles()[domain]["repository"] != "re8ch/service-backend":
+            return "external-authority-cluster-bootstrap-required"
+        return None
     if meta["namespace"] == "flux-system":
         return "bootstrap-namespace-executor-profile-required"
     if has_mutable_image(item):
@@ -146,6 +158,7 @@ def compile_outputs() -> dict[Path, str]:
     legacy: dict[str, list[dict]] = defaultdict(list)
     seen: dict[str, str] = {}
     remaining: list[dict] = []
+    retained_rbac_namespaces: set[tuple[str, str]] = set()
     for domain in DOMAINS:
         for item in docs(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml"):
             ident = identity(item)
@@ -154,20 +167,25 @@ def compile_outputs() -> dict[Path, str]:
             seen[ident] = domain
             meta = item.get("metadata", {})
             namespace = meta.get("namespace")
-            reason = legacy_reason(item)
+            reason = legacy_reason(item, domain)
             if reason:
                 legacy[domain].append(item)
                 remaining.append({"domain": domain, "identity": ident, "reason": reason})
+                if reason == "platform-owned-rbac-bootstrap" and namespace:
+                    retained_rbac_namespaces.add((domain, namespace))
             else:
-                releases[(domain, namespace)].append(item)
+                releases[(domain, namespace or CLUSTER_PARTITION)].append(item)
 
     revision = "github-main-reviewed"
     files: dict[Path, str] = {}
     rbac_docs: list[dict] = []
-    for (domain, namespace), items in sorted(releases.items()):
+    for (domain, partition), items in sorted(releases.items()):
+        cluster = partition == CLUSTER_PARTITION
+        namespace = CLUSTER_STATE_NAMESPACE if cluster else partition
         profile = profiles[domain]
+        prune = not cluster and (domain, namespace) not in retained_rbac_namespaces
         items.sort(key=identity)
-        name = release_name(domain, namespace)
+        name = release_name(domain, partition)
         package = OUTPUT / name
         files[package / "resources.yaml"] = dump_all(items)
         files[package / "kustomization.yaml"] = yaml.safe_dump({
@@ -189,12 +207,12 @@ def compile_outputs() -> dict[Path, str]:
                 "authorization": {"fieldManager": f"re8ch-release/{name}",
                                   "resources": sorted({f'{group(x["apiVersion"])}/{x["kind"]}' for x in items}),
                                   "objectNames": sorted({x["metadata"]["name"] for x in items}),
-                                  "allowClusterScoped": False},
+                                  "allowClusterScoped": cluster},
                 "inventory": {"digest": digest(inventory)},
-                "lifecycle": {"prune": True, "healthTimeoutSeconds": 300,
-                              "protectedKinds": ["Namespace", "CustomResourceDefinition", "PersistentVolume",
-                                                 "PersistentVolumeClaim", "StorageClass"],
-                              "deletionAllowlist": [x for x in inventory if "/PersistentVolumeClaim/" not in x]},
+                "lifecycle": {"prune": prune, "healthTimeoutSeconds": 300,
+                              "protectedKinds": sorted(CLUSTER_EXECUTABLE | {"PersistentVolumeClaim"}) if cluster else
+                                                ["Namespace", "CustomResourceDefinition", "PersistentVolume", "PersistentVolumeClaim", "StorageClass"],
+                              "deletionAllowlist": [] if not prune else [x for x in inventory if "/PersistentVolumeClaim/" not in x]},
             },
         }
         files[CONTRACTS / f"{name}.yaml"] = yaml.safe_dump(contract, sort_keys=False)
@@ -207,7 +225,7 @@ def compile_outputs() -> dict[Path, str]:
             {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role",
              "metadata": {"name": name, "namespace": namespace,
                           "labels": {"delivery.re8ch.com/rbac-profile": domain}},
-             "rules": role_rules(items, state_name)},
+             "rules": role_rules([] if cluster else items, state_name, allow_delete=prune)},
             {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding",
              "metadata": {"name": name, "namespace": namespace,
                           "labels": {"delivery.re8ch.com/rbac-profile": domain}},
@@ -215,6 +233,16 @@ def compile_outputs() -> dict[Path, str]:
              "subjects": [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group",
                            "name": profile["kubernetesGroup"]}]},
         ])
+        if cluster:
+            rbac_docs.extend([
+                {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRole",
+                 "metadata": {"name": name, "labels": {"delivery.re8ch.com/rbac-profile": domain}},
+                 "rules": role_rules(items, None, allow_delete=False)},
+                {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "ClusterRoleBinding",
+                 "metadata": {"name": name, "labels": {"delivery.re8ch.com/rbac-profile": domain}},
+                 "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": name},
+                 "subjects": [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": profile["kubernetesGroup"]}]},
+            ])
     for domain, items in sorted(legacy.items()):
         items.sort(key=identity)
         files[LEGACY / domain / "resources.yaml"] = dump_all(items)
@@ -237,7 +265,8 @@ def compile_outputs() -> dict[Path, str]:
                                "kubernetesGroup": profiles[domain]["kubernetesGroup"]}
                               for domain in DOMAINS],
         "legacyShards": [{"domain": domain, "objects": len(items)} for domain, items in sorted(legacy.items())],
-        "releases": [{"name": release_name(d, n), "domain": d, "namespace": n, "objects": len(items)}
+        "releases": [{"name": release_name(d, n), "domain": d, "namespace": CLUSTER_STATE_NAMESPACE if n == CLUSTER_PARTITION else n,
+                      "scope": "cluster-bootstrap" if n == CLUSTER_PARTITION else "namespaced", "objects": len(items)}
                      for (d, n), items in sorted(releases.items())],
     }
     files[OUTPUT / "cohort.yaml"] = yaml.safe_dump(manifest, sort_keys=False)

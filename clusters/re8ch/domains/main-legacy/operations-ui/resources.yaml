@@ -45,11 +45,6 @@ spec:
         name: tmp
 ---
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: studio-toolkit
----
-apiVersion: v1
 kind: Secret
 metadata:
   name: studio-config
@@ -286,6 +281,23 @@ rules:
   - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  annotations:
+    delivery.re8ch.com/reconciler: native-flux
+  name: headlamp-active-elector
+  namespace: headlamp
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: paralus-helmrelease-retirement
@@ -298,3 +310,19 @@ subjects:
 - kind: ServiceAccount
   name: paralus-helmrelease-retirement
   namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    delivery.re8ch.com/reconciler: native-flux
+  name: headlamp-active-elector
+  namespace: headlamp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: headlamp-active-elector
+subjects:
+- kind: ServiceAccount
+  name: headlamp-active-elector
+  namespace: headlamp

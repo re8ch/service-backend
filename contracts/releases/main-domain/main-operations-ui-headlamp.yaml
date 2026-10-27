@@ -30,8 +30,6 @@ spec:
     - core/ServiceAccount
     - networking.k8s.io/NetworkPolicy
     - policy/PodDisruptionBudget
-    - rbac.authorization.k8s.io/Role
-    - rbac.authorization.k8s.io/RoleBinding
     objectNames:
     - among-clusters-onboarding-links
     - controlled-cluster-relay
@@ -53,9 +51,9 @@ spec:
     - headlamp-secretary-v030-d9c9k67m67
     allowClusterScoped: false
   inventory:
-    digest: sha256:922ae01b921ae8ed009790975ef335b7558f4e0da158ff4a68deee48731bcc1c
+    digest: sha256:95ff24bc25c391b80acb8493d4a5b438b974d0319c40797e4ba77ddf9e16583e
   lifecycle:
-    prune: true
+    prune: false
     healthTimeoutSeconds: 300
     protectedKinds:
     - Namespace
@@ -63,33 +61,4 @@ spec:
     - PersistentVolume
     - PersistentVolumeClaim
     - StorageClass
-    deletionAllowlist:
-    - apps/Deployment/headlamp/controlled-cluster-relay
-    - apps/Deployment/headlamp/headlamp
-    - apps/Deployment/headlamp/headlamp-active-elector
-    - apps/Deployment/headlamp/headlamp-gateway-proxy
-    - autoscaling/HorizontalPodAutoscaler/headlamp/headlamp
-    - core/ConfigMap/headlamp/among-clusters-onboarding-links
-    - core/ConfigMap/headlamp/controlled-cluster-relay
-    - core/ConfigMap/headlamp/headlamp-active-elector
-    - core/ConfigMap/headlamp/headlamp-advanced-fabric-v0261-t9hc27t784
-    - core/ConfigMap/headlamp/headlamp-among-clusters-v0324-87kcf6499d
-    - core/ConfigMap/headlamp/headlamp-artc-kubeconfig-template
-    - core/ConfigMap/headlamp/headlamp-birfucate-browser-v048-dhtf86f4bh
-    - core/ConfigMap/headlamp/headlamp-gateway-proxy
-    - core/ConfigMap/headlamp/headlamp-mihomos-cluster-v013-kg28cgb9g9
-    - core/ConfigMap/headlamp/headlamp-oidc-landing
-    - core/ConfigMap/headlamp/headlamp-public-edge-v033-mb4t89f2c6
-    - core/ConfigMap/headlamp/headlamp-qwen-kubeconfig-template
-    - core/ConfigMap/headlamp/headlamp-runtime-anatomy-v020-b97dthg9hb
-    - core/ConfigMap/headlamp/headlamp-secretary-v030-d9c9k67m67
-    - core/Service/headlamp/controlled-cluster-relay
-    - core/Service/headlamp/headlamp-gateway-backend
-    - core/Service/headlamp/headlamp-oidc-landing
-    - core/Service/headlamp/headlamp-oidc-origin
-    - core/Service/headlamp/headlamp-origin
-    - core/ServiceAccount/headlamp/headlamp-active-elector
-    - networking.k8s.io/NetworkPolicy/headlamp/controlled-cluster-relay
-    - policy/PodDisruptionBudget/headlamp/headlamp
-    - rbac.authorization.k8s.io/Role/headlamp/headlamp-active-elector
-    - rbac.authorization.k8s.io/RoleBinding/headlamp/headlamp-active-elector
+    deletionAllowlist: []

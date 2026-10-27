@@ -35,7 +35,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
     cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
-    assert cohort["releaseCount"] == 17
+    assert cohort["releaseCount"] == 21
     source = {compiler.identity(item) for domain in DOMAINS
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
@@ -56,8 +56,15 @@ def test_every_ssa_release_is_signed_bundle_eligible_and_exactly_scoped():
         package = ROOT / contract["spec"]["source"]["path"] / "resources.yaml"
         items = documents(package)
         namespace = contract["spec"]["target"]["namespace"]
-        assert items and {item["metadata"]["namespace"] for item in items} == {namespace}
-        assert all(item["kind"] not in compiler.FLUX_KINDS | compiler.CLUSTER_KINDS | {"Secret"} for item in items)
+        assert items
+        if contract["spec"]["authorization"]["allowClusterScoped"]:
+            assert all(not item["metadata"].get("namespace") and item["kind"] in compiler.CLUSTER_EXECUTABLE for item in items)
+            assert contract["spec"]["lifecycle"]["prune"] is False
+            assert contract["spec"]["lifecycle"]["deletionAllowlist"] == []
+        else:
+            assert {item["metadata"]["namespace"] for item in items} == {namespace}
+            assert all(item["kind"] not in compiler.CLUSTER_KINDS for item in items)
+        assert all(item["kind"] not in compiler.FLUX_KINDS | compiler.RBAC_KINDS | {"Secret"} for item in items)
         assert all(not compiler.has_mutable_image(item) for item in items)
         bundle.compile_bundle(contract, package.read_bytes())
 
@@ -72,9 +79,10 @@ def test_main_domain_rbac_is_exact_name_update_only_with_bounded_rbac_takeover()
     for role in roles:
         assert all(rule.get("resourceNames") for rule in role["rules"])
         for rule in role["rules"]:
-            expected = {"get", "patch", "update", "delete"}
-            if rule["apiGroups"] == ["rbac.authorization.k8s.io"] and rule["resources"] == ["roles"]:
-                expected |= {"escalate", "bind"}
+            expected = {"get", "patch", "update"}
+            role_contract = yaml.load((ROOT / "contracts/releases/main-domain" / (role["metadata"]["name"] + ".yaml")).read_text(), Loader=YAML_SAFE_LOADER)
+            if role_contract["spec"]["lifecycle"]["prune"]:
+                expected.add("delete")
             assert set(rule["verbs"]) == expected
         assert all("*" not in rule.get("resources", []) + rule.get("resourceNames", []) for rule in role["rules"])
     assert {subject["name"] for binding in bindings for subject in binding["subjects"]} == {
@@ -174,7 +182,8 @@ def test_legacy_report_exposes_every_remaining_capability_gap():
     assert set(report) == set(legacy)
     assert len(report) == cohort["legacyObjectCount"]
     assert sum(cohort["remainingCapabilities"].values()) == len(legacy)
-    assert {identity: compiler.legacy_reason(item) for identity, item in legacy.items()} == report
+    domains = {item["identity"]: item["domain"] for item in cohort["remainingObjects"]}
+    assert {identity: compiler.legacy_reason(item, domains[identity]) for identity, item in legacy.items()} == report
     assert all(report[identity] == "approved-secret-injection-required" for identity, item in legacy.items()
                if item["kind"] == "Secret" and item["metadata"].get("labels", {}).get("delivery.re8ch.com/retention") != "retained-data")
 
@@ -184,3 +193,33 @@ def test_old_native_hint_does_not_block_eligible_namespaced_workload():
     assert compiler.legacy_reason(item) is None
     item["metadata"]["labels"] = {"delivery.re8ch.com/retention": "retained-data"}
     assert compiler.legacy_reason(item) == "retained-data-no-automatic-mutation"
+
+
+def test_cluster_bootstrap_has_no_rbac_mutation_or_deletion_authority():
+    rbac = documents(ROOT / 'clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml')
+    roles = [item for item in rbac if item['kind'] == 'ClusterRole']
+    assert len(roles) == 4
+    for role in roles:
+        assert role['metadata']['name'].endswith('-cluster-bootstrap')
+        for rule in role['rules']:
+            assert rule['resourceNames'] and '*' not in rule['resourceNames']
+            assert set(rule['verbs']) == {'get', 'patch', 'update'}
+            assert 'rbac.authorization.k8s.io' not in rule['apiGroups']
+    for path in (ROOT / 'contracts/releases/main-domain').glob('*-cluster-bootstrap.yaml'):
+        contract = yaml.load(path.read_text(), Loader=YAML_SAFE_LOADER)
+        assert contract['spec']['target']['namespace'] == 'ops'
+        assert contract['spec']['lifecycle']['prune'] is False
+        assert not contract['spec']['lifecycle']['deletionAllowlist']
+        assert set(contract['spec']['lifecycle']['protectedKinds']) >= compiler.CLUSTER_EXECUTABLE
+        assert contract['spec']['authorization']['allowClusterScoped'] is True
+
+
+def test_headlamp_rbac_stays_platform_owned_and_cannot_be_pruned_on_handoff():
+    contract = yaml.load((ROOT / 'contracts/releases/main-domain/main-operations-ui-headlamp.yaml').read_text(), Loader=YAML_SAFE_LOADER)
+    assert contract['spec']['lifecycle']['prune'] is False
+    assert contract['spec']['lifecycle']['deletionAllowlist'] == []
+    items = documents(ROOT / contract['spec']['source']['path'] / 'resources.yaml')
+    assert all(item['kind'] not in compiler.RBAC_KINDS for item in items)
+    legacy = documents(ROOT / 'clusters/re8ch/domains/main-legacy/operations-ui/resources.yaml')
+    assert {(item['kind'], item['metadata']['name']) for item in legacy if item['kind'] in compiler.RBAC_KINDS} >= {
+        ('Role', 'headlamp-active-elector'), ('RoleBinding', 'headlamp-active-elector')}
