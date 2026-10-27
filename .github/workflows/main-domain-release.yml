@@ -4,13 +4,18 @@ on:
     inputs:
       contract: {description: Reviewed main-domain ReleaseContract path, type: string, required: true}
       execute: {description: Execute through the bounded SSA executor, type: boolean, default: false}
+      mode:
+        description: Publish a new bundle or reconcile the accepted digest without building
+        type: choice
+        options: [publish, reconcile]
+        default: publish
 concurrency:
   group: main-domain-release-${{ inputs.contract }}
   cancel-in-progress: false
 jobs:
   validate:
     if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {contents: read}
     outputs:
@@ -18,6 +23,8 @@ jobs:
       environment: ${{ steps.profile.outputs.environment }}
       audience: ${{ steps.profile.outputs.audience }}
       signer: ${{ steps.profile.outputs.signer }}
+      release-id: ${{ steps.profile.outputs.release-id }}
+      namespace: ${{ steps.profile.outputs.namespace }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
@@ -25,9 +32,9 @@ jobs:
         env: {CONTRACT: '${{ inputs.contract }}'}
         run: python operations/releases/main_domain_profile.py --contract "$CONTRACT" --github-output "$GITHUB_OUTPUT"
   compile-sign:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.mode != 'reconcile'
     needs: validate
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: write}
@@ -90,9 +97,13 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with: {name: 'main-domain-release-${{ github.run_id }}', path: main-domain-release-evidence.json, retention-days: 30, if-no-files-found: error}
   execute:
-    if: inputs.execute && github.ref == 'refs/heads/main'
+    if: >-
+      always() && !cancelled() && inputs.execute && github.ref == 'refs/heads/main' &&
+      needs.validate.result == 'success' &&
+      ((inputs.mode == 'reconcile' && needs.compile-sign.result == 'skipped') ||
+      (inputs.mode != 'reconcile' && needs.compile-sign.result == 'success'))
     needs: [validate, compile-sign]
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: ${{ needs.validate.outputs.environment }}
     permissions: {contents: read, id-token: write, packages: read}
@@ -115,8 +126,8 @@ jobs:
       - name: Acquire exact OIDC identity and prove denials
         env:
           KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
-          RELEASE_ID: '${{ needs.compile-sign.outputs.release-id }}'
-          TARGET_NAMESPACE: '${{ needs.compile-sign.outputs.namespace }}'
+          RELEASE_ID: '${{ needs.validate.outputs.release-id }}'
+          TARGET_NAMESPACE: '${{ needs.validate.outputs.namespace }}'
         run: |
           set -euo pipefail
           printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
@@ -143,18 +154,25 @@ jobs:
           CONTRACT: '${{ inputs.contract }}'
           OCI_REFERENCE: '${{ needs.compile-sign.outputs.reference }}'
           OCI_DIGEST: '${{ needs.compile-sign.outputs.digest }}'
-          RELEASE_ID: '${{ needs.compile-sign.outputs.release-id }}'
-          TARGET_NAMESPACE: '${{ needs.compile-sign.outputs.namespace }}'
+          RELEASE_ID: '${{ needs.validate.outputs.release-id }}'
+          TARGET_NAMESPACE: '${{ needs.validate.outputs.namespace }}'
+          RELEASE_MODE: '${{ inputs.mode }}'
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/executor-state"; install -d "$RUNNER_TEMP/pulled" "$root/state" "$root/results/$RELEASE_ID"
+          state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"
+          kubectl get configmap "$state_name" -n "$TARGET_NAMESPACE" -o json > "$RUNNER_TEMP/state-cm.json"
+          python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-cm.json" --state-dir "$root" --release-id "$RELEASE_ID"
+          if [[ "$RELEASE_MODE" == reconcile ]]; then
+            python operations/releases/operation_materialize.py accepted-bundle --configmap "$RUNNER_TEMP/state-cm.json" \
+              --contract "$CONTRACT" > "$RUNNER_TEMP/accepted-bundle.json"
+            OCI_REFERENCE="$(jq -r .reference "$RUNNER_TEMP/accepted-bundle.json")"
+            OCI_DIGEST="$(jq -r .digest "$RUNNER_TEMP/accepted-bundle.json")"
+          fi
           immutable="${OCI_REFERENCE#oci://}@${OCI_DIGEST}"
           cosign verify --certificate-identity '${{ needs.validate.outputs.signer }}' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
           flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --output "$RUNNER_TEMP/pulled"
-          state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"
-          kubectl get configmap "$state_name" -n "$TARGET_NAMESPACE" -o json > "$RUNNER_TEMP/state-cm.json"
-          python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-cm.json" --state-dir "$root" --release-id "$RELEASE_ID"
           python operations/releases/operation_materialize.py request --contract "$CONTRACT" --metadata "$RUNNER_TEMP/pulled/bundle-metadata.json" \
             --state-dir "$root" --reference "$OCI_REFERENCE" --digest "$OCI_DIGEST" --output "$RUNNER_TEMP/operation.json"
           python operations/releases/ssa_executor.py --contract "$CONTRACT" --operation "$RUNNER_TEMP/operation.json" \

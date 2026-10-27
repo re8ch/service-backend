@@ -214,6 +214,8 @@ class Executor:
         state = store.state()
         if state and state.get("blocked"):
             raise Rejected(f"release is blocked: {state.get('blockedReason', 'manual recovery required')}")
+        if state and state.get("suspended") and operation["action"] not in {"suspend", "resume"}:
+            raise Rejected("release is suspended; resume before reconciliation")
         expected_sequence = 1 if state is None else state["sequence"] + 1
         if operation["sequence"] != expected_sequence:
             raise Rejected(f"out-of-order operation: expected sequence {expected_sequence}")

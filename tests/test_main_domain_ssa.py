@@ -132,6 +132,22 @@ def test_oidc_audience_reaches_login_and_ssa_token_refresh():
         assert effective_env["EXECUTOR_AUDIENCE"] == "${{ needs.validate.outputs.audience }}"
 
 
+def test_cloud_replay_skips_build_and_keeps_release_identity_and_serialization():
+    workflow = yaml.load((ROOT / ".github/workflows/main-domain-release.yml").read_text(), Loader=YAML_SAFE_LOADER)
+    jobs = workflow["jobs"]
+    assert all(job["runs-on"] == "ubuntu-24.04" for job in jobs.values())
+    assert "inputs.mode != 'reconcile'" in jobs["compile-sign"]["if"]
+    assert "needs.compile-sign.result == 'skipped'" in jobs["execute"]["if"]
+    assert "needs.validate.result == 'success'" in jobs["execute"]["if"]
+    assert "inputs.execute" in jobs["execute"]["if"]
+    assert workflow["concurrency"] == {"group": "main-domain-release-${{ inputs.contract }}", "cancel-in-progress": False}
+    commands = "\n".join(step.get("run", "") for step in jobs["execute"]["steps"])
+    assert "accepted-bundle --configmap" in commands
+    assert "kubectl kustomize" not in commands and "flux push" not in commands
+    assert "--force-conflicts" not in commands
+    assert "cosign verify" in commands and "ssa_executor.py" in commands
+
+
 def test_supabase_rest_has_one_native_writer_and_no_ssa_authority():
     identity = "apps/Deployment/supabase-pg-re8ch/supabase-rest"
     legacy = documents(ROOT / "clusters/re8ch/domains/main-legacy/data-storage/resources.yaml")
