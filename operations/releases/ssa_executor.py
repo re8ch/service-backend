@@ -28,7 +28,7 @@ import yaml
 
 from main_domain_profile import profiles, replay_provenance
 from unified_bundle import canonical, digest, object_identity, validate_schema
-from existing_objects import bind_existing, ExistingObjectError
+from existing_objects import bind_existing, ExistingObjectError, resource_version_conflict
 
 PROTECTED_KINDS = {"Namespace", "CustomResourceDefinition", "PersistentVolume", "PersistentVolumeClaim", "StorageClass",
                    "CephCluster", "CephFilesystem", "CephBlockPool", "CephFilesystemSubVolumeGroup"}
@@ -319,7 +319,7 @@ class Executor:
             raise Rejected(str(error)) from None
 
     def apply(self, objects: list[dict], field_manager: str, dry_run: bool,
-              force_objects: set[str] | None = None) -> None:
+              force_objects: set[str] | None = None, require_existing: bool = False) -> None:
         for item in objects:
             argv = ["kubectl", "apply", "--server-side", f"--field-manager={field_manager}"]
             if object_identity(item) in (force_objects or set()):
@@ -327,7 +327,14 @@ class Executor:
             if dry_run:
                 argv.append("--dry-run=server")
             argv += ["-f", "-"]
-            self.command(argv, json.dumps(item), timeout=120)
+            for attempt in range(3 if require_existing else 1):
+                current = self.with_existing_versions([item])[0] if require_existing else item
+                try:
+                    self.command(argv, json.dumps(current), timeout=120)
+                    break
+                except Rejected as error:
+                    if not require_existing or attempt == 2 or not resource_version_conflict(str(error)):
+                        raise
 
     @staticmethod
     def pointer(value: object, pointer: str) -> object:
@@ -434,12 +441,18 @@ class Executor:
         _, rollback_objects = load_archive(rollback_path)
         rollback_objects = self.with_audit(rollback_objects, operation)
         if contract["spec"]["authorization"].get("requireExisting", False):
+            initial_uids = {object_identity(item): item["metadata"].get("uid") for item in attempted_objects}
+            for item in rollback_objects:
+                identity = object_identity(item)
+                if not initial_uids.get(identity):
+                    raise Rejected(f"rollback object was not bound in this adoption attempt: {identity}")
+                item["metadata"]["uid"] = initial_uids[identity]
             rollback_objects = self.with_existing_versions(rollback_objects)
         manual = set(contract["spec"]["lifecycle"].get("manualRollbackKinds", []))
         if any(item["kind"] in manual or item["kind"] in PROTECTED_KINDS for item in attempted_objects):
             raise Rejected("manual rollback approval required for protected Ceph/schema objects")
-        self.apply(rollback_objects, manager, dry_run=True)
-        self.apply(rollback_objects, manager, dry_run=False)
+        self.apply(rollback_objects, manager, dry_run=True, require_existing=contract["spec"]["authorization"].get("requireExisting", False))
+        self.apply(rollback_objects, manager, dry_run=False, require_existing=contract["spec"]["authorization"].get("requireExisting", False))
         attempted_state = {
             "inventory": attempted_manifest["inventory"],
             "objectRefs": [object_ref(item) for item in attempted_objects],
@@ -581,11 +594,13 @@ class Executor:
             raise Rejected("stage selection contains no objects")
         for stage in stages:
             stage_objects = [by_identity[identity] for identity in stage["inventory"]]
-            self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force)
+            self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force,
+                       require_existing=contract["spec"]["authorization"].get("requireExisting", False))
         try:
             for stage in stages:
                 stage_objects = [by_identity[identity] for identity in stage["inventory"]]
-                self.apply(stage_objects, manager, dry_run=False, force_objects=requested_force)
+                self.apply(stage_objects, manager, dry_run=False, force_objects=requested_force,
+                       require_existing=contract["spec"]["authorization"].get("requireExisting", False))
             lifecycle = contract["spec"]["lifecycle"]
             healthy, reason = self.wait_healthy(
                 selected_objects, lifecycle["healthTimeoutSeconds"], lifecycle.get("healthChecks"))
