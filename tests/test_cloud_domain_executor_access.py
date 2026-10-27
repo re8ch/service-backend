@@ -8,7 +8,7 @@ PATH = ROOT / 'clusters/re8ch/components/ops/github-actions-cloud-domains-execut
 def test_cloud_domain_adoption_is_named_and_non_destructive():
     docs = list(yaml.safe_load_all(PATH.read_text()))
     states = [d for d in docs if d['kind'] == 'ConfigMap']
-    assert len(states) == 75
+    assert len(states) == 77
     for d in docs:
         if d['kind'] == 'ConfigMap':
             assert 'data' not in d
@@ -51,3 +51,22 @@ def test_networking_topology_diagnostic_is_exact_read_only_platform_owned():
     diagnostic=ledger['platformDiagnosticAccess'][0]
     assert diagnostic['owner']=='re8ch/service-backend' and diagnostic['verbs']==['get']
     assert diagnostic['resourceNames']==['restricted-topology-context']
+
+
+def test_transferred_domain_authority_has_no_old_writer_overlap():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    roles = {d['metadata']['name']: d for d in docs if d['kind'] == 'Role'}
+    old_mail = roles['identity-access-domain-mail-system']
+    assert all(r['verbs'] == ['get'] for r in old_mail['rules'])
+    assert roles['agent-runtime-domain-mail-system']['metadata']['namespace'] == 'mail-system'
+    def writes(role):
+        return {(g, resource, name) for r in role['rules'] if 'patch' in r['verbs']
+                for g in r['apiGroups'] for resource in r['resources'] for name in r['resourceNames']}
+    grafana = writes(roles['observability-domain-grafana'])
+    assert ('apps', 'deployments', 're8ch-grafana') in grafana
+    assert not grafana & writes(roles['observability-domain-observability-system'])
+    edge = writes(roles['networking-helm-public-edge-manager-regional-routing'])
+    for name in ('public-edge-nameservers', 'public-edge-runtime'):
+        assert ('', 'configmaps', name) not in edge
+    for name in ('public-edge-manager', 'public-edge-manager-records'):
+        assert ('', 'configmaps', name) in edge
