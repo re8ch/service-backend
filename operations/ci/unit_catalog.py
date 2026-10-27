@@ -41,8 +41,10 @@ def load_catalog(root=ROOT):
         patterns([test])
         if not test.startswith("tests/test_") or not test.endswith(".py") or not (root / test).is_file():
             raise ValueError(f"invalid validation unit: {test}")
-        if set(unit) - {"roots"} != {"sources", "data", "helpers", "tools", "reuse"}:
+        if set(unit) - {"roots", "reuse_blocked"} != {"sources", "data", "helpers", "tools", "reuse"}:
             raise ValueError(f"invalid unit fields: {test}")
+        if "reuse_blocked" in unit and not isinstance(unit["reuse_blocked"], str):
+            raise ValueError("reuse_blocked must explain why execution is required")
         for pattern in patterns(unit.get("roots", [])):
             if any(char in pattern for char in "*?["):
                 raise ValueError(f"render roots cannot be patterns: {test}")

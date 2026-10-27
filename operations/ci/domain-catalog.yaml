@@ -332,7 +332,7 @@ check_paths:
   domain_bundles: [clusters/re8ch/domains/**, operations/releases/compile_domain_bundles.py]
   federation: [operations/flux-federation/**, clusters/re8ch/flux-federation/**]
 
-# Input declarations select tests; reuse candidates still execute normally.
+# Input declarations select tests and fingerprint reviewed main-baseline candidates.
 # Directory patterns include new and removed members, not just existing files.
 unit_defaults:
   helpers:
@@ -342,6 +342,10 @@ unit_defaults:
   - .github/workflows/ci.yml
   - .github/workflows/full-regression.yml
   - .github/actions/setup-native-yaml/**
+  - operations/ci/unit_evidence.py
+  - operations/ci/unit_collection.py
+  - operations/ci/unit_baseline.py
+  - .github/workflows/main-unit-baseline.yml
   - operations/ci/input_snapshot.py
   - operations/ci/unit_catalog.py
   - operations/ci/unit_report.py
@@ -355,6 +359,7 @@ validation_units:
     tools: []
     reuse: candidate
   tests/test_infrastructure_contracts.py:
+    reuse_blocked: "external compiler environment and encryption tools are not closed"
     sources:
     - operations/infrastructure-contract/**
     data:
@@ -417,6 +422,7 @@ validation_units:
     tools: []
     reuse: candidate
   tests/test_domain_publication.py:
+    reuse_blocked: "publication tests inspect Git state and subprocess environment"
     sources:
     - operations/releases/**
     data:
@@ -432,6 +438,7 @@ validation_units:
     - kubectl
     reuse: candidate
   tests/test_live_domain_sources.py:
+    reuse_blocked: "selector consumer depends on repository topology and Git state"
     sources:
     - operations/releases/promote.py
     - operations/releases/allocate_codename.py
