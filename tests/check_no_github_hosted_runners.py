@@ -19,7 +19,8 @@ CLOUD_JOBS = {
         "tenant-select", "tenant-contract", "control-plane-validate",
     },
     ".github/workflows/github-security-checks.yml": {"dependency-review"},
-    ".github/workflows/tenant-go-release.yml": {"tenant-go-validate"},
+    ".github/workflows/tenant-go-release.yml": {"tenant-go-validate", "release", "finalize"},
+    ".github/workflows/release-compat-controller.yml": {"release"},
     ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
 }
 

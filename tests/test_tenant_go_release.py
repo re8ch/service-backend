@@ -49,7 +49,7 @@ def test_tenant_go_release_uses_stable_router_and_local_go_cache():
     assert workflow["jobs"]["release"]["needs"] == "tenant-go-validate"
 
 
-def test_tenant_go_release_builds_on_r640_without_mac_network_mutation():
+def test_tenant_go_release_uses_disposable_cloud_builder_without_host_state():
     workflow = yaml.safe_load(
         (ROOT / ".github/workflows/tenant-go-release.yml").read_text()
     )
@@ -57,12 +57,16 @@ def test_tenant_go_release_builds_on_r640_without_mac_network_mutation():
     prepare = next(
         step["run"]
         for step in release["steps"]
-        if step.get("name") == "Prepare isolated R640 release authentication"
+        if step.get("name") == "Prepare isolated cloud release authentication"
     )
 
-    assert release["runs-on"] == ["self-hosted", "Linux", "X64", "r640", "untrusted-build"]
-    assert "r640-mihomos" in prepare
-    assert 'BUILDX_CONFIG="${HOME}/.docker/buildx"' in prepare
+    assert release["runs-on"] == workflow["jobs"]["finalize"]["runs-on"] == "ubuntu-24.04"
+    builder = next(s for s in release["steps"] if s.get("id") == "builder")
+    assert builder["uses"].startswith("docker/setup-buildx-action@")
+    publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
+    assert publisher["env"]["TENANT_IMAGE_BUILDER"] == "${{ steps.builder.outputs.name }}"
+    assert "r640-mihomos" not in str(release)
+    assert "BUILDX_CONFIG" not in prepare
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare
     assert "macmini" not in prepare.lower()
     assert "docker exec" not in prepare
