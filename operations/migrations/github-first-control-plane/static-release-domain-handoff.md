@@ -1,5 +1,53 @@
 # Static release executor handoff and domain migration playbook
 
+## Current cloud operation entry (2026-10-28)
+
+Ceph operations now start directly in `ceph-static-release.yml` through GitHub
+`workflow_dispatch`; no local compatibility listener, controller or dispatcher
+is needed. All three jobs run on GitHub-hosted `ubuntu-24.04`, with exact
+public-repository/workflow/environment/audience OIDC exceptions and no R640
+runner dependency. For a normal reconcile, use:
+
+```sh
+gh workflow run ceph-static-release.yml --repo re8ch/service-backend --ref main \
+  -f release=rook-ceph -f action=reconcile -f reason='Reconcile reviewed accepted artifact'
+```
+
+Allowed releases are `rook-ceph`, `ceph-csi-drivers`, and `rook-ceph-cluster`.
+The workflow reads the reviewed Git StaticRelease declaration and signed digest,
+then archives one immutable cloud request and projection for all three jobs.
+Dependencies are exact durable accepted-state ConfigMap reads, not controller
+status. Existing infra/runtime protected Environments, OIDC audiences, signature
+checks, inventory limits and stage separation remain unchanged. No new Kubernetes
+create permission or GitHub App credential is needed. All Ceph operations share
+one native Actions queue; this replaces the dispatcher's scheduling role.
+
+The optional `approved_digest` must equal the reviewed Git digest except for
+`action=rollback`, which additionally requires `approval_ref` and a digest in
+accepted signed history. `force_objects` is a JSON array restricted to exact
+contract-authorized objects and requires `force-reconcile`. `reset`, `suspend`
+and `resume` use the same protected executor. `operation_id` is retained only
+for explicit dispatch of an unexpired legacy ReleaseOperation; do not combine it
+with direct request fields. Flux CLI annotation syntax is deferred.
+
+New requests do not create ReleaseOperation CRs. Their audit identity and input
+snapshot live in `ceph-request-<run-id>`; execution results and durable accepted
+state remain authoritative evidence. Legacy CR status is updated only for the
+legacy operation path. The historical Helm/StaticRelease projections below are
+not prerequisites for a direct cloud request. Start a new dispatch for a new
+operation; do not replay an already accepted operation ID as a new request.
+
+A failed workflow now retains a separate redacted `workflow-failure.json`, even
+when an earlier result says healthy or API failure prevents state persistence.
+Executor exceptions emit failed/unknown results rather than empty stdout.
+These are evidence of failure, never a new accepted digest. Hard runner loss or
+forced cancellation can still prevent artifact upload; use the GitHub run's
+failure/cancellation status and never infer success from an old healthy state.
+
+The remaining sections record the prior compatibility implementation and its
+historical runtime evidence. They do not authorize restoring its local daemons.
+
+
 Status: Ceph production path proven on 2026-10-24; domain migrations ready to
 dispatch independently.
 
