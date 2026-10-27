@@ -1,0 +1,5041 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-ai-operations
+  namespace: ai-operations
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-ai-operations
+  namespace: ai-operations
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - stagehand-service
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  resourceNames:
+  - workspace-mirror-sync
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - re8ch-owner-pilot-workspace-v4
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - controlled-cluster-kubeconfigs
+  - harbor-tenant-catalog
+  - ops-capsule-policy
+  - ssa-state-agent-runtime-domain-ai-operations
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - cloud-device-registry
+  - infra-device-registry
+  - orchestra-device-registry
+  - workspace-agent-artifacts
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - ai-operations
+  - workspace-controller
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - stagehand-service
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - stagehand-service
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-ai-operations
+  namespace: ai-operations
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-ai-operations
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-api-conformance-system
+  namespace: api-conformance-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-api-conformance-system
+  namespace: api-conformance-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - api-conformance-controller
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - api-conformance-controller
+  - api-conformance-default-deny
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - conformance.re8ch.com
+  resources:
+  - apiconformancetargets
+  resourceNames:
+  - cloud-functions-commerce
+  - cloud-functions-identity
+  - cloud-functions-payment-credits
+  - commerce-public-contract
+  - identity-public-denial-contract
+  - payment-public-contract
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - api-conformance-code-b85hdm9t6c
+  - ssa-state-agent-runtime-domain-api-conformance-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - api-conformance-controller
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-api-conformance-system
+  namespace: api-conformance-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-api-conformance-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-auth
+  namespace: auth
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-auth
+  namespace: auth
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - api-conformance-result-proxy
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - api-conformance-result-proxy
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-agent-runtime-domain-auth
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - api-conformance-result-proxy
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - api-conformance-result-proxy
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - api-conformance-result-proxy
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-auth
+  namespace: auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-auth
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-codex-archive
+  namespace: codex-archive
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-codex-archive
+  namespace: codex-archive
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-agent-runtime-domain-codex-archive
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - codex-conversations
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-codex-archive
+  namespace: codex-archive
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-codex-archive
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-cosyvoice
+  namespace: cosyvoice
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-cosyvoice
+  namespace: cosyvoice
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - cosyvoice
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - cosyvoice-voice-profiles
+  - ssa-state-agent-runtime-domain-cosyvoice
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - cosyvoice
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-cosyvoice
+  namespace: cosyvoice
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-cosyvoice
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-credential-broker
+  namespace: credential-broker
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-credential-broker
+  namespace: credential-broker
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - harbor-tenant-catalog
+  - ssa-state-agent-runtime-domain-credential-broker
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - credential-broker-registry
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - credential-broker
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-credential-broker
+  namespace: credential-broker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-credential-broker
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-cube-trial
+  namespace: cube-trial
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-cube-trial
+  namespace: cube-trial
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - oauth2-proxy-cube
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-agent-runtime-domain-cube-trial
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - oauth2-proxy-cube
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - cube-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - cube-dns-authority
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-cube-trial
+  namespace: cube-trial
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-cube-trial
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-flux-system
+  namespace: flux-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-flux-system
+  namespace: flux-system
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - retire-toolhive-session-redis-v3
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-agent-runtime-domain-flux-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - retire-toolhive-session-redis
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-flux-system
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-flux-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-git-workspaces
+  namespace: git-workspaces
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-git-workspaces
+  namespace: git-workspaces
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - git-workspace-controller
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - git-workspace-controller
+  - repo-pilot-bot-dex-grant-request
+  - ssa-state-agent-runtime-domain-git-workspaces
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - deploying-evidence
+  - git-workspace-controller
+  - mailbox-provisioner
+  - monitoring-evidence
+  - owner-review-verifier
+  - planning-evidence
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - governance.re8ch.com
+  resources:
+  - gitaccounts
+  resourceNames:
+  - 2woodblog-maintain
+  - advanced-fabric-maintain
+  - aesthete-maintain
+  - among-clusters-maintain
+  - anycam-backend-maintain
+  - anycam-ios-maintain
+  - anycam-maintain
+  - anycam-website-maintain
+  - anysiteonearth-maintain
+  - anysiteonearth-website-maintain
+  - baozou-ppt-studio-maintain
+  - bifurcate-maintain
+  - brand-assets-maintain
+  - career-ops-maintain
+  - catalog-maintain
+  - cloud-functions-maintain
+  - cluster-website-maintain
+  - codex-admin-plugins-maintain
+  - compocv-maintain
+  - connectool-maintain
+  - director-engines-maintain
+  - farseer-maintain
+  - garageband-mcp-maintain
+  - garageband-mcp-site-maintain
+  - headlamp-advanced-fabric-maintain
+  - headlamp-birfucate-maintain
+  - image-website-maintain
+  - jjklive-maintain
+  - ledger-dashboard-maintain
+  - ledger-maintain
+  - ledger-site-maintain
+  - mihomos-cluster-maintain
+  - motor-muscle-sim-maintain
+  - network-decomplexer-ios-maintain
+  - observable-website-maintain
+  - phonaid-android-maintain
+  - phonaid-service-maintain
+  - phonaid-website-maintain
+  - product-public-data-maintain
+  - re8ch-ai-admin
+  - re8ch-business-admin
+  - re8ch-cloud-admin
+  - re8ch-core-maintain
+  - re8ch-image-admin
+  - re8ch-observability-admin
+  - registry-product-site-maintain
+  - repo-pilot-bot
+  - service-backend-maintain
+  - space-mining-stage-maintain
+  - thiking-machine-maintain
+  - tool-distribution-maintain
+  - user-hub-maintain
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - governance.re8ch.com
+  resources:
+  - gitworkspaces
+  resourceNames:
+  - 2woodblog-maintain
+  - advanced-fabric-maintain
+  - aesthete-maintain
+  - among-clusters-maintain
+  - anycam-backend-maintain
+  - anycam-ios-maintain
+  - anycam-maintain
+  - anycam-website-maintain
+  - anysiteonearth-maintain
+  - anysiteonearth-website-maintain
+  - baozou-ppt-studio-maintain
+  - bifurcate-maintain
+  - brand-assets-maintain
+  - career-ops-maintain
+  - catalog-maintain
+  - cloud-functions-maintain
+  - cluster-website-maintain
+  - codex-admin-plugins-maintain
+  - compocv-maintain
+  - connectool-maintain
+  - director-engines-maintain
+  - farseer-maintain
+  - garageband-mcp-maintain
+  - garageband-mcp-site-maintain
+  - headlamp-advanced-fabric-maintain
+  - headlamp-birfucate-maintain
+  - image-website-maintain
+  - jjklive-maintain
+  - ledger-dashboard-maintain
+  - ledger-maintain
+  - ledger-site-maintain
+  - mihomos-cluster-maintain
+  - motor-muscle-sim-maintain
+  - network-decomplexer-ios-maintain
+  - observable-website-maintain
+  - phonaid-android-maintain
+  - phonaid-service-maintain
+  - phonaid-website-maintain
+  - product-public-data-maintain
+  - re8ch-core-maintain
+  - registry-product-site-maintain
+  - repo-pilot-bot
+  - service-backend-maintain
+  - space-mining-stage-maintain
+  - thiking-machine-maintain
+  - tool-distribution-maintain
+  - user-hub-maintain
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-git-workspaces
+  namespace: git-workspaces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-git-workspaces
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-mcp-registry
+  namespace: mcp-registry
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-mcp-registry
+  namespace: mcp-registry
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - mcp-registry
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-agent-runtime-domain-mcp-registry
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - mcp-registry-postgresql-ab
+  - mcp-registry-postgresql-r640
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - mcp-registry
+  - postgresql
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - postgresql-ingress
+  - postgresql-toolhive-registry-ingress
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - mcp-registry
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-mcp-registry
+  namespace: mcp-registry
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-mcp-registry
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-toolhive-system
+  namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-toolhive-system
+  namespace: toolhive-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - re8ch-plugin-runtime
+  - toolhive-cloud-ui
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - re8ch-plugin-definitions
+  - re8ch-plugin-operation-catalog
+  - ssa-state-agent-runtime-domain-toolhive-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - ops-mcp-public
+  - plugin-advanced-fabrics
+  - plugin-cilium
+  - plugin-mihomos-cluster
+  - plugin-public-edge
+  - plugin-rook-ceph
+  - re8ch-plugin-runtime
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - re8ch-plugin-runtime
+  - toolhive-cloud-ui
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - admin-tools-public
+  - connectool-cloud-mcp
+  - toolhive-cloud-ui
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - admin-tools-re8ch-com
+  - connectool-tools-re8ch-com
+  - toolhive-cloud-ui
+  - tools-re8ch-com
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - re8ch-plugin-runtime
+  - vmcp-internal-backends
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - re8ch-plugin-runtime
+  - toolhive-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpexternalauthconfigs
+  resourceNames:
+  - vmcp-admin-backend-auth
+  - vmcp-observe-backend-auth
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpgroups
+  resourceNames:
+  - platform-admin-public
+  - platform-operate-public
+  - platform-tools-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcptelemetryconfigs
+  resourceNames:
+  - platform-tools-telemetry
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcptoolconfigs
+  resourceNames:
+  - ops-admin-tools
+  - ops-operate-tools
+  - ops-public-read-tools
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-toolhive-system
+  namespace: toolhive-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-toolhive-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-ai-operations
+  namespace: ai-operations
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-ai-operations
+  namespace: ai-operations
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-ai-operations
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - workspace.re8ch.com
+  resources:
+  - agentsessions
+  resourceNames:
+  - re8ch-owner-pilot-20260825
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-ai-operations
+  namespace: ai-operations
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-ai-operations
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-auth
+  namespace: auth
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-auth
+  namespace: auth
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - auth-postgrest
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-auth
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - auth-postgrest
+  - re8ch-auth-gateway
+  - re8ch-user-center
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - re8ch-auth-edgeone-origin
+  - re8ch-auth-postgrest-discovery
+  - re8ch-auth-postgrest-readiness
+  - re8ch-auth-postgrest-rpc-rw
+  - re8ch-supabase-auth
+  - re8ch-user-center
+  - re8ch-user-center-http-redirect
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - re8ch-user-center-origin-dns
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-auth
+  namespace: auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-auth
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-egress-fabric
+  namespace: egress-fabric
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-egress-fabric
+  namespace: egress-fabric
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - edge-access-anytls
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - access-adguard
+  - access-controller
+  - access-rule-sync
+  - access-subscription
+  - mosdns
+  - oauth2-proxy-access-dns
+  - personal-access-cn-loudi
+  - personal-access-my-kul
+  - personal-access-us-ca
+  - personal-access-us-la
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - access-re8ch-com
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - access-dns
+  - access-dns-gateway
+  - access-mosdns
+  - access-subscription-portal
+  - personal-access-public-ingress
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - access-dns-config
+  - access-subscription-code-9b5k4f4ddb
+  - edge-access-anytls
+  - personal-access-mihomo
+  - ssa-state-identity-access-domain-egress-fabric
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - access-adguard-data
+  - access-rule-cache
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - access-controller
+  - access-subscription
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - access-dns
+  - access-dns-admin
+  - access-subscription
+  - mosdns
+  - oauth2-proxy-access-dns
+  - personal-access-auto
+  - personal-access-hysteria2
+  - personal-access-hysteria2-my-kul
+  - personal-access-hysteria2-us-la
+  - personal-access-my-kul
+  - personal-access-us-ca
+  - personal-access-us-la
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  resourceNames:
+  - personal-access-auto-public
+  - personal-access-hysteria2-my-kul-public
+  - personal-access-hysteria2-public
+  - personal-access-hysteria2-us-la-public
+  - personal-access-my-kul-public
+  - personal-access-us-ca-public
+  - personal-access-us-la-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - access-dns-admin
+  - access-subscription
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - tlsroutes
+  resourceNames:
+  - access-anytls
+  - access-anytls-my-kul
+  - access-anytls-us-ca
+  - access-anytls-us-la
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - access-direct-ca-dns
+  - access-direct-cn-dns
+  - access-direct-kl-dns
+  - access-direct-la-dns
+  - access-dns-admin-record
+  - access-hysteria2-dns
+  - access-route-expansion-dns
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - access-subscription
+  - mosdns
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-egress-fabric
+  namespace: egress-fabric
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-egress-fabric
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-mail-system
+  namespace: mail-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-mail-system
+  namespace: mail-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - stalwart-webmail
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  resourceNames:
+  - stalwart-flk
+  - stalwart-idp-flk
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  resourceNames:
+  - stalwart-cloudflare-token-sync
+  - stalwart-mailbox-provisioner
+  - stalwart-tls-reloader
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - stalwart-bootstrap-reconciler-v10
+  - stalwart-flk-migration-v2
+  - stalwart-harry-admin-alias-v1
+  - stalwart-idp-bootstrap-v6
+  - stalwart-idp-flk-migration-v2
+  - stalwart-unified-identity-bootstrap-v2
+  - stalwart-userhub-oauth-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - stalwart-mail-re8ch
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-mail-system
+  - stalwart-bootstrap-plan
+  - stalwart-bot-access-contract
+  - stalwart-cloudflare-token-sync
+  - stalwart-config
+  - stalwart-harry-admin-alias-v1
+  - stalwart-idp-bootstrap-plan-v6
+  - stalwart-idp-config
+  - stalwart-mailbox-provisioner
+  - stalwart-phonaid-domain-plan
+  - stalwart-unified-identity-bootstrap-plan-v2
+  - stalwart-userhub-oauth-plan-v1
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - stalwart-flk-data
+  - stalwart-flk-local-data
+  - stalwart-idp-flk-data
+  - stalwart-idp-flk-local-data
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - stalwart-cloudflare-token-sync
+  - stalwart-mailbox-provisioner
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - stalwart
+  - stalwart-direct-mail
+  - stalwart-headless
+  - stalwart-idp
+  - stalwart-webmail
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - stalwart-admin-public
+  - stalwart-admin-redirect
+  - stalwart-collaboration-public
+  - stalwart-collaboration-redirect
+  - stalwart-idp-public
+  - stalwart-idp-redirect
+  - stalwart-webmail-public
+  - stalwart-webmail-redirect
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - tcproutes
+  resourceNames:
+  - stalwart-imaps-public-v2
+  - stalwart-sieve-public-v2
+  - stalwart-smtp-public-v2
+  - stalwart-smtps-public-v2
+  - stalwart-submission-public-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - stalwart-collaboration-public-dns
+  - stalwart-idp-public-dns
+  - stalwart-webmail-public
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-mail-system
+  namespace: mail-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-mail-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-opensandbox-system
+  namespace: opensandbox-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-opensandbox-system
+  namespace: opensandbox-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - opensandbox-orchestra-proxy
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - opensandbox-orchestra-proxy
+  - ssa-state-identity-access-domain-opensandbox-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - opensandbox-orchestra-proxy
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - opensandbox-orchestra-proxy
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-opensandbox-system
+  namespace: opensandbox-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-opensandbox-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-re8ch-anysite
+  namespace: re8ch-anysite
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-re8ch-anysite
+  namespace: re8ch-anysite
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-anysite
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - scale-cache
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - anysite-postgrest
+  - scale-api
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - scale-api
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - allow-public-gateway
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-re8ch-anysite
+  namespace: re8ch-anysite
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-re8ch-anysite
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-re8ch-dataspace
+  namespace: re8ch-dataspace
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-re8ch-dataspace
+  namespace: re8ch-dataspace
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-dataspace
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - dataspace-files
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - dataspace-gateway
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - storage-collaborator-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - storage-collaborator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - allow-public-gateway
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-re8ch-dataspace
+  namespace: re8ch-dataspace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-re8ch-dataspace
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-re8ch-ledger
+  namespace: re8ch-ledger
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-re8ch-ledger
+  namespace: re8ch-ledger
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - nuclio-ledger-api-gateway
+  - nuclio-ledger-gnucash-report-runner
+  - nuclio-ledger-wechat-auth
+  - ssa-state-identity-access-domain-re8ch-ledger
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - ledger-api-gateway-local
+  - ledger-gnucash-report-runner-local
+  - ledger-wechat-auth-local
+  - nuclio-ledger-api-gateway
+  - nuclio-ledger-gnucash-report-runner
+  - nuclio-ledger-wechat-auth
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - ledger-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - allow-public-ledger
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-re8ch-ledger
+  namespace: re8ch-ledger
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-re8ch-ledger
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-re8ch-neo4j
+  namespace: re8ch-neo4j
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-re8ch-neo4j
+  namespace: re8ch-neo4j
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - neo4j-config
+  - ssa-state-identity-access-domain-re8ch-neo4j
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - data-ledger-casegraph-0
+  - data-ledger-economicsgraph-0
+  - data-neo4j-0
+  - ledger-casegraph-backups
+  - ledger-economicsgraph-backups
+  - plugins-neo4j-0
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - ledger-casegraph
+  - ledger-economicsgraph
+  - neo4j
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - neo4j-browser
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - allow-public-neo4j
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-re8ch-neo4j
+  namespace: re8ch-neo4j
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-re8ch-neo4j
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-re8ch-secretary
+  namespace: re8ch-secretary
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-re8ch-secretary
+  namespace: re8ch-secretary
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - secretary-api
+  - secretary-cluster-watcher
+  - secretary-delivery-manager
+  - secretary-projector
+  - secretary-runtime
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - secretary-channel-registry-v2
+  - secretary-register-v0-3-3
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - secretary-api-gateway-ingress
+  - secretary-cluster-watcher-kube-api
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - restate-config
+  - secretary-channel-registry-v1
+  - ssa-state-identity-access-domain-re8ch-secretary
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - restate-data
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - secretary
+  - secretary-cluster-observer
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - restate
+  - secretary-alertmanager-intake
+  - secretary-api
+  - secretary-runtime
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - secretary-channel-webhooks
+  - secretary-headlamp-read
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - secretary-default-deny
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - secretary-api
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-re8ch-secretary
+  namespace: re8ch-secretary
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-re8ch-secretary
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-supabase-billing
+  namespace: supabase-billing
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-supabase-billing
+  namespace: supabase-billing
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - supabase-billing-auth
+  - supabase-billing-realtime
+  - supabase-billing-rest-ro
+  - supabase-billing-rest-rw
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - supabase-billing-pigsty
+  - supabase-billing-public-edge
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-supabase-billing
+  - supabase-billing-env
+  - supabase-billing-kong-config
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - supabase-billing-storage
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - resourcequotas
+  resourceNames:
+  - supabase-billing-quota
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - supabase-billing
+  - supabase-billing-auth
+  - supabase-billing-imgproxy
+  - supabase-billing-kong
+  - supabase-billing-meta
+  - supabase-billing-realtime
+  - supabase-billing-rest
+  - supabase-billing-rest-ro
+  - supabase-billing-storage
+  - supabase-billing-studio
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - supabase-billing-api
+  - supabase-billing-studio
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - supabase-billing-dns
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - supabase-billing-default-deny
+  - supabase-billing-runtime
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-supabase-billing
+  namespace: supabase-billing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-supabase-billing
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-supabase-identity
+  namespace: supabase-identity
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-supabase-identity
+  namespace: supabase-identity
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - identity-avatar-worker
+  - supabase-identity-auth
+  - supabase-identity-realtime
+  - supabase-identity-rest
+  - supabase-identity-rest-ro
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - supabase-identity-privacy-v1
+  - supabase-platform-admin-api-v5
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-supabase-identity
+  - supabase-identity-broker-groups-v2
+  - supabase-identity-env
+  - supabase-identity-kong-config
+  - supabase-identity-privacy-v1
+  - supabase-multi-organization-memberships-v1
+  - supabase-oauth-client-tenant-mcp-v1
+  - supabase-oauth-clients-access-subscription-v1
+  - supabase-oauth-clients-anycam-v1
+  - supabase-oauth-clients-catalog-v1
+  - supabase-oauth-clients-headlamp-v2
+  - supabase-oauth-clients-stalwart-v1
+  - supabase-platform-admin-api-v5
+  - supabase-tenant-runtime-contexts-v4
+  - supabase-tenant-runtime-memberships-v1
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - resourcequotas
+  resourceNames:
+  - supabase-identity-quota
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - supabase-identity
+  - supabase-identity-auth
+  - supabase-identity-kong
+  - supabase-identity-meta
+  - supabase-identity-realtime
+  - supabase-identity-rest
+  - supabase-identity-rest-ro
+  - supabase-identity-studio
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - re8ch-supabase-auth-db-rw
+  - supabase-identity-data-db-ro
+  - supabase-identity-data-db-rw
+  - supabase-identity-studio-http-redirect
+  - supabase-identity-studio-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - referencegrants
+  resourceNames:
+  - allow-auth-route-to-supabase-auth
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - supabase-identity-studio-dns
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-supabase-identity
+  namespace: supabase-identity
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-supabase-identity
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-identity-access-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: identity-access
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: identity-access-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-identity-access-domain-tenant-infrastructure
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - referencegrants
+  resourceNames:
+  - allow-db-rw-auth-route-to-tenant-api
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - identity-dependency-preflight
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: identity-access-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: identity-access-domain-tenant-infrastructure
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:identity-access
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-flux-system
+  namespace: flux-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-flux-system
+  namespace: flux-system
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - retire-legacy-qianwen-grafana-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-domain-flux-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - retire-legacy-qianwen-grafana
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-flux-system
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-flux-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-globalping-system
+  namespace: globalping-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-globalping-system
+  namespace: globalping-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-domain-globalping-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - globalping-probe-icp-data
+  - globalping-probe-r640-data
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-globalping-system
+  namespace: globalping-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-globalping-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-incidentrelay
+  namespace: incidentrelay
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-incidentrelay
+  namespace: incidentrelay
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - incidentrelay-bootstrap-admin-v3
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - incidentrelay-allow-node-proxy
+  - incidentrelay-from-gateway
+  - incidentrelay-pigsty
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-domain-incidentrelay
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - incidentrelay-http-redirect
+  - incidentrelay-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - incidentrelay-public-dns-authority
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - incidentrelay-allow-required
+  - incidentrelay-default-deny
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-incidentrelay
+  namespace: incidentrelay
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-incidentrelay
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-kube-system
+  namespace: kube-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-kube-system
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-domain-kube-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - kube-state-metrics
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-kube-system
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-kube-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-observability-system
+  namespace: observability-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-observability-system
+  namespace: observability-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - re8ch-fair-value-controller
+  - re8ch-grafana-postgresql
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  resourceNames:
+  - re8ch-grafana-org-sync
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - re8ch-grafana-from-gateway
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - re8ch-fair-value-controller-code
+  - re8ch-fair-value-controller-config
+  - re8ch-grafana-dashboard-providers
+  - re8ch-grafana-org-contract
+  - re8ch-notification-receiver-catalog
+  - re8ch-observability-dashboards
+  - re8ch-observability-datasources
+  - re8ch-observability-grafana-alerts
+  - ssa-state-observability-domain-observability-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - re8ch-fair-value-history
+  - re8ch-grafana-postgresql-data-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - re8ch-event-collector
+  - re8ch-fair-value-controller
+  - re8ch-grafana
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - re8ch-fair-value-controller
+  - re8ch-grafana
+  - re8ch-grafana-postgresql
+  - re8ch-grafana-renderer
+  - re8ch-node-storage-exporter
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - re8ch-grafana
+  - re8ch-grafana-postgresql
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - opentelemetry.io
+  resources:
+  - opentelemetrycollectors
+  resourceNames:
+  - re8ch-event-collector
+  - re8ch-gateway
+  - re8ch-node-agent
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vlagents
+  resourceNames:
+  - re8ch
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vlsingles
+  resourceNames:
+  - re8ch-logs
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmagents
+  resourceNames:
+  - opencost
+  - re8ch
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmalertmanagers
+  resourceNames:
+  - re8ch-alertmanager
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmalerts
+  resourceNames:
+  - re8ch
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmauths
+  resourceNames:
+  - tenant-metrics
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmclusters
+  resourceNames:
+  - re8ch-metrics
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmnodescrapes
+  resourceNames:
+  - kubelet
+  - kubelet-cadvisor
+  - opencost-kubelet
+  - opencost-kubelet-cadvisor
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmpodscrapes
+  resourceNames:
+  - cilium-agent
+  - cilium-envoy-gateway
+  - cilium-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmrules
+  resourceNames:
+  - re8ch-observability
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmservicescrapes
+  resourceNames:
+  - advanced-fabric-dns
+  - advanced-fabric-node-measurements
+  - alerting-control-plane
+  - application-critical
+  - application-standard
+  - ceph-exporter
+  - ceph-manager
+  - kube-state-metrics
+  - opencost-exporter
+  - opencost-kube-state-metrics
+  - pigsty-postgresql
+  - re8ch-fair-value-controller
+  - re8ch-node-storage
+  - re8ch-routing-advisor
+  - victoria-logs
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmsingles
+  resourceNames:
+  - opencost
+  - re8ch-analytics
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmstaticscrapes
+  resourceNames:
+  - hubble-metrics
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vtclusters
+  resourceNames:
+  - re8ch-traces
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - re8ch-grafana
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-observability-system
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-observability-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-opencost
+  namespace: opencost
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-opencost
+  namespace: opencost
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - opencost-ui-nginx-config
+  - ssa-state-observability-domain-opencost
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-opencost
+  namespace: opencost
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-opencost
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - incidentrelay-database-bootstrap-v7
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-domain-supabase-pg-re8ch
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - resourcequotas
+  resourceNames:
+  - supabase-one-cpu
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-supabase-pg-re8ch
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-synthetic-monitoring
+  namespace: synthetic-monitoring
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-synthetic-monitoring
+  namespace: synthetic-monitoring
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  resourceNames:
+  - k6-contracts
+  - k6-contracts-fast
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - k6-contracts-96kmtdg46c
+  - ssa-state-observability-domain-synthetic-monitoring
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - k6-contracts
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-synthetic-monitoring
+  namespace: synthetic-monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-synthetic-monitoring
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - harbor-supply-chain
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - harbor-supply-chain-buildkit
+  - ssa-state-observability-domain-tenant-infrastructure
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - harbor-supply-chain-state
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - harbor-supply-chain
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - harbor-supply-chain
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-tenant-infrastructure
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-advfab-system
+  namespace: advfab-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-advfab-system
+  namespace: advfab-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - external-dns-advfab
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - external-dns-advfab
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-advfab-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-advfab-system
+  namespace: advfab-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-advfab-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-ai-operations
+  namespace: ai-operations
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-ai-operations
+  namespace: ai-operations
+rules:
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - steel-browser
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-ai-operations
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-ai-operations
+  namespace: ai-operations
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-ai-operations
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-among-clusters
+  namespace: among-clusters
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-among-clusters
+  namespace: among-clusters
+rules:
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - among-clusters-gateway-mihomos-host-egress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - artc-kubernetes-import
+  - qwen-kubernetes-import
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - service-zone-among-clusters-among-clusters-ingest
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - among-clusters-gateway-mihomos-egress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-among-clusters
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-among-clusters
+  namespace: among-clusters
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-among-clusters
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-artchais
+  namespace: artchais
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-artchais
+  namespace: artchais
+rules:
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - authenticatedlinks
+  resourceNames:
+  - re8ch-artc
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - managedaccessgrants
+  resourceNames:
+  - artc-codex-admin
+  - artc-codex-operator
+  - artc-codex-viewer
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - peerpolicies
+  resourceNames:
+  - artc-kubernetes-api
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - peers
+  resourceNames:
+  - re8ch-artc
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-artchais
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-artchais
+  namespace: artchais
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-artchais
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-byoc-pilot
+  namespace: byoc-pilot
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-byoc-pilot
+  namespace: byoc-pilot
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - artc-default-kubernetes-re8ch-artc
+  - qwen-default-kubernetes-re8ch-qwen
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - authenticatedlinks
+  resourceNames:
+  - re8ch-artc
+  - re8ch-qwen
+  - re8ch-sijie
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - managedaccessgrants
+  resourceNames:
+  - artc-headlamp-admin
+  - qwen-headlamp-admin
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - peerpolicies
+  resourceNames:
+  - artc-kubernetes-api
+  - qwen-kubernetes-api
+  - re8ch-mihomos-egress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - peering.re8ch.com
+  resources:
+  - peers
+  resourceNames:
+  - re8ch-artc
+  - re8ch-qwen
+  - re8ch-sijie
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-byoc-pilot
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-byoc-pilot
+  namespace: byoc-pilot
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-byoc-pilot
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-cert-manager
+  namespace: cert-manager
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-cert-manager
+  namespace: cert-manager
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - cert-manager-cloudflare-bootstrap
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-cert-manager
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-cert-manager
+  namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-cert-manager
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-codex-platform
+  namespace: codex-platform
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-codex-platform
+  namespace: codex-platform
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - codex-app-server-console-public
+  - codex-session-web-public
+  - service-zone-codex-codex-session-web-advfab
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-codex-platform
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-codex-platform
+  namespace: codex-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-codex-platform
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-credential-broker
+  namespace: credential-broker
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-credential-broker
+  namespace: credential-broker
+rules:
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - among-clusters-broker-hub
+  - among-clusters-broker-imports
+  - among-clusters-broker-kube-apiserver
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-credential-broker
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-credential-broker
+  namespace: credential-broker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-credential-broker
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-dataspace
+  namespace: dataspace
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-dataspace
+  namespace: dataspace
+rules:
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - storage-collaborator
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-dataspace
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-dataspace
+  namespace: dataspace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-dataspace
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-egress-fabric
+  namespace: egress-fabric
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-egress-fabric
+  namespace: egress-fabric
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - mihomo-node-labeler
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - identity-egress-config
+  - mihomo-node-labeler-code-k4fm8c7g7t
+  - re8ch-geodb-snapshot
+  - route-path-controller-code
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - mihomo-node-labeler
+  - path-controller
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - identity-egress
+  - identity-egress-control-plane
+  - identity-egress-gitops
+  - mihomos-byoc-egress
+  - path-controller
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - service-zone-agent-mobile-egress-mobile-egress-control
+  - service-zone-agent-network-policy-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - identity-egress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - identity-egress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-egress-fabric
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-egress-fabric
+  namespace: egress-fabric
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-egress-fabric
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-flux-system
+  namespace: flux-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-flux-system
+  namespace: flux-system
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - among-clusters-legacy-agent-cleanup-v2
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - among-clusters-legacy-agent-cleanup
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - service-zone-hooks-github-flux-webhook
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-flux-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-flux-system
+  namespace: flux-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-flux-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-headlamp
+  namespace: headlamp
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-headlamp
+  namespace: headlamp
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - headlamp-edge-origin
+  - headlamp-http-redirect
+  - headlamp-public
+  - headlamp-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-headlamp
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-headlamp
+  namespace: headlamp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-headlamp
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-kube-system
+  namespace: kube-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-kube-system
+  namespace: kube-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - control-api-source
+  - control-dns-reachability
+  - control-transit-controller
+  - host-network-controller
+  - podcidr-fabric-reconciler
+  - public-mesh-podcidr-reconciler
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - kube-api-observer-proxy
+  - kube-api-overseas-relay
+  - zerotier-planet
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - access-subdomains
+  - headlamp-service-pilot
+  - re8ch-apps-public-gateway
+  - re8ch-service-public-gateway
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumgatewayclassconfigs
+  resourceNames:
+  - re8ch-service-vip
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnodeconfigs
+  resourceNames:
+  - advfab-worker-node-ips
+  - domain-api-bootstrap
+  - native-routing-canary
+  - native-routing-mubao-wsl
+  - native-routing-wsl-control-plane
+  - overseas-flk-public-service-device
+  - r640-policy-update-budget
+  - r640-xdp-native
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - cilium-multi-pool-cutover
+  - control-api-source
+  - control-dns-reachability
+  - kube-api-observer-proxy
+  - kube-api-overseas-relay
+  - native-routing-rollout-order
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - control-dns-reachability
+  - host-network-controller
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - kube-api-observer-proxy
+  - kube-api-overseas-relay
+  - kube-dns
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  resourceNames:
+  - re8ch-gateway-canary
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - tcproutes
+  resourceNames:
+  - kube-api-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-kube-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-kube-system
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-kube-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-llm-gateway
+  namespace: llm-gateway
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-llm-gateway
+  namespace: llm-gateway
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - litellm-public
+  - litellm-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - litellm-dns-authority
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-llm-gateway
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-llm-gateway
+  namespace: llm-gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-llm-gateway
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-mail-system
+  namespace: mail-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-mail-system
+  namespace: mail-system
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - service-zone-mail-stalwart-webmail-public
+  - service-zone-mail-stalwart-webmail-redirect
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-mail-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-mail-system
+  namespace: mail-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-mail-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-nuclio
+  namespace: nuclio
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-nuclio
+  namespace: nuclio
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - ledger-accounting-public
+  - ledger-accounting-r640-public
+  - ledger-decision-public
+  - ledger-decision-r640-public
+  - service-zone-ledger-decisions-ledger-decisions-static-advfab
+  - service-zone-ledger-static-http-advfab
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-nuclio
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-nuclio
+  namespace: nuclio
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-nuclio
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-observability-system
+  namespace: observability-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-observability-system
+  namespace: observability-system
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - grafana-edge-origin
+  - grafana-http-redirect
+  - grafana-public
+  - grafana-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - grafana-dns-authority
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmpodscrapes
+  resourceNames:
+  - control-dns-reachability
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmrules
+  resourceNames:
+  - control-dns-reachability
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-observability-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-observability-system
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-observability-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-opensandbox-system
+  namespace: opensandbox-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-opensandbox-system
+  namespace: opensandbox-system
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - opensandbox-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - opensandbox-server
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-opensandbox-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-opensandbox-system
+  namespace: opensandbox-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-opensandbox-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-ops
+  namespace: ops
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-ops
+  namespace: ops
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - routeros-public-forward-controller
+  - routeros-transit-controller
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - routeros-public-forward-controller
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - dbgui-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-ops
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-ops
+  namespace: ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-ops
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-payments
+  namespace: payments
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-payments
+  namespace: payments
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - service-zone-pay-hyperswitch-control-center-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-payments
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-payments
+  namespace: payments
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-payments
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-qianwen-ops
+  namespace: qianwen-ops
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-qianwen-ops
+  namespace: qianwen-ops
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - external-dns-cloudflare
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - external-dns-cloudflare
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - tenant-apps-dns-placeholder
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - tenant-apps-wildcard-dns-authority
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-qianwen-ops
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-qianwen-ops
+  namespace: qianwen-ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-qianwen-ops
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-re8ch-secretary
+  namespace: re8ch-secretary
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-re8ch-secretary
+  namespace: re8ch-secretary
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - tools-service-secretary-webhooks
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-re8ch-secretary
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-re8ch-secretary
+  namespace: re8ch-secretary
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-re8ch-secretary
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-regional-routing
+  namespace: regional-routing
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-regional-routing
+  namespace: regional-routing
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - powerdns-cloud-authorities
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - public-edge-domain-ex
+  - public-edge-hidden-primary
+  - public-edge-muaya-lightweight
+  - public-edge-overseas-la
+  - public-edge-suxunji
+  - public-edge-transfer-ca
+  - public-edge-zan
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  resourceNames:
+  - public-edge-bootstrap
+  - public-edge-transfer-ca
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - powerdns-cloud-authorities
+  - public-edge-route-snapshot-public-key
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - catalog-edgeone-dns-authority
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-regional-routing
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-regional-routing
+  namespace: regional-routing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-regional-routing
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - supabase-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-supabase-pg-re8ch
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-supabase-pg-re8ch
+  namespace: supabase-pg-re8ch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-supabase-pg-re8ch
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-toolhive-system
+  namespace: toolhive-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-toolhive-system
+  namespace: toolhive-system
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - operate-tools-public
+  - service-zone-admin-admin-tools-public
+  - service-zone-admin-admin-tools-re8ch-com-advfab
+  - service-zone-admin-vmcp-r640-backends-public
+  - tools-service-cloud-mcp
+  - tools-service-tenant-mcp
+  - tools-service-ui
+  - tools-service-vmcp
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - operate-tools-public-dns
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-toolhive-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-toolhive-system
+  namespace: toolhive-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-toolhive-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-native-voice-observability
+  namespace: voice-observability
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-voice-observability
+  namespace: voice-observability
+rules:
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - phonycenter-public
+  - phonycenter-service-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-voice-observability
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-voice-observability
+  namespace: voice-observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-voice-observability
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
