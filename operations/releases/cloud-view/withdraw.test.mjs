@@ -25,11 +25,12 @@ function run(failUpload=false,ref='refs/heads/main') {
       GITHUB_RUN_ID:'1',GITHUB_RUN_ATTEMPT:'1',
       ACTIONS_ID_TOKEN_REQUEST_URL:'https://identity.invalid/token',ACTIONS_ID_TOKEN_REQUEST_TOKEN:'PRIVATE_TOKEN'}});
 }
-test('publisher replaces inventory before emitting a neutral check without detail',()=>{
+test('missing observation publishes an unavailable aggregate before a neutral check',()=>{
   const result=run();assert.equal(result.status,0,result.stderr);
   const rows=result.stdout.split('\n').filter(x=>x.startsWith('{')).map(x=>JSON.parse(x));
-  assert.deepEqual(Object.keys(rows[0].snapshot).sort(),['batch','observedAt','repository','schema','sha','unavailable']);
-  assert.equal(rows[0].snapshot.unavailable,true);
+  assert.deepEqual(Object.keys(rows[0].snapshot).sort(),['batch','complete','domains','observedAt','repository','schema','sha']);
+  assert.equal(rows[0].snapshot.complete,false);
+  assert.deepEqual(rows[0].snapshot.domains,[]);
   assert.equal(rows[1].check.conclusion,'neutral');
   assert.equal(rows[1].check.output.text,undefined);
   assert.ok(!result.stdout.includes('PRIVATE_TOKEN'));
