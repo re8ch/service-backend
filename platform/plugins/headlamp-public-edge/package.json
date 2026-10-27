@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@iconify/react": "^6.0.0",
-    "@mui/material": "^7.0.0"
+    "@mui/material": "^9.5.0"
   },
   "overrides": {
     "typescript": "5.6.2",
