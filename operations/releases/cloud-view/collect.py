@@ -9,6 +9,7 @@ import zipfile
 import os
 from pathlib import Path
 import ssl
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -23,6 +24,35 @@ WORKFLOWS = {
     'delivery-products': ('re8ch/delivery-products-gitops', ['static-release.yml', 'delivery-products-reconcile.yml'], 'RE8CH_OBSERVER_TOKEN'),
 }
 RESOURCES = {'Deployment': 'deployments', 'StatefulSet': 'statefulsets', 'DaemonSet': 'daemonsets'}
+
+# Shared by all worker threads. Initialized once per collection, never renewed by
+# an individual request or queued task. Leave enough of the 8-minute job for upload.
+DEADLINE = None
+COLLECTION_SECONDS = 240
+
+def remaining_timeout():
+    remaining = 15 if DEADLINE is None else DEADLINE - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError('collection deadline reached')
+    return min(15, remaining)
+
+def read_bounded(response, limit):
+    chunks, size = [], 0
+    while size <= limit:
+        timeout = remaining_timeout()
+        # HTTPResponse's socket initially inherits the connection timeout; shrink
+        # it before each single buffered read as the shared deadline approaches.
+        sock = getattr(getattr(getattr(response, 'fp', None), 'raw', None), '_sock', None)
+        if sock is not None:
+            sock.settimeout(timeout)
+        read = getattr(response, 'read1', response.read)
+        chunk = read(min(65536, limit + 1 - size))
+        remaining_timeout()
+        if not chunk:
+            return b''.join(chunks)
+        chunks.append(chunk)
+        size += len(chunk)
+    raise ValueError('response exceeds bound')
 
 def timestamp():
     return dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -69,8 +99,8 @@ def health_state(obj):
 
 def request_json(url, token, context=None):
     req = urllib.request.Request(url, headers={'Authorization': 'Bearer '+token, 'Accept': 'application/json', 'User-Agent': 're8ch-cloud-observer'})
-    with urllib.request.urlopen(req, context=context, timeout=15) as response:
-        return json.load(response)
+    with urllib.request.urlopen(req, context=context, timeout=remaining_timeout()) as response:
+        return json.loads(read_bounded(response, 4 * 1024 * 1024))
 
 # Only full executor results qualify. In particular Ceph runtime/infra are stages.
 MAX_ARCHIVE = 1024 * 1024
@@ -87,7 +117,7 @@ def download_artifact(repo, artifact_id, token):
     req = urllib.request.Request(url, headers={'Authorization': 'Bearer '+token,
                                               'User-Agent': 're8ch-cloud-observer'})
     try:
-        response = opener.open(req, timeout=15)
+        response = opener.open(req, timeout=remaining_timeout())
     except urllib.error.HTTPError as error:
         if error.code != 302:
             raise
@@ -97,14 +127,15 @@ def download_artifact(repo, artifact_id, token):
             raise ValueError('invalid artifact location') from None
         # Deliberately construct a fresh request without Authorization. Do not
         # follow further redirects (including HTTPS -> HTTP).
-        response = opener.open(urllib.request.Request(location), timeout=15)
+        response = opener.open(urllib.request.Request(location), timeout=remaining_timeout())
     with response:
-        payload = response.read(MAX_ARCHIVE + 1)
+        payload = read_bounded(response, MAX_ARCHIVE)
     if len(payload) > MAX_ARCHIVE:
         raise ValueError('artifact exceeds bound')
     return payload
 
 def artifact_result(payload):
+    remaining_timeout()
     if len(payload) > MAX_ARCHIVE:
         raise ValueError('artifact exceeds bound')
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
@@ -221,6 +252,7 @@ def summarize(entries, cluster, operations, now):
             workloads[(entry['domain'], w['kind'], w['namespace'], w['name'])] = w
     def release(entry):
         try:
+            remaining_timeout()
             data = cluster.get('ConfigMap', entry['namespace'], entry['name']).get('data', {})
             accepted = json.loads(data.get('accepted-state.json', '{}'))
             result = json.loads(data.get('last-result.json', '{}'))
@@ -235,6 +267,7 @@ def summarize(entries, cluster, operations, now):
         def workload(item):
             key, w = item
             try:
+                remaining_timeout()
                 return key[0], health_state(cluster.get(w['kind'], w['namespace'], w['name'])), True
             except urllib.error.HTTPError as error:
                 return key[0], 'unhealthy' if error.code == 404 else 'unknown', error.code == 404
@@ -247,6 +280,8 @@ def summarize(entries, cluster, operations, now):
     return list(domains.values())
 
 def main():
+    global DEADLINE
+    DEADLINE = time.monotonic() + COLLECTION_SECONDS
     now = timestamp()
     snapshot = {'schema': 2, 'repository': os.environ['GITHUB_REPOSITORY'], 'sha': os.environ['GITHUB_SHA'],
         'batch': f"{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}", 'observedAt': now, 'complete': False, 'domains': []}

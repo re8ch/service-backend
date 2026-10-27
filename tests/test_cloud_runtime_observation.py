@@ -176,3 +176,81 @@ def test_artifact_rejects_insecure_redirect(monkeypatch):
     monkeypatch.setattr(collect.urllib.request,'build_opener',lambda *a:Opener())
     with pytest.raises(ValueError):
         collect.download_artifact('re8ch/service-backend',1,'TOKEN')
+
+
+def test_shared_monotonic_budget_limits_connect_and_stream_reads(monkeypatch):
+    clock=[100.0]
+    monkeypatch.setattr(collect.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(collect,'DEADLINE',105.0)
+    timeouts=[]
+    class Response(io.BytesIO):
+        def read1(self,size):
+            clock[0]+=3
+            return super().read1(1)
+    def open_request(req,context,timeout):
+        timeouts.append(timeout)
+        return Response(b'{}')
+    monkeypatch.setattr(collect.urllib.request,'urlopen',open_request)
+    with pytest.raises(TimeoutError):
+        collect.request_json('https://api.example','PRIVATE')
+    assert timeouts==[5.0]
+    with pytest.raises(TimeoutError):
+        collect.request_json('https://api.example','PRIVATE')
+    assert timeouts==[5.0]  # No new network operation after the shared deadline.
+
+
+def test_expired_queued_work_becomes_unknown_without_cluster_reads(monkeypatch):
+    monkeypatch.setattr(collect.time,'monotonic',lambda:241)
+    monkeypatch.setattr(collect,'DEADLINE',240)
+    class Cluster:
+        def get(self,*args):
+            pytest.fail('queued task must not contact cluster after deadline')
+    ops={d:{'status':'succeeded','observedAt':None} for d in collect.DOMAINS}
+    entries=[{'domain':'main','namespace':'default','name':str(i),
+              'workloads':[{'kind':'Deployment','namespace':'default','name':str(i)}]} for i in range(101)]
+    summary=collect.summarize(entries,Cluster(),ops,'now')
+    assert summary[0]['sync']['unknown']==101
+    assert summary[0]['health']['unknown']==101
+    assert summary[0]['observation']['status']=='unavailable'
+
+
+def test_artifact_redirect_uses_remaining_shared_budget(monkeypatch):
+    clock=[0]
+    monkeypatch.setattr(collect.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(collect,'DEADLINE',10)
+    timeouts=[]
+    class Opener:
+        def open(self,req,timeout):
+            timeouts.append(timeout)
+            if len(timeouts)==1:
+                clock[0]=8
+                raise urllib.error.HTTPError(req.full_url,302,'redirect',{'Location':'https://storage.example/signed'},None)
+            return io.BytesIO(b'zip')
+    monkeypatch.setattr(collect.urllib.request,'build_opener',lambda *a:Opener())
+    assert collect.download_artifact('re8ch/service-backend',1,'PRIVATE')==b'zip'
+    assert timeouts==[10,2]
+
+
+def test_deadline_still_writes_publishable_snapshot(monkeypatch,tmp_path):
+    clock=[10.0]
+    monkeypatch.setattr(collect.time,'monotonic',lambda:clock[0])
+    monkeypatch.setattr(collect,'DEADLINE',None)
+    for key,value in {'GITHUB_REPOSITORY':'re8ch/service-backend','GITHUB_SHA':'abc',
+                      'GITHUB_REF':'refs/heads/main','GITHUB_RUN_ID':'42',
+                      'GITHUB_RUN_ATTEMPT':'1','RUNNER_TEMP':str(tmp_path)}.items():
+        monkeypatch.setenv(key,value)
+    class Cluster:
+        def get(self,*args):
+            pytest.fail('deadline must prevent queued cluster reads')
+    monkeypatch.setattr(collect,'Cluster',Cluster)
+    def operation(domain):
+        clock[0]=251
+        return {'status':'unknown','observedAt':None}
+    monkeypatch.setattr(collect,'operation',operation)
+    collect.main()
+    snapshot=json.loads((tmp_path/'cloud-runtime-snapshot.json').read_text())
+    assert collect.DEADLINE==250
+    assert snapshot['complete'] is True
+    assert len(snapshot['domains'])==6
+    assert all(d['observation']['status']=='unavailable' for d in snapshot['domains'])
+    assert all(d['sync']['synced']==0 for d in snapshot['domains'])
