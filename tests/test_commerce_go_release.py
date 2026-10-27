@@ -12,5 +12,7 @@ def test_commerce_release_uses_rotated_domain_registry_identity():
     assert "secrets.HARBOR_PASSWORD" not in workflow
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/commerce-go-release-docker"' in workflow
     assert 'BUILDX_CONFIG=${HOME}/.docker/buildx' in workflow
+    assert "docker/setup-buildx-action" not in workflow
+    assert "docker buildx version" in workflow
     assert 'printf \'{}\\n\' > "$DOCKER_CONFIG/config.json"' in workflow
     assert 'rm -f "$DOCKER_CONFIG/config.json"' in workflow
