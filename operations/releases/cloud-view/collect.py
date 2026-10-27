@@ -3,6 +3,9 @@
 import concurrent.futures
 import datetime as dt
 import json
+import io
+import re
+import zipfile
 import os
 from pathlib import Path
 import ssl
@@ -32,8 +35,9 @@ def epoch(value):
 
 def sync_state(accepted, result, operation):
     # A later failed/in-flight cloud attempt cannot inherit an earlier success.
-    latest = max(epoch(result.get('finishedAt')), epoch(accepted.get('updatedAt')))
-    if operation['status'] == 'unknown' or (operation['status'] in ('failed', 'running') and epoch(operation['observedAt']) > latest):
+    correlated = any(result == candidate and result.get('releaseId') and result.get('operationId')
+                     for candidate in operation.get('_results', []))
+    if operation['status'] in ('unknown', 'running') or (operation['status'] == 'failed' and not correlated):
         return 'unknown'
     if accepted.get('blocked'):
         return 'failed'
@@ -68,6 +72,88 @@ def request_json(url, token, context=None):
     with urllib.request.urlopen(req, context=context, timeout=15) as response:
         return json.load(response)
 
+# Only full executor results qualify. In particular Ceph runtime/infra are stages.
+MAX_ARCHIVE = 1024 * 1024
+MAX_RESULT = 256 * 1024
+MAX_ARTIFACTS = 64
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+def download_artifact(repo, artifact_id, token):
+    url = f'https://api.github.com/repos/{repo}/actions/artifacts/{int(artifact_id)}/zip'
+    opener = urllib.request.build_opener(NoRedirect())
+    req = urllib.request.Request(url, headers={'Authorization': 'Bearer '+token,
+                                              'User-Agent': 're8ch-cloud-observer'})
+    try:
+        response = opener.open(req, timeout=15)
+    except urllib.error.HTTPError as error:
+        if error.code != 302:
+            raise
+        location = error.headers.get('Location', '')
+        parts = urllib.parse.urlsplit(location)
+        if parts.scheme != 'https' or not parts.hostname or parts.username or parts.password:
+            raise ValueError('invalid artifact location') from None
+        # Deliberately construct a fresh request without Authorization. Do not
+        # follow further redirects (including HTTPS -> HTTP).
+        response = opener.open(urllib.request.Request(location), timeout=15)
+    with response:
+        payload = response.read(MAX_ARCHIVE + 1)
+    if len(payload) > MAX_ARCHIVE:
+        raise ValueError('artifact exceeds bound')
+    return payload
+
+def artifact_result(payload):
+    if len(payload) > MAX_ARCHIVE:
+        raise ValueError('artifact exceeds bound')
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        members = archive.infolist()
+        if len(members) > 16 or sum(m.file_size for m in members) > MAX_ARCHIVE:
+            raise ValueError('archive exceeds bound')
+        selected = [m for m in members if m.filename in ('result.json', 'static-release-result.json')]
+        if len(selected) != 1 or selected[0].file_size > MAX_RESULT:
+            return None
+        with archive.open(selected[0]) as stream:
+            raw = stream.read(MAX_RESULT + 1)
+        if len(raw) > MAX_RESULT:
+            raise ValueError('result exceeds bound')
+        result = json.loads(raw)
+        if not isinstance(result, dict) or result.get('apiVersion') != 'delivery.re8ch.com/release-result/v1alpha1':
+            return None
+        if not all(isinstance(result.get(k), str) and result[k] for k in ('releaseId', 'operationId')):
+            return None
+        return result
+
+def run_results(repo, run, token):
+    # Existing artifact names do not encode run_attempt. Never attribute an
+    # earlier attempt's retained artifact to a failed rerun using timestamp guesses.
+    if run.get('run_attempt') != 1:
+        return []
+    run_id = int(run['id'])
+    data = request_json(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100', token)
+    artifacts = data['artifacts']
+    if data['total_count'] != len(artifacts) or len(artifacts) > MAX_ARTIFACTS:
+        return []
+    pattern = re.compile(r'(?:main-domain-release-result|static-release-result|ceph-accept|(?:main-domain|networking|delivery-products)-reconcile-[a-z0-9-]+)-' + str(run_id))
+    results = []
+    for artifact in artifacts:
+        provenance = artifact.get('workflow_run', {})
+        if (provenance.get('id') != run_id or not run.get('head_sha')
+                or provenance.get('head_sha') != run['head_sha']
+                or artifact.get('expired') or not pattern.fullmatch(artifact['name'])):
+            continue
+        if not 0 < artifact.get('size_in_bytes', 0) <= MAX_ARCHIVE:
+            continue
+        try:
+            result = artifact_result(download_artifact(repo, artifact['id'], token))
+            if result is not None:
+                results.append(result)
+        except Exception:
+            # Missing/expired/malformed evidence leaves only that release Unknown.
+            continue
+    return results
+
 def operation(domain):
     repo, workflows, env = WORKFLOWS[domain]
     token = os.environ.get(env)
@@ -94,7 +180,8 @@ def operation(domain):
             return unknown
         latest = max(runs, key=lambda r: epoch(r['updated_at']))
         state = 'running' if latest['status'] != 'completed' else ('succeeded' if latest['conclusion'] == 'success' else 'failed')
-        return {'status': state, 'observedAt': latest['updated_at']}
+        return {'status': state, 'observedAt': latest['updated_at'],
+                '_results': run_results(repo, latest, token) if state == 'failed' else []}
     except Exception:
         return unknown
 
@@ -127,7 +214,7 @@ class Cluster:
 def summarize(entries, cluster, operations, now):
     domains = {d: {'id': d, 'sync': dict.fromkeys(('synced','drifted','failed','unknown'), 0),
         'health': dict.fromkeys(('healthy','unhealthy','unknown'), 0),
-        'observation': {'status': 'current', 'observedAt': now}, 'operations': operations[d]} for d in DOMAINS}
+        'observation': {'status': 'current', 'observedAt': now}, 'operations': {k: operations[d][k] for k in ('status', 'observedAt')}} for d in DOMAINS}
     workloads = {}
     for entry in entries:
         for w in entry['workloads']:
