@@ -1,11 +1,11 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/network/podcidr-fabric
-codename: bora-violet
+codename: chinook-violet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
-  digest: sha256:268475391e98d4ee1fb519962dc927c9b319bee47e8427640968aae5c786b30a
-  signature: cosign-keyless
+  digest: sha256:7b58d10d36b2b26dea4faf76b0cb8aa666f5500427eeb88af3df6658b016c161
+  signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
 images: []
