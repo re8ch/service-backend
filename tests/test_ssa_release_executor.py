@@ -225,6 +225,61 @@ def test_explicit_empty_stage_selection_finalizes_without_applying_objects(tmp_p
     assert persisted["inventory"] == ["apps/Deployment/demo/demo"]
 
 
+@pytest.mark.parametrize("fault", [None, "fromContractDigest", "toContractDigest", "bundleReference", "bundleDigest", "unhealthy", "payload", "no-state", "force"])
+def test_contract_migration_reuses_only_reviewed_accepted_artifact(tmp_path, monkeypatch, fault):
+    value, operation, bundle_path = prepare(tmp_path)
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
+    instance.reconcile(value, operation, bundle_path, tmp_path / "state")
+    old_contract_digest = digest(canonical(value))
+    value["spec"]["provenance"]["environment"] = "domain-production"
+    replay = json.loads(json.dumps(operation))
+    replay.update(operationId=str(uuid.uuid4()), sequence=2,
+                  previousApprovedDigest=operation["bundle"]["digest"], contractDigest=digest(canonical(value)))
+    replay["github"]["environment"] = "domain-production"
+    approved = {"fromContractDigest": old_contract_digest, "toContractDigest": replay["contractDigest"],
+                "bundleReference": operation["bundle"]["reference"], "bundleDigest": operation["bundle"]["digest"]}
+    if fault in approved:
+        approved[fault] = "not-approved"
+    policy = tmp_path / "migrations.json"
+    policy.write_text(json.dumps({"demo": approved}))
+    monkeypatch.setattr(executor, "CONTRACT_MIGRATIONS", policy)
+    store = executor.Store(tmp_path / "state", "demo")
+    state = store.state()
+    if fault == "unhealthy":
+        state["healthyDigest"] = "sha256:" + "0" * 64
+        store.accept(state)
+    if fault == "payload":
+        state["payloadDigest"] = "sha256:" + "0" * 64
+        store.accept(state)
+    if fault == "no-state":
+        replay["sequence"] = 1
+        (tmp_path / "state/state/demo.json").unlink()
+    if fault == "force":
+        replay["action"] = "force-reconcile"
+    runner.calls.clear()
+    if fault:
+        with pytest.raises(executor.Rejected, match="another contract"):
+            instance.reconcile(value, replay, bundle_path, tmp_path / "state")
+        assert not [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    else:
+        result = instance.reconcile(value, replay, bundle_path, tmp_path / "state")
+        assert result["observedDigest"] == operation["bundle"]["digest"]
+        assert result["outcome"] == "healthy"
+        assert store.state()["sequence"] == 2
+
+
+def test_cloud_disk_migration_only_changes_reviewed_domain_provenance():
+    import yaml
+    value = yaml.safe_load((ROOT / "contracts/releases/main-domain/main-data-storage-cloud-disk.yaml").read_text())
+    migration = json.loads(executor.CONTRACT_MIGRATIONS.read_text())[value["metadata"]["name"]]
+    assert digest(canonical(value)) == migration["toContractDigest"]
+    del value["spec"]["authorityDomain"]
+    value["spec"]["provenance"]["environment"] = "release-main-domain"
+    value["spec"]["provenance"]["audience"] = "https://kube-api.re8ch.com/release-executor-main-domain"
+    assert digest(canonical(value)) == migration["fromContractDigest"]
+
+
 def test_suspended_release_rejects_replay_without_runtime_calls(tmp_path):
     value, operation, bundle_path = prepare(tmp_path)
     runner = Runner()

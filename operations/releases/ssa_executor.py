@@ -32,6 +32,28 @@ PROTECTED_KINDS = {"Namespace", "CustomResourceDefinition", "PersistentVolume", 
                    "CephCluster", "CephFilesystem", "CephBlockPool", "CephFilesystemSubVolumeGroup"}
 READY_KINDS = {"Deployment", "StatefulSet", "DaemonSet", "Job"}
 Runner = Callable[..., subprocess.CompletedProcess[str]]
+CONTRACT_MIGRATIONS = Path(__file__).with_name("accepted-contract-migrations.json")
+
+
+def accepted_contract_migration(contract_digest: str, manifest: dict, operation: dict, state: dict | None) -> bool:
+    """Replay only a reviewed binding transition for an already accepted artifact."""
+    if operation["action"] != "reconcile" or not state:
+        return False
+    policy = json.loads(CONTRACT_MIGRATIONS.read_text())
+    approved = policy.get(operation["releaseId"])
+    if not approved:
+        return False
+    bundle = operation["bundle"]
+    return (
+        approved == {"fromContractDigest": manifest["contractDigest"],
+                     "toContractDigest": contract_digest,
+                     "bundleReference": bundle["reference"], "bundleDigest": bundle["digest"]}
+        and state.get("releaseId") == operation["releaseId"]
+        and state.get("bundleReference") == bundle["reference"]
+        and state.get("appliedDigest") == state.get("healthyDigest") == bundle["digest"]
+        and state.get("payloadDigest") == bundle["payloadDigest"]
+        and not state.get("blocked") and not state.get("suspended")
+    )
 
 
 class Rejected(RuntimeError):
@@ -242,7 +264,8 @@ class Executor:
         manifest, objects = load_archive(bundle_path)
         if manifest["releaseId"] != operation["releaseId"]:
             raise Rejected("bundle is bound to another release")
-        if operation["action"] != "rollback" and manifest["contractDigest"] != contract_digest:
+        if (operation["action"] != "rollback" and manifest["contractDigest"] != contract_digest
+                and not accepted_contract_migration(contract_digest, manifest, operation, state)):
             raise Rejected("bundle is bound to another contract")
         if manifest["inventoryDigest"] != operation["inventoryDigest"]:
             raise Rejected("operation inventory differs from bundle")

@@ -27,6 +27,22 @@ cannot silently repurpose an older bundle. Suspended or blocked releases fail
 closed. No caller-selected artifact URL or unrestricted force flag is exposed.
 Publish and reconcile share the same concurrency key and canonical contract path.
 
+Cloud canary run `40503894800` passed OIDC authentication, exact RBAC denial
+checks, and signature verification of the existing cloud-disk artifact. It stopped
+before applying resources because that accepted v1alpha1 artifact predates stage
+metadata. Missing stages retain the original single-runtime-stage semantics;
+new compilers continue emitting explicit stages.
+
+PR #2292 also changed cloud-disk's contract binding when it split the executor
+environment/audience by domain. `accepted-contract-migrations.json` explicitly
+authorizes this old/new contract pair and the one already accepted immutable
+artifact. Tests reconstruct the old contract by reverting only that domain
+classification and provenance change. Runtime target, resource permissions,
+inventory, field manager, lifecycle and signer are unchanged. The exception is
+limited to reconcile of that healthy accepted digest and never permits a new
+artifact, changed contract, force operation or first deployment. Current domain
+OIDC/RBAC, payload digest, signature and inventory checks still apply.
+
 This is an explicit dispatch interface; it does not yet claim automatic
 merge-to-release, periodic drift repair, or complete local Flux retirement.
 The durable acceptance ConfigMap remains an existing runtime record, not a local
