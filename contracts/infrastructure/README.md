@@ -70,3 +70,31 @@ Only the merged Git revision is eligible for Flux application. Publishing the
 Environment secret or SOPS ciphertext does not authorize a host restart or a
 cluster write; the A1 authentication/TLS activation remains a separately
 approved maintenance-window operation with an etcd snapshot and local rollback.
+
+## Public GitHub output boundary
+
+A public repository's Actions logs and downloadable artifacts must be treated as
+public. Environment protection gates secret consumption, not output visibility.
+The node observer encrypts detailed evidence with authenticated Fernet encryption
+before upload, padded to a fixed 256 KiB plaintext size. The envelope binds the
+repository, run ID and run attempt; governance verifies both and decrypts only in memory.
+The public Issue contains a review-needed verdict and run ID, without node counts,
+conditions, identifiers or drift categories. Workflow success/failure, timings and
+ciphertext remain public. GitHub provides no member-only artifact visibility on a
+public repository; this small encryption boundary fills that native capability gap
+without a new store, private repository, polling service or App permission grant.
+
+`NODE_OBSERVATION_EVIDENCE_KEY` is a dedicated random 256-bit Fernet key in the
+main-only `cluster-observation` Environment, consumed only by the observer and
+Maintenance reporting jobs. It is never a Variable or Custom Property. Provision
+and rotate through `gh secret set --env cluster-observation` with stdin from the
+approved credential system, never command arguments or logs. Rotation invalidates
+old evidence and resets the persistence streak; retain prior keys only in approved
+credential custody if historical decryption is needed. Do not export this key via
+Actions artifacts or a diagnostic workflow. Authorized members use the existing
+authenticated runtime inspection interface, or the approved credential custody
+path for local decryption. Apps receive no Secrets read capability.
+
+Legacy plaintext artifacts are not accepted as governance history. This change
+stops new plaintext publication; it does not erase old artifacts, Issues, Checks,
+logs or Git history. Their cleanup remains a separate, explicitly tracked phase.
