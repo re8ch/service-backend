@@ -219,7 +219,11 @@ class Executor:
             token = self.actions_kube_token()
             if token:
                 effective.insert(1, "--token=" + token)
-        result = self.runner(effective, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+        try:
+            result = self.runner(effective, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+        except subprocess.TimeoutExpired as error:
+            # OIDC tokens may occur in argv; preserve type without exception payload.
+            raise subprocess.TimeoutExpired([effective[0]] if effective else [], error.timeout) from None
         if result.returncode:
             message = (result.stderr or result.stdout or "command failed")[-2048:]
             raise Rejected(message)
