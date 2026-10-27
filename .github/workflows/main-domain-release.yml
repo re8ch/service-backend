@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
     inputs:
       contract: {description: Reviewed main-domain ReleaseContract path, type: string, required: true}
+      reuse_digest: {description: Reuse an existing signed digest without rebuilding, type: string, default: ''}
+      reuse_source_commit: {description: Exact certified build commit with identical contract and flat source, type: string, default: ''}
       execute: {description: Execute through the bounded SSA executor, type: boolean, default: false}
       mode:
         description: Publish a new bundle or reconcile the accepted digest without building
@@ -28,6 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
+      - name: Validate artifact reuse selection
+        env: {MODE: '${{ inputs.mode }}', REUSE_DIGEST: '${{ inputs.reuse_digest }}', REUSE_SOURCE_COMMIT: '${{ inputs.reuse_source_commit }}'}
+        run: |
+          if [[ -n "$REUSE_DIGEST" || -n "$REUSE_SOURCE_COMMIT" ]]; then
+            [[ "$MODE" == publish && "$REUSE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ && "$REUSE_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          fi
       - id: profile
         env: {CONTRACT: '${{ inputs.contract }}'}
         run: python operations/releases/main_domain_profile.py --contract "$CONTRACT" --github-output "$GITHUB_OUTPUT"
@@ -58,7 +66,7 @@ jobs:
           password: '${{ secrets.GITHUB_TOKEN }}'
       - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2' 'jsonschema>=4.23'
       - id: publish
-        env: {CONTRACT: '${{ inputs.contract }}'}
+        env: {CONTRACT: '${{ inputs.contract }}', REUSE_DIGEST: '${{ inputs.reuse_digest }}', REUSE_SOURCE_COMMIT: '${{ inputs.reuse_source_commit }}'}
         run: |
           set -euo pipefail
           case "$CONTRACT" in contracts/releases/main-domain/*.yaml) ;; *) exit 1;; esac
@@ -74,18 +82,27 @@ jobs:
           [[ "${fields[6]}" == .github/workflows/main-domain-release.yml ]]
           [[ "${fields[7]}" == '${{ needs.validate.outputs.domain }}' ]]
           [[ "${fields[8]}" == '${{ needs.validate.outputs.signer }}' ]]
-          kubectl kustomize "${fields[1]}" > "$RUNNER_TEMP/rendered.yaml"
-          python operations/releases/unified_bundle.py --contract "$CONTRACT" --rendered "$RUNNER_TEMP/rendered.yaml" \
-            --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
-          install -d "$RUNNER_TEMP/oci"; cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/"
           reference="oci://ghcr.io/re8ch/service-backend-release/${fields[2]}"
-          flux push artifact "${reference}:run-${GITHUB_RUN_ID}" --path "$RUNNER_TEMP/oci" --reproducible \
-            --source "https://github.com/${GITHUB_REPOSITORY}" --revision "main@sha1:${GITHUB_SHA}" \
-            --annotations "delivery.re8ch.com/release-id=${fields[2]}" --output json > "$RUNNER_TEMP/oci-result.json"
-          oci_digest="$(jq -r .digest "$RUNNER_TEMP/oci-result.json")"; immutable="${reference#oci://}@${oci_digest}"
-          cosign sign --yes "$immutable"
+          verify_args=()
+          if [[ -n "$REUSE_DIGEST" ]]; then
+            [[ "$REUSE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+            python operations/releases/verify_reuse_source.py --commit "$REUSE_SOURCE_COMMIT" --contract "$CONTRACT"
+            verify_args+=(--certificate-github-workflow-sha "$REUSE_SOURCE_COMMIT")
+            oci_digest="$REUSE_DIGEST"
+          else
+            kubectl kustomize "${fields[1]}" > "$RUNNER_TEMP/rendered.yaml"
+            python operations/releases/unified_bundle.py --contract "$CONTRACT" --rendered "$RUNNER_TEMP/rendered.yaml" \
+              --output "$RUNNER_TEMP/release.bundle" > "$RUNNER_TEMP/bundle-metadata.json"
+            install -d "$RUNNER_TEMP/oci"; cp "$RUNNER_TEMP/release.bundle" "$RUNNER_TEMP/bundle-metadata.json" "$RUNNER_TEMP/oci/"
+            flux push artifact "${reference}:run-${GITHUB_RUN_ID}" --path "$RUNNER_TEMP/oci" --reproducible \
+              --source "https://github.com/${GITHUB_REPOSITORY}" --revision "main@sha1:${GITHUB_SHA}" \
+              --annotations "delivery.re8ch.com/release-id=${fields[2]}" --output json > "$RUNNER_TEMP/oci-result.json"
+            oci_digest="$(jq -r .digest "$RUNNER_TEMP/oci-result.json")"; immutable="${reference#oci://}@${oci_digest}"
+            cosign sign --yes "$immutable"
+          fi
+          immutable="${reference#oci://}@${oci_digest}"
           cosign verify --certificate-identity '${{ needs.validate.outputs.signer }}' \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "${verify_args[@]}" "$immutable" >/dev/null
           {
             echo "digest=$oci_digest"
             echo "reference=$reference"
