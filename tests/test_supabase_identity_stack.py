@@ -34,12 +34,13 @@ def test_identity_stack_is_separate_and_uses_db_rw_issuer():
     auth = next(doc for doc in deployments if doc["metadata"]["name"] == "supabase-identity-auth")
     pod = auth["spec"]["template"]["spec"]
     assert pod["imagePullSecrets"] == [{"name": "supabase-identity-harbor-pull"}]
-    network = json.loads((ROOT / "operations/network/manifests/network/public-mesh/inventory.json").read_text())
-    public_ip = next(node["publicIp"] for node in network["nodes"] if node["name"] == "restricted-node-6dc3f140f9")
+    releases = yaml.safe_load_all((ROOT / "platform/among-clusters/release.yaml").read_text())
+    release = next(item for item in releases if item and item.get("kind") == "HelmRelease" and item["metadata"]["name"] == "among-clusters-agent")
+    public_ip = release["spec"]["values"]["gateway"]["publicAuthority"]["publicIP"]
     assert pod["hostAliases"] == [
         {"ip": public_ip, "hostnames": ["id.re8ch.com"]},
         {
-            "ip": "192.0.2.85",
+            "ip": "10.43.141.120",
             "hostnames": ["pg-re8ch-primary.pigsty-external.svc.cluster.local"],
         },
     ]

@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""Validate and render secret-free RE8CH WireGuard/FRR public-mesh configs."""
+"""Validate and render restricted WireGuard/FRR configs; keep rendered output private."""
 
 import argparse
 import ipaddress
 import json
 import sys
+from pathlib import Path
+
 
 
 def load_json(path):
     with open(path, encoding="utf-8") as handle:
-        return json.load(handle)
+        document = json.load(handle)
+    if document.get("kind") == "RestrictedTopologyReference":
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "operations/network"))
+        from restricted_topology import resolve_reference
+        return resolve_reference(document)
+    return document
 
 
 def validate(inv):
@@ -63,9 +70,9 @@ def validate(inv):
         if node.get("podCIDRPeers") and not pod_cidr:
             errors.append(f'{node["name"]}: podCIDRPeers requires podCIDR')
         if pod_cidr and not ipaddress.ip_network(pod_cidr).subnet_of(
-            ipaddress.ip_network("192.0.2.224/16")
+            ipaddress.ip_network("10.42.0.0/16")
         ):
-            errors.append(f'{node["name"]}: podCIDR is outside 192.0.2.224/16')
+            errors.append(f'{node["name"]}: podCIDR is outside 10.42.0.0/16')
         for peer_name in node.get("podCIDRPeers", []):
             peer = next((item for item in inv["nodes"] if item["name"] == peer_name), None)
             if peer_name == node["name"] or peer is None or not peer.get("podCIDR"):
@@ -73,7 +80,7 @@ def validate(inv):
             elif node["name"] not in peer.get("podCIDRPeers", []):
                 errors.append(f'{node["name"]}: non-reciprocal podCIDR peer: {peer_name}')
         api_relay = node.get("apiVipVia")
-        if api_relay and (api_relay != {"peer": "restricted-node-6dc3f140f9", "prefix": "192.0.2.220/32"}
+        if api_relay and (api_relay != {"peer": "r640", "prefix": "10.250.0.1/32"}
                           or node["name"] != "overseas-la"
                           or api_relay["peer"] not in node.get("meshPeers", [])):
             errors.append(f'{node["name"]}: invalid API VIP relay')

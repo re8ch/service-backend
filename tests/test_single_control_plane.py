@@ -61,12 +61,10 @@ def test_b1_agent_ignores_server_config_and_has_valid_eviction_args() -> None:
     assert "memory.available\\<2Gi" not in text
 
 
-def test_root_context_documents_describe_single_control_plane() -> None:
+def test_root_context_documents_use_authenticated_topology_reference() -> None:
     for relative in ["README.md", "catalogs/platform/modules/service-backend/MEMORY.md"]:
         text = (ROOT / relative).read_text()
-        assert "restricted-node-1eb0570f74" in text
-        assert "restricted-node-296f36f2fb" in text
-        assert "restricted-node-abb3f27a69" in text
-        assert "restricted-node-6dc3f140f9" in text
-        assert "https://192.0.2.220:6443" in text
-        assert "AdvFab" in text
+        assert "contracts/network-topology/README.md" in text
+        assert "restricted-node-1eb0570f74" not in text
+        assert "restricted-node-296f36f2fb" not in text
+        assert "https://192.0.2.220:6443" not in text

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Fail closed when restricted-node-6dc3f140f9 public Gateway values bypass RouterOS authority."""
+"""Fail closed when R640 public Gateway values bypass RouterOS authority."""
 
 from __future__ import annotations
 
 import json
+import os
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -11,19 +13,22 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "operations/network"))
+from restricted_topology import load_inventory, verify_public
+
 INVENTORY = ROOT / "operations/network/manifests/network/public-mesh/inventory.json"
 AMONG_RELEASE = ROOT / "platform/among-clusters/release.yaml"
 
 
 def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEASE) -> None:
-    inventory = json.loads(inventory_path.read_text())
-    restricted-node-6dc3f140f9 = next(node for node in inventory["nodes"] if node["name"] == "restricted-node-6dc3f140f9")
-    authority = restricted-node-6dc3f140f9.get("publicAuthority") or {}
+    inventory = load_inventory(inventory_path)
+    r640 = next(node for node in inventory["nodes"] if node["name"] == "r640")
+    authority = r640.get("publicAuthority") or {}
     expected = {
         "ownership": "provider",
-        "sourceRef": "operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority",
-        "publicIP": restricted-node-6dc3f140f9["publicIp"],
-        "deliveryMode": restricted-node-6dc3f140f9["publicMode"],
+        "sourceRef": "operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority",
+        "publicIP": r640["publicIp"],
+        "deliveryMode": r640["publicMode"],
         "edgeType": authority.get("type"),
         "gatewayVIP": authority.get("gatewayVIP"),
         "gatewayRef": authority.get("gatewayRef"),
@@ -34,18 +39,18 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
     }
     if expected != {
         "ownership": "provider",
-        "sourceRef": "operations/network/manifests/network/public-mesh/inventory.json#restricted-node-6dc3f140f9.publicAuthority",
-        "publicIP": "192.0.2.79",
+        "sourceRef": "operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority",
+        "publicIP": "223.159.210.222",
         "deliveryMode": "mikrotik-ebgp-transit-dnat",
         "edgeType": "RouterOS",
-        "gatewayVIP": "192.0.2.209",
+        "gatewayVIP": "10.251.0.4",
         "gatewayRef": "kube-system/re8ch-gateway-canary",
         "routingAuthority": "AdvancedFabric",
-        "fallbackLanBackend": "192.0.2.97",
+        "fallbackLanBackend": "192.168.88.251",
         "requiredForwardPorts": [25, 53, 80, 443, 6443, 465, 587, 993, 4190],
         "dnsProtocols": ["udp", "tcp"],
     }:
-        raise SystemExit(f"unexpected restricted-node-6dc3f140f9 publicAuthority: {expected}")
+        raise SystemExit(f"unexpected R640 publicAuthority: {expected}")
 
     documents = list(yaml.safe_load_all(release_path.read_text()))
     release = next(
@@ -54,21 +59,21 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
     )
     gateway = release["spec"]["values"]["gateway"]
     if gateway.get("publicAuthority") != expected:
-        raise SystemExit(f"AmongClusters must declare canonical restricted-node-6dc3f140f9 publicAuthority: {expected}")
+        raise SystemExit(f"AmongClusters must declare canonical R640 publicAuthority: {expected}")
     endpoint = gateway["listener"]["publicEndpoint"]
     host = urlparse(endpoint).hostname
-    if host != expected["publicIP"] or host == restricted-node-6dc3f140f9["ztIp"]:
+    if host != expected["publicIP"] or host == r640["ztIp"]:
         raise SystemExit(
-            f"AmongClusters restricted-node-6dc3f140f9 publicEndpoint must use {expected['publicIP']}, not ZeroTier/dummy {restricted-node-6dc3f140f9['ztIp']}: {endpoint}"
+            f"AmongClusters R640 publicEndpoint must use {expected['publicIP']}, not ZeroTier/dummy {r640['ztIp']}: {endpoint}"
         )
     manifest_paths = sorted(release_path.parent.glob("*.yaml"))
     serialized = "\n".join(path.read_text() for path in manifest_paths)
     forbidden = (
-        f'localGateway: quic://{restricted-node-6dc3f140f9["ztIp"]}',
-        f'publicEndpoint: "quic://{restricted-node-6dc3f140f9["ztIp"]}',
+        f'localGateway: quic://{r640["ztIp"]}',
+        f'publicEndpoint: "quic://{r640["ztIp"]}',
     )
     if any(item in serialized for item in forbidden):
-        raise SystemExit(f"restricted-node-6dc3f140f9 ZeroTier/dummy address {restricted-node-6dc3f140f9['ztIp']} cannot be declared as a public Gateway endpoint")
+        raise SystemExit(f"R640 ZeroTier/dummy address {r640['ztIp']} cannot be declared as a public Gateway endpoint")
     for manifest_path in manifest_paths:
         for item in yaml.safe_load_all(manifest_path.read_text()):
             if not item or item.get("kind") != "AuthenticatedLink":
@@ -85,5 +90,9 @@ def validate(inventory_path: Path = INVENTORY, release_path: Path = AMONG_RELEAS
 
 
 if __name__ == "__main__":
-    validate()
-    print("restricted-node-6dc3f140f9 public authority validated")
+    if os.environ.get("NETWORK_TOPOLOGY_BUNDLE") or os.environ.get("NETWORK_TOPOLOGY_FILE"):
+        validate()
+        print("Restricted public authority validated")
+    else:
+        verify_public()
+        print("Public authority reference verified; semantic checks require protected topology validation")
