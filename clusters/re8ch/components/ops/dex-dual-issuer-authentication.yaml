@@ -47,6 +47,25 @@ jwt:
               (claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' &&
                claims.environment == 'release-ceph-compiler' &&
                claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher')))))
+          || (claims.repository_visibility == 'public' && (
+          (claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
+           claims.repository == '8iops/agent-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == '8iops/agent-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-agent-runtime' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-agent-runtime' &&
+           claims.event_name == 'workflow_dispatch') ||
+          (claims.repository_id == '1423312101' && claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/identity-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/identity-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-identity-access' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-identity-access' &&
+           claims.event_name == 'workflow_dispatch') ||
+          (claims.repository_id == '1435935851' && claims.repository_owner_id == '334604858' &&
+           claims.repository == 'pillars-infra/network-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-networking' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
+           claims.event_name == 'workflow_dispatch')))
         message: public tokens require the observer or exact protected cloud release route
       - expression: >-
           claims.runner_environment == 'self-hosted' ||
@@ -62,6 +81,25 @@ jwt:
             (claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' &&
              claims.environment == 'release-ceph-compiler' &&
              claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher')))
+          || (claims.runner_environment == 'github-hosted' && (
+          (claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
+           claims.repository == '8iops/agent-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == '8iops/agent-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-agent-runtime' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-agent-runtime' &&
+           claims.event_name == 'workflow_dispatch') ||
+          (claims.repository_id == '1423312101' && claims.repository_owner_id == '283958313' &&
+           claims.repository == 're8ch/identity-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 're8ch/identity-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-identity-access' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-identity-access' &&
+           claims.event_name == 'workflow_dispatch') ||
+          (claims.repository_id == '1435935851' && claims.repository_owner_id == '334604858' &&
+           claims.repository == 'pillars-infra/network-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-networking' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&
+           claims.event_name == 'workflow_dispatch')))
         message: hosted execution is limited to protected cloud release workflows
       - expression: >-
           (claims.repository_id == '1367237854' &&
@@ -122,12 +160,12 @@ jwt:
            claims.workflow_ref == 're8ch/delivery-products-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
            claims.environment == 'release-executor-delivery-products' &&
            claims.event_name == 'workflow_dispatch') ||
-          (claims.repository_id == '1423311998' &&
+          (claims.repository_id == '1435935941' &&
            claims.repository_owner_id == '334604670' &&
-           claims.repository == 're8ch-ai/agent-gitops' &&
+           claims.repository == '8iops/agent-gitops' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-agent-runtime' &&
            claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch-ai/agent-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.workflow_ref == '8iops/agent-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
            claims.environment == 'release-executor-agent-runtime' &&
            claims.event_name == 'workflow_dispatch') ||
           (claims.repository_id == '1423312101' &&
@@ -146,7 +184,7 @@ jwt:
            claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
            claims.environment == 'release-executor-observability-metering' &&
            claims.event_name == 'workflow_dispatch') ||
-          (claims.repository_id == '1423312303' &&
+          (claims.repository_id == '1435935851' &&
            claims.repository_owner_id == '334604858' &&
            claims.repository == 'pillars-infra/network-gitops' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-networking' &&

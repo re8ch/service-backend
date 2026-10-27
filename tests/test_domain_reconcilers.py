@@ -243,3 +243,13 @@ def test_flux_keeps_platform_edges_for_detached_products():
     }
     for domain, expected in required.items():
         assert expected <= object_identities(domain), domain
+
+
+def test_public_sources_preserve_verification_without_private_deploy_keys():
+    expected = {"flux-agent-system": "8iops/agent-gitops", "flux-identity-system": "re8ch/identity-gitops", "flux-network-system": "pillars-infra/network-gitops"}
+    sources = {d["metadata"]["namespace"]: d["spec"] for d in load_all(FEDERATION_REGISTRATIONS) if d.get("kind") == "GitRepository"}
+    for namespace, repository in expected.items():
+        spec = sources[namespace]
+        assert spec["url"] == "https://github.com/" + repository
+        assert "secretRef" not in spec
+        assert spec["verify"] == {"mode": "HEAD", "secretRef": {"name": "git-verification-keys"}}

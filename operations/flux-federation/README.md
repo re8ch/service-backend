@@ -15,7 +15,7 @@ The current authorities are:
 
 | Domain | Namespace | Repository |
 | --- | --- | --- |
-| Agent | `flux-agent-system` | `re8ch-ai/agent-gitops` |
+| Agent | `flux-agent-system` | `8iops/agent-gitops` |
 | Identity | `flux-identity-system` | `re8ch/identity-gitops` |
 | Observability | `flux-observability-system` | `siren-observer/observability-gitops` |
 | Network | `flux-network-system` | `pillars-infra/network-gitops` |

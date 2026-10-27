@@ -11,7 +11,7 @@ import yaml
 
 
 DOMAINS = {
-    "agent-runtime": ("flux-agent-system", "re8ch-ai/agent-gitops"),
+    "agent-runtime": ("flux-agent-system", "8iops/agent-gitops"),
     "identity-access": ("flux-identity-system", "re8ch/identity-gitops"),
     "observability-metering": ("flux-observability-system", "siren-observer/observability-gitops"),
     "networking": ("flux-network-system", "pillars-infra/network-gitops"),
