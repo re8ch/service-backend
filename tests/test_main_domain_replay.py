@@ -135,3 +135,20 @@ def test_retired_identity_contracts_cannot_publish_or_replay():
         assert profile.replay_provenance(contract) is None
         with pytest.raises(ValueError, match="retired from main execution"):
             profile.validate_contract(path)
+
+
+def test_private_kubeconfig_initializer_refuses_overwrite_and_keeps_token_out_of_output(tmp_path, monkeypatch, capsys):
+    import pytest
+    import refresh_kubeconfig as refresh
+    path = tmp_path / 'kubeconfig'
+    monkeypatch.setenv('KUBECONFIG', str(path))
+    monkeypatch.setenv('KUBE_API_CA', 'fixture-ca')
+    monkeypatch.setattr(refresh.Executor, 'actions_kube_token', lambda self: 'PRIVATE-TOKEN')
+    refresh.initialize()
+    assert path.stat().st_mode & 0o777 == 0o600
+    config = yaml.safe_load(path.read_text())
+    assert config['clusters'][0]['cluster']['server'] == 'https://kube-api.re8ch.com:6443'
+    assert config['users'][0]['user']['token'] == 'PRIVATE-TOKEN'
+    assert 'PRIVATE-TOKEN' not in capsys.readouterr().out
+    with pytest.raises(FileExistsError):
+        refresh.initialize()

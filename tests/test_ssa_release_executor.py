@@ -846,3 +846,29 @@ def test_stable_object_audit_removes_legacy_attempt_id_without_mutating_bundle(t
     next_op = json.loads(json.dumps(op)); next_op["bundle"]["digest"] = "sha256:" + "f" * 64
     updated = executor.Executor.with_audit(objects, next_op)
     assert updated[0]["metadata"]["annotations"]["delivery.re8ch.com/artifact-digest"] != result[0]["metadata"]["annotations"]["delivery.re8ch.com/artifact-digest"]
+
+
+@pytest.mark.parametrize("failure", [executor.Rejected("bearer SECRET-DO-NOT-LOG"), subprocess.TimeoutExpired(["kubectl", "--token=SECRET-DO-NOT-LOG"], 10)])
+def test_cli_exception_always_emits_redacted_current_failure_without_accepting(tmp_path, monkeypatch, capsys, failure):
+    value, operation, bundle = prepare(tmp_path)
+    contract_path = tmp_path / "contract.yaml"; contract_path.write_text(json.dumps(value))
+    operation_path = tmp_path / "operation.json"; operation_path.write_text(json.dumps(operation))
+    def fail(*args, **kwargs):
+        raise failure
+    monkeypatch.setattr(executor.Executor, "reconcile", fail)
+    monkeypatch.setattr(sys, "argv", ["ssa_executor.py", "--contract", str(contract_path), "--operation", str(operation_path), "--bundle", str(bundle), "--state-dir", str(tmp_path / "state")])
+    assert executor.main() == 1
+    captured = capsys.readouterr()
+    assert "SECRET-DO-NOT-LOG" not in captured.out + captured.err
+    result = json.loads(captured.out)
+    executor.validate_schema(result, "release-operation-result.schema.json")
+    assert result["operationId"] == operation["operationId"]
+    assert result["outcome"] == "failed" and result["observedDigest"] is None
+    assert result["application"]["status"] == "partial-or-unknown"
+    assert not (tmp_path / "state" / "state" / "demo.json").exists()
+
+
+def test_invalid_operation_failure_envelope_never_echoes_untrusted_values():
+    value = executor.cli_failure_result({"operationId": "SECRET"}, NOW.isoformat(), "SECRET")
+    assert value["apiVersion"] == "delivery.re8ch.com/workflow-failure/v1alpha1"
+    assert value["outcome"] == "failed" and "SECRET" not in json.dumps(value)

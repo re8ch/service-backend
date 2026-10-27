@@ -117,6 +117,10 @@ jobs:
           fi
           if (( executor_status != 0 )); then exit "$executor_status"; fi
           jq -e '.outcome == "healthy" and .health.status == "healthy"' "$RUNNER_TEMP/result.json" >/dev/null
+      - name: Preserve workflow failure evidence
+        if: failure()
+        run: |
+          python -c 'import datetime as dt,json,os; print(json.dumps({"apiVersion":"delivery.re8ch.com/workflow-failure/v1alpha1","outcome":"failed","finishedAt":dt.datetime.now(dt.timezone.utc).isoformat(),"runId":os.environ.get("GITHUB_RUN_ID"),"job":os.environ.get("GITHUB_JOB"),"health":{"status":"unknown","reason":"workflow step failed; inspect this run before trusting older accepted state"}}))' > "$RUNNER_TEMP/workflow-failure.json"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
-        with: {name: 'main-domain-reconcile-${{ matrix.release-id }}-${{ github.run_id }}', path: '${{ runner.temp }}/result.json', retention-days: 30, if-no-files-found: warn}
+        with: {name: 'main-domain-reconcile-${{ matrix.release-id }}-${{ github.run_id }}', path: "${{ runner.temp }}/result.json\n${{ runner.temp }}/workflow-failure.json", retention-days: 30, if-no-files-found: warn}

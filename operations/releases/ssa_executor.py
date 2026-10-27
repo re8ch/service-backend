@@ -692,6 +692,28 @@ class Executor:
         return result
 
 
+def cli_failure_result(operation: dict | None, started: str, error_kind: str) -> dict:
+    """Preserve this failed invocation even if cluster state cannot be written."""
+    finished = dt.datetime.now(dt.timezone.utc).isoformat()
+    safe_kind = error_kind if error_kind in {"Rejected", "TimeoutExpired", "FileNotFoundError", "ValueError", "PermissionError"} else "ExecutorError"
+    reason = "executor aborted; application state unknown (" + safe_kind + ")"
+    try:
+        validate_schema(operation, "release-operation.schema.json")
+    except Exception:
+        return {"apiVersion": "delivery.re8ch.com/workflow-failure/v1alpha1",
+                "outcome": "failed", "startedAt": started, "finishedAt": finished,
+                "health": {"status": "unknown", "reason": reason}}
+    result = {"apiVersion": "delivery.re8ch.com/release-result/v1alpha1",
+              "operationId": operation["operationId"], "releaseId": operation["releaseId"],
+              "requestDigest": digest(canonical(operation)), "approvedDigest": operation["bundle"]["digest"],
+              "observedDigest": None, "inventoryDigest": operation["inventoryDigest"],
+              "startedAt": started, "finishedAt": finished, "outcome": "failed",
+              "health": {"status": "unknown", "reason": reason},
+              "application": {"status": "partial-or-unknown", "attemptedInventory": [], "appliedInventory": []}}
+    validate_schema(result, "release-operation-result.schema.json")
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--contract", type=Path, required=True)
@@ -709,13 +731,21 @@ def main() -> int:
         parser.error("--no-stage-apply cannot be combined with --stage")
     if args.no_stage_apply and args.partial:
         parser.error("--no-stage-apply cannot be combined with --partial")
-    contract = yaml.safe_load(args.contract.read_text())
-    operation = json.loads(args.operation.read_text())
-    selected_stages = set() if args.no_stage_apply else (set(args.stage) if args.stage else None)
-    result = Executor().reconcile(contract, operation, args.bundle, args.state_dir,
-                                  stages=selected_stages, finalize=not args.partial,
-                                  current_bundle_path=args.current_bundle,
-                                  rollback_stages=set(args.rollback_stage))
+    operation = None
+    started = dt.datetime.now(dt.timezone.utc).isoformat()
+    try:
+        contract = yaml.safe_load(args.contract.read_text())
+        operation = json.loads(args.operation.read_text())
+        selected_stages = set() if args.no_stage_apply else (set(args.stage) if args.stage else None)
+        result = Executor().reconcile(contract, operation, args.bundle, args.state_dir,
+                                      stages=selected_stages, finalize=not args.partial,
+                                      current_bundle_path=args.current_bundle,
+                                      rollback_stages=set(args.rollback_stage))
+    except Exception as error:
+        # Never serialize exception argv, captured streams or rejected input values.
+        result = cli_failure_result(operation, started, type(error).__name__)
+        print(json.dumps(result, sort_keys=True))
+        return 1
     print(json.dumps(result, sort_keys=True))
     return 1 if result.get("outcome") == "failed" else 0
 
