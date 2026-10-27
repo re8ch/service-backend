@@ -26,3 +26,14 @@ patches:
     kind: Deployment
     metadata:
       name: retired-local-gitops-controller
+- target:
+    version: v1
+    kind: Service
+    name: helm-controller
+    namespace: flux-system
+  patch: |-
+    $patch: delete
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: helm-controller

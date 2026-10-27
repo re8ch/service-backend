@@ -1,6 +1,6 @@
 # Local Flux controller retirement
 
-The cloud SSA workflows own delivery and accepted-artifact replay. This change removes only the 22 native Flux Deployments and the local release compatibility projector/dispatcher from rendered desired state. Historical templates remain readable; final deletion patches in the main, federation and compatibility Kustomizations prevent either standalone component bootstrap or federation regeneration from restoring workloads. The legacy compatibility image promotion workflow is inert and its promotion command fails before any GitHub request. Product/controller implementation and cloud observer compatibility are separate work.
+The cloud SSA workflows own delivery and accepted-artifact replay. This change removes the 22 native Flux Deployments, the local release compatibility projector/dispatcher, and their dedicated helm-controller metrics Service from rendered desired state. Historical templates remain readable; final deletion patches in the main, federation and compatibility Kustomizations prevent either standalone component bootstrap or federation regeneration from restoring workloads. The legacy compatibility image promotion workflow is inert and its promotion command fails before any GitHub request. Product/controller implementation and cloud observer compatibility are separate work.
 
 ## Reviewed sources and writers
 
@@ -20,4 +20,10 @@ The first inventory captured compatibility replicas 2 and dispatcher replicas 1;
 
 ## Validation
 
-A full root render compared with its base removes exactly 24 Deployments, adds nothing and changes no remaining object. Tests check all three render entrances, unique exact inventory, retained CRDs/history, paused/prune-disabled legacy owners and the disabled promotion path. Successful rendering is not runtime deletion evidence.
+A full root render compared with its base removes exactly 24 Deployments and one metrics Service, adds nothing and changes no remaining object. Tests check all three render entrances, unique exact inventory, retained CRDs/history, paused/prune-disabled legacy owners and the disabled promotion path. Successful rendering is not runtime deletion evidence.
+
+## Metrics endpoint retirement
+
+Remove the exact `flux-system/helm-controller` Service after compatibility migration, with the same UID/fresh-RV DELETE guard at `/api/v1/namespaces/flux-system/services/helm-controller`. Its captured selector points only to release-compat-controller; UID and accepted server dry-run are recorded in the inventory (audit `op_0158825706a4431f936854a83a8b7e08`). The old `helm-controller.flux-system.svc:8080/metrics` address is retired, not left as an empty apparently configured endpoint. The new cloud `/metrics` endpoint is owned by the parallel cloud-view migration and must be reported at its actual published address.
+
+Live VMPodScrape/VMServiceScrape inspection found no Flux or compatibility selectors (`op_b374272f624d4e49bc20d0d13ce6dfa6`). ServiceMonitor/PodMonitor/PrometheusRule/VMRule/VMAgent specifications and observability-system ConfigMaps contained no gotk, helm-controller or release-compat consumer references (`op_e6b8280b630847bb9a05bc21ba1275ce`). No cluster-external consumer was established; absence of such evidence does not block retirement. These read-only audits emitted only identities, not configuration values.

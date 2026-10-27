@@ -12,6 +12,7 @@ NAMES = {'source-controller', 'kustomize-controller', 'helm-controller', 'notifi
 def test_retired_workloads_cannot_return_from_any_render_entrypoint(kustomize_documents, path):
     docs = kustomize_documents(path)
     assert not [d for d in docs if d['kind'] == 'Deployment' and d['metadata']['name'] in NAMES]
+    assert not [d for d in docs if d['kind'] == 'Service' and d['metadata']['name'] == 'helm-controller' and d['metadata'].get('namespace') == 'flux-system']
     assert docs  # The retained declarations are not replaced by an empty component.
 
 

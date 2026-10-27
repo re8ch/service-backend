@@ -279,5 +279,21 @@
     "Secrets",
     "Namespaces"
   ],
-  "deleteDependents": "Only ReplicaSets owned by reviewed Deployment UIDs and their controller Pods"
+  "deleteDependents": "Only ReplicaSets owned by reviewed Deployment UIDs and their controller Pods",
+  "services": [
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "namespace": "flux-system",
+      "name": "helm-controller",
+      "uid": "95075240-a956-4b65-a88c-df9ca250e547",
+      "resourceVersion": "148369347",
+      "source": "clusters/re8ch/components/release-compat/controller.yaml",
+      "serverDryRunAudit": "op_0158825706a4431f936854a83a8b7e08"
+    }
+  ],
+  "metricsConsumerAudits": [
+    "op_b374272f624d4e49bc20d0d13ce6dfa6",
+    "op_e6b8280b630847bb9a05bc21ba1275ce"
+  ]
 }
