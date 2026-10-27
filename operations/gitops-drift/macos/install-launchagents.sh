@@ -8,9 +8,11 @@ logs="$HOME/Library/Logs"
 domain="gui/$(id -u)"
 
 mkdir -p "$support" "$agents" "$logs"
+mkdir -p "$HOME/Library/Application Support/RE8CH/gitops-drift"
 install -m 0755 "$root/operations/workspace-controller/sync-main-anchor.sh" "$support/sync-main-anchor.sh"
 install -m 0755 "$root/operations/gitops-drift/run-audit.sh" "$support/run-gitops-drift-audit.sh"
 install -m 0755 "$root/operations/gitops-drift/audit.py" "$support/gitops-drift-audit.py"
+install -m 0644 "$root/clusters/re8ch/components/toolhive/namespace-access-classification.yaml" "$HOME/Library/Application Support/RE8CH/gitops-drift/namespace-access-classification.yaml"
 install -m 0644 "$root/operations/workspace-controller/macos/com.re8ch.service-backend-anchor-sync.plist" "$agents/"
 install -m 0644 "$root/operations/gitops-drift/macos/com.re8ch.gitops-drift.plist" "$agents/"
 
