@@ -95,6 +95,230 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: github-actions-release-observer
+  namespace: advfab-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-advfab-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - external-dns-advfab
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: aesthete
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-delivery-products-aesthete
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: ai-operations
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-ai-operations
+  - ssa-state-identity-access-domain-ai-operations
+  - ssa-state-main-tenant-runtime-ai-operations
+  - ssa-state-networking-native-ai-operations
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - re8ch-cloud-platform
+  - stagehand-service
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: among-clusters
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-helm-among-clusters-agent-among-clusters
+  - ssa-state-networking-helm-among-clusters-hub-among-clusters
+  - ssa-state-networking-native-among-clusters
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - among-clusters-agent
+  - among-clusters-gateway
+  - among-clusters-hub
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: anycam
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-delivery-products-anycam
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - anycam-model-downloader
+  - anycam-model-registry
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: api-conformance-runners
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - re8ch-release-state-api-conformance-runner-projection
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: api-conformance-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-api-conformance-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - api-conformance-controller
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: artchais
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-artchais
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: auth
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-auth
+  - ssa-state-identity-access-domain-auth
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - api-conformance-result-proxy
+  - auth-postgrest
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: byoc-pilot
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-byoc-pilot
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: cert-manager
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-cert-manager
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: write-cloudflare-dns-token
   namespace: cert-manager
 rules:
@@ -107,6 +331,188 @@ rules:
   - create
   - patch
   - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: cloud-disk
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-data-storage-cloud-disk
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - cloud-disk
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: codex-archive
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-codex-archive
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: codex-platform
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-codex-platform
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: cosyvoice
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-cosyvoice
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - cosyvoice
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: credential-broker
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-credential-broker
+  - ssa-state-networking-helm-among-clusters-hub-credential-broker
+  - ssa-state-networking-native-credential-broker
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - among-clusters-credential-broker
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: cube-trial
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-cube-trial
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - oauth2-proxy-cube
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: dataspace
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-dataspace
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: egress-fabric
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-egress-fabric
+  - ssa-state-identity-access-telemetry-service-account
+  - ssa-state-networking-native-egress-fabric
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - edge-access-anytls
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - access-adguard
+  - access-controller
+  - access-rule-sync
+  - access-subscription
+  - mihomo-node-labeler
+  - mosdns
+  - oauth2-proxy-access-dns
+  - personal-access-cn-loudi
+  - personal-access-my-kul
+  - personal-access-us-ca
+  - personal-access-us-la
+  resources:
+  - deployments
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -126,58 +532,40 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: github-actions-flux-observer
-  namespace: flux-agent-system
+  name: github-actions-release-observer
+  namespace: farseer
 rules:
 - apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-delivery-products-farseer
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
   - apps
+  resourceNames:
+  - farseer-web
   resources:
   - deployments
   verbs:
   - get
-  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: github-actions-flux-observer
-  namespace: flux-identity-system
-rules:
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - get
-  - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
   namespace: flux-network-system
 rules:
 - apiGroups:
-  - apps
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-flux-network-system
   resources:
-  - deployments
+  - configmaps
   verbs:
   - get
-  - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: github-actions-flux-observer
-  namespace: flux-observability-system
-rules:
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  verbs:
-  - get
-  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -206,16 +594,19 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
   namespace: flux-system
 rules:
 - apiGroups:
-  - apps
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-flux-system
+  - ssa-state-networking-native-flux-system
+  - ssa-state-observability-domain-flux-system
   resources:
-  - deployments
+  - configmaps
   verbs:
   - get
-  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -235,6 +626,97 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: github-actions-release-observer
+  namespace: git-workspaces
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-git-workspaces
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - git-workspace-controller
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: globalping-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-domain-globalping-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: headlamp
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-operations-ui-headlamp
+  - ssa-state-networking-native-headlamp
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - controlled-cluster-relay
+  - headlamp
+  - headlamp-active-elector
+  - headlamp-gateway-proxy
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: incidentrelay
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-chart-incidentrelay
+  - ssa-state-observability-domain-incidentrelay
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - incidentrelay-scheduler
+  - incidentrelay-telegram
+  - incidentrelay-web
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: control-dns-reachability
   namespace: kube-system
 rules:
@@ -244,6 +726,59 @@ rules:
   - endpointslices
   verbs:
   - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-operations-ui-kube-system
+  - ssa-state-networking-helm-advanced-fabric-kube-system
+  - ssa-state-networking-helm-among-clusters-hub-kube-system
+  - ssa-state-networking-helm-cilium-kube-system
+  - ssa-state-networking-native-kube-system
+  - ssa-state-observability-chart-birfucate-metering-kube-system
+  - ssa-state-observability-domain-kube-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - advanced-fabric-agent
+  - advanced-fabric-pod-conformance
+  - cilium
+  - control-api-source
+  - control-dns-reachability
+  - control-transit-controller-ft5h7h2495
+  - host-network-controller-gkfhhhf9ch
+  - podcidr-fabric-reconciler
+  - public-mesh-podcidr-reconciler
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - advanced-fabric-controller
+  - advanced-fabric-doh
+  - advanced-fabric-virtual-ingress
+  - cilium-operator
+  - hubble-relay
+  - hubble-ui
+  - kube-api-observer-proxy
+  - kube-api-overseas-relay
+  - zerotier-planet
+  resources:
+  - deployments
+  verbs:
+  - get
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -261,6 +796,318 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: github-actions-release-observer
+  namespace: llm-gateway
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-llm-gateway
+  - ssa-state-networking-native-llm-gateway
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - litellm
+  - litellm-postgresql
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: mail-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-mail-system
+  - ssa-state-networking-native-mail-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - stalwart-webmail
+  resources:
+  - deployments
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - stalwart-flk
+  - stalwart-idp-flk
+  resources:
+  - statefulsets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: mcp-registry
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-mcp-registry
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - mcp-registry
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: nuclio
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-nuclio
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: observability-ai
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-chart-birfucate-metering
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - birfucate-metering
+  - birfucate-metering-discovery
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: observability-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-observability-system
+  - ssa-state-observability-chart-birfucate-metering-obs-3153d8794b
+  - ssa-state-observability-chart-victoria-metrics-operator
+  - ssa-state-observability-domain-grafana
+  - ssa-state-observability-domain-observability-system
+  - ssa-state-observability-kube-state-metrics
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - re8ch-fair-value-controller
+  - re8ch-grafana
+  - re8ch-grafana-postgresql
+  - re8ch-grafana-renderer
+  - re8ch-kube-state-metrics
+  - victoria-metrics-operator
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: opencost
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-domain-opencost
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: opensandbox-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-opensandbox-system
+  - ssa-state-networking-native-opensandbox-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - opensandbox-orchestra-proxy
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: opentelemetry-operator
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-chart-re8ch-opentelemetry-operator
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - otel-operator-opentelemetry-operator
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: ops
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-commerce-billing-cluster-bootstrap
+  - ssa-state-main-data-storage-cluster-bootstrap
+  - ssa-state-main-data-storage-ops
+  - ssa-state-main-operations-ui-cluster-bootstrap
+  - ssa-state-main-tenant-runtime-cluster-bootstrap
+  - ssa-state-networking-native-ops
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - cloudbeaver
+  - routeros-public-forward-controller
+  - routeros-transit-controller-t9827g8mmg
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: payments
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-payments
+  - ssa-state-networking-native-payments
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - commerce-postgrest-ro
+  - commerce-postgrest-rw
+  - hyperswitch-web
+  - payment-postgrest
+  - payment-postgrest-ro
+  - re8ch-catalog
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: pigsty-external
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-data-storage-pigsty-external
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: qianwen-ops
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-qianwen-ops
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - external-dns-cloudflare
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: read-cloudflare-dns-token
   namespace: qianwen-ops
 rules:
@@ -270,6 +1117,400 @@ rules:
   - cloudflare-pg-dns-controller-secret
   resources:
   - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-anysite
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-anysite
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-dataspace
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-dataspace
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-farseer
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-delivery-products-re8ch-farseer
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - farseer-web
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-ledger
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-ledger
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-neo4j
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-neo4j
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-secretary
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-re8ch-secretary
+  - ssa-state-networking-native-re8ch-secretary
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - secretary-api
+  - secretary-cluster-watcher
+  - secretary-delivery-manager
+  - secretary-projector
+  - secretary-runtime
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: regional-routing
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-helm-public-edge-manager-regional-routing
+  - ssa-state-networking-native-regional-routing
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - powerdns-cloud-authorities
+  - public-edge-manager
+  - public-edge-manager-redirector
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - public-edge-manager-cli
+  - public-edge-manager-controller
+  - public-edge-manager-globalping
+  - public-edge-manager-hidden-primary
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: scheduler-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-tenant-runtime-scheduler-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - scheduler-plugins
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: scheduling-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-tenant-runtime-scheduling-system
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - penrose-controller
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: studio-toolkit
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-main-operations-ui-studio-toolkit
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - studio-api
+  - studio-db-ro
+  - studio-db-rw
+  - studio-worker-r640
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: supabase-billing
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-supabase-billing
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - supabase-billing-auth
+  - supabase-billing-realtime
+  - supabase-billing-rest-ro
+  - supabase-billing-rest-rw
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: supabase-identity
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-supabase-identity
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - identity-avatar-worker
+  - supabase-identity-auth
+  - supabase-identity-realtime
+  - supabase-identity-rest
+  - supabase-identity-rest-ro
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: supabase-pg-re8ch
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-supabase-pg-re8ch
+  - ssa-state-networking-native-supabase-pg-re8ch
+  - ssa-state-observability-domain-supabase-pg-re8ch
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - supabase-rest
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: synthetic-monitoring
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-observability-domain-synthetic-monitoring
+  resources:
+  - configmaps
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: tenant-infrastructure
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-identity-access-domain-tenant-infrastructure
+  - ssa-state-observability-chart-birfucate-metering-ten-dff87672e0
+  - ssa-state-observability-domain-tenant-infrastructure
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - tenant-runtime-image-cache
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - admin-api
+  - harbor-supply-chain
+  - tenant-api
+  - tenant-control-controller
+  - tenant-provider-reconciler
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: toolhive-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-toolhive-system
+  - ssa-state-agent-runtime-toolhive-operator
+  - ssa-state-main-data-storage-toolhive-system
+  - ssa-state-networking-native-toolhive-system
+  - ssa-state-observability-chart-birfucate-metering-too-25959610d0
+  resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - re8ch-plugin-runtime
+  - toolhive-cloud-ui
+  - toolhive-operator
+  resources:
+  - deployments
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-release-observer
+  namespace: voice-observability
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-networking-native-voice-observability
+  resources:
+  - configmaps
   verbs:
   - get
 ---
@@ -359,39 +1600,6 @@ rules:
   verbs:
   - get
   - list
-- apiGroups:
-  - source.toolkit.fluxcd.io
-  resources:
-  - gitrepositories
-  - ocirepositories
-  - helmrepositories
-  - helmcharts
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - kustomize.toolkit.fluxcd.io
-  resources:
-  - kustomizations
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - helm.toolkit.fluxcd.io
-  resources:
-  - helmreleases
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - notification.toolkit.fluxcd.io
-  resources:
-  - alerts
-  - providers
-  - receivers
-  verbs:
-  - get
-  - list
 - nonResourceURLs:
   - /api
   - /api/*
@@ -431,6 +1639,146 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: github-actions-release-observer
+  namespace: advfab-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: aesthete
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: ai-operations
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: among-clusters
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: anycam
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: api-conformance-runners
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: api-conformance-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: artchais
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: auth
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: byoc-pilot
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: cert-manager-write-cloudflare-dns-token
   namespace: cert-manager
 roleRef:
@@ -445,6 +1793,132 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: github-actions-release-observer
+  namespace: cert-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: cloud-disk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: codex-archive
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: codex-platform
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: cosyvoice
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: credential-broker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: cube-trial
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: dataspace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: egress-fabric
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: path-controller
   namespace: egress-fabric
 roleRef:
@@ -459,12 +1933,12 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: github-actions-flux-observer
-  namespace: flux-agent-system
+  name: github-actions-release-observer
+  namespace: farseer
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
@@ -473,40 +1947,12 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: github-actions-flux-observer
-  namespace: flux-identity-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: github-actions-flux-observer
-subjects:
-- apiGroup: rbac.authorization.k8s.io
-  kind: Group
-  name: re8ch:credential-contract:node-observer
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
   namespace: flux-network-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: github-actions-flux-observer
-subjects:
-- apiGroup: rbac.authorization.k8s.io
-  kind: Group
-  name: re8ch:credential-contract:node-observer
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: github-actions-flux-observer
-  namespace: flux-observability-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
@@ -529,12 +1975,12 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
   namespace: flux-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: github-actions-flux-observer
+  name: github-actions-release-observer
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
@@ -557,6 +2003,62 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: github-actions-release-observer
+  namespace: git-workspaces
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: globalping-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: headlamp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: incidentrelay
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: control-dns-reachability
   namespace: kube-system
 roleRef:
@@ -571,6 +2073,20 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: github-actions-release-observer
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
   name: host-network-controller
   namespace: kube-system
 roleRef:
@@ -581,6 +2097,174 @@ subjects:
 - kind: ServiceAccount
   name: host-network-controller
   namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: llm-gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: mail-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: mcp-registry
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: nuclio
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: observability-ai
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: opencost
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: opensandbox-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: opentelemetry-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: payments
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: pigsty-external
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -595,6 +2279,258 @@ subjects:
 - kind: ServiceAccount
   name: cert-manager-cloudflare-bootstrap
   namespace: cert-manager
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: qianwen-ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-anysite
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-dataspace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-farseer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-ledger
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-neo4j
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: re8ch-secretary
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: regional-routing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: scheduler-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: scheduling-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: studio-toolkit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: supabase-billing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: supabase-identity
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: supabase-pg-re8ch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: synthetic-monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: toolhive-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-release-observer
+  namespace: voice-observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: github-actions-release-observer
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:credential-contract:node-observer
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

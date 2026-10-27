@@ -290,7 +290,7 @@ jobs:
     env:
       NODE_USE_ENV_PROXY: '1'
     if: github.ref == 'refs/heads/main' && (github.event.schedule == '2-57/5 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'flux'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     environment: cluster-observation
     permissions:
