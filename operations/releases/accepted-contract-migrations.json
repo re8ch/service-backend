@@ -1,8 +1,56 @@
 {
   "main-data-storage-cloud-disk": {
-    "fromContractDigest": "sha256:01e60c94c35f4a6685bf369bac0ecf344338503dddb7d2b1dca2c8aad518ee65",
-    "toContractDigest": "sha256:1f457f6b18696aa1eeb35b07d202551b7091b0c0dad5fef6b5fe5cc3cea6b36f",
+    "bundleDigest": "sha256:2ebc979731bb6ada7411461c96e70db26d4ad08902dcb8bb3d6f9851b4a93144",
     "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-cloud-disk",
-    "bundleDigest": "sha256:2ebc979731bb6ada7411461c96e70db26d4ad08902dcb8bb3d6f9851b4a93144"
+    "fromContractDigest": "sha256:01e60c94c35f4a6685bf369bac0ecf344338503dddb7d2b1dca2c8aad518ee65",
+    "toContractDigest": "sha256:1f457f6b18696aa1eeb35b07d202551b7091b0c0dad5fef6b5fe5cc3cea6b36f"
+  },
+  "main-data-storage-ops": {
+    "bundleDigest": "sha256:911fd229da76f8f9073b994f496142ba5419bf7495b0a536343ce89b24cde33f",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-ops",
+    "fromContractDigest": "sha256:db31f65da7c5619b714b38576d77005d305e0bd5e1123f3782f586ead94ce3ff",
+    "toContractDigest": "sha256:edb865fb649a7d27757f4b98745356f42816dada177c4d6d2f002d5598d3ba3a"
+  },
+  "main-data-storage-pigsty-external": {
+    "bundleDigest": "sha256:685cb5d82e638df6018b29146037b12314705f2155b76ec475b9d9307646488b",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-pigsty-external",
+    "fromContractDigest": "sha256:2fd2e4dc17c7e129f9f802da7aefcf8118ed65667103d8695de5c3f23a3f47e3",
+    "toContractDigest": "sha256:41c445f457ce220cd3413c7c8df5b5b52192279cb215f27dbfe8f17ee8090701"
+  },
+  "main-data-storage-toolhive-system": {
+    "bundleDigest": "sha256:95e6def8ffb1fad4909b95853e26c79ce218a5b673df9583baa7755f52b359d8",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-toolhive-system",
+    "fromContractDigest": "sha256:78782e0b08c6d9a92113b341dabf460c5c65856a995f9e83ad49a754c4a94ef4",
+    "toContractDigest": "sha256:8ef5775f277a4c1a3ed432058d6415e8eca682ee974230332f3863387451ab51"
+  },
+  "main-operations-ui-studio-toolkit": {
+    "bundleDigest": "sha256:cdaaceb07867b5dba83287f9e857b2ffc1766e29bbc9a092d1c25ce3f0519162",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-operations-ui-studio-toolkit",
+    "fromContractDigest": "sha256:4cae00aaadd9dcca765721e7e8289170200d1f050707f04987a8dd17ce061f30",
+    "toContractDigest": "sha256:18c5b58fcdf47e38a0a38999fc1a94683bd637de5d44586246daca0c78aba003"
+  },
+  "main-operations-ui-supabase-pg-re8ch": {
+    "bundleDigest": "sha256:7ebad191e02d2ff2d2112106ea3035528e914d037ab71ba69426e0a53e01a585",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-operations-ui-supabase-pg-re8ch",
+    "fromContractDigest": "sha256:61fd7af91338e346d5eb7bbec78e0d9daf105a8f787cd45595e1ebab68f1f11b",
+    "toContractDigest": "sha256:904bdf6c217e3d9f19c9343127d914a0ecdb47a2ee99d1574a0b64336e76b212"
+  },
+  "main-tenant-runtime-ai-operations": {
+    "bundleDigest": "sha256:b83f571ea2acba9b219bf6de2c1107c4e9107b829675aebb82eeabfa40a1c017",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-ai-operations",
+    "fromContractDigest": "sha256:96895aa165ec6231ed77ee486880d7d451bf0e0e20f855a5ff8aa07601b500e1",
+    "toContractDigest": "sha256:410fefe8ed9f540767098950a81c35d0e2bf994e56b0aebd1a7280cf1677b91b"
+  },
+  "main-tenant-runtime-scheduler-system": {
+    "bundleDigest": "sha256:0de38da325efcaaed08b134a71fe2cac39108f54eaa9d4d4ab1db07ca2b6fefc",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-scheduler-system",
+    "fromContractDigest": "sha256:39b50f74c6cc911b567aacf6f93037ae18a7ed912cb839652d31df5227d185d9",
+    "toContractDigest": "sha256:27695a469c986953386c27ee2b7135b61977f16ad74d9e556e5eee7579a5cf26"
+  },
+  "main-tenant-runtime-scheduling-system": {
+    "bundleDigest": "sha256:ed77993314afd2f9b2f63185bc670cc865115d2fad6548535d45d20761d543f7",
+    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-scheduling-system",
+    "fromContractDigest": "sha256:f49fdfd05e83e95fa607e03650eb980391313dd7077b25ca64a872d0b33cb5c0",
+    "toContractDigest": "sha256:bade52395005f69538ebe6adb4d0321725927bf6e87f29a04bcbb9746080cba5"
   }
 }

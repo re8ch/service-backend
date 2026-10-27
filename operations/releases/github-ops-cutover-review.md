@@ -43,6 +43,18 @@ limited to reconcile of that healthy accepted digest and never permits a new
 artifact, changed contract, force operation or first deployment. Current domain
 OIDC/RBAC, payload digest, signature and inventory checks still apply.
 
+The follow-up cloud run `40504842574` completed successfully on GitHub-hosted
+workers with compilation/signing skipped. Runtime readback confirmed a healthy
+result, sequence advanced from 1 to 2 and the accepted cloud-disk digest unchanged.
+
+The remaining main-repository cohort was checked against its accepted state and
+Git history. Nine releases have unchanged bundle source since PR #2223 and only
+the PR #2292 domain provenance change; their exact binding transitions are now
+listed together. `main-commerce-billing-payments` is excluded: PR #2370 changed
+its inventory and routes, so it requires a new artifact for that changed
+configuration rather than replay of the older accepted inventory. This does not
+authorize overwriting newer desired source with an older accepted snapshot.
+
 This is an explicit dispatch interface; it does not yet claim automatic
 merge-to-release, periodic drift repair, or complete local Flux retirement.
 The durable acceptance ConfigMap remains an existing runtime record, not a local
