@@ -93,3 +93,31 @@ def test_refresh_uses_existing_oidc_guards_and_atomic_private_kubeconfig(tmp_pat
     with pytest.raises(refresh.Rejected):
         refresh.refresh()
     assert path.read_bytes() == before
+
+
+def test_reviewed_takeover_is_publish_only_and_exactly_two_deployments(tmp_path):
+    import os
+    import subprocess
+    workflow = yaml.safe_load((ROOT / '.github/workflows/main-domain-release.yml').read_text())
+    script = next(step['run'] for step in workflow['jobs']['execute']['steps'] if 'takeover_args=(--action reconcile)' in step.get('run', ''))
+    script = script[script.index('takeover_args=(--action reconcile)'):script.index('python operations/releases/operation_materialize.py request')]
+    expected = {'main-data-storage-ops': 'apps/Deployment/ops/cloudbeaver',
+                'main-tenant-runtime-scheduling-system': 'apps/Deployment/scheduling-system/penrose-controller'}
+    for path in (ROOT / 'contracts/releases/main-domain').glob('*.yaml'):
+        contract = yaml.safe_load(path.read_text())
+        allowed = contract['spec']['authorization'].get('forceConflictObjects', [])
+        assert allowed == ([expected[path.stem]] if path.stem in expected else [])
+    for release, mode, enabled, success in [
+        ('main-data-storage-ops', 'publish', 'true', True),
+        ('main-tenant-runtime-scheduling-system', 'publish', 'true', True),
+        ('main-data-storage-ops', 'reconcile', 'true', False),
+        ('main-data-storage-cluster-bootstrap', 'publish', 'true', False),
+        ('main-data-storage-ops', 'publish', 'false', True),
+    ]:
+        env = {**os.environ, 'RELEASE_ID': release, 'RELEASE_MODE': mode, 'REVIEWED_TAKEOVER': enabled}
+        result = subprocess.run(['bash', '-euo', 'pipefail', '-c', script + '\nprintf "%s\\n" "${takeover_args[@]}"'], env=env, text=True, capture_output=True)
+        assert (result.returncode == 0) == success
+        if success and enabled == 'true':
+            assert result.stdout.splitlines() == ['--action', 'force-reconcile', '--force-object', expected[release]]
+        if success and enabled == 'false':
+            assert result.stdout.splitlines() == ['--action', 'reconcile']

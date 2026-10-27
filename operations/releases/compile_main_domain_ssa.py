@@ -252,6 +252,12 @@ def compile_outputs() -> dict[Path, str]:
                               "deletionAllowlist": [] if not prune else [x for x in inventory if "/PersistentVolumeClaim/" not in x]},
             },
         }
+        reviewed_takeovers = {
+            "main-data-storage-ops": "apps/Deployment/ops/cloudbeaver",
+            "main-tenant-runtime-scheduling-system": "apps/Deployment/scheduling-system/penrose-controller",
+        }
+        if name in reviewed_takeovers:
+            contract["spec"]["authorization"]["forceConflictObjects"] = [reviewed_takeovers[name]]
         if cluster:
             contract["spec"]["authorization"]["requireExisting"] = True
         files[CONTRACTS / f"{name}.yaml"] = yaml.safe_dump(contract, sort_keys=False)
