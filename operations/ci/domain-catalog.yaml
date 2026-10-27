@@ -469,18 +469,6 @@ validation_units:
     helpers: []
     tools: []
     reuse: candidate
-  tests/test_flux_cloud_cutover.py:
-    sources: []
-    data: []
-    helpers:
-    - tests/kustomize_render.py
-    - operations/ci/render_evidence.py
-    tools:
-    - kubectl
-    - kustomize
-    reuse: candidate
-    roots:
-    - clusters/re8ch
   tests/test_flux_controller_ha.py:
     sources: []
     data: []
