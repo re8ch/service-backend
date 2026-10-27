@@ -120,6 +120,8 @@ jobs:
         retention-days: 30
         if-no-files-found: ignore
   runtime:
+    env:
+      EXECUTOR_ENVIRONMENT: release-executor-ceph-runtime
     needs: infra
     runs-on: ubuntu-24.04
     timeout-minutes: 35

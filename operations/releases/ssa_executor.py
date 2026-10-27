@@ -27,6 +27,7 @@ from typing import Callable
 import yaml
 
 from main_domain_profile import profiles, replay_provenance
+from ceph_execution_profile import is_runtime_operation
 from unified_bundle import canonical, digest, object_identity, validate_schema
 from existing_objects import bind_existing, ExistingObjectError, resource_version_conflict
 
@@ -265,7 +266,7 @@ class Executor:
         publisher = all(github[key] == provenance[key] for key in github_fields)
         replay = replay_provenance(contract)
         replay_only = not publisher and replay is not None and all(github[key] == replay[key] for key in github_fields)
-        if not publisher and not replay_only:
+        if not publisher and not replay_only and not is_runtime_operation(contract, operation):
             mismatch = next(key for key in github_fields if github[key] != provenance[key])
             raise Rejected(f"GitHub {mismatch} is not authorized")
         if replay_only:
@@ -536,6 +537,12 @@ class Executor:
                           started: dt.datetime, verify_signature: bool, selected_stages: set[str] | None,
                           finalize: bool, current_bundle_path: Path | None,
                           rollback_stages: set[str]) -> dict:
+        runtime_only = is_runtime_operation(contract, operation)
+        if runtime_only and (finalize or not selected_stages
+                or not selected_stages <= {"runtime", "custom-resources"}
+                or not rollback_stages <= {"runtime"}
+                or operation["action"] not in {"reconcile", "force-reconcile", "rollback"}):
+            raise Rejected("Ceph runtime identity requires bounded partial runtime stages")
         manifest, objects, request_digest = self.validate(contract, operation, bundle_path, store)
         cached = store.result(operation["operationId"])
         if cached:
@@ -593,6 +600,10 @@ class Executor:
                 raise Rejected(f"unknown bundle stages: {sorted(unknown)}")
             stages = [stage for stage in stages if stage["name"] in selected_stages]
         selected_objects = [by_identity[identity] for stage in stages for identity in stage["inventory"]]
+        if runtime_only and any(
+                item["apiVersion"].split("/")[0] in {"rbac.authorization.k8s.io", "apiextensions.k8s.io"}
+                or item["metadata"].get("namespace") != "rook-ceph" for item in selected_objects):
+            raise Rejected("Ceph runtime identity cannot apply infrastructure objects")
         if contract["spec"]["authorization"].get("requireExisting", False):
             selected_objects = self.with_existing_versions(selected_objects)
             by_identity.update({object_identity(item): item for item in selected_objects})

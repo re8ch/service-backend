@@ -1,0 +1,14 @@
+{
+  "contracts": {
+    "rook-ceph": "sha256:8cf14561033a03a334dd4bd46aa632cfa8a8a5ad624d04eeab83eb209bb8cf4b",
+    "ceph-csi-drivers": "sha256:26eff3ab45b9ad40a281cd80ef694b6de29b5268f137ddab9bd4f0cc7e5161da",
+    "rook-ceph-cluster": "sha256:4a3fefb48731d19789ab05d333aa9bfc8d0eb7ad94354e5f695567134bb17434"
+  },
+  "execution": {
+    "repository": "re8ch/service-backend",
+    "workflow": ".github/workflows/ceph-static-release.yml",
+    "ref": "refs/heads/main",
+    "environment": "release-executor-ceph-runtime",
+    "audience": "https://kube-api.re8ch.com/release-executor-ceph-runtime"
+  }
+}

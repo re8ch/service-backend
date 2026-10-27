@@ -321,7 +321,8 @@ def test_ceph_jobs_share_cloud_snapshot_and_preserve_failed_evidence():
         assert "workflow-failure.json" in uploads[0]["with"]["path"]
 
 
-def test_cloud_request_materializes_through_existing_executor_schema(tmp_path, monkeypatch):
+@pytest.mark.parametrize("stage", ["infra", "runtime"])
+def test_cloud_request_materializes_through_existing_executor_schema(tmp_path, monkeypatch, stage):
     import os
     import subprocess
     import sys
@@ -333,7 +334,10 @@ def test_cloud_request_materializes_through_existing_executor_schema(tmp_path, m
     for name, value in [("resource", request), ("release", release), ("metadata", metadata)]:
         (tmp_path / (name + ".json")).write_text(json.dumps(value))
     env = {**os.environ, "GITHUB_REPOSITORY": "re8ch/service-backend", "GITHUB_REF": "refs/heads/main",
-           "GITHUB_SHA": "a" * 40, "GITHUB_RUN_ID": "1"}
+           "GITHUB_SHA": "a" * 40, "GITHUB_RUN_ID": "1",
+           "EXECUTOR_AUDIENCE": f"https://kube-api.re8ch.com/release-executor-ceph-{stage}",
+           "EXECUTOR_ENVIRONMENT": f"release-executor-ceph-{stage}",
+           "GITHUB_WORKFLOW_REF": "re8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main"}
     subprocess.run([sys.executable, str(ROOT / "operations/releases/ceph_operation.py"),
         "--resource", str(tmp_path / "resource.json"), "--static-release", str(tmp_path / "release.json"),
         "--contract", str(contract_path), "--metadata", str(tmp_path / "metadata.json"),
@@ -341,4 +345,7 @@ def test_cloud_request_materializes_through_existing_executor_schema(tmp_path, m
     result = json.loads((tmp_path / "operation.json").read_text())
     assert result["operationId"] == request["metadata"]["uid"]
     assert result["bundle"]["digest"] == release["spec"]["bundleDigest"]
-    assert result["github"]["audience"] == "https://kube-api.re8ch.com/release-executor-ceph-infra"
+    assert result["github"]["audience"] == f"https://kube-api.re8ch.com/release-executor-ceph-{stage}"
+    assert result["github"]["environment"] == f"release-executor-ceph-{stage}"
+    assert result["contractDigest"] == request["spec"]["contractDigest"]
+    assert result["bundle"]["signer"] == contract["spec"]["provenance"]["signer"]

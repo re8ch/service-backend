@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 
 from unified_bundle import canonical, digest, validate_schema
+from ceph_execution_profile import runtime_provenance
 
 
 def main() -> int:
@@ -55,6 +56,15 @@ def main() -> int:
     now = dt.datetime.now(dt.timezone.utc)
     timeout = min(int(spec["timeoutSeconds"]), 3600)
     provenance = contract["spec"]["provenance"]
+    execution = provenance
+    audience = os.environ.get("EXECUTOR_AUDIENCE", provenance["audience"])
+    if audience != provenance["audience"]:
+        execution = runtime_provenance(contract)
+        if (execution is None or audience != execution["audience"]
+                or os.environ.get("EXECUTOR_ENVIRONMENT") != execution["environment"]
+                or os.environ.get("GITHUB_WORKFLOW_REF") !=
+                f'{execution["repository"]}/{execution["workflow"]}@{execution["ref"]}'):
+            raise SystemExit("unauthorized Ceph execution identity")
     operation = {
         "apiVersion": "delivery.re8ch.com/release-operation/v1alpha1",
         "operationId": str(uuid.UUID(resource["metadata"]["uid"])),
@@ -68,7 +78,7 @@ def main() -> int:
         "inventoryDigest": metadata["inventoryDigest"],
         "github": {"repository": os.environ["GITHUB_REPOSITORY"], "workflow": provenance["workflow"],
                    "ref": os.environ["GITHUB_REF"], "commit": os.environ["GITHUB_SHA"], "runId": os.environ["GITHUB_RUN_ID"],
-                   "environment": provenance["environment"], "audience": provenance["audience"]},
+                   "environment": execution["environment"], "audience": execution["audience"]},
         "issuedAt": now.isoformat(), "expiresAt": (now + dt.timedelta(seconds=timeout)).isoformat(),
         "nonce": uuid.uuid4().hex,
     }
