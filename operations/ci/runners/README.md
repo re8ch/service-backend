@@ -51,9 +51,13 @@ new slots.
 Image publishers that use `docker/setup-buildx-action` remain on the self-hosted
 Macmini. Buildx's `docker-container` driver is not compatible with the R640
 rootless Podman API, while ordinary `docker run`, validation, chart publishing,
-and the Mihomos release jobs run on R640. No workflow uses a GitHub-hosted runner.
+and the Mihomos release jobs run on R640. Control-plane CI, dependency review,
+tenant Go validation and main-domain SSA publication/reconcile now run on
+GitHub-hosted Ubuntu 24.04. Host-bound image publishers remain on their existing
+workers until separately migrated; private-document verification retains its
+protected isolated runner.
 The control-plane CI policy runs `tests/check_no_github_hosted_runners.py` and
-rejects any workflow job that does not explicitly select `self-hosted`.
+permits only those reviewed cloud jobs and rejects other undeclared hosted jobs.
 
 ## CodeQL boundary
 
