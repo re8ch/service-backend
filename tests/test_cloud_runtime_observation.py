@@ -254,3 +254,27 @@ def test_deadline_still_writes_publishable_snapshot(monkeypatch,tmp_path):
     assert len(snapshot['domains'])==6
     assert all(d['observation']['status']=='unavailable' for d in snapshot['domains'])
     assert all(d['sync']['synced']==0 for d in snapshot['domains'])
+
+
+@pytest.mark.parametrize('error,category',[
+    (urllib.error.HTTPError('https://PRIVATE',403,'TOKEN',{},None),'http-error'),
+    (urllib.error.URLError('PRIVATE TOKEN'),'network-error'),
+    (TimeoutError('PRIVATE TOKEN'),'deadline-or-timeout'),
+    (ValueError('PRIVATE TOKEN'),'invalid-response'),
+    (RuntimeError('PRIVATE TOKEN'),'unavailable'),
+])
+def test_operation_diagnostics_never_log_sensitive_exception(monkeypatch,capsys,error,category):
+    monkeypatch.setenv('AGENT_OBSERVER_TOKEN','PRIVATE TOKEN')
+    def request(*args):raise error
+    monkeypatch.setattr(collect,'request_json',request)
+    assert collect.operation('agent-runtime')=={'status':'unknown','observedAt':None}
+    output=capsys.readouterr().out
+    assert 'PRIVATE' not in output and 'TOKEN' not in output
+    assert json.loads(output)['category']==category
+    if category=='http-error':assert json.loads(output)['httpStatus']==403
+
+
+def test_missing_token_diagnostic_is_domain_scoped(monkeypatch,capsys):
+    monkeypatch.delenv('AGENT_OBSERVER_TOKEN',raising=False)
+    collect.operation('agent-runtime')
+    assert json.loads(capsys.readouterr().out)=={'domain':'agent-runtime','category':'missing-token'}

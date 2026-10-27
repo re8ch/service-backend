@@ -185,11 +185,19 @@ def run_results(repo, run, token):
             continue
     return results
 
+def operation_diagnostic(domain, category, code=None):
+    # Fixed vocabulary only: never stringify an exception, response, URL or token.
+    record = {'domain': domain if domain in DOMAINS else 'unknown', 'category': category}
+    if isinstance(code, int) and 100 <= code <= 599:
+        record['httpStatus'] = code
+    print(json.dumps(record, sort_keys=True))
+
 def operation(domain):
     repo, workflows, env = WORKFLOWS[domain]
     token = os.environ.get(env)
     unknown = {'status': 'unknown', 'observedAt': None}
     if not token:
+        operation_diagnostic(domain, 'missing-token')
         return unknown
     try:
         runs = []
@@ -200,21 +208,33 @@ def operation(domain):
             # Reruns keep created_at. Read the complete bounded history rather than
             # selecting the newest-created run and silently missing an old rerun.
             if total > 1000:
+                operation_diagnostic(domain, 'history-bound')
                 return unknown
             history = data['workflow_runs']
             for page in range(2, (total+99)//100+1):
                 history += request_json(base+f'&page={page}', token)['workflow_runs']
             if len({r['id'] for r in history}) != total:
+                operation_diagnostic(domain, 'history-incomplete')
                 return unknown
             runs += history
         if not runs:
+            operation_diagnostic(domain, 'no-runs')
             return unknown
         latest = max(runs, key=lambda r: epoch(r['updated_at']))
         state = 'running' if latest['status'] != 'completed' else ('succeeded' if latest['conclusion'] == 'success' else 'failed')
         return {'status': state, 'observedAt': latest['updated_at'],
                 '_results': run_results(repo, latest, token) if state == 'failed' else []}
+    except urllib.error.HTTPError as error:
+        operation_diagnostic(domain, 'http-error', error.code)
+    except TimeoutError:
+        operation_diagnostic(domain, 'deadline-or-timeout')
+    except urllib.error.URLError:
+        operation_diagnostic(domain, 'network-error')
+    except (KeyError, ValueError, TypeError):
+        operation_diagnostic(domain, 'invalid-response')
     except Exception:
-        return unknown
+        operation_diagnostic(domain, 'unavailable')
+    return unknown
 
 class Cluster:
     def __init__(self):
