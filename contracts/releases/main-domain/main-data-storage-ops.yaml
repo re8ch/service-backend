@@ -37,6 +37,8 @@ spec:
     - cloudbeaver-workspace
     - cloudbeaver-workspace-rbd
     allowClusterScoped: false
+    forceConflictObjects:
+    - apps/Deployment/ops/cloudbeaver
   inventory:
     digest: sha256:8ef6226b98c201e85c22bc48f7d7d65ef367bde9ccb249134679e75723d1846c
   lifecycle:

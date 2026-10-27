@@ -5,6 +5,7 @@ on:
       contract: {description: Reviewed main-domain ReleaseContract path, type: string, required: true}
       reuse_digest: {description: Reuse an existing signed digest without rebuilding, type: string, default: ''}
       reuse_source_commit: {description: Exact certified build commit with identical contract and flat source, type: string, default: ''}
+      reviewed_takeover: {description: Force only the reviewed deployment adoption in this signed contract, type: boolean, default: false}
       execute: {description: Execute through the bounded SSA executor, type: boolean, default: false}
       mode:
         description: Publish a new bundle or reconcile the accepted digest without building
@@ -174,6 +175,7 @@ jobs:
           RELEASE_ID: '${{ needs.validate.outputs.release-id }}'
           TARGET_NAMESPACE: '${{ needs.validate.outputs.namespace }}'
           RELEASE_MODE: '${{ inputs.mode }}'
+          REVIEWED_TAKEOVER: '${{ inputs.reviewed_takeover }}'
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/executor-state"; install -d "$RUNNER_TEMP/pulled" "$root/state" "$root/results/$RELEASE_ID"
@@ -190,8 +192,18 @@ jobs:
           cosign verify --certificate-identity '${{ needs.validate.outputs.signer }}' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
           flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --output "$RUNNER_TEMP/pulled"
+          takeover_args=(--action reconcile)
+          if [[ "$REVIEWED_TAKEOVER" == true ]]; then
+            if [[ "$RELEASE_MODE" != publish ]]; then exit 1; fi
+            case "$RELEASE_ID" in
+              main-data-storage-ops) takeover_object=apps/Deployment/ops/cloudbeaver ;;
+              main-tenant-runtime-scheduling-system) takeover_object=apps/Deployment/scheduling-system/penrose-controller ;;
+              *) echo 'No reviewed deployment takeover for this release' >&2; exit 1 ;;
+            esac
+            takeover_args=(--action force-reconcile --force-object "$takeover_object")
+          fi
           python operations/releases/operation_materialize.py request --contract "$CONTRACT" --metadata "$RUNNER_TEMP/pulled/bundle-metadata.json" \
-            --state-dir "$root" --reference "$OCI_REFERENCE" --digest "$OCI_DIGEST" --output "$RUNNER_TEMP/operation.json"
+            --state-dir "$root" --reference "$OCI_REFERENCE" --digest "$OCI_DIGEST" --output "$RUNNER_TEMP/operation.json" "${takeover_args[@]}"
           executor_status=0
           python operations/releases/ssa_executor.py --contract "$CONTRACT" --operation "$RUNNER_TEMP/operation.json" \
             --bundle "$RUNNER_TEMP/pulled/release.bundle" --state-dir "$root" > "$RUNNER_TEMP/result.json" || executor_status=$?

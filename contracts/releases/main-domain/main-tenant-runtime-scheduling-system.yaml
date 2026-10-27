@@ -32,6 +32,8 @@ spec:
     - penrose-controller
     - penrose-controller-source-5f7tbkh9db
     allowClusterScoped: false
+    forceConflictObjects:
+    - apps/Deployment/scheduling-system/penrose-controller
   inventory:
     digest: sha256:b82c92a6ca419a5b96dad4c1852fcc0b42b54a76f58000584f204232915b5ca9
   lifecycle:
