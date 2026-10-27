@@ -191,6 +191,56 @@ def test_explicit_empty_stage_selection_finalizes_without_applying_objects(tmp_p
     assert persisted["inventory"] == ["apps/Deployment/demo/demo"]
 
 
+def test_suspended_release_rejects_replay_without_runtime_calls(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
+    instance.reconcile(value, operation, bundle_path, tmp_path / "state", verify_signature=False)
+    store = executor.Store(tmp_path / "state", "demo")
+    state = store.state()
+    state["suspended"] = True
+    store.accept(state)
+    _, replay, _ = prepare(tmp_path, sequence=2, previous=state["appliedDigest"])
+    runner.calls.clear()
+    with pytest.raises(executor.Rejected, match="suspended"):
+        instance.reconcile(value, replay, bundle_path, tmp_path / "state", verify_signature=False)
+    assert runner.calls == []
+    replay["action"] = "resume"
+    instance.reconcile(value, replay, bundle_path, tmp_path / "state", verify_signature=False)
+    assert store.state()["suspended"] is False
+    assert runner.calls == []
+
+
+@pytest.mark.parametrize("fault", [None, "blocked", "suspended", "healthyDigest", "releaseId", "bundleReference", "inventoryDigest", "namespace"])
+def test_replay_resolves_only_target_bound_healthy_acceptance(tmp_path, fault):
+    import yaml
+    value, operation, bundle_path = prepare(tmp_path)
+    instance = executor.Executor(runner=Runner(), now=lambda: NOW, sleeper=lambda _: None)
+    instance.reconcile(value, operation, bundle_path, tmp_path / "state", verify_signature=False)
+    state = executor.Store(tmp_path / "state", "demo").state()
+    state["bundleReference"] = "oci://ghcr.io/re8ch/service-backend-release/demo"
+    if fault in {"blocked", "suspended"}:
+        state[fault] = True
+    elif fault in {"healthyDigest", "inventoryDigest"}:
+        state[fault] = "sha256:" + "f" * 64
+    elif fault == "releaseId":
+        state[fault] = "another-release"
+    elif fault == "bundleReference":
+        state[fault] = "oci://untrusted.example/demo"
+    cm = {"metadata": {"name": "ssa-state-demo", "namespace": "other" if fault == "namespace" else "demo"},
+          "data": {"accepted-state.json": json.dumps(state)}}
+    cm_path = tmp_path / "cm.json"
+    cm_path.write_text(json.dumps(cm))
+    contract_path = tmp_path / "contract.yaml"
+    contract_path.write_text(yaml.safe_dump(value))
+    if fault:
+        with pytest.raises(ValueError):
+            materialize.accepted_bundle(cm_path, contract_path)
+    else:
+        assert materialize.accepted_bundle(cm_path, contract_path) == {
+            "reference": state["bundleReference"], "digest": state["appliedDigest"]}
+
+
 def test_durable_state_is_a_server_side_apply_configmap(monkeypatch, tmp_path):
     state_dir = tmp_path / "state-root"
     (state_dir / "state").mkdir(parents=True)

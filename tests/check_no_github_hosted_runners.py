@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep existing runner policy, with one bounded private-document isolation job."""
+"""Permit reviewed cloud delivery jobs; retain host-bound runner placement."""
 
 from pathlib import Path
 
@@ -11,6 +11,22 @@ ROOTS = (
     Path("operations/ci/workflows"),
     Path("operations/migrations/github-first-control-plane/landing-zone/workflows"),
 )
+
+CLOUD_JOBS = {
+    ".github/workflows/ci.yml": {
+        "impact", "contract", "k6-contracts", "schema", "unit", "render",
+        "secret-scan", "dependency-review", "supply-chain", "policy",
+        "tenant-select", "tenant-contract", "control-plane-validate",
+    },
+    ".github/workflows/github-security-checks.yml": {"dependency-review"},
+    ".github/workflows/tenant-go-release.yml": {"tenant-go-validate"},
+    ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
+}
+
+
+def reviewed_cloud_job(path: Path, job_name: str, job: dict) -> bool:
+    return (job_name in CLOUD_JOBS.get(path.as_posix(), set())
+            and job.get("runs-on") == "ubuntu-24.04")
 
 
 def labels(value: object) -> set[str]:
@@ -50,7 +66,9 @@ def main() -> None:
                 except AssertionError as error:
                     failures.append(f"{path}:{job_name}: {error}")
                     continue
-                if "self-hosted" not in runner_labels and not isolated_private_docs(path, job_name, document, job):
+                if ("self-hosted" not in runner_labels
+                        and not isolated_private_docs(path, job_name, document, job)
+                        and not reviewed_cloud_job(path, job_name, job)):
                     failures.append(
                         f"{path}:{job_name}: must target a self-hosted runner, got "
                         f"{sorted(runner_labels)!r}"

@@ -41,10 +41,23 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-artifact-publisher',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
-    assert {
-        "claims.repository_visibility == 'private' || (claims.repository_visibility == 'public' && claims.aud == 'https://kube-api.re8ch.com/observer')",
-        "claims.runner_environment == 'self-hosted'",
-    } <= expressions
+    public_rule, runner_rule = github['claimValidationRules'][:2]
+    for rule in (public_rule, runner_rule):
+        expression = ' '.join(rule['expression'].split())
+        for boundary in (
+            "claims.repository_id == '1367237854'",
+            "claims.repository_owner_id == '283958313'",
+            "claims.repository == 're8ch/service-backend'",
+            "claims.ref == 'refs/heads/main'",
+            "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main'",
+            "claims.event_name == 'workflow_dispatch'",
+            "claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime']",
+            "claims.aud == 'https://kube-api.re8ch.com/' + claims.environment",
+        ):
+            assert boundary in expression
+    assert "claims.runner_environment == 'github-hosted'" in runner_rule['expression']
+    assert "claims.runner_environment == 'self-hosted' ||" in runner_rule['expression']
+    assert "claims.repository_visibility == 'private' ||" in public_rule['expression']
     route = github['claimValidationRules'][-1]['expression']
     for required in (
         "claims.aud == 'https://kube-api.re8ch.com/observer'",

@@ -1,5 +1,11 @@
 # Self-service delivery through native Flux
 
+> Migration direction superseded on 2026-10-27 by
+> [cloud execution and local Flux retirement](github-ops-cutover-review.md).
+> Existing native owners below describe the current runtime, not the target.
+> Do not migrate additional SSA units back to Flux. Retain each current owner
+> only until its cloud replacement has been verified without a second writer.
+
 The delivery target is a reviewed static declaration, one active reconciler,
 and the actual Flux API status visible through the plugin, Flux CLI and Headlamp.
 GitHub coordinates authorization and source changes; it does not reconcile

@@ -46,9 +46,13 @@ def validate_contract(path: Path) -> dict[str, str]:
         if spec["provenance"].get(field) != value:
             raise ValueError(f"contract provenance {field} must be {value}")
     name = contract["metadata"]["name"]
+    if str(path) != f"contracts/releases/main-domain/{name}.yaml":
+        raise ValueError("use the canonical contract path so release concurrency cannot be bypassed")
     if not name.startswith(f"main-{domain}-"):
         raise ValueError("contract name does not match authorityDomain")
     return {
+        "release-id": name,
+        "namespace": spec["target"]["namespace"],
         "domain": domain,
         "environment": execution["protectedEnvironment"],
         "audience": execution["audience"],

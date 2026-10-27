@@ -16,7 +16,7 @@ concurrency:
 jobs:
   tenant-go-validate:
     name: tenant-go-validate
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: 2}

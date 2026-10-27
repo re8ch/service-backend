@@ -13,7 +13,7 @@ env:
 
 jobs:
   impact:
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     outputs:
       domains: ${{ steps.plan.outputs.domains }}
       tests: ${{ steps.plan.outputs.tests }}
@@ -57,7 +57,7 @@ jobs:
   contract:
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['contract']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: "${{ github.event_name == 'pull_request' && 2 || 0 }}"}
@@ -75,7 +75,7 @@ jobs:
   k6-contracts:
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['k6-contracts']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -97,7 +97,7 @@ jobs:
   schema:
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['schema']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-native-yaml
@@ -115,7 +115,7 @@ jobs:
     permissions: {contents: read, actions: read}
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['unit']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -160,7 +160,7 @@ jobs:
     permissions: {contents: read, actions: read}
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['render']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
@@ -196,7 +196,7 @@ jobs:
             --output "$RUNNER_TEMP/module-render-result/evidence.json"
 
   secret-scan:
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python tests/check_no_plaintext_secrets.py
@@ -204,7 +204,7 @@ jobs:
   dependency-review:
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['dependency-review']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Scan dependencies for shared CI changes
@@ -219,7 +219,7 @@ jobs:
   supply-chain:
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['supply-chain']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: git submodule update --init catalogs/platform/modules/connectool/source
@@ -229,12 +229,12 @@ jobs:
 
   policy:
     needs: impact
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-native-yaml
       - run: python -m pip install 'PyYAML>=6.0.2'
-      - name: Reject GitHub-hosted runner declarations
+      - name: Validate reviewed runner placement
         run: python tests/check_no_github_hosted_runners.py
       - if: contains(needs.impact.outputs.domains, 'control-plane') || needs.impact.outputs.full == 'true'
         run: |
@@ -244,7 +244,7 @@ jobs:
   tenant-select:
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['tenant-select']
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     outputs: {matrix: "${{ steps.select.outputs.matrix }}"}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -261,7 +261,7 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.tenant-select.outputs.matrix) }}
     name: tenant / ${{ matrix.module }}
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
@@ -274,7 +274,7 @@ jobs:
     name: control-plane-validate
     if: always()
     needs: [impact, contract, k6-contracts, schema, unit, render, secret-scan, dependency-review, supply-chain, policy, tenant-select, tenant-contract]
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
       - env: {RESULTS: "${{ toJSON(needs) }}"}
         run: |

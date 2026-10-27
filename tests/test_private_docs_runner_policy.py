@@ -11,6 +11,15 @@ spec.loader.exec_module(policy)
 PATH = Path('.github/workflows/private-operations-docs.yml')
 
 
+def test_cloud_delivery_allowlist_does_not_move_host_bound_publishers():
+    job = {"runs-on": "ubuntu-24.04"}
+    assert policy.reviewed_cloud_job(Path(".github/workflows/main-domain-release.yml"), "execute", job)
+    assert policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "tenant-go-validate", job)
+    assert not policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "release", job)
+    assert not policy.reviewed_cloud_job(Path(".github/workflows/unknown.yml"), "execute", job)
+    assert not policy.reviewed_cloud_job(Path(".github/workflows/main-domain-release.yml"), "execute", {"runs-on": "ubuntu-latest"})
+
+
 def test_private_document_runner_exception_requires_every_boundary():
     document = yaml.safe_load((ROOT / PATH).read_text())
     job = document['jobs']['verify']

@@ -31,6 +31,31 @@ def compact(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
+def accepted_bundle(configmap: Path, contract_path: Path) -> dict[str, str]:
+    """Resolve a replay from durable acceptance, never from an arbitrary caller URL."""
+    contract = yaml.safe_load(contract_path.read_text())
+    validate_schema(contract, "release-contract.schema.json")
+    release_id = contract["metadata"]["name"]
+    cm = json.loads(configmap.read_text())
+    if (cm.get("metadata", {}).get("name") != state_configmap_name(release_id)
+            or cm.get("metadata", {}).get("namespace") != contract["spec"]["target"]["namespace"]):
+        raise ValueError("accepted state ConfigMap does not match the release target")
+    state = json.loads(cm.get("data", {}).get("accepted-state.json", "{}"))
+    validate_schema(state, "release-accepted-state.schema.json")
+    if state["releaseId"] != release_id:
+        raise ValueError("accepted state belongs to another release")
+    if state["blocked"] or state.get("suspended"):
+        raise ValueError("release is blocked or suspended")
+    if state.get("healthyDigest") != state["appliedDigest"]:
+        raise ValueError("replay requires a previously healthy accepted digest")
+    expected = f"oci://ghcr.io/re8ch/service-backend-release/{release_id}"
+    if state["bundleReference"] != expected:
+        raise ValueError("accepted bundle is outside the main-domain repository")
+    if state["inventoryDigest"] != contract["spec"]["inventory"]["digest"]:
+        raise ValueError("contract inventory changed; publish a reviewed release instead")
+    return {"reference": expected, "digest": state["appliedDigest"]}
+
+
 def hydrate(configmap: Path, state_dir: Path, release_id: str) -> None:
     data = json.loads(configmap.read_text()).get("data", {})
     (state_dir / "state").mkdir(parents=True, exist_ok=True)
@@ -110,10 +135,14 @@ def main() -> int:
     save.add_argument("--result", type=Path, required=True); save.add_argument("--output", type=Path, required=True)
     state_name = sub.add_parser("state-name")
     state_name.add_argument("--release-id", required=True)
+    accepted = sub.add_parser("accepted-bundle")
+    accepted.add_argument("--configmap", type=Path, required=True)
+    accepted.add_argument("--contract", type=Path, required=True)
     args = parser.parse_args()
     if args.command == "hydrate": hydrate(args.configmap, args.state_dir, args.release_id)
     elif args.command == "request": request(args.contract, args.metadata, args.state_dir, args.reference, args.digest, args.output, args.action, args.force_object)
     elif args.command == "persist": persist(args.state_dir, args.release_id, args.result, args.output)
+    elif args.command == "accepted-bundle": print(compact(accepted_bundle(args.configmap, args.contract)))
     else: print(state_configmap_name(args.release_id))
     return 0
 
