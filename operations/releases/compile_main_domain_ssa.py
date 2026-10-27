@@ -181,6 +181,7 @@ def compile_outputs() -> dict[Path, str]:
     legacy: dict[str, list[dict]] = defaultdict(list)
     seen: dict[str, str] = {}
     remaining: list[dict] = []
+    omissions: list[dict] = []
     retained_rbac_namespaces: set[tuple[str, str]] = set()
     for domain in DOMAINS:
         for item in docs(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml"):
@@ -197,6 +198,11 @@ def compile_outputs() -> dict[Path, str]:
                 if reason == "platform-owned-rbac-bootstrap" and namespace:
                     retained_rbac_namespaces.add((domain, namespace))
             else:
+                if item["kind"] == "Node" and "spec" in item:
+                    for field in sorted(item.pop("spec")):
+                        omissions.append({"domain": domain, "identity": ident, "field": f"spec.{field}",
+                                          "authority": "existing-runtime-node-authority",
+                                          "reason": "cloud-adoption-manages-static-metadata-only"})
                 canonical_admission_defaults(item)
                 # Kubernetes stores byte fields as canonical, unwrapped base64.
                 # Wrapped YAML scalars otherwise conflict under SSA despite equal bytes.
@@ -291,6 +297,7 @@ def compile_outputs() -> dict[Path, str]:
         "deferredSSAObjects": sorted(DEFERRED_SSA),
         "remainingCapabilities": dict(sorted(Counter(item["reason"] for item in remaining).items())),
         "remainingObjects": sorted(remaining, key=lambda item: (item["domain"], item["identity"])),
+        "omissions": sorted(omissions, key=lambda item: (item["identity"], item["field"])),
         "executionProfiles": [{"domain": domain, "repository": profiles[domain]["repository"],
                                "workflow": profiles[domain]["workflow"],
                                "protectedEnvironment": profiles[domain]["protectedEnvironment"],

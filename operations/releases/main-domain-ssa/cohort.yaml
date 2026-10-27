@@ -196,6 +196,12 @@ remainingObjects:
 - domain: tenant-runtime
   identity: source.toolkit.fluxcd.io/HelmRepository/flux-system/kyverno-official
   reason: replace-flux-lifecycle-reference
+omissions:
+- domain: data-storage
+  identity: core/Node/_/b1-wsl-zt
+  field: spec.taints
+  authority: existing-runtime-node-authority
+  reason: cloud-adoption-manages-static-metadata-only
 executionProfiles:
 - domain: data-storage
   repository: re8ch/service-backend
