@@ -2,21 +2,21 @@
   "sources": [
     {
       "repository": "8iops/agent-gitops",
-      "revision": "6ce683f53b1691a2dd204ba2186719d4b81632f8",
+      "revision": "97ce3fd903a43536b46a3bfa4f9715f29019e8c5",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "23839f073ef797320815192b5502bb6d94a00989e1ccf840490bcaf6ded04cdd"
+      "sha256": "2f2d1be9952677a18ec6dac8e2f345dd781f75312020e4d507c6cd2ceb227ae6"
     },
     {
       "repository": "re8ch/identity-gitops",
-      "revision": "e3409d465849e6dd267ed49edd8cd9b7d0db14f1",
+      "revision": "ccc0c1faf607335157fa1c829ca24a0aa82773be",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "7fdbff9707102a20f92545fe083b08c65a58e801715d9377ba0d5f05aa4f7112"
+      "sha256": "c03a5505d6a3378a39bb735d917ead7febaef98c178a33bf50332cc5c3d961a2"
     },
     {
       "repository": "siren-observer/observability-gitops",
-      "revision": "de4e7741b038c1a57dc111ffc7a4018618230bfb",
+      "revision": "1a657500027b8b3f3d3f504c62cad489ef2ae32e",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "d4d456a5065b8815dec5fb862181cbafaf90f17f7d313eeb193b404ff074a2ba"
+      "sha256": "6f7eec7b082596642c231f37f319015dac6ba501b3b4a6358214d6ee31701177"
     },
     {
       "repository": "siren-observer/observability-gitops",
@@ -32,9 +32,9 @@
     },
     {
       "repository": "pillars-infra/network-gitops",
-      "revision": "8fd469d040db956f46602370801869f624f9f58f",
+      "revision": "5e0faca4352159c68387763032d9c228aeaf90c3",
       "path": "operations/releases/helm-authority.json",
-      "sha256": "c7b9262e802b952374a1a040a066a2743b566586c4342951228e2ce009bb418e"
+      "sha256": "dbd01cd89519f3fe84d78c611f815bf946a1c194601e285fd402e55ec5cf676d"
     },
     {
       "repository": "pillars-infra/network-gitops",
@@ -44,8 +44,8 @@
     }
   ],
   "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance. Retired roles retain no permissions.",
-  "objects": 227,
-  "states": 75,
+  "objects": 233,
+  "states": 77,
   "platformDiagnosticAccess": [
     {
       "owner": "re8ch/service-backend",

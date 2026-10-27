@@ -1435,8 +1435,6 @@ rules:
   - stalwart-webmail
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - apps
   resources:
@@ -1446,8 +1444,6 @@ rules:
   - stalwart-idp-flk
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - batch
   resources:
@@ -1458,8 +1454,6 @@ rules:
   - stalwart-tls-reloader
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - cert-manager.io
   resources:
@@ -1468,8 +1462,6 @@ rules:
   - stalwart-mail-re8ch
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - ''
   resources:
@@ -1489,8 +1481,6 @@ rules:
   - stalwart-userhub-oauth-plan-v1
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - ''
   resources:
@@ -1502,8 +1492,6 @@ rules:
   - stalwart-idp-flk-local-data
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - ''
   resources:
@@ -1513,8 +1501,6 @@ rules:
   - stalwart-mailbox-provisioner
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - ''
   resources:
@@ -1527,8 +1513,6 @@ rules:
   - stalwart-webmail
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
@@ -1544,8 +1528,6 @@ rules:
   - stalwart-webmail-redirect
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
@@ -1558,8 +1540,6 @@ rules:
   - stalwart-submission-public-v2
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -1570,8 +1550,6 @@ rules:
   - stalwart-webmail-public
   verbs:
   - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -2737,27 +2715,6 @@ rules:
   - deployments
   resourceNames:
   - re8ch-fair-value-controller
-  - re8ch-grafana-postgresql
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - batch
-  resources:
-  - cronjobs
-  resourceNames:
-  - re8ch-grafana-org-sync
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - cilium.io
-  resources:
-  - ciliumnetworkpolicies
-  resourceNames:
-  - re8ch-grafana-from-gateway
   verbs:
   - get
   - patch
@@ -2769,8 +2726,6 @@ rules:
   resourceNames:
   - re8ch-fair-value-controller-code
   - re8ch-fair-value-controller-config
-  - re8ch-grafana-dashboard-providers
-  - re8ch-grafana-org-contract
   - re8ch-notification-receiver-catalog
   - re8ch-observability-dashboards
   - re8ch-observability-datasources
@@ -2786,7 +2741,6 @@ rules:
   - persistentvolumeclaims
   resourceNames:
   - re8ch-fair-value-history
-  - re8ch-grafana-postgresql-data-v2
   verbs:
   - get
   - patch
@@ -2798,7 +2752,6 @@ rules:
   resourceNames:
   - re8ch-event-collector
   - re8ch-fair-value-controller
-  - re8ch-grafana
   verbs:
   - get
   - patch
@@ -2809,21 +2762,7 @@ rules:
   - services
   resourceNames:
   - re8ch-fair-value-controller
-  - re8ch-grafana
-  - re8ch-grafana-postgresql
-  - re8ch-grafana-renderer
   - re8ch-node-storage-exporter
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - networkpolicies
-  resourceNames:
-  - re8ch-grafana
-  - re8ch-grafana-postgresql
   verbs:
   - get
   - patch
@@ -2997,16 +2936,6 @@ rules:
   - vtclusters
   resourceNames:
   - re8ch-traces
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - policy
-  resources:
-  - poddisruptionbudgets
-  resourceNames:
-  - re8ch-grafana
   verbs:
   - get
   - patch
@@ -6170,8 +6099,6 @@ rules:
   resourceNames:
   - public-edge-manager
   - public-edge-manager-records
-  - public-edge-nameservers
-  - public-edge-runtime
   verbs:
   - get
   - patch
@@ -6380,3 +6307,309 @@ subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
   name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-mail-system
+  namespace: mail-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-mail-system
+  namespace: mail-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - stalwart-webmail
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  resourceNames:
+  - stalwart-flk
+  - stalwart-idp-flk
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  resourceNames:
+  - stalwart-cloudflare-token-sync
+  - stalwart-mailbox-provisioner
+  - stalwart-tls-reloader
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - stalwart-mail-re8ch
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-agent-runtime-domain-mail-system
+  - stalwart-bootstrap-plan
+  - stalwart-bot-access-contract
+  - stalwart-cloudflare-token-sync
+  - stalwart-config
+  - stalwart-harry-admin-alias-v1
+  - stalwart-idp-bootstrap-plan-v6
+  - stalwart-idp-config
+  - stalwart-mailbox-provisioner
+  - stalwart-phonaid-domain-plan
+  - stalwart-unified-identity-bootstrap-plan-v2
+  - stalwart-userhub-oauth-plan-v1
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - stalwart-flk-data
+  - stalwart-flk-local-data
+  - stalwart-idp-flk-data
+  - stalwart-idp-flk-local-data
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - stalwart-cloudflare-token-sync
+  - stalwart-mailbox-provisioner
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - stalwart
+  - stalwart-direct-mail
+  - stalwart-headless
+  - stalwart-idp
+  - stalwart-webmail
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - stalwart-admin-public
+  - stalwart-admin-redirect
+  - stalwart-collaboration-public
+  - stalwart-collaboration-redirect
+  - stalwart-idp-public
+  - stalwart-idp-redirect
+  - stalwart-webmail-public
+  - stalwart-webmail-redirect
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - tcproutes
+  resourceNames:
+  - stalwart-imaps-public-v2
+  - stalwart-sieve-public-v2
+  - stalwart-smtp-public-v2
+  - stalwart-smtps-public-v2
+  - stalwart-submission-public-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - stalwart-collaboration-public-dns
+  - stalwart-idp-public-dns
+  - stalwart-webmail-public
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-mail-system
+  namespace: mail-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-mail-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-domain-grafana
+  namespace: observability-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-domain-grafana
+  namespace: observability-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - re8ch-grafana
+  - re8ch-grafana-postgresql
+  - re8ch-grafana-renderer
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  resourceNames:
+  - re8ch-grafana-org-sync
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - re8ch-grafana-from-gateway
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - re8ch-grafana-dashboard-providers
+  - re8ch-grafana-org-contract
+  - ssa-state-observability-domain-grafana
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - re8ch-grafana-postgresql-data-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - re8ch-grafana
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - re8ch-grafana
+  - re8ch-grafana-postgresql
+  - re8ch-grafana-renderer
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - re8ch-grafana
+  - re8ch-grafana-postgresql
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - re8ch-grafana
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-domain-grafana
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-domain-grafana
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
