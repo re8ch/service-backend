@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "RestrictedTopologySource",
+  "sourceDigest": "sha256:0a25eb8106bea53a63730ad08d5dc5be3b14f28103d0b97a4f5aa551a208f7d0",
+  "environment": "cluster-observation",
+  "secretName": "NETWORK_TOPOLOGY_V1_GZ_B64",
+  "runtimeRef": {
+    "apiVersion": "v1",
+    "kind": "ConfigMap",
+    "namespace": "ops",
+    "name": "restricted-topology-context",
+    "key": "bundle.json"
+  }
+}

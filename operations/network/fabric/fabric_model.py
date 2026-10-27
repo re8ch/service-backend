@@ -11,11 +11,15 @@ import copy
 import ipaddress
 import json
 import hashlib
+import os
+import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
 MODEL = Path(__file__).with_name("model.json")
+sys.path.insert(0, str(ROOT / "operations/network"))
+from restricted_topology import resolve_reference, verify_public, load_inventory
 OUTPUTS = {
     "publicMesh": (
         "operations/network/manifests/network/public-mesh/inventory.json",
@@ -51,7 +55,7 @@ def host_contract(model):
             raise ValueError("inventory requires explicit adoption controller")
     elif (contract["mode"] != "canary" or pilot.get("node") != "overseas-flk"
           or contract["adoptedNodes"] != [pilot.get("node")] + [c["node"] for c in contract.get("controlTransitControllers", [])]
-          or [c["node"] for c in contract.get("controlTransitControllers", [])] not in ([], ["restricted-node-abb3f27a69"])):
+          or [c["node"] for c in contract.get("controlTransitControllers", [])] not in ([], ["mubao-wsl"])):
         raise ValueError("adoption controller currently permits one non-control-plane canary")
     if contract["ownership"]["frr"]["wholeFileReplacement"]:
         raise ValueError("shared FRR configuration cannot be replaced wholesale")
@@ -123,7 +127,10 @@ def host_contract(model):
 
 
 def load_model(path=MODEL):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    model = json.loads(Path(path).read_text(encoding="utf-8"))
+    model["sections"]["publicMesh"] = resolve_reference(model["sections"]["publicMesh"])
+    model["runtimeProjections"]["publicMesh"] = resolve_reference(model["runtimeProjections"]["publicMesh"])
+    return model
 
 
 def project(section, overlay):
@@ -163,7 +170,7 @@ def transit_contract(model):
     nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])
     control_names = {link["node"] for link in controls["links"]}
     ingress = model["routeIntent"]["routerosTransitIngress"]
-    if set(ingress) != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}:
+    if set(ingress) != {"a1-wsl-zt", "b1-wsl-zt"}:
         raise ValueError("RouterOS transit ingress must be the two route servers")
     sources = sorted({prefix for node in nodes if node["name"] not in control_names
                       for prefix in (node["acceleratedIp"] + "/32", node["podCIDR"])})
@@ -213,11 +220,11 @@ def outputs(model):
                 section["hostSourceIdentity"][name] = {
                     "source": nodes[name]["acceleratedIp"],
                     "destinations": sorted({n["podCIDR"] for n in all_nodes if n["name"] != name}),
-                    "prefixMatches": ["192.0.2.57/16 ge 24 le 24", "192.0.2.65/24 ge 32 le 32", "192.0.2.121/24 ge 32 le 32"]}
+                    "prefixMatches": ["10.42.0.0/16 ge 24 le 24", "10.250.0.0/24 ge 32 le 32", "10.251.0.0/24 ge 32 le 32"]}
             section["transitForwarding"] = {}
             for entry in model["routeIntent"].get("transitForwarding", []):
                 if (entry["node"], entry["relayNode"], entry["relayInterface"], entry["fabricInterfaces"]) != (
-                        "restricted-node-6dc3f140f9", "restricted-node-abb3f27a69", "wg-pt-mubao", ["wg-pt-a1", "wg-pt-b1"]):
+                        "r640", "mubao-wsl", "wg-pt-mubao", ["wg-pt-a1", "wg-pt-b1"]):
                     raise ValueError("unreviewed transit firewall interface ownership")
                 rules = []
                 for remote in all_nodes:
@@ -228,7 +235,7 @@ def outputs(model):
                     # Both directions derive from the same declared ownership.
                     relay = nodes[entry["relayNode"]]
                     vips = entry.get("relayServiceVIPs", [])
-                    if vips not in ([], ["192.0.2.116/32"]):
+                    if vips not in ([], ["10.250.0.1/32"]):
                         raise ValueError("unreviewed relayed service VIP ownership")
                     for source in [relay["podCIDR"], relay["acceleratedIp"] + "/32"] + vips:
                         for destination in (remote["podCIDR"], remote["acceleratedIp"] + "/32"):
@@ -239,7 +246,7 @@ def outputs(model):
                                 rules.append({"source": destination, "destination": source,
                                               "inInterface": interface, "outInterface": entry["relayInterface"]})
                 multi_pool = entry.get("multiPoolCIDR")
-                if multi_pool != "192.0.2.156/12":
+                if multi_pool != "10.64.0.0/12":
                     raise ValueError("unreviewed transit Multi-Pool authority")
                 relay_identity = nodes[entry["relayNode"]]["acceleratedIp"] + "/32"
                 for interface in entry["fabricInterfaces"]:
@@ -307,7 +314,7 @@ def outputs(model):
     for controller in model["hostNetwork"].get("controlTransitControllers", []):
         control = model["sections"]["routerosControlMesh"]
         own = next(link for link in control["links"] if link["node"] == controller["node"])
-        sources = ["192.0.2.34/28", "192.0.2.95/24", control["managementIp"] + "/32", "192.0.2.65/24"]
+        sources = ["172.31.96.0/28", "172.31.97.0/24", control["managementIp"] + "/32", "10.250.0.0/24"]
         sources += [link["podCIDR"] for link in control["links"] if link["node"] != own["node"]]
         sources += transit["sources"]
         base = "clusters/re8ch/components/network/host-network-controller/"
@@ -344,7 +351,7 @@ def outputs(model):
     controls = model["sections"]["routerosControlMesh"]
     source_nodes = fabric["routeServers"] + fabric["nodes"] + fabric.get("relayNodes", [])
     ingress = model["routeIntent"].get("routerosTransitIngress", [])
-    if set(ingress) != {"restricted-node-1eb0570f74", "restricted-node-296f36f2fb"}:
+    if set(ingress) != {"a1-wsl-zt", "b1-wsl-zt"}:
         raise ValueError("RouterOS transit ingress must be the two route servers")
     identities = {link["identity"] for link in controls["links"]}
     sources = transit["sources"]
@@ -375,7 +382,7 @@ def validate(model):
     router = {item["node"]: item for item in model["sections"]["routerosControlMesh"]["links"]}
     policy = by_name(model["sections"]["advfabPolicy"]["targets"])
 
-    for name in ("restricted-node-6dc3f140f9", "overseas-flk", "overseas-la-2"):
+    for name in ("r640", "overseas-flk", "overseas-la-2"):
         if name not in public or name not in pod or name not in private_names:
             raise ValueError(f"missing cross-fabric node {name}")
         identity = public[name].get("acceleratedIp", f'10.250.0.{public[name]["id"]}')
@@ -386,18 +393,18 @@ def validate(model):
             raise ValueError(f"conflicting accelerated identity for {name}")
         if "podCIDR" in private_names[name] and private_names[name]["podCIDR"] != pod[name]["podCIDR"]:
             raise ValueError(f"conflicting PodCIDR for {name}")
-    for name in ("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"):
+    for name in ("a1-wsl-zt", "b1-wsl-zt"):
         if router[name]["identity"] != pod[name]["acceleratedIp"] + "/32":
             raise ValueError(f"RouterOS identity mismatch for {name}")
         if router[name]["podCIDR"] != pod[name]["podCIDR"]:
             raise ValueError(f"RouterOS PodCIDR mismatch for {name}")
-    if public["restricted-node-6dc3f140f9"]["publicAuthority"]["type"] != "RouterOS":
-        raise ValueError("restricted-node-6dc3f140f9 public authority changed")
-    if public["restricted-node-6dc3f140f9"]["publicAuthority"]["gatewayVIP"] != "192.0.2.213":
-        raise ValueError("restricted-node-6dc3f140f9 public Gateway authority changed")
+    if public["r640"]["publicAuthority"]["type"] != "RouterOS":
+        raise ValueError("R640 public authority changed")
+    if public["r640"]["publicAuthority"]["gatewayVIP"] != "10.251.0.4":
+        raise ValueError("R640 public Gateway authority changed")
     api_relay = public["overseas-la"].get("apiVipVia")
-    if api_relay != {"peer": "restricted-node-6dc3f140f9", "prefix": "192.0.2.116/32"}:
-        raise ValueError("LA1 public-mesh API relay must use restricted-node-6dc3f140f9's exact VIP")
+    if api_relay != {"peer": "r640", "prefix": "10.250.0.1/32"}:
+        raise ValueError("LA1 public-mesh API relay must use R640's exact VIP")
 
     spines = model["routeIntent"]["publicSpines"]
     if len(spines) != 2 or len(set(spines)) != 2:
@@ -414,7 +421,7 @@ def validate(model):
     if model["routeIntent"]["controlPodFallbackTable"] != 15425 or model["routeIntent"]["controlPodRuleBase"] != 11450:
         raise ValueError("unreviewed control PodCIDR policy table or priority")
     pairs = {tuple(pair) for pair in model["routeIntent"]["controlPodDirectPairs"]}
-    if pairs != {("restricted-node-1eb0570f74", "restricted-node-296f36f2fb"), ("restricted-node-296f36f2fb", "restricted-node-1eb0570f74")}:
+    if pairs != {("a1-wsl-zt", "b1-wsl-zt"), ("b1-wsl-zt", "a1-wsl-zt")}:
         raise ValueError("unverified control PodCIDR direct pair")
     for name, item in public.items():
         if "meshPeers" in item:
@@ -432,7 +439,15 @@ def main():
     parser.add_argument("action", choices=("check", "render", "validate", "host-plan"))
     parser.add_argument("--model", type=Path, default=MODEL)
     parser.add_argument("--node")
+    parser.add_argument("--output-root", type=Path, help="New private directory outside the checkout for rendered topology")
     args = parser.parse_args()
+    if args.action == "render":
+        if not args.output_root or args.output_root.resolve().is_relative_to(ROOT) or args.output_root.exists():
+            parser.error("Restricted rendering requires a new --output-root outside the checkout")
+    if args.action == "check" and not (os.environ.get("NETWORK_TOPOLOGY_BUNDLE") or os.environ.get("NETWORK_TOPOLOGY_FILE")):
+        verify_public()
+        print("Public topology references verified; production-fixture validation uses the protected topology workflow")
+        return
     desired = validate(load_model(args.model))
     if args.action == "host-plan":
         contract = desired[HOST_CONTRACT]
@@ -444,9 +459,17 @@ def main():
         print(f"fabric model valid: {len(desired)} generated consumers")
         return
     mismatches = []
+    if args.action == "render":
+        args.output_root.mkdir(mode=0o700)
     for relative, document in desired.items():
-        path = ROOT / relative
+        path = (args.output_root if args.action == "render" else ROOT) / relative
+        if args.action != "render" and relative in OUTPUTS["publicMesh"]:
+            if load_inventory(path) != document:
+                raise SystemExit("Restricted topology pin must be updated through the custody workflow")
+            continue
         if args.action == "render":
+            path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            path.touch(mode=0o600, exist_ok=False)
             path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n")
         elif json.loads(path.read_text(encoding="utf-8")) != document:
             mismatches.append(relative)
