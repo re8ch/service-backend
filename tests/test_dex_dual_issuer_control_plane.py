@@ -154,7 +154,8 @@ def test_replay_identity_is_bound_to_reviewed_hosted_workflow():
     config = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())
     github = next(j for j in config['jwt'] if j['issuer']['url'] == 'https://token.actions.githubusercontent.com')
     for rule in github['claimValidationRules']:
-        route = rule['expression'].rsplit('|| (claims.repository_visibility', 1)[-1]
+        route = next(part for part in rule['expression'].split('|| (claims.repository_visibility')
+                     if 'main-domain-reconcile.yml' in part)
         assert "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-reconcile.yml@refs/heads/main'" in route
         assert "claims.repository_id == '1367237854'" in route
         assert "claims.ref == 'refs/heads/main'" in route
@@ -212,3 +213,24 @@ def test_delivery_replay_private_runner_claims_are_exact():
     for event in ('pull_request', 'pull_request_target', 'repository_dispatch'):
         assert not accepted({**values, 'event_name': event})
     assert "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? ['re8ch:release-executor:delivery-products']" in github['claimMappings']['groups']['expression']
+
+
+def test_ceph_cloud_runner_exception_keeps_each_exact_claim_and_environment_audience_pair():
+    from types import SimpleNamespace
+    github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
+    for rule in github['claimValidationRules'][:2]:
+        branch = next(b for b in rule['expression'].split('|| (claims.repository_visibility') if 'ceph-static-release.yml' in b)
+        expression = ('claims.repository_visibility' + branch).strip().removesuffix(')').replace('&&', ' and ')
+        expression = ' '.join(expression.split())
+        values = dict(repository_visibility='public', repository_id='1367237854', repository_owner_id='283958313',
+                      repository='re8ch/service-backend', ref='refs/heads/main', runner_environment='github-hosted',
+                      workflow_ref='re8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main',
+                      event_name='workflow_dispatch', environment='release-executor-ceph-infra',
+                      aud='https://kube-api.re8ch.com/release-executor-ceph-infra')
+        def accepted(claims):
+            return eval(expression, {'__builtins__': {}}, {'claims': SimpleNamespace(**claims)})
+        assert accepted(values)
+        for key in values:
+            assert not accepted({**values, key: 'untrusted'})
+        assert accepted({**values, 'environment': 'release-executor-ceph-runtime', 'aud': 'https://kube-api.re8ch.com/release-executor-ceph-runtime'})
+        assert not accepted({**values, 'environment': 'release-executor-ceph-runtime'})

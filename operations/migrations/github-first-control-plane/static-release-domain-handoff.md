@@ -4,7 +4,9 @@
 
 Ceph operations now start directly in `ceph-static-release.yml` through GitHub
 `workflow_dispatch`; no local compatibility listener, controller or dispatcher
-is needed. For a normal reconcile, use:
+is needed. All three jobs run on GitHub-hosted `ubuntu-24.04`, with exact
+public-repository/workflow/environment/audience OIDC exceptions and no R640
+runner dependency. For a normal reconcile, use:
 
 ```sh
 gh workflow run ceph-static-release.yml --repo re8ch/service-backend --ref main \

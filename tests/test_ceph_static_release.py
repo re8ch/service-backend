@@ -87,6 +87,7 @@ def test_ceph_executor_identities_deny_forbidden_capabilities_by_construction():
 
 def test_workflow_accepts_cloud_requests_and_splits_identities():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ceph-static-release.yml").read_text())
+    assert all(job["runs-on"] == "ubuntu-24.04" for job in workflow["jobs"].values())
     inputs = workflow[True]["workflow_dispatch"]["inputs"]
     assert set(inputs) == {"operation_id", "release", "action", "approved_digest", "reason", "approval_ref", "force_objects"}
     assert inputs["operation_id"]["required"] is False

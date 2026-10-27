@@ -14,7 +14,7 @@ concurrency: {group: ceph-runtime-operations, cancel-in-progress: false, queue: 
 jobs:
   infra:
     if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: release-executor-ceph-infra
     outputs:
@@ -121,7 +121,7 @@ jobs:
         if-no-files-found: ignore
   runtime:
     needs: infra
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     environment: release-executor-ceph-runtime
     steps:
@@ -211,7 +211,7 @@ jobs:
         if-no-files-found: error
   accept:
     needs: [infra, runtime]
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: release-executor-ceph-infra
     steps:
