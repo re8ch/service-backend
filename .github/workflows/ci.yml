@@ -112,6 +112,7 @@ jobs:
         run: python operations/scripts/validate-r640-public-authority.py
 
   unit:
+    permissions: {contents: read, actions: read}
     needs: impact
     if: fromJSON(needs.impact.outputs.jobs)['unit']
     runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
@@ -136,15 +137,11 @@ jobs:
       - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1' 'cryptography==50.0.2'
       - name: Validate authenticated API acceptance runner
         run: node --test operations/plugin-capabilities/api-acceptance/runner.test.cjs
-      - name: Run selected domain tests
+      - name: Validate selected units using trusted main evidence
         env:
-          TESTS: "${{ needs.impact.outputs.tests }}"
           UNIT_PLAN: "${{ needs.impact.outputs.plan }}"
-        run: |
-          python - <<'PY' | xargs -r python -m pytest -q --durations=20 -p operations.ci.unit_report --unit-report-dir="$RUNNER_TEMP/unit-observation" --junitxml="$RUNNER_TEMP/unit-observation/junit.xml"
-          import json, os
-          print(*json.loads(os.environ["TESTS"]), sep="\n")
-          PY
+          GH_TOKEN: ${{ github.token }}
+        run: python -m operations.ci.unit_pr --output "$RUNNER_TEMP/unit-observation"
       - name: Upload unit execution observations
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

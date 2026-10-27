@@ -2,7 +2,9 @@
 
 `validation_units` in the domain catalog drives selection of the first 15 test
 files. Only `test_incremental_ci` stays in always-tests; the other former baseline
-files execute when their inputs change on PRs. On main, `candidate` enables
+files are selected when their inputs change on PRs. Selected PR units may consume
+trusted main success evidence; unaffected units are never added for cache checks.
+On main, `candidate` enables
 exact success-evidence matching after closure checks; `reuse_blocked` documents
 known reasons to execute instead. Undeclared
 files retain legacy domain selection and have reuse policy `never`.
@@ -74,7 +76,7 @@ files, always executes `test_incremental_ci`, and checks all 14 declared candida
 against the latest trusted baseline. Eleven currently have closed inputs;
 infrastructure contracts, domain publication and live domain sources explicitly
 remain real execution because Git/external environment/topology inputs are not
-closed. PR workflows do not consume or publish success evidence yet.
+closed. PR workflows consume success evidence through `unit_pr`, but never publish it.
 
 `unit_baseline` collects the current case set without running fixtures, then
 matches it and the exact input fingerprint. Fingerprints include file contents,
@@ -103,22 +105,49 @@ the original verification time; evidence older than 14 days cannot be reused.
 Daily full runs refresh real evidence. Skip/xfail/xpass/incomplete/failed cases do
 not certify a unit; failure prevents publishing the current snapshot.
 
-For main baseline/full-main runs, `unit-observation/units.json` is the aggregate
+For main baseline, full-main and PR consumer runs, `unit-observation/units.json` is the aggregate
 execution/reuse/unaffected/blocked decision record. Reused records link the original
 run and expose SHA, fingerprint, case count and age. Actual pytest observations
 and JUnit are under `execution/`; no synthetic executed cases are created for
 reused units. `lookup_seconds` measures GitHub lookup/download; aggregate
 `wall_seconds` includes lookup, collection, fingerprinting, execution and reporting.
-Other full regressions and PRs retain the ordinary observation layout above.
+Other full regressions retain the ordinary observation layout above.
 
 GitHub supplies artifact storage, digests, retention and workflow identity. It does
 not infer this repository's validation dependencies or pytest case equivalence;
 these bounded adapters fill that gap without a scheduler, new credential store or
 artifact-deletion permissions. Shared declarations remain the input authority.
 
-## Remaining rollout
+## PR consumption (PR5)
 
-PR5 will allow PR checks to consume trusted main evidence. Measure cold, exact-hit
-and partial-invalidation runs separately, retaining daily full execution. Local
-injected-baseline timings exclude network and must not be presented as measured
-end-to-end CI speedups.
+The existing `ci.yml` unit job calls `unit_pr` with the original impact plan.
+It keeps the same required-check name and aggregator. Job permissions are only
+contents/read and actions/read; fork/token restrictions fall back to real selected
+tests. There is no pull_request_target workflow or success-evidence upload from PRs.
+The main publication CLI retains its approved-main workflow and clean-SHA guards.
+
+Main expands selection to refresh all candidates; PR consumption never does.
+Docs-only plans start neither pytest nor an artifact lookup. Full/unknown-risk
+plans and selections without reusable candidates skip network lookup. Selector
+tests must remain selected and always execute. Collection, input and case-set
+matching use the same adapters as main. Missing/incomplete execution cannot become
+a successful current check, and reused units get no synthetic JUnit test cases.
+
+The aggregate reports `consumer` identity for PR runs, per-unit origin evidence
+and reasons, and lookup/collection/fingerprint/execution/post-validation timings.
+No `evidence.json` is produced in consume-only mode, including forced regression.
+Shared fixtures in the evidence tests have an explicit focused consumer mapping.
+
+Changing adapters, declarations or workflow configuration invalidates older
+fingerprints; PR5's own infrastructure diff intentionally forces full execution.
+The first main baseline after merge refreshes these keys. Never weaken matching
+or manufacture trusted evidence merely to demonstrate a warm run.
+
+Measure actual selected scopes: docs, local tools, local manifests and shared
+inputs. Cold/hit/partial local experiments with injected baselines exclude GitHub
+network cost. A hit is only possible when selected inputs already have identical
+main evidence; a newly changed dependency normally invalidates its consumers.
+Narrow impact already removes unrelated units, so cheap selected tests may save
+less execution time than lookup and fingerprinting cost. Do not present local
+hit savings as end-to-end CI acceleration; retain actual runner identity and total
+wall time, including lookup, in reports.

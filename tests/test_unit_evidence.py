@@ -33,9 +33,10 @@ def test_value():
 ''')
     (tmp_path / 'tests/test_always.py').write_text('def test_always(): assert True\n')
     # Explicitly use the real adapters while keeping fixture inputs isolated.
+    (tmp_path / 'conftest.py').write_text('from operations.ci import unit_report\nunit_report.toolchain = lambda: {}\n')
     (tmp_path / 'pyproject.toml').write_text('[tool.pytest.ini_options]\npythonpath = [' + json.dumps(str(ROOT)) + ']\n')
-    catalog = {'version': 1, 'domains': {}, 'focused_suites': {}, 'always_tests': ['tests/test_always.py'],
-               'unit_defaults': {'helpers': [], 'environment': ['pyproject.toml']},
+    catalog = {'version': 1, 'domains': {}, 'focused_suites': {}, 'shared_paths': [], 'always_tests': ['tests/test_always.py'],
+               'unit_defaults': {'helpers': ['conftest.py'], 'environment': ['pyproject.toml']},
                'validation_units': {'tests/test_sample.py': {'sources': [], 'data': ['data/**'], 'helpers': [], 'tools': [], 'reuse': 'candidate'}}}
     (tmp_path / 'operations/ci/domain-catalog.yaml').write_text(yaml.safe_dump(catalog))
     env = {'tools': {}, 'python': 'test'}
