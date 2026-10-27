@@ -16,12 +16,12 @@ import urllib.request
 
 DOMAINS = ('main', 'networking', 'identity-access', 'agent-runtime', 'observability-metering', 'delivery-products')
 WORKFLOWS = {
-    'main': ('re8ch/service-backend', ['main-domain-release.yml', 'main-domain-reconcile.yml', 'ceph-static-release.yml'], 'RE8CH_OBSERVER_TOKEN'),
+    'main': ('re8ch/service-backend', ['main-domain-release.yml', 'main-domain-reconcile.yml', 'ceph-static-release.yml'], 'MAIN_OBSERVER_TOKEN'),
     'networking': ('pillars-infra/network-gitops', ['static-release.yml', 'networking-reconcile.yml'], 'NETWORK_OBSERVER_TOKEN'),
-    'identity-access': ('re8ch/identity-gitops', ['static-release.yml'], 'RE8CH_OBSERVER_TOKEN'),
+    'identity-access': ('re8ch/identity-gitops', ['static-release.yml'], 'IDENTITY_OBSERVER_TOKEN'),
     'agent-runtime': ('8iops/agent-gitops', ['static-release.yml'], 'AGENT_OBSERVER_TOKEN'),
     'observability-metering': ('siren-observer/observability-gitops', ['static-release.yml'], 'OBSERVABILITY_OBSERVER_TOKEN'),
-    'delivery-products': ('re8ch/delivery-products-gitops', ['static-release.yml', 'delivery-products-reconcile.yml'], 'RE8CH_OBSERVER_TOKEN'),
+    'delivery-products': ('re8ch/delivery-products-gitops', ['static-release.yml', 'delivery-products-reconcile.yml'], 'DELIVERY_OBSERVER_TOKEN'),
 }
 RESOURCES = {'Deployment': 'deployments', 'StatefulSet': 'statefulsets', 'DaemonSet': 'daemonsets'}
 

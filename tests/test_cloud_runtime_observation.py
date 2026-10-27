@@ -278,3 +278,21 @@ def test_missing_token_diagnostic_is_domain_scoped(monkeypatch,capsys):
     monkeypatch.delenv('AGENT_OBSERVER_TOKEN',raising=False)
     collect.operation('agent-runtime')
     assert json.loads(capsys.readouterr().out)=={'domain':'agent-runtime','category':'missing-token'}
+
+
+def test_observer_tokens_are_repository_scoped_and_failure_isolated():
+    workflow=yaml.safe_load((ROOT/'.github/workflows/node-contract-observer.yml').read_text())
+    steps=workflow['jobs']['flux']['steps']
+    collector=next(s for s in steps if s.get('run')=='python operations/releases/cloud-view/collect.py')
+    expected={'main':('service-backend','MAIN_OBSERVER_TOKEN'),
+              'identity':('identity-gitops','IDENTITY_OBSERVER_TOKEN'),
+              'delivery':('delivery-products-gitops','DELIVERY_OBSERVER_TOKEN')}
+    for domain,(repo,env) in expected.items():
+        step=next(s for s in steps if s.get('id')=='observe-'+domain)
+        assert step['continue-on-error'] is True
+        assert step['with']['repositories']==repo
+        assert step['with']['owner']=='re8ch'
+        assert step['with']['permission-actions']=='read'
+        assert step['with']['app-id']=='${{ vars.GITOPS_OBSERVER_APP_ID }}'
+        assert collector['env'][env]=='${{ steps.observe-'+domain+'.outputs.token }}'
+    assert len({settings[2] for settings in collect.WORKFLOWS.values()})==6
