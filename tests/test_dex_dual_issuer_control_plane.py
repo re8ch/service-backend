@@ -44,6 +44,7 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-reconciler-operations-ui',
         'https://kube-api.re8ch.com/release-reconciler-tenant-runtime',
         'https://kube-api.re8ch.com/release-reconciler-networking',
+        'https://kube-api.re8ch.com/release-reconciler-delivery-products',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
     public_rule, runner_rule = github['claimValidationRules'][:2]
@@ -187,3 +188,27 @@ def test_network_replay_has_exact_identity_and_existing_permission_group():
         assert 'static-release.yml' not in branch
     assert "'github-actions:release-reconciler-networking:' + claims.run_id" in github['claimMappings']['username']['expression']
     assert "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? ['re8ch:release-executor:networking']" in github['claimMappings']['groups']['expression']
+
+
+def test_delivery_replay_private_runner_claims_are_exact():
+    from types import SimpleNamespace
+    github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
+    routes = github['claimValidationRules'][-1]['expression'].split('|| (claims.repository_visibility')
+    branch = next(part for part in routes if 'delivery-products-reconcile.yml' in part)
+    expression = ('claims.repository_visibility' + branch).strip().removesuffix(')').replace('&&', ' and ')
+    expression = ' '.join(expression.split())
+    values = dict(repository_visibility='private', repository_id='1431915128', repository_owner_id='283958313',
+                  repository='re8ch/delivery-products-gitops', ref='refs/heads/main', runner_environment='self-hosted',
+                  workflow_ref='re8ch/delivery-products-gitops/.github/workflows/delivery-products-reconcile.yml@refs/heads/main',
+                  event_name='schedule', environment='release-reconciler-delivery-products',
+                  aud='https://kube-api.re8ch.com/release-reconciler-delivery-products')
+    def accepted(claims):
+        return eval(expression, {'__builtins__': {}}, {'claims': SimpleNamespace(**claims)})
+    assert accepted(values)
+    for key in values:
+        assert not accepted({**values, key: 'untrusted'})
+    for event in ('workflow_dispatch', 'schedule', 'push'):
+        assert accepted({**values, 'event_name': event})
+    for event in ('pull_request', 'pull_request_target', 'repository_dispatch'):
+        assert not accepted({**values, 'event_name': event})
+    assert "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? ['re8ch:release-executor:delivery-products']" in github['claimMappings']['groups']['expression']
