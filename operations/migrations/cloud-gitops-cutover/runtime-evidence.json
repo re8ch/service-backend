@@ -1,0 +1,49 @@
+{
+  "stage": "local-flux-retired-cloud-adoption-in-progress",
+  "timezone": "Asia/Shanghai",
+  "date": "2026-10-28",
+  "snapshots": {
+    "audit": "op_033c87cad5404163bb17c3fd31908fd6",
+    "privatePath": "/var/lib/re8ch/cloud-gitops-cutover/20261027T171845Z",
+    "kustomizations": 44,
+    "helmReleases": 30,
+    "controllerDeployments": 22,
+    "helmHistoryRecords": 164
+  },
+  "retirement": {
+    "merge": "041c488ac4717a0e904c288b4bd47595af3d3036",
+    "scaleAudit": "op_81abb137b9c54009905a59b950c4abfb",
+    "suspensionAudit": "op_034ee9a760e141a0b33533c9f4adad49",
+    "patchedFluxResources": 91,
+    "deletedWorkloads": 0
+  },
+  "verification": {
+    "audit": "op_141a583cfb8a418696d37831be3d0ba3",
+    "controllerDeployments": 22,
+    "desiredReplicas": 0,
+    "readyReplicas": 0,
+    "readyz": "ok",
+    "bootstrapObjects": 248,
+    "missingPermissions": [],
+    "differentPermissions": [],
+    "missingStates": []
+  },
+  "cloudReplay": {
+    "workflow": ".github/workflows/main-domain-reconcile.yml",
+    "identityMerge": "4bb593a6cd174d0b90a7681609da6bbde4d51867",
+    "workflowMerge": "05454b59f301bb9b5a68b4a6abe666f0fa946616",
+    "authenticationConfigSha256": "7a378c166209a3d298d151a5d9e8b8792e4262c6b29bbe980d79c37e751428a3",
+    "environments": [
+      "release-reconciler-data-storage",
+      "release-reconciler-commerce-billing",
+      "release-reconciler-operations-ui",
+      "release-reconciler-tenant-runtime"
+    ],
+    "publishApprovalPreserved": true
+  },
+  "restrictedConfiguration": {
+    "networkSopsProvisioningAudit": "op_7a11781c26484752ad35a595688de8fa",
+    "method": "GitHub environment sealed-box encryption inside the approved platform; plaintext never exported",
+    "runtimeValidation": "pending per-contract validation; not implied by secret provisioning"
+  }
+}

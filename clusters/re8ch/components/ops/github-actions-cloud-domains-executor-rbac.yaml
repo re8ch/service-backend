@@ -36,16 +36,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - re8ch-owner-pilot-workspace-v4
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - ''
   resources:
   - configmaps
@@ -575,16 +565,6 @@ metadata:
   name: agent-runtime-domain-flux-system
   namespace: flux-system
 rules:
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - retire-toolhive-session-redis-v3
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - ''
   resources:
@@ -1477,22 +1457,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - stalwart-bootstrap-reconciler-v10
-  - stalwart-flk-migration-v2
-  - stalwart-harry-admin-alias-v1
-  - stalwart-idp-bootstrap-v6
-  - stalwart-idp-flk-migration-v2
-  - stalwart-unified-identity-bootstrap-v2
-  - stalwart-userhub-oauth-v2
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - cert-manager.io
   resources:
   - certificates
@@ -2069,17 +2033,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - secretary-channel-registry-v2
-  - secretary-register-v0-3-3
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - cilium.io
   resources:
   - ciliumnetworkpolicies
@@ -2353,17 +2306,6 @@ rules:
   - patch
   - update
 - apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - supabase-identity-privacy-v1
-  - supabase-platform-admin-api-v5
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - ''
   resources:
   - configmaps
@@ -2543,16 +2485,6 @@ metadata:
   namespace: flux-system
 rules:
 - apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - retire-legacy-qianwen-grafana-v2
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - ''
   resources:
   - configmaps
@@ -2657,16 +2589,6 @@ metadata:
   name: observability-domain-incidentrelay
   namespace: incidentrelay
 rules:
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - incidentrelay-bootstrap-admin-v3
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - cilium.io
   resources:
@@ -3161,16 +3083,6 @@ metadata:
   namespace: supabase-pg-re8ch
 rules:
 - apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - incidentrelay-database-bootstrap-v7
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - ''
   resources:
   - configmaps
@@ -3355,8 +3267,639 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: ssa-state-observability-chart-birfucate-metering-kube-system
+  namespace: kube-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-birfucate-metering-kube-system
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-birfucate-metering-kube-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - birfucate-r640-dns
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-birfucate-metering-kube-system
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-birfucate-metering-kube-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-birfucate-metering-obs-3153d8794b
+  namespace: observability-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-birfucate-metering-observability-system
+  namespace: observability-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-birfucate-metering-obs-3153d8794b
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmservicescrapes
+  resourceNames:
+  - tenant-mcp-tool-usage
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-birfucate-metering-observability-system
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-birfucate-metering-observability-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-birfucate-metering-ten-dff87672e0
+  namespace: tenant-infrastructure
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-birfucate-metering-tenant-infrastructure
+  namespace: tenant-infrastructure
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - tenant-runtime-image-cache
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  - tenant-provider-reconciler
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - tenant-api-gateway
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-birfucate-metering-ten-dff87672e0
+  - tenant-platform-modules
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - tenant-platform-state
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  - tenant-provider-reconciler
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  - tenant-infrastructure
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - tenant-billing-auth-center
+  - tenant-billing-read
+  - tenant-credential-redemption
+  - tenant-native-mcp
+  - tenant-self-service-capabilities
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - tenant-control-controller
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-birfucate-metering-tenant-infrastructure
+  namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-birfucate-metering-tenant-infrastructure
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-birfucate-metering-too-25959610d0
+  namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-birfucate-metering-toolhive-system
+  namespace: toolhive-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-birfucate-metering-too-25959610d0
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - tenant-mcp
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-birfucate-metering-toolhive-system
+  namespace: toolhive-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-birfucate-metering-toolhive-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-birfucate-metering
+  namespace: observability-ai
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-birfucate-metering
+  namespace: observability-ai
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - birfucate-metering
+  - birfucate-metering-discovery
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - birfucate-metering
+  - ssa-state-observability-chart-birfucate-metering
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - birfucate-metering
+  - birfucate-metering-discovery
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - birfucate-metering
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-birfucate-metering
+  namespace: observability-ai
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-birfucate-metering
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-incidentrelay
+  namespace: incidentrelay
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-incidentrelay
+  namespace: incidentrelay
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - incidentrelay-scheduler
+  - incidentrelay-telegram
+  - incidentrelay-web
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-incidentrelay
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - incidentrelay
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - incidentrelay
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-incidentrelay
+  namespace: incidentrelay
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-incidentrelay
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-re8ch-opentelemetry-operator
+  namespace: opentelemetry-operator
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-re8ch-opentelemetry-operator
+  namespace: opentelemetry-operator
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - otel-operator-opentelemetry-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - otel-operator-opentelemetry-operator-serving-cert
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  resourceNames:
+  - otel-operator-opentelemetry-operator-selfsigned-issuer
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-re8ch-opentelemetry-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - opentelemetry-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - otel-operator-opentelemetry-operator
+  - otel-operator-opentelemetry-operator-webhook
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - otel-operator-opentelemetry-operator
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-re8ch-opentelemetry-operator
+  namespace: opentelemetry-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-re8ch-opentelemetry-operator
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-observability-chart-victoria-metrics-operator
+  namespace: observability-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: observability-metering
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: observability-chart-victoria-metrics-operator
+  namespace: observability-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - victoria-metrics-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-observability-chart-victoria-metrics-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - victoria-metrics-operator
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - victoria-metrics-operator
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: observability-chart-victoria-metrics-operator
+  namespace: observability-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: observability-chart-victoria-metrics-operator
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:observability-metering
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: ssa-state-networking-native-advfab-system
   namespace: advfab-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3413,6 +3956,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-ai-operations
   namespace: ai-operations
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3460,6 +4006,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-among-clusters
   namespace: among-clusters
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3535,6 +4084,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-artchais
   namespace: artchais
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3611,6 +4163,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-byoc-pilot
   namespace: byoc-pilot
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3702,6 +4257,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-cert-manager
   namespace: cert-manager
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3749,6 +4307,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-codex-platform
   namespace: codex-platform
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3798,6 +4359,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-credential-broker
   namespace: credential-broker
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3847,6 +4411,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-dataspace
   namespace: dataspace
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -3894,6 +4461,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-egress-fabric
   namespace: egress-fabric
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4002,8 +4572,61 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: ssa-state-networking-native-flux-network-system
+  namespace: flux-network-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-flux-network-system
+  namespace: flux-network-system
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - cluster-node-inventory
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-flux-network-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-flux-network-system
+  namespace: flux-network-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-flux-network-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: ssa-state-networking-native-flux-system
   namespace: flux-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4013,15 +4636,6 @@ metadata:
   name: networking-native-flux-system
   namespace: flux-system
 rules:
-- apiGroups:
-  - batch
-  resources:
-  - jobs
-  resourceNames:
-  - among-clusters-legacy-agent-cleanup-v2
-  verbs:
-  - get
-  - patch
 - apiGroups:
   - ''
   resources:
@@ -4069,6 +4683,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-headlamp
   namespace: headlamp
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4119,6 +4736,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-kube-system
   namespace: kube-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4198,9 +4818,15 @@ rules:
   - cilium-multi-pool-cutover
   - control-api-source
   - control-dns-reachability
+  - control-transit-controller-98df2kft25
+  - host-network-contract
+  - host-network-controller-679588ggt2
   - kube-api-observer-proxy
   - kube-api-overseas-relay
   - native-routing-rollout-order
+  - podcidr-fabric-inventory
+  - podcidr-fabric-reconciler
+  - public-mesh-podcidr
   verbs:
   - get
   - patch
@@ -4272,6 +4898,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-llm-gateway
   namespace: llm-gateway
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4329,6 +4958,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-mail-system
   namespace: mail-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4377,6 +5009,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-nuclio
   namespace: nuclio
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4429,6 +5064,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-observability-system
   namespace: observability-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4506,6 +5144,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-opensandbox-system
   namespace: opensandbox-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4562,6 +5203,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-ops
   namespace: ops
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4587,6 +5231,7 @@ rules:
   - configmaps
   resourceNames:
   - routeros-public-forward-controller
+  - routeros-transit-controller-m4d4tm44fd
   verbs:
   - get
   - patch
@@ -4628,6 +5273,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-payments
   namespace: payments
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4675,6 +5323,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-qianwen-ops
   namespace: qianwen-ops
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4749,6 +5400,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-re8ch-secretary
   namespace: re8ch-secretary
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4796,6 +5450,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-regional-routing
   namespace: regional-routing
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4887,6 +5544,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-supabase-pg-re8ch
   namespace: supabase-pg-re8ch
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4934,6 +5594,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-toolhive-system
   namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -4997,6 +5660,9 @@ kind: ConfigMap
 metadata:
   name: ssa-state-networking-native-voice-observability
   namespace: voice-observability
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
   annotations:
     kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
 ---
@@ -5035,6 +5701,515 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: networking-native-voice-observability
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-among-clusters-agent-among-clusters
+  namespace: among-clusters
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-among-clusters-agent-among-clusters
+  namespace: among-clusters
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - among-clusters-agent
+  - among-clusters-gateway
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - among-clusters-agent
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - among-clusters-gateway
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - among-clusters-agent
+  - among-clusters-gateway
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-among-clusters-agent-among-clusters
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-among-clusters-agent-among-clusters
+  namespace: among-clusters
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-among-clusters-agent-among-clusters
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-among-clusters-hub-among-clusters
+  namespace: among-clusters
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-among-clusters-hub-among-clusters
+  namespace: among-clusters
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - among-clusters-hub
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnetworkpolicies
+  resourceNames:
+  - among-clusters-hub-gateway
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - among-clusters-hub
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - among-clusters-hub
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - among-clusters-ingest
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  resourceNames:
+  - among-clusters-ingest
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - among-clusters-hub
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-among-clusters-hub-among-clusters
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-among-clusters-hub-among-clusters
+  namespace: among-clusters
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-among-clusters-hub-among-clusters
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-among-clusters-hub-credential-broker
+  namespace: credential-broker
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-among-clusters-hub-credential-broker
+  namespace: credential-broker
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - among-clusters-credential-broker
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - among-clusters-credential-broker
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - among-clusters-credential-broker
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - referencegrants
+  resourceNames:
+  - among-clusters-hub
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - among-clusters-credential-broker
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-among-clusters-hub-credential-broker
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-among-clusters-hub-credential-broker
+  namespace: credential-broker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-among-clusters-hub-credential-broker
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-among-clusters-hub-kube-system
+  namespace: kube-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-among-clusters-hub-kube-system
+  namespace: kube-system
+rules:
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - among-clusters-ingest-tls
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-among-clusters-hub-kube-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-among-clusters-hub-kube-system
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-among-clusters-hub-kube-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-cilium-kube-system
+  namespace: kube-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-cilium-kube-system
+  namespace: kube-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - cilium
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - cilium-operator
+  - hubble-relay
+  - hubble-ui
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - cilium-config
+  - hubble-relay-config
+  - hubble-ui-nginx
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - cilium
+  - cilium-operator
+  - hubble-relay
+  - hubble-ui
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - hubble-peer
+  - hubble-relay
+  - hubble-ui
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-cilium-kube-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-cilium-kube-system
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-cilium-kube-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-public-edge-manager-regional-routing
+  namespace: regional-routing
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-public-edge-manager-regional-routing
+  namespace: regional-routing
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - public-edge-manager
+  - public-edge-manager-redirector
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - public-edge-manager-cli
+  - public-edge-manager-controller
+  - public-edge-manager-globalping
+  - public-edge-manager-hidden-primary
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - public-edge-manager
+  - public-edge-manager-records
+  - public-edge-nameservers
+  - public-edge-runtime
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - public-edge-manager
+  - public-edge-manager-cli
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - public-edge-manager
+  - public-edge-manager-dns
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-public-edge-manager-regional-routing
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-public-edge-manager-regional-routing
+  namespace: regional-routing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-public-edge-manager-regional-routing
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group

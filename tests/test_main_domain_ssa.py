@@ -252,3 +252,18 @@ def test_kyverno_crd_defaults_preserve_explicit_policy_values():
     assert first["validate"] == {"message": "unchanged", "allowExistingViolations": True}
     assert second["skipBackgroundRequests"] is False
     assert second["validate"]["allowExistingViolations"] is False
+
+
+def test_configmap_binary_data_matches_api_canonical_base64_without_changing_bytes():
+    import base64
+    source = {compiler.identity(item): item for item in documents(
+        ROOT / "clusters/re8ch/domains/operations-ui/resources.yaml") if item.get("binaryData")}
+    rendered = documents(ROOT / "operations/releases/main-domain-ssa/main-operations-ui-headlamp/resources.yaml")
+    checked = 0
+    for item in rendered:
+        for key, value in item.get("binaryData", {}).items():
+            original = source[compiler.identity(item)]["binaryData"][key]
+            assert value == base64.b64encode(base64.b64decode(original)).decode()
+            assert not any(char.isspace() for char in value)
+            checked += 1
+    assert checked == 6
