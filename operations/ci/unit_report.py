@@ -94,7 +94,9 @@ class Observer:
     @pytest.hookimpl(trylast=True)
     def pytest_sessionfinish(self, session, exitstatus):
         elapsed = time.perf_counter() - self.started
-        if raw := os.environ.get("UNIT_PLAN"):
+        if plan_file := os.environ.get("UNIT_PLAN_FILE"):
+            plan = json.loads(Path(plan_file).read_text())
+        elif raw := os.environ.get("UNIT_PLAN"):
             plan = json.loads(raw)
         else:
             plan = {"paths": [], "full": True, "risky_unknown": [], "jobs": {"unit": True},

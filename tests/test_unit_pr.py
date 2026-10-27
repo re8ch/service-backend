@@ -130,3 +130,14 @@ def test_workflow_uses_read_only_consumer_and_retains_required_entry():
     assert any('operations.ci.unit_pr' in step.get('run', '') for step in steps)
     assert not any(step.get('with', {}).get('name') == 'unit-success-evidence' for step in steps)
     assert not impact.select(['README.md'])['jobs']['unit']
+
+
+def test_large_plan_reaches_child_pytest_without_environment_limit(consumer):
+    _, _, execute = consumer
+    selected = plan('tests/test_always.py', full=True)
+    selected['paths'] = ['historical/' + 'x' * 200 + str(i) for i in range(2000)]
+    assert len(json.dumps(selected)) > 128 * 1024
+    code, result, output = execute('large-plan', selected)
+    assert code == 0
+    assert result['units']['tests/test_always.py']['status'] == 'executed'
+    assert json.loads((output / 'execution-plan.json').read_text())['paths'] == selected['paths']

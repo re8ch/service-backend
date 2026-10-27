@@ -113,7 +113,10 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
     phases['fingerprint'] = time.monotonic() - phase_started
     execution_plan = {**plan, 'tests': execution}
     summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
-    execution_env = {**os.environ, 'UNIT_PLAN': json.dumps(execution_plan)}
+    execution_plan_path = output / 'execution-plan.json'
+    write(execution_plan_path, execution_plan)
+    execution_env = {**os.environ, 'UNIT_PLAN_FILE': str(execution_plan_path)}
+    execution_env.pop('UNIT_PLAN', None)
     # The final aggregate owns the summary; pytest/JUnit describe real execution only.
     execution_env.pop('GITHUB_STEP_SUMMARY', None)
     actual = output / 'execution'

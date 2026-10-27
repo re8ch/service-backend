@@ -41,7 +41,7 @@ def main():
     identity = {'repository': os.environ['GITHUB_REPOSITORY'], 'sha': os.environ['GITHUB_SHA'],
                 'run_id': int(os.environ['GITHUB_RUN_ID']), 'attempt': int(os.environ['GITHUB_RUN_ATTEMPT'])}
     # GITHUB_REPOSITORY is the base repository, including for fork PRs. No head-repo token.
-    raise SystemExit(consume(Path.cwd(), json.loads(os.environ['UNIT_PLAN']), args.output, identity))
+    raise SystemExit(consume(Path.cwd(), json.loads(Path(os.environ['UNIT_PLAN_FILE']).read_text()) if os.environ.get('UNIT_PLAN_FILE') else json.loads(os.environ['UNIT_PLAN']), args.output, identity))
 
 
 if __name__ == '__main__':
