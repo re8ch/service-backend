@@ -2,29 +2,42 @@
   "sources": [
     {
       "repository": "8iops/agent-gitops",
-      "revision": "9a287eb5fe1d5258ad6cef07a89a81bf3e3e6260",
+      "revision": "357538c5742bb716328ad5c0f7e9242052754f58",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "a19085ecce5ee9f2f27b3cec0502e52f2717592fe6cc9dcd4826e4ed9ec7f0f9"
+      "sha256": "3fee59b17c19bbc96a715b190e407cba0198ccdafbaf98b57c007c2b579e65b8"
     },
     {
       "repository": "re8ch/identity-gitops",
-      "revision": "a857151b3a32ffa54c2c84bdbca99524d771447d",
+      "revision": "e3409d465849e6dd267ed49edd8cd9b7d0db14f1",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "6fba7035e3d67e4615137d483b03dc1a063b2fda0edb539e60569f356e0a0178"
+      "sha256": "7fdbff9707102a20f92545fe083b08c65a58e801715d9377ba0d5f05aa4f7112"
     },
     {
       "repository": "siren-observer/observability-gitops",
-      "revision": "bd73e34731966fe056e326648fbdad0bdb2a74cf",
+      "revision": "de4e7741b038c1a57dc111ffc7a4018618230bfb",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "41f337972d3e21b3fe59fda1d8ecc4fd06c42bf0d10e042cfdd27f4f67bf9409"
+      "sha256": "d4d456a5065b8815dec5fb862181cbafaf90f17f7d313eeb193b404ff074a2ba"
+    },
+    {
+      "repository": "siren-observer/observability-gitops",
+      "revision": "de4e7741b038c1a57dc111ffc7a4018618230bfb",
+      "path": "operations/releases/chart-access.yaml",
+      "sha256": "53dd9d4d4382b1d26967a8b8ead86a80145557da24e7afd355f057b43d25871b"
     },
     {
       "repository": "pillars-infra/network-gitops",
-      "revision": "52e1eae8c6048f17200fc9fe250a5a682be8c408",
+      "revision": "8fd469d040db956f46602370801869f624f9f58f",
       "path": "operations/releases/native-authority.json",
-      "sha256": "704fa077e82471564b477d1bd3de4b0122e9ce6f06075e7ebe3afda907f12381"
+      "sha256": "5db0b2ab686d188b75d21a6981d4c3b50a2bf6ae0316e3a7f2cd6af5a8d89d0a"
+    },
+    {
+      "repository": "pillars-infra/network-gitops",
+      "revision": "8fd469d040db956f46602370801869f624f9f58f",
+      "path": "operations/releases/helm-authority.json",
+      "sha256": "c7b9262e802b952374a1a040a066a2743b566586c4342951228e2ce009bb418e"
     }
   ],
-  "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance.",
-  "objects": 177
+  "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance. Retired roles retain no permissions.",
+  "objects": 222,
+  "states": 74
 }

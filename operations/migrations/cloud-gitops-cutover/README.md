@@ -39,3 +39,22 @@ continue to maintain workload runtime behavior.
 A fallback means restoring a needed resource through the cloud/platform API.
 Starting local Flux again requires a separately reviewed user-directed change;
 it is not an automatic failure handler.
+
+## Executed cutover
+
+The local controller stop is complete. `runtime-evidence.json` records the merged
+revision and platform audits. All 22 Flux Deployments have desired and ready
+replicas zero; Kubernetes readyz is healthy. The 248 bootstrap permission/state
+objects were read back with no missing or differing permissions and no missing
+state. Workloads and Helm history were retained.
+
+Cloud adoption remains a separate runtime acceptance step. A merged contract or
+successful dry-run does not establish accepted state. Existing releases whose
+accepted contract differs require one approved publication; replay deliberately
+rejects the old baseline until that succeeds. Secrets, platform RBAC and
+unreviewed route/prune changes are not silently included in generic adoption.
+
+The next access revision pins six merged source files for 74 accepted-state records.
+It adds eight observability chart contracts and six networking Helm contracts,
+adds networking encrypted-configuration adoption, and removes permissions for
+historical one-shot Jobs. Applying this metadata must preserve existing accepted state.
