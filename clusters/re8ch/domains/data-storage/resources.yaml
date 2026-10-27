@@ -734,7 +734,7 @@ spec:
           value: "8978"
         - name: JAVA_OPTS
           value: -Xms128m -Xmx768m
-        image: dbeaver/cloudbeaver:24.3.5
+        image: docker.io/dbeaver/cloudbeaver@sha256:28f7abeeae9835c797246a4bcbb756b9eaf7275a6691d583b4a40a736fa420c1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -774,7 +774,7 @@ spec:
           mkdir -p /workspace/GlobalConfiguration/.dbeaver
           cp /seed/data-sources.json /workspace/GlobalConfiguration/.dbeaver/data-sources.json
           chown -R 8978:8978 /workspace || true
-        image: dbeaver/cloudbeaver:24.3.5
+        image: docker.io/dbeaver/cloudbeaver@sha256:28f7abeeae9835c797246a4bcbb756b9eaf7275a6691d583b4a40a736fa420c1
         imagePullPolicy: IfNotPresent
         name: seed-config
         volumeMounts:
