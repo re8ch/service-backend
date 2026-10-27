@@ -219,8 +219,8 @@ def test_ceph_cloud_runner_exception_keeps_each_exact_claim_and_environment_audi
     from types import SimpleNamespace
     github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
     for rule in github['claimValidationRules'][:2]:
-        branch = next(b for b in rule['expression'].split('|| (claims.repository_visibility') if 'ceph-static-release.yml' in b)
-        expression = ('claims.repository_visibility' + branch).strip().removesuffix(')').replace('&&', ' and ')
+        branch = next(b for b in rule['expression'].split('|| (') if 'ceph-static-release.yml' in b)
+        expression = branch.strip().removesuffix(')').replace('&&', ' and ')
         expression = ' '.join(expression.split())
         values = dict(repository_visibility='public', repository_id='1367237854', repository_owner_id='283958313',
                       repository='re8ch/service-backend', ref='refs/heads/main', runner_environment='github-hosted',
