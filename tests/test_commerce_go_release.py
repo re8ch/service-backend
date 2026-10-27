@@ -14,6 +14,10 @@ def test_commerce_release_uses_rotated_domain_registry_identity():
     assert 'BUILDX_CONFIG=${HOME}/.docker/buildx' in workflow
     assert "docker/setup-buildx-action" not in workflow
     assert "docker buildx version" in workflow
+    assert "docker/login-action" not in workflow
+    assert "Configure temporary registry authorization" in workflow
+    assert "REGISTRY_USERNAME: ${{ secrets.DOMAIN_REGISTRY_USERNAME }}" in workflow
+    assert "REGISTRY_PASSWORD: ${{ secrets.DOMAIN_REGISTRY_PASSWORD }}" in workflow
     assert 'printf \'{}\\n\' > "$DOCKER_CONFIG/config.json"' in workflow
     assert 'ln -s "${HOME}/.docker/cli-plugins/docker-buildx" "$DOCKER_CONFIG/cli-plugins/docker-buildx"' in workflow
     assert 'rm -f "$DOCKER_CONFIG/config.json"' in workflow
