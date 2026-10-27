@@ -1,0 +1,1434 @@
+{
+  "schemaVersion": 1,
+  "projectUrl": "https://github.com/orgs/re8ch/projects/2",
+  "documents": [
+    {
+      "path": "operations/network/docs/a1-single-control-plane-cutover.md",
+      "sha256": "f993e551b464e32f51b781e1b761e31d7a5423c7ad354caaab7c9b155a7974d4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GA8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVyY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563471"
+    },
+    {
+      "path": "operations/network/docs/amd-windows-management-wireguard-2026-10-07.md",
+      "sha256": "8986dc0848f97f648472d86e7b75b489039a0a15ec6b2dc1dd9df1725f41efdb",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GFA",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVyk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563536"
+    },
+    {
+      "path": "operations/network/docs/amd-wsl-lan-paths-2026-10-07.md",
+      "sha256": "1d2e6f7cc20fc0a696d2b431a19d5d306136311dff7f92e1fb89dcfeff6727a3",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GJg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVyw",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563608"
+    },
+    {
+      "path": "operations/network/docs/cilium-bgp-control-plane-performance-checkpoint-2026-08-07.md",
+      "sha256": "d3096bfbea922c245b362553ea821c5fcc00eb65c16c5a33760493703f37d88b",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GMU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVy0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563653"
+    },
+    {
+      "path": "operations/network/docs/cilium-service-vip-fabric-2026-08-13.md",
+      "sha256": "c8f254bb364f8fa899b1341ac276d32a4286960607b24797c79f9d663a255d67",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GPM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVzA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563699"
+    },
+    {
+      "path": "operations/network/docs/control-pod-symmetry.md",
+      "sha256": "c31934628bf1be93dd59dee514b61de46d7065d8c826c2cb888a857f823379c4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GRc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVzI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563735"
+    },
+    {
+      "path": "operations/network/docs/la1-public-mesh-onboarding-2026-10-11.md",
+      "sha256": "72f34aaba11cd20978d189ad5673df11ba09b5afc41b1b05d147f8ebf8a4ec7d",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GUM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVzU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563779"
+    },
+    {
+      "path": "operations/network/docs/mihomos-cluster-application-2026-08-20.md",
+      "sha256": "46296042e6e59002bb922cbf95b39d54eff99e0e92dc4da79936c69c2790b752",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GWk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVzg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563817"
+    },
+    {
+      "path": "operations/network/docs/mubao-control-plane-stability-2026-10-03.md",
+      "sha256": "847085bd3036ecc0202ede1f5a9c01513d4691c5eaa6527bc5331ba1572497d6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GY0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVzs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563853"
+    },
+    {
+      "path": "operations/network/docs/mubao-k3s-server-2026-10-03.md",
+      "sha256": "d446453b7d3e40965bfdbc00c820c99f633e0a5327dd73d68e3f08eb1cc0b4bb",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Gbk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgVz4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563897"
+    },
+    {
+      "path": "operations/network/docs/mubao-kubelet-metrics-route-2026-10-03.md",
+      "sha256": "9bc8a1dcabb24ead07797d52e4474e78c8dffbd09ce9433b28ec413e277d4d55",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GeI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV0A",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563938"
+    },
+    {
+      "path": "operations/network/docs/mubao-wireguard-transit-2026-10-03.md",
+      "sha256": "23bbf9f1098856d2ccc7a0e2c988a9bb47e393534808e33812b22e6ed061704a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ghk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV0Q",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284563993"
+    },
+    {
+      "path": "operations/network/docs/network-routing-cost-observability-2026-08-02.md",
+      "sha256": "3c9dff47ac73fc0cf347834d60c4f06c51892d1d325473580896ff3ca4209c13",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GkE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV0Y",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564033"
+    },
+    {
+      "path": "operations/network/docs/private-transit-mesh-boundary-2026-08-07.md",
+      "sha256": "80146285cfc6b7446a2408c87caf80160f10b9cc386720856dd2278f8e8a1b27",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Gmc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV0o",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564071"
+    },
+    {
+      "path": "operations/network/docs/private-transit-policy-routing-design-2026-08-07.md",
+      "sha256": "004bad0f06ee0705145b987702d1076593fe16ae0fb5c9b08aca5fab07997e80",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Gog",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV0w",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564104"
+    },
+    {
+      "path": "operations/network/docs/r640-cilium-gateway-recovery-2026-10-19.md",
+      "sha256": "0637d1a7f875cd0859480023680733a99f7733ba92777c645fa129ab278cff66",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GrE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV00",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564145"
+    },
+    {
+      "path": "operations/network/docs/r640-k3s-worker-handoff.md",
+      "sha256": "2dbcade047af668ea79bec94590c75ca3a9faf60d604eeaf453abde35dd72987",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Gu4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV1M",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564206"
+    },
+    {
+      "path": "operations/network/docs/routeros-control-mesh.md",
+      "sha256": "47a4d277b3a0f2b7e44c1edebf324b4a635d651724880a9c394eae0a423c03a7",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2GxQ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV1U",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564244"
+    },
+    {
+      "path": "operations/network/docs/routeros-public-dns-authority.md",
+      "sha256": "d443f80602856e2f25671beddf5c782f320cb2319b22063b791b596155272183",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2G1Y",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV1k",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564310"
+    },
+    {
+      "path": "operations/storage/cephfs-r640-single-capacity-cutover.md",
+      "sha256": "2983c0e13abcd06b1b9e947beff890abbbbd12a0f54913fdff886877694a224c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2G3w",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV10",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564348"
+    },
+    {
+      "path": "runbooks/advanced-fabric-dns-migration.md",
+      "sha256": "82cad76ba4ad11809e8b6dc473792f9beec5e7b81cb415e52c532ba9e74e6014",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2G78",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV2E",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564415"
+    },
+    {
+      "path": "runbooks/ai-tenant-resource-broker.md",
+      "sha256": "04a52a32d71dd07f72d7e5907d9406cd520fc8232739b0e8fe28e06dae8d0792",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2G_M",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV2M",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564467"
+    },
+    {
+      "path": "runbooks/among-clusters-public-byoc-mihomos.md",
+      "sha256": "bebe0487375938f04ee8f732364fbd5fd6d96c0dd2330ad0cf85b626b6d13a59",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HBs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV2Y",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564507"
+    },
+    {
+      "path": "runbooks/artchais-tenant-cutover.md",
+      "sha256": "59d7fdc36ee9eaed2ab9940f9a54029edd88a0f5354ad8f1af68aa593c1edcd3",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HDk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV2g",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564537"
+    },
+    {
+      "path": "runbooks/auth-provider-credential-intake.md",
+      "sha256": "18cd30bcffaa75efb5ef6f7bc487ae12d0e655f41a41d09597eaec246277ff90",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HFs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV2o",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564571"
+    },
+    {
+      "path": "runbooks/b1-stalwart-recovery-2026-08-25.md",
+      "sha256": "7a5a56155e96e40eb369ec1ed9964fa6a2928485fe84b99ad6ff17f7097ff61e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HH4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV20",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564606"
+    },
+    {
+      "path": "runbooks/bot-employee-onboarding-pilot.md",
+      "sha256": "00a6bc632157d89b1136119f831187510e5097b11750dd367019ce6d8b4087dc",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HJ0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV3A",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564637"
+    },
+    {
+      "path": "runbooks/external-project-deployment.md",
+      "sha256": "3ce0187b3f5188a51cfea7f6f73b7b9e5c9bb5aa33213c3b45a886d7a821d4a6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HME",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV3I",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564673"
+    },
+    {
+      "path": "runbooks/federated-workspace.md",
+      "sha256": "2d425f393637d80ae79e218b4f8c89394b34a603ab599c4f42b87e6aab41a9fe",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HOk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV3Y",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564713"
+    },
+    {
+      "path": "runbooks/flux-sops-and-commit-verification.md",
+      "sha256": "a091852c436e9b693af662cea445eb752cde6e6ba4f7455089a19b0164d16d22",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HR0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV3o",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564765"
+    },
+    {
+      "path": "runbooks/git-k8s-workspace-standard.md",
+      "sha256": "00daf05f452f95a76530c350a8b82fc33c6973f04923c008ade254bf62161939",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HVY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV30",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564822"
+    },
+    {
+      "path": "runbooks/gitops-bootstrap.md",
+      "sha256": "dcd4502b598425d7845016dacbe3353a1e4f040b62215750dab1bd5b996e31f9",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HZk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV4I",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564889"
+    },
+    {
+      "path": "runbooks/harbor-infra-tenant-broker.md",
+      "sha256": "a21243438d168d9fb29742b6e614b85822db9138ba35292137aacce36f0b845e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Hc4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV4Q",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564942"
+    },
+    {
+      "path": "runbooks/identity-service-command-card.md",
+      "sha256": "161b886c534904b5a586f97de489e31fdf4a142bd9a37f298e5fbe51fc7279f7",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Hfo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV4k",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284564986"
+    },
+    {
+      "path": "runbooks/macmini-devops-worker.md",
+      "sha256": "bb1dda6118f04b8628d64edb6d733d0261b5fa9f98d04c9fb262e82dc47c8854",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HjE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV4s",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565041"
+    },
+    {
+      "path": "runbooks/management-ssh-mesh.md",
+      "sha256": "7025a014ae5bd818b02df241176779e0ab44aa2b1b5acd27de3adaa06575e09e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Hl4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV48",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565086"
+    },
+    {
+      "path": "runbooks/node-valuation-evidence.md",
+      "sha256": "54709f32df368f15736562f75bc752bca0890f57adfb2137c86fb114464c44c6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Hpk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV5M",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565145"
+    },
+    {
+      "path": "runbooks/observability/application-observability-contract.md",
+      "sha256": "9c3fdbdba586f773e13b1dad0c91335915a4da11d8e104b69453048c0fc8b797",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2HsI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV5c",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565186"
+    },
+    {
+      "path": "runbooks/observability/application-observability-onboarding-2026-08-25.md",
+      "sha256": "3b54b3043e7bd250d8c99036fbdee3d554a3ecc6c9e2461dd04b1d170e22fd8d",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Htw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV5o",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565212"
+    },
+    {
+      "path": "runbooks/observability/ceph-storage-gate-2026-08-25.md",
+      "sha256": "0d8a98bec15d51d300f4c134f1c3b88a414a16d50807afe758ea93790d6eeebb",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Hvw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV54",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565244"
+    },
+    {
+      "path": "runbooks/observability/data-integrity-audit-2026-08-25.md",
+      "sha256": "262fa913b8ffcf7baec626fbd3b89f11bd4e387f80b06da186cabcd027b87f9a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Hyc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV6I",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565287"
+    },
+    {
+      "path": "runbooks/observability/ready-node-storage.md",
+      "sha256": "a1a139114a233d45c9ac327a4cf6158f746825fe6dd918480e06944ac7a83a1b",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2H1k",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV6U",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565337"
+    },
+    {
+      "path": "runbooks/platform-history/ai-identity-single-authority-2026-08-13.md",
+      "sha256": "3372cf9108a5c756bd95466b92df7120c5d093d09d5bea8e2d889ad1760867ce",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2H4A",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV6o",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565376"
+    },
+    {
+      "path": "runbooks/platform-history/ai-operations-three-plane-2026-08-16.md",
+      "sha256": "9b8d6adf68cbe961ea455942f2eba01d9f740f906175ac993b4b23ed5d80f188",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2H6c",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV6s",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565415"
+    },
+    {
+      "path": "runbooks/platform-history/ai-table-agent-orchestration-recovery-2026-07-29.md",
+      "sha256": "5349cd6c1c2e3b9a22ad7686d5a254647222ea3eef57472840f8a3da4c5d51ee",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2H8c",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV7E",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565447"
+    },
+    {
+      "path": "runbooks/platform-history/aliyun-esa-pg-dns-controller.md",
+      "sha256": "e8ed6bcd7c409e4f1c45475d6901b748133385ce0ad0d79f3b878869420c22b5",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2H-g",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV7M",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565480"
+    },
+    {
+      "path": "runbooks/platform-history/amdwsl-zt-cilium-hubble-rejoin-2026-08-01.md",
+      "sha256": "af816b67a3407ce8f983a717f52b9d8373e125e396a402c27110e24e8aa473ac",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IAw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV7c",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565516"
+    },
+    {
+      "path": "runbooks/platform-history/among-clusters-mihomos-cross-cluster-sharing.md",
+      "sha256": "16dec2ce65a4a3fe08a2e2a711fc574081a7a6eab9999d75e80e362bebe71052",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IDM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV7s",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565555"
+    },
+    {
+      "path": "runbooks/platform-history/api-region-latency-coredns-hotfix-2026-06-02.md",
+      "sha256": "354e908e9f0f37870bbd9fd4a35deaddf4e8a6c57c0ea4705e3039a07740d9de",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IE0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV70",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565581"
+    },
+    {
+      "path": "runbooks/platform-history/artchais-service-network-and-public-peer-check-2026-05-29.md",
+      "sha256": "c73045d7aa3b24a2fdafe7a8e0055220b8b12f07ed039f86c34bae65245220c2",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IG0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV8E",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565613"
+    },
+    {
+      "path": "runbooks/platform-history/cephfs-cilium-production-rollout-2026-08-13.md",
+      "sha256": "70eca89c2a6a8fdf0cff426aebf439a6966dee52fd7482cf677916a7e71e2e56",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IJw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV8U",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565660"
+    },
+    {
+      "path": "runbooks/platform-history/cephfs-network-fabric-contract-2026-08-13.md",
+      "sha256": "cfe8f610cc44ac6b66d202ff7e01d6e75b9fac17b00876ad802ca76662c42355",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IM4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV8c",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565710"
+    },
+    {
+      "path": "runbooks/platform-history/cephfs-recovery-inventory-2026-08-13.md",
+      "sha256": "595753394c33eb5f2440b7cb0fe46569b56ea613f0db48f210f1abde31f5c9b2",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IPw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV8o",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565756"
+    },
+    {
+      "path": "runbooks/platform-history/cilium-bgp-control-plane-performance-checkpoint-2026-08-07.md",
+      "sha256": "bfbdd6881055af6d6fdacc1435ecdaa9f2a643ebf17aed877004a779ffae92bc",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2ISM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV8w",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565795"
+    },
+    {
+      "path": "runbooks/platform-history/cilium-service-vip-fabric-2026-08-13.md",
+      "sha256": "c8f254bb364f8fa899b1341ac276d32a4286960607b24797c79f9d663a255d67",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IUo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV80",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565834"
+    },
+    {
+      "path": "runbooks/platform-history/cloud-platform-agent-workspace-provider-design-2026-08-17.md",
+      "sha256": "e75c1a4b0e35d1506d5f0def23cade76933af92a6b49f41bf11826526bdf55ab",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IW8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV88",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565871"
+    },
+    {
+      "path": "runbooks/platform-history/codex-app-server-console.md",
+      "sha256": "30da4a93cdb17c973dce202a71c42e7910eb6dd3169cdb064a2ab68d21118934",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IZg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV9A",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565912"
+    },
+    {
+      "path": "runbooks/platform-history/dataspace-apple-client-architecture-2026-08-15.md",
+      "sha256": "989d26a1893f07a57643f61f20ee520afcb65cdc2be5f4359cc04363f469b329",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IbM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV9I",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565939"
+    },
+    {
+      "path": "runbooks/platform-history/dex-authentik-fleet-postgrest-identity-implementation-2026-07-14.md",
+      "sha256": "d704fb69954487d1b863590e39af564aea521c8b2bf6754b73a517dbe85f202c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Idk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV9U",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284565977"
+    },
+    {
+      "path": "runbooks/platform-history/dn42-network-interconnection-governance-2026-08-05.md",
+      "sha256": "55a4536e4ecb6957a80e52d086daf10bf8b13703e93a6cc0c461f893ee1d4d7e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Igw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV9c",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566028"
+    },
+    {
+      "path": "runbooks/platform-history/dn42-peering/README.md",
+      "sha256": "78df728a0403676a724803596f6a164a5a8b986ebed7e9d351e50429f10f5240",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IlA",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV90",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566096"
+    },
+    {
+      "path": "runbooks/platform-history/edge-peer-dispatch.md",
+      "sha256": "f10f0fbac0eee3085d7b2a6d73208b9a7a95497cf75f6673c3cf5550d9d23eb5",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ioo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV98",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566154"
+    },
+    {
+      "path": "runbooks/platform-history/external-dns-public-exposure-test-runbook-2026-08-07.md",
+      "sha256": "de371b28e4846218407325cedfd21273c48747b60cc519ffb1809f1d8431de31",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2IrM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV-I",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566195"
+    },
+    {
+      "path": "runbooks/platform-history/gateway-inventory-cleanup-2026-06-06.md",
+      "sha256": "7746926e709d5b1130694ca771ff4a3ad2bdfdd1b9110e82158085637586f088",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Iuw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV-M",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566252"
+    },
+    {
+      "path": "runbooks/platform-history/grafana-correlations-validation-2026-06-14.md",
+      "sha256": "8749c6d187c24473c3f3a9a5433497bd83c6e4a4e452b0c3f3914380f1313b8e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Izc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV-c",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566327"
+    },
+    {
+      "path": "runbooks/platform-history/grafana-org-tenant-isolation-runbook.md",
+      "sha256": "693b27e0f648660b3009420f27c463aeee599454c2c3e41cae38ab1d73b50221",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2I2s",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV-g",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566379"
+    },
+    {
+      "path": "runbooks/platform-history/grafana-pigsty-tenant-observability-lessons-2026-06-30.md",
+      "sha256": "77e9507e99d9cc5179c08acc506eb6d548a236fefce735f048fbc5ec7f8b260c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2I7U",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV-w",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566453"
+    },
+    {
+      "path": "runbooks/platform-history/grafana-preview-2026-08-25.md",
+      "sha256": "5a535f6b49d3d420946b510a47128a36edf6d31cbfac260a08c899e36c550957",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2I-c",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV_A",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566503"
+    },
+    {
+      "path": "runbooks/platform-history/grafana-tenant-metrics-scope-2026-06-06.md",
+      "sha256": "67d35cb9aa2f14f1210334e7a0fbc34e2670f2fa372bf3a866154b33208ef758",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JCA",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV_Q",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566560"
+    },
+    {
+      "path": "runbooks/platform-history/harbor-cluster-native-redesign-2026-08-21.md",
+      "sha256": "167d1d0991bdded38d544286ee113e186207d201daed1d0971b25b3250fe2a01",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JEY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV_c",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566598"
+    },
+    {
+      "path": "runbooks/platform-history/harbor-registry-migration-plan-2026-05-29.md",
+      "sha256": "9d3b13bb7059a24867c53c7e67671d99ffd04dd6338eb59ac69c691c740d304a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JHU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV_k",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566645"
+    },
+    {
+      "path": "runbooks/platform-history/harbor-registry-oss-esa-driver-patch-2026-06-21.md",
+      "sha256": "14485803951c9137b40a4443b69e9ddacfbdecb8e168459eea0c76e635c6ccb1",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JJs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgV_4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566683"
+    },
+    {
+      "path": "runbooks/platform-history/harbor-s3-oss-backend-and-backup-2026-06-20.md",
+      "sha256": "9aeca990d674e1436e65835a32c8443eec43ca4c96abea06503f0063406e3343",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JMs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWAE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566731"
+    },
+    {
+      "path": "runbooks/platform-history/harbor-trivy-adapter-investigation-2026-07-30.md",
+      "sha256": "8f56a9ec63b67eede61a1a18c1ca2d3a0a1e0731c208a1c3e834a434bbbc9c5a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JQI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWAg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566786"
+    },
+    {
+      "path": "runbooks/platform-history/headlamp-cephfs-plugin-pvc-runbook-2026-08-21.md",
+      "sha256": "6cca356a631d18378e107773d7b280cbcfb66436feaf645c7a3e18feaafcf947",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JTg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWAs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566840"
+    },
+    {
+      "path": "runbooks/platform-history/headlamp-dex-ops-mcp-rbac-2026-06-06.md",
+      "sha256": "4d29275dedd9528da80db45ab080920a7d1ccc7832e4cd6939dcd368cbc8f097",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JWY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWA0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566886"
+    },
+    {
+      "path": "runbooks/platform-history/headlamp-r640-outage-public-recovery-runbook-2026-08-20.md",
+      "sha256": "b23a2d06cfa0e66e87fad8f0d215b7271bbd11b071896745a76740a151d355a2",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JY8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWBI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566927"
+    },
+    {
+      "path": "runbooks/platform-history/huawei-b866-mikrotik-public-bridge-cutover-runbook-2026-07-15.md",
+      "sha256": "720041ec3a3b91594066ebab3589dafb16da4f752d1b5d0cde103e9aedf67f69",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JbE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWBU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284566961"
+    },
+    {
+      "path": "runbooks/platform-history/incidents/2026-08-21-headlamp-cephfs-csi-control-plane.md",
+      "sha256": "837b62b436a9a22f637c69813e7312e296823be3db929dff2d4bce13ae8dce68",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JeI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWBg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567010"
+    },
+    {
+      "path": "runbooks/platform-history/incidents/2026-10-05-openai-review-personal-tenant-specialization.md",
+      "sha256": "284435b6353d682abfde08d8b81c07357f19b157c4aeb2bf9eaaf32286587ca2",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Jgk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWBo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567049"
+    },
+    {
+      "path": "runbooks/platform-history/infra-observability-placement-review-2026-06-13.md",
+      "sha256": "31a6560f0b98e5bee69e58ed83b264460cf538d88a5befd64919ed7c0118a141",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Jj8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWB4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567103"
+    },
+    {
+      "path": "runbooks/platform-history/infrastructure-change-and-experiment-ledger-2026-08-07.md",
+      "sha256": "f1536a00a90cccfee9e86ee9caa4e29708e231f5011d390440852e17876fa7bc",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Jmk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWCM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567145"
+    },
+    {
+      "path": "runbooks/platform-history/integrations-module-split.md",
+      "sha256": "35eb6624fe45dc15303192a1b75064bab96dc54ce0786a96f981f54102458549",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JqA",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWCY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567200"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-cilium-gateway-operations-runbook-2026-08-16.md",
+      "sha256": "a17e33bc65882c0eefc0ceca0b070fa84b8ef6fbc0bc6d12861c1ef0ae36def9",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JtM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWCk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567251"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-cilium-node-address-authority-2026-08-02.md",
+      "sha256": "838d105bdfc29186aafa30d21d54e98c720773d2626bce26f26b35cb36700259",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JwE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWCw",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567297"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-control-plane-cilium-migration-qa-handbook-2026-07-30.md",
+      "sha256": "f6aaf6da68eadae4ed117892ece1e127e897a92d5089bd7c0d8a92b94fd6ac97",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2JzU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWC8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567349"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-distributed-egress-fabric-2026-08-09.md",
+      "sha256": "fe36291e439a4ce6084fd3f754df9044930be09291f5b7ae381a1714821b94d3",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2J28",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWDA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567407"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-flannel-to-cilium-readiness-2026-07-30.md",
+      "sha256": "2806757601cf5d793a40fc56289d30c7eea28156f99b7655b5d6bfbcaab7c6f0",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2J6Y",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWDI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567462"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-ha-embedded-etcd-migration-2026-08-01.md",
+      "sha256": "5efc8bfe3bced571f1a9192290b3941f586af534d4b4b035b7313b2d26731503",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2J90",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWDU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567517"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-harbor-registry-authority-2026-08-22.md",
+      "sha256": "80f7c11fb2be186f6e83b4c683e92a291d6efd542ffa1bcb218abfad1d2051d0",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KAY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWDg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567558"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-network-public-entry-baseline-2026-08-16.md",
+      "sha256": "c4ff40389d610b3167a4ae210d27334d277cffee75c0faac2dbeb4e11f293817",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KDs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWDw",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567611"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-node-optional-overseas-egress-2026-08-13.md",
+      "sha256": "d8158ed4a35655089dbc228df65d5cba674e8550bf7f47fcb084edc186a24a0a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KGw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWD0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567660"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-observability-harbor-migration-2026-06-01.md",
+      "sha256": "9850314a1914523e9feca35ab6d41998bd1da06f898199b4cdc4f0c1024d4960",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KJw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWEA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567708"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-public-routing-and-workload-placement-2026-07-30.md",
+      "sha256": "7e78ce82685867054d5999239dc470f82dfe1aebf292516dbac22f51e5f6603d",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KM4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWEI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567758"
+    },
+    {
+      "path": "runbooks/platform-history/k3s-public-wireguard-frr-mesh-runbook-2026-08-02.md",
+      "sha256": "bea47adb3be8b98866f243773a6020bba61d1ae2d508a55b9e9338368c1af358",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KQg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWEQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567816"
+    },
+    {
+      "path": "runbooks/platform-history/kagent-agent-harness-market-and-litellm-2026-08-02.md",
+      "sha256": "df311d3db2c0f11e85e69b7b7ecd8034028181040ae0bf9fa66a260eabd8f355",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KTk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWEg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567865"
+    },
+    {
+      "path": "runbooks/platform-history/ledger-regional-edge-no-private-fallback-2026-06-08.md",
+      "sha256": "93dd2505aa3e068aac3305dd48f4a3e94b6edf276301f9cd6bcad6c441178e5e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KV8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWEs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567903"
+    },
+    {
+      "path": "runbooks/platform-history/local-closure-validation-plan-2026-06-13.md",
+      "sha256": "d0b92aa32b91b527280937bfe7ebf98dc1acb1e3857ef4ea6e5b79ad882fe3be",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KZY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWFA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284567958"
+    },
+    {
+      "path": "runbooks/platform-history/mihomos-cluster-application-2026-08-20.md",
+      "sha256": "46296042e6e59002bb922cbf95b39d54eff99e0e92dc4da79936c69c2790b752",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Kc4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWFM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568014"
+    },
+    {
+      "path": "runbooks/platform-history/mikrotik-airport-strategy-2026-07-13.md",
+      "sha256": "dc100696a5fdde32a016839fda505e338e18b9888cd87f85847d56bd9dd191b4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Kfo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWFg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568058"
+    },
+    {
+      "path": "runbooks/platform-history/mikrotik-managed-smart-split-routing-plan-2026-07-12.md",
+      "sha256": "4b6d4963808d2376799e7e861b6472f15b138174e2d7a3ac2aee83bda35637eb",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Kiw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWFo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568108"
+    },
+    {
+      "path": "runbooks/platform-history/mikrotik-pg-re8ch-edge-cutover-2026-07-10.md",
+      "sha256": "392c9280b97de09543c8e628dd710e4b5b7bb69f8922a7bf60ec3276d53a8308",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KlE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWF4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568145"
+    },
+    {
+      "path": "runbooks/platform-history/mikrotik-zerotier-custom-planet-feature-request-2026-07-09.md",
+      "sha256": "cea48587785ae6ac149550a5b744ac27cd7b18e31c3c63ecb310440d6a895eac",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KnI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWGE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568178"
+    },
+    {
+      "path": "runbooks/platform-history/mikrotik-zerotier-plugin-r640-edge-success-2026-07-10.md",
+      "sha256": "d040a01ee76b4a4ab71983134e3cf293115a37f030d504b14a8c9f4accf8a7c2",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Kqw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWGM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568236"
+    },
+    {
+      "path": "runbooks/platform-history/multitenant-infra-boundaries.md",
+      "sha256": "805c316ce06df20b02ec78b9258e0a550b479edb986db1b427db9361eeea9593",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Kt8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWGU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568287"
+    },
+    {
+      "path": "runbooks/platform-history/network-decomplexer-ios-agent-2026-08-11.md",
+      "sha256": "ec92a23b45d7155266e46204c8816f293525873c1b6b1758c4f6c6cfd97f2090",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KwE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWGc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568321"
+    },
+    {
+      "path": "runbooks/platform-history/network-routing-cost-observability-2026-08-02.md",
+      "sha256": "cdf86583b760f729e7e3dd73548e307fce5b5acf88af27eb1a9e5f642beb942f",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2KzI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWGo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568370"
+    },
+    {
+      "path": "runbooks/platform-history/npm-to-traefik-migration-2026-06-09.md",
+      "sha256": "39b848452b60666138a8dbeeada2c788fcf6ff1a9609c882618321f8ced25f17",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2K1s",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWGs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568411"
+    },
+    {
+      "path": "runbooks/platform-history/observable-v1-runbook.md",
+      "sha256": "7bc23e83db2f2cd79e702377650b2cc989227e36339d05c2abbc3288139201dd",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2K4g",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWG0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568456"
+    },
+    {
+      "path": "runbooks/platform-history/opensandbox-mcp-registry-bootstrap-2026-08-03.md",
+      "sha256": "86942eb1a4e5996f2590fd7b581e21ae0a842f434f5829209459ae78c4cdb42e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2K8c",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWHA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568519"
+    },
+    {
+      "path": "runbooks/platform-history/operations/2026-08-22-plugin-runtime-toolhive-cutover.md",
+      "sha256": "a5c58f39dad87ad4ebbacaaea1db3cc2cf21e771a1a9412cf24e319af8bd5f8c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2K_c",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWHM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568567"
+    },
+    {
+      "path": "runbooks/platform-history/operations/2026-08-22-re8ch-tool-plugin-acceptance.md",
+      "sha256": "481b3ee088fab71c3c4491b5a42ec4468ff7f394b70720c77939585f282887b8",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LBw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWHQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568604"
+    },
+    {
+      "path": "runbooks/platform-history/operations/2026-08-22-registry-storage-and-kube-system-stability.md",
+      "sha256": "c5503a10d361a289a69827533f2fe6dc1c5f2db04ef25509f45df8968ddf2f1f",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LEc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWHY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568647"
+    },
+    {
+      "path": "runbooks/platform-history/ops-ai-query-and-watch-agent.md",
+      "sha256": "58fd0c25077c8a16a849855d24d45a67f9b8de4d80161f32ba6f1928a6c73ae4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LGw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWHo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568684"
+    },
+    {
+      "path": "runbooks/platform-history/ops-events-feishu-webhook.md",
+      "sha256": "4f252adafb9ee0d2fead59a33d60d2bf43dc1d5825eead709a104c5608473e94",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LJE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWHw",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568721"
+    },
+    {
+      "path": "runbooks/platform-history/ops-mcp-postgres-sql-proxy-2026-06-08.md",
+      "sha256": "7e0612761471b418380900a391c9a474fea9ade36d3a00a039d6a18c1dd418a1",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LLE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWH0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568753"
+    },
+    {
+      "path": "runbooks/platform-history/overseas-edge-50-k3s-onboarding-2026-08-07.md",
+      "sha256": "1be0fcf3db493ab3baf375bee0bf2e5fbe2660c9002d9e7cb1b93792fc91ef5a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LNw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWIE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568796"
+    },
+    {
+      "path": "runbooks/platform-history/overseas-la-2-flk-onboarding-2026-09-26.md",
+      "sha256": "cdb9b904ae3b3fff7d9fe81f09696032061e54311d0d2f2735370c40451871e7",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LRM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWII",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568851"
+    },
+    {
+      "path": "runbooks/platform-history/panel-cleanup-portainer-rancher-2026-06-06.md",
+      "sha256": "0ae1fe95d2bfbdc5dcdad75ebaaee89e573e328848a4c6b5df0fe6160d9918bb",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LUc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWIQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568903"
+    },
+    {
+      "path": "runbooks/platform-history/panel-observability-runbook-2026-06-03.md",
+      "sha256": "c8167238990a90cd2ee2ccf0a8b7c2771499bc120d1bf992eb7ff2b09fdc555e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LWs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWIU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568939"
+    },
+    {
+      "path": "runbooks/platform-history/pigsty-tenant-database-standard-2026-06-07.md",
+      "sha256": "e1fd3fd3cdfa0715dd337362421287ef815387f5319d071e5a89adc4a8c982ed",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LaI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWIo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284568994"
+    },
+    {
+      "path": "runbooks/platform-history/platform-change-summary-2026-07-30.md",
+      "sha256": "efe06a09fb099665793e20f747f611372f2f7b3cb3400cedf9c7b4d185b78cd4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Lcw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWIs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569036"
+    },
+    {
+      "path": "runbooks/platform-history/private-transit-mesh-boundary-2026-08-07.md",
+      "sha256": "b4f7b6e21b8fa495c22ba7608b2a5dc9676eba86787a9dd23a3932dc11f7f30a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LfY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWI0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569078"
+    },
+    {
+      "path": "runbooks/platform-history/private-transit-policy-routing-design-2026-08-07.md",
+      "sha256": "004bad0f06ee0705145b987702d1076593fe16ae0fb5c9b08aca5fab07997e80",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Li0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWI4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569133"
+    },
+    {
+      "path": "runbooks/platform-history/public-edge-auth-and-monitoring-path-recovery-2026-08-21.md",
+      "sha256": "2162a88ac98b2c9f296ee5962b0dd302fbba452042d9e19289cef67df0efd200",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Lls",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569179"
+    },
+    {
+      "path": "runbooks/platform-history/public-exposure-staged-roadmap-2026-08-07.md",
+      "sha256": "ac1e49885de57335e371754f518030b483c2ac0f949feb7926f4fb2f14cfde6c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LoE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569217"
+    },
+    {
+      "path": "runbooks/platform-history/public-route-delivery-levels-2026-08-16.md",
+      "sha256": "1522c69187208df0e62ec267d94bf5db096fd21cd4ddcf0a855bac8d5bf41f13",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LqI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569250"
+    },
+    {
+      "path": "runbooks/platform-history/public-service-exposure-architecture-2026-08-07.md",
+      "sha256": "8ef7227efd5742b77d47bf5c21eeaeacbff6448f8a11201c1cd9a399671a9143",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Lsw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569292"
+    },
+    {
+      "path": "runbooks/platform-history/qwen-harbor-spegel-prepull-2026-06-11.md",
+      "sha256": "48ecaf0bb8f158d9ea23fd2c49960fa823888b921ca9046435c11b8aef3b6150",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Lv8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569343"
+    },
+    {
+      "path": "runbooks/platform-history/qwen-namespace-migration-20260602.md",
+      "sha256": "8c86e56af9ff36b1b3a571d928f2ee71be22386b0557d1906e3e91e07fd8cb75",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2LzE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569393"
+    },
+    {
+      "path": "runbooks/platform-history/r640-device-resource-standardization-2026-08-17.md",
+      "sha256": "8bd77fe9ecef445f59cf856d27e686d7f8f5c441eb00c2ebcaba821e0fd59c38",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2L14",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569438"
+    },
+    {
+      "path": "runbooks/platform-history/r640-idrac-mikrotik-remote-management-2026-07-11.md",
+      "sha256": "ef779ecd58d55287e1f9008d62498acb47885d0878b4eabc692c62a80ad35d49",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2L4o",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJw",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569482"
+    },
+    {
+      "path": "runbooks/platform-history/r640-mikrotik-custom-zerotier-research-2026-07-09.md",
+      "sha256": "fff51db51492d766ad1913591a3b18dea3394df490f1166b94fb24f56d53aa2c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2L6w",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJ0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569516"
+    },
+    {
+      "path": "runbooks/platform-history/r640-public-ingress-authority-and-acceleration-2026-08-18.md",
+      "sha256": "826ad99bfa81b83353de6ced42c1c8cd994776741b48fed5c1d5ff4237219f99",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2L9E",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWJ8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569553"
+    },
+    {
+      "path": "runbooks/platform-history/r640-routeros-native-routing-canary-2026-08-18.md",
+      "sha256": "cfeb6615c7108eea1334fe62efae12c7def1ff44c5b8130a8e4c795a0b9bdada",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MA4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569614"
+    },
+    {
+      "path": "runbooks/platform-history/r640-server-bringup-runbook-2026-07-09.md",
+      "sha256": "daf27d75d3597f8303222889e66fa040187321238a491d97dfcd5d47fa69ec85",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MEE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569665"
+    },
+    {
+      "path": "runbooks/platform-history/r640-zerotier-wireguard-auto-recovery-runbook-2026-07-15.md",
+      "sha256": "671820039efdc80724b7804eb7f6675608eb8e4773282a72ece49cea64f25dc2",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MHc",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569719"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-dual-route-server-and-headlamp-recovery-2026-08-18.md",
+      "sha256": "5a3d51289934727606a6eba2f59d00cd391494f605ba987d17ade274cf57665e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MJo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569754"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-macbook-wireguard-combined-egress-2026-08-01.md",
+      "sha256": "51ab2546e2e9737d58114b08d9429da2328e36b2523b9424f0bb2d8e87d6f4ca",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MLw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569788"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-macos-fleetd-vpn-onboarding-2026-07-16.md",
+      "sha256": "77840c4275e82b0c3587f1fe6eb9707c31d30318f985b0567c14bbdd1821e1fd",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MO0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569837"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-mikrotik-ikev2-vpn-runbook-2026-07-12.md",
+      "sha256": "97daa6103a2490b988f80cf225b015dfd22e4673e84ce0174114d5a8dd0ae752",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MSY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569894"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-mikrotik-temp-l2tp-egress-2026-07-30.md",
+      "sha256": "c97f77864ab4d7d478a2f26df163aea374bbae441dbc8a5d45ed27b4c2f1486f",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MV0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569949"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-native-routing-r640-routeros-public-edge-2026-08-18.md",
+      "sha256": "b3bb595fd036ef3676f629a44ef2ee75b56303e1a354ff8fd4220c99227e0247",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MYo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284569994"
+    },
+    {
+      "path": "runbooks/platform-history/re8ch-route-path-controller-2026-08-09.md",
+      "sha256": "471a849a6819ac755e146ecc7e651a1d8de608f40831fdb18d7d58c0cf22b998",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ma0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWKw",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570029"
+    },
+    {
+      "path": "runbooks/platform-history/registry-migration-2026-05-26.md",
+      "sha256": "535cc22f94d8dcbfc7e850bf3fe5d7f7703048854229e4fb45179dad65129e4e",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Mcg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWK0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570056"
+    },
+    {
+      "path": "runbooks/platform-history/registry-public-membership-and-ops-2026-06-12.md",
+      "sha256": "ee8b681bf110d257bac3824e650bb17643f705f6fd0cb00f92481a3337482786",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MfQ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWK4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570100"
+    },
+    {
+      "path": "runbooks/platform-history/research/network-decomplexer-ios/README.md",
+      "sha256": "e3fec2a82a317bc6e61af603490d989bc22243a793dee1ff3e752ad4b64d90e4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Mhs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWK8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570139"
+    },
+    {
+      "path": "runbooks/platform-history/research/network-decomplexer-ios/netbird-trial-and-error-ledger-2026-08-13.md",
+      "sha256": "feda643ab02fcb7c03fb60a2dea8a392512bb2820fc2d00085f3ee6fd2f80fa1",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MkQ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570180"
+    },
+    {
+      "path": "runbooks/platform-history/rook-cephfs-mds-placement-policy-2026-08-21.md",
+      "sha256": "07a70bd98ac4fd63e156d2f86c15d12f22840a726bfdf42bbe8d1088113b1b97",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MpY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570262"
+    },
+    {
+      "path": "runbooks/platform-history/runbooks/ai-infrastructure-tool-survey.md",
+      "sha256": "763092faa5ad4b2464b51e1fad1532006dcf10bfb984bc51337fb1a40b0ca4e6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Msk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570313"
+    },
+    {
+      "path": "runbooks/platform-history/runbooks/mihomos-cluster.md",
+      "sha256": "d03a56b54c47f091bdd7e7818bd760539bdceff050e0d9cdaca4e88ad4120a87",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MvQ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570356"
+    },
+    {
+      "path": "runbooks/platform-history/self-hosted-regional-routing-authority-2026-08-16.md",
+      "sha256": "9bbb4a119bdebd0d187f18a6a6ee10f88e1980626d4f70d4134467053037474c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2MxY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570390"
+    },
+    {
+      "path": "runbooks/platform-history/server-role-and-ip-inventory-2026-07-31.md",
+      "sha256": "576173ef207e9dc99c7cf1cfd313a2575a375950e530ac154fc22e46af9e519a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Mzw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570428"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/01-baseline-and-decisions.md",
+      "sha256": "b34c3fa53dc38c5c3484901d9abaaa71fea9496466617fe0a2dc3684ad57b51c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2M2w",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570476"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/02-r640-lvm-and-ceph-expansion.md",
+      "sha256": "081d954cb2b29f55b8a8f7a97b468f8da4171f23fe6177e159733db3f4663d1b",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2M5o",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570522"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/03-nas-cephfs-cutover-and-fallback.md",
+      "sha256": "0d7225cc8b0952da754c94bbee9af9aa3124bb9ae50547019158cf1b599a4e55",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2M8Q",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWLs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570564"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/04-pigsty-rbd-migration-and-recovery.md",
+      "sha256": "3500388328d11a2d001801b34663292fb65015bba57ab843ba5cdb28a916983c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2M_M",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWL8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570611"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/05-neo4j-rbd-migration.md",
+      "sha256": "3996e33ac236a0f7ae65ffeb41252e566af348bb8979b0911f3209b5bb2c074b",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NBU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570645"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/06-cloud-buckets-and-rclone-csi.md",
+      "sha256": "24f2218b8ab6d8705889a982b51cbbc0fe6e5ea82b96f94c50b5876c50da7a69",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NDk",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570681"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/07-incidents-verification-and-rollback.md",
+      "sha256": "08a59ca501bb2f25b7681010c8cd1eaf2e3765d1779ea9bb43acbd095e558a08",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NGo",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570730"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/08-pv-purpose-and-replication-whitelist.md",
+      "sha256": "ccd26e774ae7eebbc60a207b8c91a85b1416c44f526d13361e94dbc5835df743",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NLA",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570800"
+    },
+    {
+      "path": "runbooks/platform-history/storage-fabric-2026-08/README.md",
+      "sha256": "a2e5bd19455db3fd1152bf8b98252013e8c27c8f925b4f18886d1f043e59de5b",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NN4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570846"
+    },
+    {
+      "path": "runbooks/platform-history/teable-free-tier-runtime-boundary-2026-08-03.md",
+      "sha256": "87d85ab7d989d742bf5a0e7f1ca0e4870bbd6b87072935abd3e0fe994795d6fa",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NRI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570898"
+    },
+    {
+      "path": "runbooks/platform-history/teable-icp-control-plane-placement-incident-2026-07-10.md",
+      "sha256": "f7d867745584edb2f6021e936298572eea75ff2b9b27923f7972967ce395650d",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NTU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570933"
+    },
+    {
+      "path": "runbooks/platform-history/teable-kagent-litellm-codex-closure-2026-08-02.md",
+      "sha256": "ff1840e5c335b77c032181c66da21275c9f90f825e633af4c2c30423c7bf1a37",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NWY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284570982"
+    },
+    {
+      "path": "runbooks/platform-history/tenant-onboarding-runbook.md",
+      "sha256": "11f982c956e1038bde8cbffe042b6c4b5be9f7208e73599c27fd471c2796aeb6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NZE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571025"
+    },
+    {
+      "path": "runbooks/platform-history/tenant-traefik-gateway-guide-2026-06-09.md",
+      "sha256": "b9b8009585e1c12847310c3760e0f4bf6f3f4e7b53d634720646a61c2ebe7aa1",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Na0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWMs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571053"
+    },
+    {
+      "path": "runbooks/platform-history/vpn-identity-controller-plan-2026-07-14.md",
+      "sha256": "65907bd41ae808fe0d4bfeac33c244549a350b3037cf04653a5298fe4da4f19a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NcY",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWM0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571078"
+    },
+    {
+      "path": "runbooks/platform-history/wechat-content-automation.md",
+      "sha256": "3c25875c76e7aa368bd581485fd184f6a89734316aed0ebf329db6ab6a1e9e14",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ne8",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWM4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571119"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/01-initial-symptoms-and-hypotheses.md",
+      "sha256": "9a43cca5ab57888655558127e194c8ca8e8448b3283e6c281d1710c7453a8180",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NhQ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWM8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571156"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/02-a1-recovery.md",
+      "sha256": "eb61a2c91e5fff2b391b4b45016476b3c64290ff3b112f91dafd9a95c32371b1",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Njw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWNI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571196"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/03-b1-relapse-and-etcd-diagnosis.md",
+      "sha256": "8ce8bd19f7cf4b5cc8090cdb045bb778e31e30054b3b49e79aaa85b888eb66b7",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NmA",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWNQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571232"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/04-localhost-policy-routing-fault.md",
+      "sha256": "d6bb4ae83519fa032f771618c70fca96e7f8a350b38d63d21f2beacea3ad85a6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NoI",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWNY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571266"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/05-hyperv-external-switch-experiment.md",
+      "sha256": "43de473bf789293658d772b3a37631ad3ae174ecdf220b4e1a84ef4567d6eec3",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Nq4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWNc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571310"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/06-windows-host-wireguard.md",
+      "sha256": "e87bef1670a806382768aae2bd36494b896cc5de749c25e1da4895f3e0627f8d",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NtE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWNk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571345"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/07-hns-port-mapping.md",
+      "sha256": "0d78fa96d0d98eae04e918625184c026b9aa2e97d434e96f3a4c5b195431cd7c",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2NwQ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWNs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571396"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/08-wsl-direct-wireguard.md",
+      "sha256": "69209582e31a6eeac17015d5268283031ecda12c3ecf6222430992f267dc5358",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2N0k",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWN8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571465"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/09-frr-bgp-path-optimization.md",
+      "sha256": "a581f54b2fac7841c522d513e72c2ad78b2cef1b200b08d5edeb17a64a199892",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2N3g",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWOI",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571512"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/10-k3s-etcd-recovery.md",
+      "sha256": "fd064e716abad7d64a96bdd855b2e3514d8d92fe66e408aa170b215f4df385e9",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2N60",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWOU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571565"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/11-duplicate-node-and-cilium-cleanup.md",
+      "sha256": "7567b879e8a047f4422bc61aa1092a271e1138127e9c8d4e048e6a6a0c9e3e7a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2N9A",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWOc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571600"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/12-scheduled-lifecycle-maintenance.md",
+      "sha256": "25eeb09bfede5cfd44526c61572da3ccb861eab68141f75e62546dc1b2e645f0",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OAg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWO0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571656"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/13-final-configuration-inventory.md",
+      "sha256": "81cf59d7114f7255445f791474ccdfca437b38c398dcfa0783d7da0929667588",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OCU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWO4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571685"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/14-troubleshooting-decision-tree.md",
+      "sha256": "ab4a3466c220a2f469ae281d10845858e8ef99b15a542671146383ea561ca1cf",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OEs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWPE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571723"
+    },
+    {
+      "path": "runbooks/platform-history/wsl-control-plane-incident-2026-08/README.md",
+      "sha256": "c8fe1fa5d911e9f556cefb19b2c682606317add78a52e4bce4ecd29c367bae8d",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OHE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWPM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571761"
+    },
+    {
+      "path": "runbooks/platform-history/wsl2-cilium-nat-vs-virtioproxy-techniques-2026-08-01.md",
+      "sha256": "b6aefa327e32face5721e4cfdcfd8461779c640f23c73a2ab9df9084c6f86904",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OKg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWPg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571816"
+    },
+    {
+      "path": "runbooks/poco-f4-emulator-instrumentation-validation.md",
+      "sha256": "540ccc8c3b60e81bb067f3c3c73b571407eaf3960226a1f03bc36e5da1caff76",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2ONM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWPo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571859"
+    },
+    {
+      "path": "runbooks/poco-f4-frida-lsposed.md",
+      "sha256": "d9596b372a22c164b1fb540a0185b161020c0a8bbdb29700f0a4e35922939e25",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OQ0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWP4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571917"
+    },
+    {
+      "path": "runbooks/poco-f4-magisk-zygisk.md",
+      "sha256": "6bad89ef32b8a9052f391359abffe6103f9b6bcce92cdab79d2fc1dccc0a8d53",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OTM",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQA",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571955"
+    },
+    {
+      "path": "runbooks/poco-f4-post-reboot-recovery.md",
+      "sha256": "d9e349a1b6f06b1c950a39dba7c445fd20a5284039d0389c942cae0a07051dc7",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OWE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572001"
+    },
+    {
+      "path": "runbooks/poco-f4-roaming-debugging-book.md",
+      "sha256": "2f79d4bb8208eaef428908182fa8c5552f2302bf39e689bd05cda765ed261eb6",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OYg",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQY",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572040"
+    },
+    {
+      "path": "runbooks/poco-f4-roaming-debugging-obstacles-book.md",
+      "sha256": "244de19d1f59438792d9f3c7e7e7c01512b8fd5bbae58cc3b625c72c8845a701",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Occ",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQg",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572103"
+    },
+    {
+      "path": "runbooks/poco-f4-root-concealment.md",
+      "sha256": "befdc46616d8bb955b9c33707c8e94a7bc7ddf28f9ff264947d522f2b2ce1463",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Of0",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQo",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572157"
+    },
+    {
+      "path": "runbooks/poco-f4-routeros-debug-vpn-gitops.md",
+      "sha256": "79311719493e3741769cf1e1649fcce14505fe6ce389bd9f1bb5df95b24cceff",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OjE",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQ0",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572209"
+    },
+    {
+      "path": "runbooks/poco-f4-runbooks.md",
+      "sha256": "18606c8b6a778a23368462b27ef427691874056baf5fa2c00b816776675c4e06",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OlU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQ4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572245"
+    },
+    {
+      "path": "runbooks/poco-f4-screen-streaming.md",
+      "sha256": "ab54132d8cebc0714ad5c1732531f77c95c77874bd23c58ce46b3c0fd01bb479",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Oo4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWQ8",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572302"
+    },
+    {
+      "path": "runbooks/poco-f4-usb-internet-forwarding.md",
+      "sha256": "53bca12ba9efbbb2baf73cdc2b2e2a8d01bb59df69ce9b5a7f374afc8ae00034",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2OrU",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572341"
+    },
+    {
+      "path": "runbooks/poco-f4-wifi-recovery.md",
+      "sha256": "95c41a4ec7c473e282b2b7afd652a50f09159d4b5238e5ccd06b9f89851d49c4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ous",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRM",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572395"
+    },
+    {
+      "path": "runbooks/routeros-egbp-public-entry-v2-rollout.md",
+      "sha256": "8903e6b6d8b43917f4629f176adc65610a5d7a51d502d4801883cbc195f1fbba",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ow4",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRQ",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572430"
+    },
+    {
+      "path": "runbooks/scheduling/control-plane-isolation-rollout.md",
+      "sha256": "ac0b708255aae011d67ad7af840b283502c582c2557de990e8676a323b8058d4",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2Ozw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRU",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572476"
+    },
+    {
+      "path": "runbooks/secretary-incident-notification-design.md",
+      "sha256": "f086fa5268d91aff59597777a0ac96a554441e591f7082d90c28a2f0c1ec58d8",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2O2c",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRc",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572519"
+    },
+    {
+      "path": "runbooks/stalwart-single-instance-cutover.md",
+      "sha256": "63ac0e14e8327df7bdfc913d09a429237d6969640972e9e21480d2a7eb884cc1",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2O7E",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRk",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572593"
+    },
+    {
+      "path": "runbooks/tenant-namespace-migration.md",
+      "sha256": "43221a63bd4d3f31b147bd516fd6ab760e62d0643c23d0aa3742194992a1a788",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2O9o",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWRs",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572634"
+    },
+    {
+      "path": "runbooks/toolhive-codex-ai-tools-recovery.md",
+      "sha256": "1ee7f67012ca9db26e13e744bf1f84d3492a51b4270d786bd9b4d2bf4e39564a",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2PAs",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWR4",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572683"
+    },
+    {
+      "path": "runbooks/unified-notification-service-plan.md",
+      "sha256": "205265cb858a654dbc3d37369846750f2df3a8c91b0cc158d05f54912a82daae",
+      "itemId": "PVTI_lADOEOzcKc4Bo711zhD2PEw",
+      "draftId": "DI_lADOEOzcKc4Bo711zgLgWSE",
+      "url": "https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284572748"
+    }
+  ]
+}

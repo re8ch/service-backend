@@ -1,7 +1,7 @@
-# Restricted historical operations content
+# Restricted operations document
 
-This version retains its place in Git history; operational details are held in the private archive.
+This document is maintained in the private operations Project.
 
-[Current internal document](https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571723)
+[Read the internal document](https://github.com/orgs/re8ch/projects/2?pane=issue&itemId=284571723)
 
-[Recover the original version](https://github.com/re8ch/gitops-history-archive/releases/tag/service-backend-before-redaction-20261027-window1)
+Access requires Project authorization. See [reading and maintenance instructions](https://github.com/re8ch/service-backend/blob/main/contracts/private-operations-docs/README.md).
