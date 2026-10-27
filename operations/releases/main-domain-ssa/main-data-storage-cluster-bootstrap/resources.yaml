@@ -76,11 +76,6 @@ metadata:
     topology.kubernetes.io/region: cn-hunan
     topology.kubernetes.io/zone: hunan
   name: b1-wsl-zt
-spec:
-  taints:
-  - effect: NoSchedule
-    key: storage.re8ch.com/coordinator
-    value: 'true'
 ---
 apiVersion: v1
 kind: Node

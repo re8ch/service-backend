@@ -267,3 +267,17 @@ def test_configmap_binary_data_matches_api_canonical_base64_without_changing_byt
             assert not any(char.isspace() for char in value)
             checked += 1
     assert checked == 6
+
+
+def test_node_adoption_leaves_runtime_taints_with_existing_authority():
+    source = next(item for item in documents(ROOT / "clusters/re8ch/domains/data-storage/resources.yaml")
+                  if item["kind"] == "Node" and item["metadata"]["name"] == "b1-wsl-zt")
+    assert source["spec"]["taints"] == [{"key": "storage.re8ch.com/coordinator", "value": "true", "effect": "NoSchedule"}]
+    rendered = documents(ROOT / "operations/releases/main-domain-ssa/main-data-storage-cluster-bootstrap/resources.yaml")
+    nodes = [item for item in rendered if item["kind"] == "Node"]
+    assert nodes and all("spec" not in item for item in nodes)
+    adopted = next(item for item in nodes if item["metadata"]["name"] == "b1-wsl-zt")
+    assert adopted["metadata"] == source["metadata"]
+    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    assert {"domain": "data-storage", "identity": "core/Node/_/b1-wsl-zt", "field": "spec.taints",
+            "authority": "existing-runtime-node-authority", "reason": "cloud-adoption-manages-static-metadata-only"} in cohort["omissions"]
