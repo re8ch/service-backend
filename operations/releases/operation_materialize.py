@@ -130,14 +130,16 @@ def state_patch(configmap: Path, state_dir: Path, release_id: str, result_path: 
     metadata = cm.get("metadata", {})
     if metadata.get("name") != state_configmap_name(release_id) or not metadata.get("resourceVersion"):
         raise ValueError("state patch requires the original release ConfigMap and resourceVersion")
-    state = json.loads((state_dir / "state" / f"{release_id}.json").read_text())
-    validate_schema(state, "release-accepted-state.schema.json")
-    if state["releaseId"] != release_id:
-        raise ValueError("state patch belongs to another release")
+    state_path = state_dir / "state" / f"{release_id}.json"
     original = cm.get("data", {})
     changed = {}
-    if state != json.loads(original.get("accepted-state.json", "{}")):
-        changed["accepted-state.json"] = compact(state)
+    if state_path.exists():
+        state = json.loads(state_path.read_text())
+        validate_schema(state, "release-accepted-state.schema.json")
+        if state["releaseId"] != release_id:
+            raise ValueError("state patch belongs to another release")
+        if state != json.loads(original.get("accepted-state.json", "{}")):
+            changed["accepted-state.json"] = compact(state)
     if result_path.exists() and result_path.stat().st_size:
         result = json.loads(result_path.read_text())
         validate_schema(result, "release-operation-result.schema.json")
