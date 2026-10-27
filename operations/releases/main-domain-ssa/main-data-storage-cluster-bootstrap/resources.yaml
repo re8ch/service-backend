@@ -18,6 +18,10 @@ spec:
       - CREATE
       resources:
       - persistentvolumeclaims
+      scope: '*'
+    matchPolicy: Equivalent
+    namespaceSelector: {}
+    objectSelector: {}
   validations:
   - expression: '!has(object.spec.storageClassName) || !(object.spec.storageClassName
       in [''cephfs-re8ch'', ''cephfs-pilot''])'

@@ -642,6 +642,8 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           serviceAccountName: comfy-cloud-runtime
+      allowExistingViolations: true
+    skipBackgroundRequests: true
   - match:
       any:
       - resources:
@@ -671,7 +673,11 @@ spec:
             operator: GreaterThan
             value: 0
       message: Tenant runtimes may not use privileged mode, host namespaces, or hostPath.
+      allowExistingViolations: true
+    skipBackgroundRequests: true
   validationFailureAction: Enforce
+  admission: true
+  emitWarning: false
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
 kind: NodeProfile

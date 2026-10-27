@@ -226,6 +226,34 @@ def test_headlamp_rbac_stays_platform_owned_and_cannot_be_pruned_on_handoff():
         ('Role', 'headlamp-active-elector'), ('RoleBinding', 'headlamp-active-elector')}
 
 
+def test_admission_api_defaults_preserve_explicit_constraints():
+    item = {"apiVersion": "admissionregistration.k8s.io/v1", "kind": "ValidatingAdmissionPolicy",
+            "spec": {"matchConstraints": {"resourceRules": [{"resources": ["persistentvolumeclaims"]}]}}}
+    compiler.canonical_admission_defaults(item)
+    constraints = item["spec"]["matchConstraints"]
+    assert constraints == {"matchPolicy": "Equivalent", "namespaceSelector": {}, "objectSelector": {},
+                           "resourceRules": [{"resources": ["persistentvolumeclaims"], "scope": "*"}]}
+    constraints.update(matchPolicy="Exact", namespaceSelector={"matchLabels": {"team": "ops"}})
+    constraints["resourceRules"][0]["scope"] = "Namespaced"
+    compiler.canonical_admission_defaults(item)
+    assert constraints["matchPolicy"] == "Exact"
+    assert constraints["namespaceSelector"] == {"matchLabels": {"team": "ops"}}
+    assert constraints["resourceRules"][0]["scope"] == "Namespaced"
+
+
+def test_kyverno_crd_defaults_preserve_explicit_policy_values():
+    item = {"apiVersion": "kyverno.io/v1", "kind": "ClusterPolicy", "spec": {"rules": [
+        {"name": "defaulted", "validate": {"message": "unchanged"}},
+        {"name": "explicit", "skipBackgroundRequests": False, "validate": {"allowExistingViolations": False}}]}}
+    compiler.canonical_admission_defaults(item)
+    assert item["spec"]["admission"] is True and item["spec"]["emitWarning"] is False
+    first, second = item["spec"]["rules"]
+    assert first["skipBackgroundRequests"] is True
+    assert first["validate"] == {"message": "unchanged", "allowExistingViolations": True}
+    assert second["skipBackgroundRequests"] is False
+    assert second["validate"]["allowExistingViolations"] is False
+
+
 def test_configmap_binary_data_matches_api_canonical_base64_without_changing_bytes():
     import base64
     source = {compiler.identity(item): item for item in documents(
