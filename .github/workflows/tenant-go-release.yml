@@ -56,9 +56,7 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: tenant-go-validate
-    # Build and publish on R640 through its region-pinned Mihomos BuildKit.
-    # Macmini is intentionally excluded from the tenant MCP release path.
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
     permissions:
@@ -67,21 +65,18 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Prepare isolated R640 release authentication
+      - name: Prepare isolated cloud release authentication
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          # Keep the governed builder index separate from the disposable
-          # registry authentication config.
-          export BUILDX_CONFIG="${HOME}/.docker/buildx"
-          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
-          docker buildx inspect --bootstrap r640-mihomos >/dev/null
-          echo "TENANT_IMAGE_BUILDER=r640-mihomos" >> "$GITHUB_ENV"
+      - id: builder
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
+          TENANT_IMAGE_BUILDER: ${{ steps.builder.outputs.name }}
           HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/image/re8ch-tenant-mcp
@@ -89,10 +84,8 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          # Cold base-image and module pulls on the R640 builder can exceed
-          # the generic five-minute publisher default.
+          # Bound cold pulls and uploads on the disposable cloud builder.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
-          # Keep Harbor OAuth token requests in the region-pinned BuildKit.
           BUILDKIT_NO_CLIENT_TOKEN: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -107,7 +100,7 @@ jobs:
   finalize:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: release
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     environment: production
     timeout-minutes: 12
     permissions:

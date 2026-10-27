@@ -48,14 +48,17 @@ Both pool installers prewarm the shared tool cache from the existing base runner
 with `rsync --ignore-existing`, avoiding a simultaneous cold download from all
 new slots.
 
-Image publishers that use `docker/setup-buildx-action` remain on the self-hosted
-Macmini. Buildx's `docker-container` driver is not compatible with the R640
-rootless Podman API, while ordinary `docker run`, validation, chart publishing,
-and the Mihomos release jobs run on R640. Control-plane CI, dependency review,
-tenant Go validation and main-domain SSA publication/reconcile now run on
-GitHub-hosted Ubuntu 24.04. Host-bound image publishers remain on their existing
-workers until separately migrated; private-document verification retains its
-protected isolated runner.
+Control-plane CI, dependency review, all tenant Go release jobs, the
+release-compat-controller image publisher and main-domain SSA publication/reconcile
+run on GitHub-hosted Ubuntu 24.04. The tenant Go publisher creates a disposable
+Buildx builder on that worker; it does not load the R640 builder index or a
+Macmini Docker Desktop context. The compatibility image publisher keeps its
+exact protected artifact-publisher OIDC identity and bounded Harbor copy path.
+Other legacy publishers still have self-hosted declarations pending migration.
+Their Docker use is not inherently host-bound: some were placed locally because
+Harbor uploads from the cloud stalled, so cloud registry transfer must be tested
+alongside runner changes. Private-document verification retains its protected
+isolated runner; hardware and mounted-volume audits remain host-bound.
 The control-plane CI policy runs `tests/check_no_github_hosted_runners.py` and
 permits only those reviewed cloud jobs and rejects other undeclared hosted jobs.
 

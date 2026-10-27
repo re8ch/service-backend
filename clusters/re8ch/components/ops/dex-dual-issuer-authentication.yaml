@@ -40,11 +40,14 @@ jwt:
              claims.repository_owner_id == '283958313' &&
              claims.repository == 're8ch/service-backend' &&
              claims.ref == 'refs/heads/main' &&
-             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
              claims.event_name == 'workflow_dispatch' &&
-             claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
-             claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)))
-        message: public tokens require the observer or exact protected main-domain release route
+             ((claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+               claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
+               claims.aud == 'https://kube-api.re8ch.com/' + claims.environment) ||
+              (claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' &&
+               claims.environment == 'release-ceph-compiler' &&
+               claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher')))))
+        message: public tokens require the observer or exact protected cloud release route
       - expression: >-
           claims.runner_environment == 'self-hosted' ||
           (claims.runner_environment == 'github-hosted' &&
@@ -52,11 +55,14 @@ jwt:
            claims.repository_owner_id == '283958313' &&
            claims.repository == 're8ch/service-backend' &&
            claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
            claims.event_name == 'workflow_dispatch' &&
-           claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
-           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
-        message: hosted execution is limited to the protected main-domain workflow
+           ((claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
+             claims.aud == 'https://kube-api.re8ch.com/' + claims.environment) ||
+            (claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' &&
+             claims.environment == 'release-ceph-compiler' &&
+             claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher')))
+        message: hosted execution is limited to protected cloud release workflows
       - expression: >-
           (claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&

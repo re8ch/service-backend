@@ -53,6 +53,9 @@ def test_all_control_planes_share_supabase_authentication():
             "claims.event_name == 'workflow_dispatch'",
             "claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime']",
             "claims.aud == 'https://kube-api.re8ch.com/' + claims.environment",
+            "claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main'",
+            "claims.environment == 'release-ceph-compiler'",
+            "claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher'",
         ):
             assert boundary in expression
     assert "claims.runner_environment == 'github-hosted'" in runner_rule['expression']
