@@ -207,39 +207,6 @@ spec:
         name: schema
 ---
 apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    app.kubernetes.io/part-of: re8ch-payments
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/enforce: baseline
-    pod-security.kubernetes.io/warn: restricted
-  name: payments
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: hyperswitch-superposition-local-key-r640
-spec:
-  accessModes:
-  - ReadWriteOnce
-  capacity:
-    storage: 1Mi
-  hostPath:
-    path: /var/lib/re8ch/hyperswitch-local-key
-    type: Directory
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - r640
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual-r640
----
-apiVersion: v1
 kind: Secret
 metadata:
   name: hyperswitch-runtime-values

@@ -11,16 +11,17 @@ sourceDomains:
 - delivery-products
 - operations-ui
 - tenant-runtime
-releaseCount: 17
-objectCount: 128
-legacyObjectCount: 108
+releaseCount: 21
+objectCount: 179
+legacyObjectCount: 57
 deferredSSAObjects: []
 remainingCapabilities:
   approved-secret-injection-required: 19
-  bootstrap-namespace-executor-profile-required: 4
+  bootstrap-namespace-executor-profile-required: 2
   cloud-helm-rendering-required: 3
-  cluster-scoped-executor-profile-required: 62
+  external-authority-cluster-bootstrap-required: 2
   immutable-image-digest-required: 4
+  platform-owned-rbac-bootstrap: 11
   replace-flux-lifecycle-reference: 9
   retained-data-no-automatic-mutation: 7
 remainingObjects:
@@ -30,12 +31,6 @@ remainingObjects:
 - domain: commerce-billing
   identity: batch/Job/payments/hyperswitch-superposition-schema-v0-112-0-v5
   reason: immutable-image-digest-required
-- domain: commerce-billing
-  identity: core/Namespace/_/payments
-  reason: cluster-scoped-executor-profile-required
-- domain: commerce-billing
-  identity: core/PersistentVolume/_/hyperswitch-superposition-local-key-r640
-  reason: cluster-scoped-executor-profile-required
 - domain: commerce-billing
   identity: core/Secret/flux-system/hyperswitch-runtime-values
   reason: approved-secret-injection-required
@@ -67,29 +62,11 @@ remainingObjects:
   identity: source.toolkit.fluxcd.io/HelmRepository/flux-system/hyperswitch
   reason: replace-flux-lifecycle-reference
 - domain: data-storage
-  identity: admissionregistration.k8s.io/ValidatingAdmissionPolicy/_/replicated-storage-whitelist.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: data-storage
-  identity: admissionregistration.k8s.io/ValidatingAdmissionPolicyBinding/_/replicated-storage-whitelist.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: data-storage
   identity: apps/Deployment/ops/cloudbeaver
   reason: immutable-image-digest-required
 - domain: data-storage
-  identity: core/Namespace/_/cloud-disk
-  reason: cluster-scoped-executor-profile-required
-- domain: data-storage
   identity: core/Namespace/_/observable
   reason: retained-data-no-automatic-mutation
-- domain: data-storage
-  identity: core/Node/_/a1-wsl-zt
-  reason: cluster-scoped-executor-profile-required
-- domain: data-storage
-  identity: core/Node/_/b1-wsl-zt
-  reason: cluster-scoped-executor-profile-required
-- domain: data-storage
-  identity: core/Node/_/r640
-  reason: cluster-scoped-executor-profile-required
 - domain: data-storage
   identity: core/Secret/auth/cloud-disk-oidc-client-auth
   reason: approved-secret-injection-required
@@ -105,18 +82,12 @@ remainingObjects:
 - domain: data-storage
   identity: core/Secret/toolhive-system/cloud-disk-mcp-internal
   reason: approved-secret-injection-required
-- domain: data-storage
-  identity: storage.k8s.io/StorageClass/_/local-a1
-  reason: cluster-scoped-executor-profile-required
-- domain: data-storage
-  identity: storage.k8s.io/StorageClass/_/local-b1
-  reason: cluster-scoped-executor-profile-required
 - domain: delivery-products
   identity: core/Namespace/_/adapter
-  reason: cluster-scoped-executor-profile-required
+  reason: external-authority-cluster-bootstrap-required
 - domain: delivery-products
   identity: core/Namespace/_/farseer
-  reason: cluster-scoped-executor-profile-required
+  reason: external-authority-cluster-bootstrap-required
 - domain: delivery-products
   identity: core/Namespace/_/re8ch-ontology-microscope
   reason: retained-data-no-automatic-mutation
@@ -145,9 +116,6 @@ remainingObjects:
   identity: batch/Job/flux-system/paralus-helmrelease-retirement
   reason: bootstrap-namespace-executor-profile-required
 - domain: operations-ui
-  identity: core/Namespace/_/studio-toolkit
-  reason: cluster-scoped-executor-profile-required
-- domain: operations-ui
   identity: core/Secret/studio-toolkit/studio-config
   reason: approved-secret-injection-required
 - domain: operations-ui
@@ -170,46 +138,22 @@ remainingObjects:
   reason: bootstrap-namespace-executor-profile-required
 - domain: operations-ui
   identity: rbac.authorization.k8s.io/ClusterRoleBinding/_/headlamp-oidc-admin-github-woomou
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: operations-ui
   identity: rbac.authorization.k8s.io/Role/flux-system/paralus-helmrelease-retirement
-  reason: bootstrap-namespace-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
+- domain: operations-ui
+  identity: rbac.authorization.k8s.io/Role/headlamp/headlamp-active-elector
+  reason: platform-owned-rbac-bootstrap
 - domain: operations-ui
   identity: rbac.authorization.k8s.io/RoleBinding/flux-system/paralus-helmrelease-retirement
-  reason: bootstrap-namespace-executor-profile-required
-- domain: tenant-runtime
-  identity: apiextensions.k8s.io/CustomResourceDefinition/_/disturbancewindows.scheduling.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: apiextensions.k8s.io/CustomResourceDefinition/_/nodeprofiles.scheduling.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: apiextensions.k8s.io/CustomResourceDefinition/_/penroseoperations.scheduling.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: apiextensions.k8s.io/CustomResourceDefinition/_/placementclasses.scheduling.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: apiextensions.k8s.io/CustomResourceDefinition/_/schedulerprofiles.scheduling.re8ch.com
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: apiextensions.k8s.io/CustomResourceDefinition/_/serviceoutcomepolicies.scheduling.re8ch.com
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
+- domain: operations-ui
+  identity: rbac.authorization.k8s.io/RoleBinding/headlamp/headlamp-active-elector
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: apps/Deployment/scheduling-system/penrose-controller
   reason: immutable-image-digest-required
-- domain: tenant-runtime
-  identity: core/Namespace/_/kueue-system
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: core/Namespace/_/kyverno
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: core/Namespace/_/scheduler-system
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: core/Namespace/_/scheduling-system
-  reason: cluster-scoped-executor-profile-required
 - domain: tenant-runtime
   identity: helm.toolkit.fluxcd.io/HelmRelease/flux-system/runtime-anatomy
   reason: cloud-helm-rendering-required
@@ -226,119 +170,23 @@ remainingObjects:
   identity: kustomize.toolkit.fluxcd.io/Kustomization/flux-system/scheduling-governance-policies
   reason: replace-flux-lifecycle-reference
 - domain: tenant-runtime
-  identity: kyverno.io/ClusterPolicy/_/comfy-cloud-runtime-boundary
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
   identity: rbac.authorization.k8s.io/ClusterRole/_/penrose-controller
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: rbac.authorization.k8s.io/ClusterRole/_/penrose-operator
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: rbac.authorization.k8s.io/ClusterRole/_/penrose-viewer
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: rbac.authorization.k8s.io/ClusterRoleBinding/_/penrose-controller
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: rbac.authorization.k8s.io/ClusterRoleBinding/_/scheduler-plugins-as-kube-scheduler
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: rbac.authorization.k8s.io/ClusterRoleBinding/_/scheduler-plugins-as-volume-scheduler
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/a1-wsl-zt
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/amdwsl-zt
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/b1-wsl-zt
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/domain-ex
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/muaya-ecs
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/muaya-lightweight
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/mubao-wsl
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/overseas-edge-50
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/overseas-flk
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/overseas-kl
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/overseas-la
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/overseas-la-2
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/r640
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/suxunji
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/vm-20-12-ubuntu
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/NodeProfile/_/zan
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/batch-opportunistic
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/control-plane-critical
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/egress
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/function-execution
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/gpu-rocm
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/node-bootstrap
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/node-serving-agent
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/online-reliable
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/public-edge
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/service-core-ab
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/service-core-local
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/service-core-r640
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/PlacementClass/_/stateful-ceph
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/SchedulerProfile/_/re8ch-dynamic
-  reason: cluster-scoped-executor-profile-required
-- domain: tenant-runtime
-  identity: scheduling.re8ch.com/SchedulerProfile/_/upstream-default
-  reason: cluster-scoped-executor-profile-required
+  reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
   identity: source.toolkit.fluxcd.io/GitRepository/flux-system/external-snapshotter
   reason: replace-flux-lifecycle-reference
@@ -381,81 +229,118 @@ executionProfiles:
   kubernetesGroup: re8ch:release-executor:tenant-runtime
 legacyShards:
 - domain: commerce-billing
-  objects: 14
+  objects: 12
 - domain: data-storage
-  objects: 15
+  objects: 7
 - domain: delivery-products
   objects: 10
 - domain: operations-ui
-  objects: 12
+  objects: 13
 - domain: tenant-runtime
-  objects: 57
+  objects: 15
 releases:
+- name: main-commerce-billing-cluster-bootstrap
+  domain: commerce-billing
+  namespace: ops
+  scope: cluster-bootstrap
+  objects: 2
 - name: main-commerce-billing-payments
   domain: commerce-billing
   namespace: payments
+  scope: namespaced
   objects: 32
 - name: main-data-storage-cloud-disk
   domain: data-storage
   namespace: cloud-disk
+  scope: namespaced
+  objects: 8
+- name: main-data-storage-cluster-bootstrap
+  domain: data-storage
+  namespace: ops
+  scope: cluster-bootstrap
   objects: 8
 - name: main-data-storage-ops
   domain: data-storage
   namespace: ops
+  scope: namespaced
   objects: 6
 - name: main-data-storage-pigsty-external
   domain: data-storage
   namespace: pigsty-external
+  scope: namespaced
   objects: 5
 - name: main-data-storage-supabase-pg-re8ch
   domain: data-storage
   namespace: supabase-pg-re8ch
+  scope: namespaced
   objects: 1
 - name: main-data-storage-toolhive-system
   domain: data-storage
   namespace: toolhive-system
+  scope: namespaced
   objects: 1
 - name: main-delivery-products-aesthete
   domain: delivery-products
   namespace: aesthete
+  scope: namespaced
   objects: 3
 - name: main-delivery-products-anycam
   domain: delivery-products
   namespace: anycam
+  scope: namespaced
   objects: 7
 - name: main-delivery-products-farseer
   domain: delivery-products
   namespace: farseer
+  scope: namespaced
   objects: 3
 - name: main-delivery-products-re8ch-farseer
   domain: delivery-products
   namespace: re8ch-farseer
+  scope: namespaced
   objects: 5
+- name: main-operations-ui-cluster-bootstrap
+  domain: operations-ui
+  namespace: ops
+  scope: cluster-bootstrap
+  objects: 1
 - name: main-operations-ui-headlamp
   domain: operations-ui
   namespace: headlamp
-  objects: 29
+  scope: namespaced
+  objects: 27
 - name: main-operations-ui-kube-system
   domain: operations-ui
   namespace: kube-system
+  scope: namespaced
   objects: 2
 - name: main-operations-ui-studio-toolkit
   domain: operations-ui
   namespace: studio-toolkit
+  scope: namespaced
   objects: 12
 - name: main-operations-ui-supabase-pg-re8ch
   domain: operations-ui
   namespace: supabase-pg-re8ch
+  scope: namespaced
   objects: 1
 - name: main-tenant-runtime-ai-operations
   domain: tenant-runtime
   namespace: ai-operations
+  scope: namespaced
   objects: 5
+- name: main-tenant-runtime-cluster-bootstrap
+  domain: tenant-runtime
+  namespace: ops
+  scope: cluster-bootstrap
+  objects: 42
 - name: main-tenant-runtime-scheduler-system
   domain: tenant-runtime
   namespace: scheduler-system
+  scope: namespaced
   objects: 4
 - name: main-tenant-runtime-scheduling-system
   domain: tenant-runtime
   namespace: scheduling-system
+  scope: namespaced
   objects: 4

@@ -1,0 +1,98 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-tenant-runtime-cluster-bootstrap
+spec:
+  authorityDomain: tenant-runtime
+  target:
+    cluster: re8ch
+    namespace: ops
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-tenant-runtime-cluster-bootstrap
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-executor-tenant-runtime
+    audience: https://kube-api.re8ch.com/release-executor-tenant-runtime
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-tenant-runtime-cluster-bootstrap
+    resources:
+    - apiextensions.k8s.io/CustomResourceDefinition
+    - core/Namespace
+    - kyverno.io/ClusterPolicy
+    - scheduling.re8ch.com/NodeProfile
+    - scheduling.re8ch.com/PlacementClass
+    - scheduling.re8ch.com/SchedulerProfile
+    objectNames:
+    - a1-wsl-zt
+    - amdwsl-zt
+    - b1-wsl-zt
+    - batch-opportunistic
+    - comfy-cloud-runtime-boundary
+    - control-plane-critical
+    - disturbancewindows.scheduling.re8ch.com
+    - domain-ex
+    - egress
+    - function-execution
+    - gpu-rocm
+    - kueue-system
+    - kyverno
+    - muaya-ecs
+    - muaya-lightweight
+    - mubao-wsl
+    - node-bootstrap
+    - node-serving-agent
+    - nodeprofiles.scheduling.re8ch.com
+    - online-reliable
+    - overseas-edge-50
+    - overseas-flk
+    - overseas-kl
+    - overseas-la
+    - overseas-la-2
+    - penroseoperations.scheduling.re8ch.com
+    - placementclasses.scheduling.re8ch.com
+    - public-edge
+    - r640
+    - re8ch-dynamic
+    - scheduler-system
+    - schedulerprofiles.scheduling.re8ch.com
+    - scheduling-system
+    - service-core-ab
+    - service-core-local
+    - service-core-r640
+    - serviceoutcomepolicies.scheduling.re8ch.com
+    - stateful-ceph
+    - suxunji
+    - upstream-default
+    - vm-20-12-ubuntu
+    - zan
+    allowClusterScoped: true
+  inventory:
+    digest: sha256:b43e5e160cbd3b4aa7f8922cf89ae6009398379ead08b49984fc19ebd3b3bc8c
+  lifecycle:
+    prune: false
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - APIService
+    - ClusterPolicy
+    - CustomResourceDefinition
+    - MutatingWebhookConfiguration
+    - Namespace
+    - Node
+    - NodeProfile
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - PlacementClass
+    - SchedulerProfile
+    - StorageClass
+    - TenantNamespace
+    - ValidatingAdmissionPolicy
+    - ValidatingAdmissionPolicyBinding
+    - ValidatingWebhookConfiguration
+    deletionAllowlist: []

@@ -1,0 +1,54 @@
+apiVersion: delivery.re8ch.com/v1alpha1
+kind: ReleaseContract
+metadata:
+  name: main-commerce-billing-cluster-bootstrap
+spec:
+  authorityDomain: commerce-billing
+  target:
+    cluster: re8ch
+    namespace: ops
+  source:
+    renderer: kustomize
+    revision: github-main-reviewed
+    repository: re8ch/service-backend
+    path: operations/releases/main-domain-ssa/main-commerce-billing-cluster-bootstrap
+  provenance:
+    repository: re8ch/service-backend
+    workflow: .github/workflows/main-domain-release.yml
+    ref: refs/heads/main
+    environment: release-executor-commerce-billing
+    audience: https://kube-api.re8ch.com/release-executor-commerce-billing
+    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    issuer: https://token.actions.githubusercontent.com
+  authorization:
+    fieldManager: re8ch-release/main-commerce-billing-cluster-bootstrap
+    resources:
+    - core/Namespace
+    - core/PersistentVolume
+    objectNames:
+    - hyperswitch-superposition-local-key-r640
+    - payments
+    allowClusterScoped: true
+  inventory:
+    digest: sha256:010ff456666eed2dee44308ffada4dfb8aa4bf26967103126be4c6ba536cedc7
+  lifecycle:
+    prune: false
+    healthTimeoutSeconds: 300
+    protectedKinds:
+    - APIService
+    - ClusterPolicy
+    - CustomResourceDefinition
+    - MutatingWebhookConfiguration
+    - Namespace
+    - Node
+    - NodeProfile
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - PlacementClass
+    - SchedulerProfile
+    - StorageClass
+    - TenantNamespace
+    - ValidatingAdmissionPolicy
+    - ValidatingAdmissionPolicyBinding
+    - ValidatingWebhookConfiguration
+    deletionAllowlist: []
