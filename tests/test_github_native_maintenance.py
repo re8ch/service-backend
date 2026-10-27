@@ -42,11 +42,11 @@ def test_dependabot_updates_are_bounded_and_grouped():
         assert set(item["labels"]) == {"dependencies", "automation/dependabot"}
 
 
-def test_dependency_review_uses_pinned_action_and_r640_runner():
+def test_dependency_review_uses_pinned_action_and_cloud_runner():
     text = SECURITY_WORKFLOW.read_text()
     workflow = yaml.safe_load(text)
     job = workflow["jobs"]["dependency-review"]
-    assert job["runs-on"] == ["self-hosted", "Linux", "X64", "r640", "untrusted-build"]
+    assert job["runs-on"] == "ubuntu-24.04"
     step = job["steps"][0]
     assert step["uses"] == (
         "actions/dependency-review-action@"
