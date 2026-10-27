@@ -52,7 +52,7 @@ def prepare(inputs: dict, *, run_id: str, actor: str, legacy: dict | None = None
                     'spec':{'releaseRef':name,'action':action,'approvedDigest':approved,
                             'contractDigest':release['spec']['contractDigest'],'requestedBy':actor,
                             'reason':inputs.get('reason') or 'GitHub protected workflow request',
-                            'idempotencyKey':f'github-run-{run_id}','timeoutSeconds':3600}}
+                            'idempotencyKey':'github-run-' + uuid.uuid5(uuid.NAMESPACE_URL, f'https://github.com/re8ch/service-backend/actions/runs/{run_id}').hex,'timeoutSeconds':3600}}
         if inputs.get('approval_ref'):
             resource['spec']['approvalRef'] = inputs['approval_ref']
         if inputs.get('force_objects'):

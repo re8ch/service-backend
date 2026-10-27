@@ -318,3 +318,26 @@ def test_ceph_jobs_share_cloud_snapshot_and_preserve_failed_evidence():
         uploads = [step for step in job["steps"] if "upload-artifact" in step.get("uses", "") and "result.json" in step.get("with", {}).get("path", "")]
         assert len(uploads) == 1 and uploads[0]["if"] == "always()"
         assert "workflow-failure.json" in uploads[0]["with"]["path"]
+
+
+def test_cloud_request_materializes_through_existing_executor_schema(tmp_path, monkeypatch):
+    import os
+    import subprocess
+    import sys
+    module = cloud_request_module()
+    request, release = module.prepare({"release": "rook-ceph"}, run_id="1", actor="test")
+    contract_path = ROOT / "contracts/releases/ceph/rook-ceph.yaml"
+    contract = yaml.safe_load(contract_path.read_text())
+    metadata = {"payloadDigest": "sha256:" + "a" * 64, "inventoryDigest": contract["spec"]["inventory"]["digest"]}
+    for name, value in [("resource", request), ("release", release), ("metadata", metadata)]:
+        (tmp_path / (name + ".json")).write_text(json.dumps(value))
+    env = {**os.environ, "GITHUB_REPOSITORY": "re8ch/service-backend", "GITHUB_REF": "refs/heads/main",
+           "GITHUB_SHA": "a" * 40, "GITHUB_RUN_ID": "1"}
+    subprocess.run([sys.executable, str(ROOT / "operations/releases/ceph_operation.py"),
+        "--resource", str(tmp_path / "resource.json"), "--static-release", str(tmp_path / "release.json"),
+        "--contract", str(contract_path), "--metadata", str(tmp_path / "metadata.json"),
+        "--state-dir", str(tmp_path / "state"), "--output", str(tmp_path / "operation.json")], check=True, env=env, capture_output=True)
+    result = json.loads((tmp_path / "operation.json").read_text())
+    assert result["operationId"] == request["metadata"]["uid"]
+    assert result["bundle"]["digest"] == release["spec"]["bundleDigest"]
+    assert result["github"]["audience"] == "https://kube-api.re8ch.com/release-executor-ceph-infra"
