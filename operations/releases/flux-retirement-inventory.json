@@ -1,0 +1,283 @@
+{
+  "audit": "op_d0350e1944c240bda552146f6ea1ec8b",
+  "deployments": [
+    {
+      "namespace": "flux-agent-system",
+      "name": "helm-controller",
+      "uid": "4b8e10c6-814e-471b-86a5-69739e213833",
+      "resourceVersion": "162286623",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-agent-system",
+      "name": "kustomize-controller",
+      "uid": "8543c39c-a842-4e20-8d6c-9e54ec863e2b",
+      "resourceVersion": "162286157",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-agent-system",
+      "name": "notification-controller",
+      "uid": "57c8ddf6-de08-4445-825e-8d9ed3b5aac3",
+      "resourceVersion": "162286704",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-agent-system",
+      "name": "source-controller",
+      "uid": "5f3e4da2-a7fc-4f50-8da2-6a512d94e60a",
+      "resourceVersion": "162286582",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-identity-system",
+      "name": "helm-controller",
+      "uid": "b077dbd5-5a97-4118-8834-026c90e77e09",
+      "resourceVersion": "162286701",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-identity-system",
+      "name": "kustomize-controller",
+      "uid": "aaf749f3-a7e1-4c34-b707-49e29b946e2d",
+      "resourceVersion": "162286361",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-identity-system",
+      "name": "notification-controller",
+      "uid": "af9f06ff-fc1f-4ef2-a31e-66a8cb241883",
+      "resourceVersion": "162286533",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-identity-system",
+      "name": "source-controller",
+      "uid": "5228cb97-bb19-4df2-9087-8515dd5f117f",
+      "resourceVersion": "162286941",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-network-system",
+      "name": "helm-controller",
+      "uid": "a6224f44-86f0-4eb8-ad43-477dcace8fd3",
+      "resourceVersion": "162286802",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-network-system",
+      "name": "kustomize-controller",
+      "uid": "4c430ed2-fd1c-41a1-8516-ddb77d651399",
+      "resourceVersion": "162286433",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-network-system",
+      "name": "notification-controller",
+      "uid": "f75867f9-ce7a-45eb-b27f-029dabc1801c",
+      "resourceVersion": "162287512",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-network-system",
+      "name": "source-controller",
+      "uid": "dd4359e0-a0e5-4a53-9009-8f85eeb2da84",
+      "resourceVersion": "162287229",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-observability-system",
+      "name": "helm-controller",
+      "uid": "e9897897-d89f-457d-b35b-19d92db951b5",
+      "resourceVersion": "162287453",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-observability-system",
+      "name": "kustomize-controller",
+      "uid": "263f1f8c-192f-47c1-a688-4b119a847ed3",
+      "resourceVersion": "162286618",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-observability-system",
+      "name": "notification-controller",
+      "uid": "935faee1-df1b-4cd2-a8b5-cad083f54b24",
+      "resourceVersion": "162287479",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-observability-system",
+      "name": "source-controller",
+      "uid": "76158bf5-1683-4b48-814f-6ae588a74d6e",
+      "resourceVersion": "162287412",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-federation/controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-system",
+      "name": "helm-controller",
+      "uid": "59981ce6-4689-443d-8716-5dd47aa9efea",
+      "resourceVersion": "162288644",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-system/gotk-components.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-system",
+      "name": "image-automation-controller",
+      "uid": "095dc10e-5a00-4bc9-afaa-805a445eb817",
+      "resourceVersion": "146888728",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-system/retired-image-controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-system",
+      "name": "image-reflector-controller",
+      "uid": "bb5b37c0-bdec-4283-bf3e-0411130e2439",
+      "resourceVersion": "146888746",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-system/retired-image-controllers.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-system",
+      "name": "kustomize-controller",
+      "uid": "cac7906b-0489-43ba-a229-63d06a426866",
+      "resourceVersion": "162285661",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-system/gotk-components.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-system",
+      "name": "notification-controller",
+      "uid": "1c20de08-898b-41ba-b710-97f16e381da5",
+      "resourceVersion": "162287589",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-system/gotk-components.yaml",
+      "requiresQuiesce": false
+    },
+    {
+      "namespace": "flux-system",
+      "name": "re8ch-release-dispatcher",
+      "uid": "3d65f346-d0ba-44a3-876d-ab1dd4d9e6e0",
+      "resourceVersion": "162347917",
+      "replicas": 1,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/components/release-compat/controller.yaml",
+      "requiresQuiesce": true
+    },
+    {
+      "namespace": "flux-system",
+      "name": "release-compat-controller",
+      "uid": "6b4338c9-75c1-4bfa-ab55-14d9c7aad86e",
+      "resourceVersion": "162347405",
+      "replicas": 2,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/components/release-compat/controller.yaml",
+      "requiresQuiesce": true
+    },
+    {
+      "namespace": "flux-system",
+      "name": "source-controller",
+      "uid": "31f11eda-15b5-4743-a721-9e06b6b8a61d",
+      "resourceVersion": "162287865",
+      "replicas": 0,
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "source": "clusters/re8ch/flux-system/gotk-components.yaml",
+      "requiresQuiesce": false
+    }
+  ],
+  "writerAudit": "op_4d5fb2b90d3c4e58876c739c6939d1ae",
+  "serverDryRunAudit": "op_0aacba417c334c789e309fa927e3b2ad",
+  "phase": "reviewed-deletion-plan-only",
+  "propagationPolicy": "Foreground",
+  "preserve": [
+    "CustomResourceDefinition",
+    "paused Flux custom resources",
+    "Release/ReleaseOperation history",
+    "business workloads",
+    "accepted state ConfigMaps",
+    "Secrets",
+    "Namespaces"
+  ],
+  "deleteDependents": "Only ReplicaSets owned by reviewed Deployment UIDs and their controller Pods"
+}

@@ -24,3 +24,19 @@ replacements:
           name: git-verification-keys
         fieldPaths:
           - stringData.github-web-flow\.asc
+
+patches:
+
+# Permanently omit retired controller workloads while retaining CRDs and history.
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: (source-controller|kustomize-controller|helm-controller|notification-controller|image-reflector-controller|image-automation-controller|release-compat-controller|re8ch-release-dispatcher)
+    namespace: (flux-system|flux-agent-system|flux-identity-system|flux-observability-system|flux-network-system)
+  patch: |-
+    $patch: delete
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: retired-local-gitops-controller
