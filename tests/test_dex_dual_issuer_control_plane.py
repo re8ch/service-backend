@@ -79,11 +79,24 @@ def test_all_control_planes_share_supabase_authentication():
     assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
     external = {
         'delivery-products': ('re8ch/delivery-products-gitops', '1431915128', '283958313'),
-        'agent-runtime': ('re8ch-ai/agent-gitops', '1423311998', '334604670'),
+        'agent-runtime': ('8iops/agent-gitops', '1435935941', '334604670'),
         'identity-access': ('re8ch/identity-gitops', '1423312101', '283958313'),
         'observability-metering': ('siren-observer/observability-gitops', '1423312205', '334604879'),
-        'networking': ('pillars-infra/network-gitops', '1423312303', '334604858'),
+        'networking': ('pillars-infra/network-gitops', '1435935851', '334604858'),
     }
+    for domain in ('agent-runtime', 'identity-access', 'networking'):
+        repository, repository_id, owner_id = external[domain]
+        for boundary_rule in (public_rule, runner_rule):
+            expr = boundary_rule['expression']
+            for expected in (
+                f"claims.repository_id == '{repository_id}'",
+                f"claims.repository_owner_id == '{owner_id}'",
+                f"claims.repository == '{repository}'",
+                f"claims.workflow_ref == '{repository}/.github/workflows/static-release.yml@refs/heads/main'",
+                f"claims.environment == 'release-executor-{domain}'",
+                f"claims.aud == 'https://kube-api.re8ch.com/release-executor-{domain}'",
+            ):
+                assert expected in expr
     for domain, (repository, repository_id, owner_id) in external.items():
         assert f"claims.repository_id == '{repository_id}'" in route
         assert f"claims.repository_owner_id == '{owner_id}'" in route
