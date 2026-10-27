@@ -8,7 +8,7 @@ on:
     inputs:
       scope:
         type: choice
-        options: [nodes, flux, config]
+        options: [nodes, flux, config, topology]
         default: nodes
 
 concurrency:
@@ -21,7 +21,7 @@ jobs:
     env:
       NODE_USE_ENV_PROXY: '1'
     if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.scope == 'config'
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 5
     environment: cluster-observation
     permissions:
@@ -58,10 +58,55 @@ jobs:
           print(json.dumps({"name":"restricted-config-validation", "head_sha":os.environ["GITHUB_SHA"], "status":"completed", "conclusion":"success", "output":{"title":"Restricted configuration validated", "summary":"Protected Environment source matches the signed template source digest and passes compiler validation. No configuration values are published. This check does not assert live cluster health."}}))
           PY
 
+  topology:
+    name: Restricted topology diagnostics
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.scope == 'topology'
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    timeout-minutes: 8
+    environment: cluster-observation
+    env:
+      NODE_USE_ENV_PROXY: '1'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3'
+      - name: Validate pinned private source and production-fixture regressions
+        env:
+          NETWORK_TOPOLOGY_BUNDLE: ${{ secrets.NETWORK_TOPOLOGY_V1_GZ_B64 }}
+        run: python operations/network/restricted_topology.py validate
+      - name: Verify exact runtime context and deny unauthorized reads
+        env:
+          NETWORK_TOPOLOGY_BUNDLE: ${{ secrets.NETWORK_TOPOLOGY_V1_GZ_B64 }}
+          CONTRACT_BUNDLE: ${{ secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64 }}
+          KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
+        run: python operations/network/restricted_topology.py runtime-check
+      - id: reporter
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_EXECUTOR_APP_ID }}
+          private-key: ${{ secrets.GITOPS_EXECUTOR_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: service-backend
+          permission-contents: read
+          permission-checks: write
+      - name: Publish bounded App verification
+        env:
+          GH_TOKEN: ${{ steps.reporter.outputs.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" --jq '.commit.verification.verified')" = true
+          python - <<'PYTHON' | gh api "repos/$GITHUB_REPOSITORY/check-runs" --method POST --input - --silent
+          import json, os
+          print(json.dumps({"name":"restricted-topology-validation", "head_sha":os.environ["GITHUB_SHA"], "status":"completed", "conclusion":"success", "output":{"title":"Restricted topology diagnostics passed", "summary":"Pinned Environment source, protected regressions, exact authenticated runtime projection and denied-read probes passed. No topology values are published. This does not assert live network parity or cluster health."}}))
+          PYTHON
+
   observe:
     if: github.ref == 'refs/heads/main' && (github.event.schedule == '17 3 * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'nodes'))
     name: NodeContract live parity
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 10
     environment: cluster-observation
     permissions:
@@ -214,7 +259,7 @@ jobs:
     if: always() && needs.observe.result != 'cancelled' && needs.observe.result != 'skipped'
     needs: observe
     environment: cluster-observation
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 10
     permissions:
       contents: read
@@ -245,7 +290,7 @@ jobs:
     env:
       NODE_USE_ENV_PROXY: '1'
     if: github.ref == 'refs/heads/main' && (github.event.schedule == '2-57/5 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.scope == 'flux'))
-    runs-on: [self-hosted, Linux, X64, restricted-node-6dc3f140f9, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 8
     environment: cluster-observation
     permissions:

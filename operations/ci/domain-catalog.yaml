@@ -140,6 +140,7 @@ domains:
       - tests/test_gateway_api_ingress_migration.py
       - tests/test_private_transit_config.py
       - tests/test_public_mesh_config.py
+      - tests/test_restricted_topology.py
       - tests/test_host_network_agent.py
       - tests/test_routeros_transit_controller.py
       - tests/test_network_fabric_model.py
