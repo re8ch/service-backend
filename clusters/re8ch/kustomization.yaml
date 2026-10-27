@@ -30,6 +30,7 @@ resources:
 - components/ops/github-actions-release-executor-rbac.yaml
 - components/ops/github-actions-main-domain-executor-rbac.yaml
 - components/ops/github-actions-cloud-domains-executor-rbac.yaml
+- components/ops/github-actions-networking-topology-read.yaml
 - components/ops/github-actions-agent-runtime-executor-rbac.yaml
 - components/ops/github-actions-observability-executor-rbac.yaml
 - components/ops/github-actions-identity-executor-rbac.yaml

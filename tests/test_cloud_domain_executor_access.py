@@ -36,3 +36,18 @@ def test_restricted_helm_cluster_access_only_covers_existing_fabric_identities()
     assert len(bindings) == 1
     assert bindings[0]['roleRef'] == {'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'ClusterRole', 'name': roles[0]['metadata']['name']}
     assert bindings[0]['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group', 'name': 're8ch:release-executor:networking'}]
+
+
+def test_networking_topology_diagnostic_is_exact_read_only_platform_owned():
+    import json
+    path=ROOT/'clusters/re8ch/components/ops/github-actions-networking-topology-read.yaml'
+    role,binding=list(yaml.safe_load_all(path.read_text()))
+    assert role['kind']=='Role' and role['metadata']['namespace']=='ops'
+    assert role['rules']==[{'apiGroups':[''],'resources':['configmaps'],'resourceNames':['restricted-topology-context'],'verbs':['get']}]
+    assert binding['kind']=='RoleBinding' and binding['metadata']['namespace']=='ops'
+    assert binding['roleRef']=={'apiGroup':'rbac.authorization.k8s.io','kind':'Role','name':role['metadata']['name']}
+    assert binding['subjects']==[{'apiGroup':'rbac.authorization.k8s.io','kind':'Group','name':'re8ch:release-executor:networking'}]
+    ledger=json.loads((ROOT/'operations/releases/cloud-domain-access-sources.json').read_text())
+    diagnostic=ledger['platformDiagnosticAccess'][0]
+    assert diagnostic['owner']=='re8ch/service-backend' and diagnostic['verbs']==['get']
+    assert diagnostic['resourceNames']==['restricted-topology-context']
