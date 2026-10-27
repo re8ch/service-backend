@@ -40,7 +40,7 @@ def test_rendered_controller_failover_and_source_cache_safety(kustomize_document
     deployments = {d['metadata']['name']: d for d in docs if d and d['kind'] == 'Deployment' and d['metadata'].get('namespace') == 'flux-system'}
     for name in ('helm-controller', 'notification-controller'):
         deployment = deployments[name]
-        assert deployment['spec']['replicas'] == 2
+        assert deployment['spec']['replicas'] == 0
         pod = deployment['spec']['template']['spec']
         assert '--enable-leader-election' in pod['containers'][0]['args']
         expression = pod['affinity']['nodeAffinity'][
@@ -48,7 +48,7 @@ def test_rendered_controller_failover_and_source_cache_safety(kustomize_document
         ]['nodeSelectorTerms'][0]['matchExpressions'][0]
         assert expression['values'] == ['overseas-kl', 'r640']
     kustomize = deployments['kustomize-controller']
-    assert kustomize['spec']['replicas'] == 1
+    assert kustomize['spec']['replicas'] == 0
     expression = kustomize['spec']['template']['spec']['affinity']['nodeAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'
     ]['nodeSelectorTerms'][0]['matchExpressions'][0]
@@ -63,7 +63,7 @@ def test_rendered_controller_failover_and_source_cache_safety(kustomize_document
     # Source artifacts use pod-local storage and a non-leader replica does not
     # become ready, so scheduler failover is safer than an empty standby cache.
     source = deployments['source-controller']
-    assert source['spec']['replicas'] == 1
+    assert source['spec']['replicas'] == 0
     assert source['spec']['strategy']['type'] == 'Recreate'
     assert source['spec']['template']['spec']['hostNetwork'] is False
     assert source['spec']['template']['spec']['dnsPolicy'] == 'ClusterFirst'

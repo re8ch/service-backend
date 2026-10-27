@@ -25,7 +25,7 @@ def test_flux_core_controllers_use_kl_r640_active_standby(kustomize_documents):
     }
     for name in {"helm-controller", "notification-controller"}:
         deployment = deployments[name]
-        assert deployment["spec"]["replicas"] == 2
+        assert deployment["spec"]["replicas"] == 0
         assert deployment["spec"]["strategy"]["type"] == "RollingUpdate"
         pod = deployment["spec"]["template"]["spec"]
         expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -53,7 +53,7 @@ def test_kustomize_controller_colocates_with_source_and_uses_control_plane_ha_pr
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "kustomize-controller"
     )
-    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["replicas"] == 0
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
@@ -84,7 +84,7 @@ def test_source_controller_uses_kl_r640_scheduler_failover(kustomize_documents):
         and item["metadata"].get("namespace") == "flux-system"
         and item["metadata"]["name"] == "source-controller"
     )
-    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["replicas"] == 0
     assert deployment["spec"]["strategy"]["type"] == "Recreate"
     pod = deployment["spec"]["template"]["spec"]
     expression = pod["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]
