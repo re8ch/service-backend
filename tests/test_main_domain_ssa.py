@@ -278,6 +278,6 @@ def test_node_adoption_leaves_runtime_taints_with_existing_authority():
     assert nodes and all("spec" not in item for item in nodes)
     adopted = next(item for item in nodes if item["metadata"]["name"] == "b1-wsl-zt")
     assert adopted["metadata"] == source["metadata"]
-    cohort = yaml.safe_load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text())
+    cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert {"domain": "data-storage", "identity": "core/Node/_/b1-wsl-zt", "field": "spec.taints",
             "authority": "existing-runtime-node-authority", "reason": "cloud-adoption-manages-static-metadata-only"} in cohort["omissions"]
