@@ -31,9 +31,9 @@ def evidence_cipher():
     return Fernet(key.encode())
 
 
-def seal_evidence(source: Path, destination: Path, run_id: str) -> None:
+def seal_evidence(source: Path, destination: Path, run_id: str, run_attempt: str = "1") -> None:
     evidence = json.loads(source.read_text(encoding="utf-8"))
-    envelope = json.dumps({"repository": REPO, "runId": run_id, "evidence": evidence}).encode()
+    envelope = json.dumps({"repository": REPO, "runId": run_id, "runAttempt": run_attempt, "evidence": evidence}).encode()
     if len(envelope) >= EVIDENCE_SIZE:
         raise ValueError("Evidence exceeds sealed size limit")
     # Constant-size padding avoids exposing node/drift counts through artifact length.
@@ -42,14 +42,14 @@ def seal_evidence(source: Path, destination: Path, run_id: str) -> None:
         stream.write(token)
 
 
-def load_evidence(path: Path, run_id: str) -> dict[str, Any]:
+def load_evidence(path: Path, run_id: str, run_attempt: str = "1") -> dict[str, Any]:
     if path.stat().st_size > EVIDENCE_SIZE * 2:
         raise ValueError("Invalid sealed evidence")
     raw = evidence_cipher().decrypt(path.read_bytes())
     if len(raw) != EVIDENCE_SIZE:
         raise ValueError("Invalid sealed evidence size")
     envelope = json.loads(raw.rstrip(b"\0"))
-    if envelope["repository"] != REPO or envelope["runId"] != run_id:
+    if envelope["repository"] != REPO or envelope["runId"] != run_id or envelope["runAttempt"] != run_attempt:
         raise ValueError("Evidence provenance mismatch")
     evidence = envelope["evidence"]
     if evidence.get("schemaVersion") != "v1alpha1" or not isinstance(evidence.get("drift"), list):
@@ -81,14 +81,15 @@ def historical_evidence() -> list[tuple[dt.datetime, dict[str, Any]]]:
     history: list[tuple[dt.datetime, dict[str, Any]]] = []
     for run in completed:
         run_id = str(run["id"])
-        artifact_name = f"node-contract-evidence-sealed-{run_id}"
+        run_attempt = str(run.get("run_attempt", 1))
+        artifact_name = f"node-contract-evidence-sealed-{run_id}-{run_attempt}"
         artifacts = api(f"repos/{REPO}/actions/runs/{run_id}/artifacts").get("artifacts", [])
         if not any(item.get("name") == artifact_name and not item.get("expired") for item in artifacts):
             break
         with tempfile.TemporaryDirectory(prefix="node-contract-history-") as directory:
             try:
                 gh("run", "download", run_id, "--repo", REPO, "--name", artifact_name, "--dir", directory)
-                evidence = load_evidence(Path(directory) / "node-contract-evidence.fernet", run_id)
+                evidence = load_evidence(Path(directory) / "node-contract-evidence.fernet", run_id, run_attempt)
             except Exception:
                 # Missing, legacy, rotated or tampered history breaks the streak; never fall back to plaintext.
                 break
@@ -192,10 +193,11 @@ def main() -> None:
     args = parser.parse_args()
     try:
         run_id = os.environ["GITHUB_RUN_ID"]
+        run_attempt = os.environ["GITHUB_RUN_ATTEMPT"]
         if args.seal:
-            seal_evidence(args.evidence, args.seal, run_id)
+            seal_evidence(args.evidence, args.seal, run_id, run_attempt)
         else:
-            publish(load_evidence(args.evidence, run_id))
+            publish(load_evidence(args.evidence, run_id, run_attempt))
     except Exception:
         raise SystemExit("Protected evidence operation failed; use authenticated diagnostics") from None
 

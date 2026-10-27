@@ -69,6 +69,8 @@ def test_sealed_evidence_roundtrip_tamper_and_provenance(tmp_path, monkeypatch):
     assert MODULE.load_evidence(target, "123") == payload
     with pytest.raises(ValueError, match="provenance"):
         MODULE.load_evidence(target, "another-run")
+    with pytest.raises(ValueError, match="provenance"):
+        MODULE.load_evidence(target, "123", "2")
     monkeypatch.setattr(MODULE, "REPO", "another/repository")
     with pytest.raises(ValueError, match="provenance"):
         MODULE.load_evidence(target, "123")

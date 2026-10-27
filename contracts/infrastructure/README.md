@@ -77,7 +77,7 @@ A public repository's Actions logs and downloadable artifacts must be treated as
 public. Environment protection gates secret consumption, not output visibility.
 The node observer encrypts detailed evidence with authenticated Fernet encryption
 before upload, padded to a fixed 256 KiB plaintext size. The envelope binds the
-repository and run ID; governance verifies both and decrypts only in memory.
+repository, run ID and run attempt; governance verifies both and decrypts only in memory.
 The public Issue contains a review-needed verdict and run ID, without node counts,
 conditions, identifiers or drift categories. Workflow success/failure, timings and
 ciphertext remain public. GitHub provides no member-only artifact visibility on a

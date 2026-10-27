@@ -29,7 +29,7 @@ readers, not only organization members. Opaque identifiers do not make that
 runtime information confidential.
 
 New evidence uses authenticated encryption with a dedicated random Environment
-Secret, fixed-size padding, and a repository/run-bound envelope. Only ciphertext
+Secret, fixed-size padding, and a repository/run/attempt-bound envelope. Only ciphertext
 crosses the artifact boundary. Governance rejects legacy plaintext, wrong keys,
 tampering and mismatched provenance; no raw error is printed. Public Issues now
 carry only a review-needed verdict and run ID. Detailed debugging remains through

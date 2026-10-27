@@ -183,7 +183,7 @@ jobs:
       - name: Upload encrypted evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: node-contract-evidence-sealed-${{ github.run_id }}
+          name: node-contract-evidence-sealed-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/node-contract-evidence.fernet
           if-no-files-found: error
           retention-days: 30
@@ -224,7 +224,7 @@ jobs:
       - run: python -m pip install 'cryptography==50.0.2'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: node-contract-evidence-sealed-${{ github.run_id }}
+          name: node-contract-evidence-sealed-${{ github.run_id }}-${{ github.run_attempt }}
       - id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
         with:
