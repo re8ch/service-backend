@@ -78,7 +78,7 @@ def run(root, plan, output, publisher, *, baseline=None, baseline_reason='no-bas
             reason = 'forced-full-regression' if full else 'forced-impact-full'
         elif fingerprint:
             if record:
-                hit, reason = evidence.match(record, fingerprint, cases.get(test, []))
+                hit, reason = evidence.match(record, fingerprint, cases.get(test, []), repository=publisher['repository'])
             else:
                 reason = baseline_reason if baseline is None else 'unit-missing-from-latest-baseline'
         unit['reasons'].append({'code': reason})

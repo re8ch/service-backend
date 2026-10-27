@@ -19,7 +19,8 @@ PUBLISHER = {'repository': 'owner/repo', 'run_id': 123, 'attempt': 1, 'sha': 'a'
 
 
 @pytest.fixture
-def graph(tmp_path):
+def graph(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary.md"))
     subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
     (tmp_path / 'tests').mkdir()
     (tmp_path / 'data').mkdir()
@@ -131,6 +132,7 @@ def test_expired_record_case_change_and_inheritance_do_not_refresh_age():
     record = {'fingerprint': 'key', 'cases': ['case'], 'result': 'passed', 'seconds': 1,
               'verified_at': time.time(), 'origin': PUBLISHER}
     assert e.match(record, 'key', ['case'])[0]
+    assert not e.match(record, 'key', ['case'], repository='other/repo')[0]
     assert not e.match(record, 'other', ['case'])[0]
     assert not e.match(record, 'key', ['new-case'])[0]
     record['verified_at'] -= e.MAX_AGE + 1
@@ -157,6 +159,8 @@ def test_real_cold_hit_partial_failure_and_forced_regression(graph, tmp_path, mo
     assert code == 0 and hit['units']['tests/test_sample.py']['status'] == 'reused'
     assert 'cases' not in hit['units']['tests/test_sample.py']  # No fake execution/JUnit phases.
     assert inherited['units']['tests/test_sample.py']['verified_at'] == baseline['units']['tests/test_sample.py']['verified_at']
+    summary = (root / 'summary.md').read_text()
+    assert 'original run' in summary and '1 cases' in summary and 'reused_success' in summary
     code, forced, _ = execute('forced', baseline, full=True)
     assert code == 0 and forced['units']['tests/test_sample.py']['status'] == 'executed'
     (root / 'data/input.json').write_text('{"value": 2}')

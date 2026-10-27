@@ -177,7 +177,7 @@ class Inputs:
                        "inputs": selected, "closures": closures, "environment": environment}), "exact-inputs"
 
 
-def match(record, fingerprint, cases, now=None):
+def match(record, fingerprint, cases, now=None, repository=None):
     now = time.time() if now is None else now
     try:
         if record["fingerprint"] != fingerprint:
@@ -187,6 +187,8 @@ def match(record, fingerprint, cases, now=None):
         if record["result"] != "passed" or not 0 <= now - record["verified_at"] <= MAX_AGE:
             return False, "expired-or-unsuccessful-unit"
         origin = record["origin"]
+        if repository is not None and origin["repository"] != repository:
+            return False, "foreign-origin"
         if (not isinstance(origin["run_id"], int) or origin["run_id"] <= 0
                 or not re.fullmatch("[0-9a-f]{40}", origin["sha"]) or record["seconds"] < 0):
             return False, "invalid-origin"
