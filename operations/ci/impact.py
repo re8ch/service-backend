@@ -330,6 +330,7 @@ def main() -> None:
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--path", action="append", dest="paths")
     parser.add_argument("--full", action="store_true")
+    parser.add_argument("--plan-file", type=Path)
     args = parser.parse_args()
     base, base_definitions, fallback = None, None, None
     if args.paths is not None:
@@ -350,6 +351,9 @@ def main() -> None:
         result = select(paths, True, fallback_reason="dependencies-unreadable")
     result["dependency_base"] = base
     compact = json.dumps(result, separators=(",", ":"))
+    if args.plan_file:
+        args.plan_file.parent.mkdir(parents=True, exist_ok=True)
+        args.plan_file.write_text(compact + "\n")
     print(json.dumps(result, indent=2))
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a", encoding="utf-8") as handle:
@@ -357,7 +361,8 @@ def main() -> None:
                 handle.write(f"{key}={json.dumps(result[key], separators=(',', ':'))}\n")
             handle.write(f"run={str(result['run']).lower()}\n")
             handle.write(f"full={str(result['full']).lower()}\n")
-            handle.write(f"plan={compact}\n")
+            if not args.plan_file:
+                handle.write(f"plan={compact}\n")
 
 
 if __name__ == "__main__":

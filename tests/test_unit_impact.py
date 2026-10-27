@@ -212,3 +212,18 @@ def test_selected_real_consumer_detects_a_broken_allocator(tmp_path):
     broken = subprocess.run(args, cwd=tmp_path, env=env, capture_output=True, text=True)
     assert broken.returncode == 1
     assert "2 failed, 1 passed" in broken.stdout
+
+
+def test_file_plan_omits_large_actions_output(tmp_path):
+    import os
+    output = tmp_path / 'github-output'
+    plan_file = tmp_path / 'plan.json'
+    result = subprocess.run([sys.executable, str(ROOT / 'operations/ci/impact.py'),
+                             '--path', 'README.md', '--full', '--plan-file', str(plan_file)],
+                            cwd=ROOT, env={**os.environ, 'GITHUB_OUTPUT': str(output)},
+                            capture_output=True, text=True, check=True)
+    plan = json.loads(result.stdout)
+    assert json.loads(plan_file.read_text()) == plan
+    values = dict(line.split('=', 1) for line in output.read_text().splitlines())
+    assert 'plan' not in values
+    assert json.loads(values['jobs']) == plan['jobs']

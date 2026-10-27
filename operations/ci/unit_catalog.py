@@ -141,8 +141,9 @@ def summary(report):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--plan-file", type=Path)
     args = parser.parse_args()
-    report = describe(json.loads(os.environ["PLAN"]))
+    report = describe(json.loads(args.plan_file.read_text() if args.plan_file else os.environ["PLAN"]))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     if path := os.environ.get("GITHUB_STEP_SUMMARY"):

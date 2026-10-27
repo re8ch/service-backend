@@ -88,7 +88,7 @@ def test_teardown(bad_teardown): pass
     directory.mkdir(parents=True)
     (directory / "domain-catalog.yaml").write_text(yaml.safe_dump(catalog))
     env = {**os.environ, "PYTHONPATH": str(ROOT), "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"}
-    for key in ("UNIT_PLAN", "GITHUB_STEP_SUMMARY", "PYTEST_ADDOPTS"):
+    for key in ("UNIT_PLAN", "UNIT_PLAN_FILE", "GITHUB_STEP_SUMMARY", "PYTEST_ADDOPTS"):
         env.pop(key, None)
     def run(observe):
         args = [sys.executable, "-m", "pytest", "-q"]
@@ -112,6 +112,7 @@ def test_collection_failure_and_interruption_are_not_success(tmp_path, monkeypat
     test = "tests/test_flux_controller_ha.py"
     plan = impact.select([test])
     monkeypatch.setenv("UNIT_PLAN", json.dumps(plan))
+    monkeypatch.delenv("UNIT_PLAN_FILE", raising=False)
     monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
     monkeypatch.setattr(unit_report, "toolchain", lambda: {})
     observer = unit_report.Observer(tmp_path, SimpleNamespace(rootpath=ROOT))
