@@ -37,8 +37,9 @@ spec:
   interval: 30s
   timeout: 2m
   suspend: false
-  url: https://github.com/8iops/agent-gitops
+  url: ssh://git@ssh.github.com:443/8iops/agent-gitops.git
   ref: {branch: main}
+  secretRef: {name: agent-github-ssh}
   verify: {mode: HEAD, secretRef: {name: git-verification-keys}}
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -62,8 +63,9 @@ spec:
   interval: 30s
   timeout: 2m
   suspend: false
-  url: https://github.com/re8ch/identity-gitops
+  url: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
   ref: {branch: main}
+  secretRef: {name: identity-github-ssh}
   verify: {mode: HEAD, secretRef: {name: git-verification-keys}}
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1

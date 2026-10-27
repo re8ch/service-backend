@@ -28,13 +28,13 @@ spec:
       state: autonomous
     agent-runtime:
       organization: 8iops
-      repository: https://github.com/8iops/agent-gitops
+      repository: ssh://git@ssh.github.com:443/8iops/agent-gitops.git
       controllerNamespace: flux-agent-system
       lock: fe9cae9809804832433c73decdd9dc9fceddcbee
       state: autonomous
     identity-access:
       organization: re8ch
-      repository: https://github.com/re8ch/identity-gitops
+      repository: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
       controllerNamespace: flux-identity-system
       lock: 04dcbe952d261f533bbc179a5c2767e7280b3cb2
       state: autonomous
