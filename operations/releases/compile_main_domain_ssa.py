@@ -9,6 +9,7 @@ prunes and receives no create, delete, bind or escalate authorization.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import shutil
@@ -174,6 +175,13 @@ def compile_outputs() -> dict[Path, str]:
                 if reason == "platform-owned-rbac-bootstrap" and namespace:
                     retained_rbac_namespaces.add((domain, namespace))
             else:
+                # Kubernetes stores byte fields as canonical, unwrapped base64.
+                # Wrapped YAML scalars otherwise conflict under SSA despite equal bytes.
+                if item["kind"] == "ConfigMap" and item.get("binaryData"):
+                    item["binaryData"] = {
+                        key: base64.b64encode(base64.b64decode("".join(value.split()), validate=True)).decode()
+                        for key, value in item["binaryData"].items()
+                    }
                 releases[(domain, namespace or CLUSTER_PARTITION)].append(item)
 
     revision = "github-main-reviewed"
