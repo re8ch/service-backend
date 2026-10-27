@@ -224,3 +224,18 @@ def test_headlamp_rbac_stays_platform_owned_and_cannot_be_pruned_on_handoff():
     legacy = documents(ROOT / 'clusters/re8ch/domains/main-legacy/operations-ui/resources.yaml')
     assert {(item['kind'], item['metadata']['name']) for item in legacy if item['kind'] in compiler.RBAC_KINDS} >= {
         ('Role', 'headlamp-active-elector'), ('RoleBinding', 'headlamp-active-elector')}
+
+
+def test_admission_api_defaults_preserve_explicit_constraints():
+    item = {"apiVersion": "admissionregistration.k8s.io/v1", "kind": "ValidatingAdmissionPolicy",
+            "spec": {"matchConstraints": {"resourceRules": [{"resources": ["persistentvolumeclaims"]}]}}}
+    compiler.canonical_admission_defaults(item)
+    constraints = item["spec"]["matchConstraints"]
+    assert constraints == {"matchPolicy": "Equivalent", "namespaceSelector": {}, "objectSelector": {},
+                           "resourceRules": [{"resources": ["persistentvolumeclaims"], "scope": "*"}]}
+    constraints.update(matchPolicy="Exact", namespaceSelector={"matchLabels": {"team": "ops"}})
+    constraints["resourceRules"][0]["scope"] = "Namespaced"
+    compiler.canonical_admission_defaults(item)
+    assert constraints["matchPolicy"] == "Exact"
+    assert constraints["namespaceSelector"] == {"matchLabels": {"team": "ops"}}
+    assert constraints["resourceRules"][0]["scope"] == "Namespaced"

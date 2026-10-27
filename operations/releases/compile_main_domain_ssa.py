@@ -152,6 +152,19 @@ def legacy_reason(item: dict, domain: str | None = None) -> str | None:
     return None
 
 
+def canonical_admission_defaults(item: dict) -> None:
+    """Make API-defaulted atomic match constraints explicit without changing policy."""
+    if item.get("apiVersion") != "admissionregistration.k8s.io/v1" or item.get("kind") != "ValidatingAdmissionPolicy":
+        return
+    constraints = item["spec"]["matchConstraints"]
+    constraints.setdefault("matchPolicy", "Equivalent")
+    constraints.setdefault("namespaceSelector", {})
+    constraints.setdefault("objectSelector", {})
+    for key in ("resourceRules", "excludeResourceRules"):
+        for rule in constraints.get(key, []):
+            rule.setdefault("scope", "*")
+
+
 def compile_outputs() -> dict[Path, str]:
     profiles = execution_profiles()
     releases: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -174,6 +187,7 @@ def compile_outputs() -> dict[Path, str]:
                 if reason == "platform-owned-rbac-bootstrap" and namespace:
                     retained_rbac_namespaces.add((domain, namespace))
             else:
+                canonical_admission_defaults(item)
                 releases[(domain, namespace or CLUSTER_PARTITION)].append(item)
 
     revision = "github-main-reviewed"
