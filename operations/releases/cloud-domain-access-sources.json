@@ -1,0 +1,30 @@
+{
+  "sources": [
+    {
+      "repository": "8iops/agent-gitops",
+      "revision": "9a287eb5fe1d5258ad6cef07a89a81bf3e3e6260",
+      "path": "operations/releases/domain-access.yaml",
+      "sha256": "a19085ecce5ee9f2f27b3cec0502e52f2717592fe6cc9dcd4826e4ed9ec7f0f9"
+    },
+    {
+      "repository": "re8ch/identity-gitops",
+      "revision": "a857151b3a32ffa54c2c84bdbca99524d771447d",
+      "path": "operations/releases/domain-access.yaml",
+      "sha256": "6fba7035e3d67e4615137d483b03dc1a063b2fda0edb539e60569f356e0a0178"
+    },
+    {
+      "repository": "siren-observer/observability-gitops",
+      "revision": "bd73e34731966fe056e326648fbdad0bdb2a74cf",
+      "path": "operations/releases/domain-access.yaml",
+      "sha256": "41f337972d3e21b3fe59fda1d8ecc4fd06c42bf0d10e042cfdd27f4f67bf9409"
+    },
+    {
+      "repository": "pillars-infra/network-gitops",
+      "revision": "52e1eae8c6048f17200fc9fe250a5a682be8c408",
+      "path": "operations/releases/native-authority.json",
+      "sha256": "704fa077e82471564b477d1bd3de4b0122e9ce6f06075e7ebe3afda907f12381"
+    }
+  ],
+  "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance.",
+  "objects": 177
+}
