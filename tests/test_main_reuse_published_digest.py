@@ -71,7 +71,7 @@ def test_reuse_accepts_unrelated_main_changes(source_repo):
     (root/'README.md').write_text('unrelated');git('add','.');git('commit','-qm','unrelated')
     verify(commit,'contracts/demo.yaml',root)
 
-@pytest.mark.parametrize('fault',['content','contract','unknown','ref','external','symlink'])
+@pytest.mark.parametrize('fault',['content','contract','unknown','ref','external','symlink','source-symlink'])
 def test_reuse_rejects_changed_source_missing_commit_and_external_dependencies(source_repo,fault):
     root,commit,git,verify=source_repo
     if fault=='content':(root/'releases/demo/resources.yaml').write_text('kind: Service\n')
@@ -80,5 +80,21 @@ def test_reuse_rejects_changed_source_missing_commit_and_external_dependencies(s
     if fault=='ref':commit='HEAD'
     if fault=='external':(root/'releases/demo/kustomization.yaml').write_text('resources: [resources.yaml]\ncomponents: [../../external]\n')
     if fault=='symlink':(root/'releases/demo/link').symlink_to('/tmp')
+    if fault=='source-symlink':
+        (root/'releases/demo').rename(root/'releases/external')
+        (root/'releases/demo').symlink_to(root/'releases/external', target_is_directory=True)
     git('add','.');subprocess.run(['git','commit','-qm','change'],cwd=root,capture_output=True)
     with pytest.raises(ValueError):verify(commit,'contracts/demo.yaml',root)
+
+
+@pytest.mark.parametrize('mode,digest,commit,valid', [
+    ('publish', '', '', True), ('publish', 'sha256:'+'a'*64, 'b'*40, True),
+    ('reconcile', 'sha256:'+'a'*64, 'b'*40, False),
+    ('publish', '', 'b'*40, False), ('publish', 'sha256:'+'a'*64, '', False),
+])
+def test_reuse_inputs_are_complete_and_publish_only(tmp_path, mode, digest, commit, valid):
+    workflow = yaml.safe_load((ROOT/'.github/workflows/main-domain-release.yml').read_text())
+    step = next(s for s in workflow['jobs']['validate']['steps'] if s.get('name') == 'Validate artifact reuse selection')
+    result = subprocess.run(['bash', '-e', '-c', step['run']], cwd=tmp_path,
+                            env={**os.environ, 'MODE': mode, 'REUSE_DIGEST': digest, 'REUSE_SOURCE_COMMIT': commit})
+    assert (result.returncode == 0) is valid

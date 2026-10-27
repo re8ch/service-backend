@@ -16,7 +16,8 @@ def verify(commit, contract_path, root=Path('.')):
     kustomization=yaml.safe_load((root/source/'kustomization.yaml').read_text())
     if set(kustomization)-{'apiVersion','kind','resources'} or kustomization.get('resources')!=['resources.yaml']:
         raise ValueError('reuse requires a flat locked resource source without external rendering dependencies')
-    if any(p.is_symlink() for p in (root/source).rglob('*')):
+    checked_paths = [root/part for relative in (path, source) for part in (relative, *relative.parents)]
+    if any(p.is_symlink() for p in checked_paths) or any(p.is_symlink() for p in (root/source).rglob('*')):
         raise ValueError('reuse source must not contain symlinks')
     for command in [['git','cat-file','-e',commit+'^{commit}'],['git','merge-base','--is-ancestor',commit,'HEAD'],['git','diff','--exit-code',commit,'HEAD','--',str(path),str(source)]]:
         result=subprocess.run(command,cwd=root,capture_output=True)
