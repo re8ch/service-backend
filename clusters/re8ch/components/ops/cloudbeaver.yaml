@@ -182,7 +182,7 @@ spec:
       initContainers:
         - name: seed-config
           # Cached on zan; mirror this digest into registry.re8ch.com before upgrading.
-          image: dbeaver/cloudbeaver:24.3.5
+          image: docker.io/dbeaver/cloudbeaver@sha256:28f7abeeae9835c797246a4bcbb756b9eaf7275a6691d583b4a40a736fa420c1
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -199,7 +199,7 @@ spec:
               readOnly: true
       containers:
         - name: cloudbeaver
-          image: dbeaver/cloudbeaver:24.3.5
+          image: docker.io/dbeaver/cloudbeaver@sha256:28f7abeeae9835c797246a4bcbb756b9eaf7275a6691d583b4a40a736fa420c1
           imagePullPolicy: IfNotPresent
           env:
             - name: CLOUDBEAVER_WEB_SERVER_PORT
