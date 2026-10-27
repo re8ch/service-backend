@@ -2,9 +2,9 @@
   "sources": [
     {
       "repository": "8iops/agent-gitops",
-      "revision": "357538c5742bb716328ad5c0f7e9242052754f58",
+      "revision": "6ce683f53b1691a2dd204ba2186719d4b81632f8",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "3fee59b17c19bbc96a715b190e407cba0198ccdafbaf98b57c007c2b579e65b8"
+      "sha256": "23839f073ef797320815192b5502bb6d94a00989e1ccf840490bcaf6ded04cdd"
     },
     {
       "repository": "re8ch/identity-gitops",
@@ -35,9 +35,15 @@
       "revision": "8fd469d040db956f46602370801869f624f9f58f",
       "path": "operations/releases/helm-authority.json",
       "sha256": "c7b9262e802b952374a1a040a066a2743b566586c4342951228e2ce009bb418e"
+    },
+    {
+      "repository": "pillars-infra/network-gitops",
+      "revision": "acdbb575115d0f61aeb391a6f8eed954ef4aedc2",
+      "path": "operations/releases/advanced-fabric-authority.json",
+      "sha256": "f16b5d24be2d801a8f75afb41ed5d82f887a761fb5d2df1cfeceae487642b49d"
     }
   ],
   "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance. Retired roles retain no permissions.",
-  "objects": 222,
-  "states": 74
+  "objects": 227,
+  "states": 75
 }
