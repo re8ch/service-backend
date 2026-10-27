@@ -3,23 +3,56 @@
 import concurrent.futures
 import datetime as dt
 import json
+import io
+import re
+import zipfile
 import os
 from pathlib import Path
 import ssl
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
 DOMAINS = ('main', 'networking', 'identity-access', 'agent-runtime', 'observability-metering', 'delivery-products')
 WORKFLOWS = {
-    'main': ('re8ch/service-backend', ['main-domain-release.yml', 'main-domain-reconcile.yml', 'ceph-static-release.yml'], 'RE8CH_OBSERVER_TOKEN'),
+    'main': ('re8ch/service-backend', ['main-domain-release.yml', 'main-domain-reconcile.yml', 'ceph-static-release.yml'], 'MAIN_OBSERVER_TOKEN'),
     'networking': ('pillars-infra/network-gitops', ['static-release.yml', 'networking-reconcile.yml'], 'NETWORK_OBSERVER_TOKEN'),
-    'identity-access': ('re8ch/identity-gitops', ['static-release.yml'], 'RE8CH_OBSERVER_TOKEN'),
+    'identity-access': ('re8ch/identity-gitops', ['static-release.yml'], 'IDENTITY_OBSERVER_TOKEN'),
     'agent-runtime': ('8iops/agent-gitops', ['static-release.yml'], 'AGENT_OBSERVER_TOKEN'),
     'observability-metering': ('siren-observer/observability-gitops', ['static-release.yml'], 'OBSERVABILITY_OBSERVER_TOKEN'),
-    'delivery-products': ('re8ch/delivery-products-gitops', ['static-release.yml', 'delivery-products-reconcile.yml'], 'RE8CH_OBSERVER_TOKEN'),
+    'delivery-products': ('re8ch/delivery-products-gitops', ['static-release.yml', 'delivery-products-reconcile.yml'], 'DELIVERY_OBSERVER_TOKEN'),
 }
 RESOURCES = {'Deployment': 'deployments', 'StatefulSet': 'statefulsets', 'DaemonSet': 'daemonsets'}
+
+# Shared by all worker threads. Initialized once per collection, never renewed by
+# an individual request or queued task. Leave enough of the 8-minute job for upload.
+DEADLINE = None
+COLLECTION_SECONDS = 240
+
+def remaining_timeout():
+    remaining = 15 if DEADLINE is None else DEADLINE - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError('collection deadline reached')
+    return min(15, remaining)
+
+def read_bounded(response, limit):
+    chunks, size = [], 0
+    while size <= limit:
+        timeout = remaining_timeout()
+        # HTTPResponse's socket initially inherits the connection timeout; shrink
+        # it before each single buffered read as the shared deadline approaches.
+        sock = getattr(getattr(getattr(response, 'fp', None), 'raw', None), '_sock', None)
+        if sock is not None:
+            sock.settimeout(timeout)
+        read = getattr(response, 'read1', response.read)
+        chunk = read(min(65536, limit + 1 - size))
+        remaining_timeout()
+        if not chunk:
+            return b''.join(chunks)
+        chunks.append(chunk)
+        size += len(chunk)
+    raise ValueError('response exceeds bound')
 
 def timestamp():
     return dt.datetime.now(dt.timezone.utc).isoformat().replace('+00:00', 'Z')
@@ -32,8 +65,9 @@ def epoch(value):
 
 def sync_state(accepted, result, operation):
     # A later failed/in-flight cloud attempt cannot inherit an earlier success.
-    latest = max(epoch(result.get('finishedAt')), epoch(accepted.get('updatedAt')))
-    if operation['status'] == 'unknown' or (operation['status'] in ('failed', 'running') and epoch(operation['observedAt']) > latest):
+    correlated = any(result == candidate and result.get('releaseId') and result.get('operationId')
+                     for candidate in operation.get('_results', []))
+    if operation['status'] in ('unknown', 'running') or (operation['status'] == 'failed' and not correlated):
         return 'unknown'
     if accepted.get('blocked'):
         return 'failed'
@@ -65,14 +99,105 @@ def health_state(obj):
 
 def request_json(url, token, context=None):
     req = urllib.request.Request(url, headers={'Authorization': 'Bearer '+token, 'Accept': 'application/json', 'User-Agent': 're8ch-cloud-observer'})
-    with urllib.request.urlopen(req, context=context, timeout=15) as response:
-        return json.load(response)
+    with urllib.request.urlopen(req, context=context, timeout=remaining_timeout()) as response:
+        return json.loads(read_bounded(response, 4 * 1024 * 1024))
+
+# Only full executor results qualify. In particular Ceph runtime/infra are stages.
+MAX_ARCHIVE = 1024 * 1024
+MAX_RESULT = 256 * 1024
+MAX_ARTIFACTS = 64
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+def download_artifact(repo, artifact_id, token):
+    url = f'https://api.github.com/repos/{repo}/actions/artifacts/{int(artifact_id)}/zip'
+    opener = urllib.request.build_opener(NoRedirect())
+    req = urllib.request.Request(url, headers={'Authorization': 'Bearer '+token,
+                                              'User-Agent': 're8ch-cloud-observer'})
+    try:
+        response = opener.open(req, timeout=remaining_timeout())
+    except urllib.error.HTTPError as error:
+        if error.code != 302:
+            raise
+        location = error.headers.get('Location', '')
+        parts = urllib.parse.urlsplit(location)
+        if parts.scheme != 'https' or not parts.hostname or parts.username or parts.password:
+            raise ValueError('invalid artifact location') from None
+        # Deliberately construct a fresh request without Authorization. Do not
+        # follow further redirects (including HTTPS -> HTTP).
+        response = opener.open(urllib.request.Request(location), timeout=remaining_timeout())
+    with response:
+        payload = read_bounded(response, MAX_ARCHIVE)
+    if len(payload) > MAX_ARCHIVE:
+        raise ValueError('artifact exceeds bound')
+    return payload
+
+def artifact_result(payload):
+    remaining_timeout()
+    if len(payload) > MAX_ARCHIVE:
+        raise ValueError('artifact exceeds bound')
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        members = archive.infolist()
+        if len(members) > 16 or sum(m.file_size for m in members) > MAX_ARCHIVE:
+            raise ValueError('archive exceeds bound')
+        selected = [m for m in members if m.filename in ('result.json', 'static-release-result.json')]
+        if len(selected) != 1 or selected[0].file_size > MAX_RESULT:
+            return None
+        with archive.open(selected[0]) as stream:
+            raw = stream.read(MAX_RESULT + 1)
+        if len(raw) > MAX_RESULT:
+            raise ValueError('result exceeds bound')
+        result = json.loads(raw)
+        if not isinstance(result, dict) or result.get('apiVersion') != 'delivery.re8ch.com/release-result/v1alpha1':
+            return None
+        if not all(isinstance(result.get(k), str) and result[k] for k in ('releaseId', 'operationId')):
+            return None
+        return result
+
+def run_results(repo, run, token):
+    # Existing artifact names do not encode run_attempt. Never attribute an
+    # earlier attempt's retained artifact to a failed rerun using timestamp guesses.
+    if run.get('run_attempt') != 1:
+        return []
+    run_id = int(run['id'])
+    data = request_json(f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100', token)
+    artifacts = data['artifacts']
+    if data['total_count'] != len(artifacts) or len(artifacts) > MAX_ARTIFACTS:
+        return []
+    pattern = re.compile(r'(?:main-domain-release-result|static-release-result|ceph-accept|(?:main-domain|networking|delivery-products)-reconcile-[a-z0-9-]+)-' + str(run_id))
+    results = []
+    for artifact in artifacts:
+        provenance = artifact.get('workflow_run', {})
+        if (provenance.get('id') != run_id or not run.get('head_sha')
+                or provenance.get('head_sha') != run['head_sha']
+                or artifact.get('expired') or not pattern.fullmatch(artifact['name'])):
+            continue
+        if not 0 < artifact.get('size_in_bytes', 0) <= MAX_ARCHIVE:
+            continue
+        try:
+            result = artifact_result(download_artifact(repo, artifact['id'], token))
+            if result is not None:
+                results.append(result)
+        except Exception:
+            # Missing/expired/malformed evidence leaves only that release Unknown.
+            continue
+    return results
+
+def operation_diagnostic(domain, category, code=None):
+    # Fixed vocabulary only: never stringify an exception, response, URL or token.
+    record = {'domain': domain if domain in DOMAINS else 'unknown', 'category': category}
+    if isinstance(code, int) and 100 <= code <= 599:
+        record['httpStatus'] = code
+    print(json.dumps(record, sort_keys=True))
 
 def operation(domain):
     repo, workflows, env = WORKFLOWS[domain]
     token = os.environ.get(env)
     unknown = {'status': 'unknown', 'observedAt': None}
     if not token:
+        operation_diagnostic(domain, 'missing-token')
         return unknown
     try:
         runs = []
@@ -83,20 +208,33 @@ def operation(domain):
             # Reruns keep created_at. Read the complete bounded history rather than
             # selecting the newest-created run and silently missing an old rerun.
             if total > 1000:
+                operation_diagnostic(domain, 'history-bound')
                 return unknown
             history = data['workflow_runs']
             for page in range(2, (total+99)//100+1):
                 history += request_json(base+f'&page={page}', token)['workflow_runs']
             if len({r['id'] for r in history}) != total:
+                operation_diagnostic(domain, 'history-incomplete')
                 return unknown
             runs += history
         if not runs:
+            operation_diagnostic(domain, 'no-runs')
             return unknown
         latest = max(runs, key=lambda r: epoch(r['updated_at']))
         state = 'running' if latest['status'] != 'completed' else ('succeeded' if latest['conclusion'] == 'success' else 'failed')
-        return {'status': state, 'observedAt': latest['updated_at']}
+        return {'status': state, 'observedAt': latest['updated_at'],
+                '_results': run_results(repo, latest, token) if state == 'failed' else []}
+    except urllib.error.HTTPError as error:
+        operation_diagnostic(domain, 'http-error', error.code)
+    except TimeoutError:
+        operation_diagnostic(domain, 'deadline-or-timeout')
+    except urllib.error.URLError:
+        operation_diagnostic(domain, 'network-error')
+    except (KeyError, ValueError, TypeError):
+        operation_diagnostic(domain, 'invalid-response')
     except Exception:
-        return unknown
+        operation_diagnostic(domain, 'unavailable')
+    return unknown
 
 class Cluster:
     def __init__(self):
@@ -127,13 +265,14 @@ class Cluster:
 def summarize(entries, cluster, operations, now):
     domains = {d: {'id': d, 'sync': dict.fromkeys(('synced','drifted','failed','unknown'), 0),
         'health': dict.fromkeys(('healthy','unhealthy','unknown'), 0),
-        'observation': {'status': 'current', 'observedAt': now}, 'operations': operations[d]} for d in DOMAINS}
+        'observation': {'status': 'current', 'observedAt': now}, 'operations': {k: operations[d][k] for k in ('status', 'observedAt')}} for d in DOMAINS}
     workloads = {}
     for entry in entries:
         for w in entry['workloads']:
             workloads[(entry['domain'], w['kind'], w['namespace'], w['name'])] = w
     def release(entry):
         try:
+            remaining_timeout()
             data = cluster.get('ConfigMap', entry['namespace'], entry['name']).get('data', {})
             accepted = json.loads(data.get('accepted-state.json', '{}'))
             result = json.loads(data.get('last-result.json', '{}'))
@@ -148,6 +287,7 @@ def summarize(entries, cluster, operations, now):
         def workload(item):
             key, w = item
             try:
+                remaining_timeout()
                 return key[0], health_state(cluster.get(w['kind'], w['namespace'], w['name'])), True
             except urllib.error.HTTPError as error:
                 return key[0], 'unhealthy' if error.code == 404 else 'unknown', error.code == 404
@@ -160,6 +300,8 @@ def summarize(entries, cluster, operations, now):
     return list(domains.values())
 
 def main():
+    global DEADLINE
+    DEADLINE = time.monotonic() + COLLECTION_SECONDS
     now = timestamp()
     snapshot = {'schema': 2, 'repository': os.environ['GITHUB_REPOSITORY'], 'sha': os.environ['GITHUB_SHA'],
         'batch': f"{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}", 'observedAt': now, 'complete': False, 'domains': []}

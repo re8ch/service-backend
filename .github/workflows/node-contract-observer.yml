@@ -301,14 +301,32 @@ jobs:
         with: {persist-credentials: false}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: {node-version: '24'}
-      - id: observe-re8ch
+      - id: observe-main
         continue-on-error: true
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
           app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
           private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
           owner: re8ch
-          repositories: service-backend,identity-gitops,delivery-products-gitops
+          repositories: service-backend
+          permission-actions: read
+      - id: observe-identity
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
+          private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: identity-gitops
+          permission-actions: read
+      - id: observe-delivery
+        continue-on-error: true
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_OBSERVER_APP_ID }}
+          private-key: ${{ secrets.GITOPS_OBSERVER_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: delivery-products-gitops
           permission-actions: read
       - id: observe-network
         continue-on-error: true
@@ -349,7 +367,9 @@ jobs:
         if: always()
         env:
           KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
-          RE8CH_OBSERVER_TOKEN: ${{ steps.observe-re8ch.outputs.token }}
+          MAIN_OBSERVER_TOKEN: ${{ steps.observe-main.outputs.token }}
+          IDENTITY_OBSERVER_TOKEN: ${{ steps.observe-identity.outputs.token }}
+          DELIVERY_OBSERVER_TOKEN: ${{ steps.observe-delivery.outputs.token }}
           NETWORK_OBSERVER_TOKEN: ${{ steps.observe-network.outputs.token }}
           AGENT_OBSERVER_TOKEN: ${{ steps.observe-agent.outputs.token }}
           OBSERVABILITY_OBSERVER_TOKEN: ${{ steps.observe-observability.outputs.token }}
