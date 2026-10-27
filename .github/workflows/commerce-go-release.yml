@@ -38,6 +38,13 @@ jobs:
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with: {go-version-file: go.mod}
       - run: go test ./functions/commerce-api ./functions/payment-registry-api ./pkg/wechatpayx
+      - name: Prepare isolated registry authentication
+        run: |
+          export DOCKER_CONFIG="${RUNNER_TEMP}/commerce-go-release-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          umask 077
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -82,3 +89,8 @@ jobs:
           name: commerce-go-images-${{ inputs.revision }}
           path: commerce-go.images
           if-no-files-found: error
+      - name: Remove temporary registry authorization
+        if: always()
+        run: |
+          rm -f "$DOCKER_CONFIG/config.json"
+          rmdir "$DOCKER_CONFIG" || true
