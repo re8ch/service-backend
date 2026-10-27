@@ -8,7 +8,7 @@
     "acceptance": "node acceptance.mjs"
   },
   "dependencies": {
-    "@browserbasehq/stagehand": "4.1.0",
+    "@browserbasehq/stagehand": "4.3.0",
     "zod": "4.6.7"
   },
   "overrides": {
