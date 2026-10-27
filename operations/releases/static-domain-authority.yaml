@@ -161,6 +161,10 @@ spec:
         protectedEnvironment: release-executor-delivery-products
         audience: https://kube-api.re8ch.com/release-executor-delivery-products
         kubernetesGroup: re8ch:release-executor:delivery-products
+        replay:
+          workflow: .github/workflows/delivery-products-reconcile.yml
+          environment: release-reconciler-delivery-products
+          audience: https://kube-api.re8ch.com/release-reconciler-delivery-products
     operations-ui:
       risk: medium
       stabilityHours: 24
