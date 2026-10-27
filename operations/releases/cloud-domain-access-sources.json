@@ -2,15 +2,15 @@
   "sources": [
     {
       "repository": "8iops/agent-gitops",
-      "revision": "97ce3fd903a43536b46a3bfa4f9715f29019e8c5",
+      "revision": "a9c33ee1f732a7aff115799aa28e9271a26149c7",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "2f2d1be9952677a18ec6dac8e2f345dd781f75312020e4d507c6cd2ceb227ae6"
+      "sha256": "4fb4f9f179b0a2dbaefd6214817838ad30f1d457911dc5b888dc9bf7b29a4901"
     },
     {
       "repository": "re8ch/identity-gitops",
-      "revision": "ccc0c1faf607335157fa1c829ca24a0aa82773be",
+      "revision": "6e6d756a0c61fbc27fdfeda5e4219bd72f7278ca",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "c03a5505d6a3378a39bb735d917ead7febaef98c178a33bf50332cc5c3d961a2"
+      "sha256": "d57baa3ee9d0546cf36ef2d3a40d2ef7016cfcc2daebfb6fec158c4f70ff70b7"
     },
     {
       "repository": "siren-observer/observability-gitops",
@@ -44,8 +44,8 @@
     }
   ],
   "scope": "Existing-object adoption; no Secret or RBAC writes or escalation. Bootstrap state metadata must not reset acceptance. Retired roles retain no permissions.",
-  "objects": 233,
-  "states": 77,
+  "objects": 242,
+  "states": 80,
   "platformDiagnosticAccess": [
     {
       "owner": "re8ch/service-backend",
