@@ -44,6 +44,17 @@
   "restrictedConfiguration": {
     "networkSopsProvisioningAudit": "op_7a11781c26484752ad35a595688de8fa",
     "method": "GitHub environment sealed-box encryption inside the approved platform; plaintext never exported",
-    "runtimeValidation": "pending per-contract validation; not implied by secret provisioning"
+    "runtimeValidation": "pending per-contract validation; not implied by secret provisioning",
+    "agentSopsProvisioningAudit": "op_89932eb7170445c89dcf32af5e0f179e"
+  },
+  "helmAccessBootstrap": {
+    "merge": "4d62b363d4a176af95f6a1d2cef8fa4072c1b429",
+    "applyAudit": "op_e00fc717de034a9f9791598545b94010",
+    "verificationAudit": "op_ed7552737c1640068c3443e0e7bef162",
+    "objects": 222,
+    "preservedExistingStates": 59,
+    "missing": [],
+    "different": [],
+    "missingStates": []
   }
 }

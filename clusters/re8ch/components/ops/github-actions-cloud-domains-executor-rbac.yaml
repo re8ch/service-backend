@@ -40,6 +40,8 @@ rules:
   resources:
   - configmaps
   resourceNames:
+  - ai-operations-inventory
+  - ai-operations-ssh-config
   - controlled-cluster-kubeconfigs
   - harbor-tenant-catalog
   - ops-capsule-policy
@@ -498,6 +500,7 @@ rules:
   resources:
   - configmaps
   resourceNames:
+  - cube-trial-values
   - ssa-state-agent-runtime-domain-cube-trial
   verbs:
   - get
@@ -914,6 +917,7 @@ rules:
   resources:
   - configmaps
   resourceNames:
+  - ops-mcp-server-code
   - re8ch-plugin-definitions
   - re8ch-plugin-operation-catalog
   - ssa-state-agent-runtime-domain-toolhive-system
@@ -6210,6 +6214,168 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: networking-helm-public-edge-manager-regional-routing
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-networking-helm-advanced-fabric-kube-system
+  namespace: kube-system
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-helm-advanced-fabric-kube-system
+  namespace: kube-system
+rules:
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  resourceNames:
+  - advanced-fabric-controller
+  - advanced-fabric-dns
+  - advanced-fabric-virtual-ingress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames:
+  - advanced-fabric
+  - advanced-fabric-dns
+  - advanced-fabric-doh
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - advanced-fabric-dns
+  - advanced-fabric-runtime
+  - advanced-fabric-virtual-ingress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - advanced-fabric-dns
+  - advanced-fabric-doh
+  - advanced-fabric-node-exporter
+  - advanced-fabric-observation-api
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  resourceNames:
+  - advanced-fabric-agent
+  - advanced-fabric-pod-conformance
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - advanced-fabric-controller
+  - advanced-fabric-doh
+  - advanced-fabric-virtual-ingress
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  resourceNames:
+  - advanced-fabric-dns
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  resourceNames:
+  - advanced-fabric-dns-selfsigned
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-helm-advanced-fabric-kube-system
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-helm-advanced-fabric-kube-system
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-helm-advanced-fabric-kube-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: networking-helm-advanced-fabric-kube-system
+rules:
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingressclasses
+  resourceNames:
+  - advanced-fabric
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - networking.advfab.org
+  resources:
+  - advancedfabrics
+  resourceNames:
+  - advanced-fabric
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: networking-helm-advanced-fabric-kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: networking-helm-advanced-fabric-kube-system
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group
