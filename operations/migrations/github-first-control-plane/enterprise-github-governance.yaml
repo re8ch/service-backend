@@ -32,6 +32,7 @@ spec:
       - organization: re8ch
         repositories:
         - cloud-functions
+        - delivery-products-gitops
         - identity-gitops
         - re8ch-wechat-miniprogram
         - service-backend
