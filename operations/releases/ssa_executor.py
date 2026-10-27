@@ -26,6 +26,7 @@ from typing import Callable
 
 import yaml
 
+from main_domain_profile import profiles, replay_provenance
 from unified_bundle import canonical, digest, object_identity, validate_schema
 
 PROTECTED_KINDS = {"Namespace", "CustomResourceDefinition", "PersistentVolume", "PersistentVolumeClaim", "StorageClass",
@@ -193,7 +194,9 @@ class Executor:
         target = urllib.parse.urlparse(audience)
         if endpoint.scheme != "https" or not endpoint.hostname or not endpoint.hostname.endswith(".actions.githubusercontent.com"):
             raise Rejected("unexpected Actions OIDC endpoint")
-        if target.scheme != "https" or target.hostname != "kube-api.re8ch.com" or not target.path.startswith("/release-executor-"):
+        replay_audiences = {item.get("execution", {}).get("replay", {}).get("audience") for item in profiles().values()}
+        if (target.scheme != "https" or target.hostname != "kube-api.re8ch.com"
+                or not (target.path.startswith("/release-executor-") or audience in replay_audiences)):
             raise Rejected("unexpected executor audience")
         separator = "&" if "?" in request_url else "?"
         url = request_url + separator + urllib.parse.urlencode({"audience": audience})
@@ -251,9 +254,27 @@ class Executor:
             raise Rejected("contract digest mismatch")
         provenance = contract["spec"]["provenance"]
         github = operation["github"]
-        for key in ("repository", "workflow", "ref", "environment", "audience"):
-            if github[key] != provenance[key]:
-                raise Rejected(f"GitHub {key} is not authorized")
+        if os.environ.get("EXECUTOR_AUDIENCE") and os.environ["EXECUTOR_AUDIENCE"] != github["audience"]:
+            raise Rejected("operation audience differs from the actual OIDC execution audience")
+        github_fields = ("repository", "workflow", "ref", "environment", "audience")
+        publisher = all(github[key] == provenance[key] for key in github_fields)
+        replay = replay_provenance(contract)
+        replay_only = not publisher and replay is not None and all(github[key] == replay[key] for key in github_fields)
+        if not publisher and not replay_only:
+            mismatch = next(key for key in github_fields if github[key] != provenance[key])
+            raise Rejected(f"GitHub {mismatch} is not authorized")
+        if replay_only:
+            if operation["action"] != "reconcile" or operation.get("forceConflictObjects"):
+                raise Rejected("replay identity permits only unforced reconcile")
+            if not state or state.get("releaseId") != operation["releaseId"] or state.get("healthyDigest") != state.get("appliedDigest"):
+                raise Rejected("replay identity requires healthy accepted state")
+            expected = f"oci://ghcr.io/re8ch/service-backend-release/{operation['releaseId']}"
+            if (state["bundleReference"] != expected or operation["bundle"]["reference"] != expected
+                    or operation["bundle"]["digest"] != state["appliedDigest"]
+                    or operation["bundle"]["payloadDigest"] != state["payloadDigest"]
+                    or operation["inventoryDigest"] != state["inventoryDigest"]
+                    or state["inventoryDigest"] != contract["spec"]["inventory"]["digest"]):
+                raise Rejected("replay identity cannot change the accepted artifact or inventory")
         for key in ("signer", "issuer"):
             if operation["bundle"][key] != provenance[key]:
                 raise Rejected(f"bundle {key} is not authorized")
@@ -264,6 +285,8 @@ class Executor:
         manifest, objects = load_archive(bundle_path)
         if manifest["releaseId"] != operation["releaseId"]:
             raise Rejected("bundle is bound to another release")
+        if replay_only and manifest["contractDigest"] != contract_digest:
+            raise Rejected("replay identity cannot migrate the accepted contract; publish first")
         if (operation["action"] != "rollback" and manifest["contractDigest"] != contract_digest
                 and not accepted_contract_migration(contract_digest, manifest, operation, state)):
             raise Rejected("bundle is bound to another contract")
