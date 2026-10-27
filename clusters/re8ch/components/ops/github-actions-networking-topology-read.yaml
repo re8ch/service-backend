@@ -1,0 +1,25 @@
+# Platform-owned diagnostic authority, separate from generated adoption grants.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-restricted-topology-read
+  namespace: ops
+rules:
+- apiGroups: ['']
+  resources: [configmaps]
+  resourceNames: [restricted-topology-context]
+  verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-restricted-topology-read
+  namespace: ops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-restricted-topology-read
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
