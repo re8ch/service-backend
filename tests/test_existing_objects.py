@@ -59,14 +59,8 @@ def test_resource_version_precondition_is_bound_after_signature(tmp_path):
 
 def test_failed_signature_never_reads_existing_resource(tmp_path):
     value,op,path=fixture(tmp_path);runner=ExistingRunner('signature')
-    instance = executor.Executor(runner=runner,now=lambda:NOW)
-    if fault == 'missing':
-        with pytest.raises(executor.Rejected):
-            instance.reconcile(value,op,path,tmp_path/'state')
-    else:
-        result = instance.reconcile(value,op,path,tmp_path/'state')
-        assert result['outcome'] == 'failed' and result['observedDigest'] is None
-        assert result['application']['appliedInventory'] == []
+    with pytest.raises(executor.Rejected):
+        executor.Executor(runner=runner,now=lambda:NOW).reconcile(value,op,path,tmp_path/'state')
     assert not any(c[0][0]=='kubectl' for c in runner.calls)
 
 def test_normal_release_without_adoption_flag_keeps_existing_behavior(tmp_path):
