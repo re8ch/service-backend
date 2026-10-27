@@ -19,11 +19,17 @@ def profiles() -> dict[str, dict]:
     return authority["spec"]["domains"]
 
 
+def retired_releases() -> dict[str, dict]:
+    return yaml.safe_load(AUTHORITY.read_text())["spec"].get("retiredReleases", {})
+
+
 def validate_contract(path: Path) -> dict[str, str]:
     resolved = path.resolve()
     if CONTRACT_ROOT.resolve() not in resolved.parents or resolved.suffix not in {".yaml", ".yml"}:
         raise ValueError("contract must be a YAML file under contracts/releases/main-domain")
     contract = yaml.safe_load(resolved.read_text())
+    if contract["metadata"]["name"] in retired_releases():
+        raise ValueError("release retired from main execution; preserve historical contract and accepted state")
     spec = contract["spec"]
     domain = spec.get("authorityDomain")
     profile = profiles().get(domain)
@@ -62,6 +68,8 @@ def validate_contract(path: Path) -> dict[str, str]:
 
 
 def replay_provenance(contract: dict) -> dict[str, str] | None:
+    if contract["metadata"]["name"] in retired_releases():
+        return None
     spec = contract["spec"]
     execution = profiles().get(spec.get("authorityDomain"), {}).get("execution", {})
     replay = execution.get("replay")

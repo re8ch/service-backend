@@ -123,9 +123,6 @@ rules:
   - re8ch-catalog
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -136,9 +133,6 @@ rules:
   - ssa-state-main-commerce-billing-payments
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -147,9 +141,6 @@ rules:
   - hyperswitch-superposition-local-key
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -165,9 +156,6 @@ rules:
   - re8ch-catalog
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
@@ -190,9 +178,6 @@ rules:
   - re8ch-payment-registry-public
   verbs:
   - get
-  - patch
-  - update
-  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -665,9 +650,6 @@ rules:
   - supabase-rest
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -676,9 +658,6 @@ rules:
   - ssa-state-main-data-storage-supabase-pg-re8ch
   verbs:
   - get
-  - patch
-  - update
-  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1501,9 +1480,6 @@ rules:
   - studio-database-bootstrap-v2
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - ''
   resources:
@@ -1512,9 +1488,6 @@ rules:
   - ssa-state-main-operations-ui-supabase-pg-re8ch
   verbs:
   - get
-  - patch
-  - update
-  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

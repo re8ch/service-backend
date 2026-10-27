@@ -31,6 +31,23 @@ spec:
     - commerce-billing
     - data-storage
     - networking
+  # Retained contracts and accepted state are audit history, never another writer.
+  retiredReleases:
+    main-commerce-billing-payments:
+      destinationRepository: re8ch/identity-gitops
+      reason: identity billing authority; migrate the accepted bundle without current Git route differences
+      acceptedSourceCommit: 4830d8216742524ebeb3be8bbeb6c4cb8c8b9b28
+      acceptedDigest: sha256:045d6ab2eb1ab56d35bf5efeac53b923fad04761a3c36fb3aa9fbba7d53d93fe
+    main-data-storage-supabase-pg-re8ch:
+      destinationRepository: re8ch/identity-gitops
+      reason: identity PostgreSQL runtime authority; preserve namespace and field manager
+      acceptedSourceCommit: 6f3f7e49bbed2896be7f7b7a98f9e23f8c96d26e
+      acceptedDigest: sha256:652dcc2868039926b9baf59a92927e4e68c7ebf1c2df193332225443c0ee3b15
+    main-operations-ui-supabase-pg-re8ch:
+      destinationRepository: null
+      reason: completed one-time studio bootstrap Job; retain object and audit state outside reconciliation
+      acceptedSourceCommit: 6f3f7e49bbed2896be7f7b7a98f9e23f8c96d26e
+      acceptedDigest: sha256:20c25c9bea428a0ca0969f38a527ed48a8560600d60be5a6ecad726761225207
   domains:
     agent-runtime:
       risk: medium

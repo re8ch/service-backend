@@ -177,6 +177,7 @@ def canonical_admission_defaults(item: dict) -> None:
 
 def compile_outputs() -> dict[Path, str]:
     profiles = execution_profiles()
+    retired = yaml.load(AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)["spec"].get("retiredReleases", {})
     releases: dict[tuple[str, str], list[dict]] = defaultdict(list)
     legacy: dict[str, list[dict]] = defaultdict(list)
     seen: dict[str, str] = {}
@@ -262,6 +263,10 @@ def compile_outputs() -> dict[Path, str]:
             contract["spec"]["authorization"]["requireExisting"] = True
         files[CONTRACTS / f"{name}.yaml"] = yaml.safe_dump(contract, sort_keys=False)
         state_name = state_configmap_name(name)
+        namespaced_rules = role_rules([] if cluster else items, state_name, allow_delete=prune)
+        if name in retired:
+            for rule in namespaced_rules:
+                rule["verbs"] = ["get"]
         rbac_docs.extend([
             {"apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": state_name, "namespace": namespace,
                 "annotations": {"kustomize.toolkit.fluxcd.io/ssa": "Merge"},
@@ -270,7 +275,7 @@ def compile_outputs() -> dict[Path, str]:
             {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role",
              "metadata": {"name": name, "namespace": namespace,
                           "labels": {"delivery.re8ch.com/rbac-profile": domain}},
-             "rules": role_rules([] if cluster else items, state_name, allow_delete=prune)},
+             "rules": namespaced_rules},
             {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding",
              "metadata": {"name": name, "namespace": namespace,
                           "labels": {"delivery.re8ch.com/rbac-profile": domain}},

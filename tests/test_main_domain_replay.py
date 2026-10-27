@@ -121,3 +121,17 @@ def test_reviewed_takeover_is_publish_only_and_exactly_two_deployments(tmp_path)
             assert result.stdout.splitlines() == ['--action', 'force-reconcile', '--force-object', expected[release]]
         if success and enabled == 'false':
             assert result.stdout.splitlines() == ['--action', 'reconcile']
+
+
+def test_retired_identity_contracts_cannot_publish_or_replay():
+    import pytest
+    retired = {"main-commerce-billing-payments", "main-data-storage-supabase-pg-re8ch",
+               "main-operations-ui-supabase-pg-re8ch"}
+    assert set(profile.retired_releases()) == retired
+    assert retired.isdisjoint({entry["release-id"] for entry in profile.replay_matrix()})
+    for name in retired:
+        path = Path("contracts/releases/main-domain") / (name + ".yaml")
+        contract = yaml.safe_load((ROOT / path).read_text())
+        assert profile.replay_provenance(contract) is None
+        with pytest.raises(ValueError, match="retired from main execution"):
+            profile.validate_contract(path)
