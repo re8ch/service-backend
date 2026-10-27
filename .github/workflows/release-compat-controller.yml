@@ -7,7 +7,8 @@ permissions: {contents: read, id-token: write, packages: write}
 concurrency: {group: release-compat-controller, cancel-in-progress: false}
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    # Retired local projector/dispatcher: historical workflow is intentionally inert.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: release-ceph-compiler

@@ -17,9 +17,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_declarations_cover_first_batch_without_enabling_reuse():
     catalog = unit_catalog.load_catalog()
-    assert len(catalog["validation_units"]) == 15
+    assert len(catalog["validation_units"]) == 16
     assert set(catalog["always_tests"]) <= set(catalog["validation_units"])
-    assert sum(unit["reuse"] == "candidate" for unit in catalog["validation_units"].values()) == 14
+    assert sum(unit["reuse"] == "candidate" for unit in catalog["validation_units"].values()) == 15
     for test in catalog["validation_units"]:
         assert test in unit_catalog.inputs_for(test, catalog)
         assert "tests/conftest.py" in unit_catalog.inputs_for(test, catalog)

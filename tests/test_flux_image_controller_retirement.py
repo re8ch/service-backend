@@ -8,7 +8,7 @@ YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_unused_image_controllers_render_at_zero_replicas(kustomize_documents):
+def test_unused_image_controllers_are_not_rendered(kustomize_documents):
     objects = kustomize_documents("clusters/re8ch", kubectl=True)
     deployments = {
         item["metadata"]["name"]: item
@@ -16,7 +16,7 @@ def test_unused_image_controllers_render_at_zero_replicas(kustomize_documents):
         if item and item.get("kind") == "Deployment" and item.get("metadata", {}).get("namespace") == "flux-system"
     }
     for name in ("image-reflector-controller", "image-automation-controller"):
-        assert deployments[name]["spec"]["replicas"] == 0
+        assert name not in deployments
 
 
 def test_declared_capability_inventory_marks_image_controllers_absent():
