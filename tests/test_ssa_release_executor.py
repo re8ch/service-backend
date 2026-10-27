@@ -611,3 +611,104 @@ def test_archive_path_or_extra_member_is_rejected(tmp_path):
     path.write_bytes(gzip.compress(raw.getvalue()))
     with pytest.raises(executor.Rejected, match="unexpected archive members"):
         executor.load_archive(path)
+
+
+def prepared_cloud_replay(tmp_path):
+    value, operation, path = prepare(tmp_path)
+    value['spec']['authorityDomain'] = 'data-storage'
+    value['spec']['provenance'].update({
+        'workflow': '.github/workflows/main-domain-release.yml',
+        'environment': 'release-executor-data-storage',
+        'audience': 'https://kube-api.re8ch.com/release-executor-data-storage',
+        'signer': 'https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main',
+    })
+    archive, manifest = compile_bundle(value, rendered())
+    path.write_bytes(archive)
+    operation['contractDigest'] = digest(canonical(value))
+    operation['bundle'].update({'reference': 'oci://ghcr.io/re8ch/service-backend-release/demo',
+                               'digest': digest(archive), 'payloadDigest': digest(archive),
+                               'signer': value['spec']['provenance']['signer']})
+    operation['github'].update({k: value['spec']['provenance'][k] for k in ['repository', 'workflow', 'ref', 'environment', 'audience']})
+    root = tmp_path / 'state'
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None)
+    instance.reconcile(value, operation, path, root, verify_signature=False)
+    replay = json.loads(json.dumps(operation))
+    replay.update({'sequence': 2, 'operationId': str(uuid.uuid4()), 'previousApprovedDigest': operation['bundle']['digest']})
+    replay['github'].update(executor.replay_provenance(value))
+    runner.calls.clear()
+    return value, replay, path, root, runner, instance
+
+
+def test_replay_only_identity_reconciles_same_healthy_artifact(tmp_path):
+    value, replay, path, root, runner, instance = prepared_cloud_replay(tmp_path)
+    result = instance.reconcile(value, replay, path, root, verify_signature=False)
+    assert result['outcome'] == 'healthy'
+    assert executor.Store(root, 'demo').state()['sequence'] == 2
+    assert any(call[0][:2] == ['kubectl', 'apply'] for call in runner.calls)
+
+
+@pytest.mark.parametrize('fault', ['digest', 'reference', 'payloadDigest', 'inventoryDigest', 'contract',
+                                  'force', 'rollback', 'reset', 'suspend', 'resume', 'force-reconcile',
+                                  'unhealthy', 'blocked', 'suspended', 'missing-state',
+                                  'repository', 'workflow', 'ref', 'environment', 'audience'])
+def test_replay_only_identity_cannot_publish_or_change_authority(tmp_path, monkeypatch, fault):
+    value, replay, path, root, runner, instance = prepared_cloud_replay(tmp_path)
+    state = executor.Store(root, 'demo').state()
+    if fault in {'digest', 'payloadDigest'}:
+        replay['bundle'][fault] = 'sha256:' + 'f' * 64
+    elif fault == 'reference':
+        replay['bundle']['reference'] = 'oci://untrusted.example/demo'
+    elif fault == 'inventoryDigest':
+        replay[fault] = 'sha256:' + 'f' * 64
+    elif fault == 'contract':
+        value['spec']['lifecycle']['healthTimeoutSeconds'] += 1
+        replay['contractDigest'] = digest(canonical(value))
+        monkeypatch.setattr(executor, 'accepted_contract_migration', lambda *args: True)
+    elif fault == 'force':
+        replay['forceConflictObjects'] = ['apps/Deployment/demo/demo']
+    elif fault in {'rollback', 'reset', 'suspend', 'resume', 'force-reconcile'}:
+        replay['action'] = fault
+    elif fault in {'unhealthy', 'blocked', 'suspended'}:
+        state['healthyDigest' if fault == 'unhealthy' else fault] = 'sha256:' + 'f' * 64 if fault == 'unhealthy' else True
+        executor.Store(root, 'demo').accept(state)
+    elif fault == 'missing-state':
+        executor.Store(root, 'demo').state_path.unlink()
+        replay['sequence'] = 1
+    else:
+        replacements = {'repository': 'attacker/repo', 'workflow': '.github/workflows/other.yml',
+                        'ref': 'refs/heads/other', 'environment': 'release-reconciler-other',
+                        'audience': 'https://kube-api.re8ch.com/release-reconciler-other'}
+        replay['github'][fault] = replacements[fault]
+    with pytest.raises(executor.Rejected):
+        instance.reconcile(value, replay, path, root, verify_signature=False)
+    assert runner.calls == []
+
+
+def test_replay_credentials_cannot_claim_publisher_operation(tmp_path, monkeypatch):
+    value, replay, path, root, runner, instance = prepared_cloud_replay(tmp_path)
+    monkeypatch.setenv('EXECUTOR_AUDIENCE', replay['github']['audience'])
+    replay['github'].update({key: value['spec']['provenance'][key] for key in ['workflow', 'environment', 'audience']})
+    with pytest.raises(executor.Rejected, match='actual OIDC'):
+        instance.reconcile(value, replay, path, root, verify_signature=False)
+    assert runner.calls == []
+
+
+def test_materialized_replay_keeps_publisher_signature_and_actual_repository(tmp_path, monkeypatch):
+    import yaml
+    value, replay, path, root, runner, instance = prepared_cloud_replay(tmp_path)
+    contract_path = tmp_path / 'contract.yaml'
+    contract_path.write_text(yaml.safe_dump(value))
+    metadata_path = tmp_path / 'metadata.json'
+    metadata_path.write_text(json.dumps({'payloadDigest': replay['bundle']['payloadDigest'], 'inventoryDigest': replay['inventoryDigest']}))
+    for key, value_env in {'GITHUB_REPOSITORY': 'attacker/repository', 'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'a' * 40, 'GITHUB_RUN_ID': '123'}.items():
+        monkeypatch.setenv(key, value_env)
+    output = tmp_path / 'operation.json'
+    materialize.request(contract_path, metadata_path, root, replay['bundle']['reference'], replay['bundle']['digest'], output, replay_only=True)
+    operation = json.loads(output.read_text())
+    assert operation['github']['repository'] == 'attacker/repository'
+    assert operation['github']['environment'] == 'release-reconciler-data-storage'
+    assert operation['bundle']['signer'] == value['spec']['provenance']['signer']
+    assert operation['action'] == 'reconcile'
+    with pytest.raises(ValueError, match='only accepted reconcile'):
+        materialize.request(contract_path, metadata_path, root, replay['bundle']['reference'], replay['bundle']['digest'], output, action='rollback', replay_only=True)

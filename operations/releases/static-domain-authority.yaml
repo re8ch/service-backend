@@ -117,6 +117,10 @@ spec:
         protectedEnvironment: release-executor-data-storage
         audience: https://kube-api.re8ch.com/release-executor-data-storage
         kubernetesGroup: re8ch:release-executor:data-storage
+        replay:
+          workflow: .github/workflows/main-domain-reconcile.yml
+          environment: release-reconciler-data-storage
+          audience: https://kube-api.re8ch.com/release-reconciler-data-storage
     commerce-billing:
       risk: high
       stabilityHours: 48
@@ -135,6 +139,10 @@ spec:
         protectedEnvironment: release-executor-commerce-billing
         audience: https://kube-api.re8ch.com/release-executor-commerce-billing
         kubernetesGroup: re8ch:release-executor:commerce-billing
+        replay:
+          workflow: .github/workflows/main-domain-reconcile.yml
+          environment: release-reconciler-commerce-billing
+          audience: https://kube-api.re8ch.com/release-reconciler-commerce-billing
     delivery-products:
       risk: medium
       stabilityHours: 24
@@ -171,6 +179,10 @@ spec:
         protectedEnvironment: release-executor-operations-ui
         audience: https://kube-api.re8ch.com/release-executor-operations-ui
         kubernetesGroup: re8ch:release-executor:operations-ui
+        replay:
+          workflow: .github/workflows/main-domain-reconcile.yml
+          environment: release-reconciler-operations-ui
+          audience: https://kube-api.re8ch.com/release-reconciler-operations-ui
     tenant-runtime:
       risk: high
       stabilityHours: 48
@@ -189,3 +201,7 @@ spec:
         protectedEnvironment: release-executor-tenant-runtime
         audience: https://kube-api.re8ch.com/release-executor-tenant-runtime
         kubernetesGroup: re8ch:release-executor:tenant-runtime
+        replay:
+          workflow: .github/workflows/main-domain-reconcile.yml
+          environment: release-reconciler-tenant-runtime
+          audience: https://kube-api.re8ch.com/release-reconciler-tenant-runtime

@@ -22,6 +22,7 @@ CLOUD_JOBS = {
     ".github/workflows/tenant-go-release.yml": {"tenant-go-validate", "release", "finalize"},
     ".github/workflows/release-compat-controller.yml": {"release"},
     ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
+    ".github/workflows/main-domain-reconcile.yml": {"select", "reconcile"},
 }
 
 
