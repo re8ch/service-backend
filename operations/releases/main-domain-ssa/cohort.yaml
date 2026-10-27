@@ -12,15 +12,15 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 179
-legacyObjectCount: 57
+objectCount: 181
+legacyObjectCount: 55
 deferredSSAObjects: []
 remainingCapabilities:
   approved-secret-injection-required: 19
   bootstrap-namespace-executor-profile-required: 2
   cloud-helm-rendering-required: 3
   external-authority-cluster-bootstrap-required: 2
-  immutable-image-digest-required: 4
+  immutable-image-digest-required: 2
   platform-owned-rbac-bootstrap: 11
   replace-flux-lifecycle-reference: 9
   retained-data-no-automatic-mutation: 7
@@ -61,9 +61,6 @@ remainingObjects:
 - domain: commerce-billing
   identity: source.toolkit.fluxcd.io/HelmRepository/flux-system/hyperswitch
   reason: replace-flux-lifecycle-reference
-- domain: data-storage
-  identity: apps/Deployment/ops/cloudbeaver
-  reason: immutable-image-digest-required
 - domain: data-storage
   identity: core/Namespace/_/observable
   reason: retained-data-no-automatic-mutation
@@ -152,9 +149,6 @@ remainingObjects:
   identity: rbac.authorization.k8s.io/RoleBinding/headlamp/headlamp-active-elector
   reason: platform-owned-rbac-bootstrap
 - domain: tenant-runtime
-  identity: apps/Deployment/scheduling-system/penrose-controller
-  reason: immutable-image-digest-required
-- domain: tenant-runtime
   identity: helm.toolkit.fluxcd.io/HelmRelease/flux-system/runtime-anatomy
   reason: cloud-helm-rendering-required
 - domain: tenant-runtime
@@ -237,13 +231,13 @@ legacyShards:
 - domain: commerce-billing
   objects: 12
 - domain: data-storage
-  objects: 7
+  objects: 6
 - domain: delivery-products
   objects: 10
 - domain: operations-ui
   objects: 13
 - domain: tenant-runtime
-  objects: 15
+  objects: 14
 releases:
 - name: main-commerce-billing-cluster-bootstrap
   domain: commerce-billing
@@ -269,7 +263,7 @@ releases:
   domain: data-storage
   namespace: ops
   scope: namespaced
-  objects: 6
+  objects: 7
 - name: main-data-storage-pigsty-external
   domain: data-storage
   namespace: pigsty-external
@@ -349,4 +343,4 @@ releases:
   domain: tenant-runtime
   namespace: scheduling-system
   scope: namespaced
-  objects: 4
+  objects: 5

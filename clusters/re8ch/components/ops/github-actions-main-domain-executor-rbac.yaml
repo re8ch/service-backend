@@ -480,6 +480,17 @@ metadata:
     delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - cloudbeaver
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
   - ''
   resources:
   - configmaps
@@ -1892,6 +1903,17 @@ metadata:
   labels:
     delivery.re8ch.com/rbac-profile: tenant-runtime
 rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - penrose-controller
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
 - apiGroups:
   - ''
   resources:

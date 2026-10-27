@@ -23,6 +23,7 @@ spec:
   authorization:
     fieldManager: re8ch-release/main-data-storage-ops
     resources:
+    - apps/Deployment
     - core/ConfigMap
     - core/PersistentVolumeClaim
     - core/Service
@@ -37,7 +38,7 @@ spec:
     - cloudbeaver-workspace-rbd
     allowClusterScoped: false
   inventory:
-    digest: sha256:2e195b550d23f88e06d2973269e02088b27a5a3542251bb3c166b424e86e65f5
+    digest: sha256:8ef6226b98c201e85c22bc48f7d7d65ef367bde9ccb249134679e75723d1846c
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -48,6 +49,7 @@ spec:
     - PersistentVolumeClaim
     - StorageClass
     deletionAllowlist:
+    - apps/Deployment/ops/cloudbeaver
     - core/ConfigMap/ops/cloudbeaver-datasources
     - core/Service/ops/cloudbeaver
     - gateway.networking.k8s.io/HTTPRoute/ops/cloudbeaver-public

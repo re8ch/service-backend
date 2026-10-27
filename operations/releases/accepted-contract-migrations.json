@@ -5,12 +5,6 @@
     "fromContractDigest": "sha256:01e60c94c35f4a6685bf369bac0ecf344338503dddb7d2b1dca2c8aad518ee65",
     "toContractDigest": "sha256:1f457f6b18696aa1eeb35b07d202551b7091b0c0dad5fef6b5fe5cc3cea6b36f"
   },
-  "main-data-storage-ops": {
-    "bundleDigest": "sha256:911fd229da76f8f9073b994f496142ba5419bf7495b0a536343ce89b24cde33f",
-    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-ops",
-    "fromContractDigest": "sha256:db31f65da7c5619b714b38576d77005d305e0bd5e1123f3782f586ead94ce3ff",
-    "toContractDigest": "sha256:edb865fb649a7d27757f4b98745356f42816dada177c4d6d2f002d5598d3ba3a"
-  },
   "main-data-storage-pigsty-external": {
     "bundleDigest": "sha256:685cb5d82e638df6018b29146037b12314705f2155b76ec475b9d9307646488b",
     "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-data-storage-pigsty-external",
@@ -46,11 +40,5 @@
     "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-scheduler-system",
     "fromContractDigest": "sha256:39b50f74c6cc911b567aacf6f93037ae18a7ed912cb839652d31df5227d185d9",
     "toContractDigest": "sha256:27695a469c986953386c27ee2b7135b61977f16ad74d9e556e5eee7579a5cf26"
-  },
-  "main-tenant-runtime-scheduling-system": {
-    "bundleDigest": "sha256:ed77993314afd2f9b2f63185bc670cc865115d2fad6548535d45d20761d543f7",
-    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-scheduling-system",
-    "fromContractDigest": "sha256:f49fdfd05e83e95fa607e03650eb980391313dd7077b25ca64a872d0b33cb5c0",
-    "toContractDigest": "sha256:bade52395005f69538ebe6adb4d0321725927bf6e87f29a04bcbb9746080cba5"
   }
 }

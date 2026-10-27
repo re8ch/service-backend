@@ -23,6 +23,7 @@ spec:
   authorization:
     fieldManager: re8ch-release/main-tenant-runtime-scheduling-system
     resources:
+    - apps/Deployment
     - core/ConfigMap
     - core/ServiceAccount
     - policy/PodDisruptionBudget
@@ -32,7 +33,7 @@ spec:
     - penrose-controller-source-5f7tbkh9db
     allowClusterScoped: false
   inventory:
-    digest: sha256:348595835713716a7a4573f2e5420f13cda199652554f49137cb87932c5c8f44
+    digest: sha256:b82c92a6ca419a5b96dad4c1852fcc0b42b54a76f58000584f204232915b5ca9
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -43,6 +44,7 @@ spec:
     - PersistentVolumeClaim
     - StorageClass
     deletionAllowlist:
+    - apps/Deployment/scheduling-system/penrose-controller
     - core/ConfigMap/scheduling-system/node-reservation-profiles
     - core/ConfigMap/scheduling-system/penrose-controller-source-5f7tbkh9db
     - core/ServiceAccount/scheduling-system/penrose-controller
