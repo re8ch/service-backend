@@ -5,17 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: bora-violet
+    delivery.re8ch.com/codename: chinook-violet
+    delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-network-podcidr-fabric
   ref:
-    digest: sha256:268475391e98d4ee1fb519962dc927c9b319bee47e8427640968aae5c786b30a
-  verify:
-    provider: cosign
-    matchOIDCIdentity:
-    - issuer: ^https://token\.actions\.githubusercontent\.com$
-      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+    digest: sha256:7b58d10d36b2b26dea4faf76b0cb8aa666f5500427eeb88af3df6658b016c161
   secretRef:
     name: gitops-oci-reader
 ---
@@ -26,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: clusters/re8ch/components/network/podcidr-fabric
-    delivery.re8ch.com/codename: bora-violet
+    delivery.re8ch.com/codename: chinook-violet
 spec:
   interval: 1m
   retryInterval: 1m
