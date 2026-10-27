@@ -665,7 +665,7 @@
     "kind": "agent-memory",
     "module": "advanced-fabric",
     "ref": "catalogs/platform/modules/advanced-fabric/MEMORY.md",
-    "sha256": "6b150780234ddca3506b0c8fddd9c4649b56264cbac3b8604968f00025c1152e"
+    "sha256": "e31af691f0baf9f2063afa0654af454fa4014ebe309f730567e0e25fb28001b3"
   },
   {
     "module": "among-clusters",
@@ -685,7 +685,7 @@
     "kind": "agent-memory",
     "module": "among-clusters",
     "ref": "catalogs/platform/modules/among-clusters/MEMORY.md",
-    "sha256": "5d2865ccc7940441a2cea4e248d33e201932cca35a272aa36f774a53a2f0a088"
+    "sha256": "75ec150965440b3bc74431939b960019e826e62049b60c61b6a3b0aecc8d7b75"
   },
   {
     "module": "bifurcate",
@@ -705,7 +705,7 @@
     "kind": "agent-memory",
     "module": "bifurcate",
     "ref": "catalogs/platform/modules/bifurcate/MEMORY.md",
-    "sha256": "89f2df15d7b98f66c729613cc30fe2ebf3f118f2d2d80940091b1e0a72ed3a64"
+    "sha256": "aacfcd3991aacddbe76d7f33de69851e2dfbfd1c1a75b33bffcd2f42e80a2419"
   },
   {
     "module": "brand-assets",
@@ -725,7 +725,7 @@
     "kind": "agent-memory",
     "module": "brand-assets",
     "ref": "catalogs/platform/modules/brand-assets/MEMORY.md",
-    "sha256": "a0f552a6f115419f37a5b847cc149ae281b31609ba57ccb3e58a36fde3a48b17"
+    "sha256": "b658b98d6da3ee20efb61b7ae4c995f04b3c2d4404d7366b252ccc19db292594"
   },
   {
     "module": "catalog",
@@ -745,7 +745,7 @@
     "kind": "agent-memory",
     "module": "catalog",
     "ref": "catalogs/platform/modules/catalog/MEMORY.md",
-    "sha256": "62ffa8e38b5051239947cc13009a2fc50a64a095c5e3311ac1f2a8d111777ec5"
+    "sha256": "9fc0e1ef9e5033536e5c61fc8deea0b730d4fbe1ae58bbc7e965044d207bc170"
   },
   {
     "module": "cloud-functions",
@@ -773,7 +773,7 @@
     "kind": "agent-memory",
     "module": "cloud-functions",
     "ref": "catalogs/platform/modules/cloud-functions/MEMORY.md",
-    "sha256": "6fed956fc74e1116fa248e9281974e7fe407c2926cd8159c2d8754ad4b20ff1e"
+    "sha256": "b14e1b3c9b25359c0d4ed34daba70eb6c440ff9371cd0401bafdea5101e15b12"
   },
   {
     "module": "cluster-website",
@@ -793,7 +793,7 @@
     "kind": "agent-memory",
     "module": "cluster-website",
     "ref": "catalogs/platform/modules/cluster-website/MEMORY.md",
-    "sha256": "9dbb23702b80f6e56910d00f125730b036f5666edcf62dbacfb6272cb644c9c3"
+    "sha256": "a1da98d448268ccb2e02773936f5f5a2931cbdee4b7210533f84d3c9d8f5618c"
   },
   {
     "module": "codex-admin-plugins",
@@ -813,7 +813,7 @@
     "kind": "agent-memory",
     "module": "codex-admin-plugins",
     "ref": "catalogs/platform/modules/codex-admin-plugins/MEMORY.md",
-    "sha256": "8ebf3f0c1c3c92fafcdce5b2766966f4b15d38bca6e2b89c7d690173e93a8b2e"
+    "sha256": "66839aabc23df290cb7dbb3b59162c8fa008e0196355ea7c30095d2ac264bde1"
   },
   {
     "module": "connectool",
@@ -837,7 +837,7 @@
     "kind": "agent-memory",
     "module": "connectool",
     "ref": "catalogs/platform/modules/connectool/MEMORY.md",
-    "sha256": "38ad40ca7fb26129ad26b1e753bd12525b34b3046ea36cd6e8ff0e3e6ced7492"
+    "sha256": "79ff6b0492a813dc59bbe29e1d36704c1c4c2058d41631fbe1c9d0e9ada0b48a"
   },
   {
     "module": "headlamp-advanced-fabric",
@@ -857,7 +857,7 @@
     "kind": "agent-memory",
     "module": "headlamp-advanced-fabric",
     "ref": "catalogs/platform/modules/headlamp-advanced-fabric/MEMORY.md",
-    "sha256": "1866a663df350cca8fceb0694fbe00c1d57a7730803834f8a7a5ab31a1897b36"
+    "sha256": "c0ff7536e110c6a2ff5890ca8df84c8bbd89e47a0816fe183957ea63205665be"
   },
   {
     "module": "headlamp-birfucate",
@@ -877,7 +877,7 @@
     "kind": "agent-memory",
     "module": "headlamp-birfucate",
     "ref": "catalogs/platform/modules/headlamp-birfucate/MEMORY.md",
-    "sha256": "9bcd62eb77f0696d50323ccb85666e5c41218af33a1dd47b9707440688dfbb21"
+    "sha256": "13032f7725af04c2aae7c63b8268bc3b8f695aabc32dd81403fb2f31e2da01e3"
   },
   {
     "module": "image-website",
@@ -897,7 +897,7 @@
     "kind": "agent-memory",
     "module": "image-website",
     "ref": "catalogs/platform/modules/image-website/MEMORY.md",
-    "sha256": "65a152e7fab8292ade2fda2ace7ec12314dc0b0cadfe32c419ef57aaf2eb91be"
+    "sha256": "b6c3f7f04cb727ce3127c73c4ddc213fe54ce02aa4c81a92020f59ee23949807"
   },
   {
     "module": "mcp-registry",
@@ -917,7 +917,7 @@
     "kind": "agent-memory",
     "module": "mcp-registry",
     "ref": "catalogs/platform/modules/mcp-registry/MEMORY.md",
-    "sha256": "bb3e2041d54752b61bf948227637afc24d1040b80a696ddef8794d5e96e09f50"
+    "sha256": "9b2faf7707ddcabdb2204d76e179b39d5247466bb30afd713bcfa83af3fcc7e1"
   },
   {
     "module": "mihomos-cluster",
@@ -937,7 +937,7 @@
     "kind": "agent-memory",
     "module": "mihomos-cluster",
     "ref": "catalogs/platform/modules/mihomos-cluster/MEMORY.md",
-    "sha256": "5fe40f5191bdd19a64f18f2a59d270b3da30fd2faa6d287b27454a57c46f37b2"
+    "sha256": "368b95d834274ddc9fb44782aa5011588b066f456fefb15aab231d023a057161"
   },
   {
     "module": "observable-website",
@@ -957,7 +957,7 @@
     "kind": "agent-memory",
     "module": "observable-website",
     "ref": "catalogs/platform/modules/observable-website/MEMORY.md",
-    "sha256": "da0b8d6d252b1fc08e6b20101f45cdb2b471b2e93552c82ee77d0b89dd14cac6"
+    "sha256": "73d22874ece251033060ef609f93158c110dbd556101cb15a2e137e38c895568"
   },
   {
     "module": "product-public-data",
@@ -977,7 +977,7 @@
     "kind": "agent-memory",
     "module": "product-public-data",
     "ref": "catalogs/platform/modules/product-public-data/MEMORY.md",
-    "sha256": "1564dabaa7b8e7b98beb6cf4435cafb448627815ca00d6d7035771e2d147a918"
+    "sha256": "bd13eea296eb94fc6d4e0a108a69273f824dc6ed13b098e4433b33cb2c3e03ec"
   },
   {
     "module": "re8ch-core",
@@ -997,7 +997,7 @@
     "kind": "agent-memory",
     "module": "re8ch-core",
     "ref": "catalogs/platform/modules/re8ch-core/MEMORY.md",
-    "sha256": "9f4b690eef5efc591639fc53a8b4f6293077729650a278be287a836f0829eaa2"
+    "sha256": "f22b0f66f16f6c23a1ab2d5a5b7254a99c7bf8f87c92109b453c16550bae4ccd"
   },
   {
     "module": "registry-product-site",
@@ -1017,7 +1017,7 @@
     "kind": "agent-memory",
     "module": "registry-product-site",
     "ref": "catalogs/platform/modules/registry-product-site/MEMORY.md",
-    "sha256": "015dd21d6b35fe2aa73fc1c2eafe0201a1f68173e3c3096bedf6c7d247dc6abd"
+    "sha256": "e214df28569b29e8be9b65a836212e1b0c9cfa13f77084ce5f07ee7ba5d46746"
   },
   {
     "module": "service-backend",
@@ -1053,7 +1053,7 @@
     "kind": "agent-memory",
     "module": "service-backend",
     "ref": "catalogs/platform/modules/service-backend/MEMORY.md",
-    "sha256": "a659cb37b2c91250a6c0148bda02b28eb7e94264401824fccffd235f33fc1cdc"
+    "sha256": "0604cf7401ece33ccfe942a6aa94c83f28ed94f9e75dbdc41c36ce1a09d3cbea"
   },
   {
     "module": "tool-distribution",
@@ -1073,7 +1073,7 @@
     "kind": "agent-memory",
     "module": "tool-distribution",
     "ref": "catalogs/platform/modules/tool-distribution/MEMORY.md",
-    "sha256": "a9ab4700f78c488cc65bd56c0bc29dc4b02a6d11e8f4b46ec6af689bfca692bc"
+    "sha256": "5f2b3cba0b1e73b7cbd97a80b3d8ae523ab85c725fb28004187372ef457d9576"
   },
   {
     "module": "user-hub",
@@ -1093,7 +1093,7 @@
     "kind": "agent-memory",
     "module": "user-hub",
     "ref": "catalogs/platform/modules/user-hub/MEMORY.md",
-    "sha256": "7a5d8284cdf1fe29e7f1adc34635d5c984dc79cd7b404e616ce950606ab7582f"
+    "sha256": "309eb396b8ce8c1b98ec1e43f1389f66821029a1744867e8e9061b296312bca9"
   },
   {
     "module": "qianwen-app",
