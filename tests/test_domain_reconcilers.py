@@ -203,16 +203,13 @@ def object_identities(domain: str) -> set[tuple[str, str, str, str]]:
     }
 
 
-def test_product_runtime_objects_are_absent_from_flux_bundles():
+def test_unowned_runtime_objects_are_absent_from_domain_bundles():
     excluded = {
         "commerce-billing": {
-            ("apps/v1", "Deployment", "payments", "commerce-api"),
             ("batch/v1", "CronJob", "payments", "commerce-wechat-reconcile"),
-            ("apps/v1", "Deployment", "payments", "nuclio-payment-registry-api"),
             ("v1", "ConfigMap", "payments", "nuclio-payment-registry-api"),
         },
         "identity-access": {
-            ("apps/v1", "Deployment", "auth", "re8ch-auth-gateway"),
             ("policy/v1", "PodDisruptionBudget", "auth", "re8ch-auth-gateway"),
             ("apps/v1", "Deployment", "auth", "re8ch-user-center"),
         },

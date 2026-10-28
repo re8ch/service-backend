@@ -115,9 +115,11 @@ rules:
   resources:
   - deployments
   resourceNames:
+  - commerce-api
   - commerce-postgrest-ro
   - commerce-postgrest-rw
   - hyperswitch-web
+  - nuclio-payment-registry-api
   - payment-postgrest
   - payment-postgrest-ro
   - re8ch-catalog

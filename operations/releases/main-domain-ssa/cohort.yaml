@@ -12,11 +12,11 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 179
-legacyObjectCount: 55
+objectCount: 181
+legacyObjectCount: 56
 deferredSSAObjects: []
 remainingCapabilities:
-  approved-secret-injection-required: 19
+  approved-secret-injection-required: 20
   bootstrap-namespace-executor-profile-required: 2
   cloud-helm-rendering-required: 3
   external-authority-cluster-bootstrap-required: 2
@@ -36,6 +36,9 @@ remainingObjects:
   reason: approved-secret-injection-required
 - domain: commerce-billing
   identity: core/Secret/ledger/ledger-wechat-app-identities
+  reason: approved-secret-injection-required
+- domain: commerce-billing
+  identity: core/Secret/payments/billing-api-secrets
   reason: approved-secret-injection-required
 - domain: commerce-billing
   identity: core/Secret/payments/commerce-ruiqi-api-v3
@@ -229,7 +232,7 @@ executionProfiles:
   kubernetesGroup: re8ch:release-executor:tenant-runtime
 legacyShards:
 - domain: commerce-billing
-  objects: 12
+  objects: 13
 - domain: data-storage
   objects: 6
 - domain: delivery-products
@@ -248,7 +251,7 @@ releases:
   domain: commerce-billing
   namespace: payments
   scope: namespaced
-  objects: 30
+  objects: 32
 - name: main-data-storage-cloud-disk
   domain: data-storage
   namespace: cloud-disk

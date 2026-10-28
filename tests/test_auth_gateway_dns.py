@@ -41,7 +41,7 @@ def test_auth_gateway_rollout_isolates_degraded_local_podcidr_and_preserves_sess
 def test_session_calls_use_cluster_services_and_other_auth_calls_use_publicedge():
     deployment = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
     env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
-    assert env["IDENTITY_RO_URL"] == "https://db-ro.re8ch.com/identity/rest/v1"
+    assert env["IDENTITY_RO_URL"] == "http://supabase-identity-rest-ro.supabase-identity.svc.cluster.local:3000"
     assert env["IDENTITY_RW_URL"] == "http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000"
     assert env["MGR_RPC_RO_BASE_URL"] == "https://db-ro.re8ch.com/auth"
     assert env["MGR_RPC_RW_BASE_URL"] == "https://db-rw.re8ch.com/auth"

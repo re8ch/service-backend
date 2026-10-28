@@ -54,7 +54,7 @@ spec:
     - re8ch-payment-registry-public
     allowClusterScoped: false
   inventory:
-    digest: sha256:da989268901a962cf636ba1e59a17e1130b7a5cd734072c0179a7435ba7c545b
+    digest: sha256:4cb554aa59ea1430ad53642e30626c5e9aa7b8e6a4a79a4f29a14dd71824a73b
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -65,9 +65,11 @@ spec:
     - PersistentVolumeClaim
     - StorageClass
     deletionAllowlist:
+    - apps/Deployment/payments/commerce-api
     - apps/Deployment/payments/commerce-postgrest-ro
     - apps/Deployment/payments/commerce-postgrest-rw
     - apps/Deployment/payments/hyperswitch-web
+    - apps/Deployment/payments/nuclio-payment-registry-api
     - apps/Deployment/payments/payment-postgrest
     - apps/Deployment/payments/payment-postgrest-ro
     - apps/Deployment/payments/re8ch-catalog

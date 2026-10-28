@@ -1,5 +1,5 @@
-# Secrets billing-payment-postgrest-secrets and payment-registry-secrets
-# are provisioned out of band.
+# The payment DB credentials are provisioned out of band. billing-api-secrets
+# carries only the billing PostgREST signing key in encrypted desired state.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -157,7 +157,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: payment-registry-api
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:03bd6e17e917e6eb06211b11a9d9325b5980ebe82eec7fa4d43ac6f03f2b7153
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:1760c45071bc18e598e6abfc3ccd4d89714dd8f583125583240b7df84e221e35
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 8080}]
           envFrom:
@@ -165,9 +165,13 @@ spec:
           env:
             - {name: BILLING_CREDITS_ENABLED, value: "true"}
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
+            - {name: RE8CH_AUTH_BASE_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest-ro.payments.svc.cluster.local:3000"}
+            - {name: BILLING_POSTGREST_RW_BASE_URL, value: "http://supabase-billing-rest.supabase-billing.svc.cluster.local:3000"}
+            - {name: BILLING_POSTGREST_RO_BASE_URL, value: "http://supabase-billing-rest-ro.supabase-billing.svc.cluster.local:3000"}
+            - {name: BILLING_PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: billing-api-secrets, key: PGRST_JWT_SECRET}}}
           readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}

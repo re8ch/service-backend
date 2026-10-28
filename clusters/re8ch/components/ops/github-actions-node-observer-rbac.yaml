@@ -340,6 +340,7 @@ rules:
   resourceNames:
   - api-conformance-result-proxy
   - auth-postgrest
+  - re8ch-auth-gateway
   verbs:
   - get
 ---
