@@ -23,7 +23,7 @@ def test_payment_database_adapters_have_pinned_patch_and_oom_headroom():
         }
 
 
-def test_payment_database_domain_routes_remain_flux_owned_guardrails():
+def test_retired_payment_database_routes_are_not_declared():
     root = Path(__file__).parents[1]
     legacy = [
         item
@@ -34,10 +34,5 @@ def test_payment_database_domain_routes_remain_flux_owned_guardrails():
     ]
     routes = {item["metadata"]["name"]: item for item in legacy}
 
-    for access, hostname in (("ro", "db-ro.re8ch.com"), ("rw", "db-rw.re8ch.com")):
-        route = routes[f"re8ch-payment-registry-db-{access}"]
-        assert route["spec"]["hostnames"] == [hostname]
-        assert route["spec"]["rules"] == [{
-            "backendRefs": [{"name": "nuclio-payment-registry-api", "port": 8080}],
-            "matches": [{"path": {"type": "PathPrefix", "value": "/payment/v1"}}],
-        }]
+    assert "re8ch-payment-registry-db-ro" not in routes
+    assert "re8ch-payment-registry-db-rw" not in routes
