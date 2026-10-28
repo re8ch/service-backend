@@ -268,7 +268,14 @@ spec:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /mcp}}
       backendRefs: [{name: tenant-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /tenant-self-service/mcp}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /self-service/mcp}}
+      backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-native/mcp}}]
+      backendRefs: [{name: tenant-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-self-service/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
