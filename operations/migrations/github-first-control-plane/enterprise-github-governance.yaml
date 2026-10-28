@@ -27,6 +27,8 @@ spec:
         size: 8
         runnerNamePrefix: r640-enterprise-
       organizations:
+      - organization: compocv
+        repositories: [compocv]
       - organization: re8ch-ai
         repositories: [agent-gitops]
       - organization: re8ch
