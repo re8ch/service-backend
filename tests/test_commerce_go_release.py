@@ -4,10 +4,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_commerce_release_uses_rotated_domain_registry_identity():
+def test_commerce_release_uses_project_scoped_registry_identity():
     workflow = (ROOT / ".github/workflows/commerce-go-release.yml").read_text()
-    assert "secrets.DOMAIN_REGISTRY_USERNAME" in workflow
-    assert "secrets.DOMAIN_REGISTRY_PASSWORD" in workflow
+    assert "secrets.HYPERSWITCH_REGISTRY_USERNAME" in workflow
+    assert "secrets.HYPERSWITCH_REGISTRY_PASSWORD" in workflow
+    assert "secrets.DOMAIN_REGISTRY_USERNAME" not in workflow
     assert "secrets.HARBOR_USERNAME" not in workflow
     assert "secrets.HARBOR_PASSWORD" not in workflow
     assert "runs-on: ubuntu-24.04" in workflow
