@@ -17,7 +17,7 @@ def test_catalog_runtime_uses_signed_digest_and_existing_billing_secret():
     container = deployment["spec"]["template"]["spec"]["containers"][0]
     assert container["image"] == (
         "ghcr.io/re8ch-business/catalog@"
-        "sha256:a2a54347d04d26eaa7392eb459d19fd8b1c31806f6c70b48d1dfbefa8e3152e5"
+        "sha256:193f96aaad40bc1a3ff0032f39bde3c31586a8bf301ff92f3e9e6b40a30b64d3"
     )
     env = {item["name"]: item for item in container["env"]}
     assert env["BILLING_JWT_SECRET"]["valueFrom"]["secretKeyRef"] == {
