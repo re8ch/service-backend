@@ -1,11 +1,11 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: trailhead-copper
+codename: anchor-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:3a62d522ce4526c48792e9cb27b8115381033d6e973dc762290cd066e20b5ee5
-  signature: cosign-keyless
+  digest: sha256:ae9946bf0b7e945284d3a1d39f67fb809ca4916f72c9162497ff5e994dcfaea2
+  signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
 images: []
