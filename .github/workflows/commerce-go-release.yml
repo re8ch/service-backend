@@ -48,14 +48,11 @@ jobs:
       - name: Verify runner Buildx
         run: docker buildx version
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-      - name: Write isolated registry authorization
-        env:
-          REGISTRY_USERNAME: ${{ secrets.DOMAIN_REGISTRY_USERNAME }}
-          REGISTRY_PASSWORD: ${{ secrets.DOMAIN_REGISTRY_PASSWORD }}
-        run: |
-          umask 077
-          auth="$(printf '%s:%s' "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" | base64 | tr -d '\n')"
-          printf '{"auths":{"registry.re8ch.com":{"auth":"%s"}}}\n' "$auth" > "$DOCKER_CONFIG/config.json"
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.DOMAIN_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOMAIN_REGISTRY_PASSWORD }}
       - id: commerce
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
