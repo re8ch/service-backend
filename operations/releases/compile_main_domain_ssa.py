@@ -26,7 +26,13 @@ from operation_materialize import state_configmap_name
 ROOT = Path(__file__).resolve().parents[2]
 DOMAINS = ("data-storage", "commerce-billing", "delivery-products", "operations-ui", "tenant-runtime")
 AUTONOMOUS = {"networking", "identity-access", "agent-runtime", "observability-metering"}
-DEFERRED_SSA: set[str] = set()
+DEFERRED_SSA: set[str] = {
+    # Shared database-domain Gateway attachments remain Flux-owned platform
+    # guardrails. The retired payments publisher cannot create missing routes,
+    # and product release authority must not own shared edge/database routing.
+    "gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-ro",
+    "gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-rw",
+}
 OUTPUT = ROOT / "operations/releases/main-domain-ssa"
 CONTRACTS = ROOT / "contracts/releases/main-domain"
 LEGACY = ROOT / "clusters/re8ch/domains/main-legacy"
