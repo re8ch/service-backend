@@ -6845,6 +6845,30 @@ stringData:
 type: Opaque
 ---
 apiVersion: v1
+data:
+  PGRST_JWT_SECRET: ENC[AES256_GCM,data:jOEO8FDmlyLpImS0iStPvV9xTn0I0iceoyyk18GyCjgn7aluykDWTqIazpQNJUHRcGZKv9JDvNwT3BA4RLbf2n0QKJgvs6V4L6s8210d4jFTZCbRClk+Dg==,iv:v3n97IuroniMsJgVaJeyu/V4B5Ptdts2ndhsdYMQUxg=,tag:IZpn2N4fnLWQIWzkv1D1NQ==,type:str]
+kind: Secret
+metadata:
+  name: billing-api-secrets
+  namespace: payments
+sops:
+  age:
+  - enc: |
+      -----BEGIN AGE ENCRYPTED FILE-----
+      YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB6cjE0QnpTbVZPZmdsb1Rn
+      TTY3VzJ2Rk4xaTJFMFAyTGdhZUJBcHROdGkwCitjN0p5QXgyWlJseEZEYVd2b2JM
+      RW5EL09HeitoSWthM2REbWhwWnVQaWcKLS0tIE42VHdFUFZTQ1VSUEh0V0hZNnQr
+      VWVod01sMzJXT3VsZGUzMk5PV2FMWlEKldgCEoqvHlqbYgRNo67j6dWUAtVk0eD/
+      GbG9OmQix0HjHqkF5Kv4omsjLYpChMtWGsA45UTy86UHRVcBYxnLjw==
+      -----END AGE ENCRYPTED FILE-----
+    recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
+  encrypted_regex: ^(data|stringData)$
+  lastmodified: "2026-10-28T18:59:59Z"
+  mac: ENC[AES256_GCM,data:CRBQJaCMYxcKez9urwBMhFGoVXy26htkMOW7ZxYiroIQgCNe5w571nUUF+kGrPL1LULujOJuGX6Qcs/QgF+gkZv8HFeReBpRgvmBHsYyxSqKNez9H7BWlsd8H73SZGIL7vO7tPP8hRfag7vMPNBnNwJf3cooc/xrmH7BtUD/TaA=,iv:rzWSN7D9js+i1ONX6Nheiu8csDBcIafJBIc49tjJV/E=,tag:SlVtsZ/otTbr47KO6OPoTA==,type:str]
+  version: 3.13.3
+type: Opaque
+---
+apiVersion: v1
 kind: Secret
 metadata:
   annotations:

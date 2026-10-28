@@ -502,7 +502,7 @@ releases:
   declarationSha256: sha256:8dc83d8d38ab54345e3ded492c102eebdfa9c9ce54b7f21b948fbabb8650b6bd
   occurrences:
   - file: clusters/re8ch/domains/commerce-billing/resources.yaml
-    document: 45
+    document: 46
   - file: platform/hyperswitch/release.yaml
     document: 2
   classification:

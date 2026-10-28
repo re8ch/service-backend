@@ -1,5 +1,5 @@
-# Secrets billing-payment-postgrest-secrets and payment-registry-secrets
-# are provisioned out of band.
+# The payment DB credentials are provisioned out of band. billing-api-secrets
+# carries only the billing PostgREST signing key in encrypted desired state.
 apiVersion: v1
 kind: ConfigMap
 metadata:
