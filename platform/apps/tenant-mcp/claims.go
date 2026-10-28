@@ -32,20 +32,40 @@ func legacyDefinitions() (map[string]toolDefinition, error) {
 }
 
 func (s *server) registerClaimTools(ms *mcp.Server) {
+	s.registerClaimToolsNamed(ms, []string{"tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_create", "tenant_claim_get", "tenant_claim_list", "tenant_claim_update", "tenant_claim_renew", "tenant_claim_cancel", "tenant_usage_summary_get"})
+}
+
+func (s *server) registerClaimToolsNamed(ms *mcp.Server, names []string) {
 	definitions, err := legacyDefinitions()
 	if err != nil {
 		panic(err)
 	}
-	for _, name := range []string{"tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_create", "tenant_claim_get", "tenant_claim_list", "tenant_claim_update", "tenant_claim_renew", "tenant_claim_cancel", "tenant_usage_summary_get"} {
+	for _, name := range names {
 		definition := definitions[name]
 		if definition.Name == "" {
 			panic("missing tenant schema: " + name)
 		}
 		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations(name), Name: name, Description: definition.Description, InputSchema: definition.InputSchema},
 			func(ctx context.Context, _ *mcp.CallToolRequest, args map[string]any) (*mcp.CallToolResult, any, error) {
+				if publicSelfService(ctx) && (name == "tenant_claim_plan" || name == "tenant_claim_create" || name == "tenant_claim_update") && asString(object(object(args["claim"])["spec"]), "capability") != "compute.workload.v1" {
+					return nil, nil, errors.New("only workload claims are available on this endpoint")
+				}
 				id, err := identityFrom(ctx)
 				if err != nil {
 					return nil, nil, err
+				}
+				if publicSelfService(ctx) && (name == "tenant_claim_get" || name == "tenant_claim_update" || name == "tenant_claim_renew" || name == "tenant_claim_cancel") {
+					claimName := asString(args, "name")
+					if claimName == "" {
+						return nil, nil, errors.New("claim name is required")
+					}
+					claim, err := controlRequest(ctx, id.Tenant, "/v1/claims/"+url.PathEscape(claimName))
+					if err != nil {
+						return nil, nil, err
+					}
+					if asString(object(claim["spec"]), "capability") != "compute.workload.v1" {
+						return nil, nil, errors.New("only workload claims are available on this endpoint")
+					}
 				}
 				if name != "tenant_capabilities_list" && name != "tenant_claim_get" && name != "tenant_claim_list" && name != "tenant_usage_summary_get" {
 					if err := requireOperator(id); err != nil {
@@ -53,6 +73,16 @@ func (s *server) registerClaimTools(ms *mcp.Server) {
 					}
 				}
 				value, err := s.callClaim(ctx, id, name, args)
+				if err == nil && publicSelfService(ctx) && name == "tenant_claim_list" {
+					filtered := []any{}
+					items, _ := object(value)["items"].([]any)
+					for _, item := range items {
+						if asString(object(object(item)["spec"]), "capability") == "compute.workload.v1" {
+							filtered = append(filtered, item)
+						}
+					}
+					object(value)["items"] = filtered
+				}
 				return nil, value, err
 			})
 	}

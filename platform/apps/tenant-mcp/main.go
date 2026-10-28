@@ -22,6 +22,13 @@ import (
 var legacyToolPrefixes = []string{"re8ch_review_demo.", "re8ch_tenant.", "re8ch."}
 var mcpToolTelemetry = newToolTelemetry()
 
+type publicSelfServiceKey struct{}
+
+func publicSelfService(ctx context.Context) bool {
+	value, _ := ctx.Value(publicSelfServiceKey{}).(bool)
+	return value
+}
+
 type searchInput struct {
 	Query string `json:"query" jsonschema:"Search phrase describing the capability needed"`
 }
@@ -96,7 +103,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
 	s.registerServiceTools(ms)
-	s.registerHarborTools(ms)
+	s.registerHarborTools(ms, false)
 	s.registerGrafanaTools(ms)
 	s.registerKubernetesTools(ms)
 	s.registerSecretTools(ms)
@@ -118,6 +125,19 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	}
 	s.registerResources(ms, id)
 	s.registerDynamicSkillTools(ms)
+	return ms
+}
+
+func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
+	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant-self-service", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}}})
+	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
+	if id.Service || id.Subject == "" || id.Tenant == "" {
+		return ms
+	}
+	s.registerNamespaceTools(ms)
+	s.registerClaimToolsNamed(ms, []string{"tenant_claim_plan", "tenant_claim_create", "tenant_claim_get", "tenant_claim_list", "tenant_claim_update", "tenant_claim_renew", "tenant_claim_cancel"})
+	s.registerHarborTools(ms, true)
+	s.registerGrafanaTools(ms)
 	return ms
 }
 
@@ -244,6 +264,9 @@ func rewriteToolNames(value any, uses *[]toolAliasUse) bool {
 func (s *server) handler() http.Handler {
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
 		id, _ := req.Context().Value(identityKey{}).(identity)
+		if publicSelfService(req.Context()) {
+			return s.publicSelfServiceMCP(id)
+		}
 		return s.skillMCP(id)
 	},
 		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
@@ -270,10 +293,13 @@ func (s *server) handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		http.Redirect(w, r, "https://tools.re8ch.com/catalog", http.StatusFound)
 	})
-	metadataHandler := func(w http.ResponseWriter, _ *http.Request) {
+	metadataHandler := func(w http.ResponseWriter, r *http.Request) {
 		origin := os.Getenv("PUBLIC_MCP_URL")
 		if origin == "" {
 			origin = "https://tenant.tools.re8ch.com/mcp"
+		}
+		if strings.HasSuffix(r.URL.Path, "/tenant-self-service/mcp") {
+			origin = "https://tools.service.re8ch.com/tenant-self-service/mcp"
 		}
 		writeJSON(w, 200, map[string]any{"resource": origin, "authorization_servers": []string{supabaseIssuer}, "bearer_methods_supported": []string{"header"}, "scopes_supported": []string{"openid", "profile", "email", "offline_access"}})
 	}
@@ -310,7 +336,11 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
 	mux.HandleFunc("POST /credentials/redeem", s.redeemHTTP)
 	mux.HandleFunc("POST /credentials/adopt", s.adoptHTTP)
-	mux.HandleFunc("/mcp", func(w http.ResponseWriter, r *http.Request) {
+	mcpEndpoint := func(w http.ResponseWriter, r *http.Request) {
+		isPublic := r.URL.Path == "/self-service/mcp"
+		if isPublic {
+			r = r.WithContext(context.WithValue(r.Context(), publicSelfServiceKey{}, true))
+		}
 		if r.Method == http.MethodGet {
 			w.Header().Set("Allow", "POST")
 			writeJSON(w, 405, map[string]any{"error": "method_not_allowed", "allowed": []string{"POST"}})
@@ -321,6 +351,9 @@ func (s *server) handler() http.Handler {
 			metadata := os.Getenv("PUBLIC_RESOURCE_METADATA_URL")
 			if metadata == "" {
 				metadata = "https://tenant.tools.re8ch.com/.well-known/oauth-protected-resource/mcp"
+			}
+			if isPublic {
+				metadata = "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-self-service/mcp"
 			}
 			w.Header().Set("WWW-Authenticate", `Bearer realm="`+supabaseIssuer+`", resource_metadata="`+metadata+`"`)
 		}
@@ -358,7 +391,9 @@ func (s *server) handler() http.Handler {
 		}
 		recordToolAliasUses(r.Context())
 		mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
-	})
+	}
+	mux.HandleFunc("/mcp", mcpEndpoint)
+	mux.HandleFunc("/self-service/mcp", mcpEndpoint)
 	return mux
 }
 

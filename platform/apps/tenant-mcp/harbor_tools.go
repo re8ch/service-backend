@@ -11,12 +11,15 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func (s *server) registerHarborTools(ms *mcp.Server) {
+func (s *server) registerHarborTools(ms *mcp.Server, public bool) {
 	definitions, err := legacyDefinitions()
 	if err != nil {
 		panic(err)
 	}
 	for _, name := range []string{"tenant_human_access_issue", "runtime_image_catalog", "runtime_image_manage", "runtime_image_build"} {
+		if name == "tenant_human_access_issue" && public {
+			continue
+		}
 		definition := definitions[name]
 		if definition.Name == "" {
 			panic("missing tenant schema: " + name)
