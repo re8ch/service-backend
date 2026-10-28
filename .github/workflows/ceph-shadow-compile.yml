@@ -23,6 +23,8 @@ jobs:
     - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
       with: {version: v1.33.1}
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+      with:
+        install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ghcr.io

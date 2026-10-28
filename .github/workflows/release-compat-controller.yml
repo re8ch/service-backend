@@ -43,6 +43,8 @@ jobs:
         provenance: mode=max
         sbom: true
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+      with:
+        install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
     - name: Sign immutable image
       env: {IMAGE: 'ghcr.io/re8ch/release-compat-controller@${{ steps.build.outputs.digest }}'}
       run: |
