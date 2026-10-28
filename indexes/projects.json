@@ -167,7 +167,7 @@
     "id": "compocv",
     "ownership": "owned",
     "projectType": "product-api",
-    "repository": "https://github.com/re8ch/compocv.git",
+    "repository": "https://github.com/compocv/compocv.git",
     "source": "catalogs/compocv/modules/compocv/source"
   },
   {

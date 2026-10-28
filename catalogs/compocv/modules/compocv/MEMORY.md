@@ -4,7 +4,7 @@
 
 - Catalog: `compocv`
 - Ownership: `owned`; write policy: `github-pr`
-- Repository: `https://github.com/re8ch/compocv.git` (`main`)
+- Repository: `https://github.com/compocv/compocv.git` (`main`)
 - Catalog source: `catalogs/compocv/modules/compocv/source` (submodule)
 - Metadata policy: `in-repository`
 - Project type: `product-api`; lifecycle: `active`
