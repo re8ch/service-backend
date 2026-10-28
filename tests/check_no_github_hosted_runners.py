@@ -25,6 +25,7 @@ CLOUD_JOBS = {
     ".github/workflows/ceph-static-release.yml": {"infra", "runtime", "accept"},
     ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
     ".github/workflows/main-domain-reconcile.yml": {"select", "reconcile"},
+    ".github/workflows/commerce-go-release.yml": {"release"},
 }
 
 
