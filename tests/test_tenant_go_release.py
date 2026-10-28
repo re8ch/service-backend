@@ -6,16 +6,26 @@ import yaml
 ROOT = Path(__file__).parents[1]
 
 
-def test_tenant_publisher_and_signer_use_the_same_dedicated_registry_identity():
+def test_only_tenant_publisher_receives_dedicated_registry_identity():
     workflow = yaml.safe_load((ROOT / ".github/workflows/tenant-go-release.yml").read_text())
     release = workflow["jobs"]["release"]
     finalize = workflow["jobs"]["finalize"]
     assert release["environment"] == finalize["environment"] == "production"
 
     publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
-    login = next(s for s in finalize["steps"] if s.get("uses", "").startswith("docker/login-action@"))
-    assert publisher["env"]["HARBOR_USERNAME"] == login["with"]["username"] == "${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}"
-    assert publisher["env"]["HARBOR_PASSWORD"] == login["with"]["password"] == "${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}"
+    assert publisher["env"]["HARBOR_USERNAME"] == "${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}"
+    assert publisher["env"]["HARBOR_PASSWORD"] == "${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}"
+
+    # Finalization attests the immutable digest without pushing to Harbor, so it
+    # must not receive the registry credentials used only by the build publisher.
+    assert not any(
+        step.get("uses", "").startswith("docker/login-action@")
+        for step in finalize["steps"]
+    )
+    assert "TENANT_MCP_REGISTRY_USERNAME" not in str(finalize)
+    assert "TENANT_MCP_REGISTRY_PASSWORD" not in str(finalize)
+    attest = next(step for step in finalize["steps"] if step.get("id") == "attest")
+    assert attest["with"]["push-to-registry"] is False
 
 
 def test_tenant_go_release_allows_cold_builder_pulls_within_job_budget():
