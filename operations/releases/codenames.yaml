@@ -1276,6 +1276,8 @@ modules:
       digest: sha256:d42c4aa7cd4bbd9089456731db727438c07c087fefe533317ad4ff197cf71664
     - codename: trailhead-copper
       digest: sha256:3a62d522ce4526c48792e9cb27b8115381033d6e973dc762290cd066e20b5ee5
+    - codename: anchor-indigo
+      digest: sha256:ae9946bf0b7e945284d3a1d39f67fb809ca4916f72c9162497ff5e994dcfaea2
   platform/public-edge-manager:
     releases:
     - codename: bora
