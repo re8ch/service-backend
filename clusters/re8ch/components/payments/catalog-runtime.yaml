@@ -1,5 +1,5 @@
-# Catalog release b5cdd0fc0d254320f1272f995c5e7466a3e05454.
-# Signed and scanned image from catalog Actions run 39615824278.
+# Catalog release e5d134adcc1cae9dd89745426c0a946df0b42821.
+# Signed and scanned image from catalog Actions run 40766213963.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,7 +18,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: catalog
-          image: ghcr.io/re8ch-business/catalog@sha256:a2a54347d04d26eaa7392eb459d19fd8b1c31806f6c70b48d1dfbefa8e3152e5
+          image: ghcr.io/re8ch-business/catalog@sha256:193f96aaad40bc1a3ff0032f39bde3c31586a8bf301ff92f3e9e6b40a30b64d3
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
