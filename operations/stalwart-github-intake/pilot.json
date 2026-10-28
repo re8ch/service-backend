@@ -1,0 +1,7 @@
+{
+  "session_url": "https://collab.tools.re8ch.com/.well-known/jmap",
+  "sender": "harry@re8ch.com",
+  "recipient": "service-backend-maintain@phonaid.com",
+  "repository": "re8ch/service-backend",
+  "since": "2026-09-26T00:00:00Z"
+}
