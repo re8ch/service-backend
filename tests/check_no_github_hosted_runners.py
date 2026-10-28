@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Permit reviewed cloud delivery jobs; retain host-bound runner placement."""
+"""Permit reviewed cloud delivery jobs and Linux build workers."""
 
 from pathlib import Path
 
@@ -26,6 +26,20 @@ CLOUD_JOBS = {
     ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
     ".github/workflows/main-domain-reconcile.yml": {"select", "reconcile"},
     ".github/workflows/commerce-go-release.yml": {"release"},
+    ".github/workflows/auth-gateway-image-release.yml": {"release"},
+    ".github/workflows/auth-gateway-release.yml": {"release"},
+    ".github/workflows/conformance-result-release.yml": {"release"},
+    ".github/workflows/conformance-runner-release.yml": {"release"},
+    ".github/workflows/mirror-supabase-auth.yml": {"mirror"},
+    ".github/workflows/stagehand-service-release.yml": {"release"},
+    ".github/workflows/toolhive-cloud-ui-release.yml": {"release"},
+    ".github/workflows/user-hub-release.yml": {"publish"},
+    ".github/workflows/headlamp-runtime-release.yml": {"mirror"},
+    ".github/workflows/tenant-provider-contracts.yml": {"tenant-ci"},
+    ".github/workflows/cloud-platform-release.yml": {"release"},
+    ".github/workflows/tenant-release.yml": {"release"},
+    ".github/workflows/studio-toolkit-release.yml": {"publish"},
+    ".github/workflows/workspace-memory-audit.yml": {"audit"},
 }
 
 

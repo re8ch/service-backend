@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   tenant-ci:
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1, trusted-audit]
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4

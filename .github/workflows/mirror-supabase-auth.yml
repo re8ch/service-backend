@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   mirror:
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    runs-on: ubuntu-24.04
     environment: production
     steps:
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3

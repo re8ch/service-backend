@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   mirror:
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
     steps:
@@ -35,7 +35,7 @@ jobs:
           umask 077
           auth="$(printf '%s:%s' "$HARBOR_USERNAME" "$HARBOR_PASSWORD" | base64 | tr -d '\n')"
           jq -n --arg auth "$auth" \
-            '{auths: {"registry.re8ch.com": {auth: $auth}}, cliPluginsExtraDirs: ["/Applications/Docker.app/Contents/Resources/cli-plugins"]}' \
+            '{auths: {"registry.re8ch.com": {auth: $auth}}}' \
             > "$DOCKER_CONFIG/config.json"
           docker buildx imagetools create --tag "$TARGET_IMAGE" "$SOURCE_IMAGE"
           actual="$(docker buildx imagetools inspect "$TARGET_IMAGE" --format '{{json .Manifest}}' | jq -r .digest)"

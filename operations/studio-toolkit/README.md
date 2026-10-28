@@ -53,44 +53,28 @@ images. Acceptance must upload a storyboard through the public HTTPS API, observ
 an R640 lease, download and verify the rendered video/audio and editable outputs,
 and check tenant isolation, cancellation and offline recovery.
 
-## Hosted build and Harbor-near transfer
+## Linux build and Harbor transfer
 
-Hosted runners build and test Linux/amd64 images, preserve OCI indexes (including
-SBOM/provenance manifests), and upload checksummed private workflow artifacts.
-The Macmini publisher checks every archive checksum and uses Skopeo with
-`--all --preserve-digests`; a digest mismatch stops signing. It does not need a
-Docker daemon. Copy semantics follow the [upstream Skopeo documentation](https://github.com/podman-container-tools/skopeo/blob/main/docs/skopeo-copy.1.md).
+Linux/amd64 jobs build and test images, preserve OCI indexes with SBOM and
+provenance manifests, and upload checksummed private workflow artifacts. The
+publisher runs on Ubuntu 24.04, validates each archive checksum, and uses
+Skopeo with `--all --preserve-digests`; a digest mismatch stops signing. Copy
+semantics follow the [upstream Skopeo documentation](https://github.com/podman-container-tools/skopeo/blob/main/docs/skopeo-copy.1.md).
 
-The existing Macmini runner needs `gh`, Python 3.11+, Skopeo, SOPS and Cosign, plus
-its existing batch SSH alias `r640`. Direct GitHub TLS on this host has failed;
-the job opens its own temporary loopback SOCKS tunnel and closes it on exit.
-Harbor API, image transfer and signing traffic use that scoped R640 tunnel;
-Macmini direct Harbor TLS failed while the same URL through R640 was healthy.
-No host route, DNS setting or runner-global configuration changes. All publisher commands run in an isolated RUNNER_TEMP
-directory and temporary registry authorization is removed on exit.
-
-Because action-download setup uses the host's broken direct GitHub path, the
-publisher has no `uses:` steps. It retrieves only the helper files at its exact
-workflow commit through its scoped transport. Eight download workers dynamically
-claim bounded 8 MiB HTTPS ranges from the same-run build artifact, preferring
-direct transfer with scoped proxy fallback. Range headers, byte counts, allowed
-ZIP entries and archive checksums are checked before OCI verification. Small
-ranges prevent a slow connection from owning a large fraction of the archive
-until its request timeout. The publisher allows up to 180 minutes for constrained
-cross-region transfers. Final
-scan/signature/digest and encrypted reader evidence is uploaded to a **draft**
-private GitHub release `studio-toolkit-<source SHA>`. The `studio-oci` workflow
-artifact retains the portable source build for three days. A draft release does
-not activate a deployment. Inspect both API and worker scans before GitOps rollout.
+The publisher installs pinned Skopeo, SOPS, and Cosign during the job. It
+checks out helper scripts at the workflow commit and downloads the same-run
+build artifact. Eight download workers claim bounded 8 MiB HTTPS ranges.
+Range headers, byte counts, allowed ZIP entries and archive checksums are
+checked before OCI verification. Final scan, signature, digest and encrypted
+reader evidence is uploaded to a **draft** private GitHub release named
+`studio-toolkit-<source SHA>`. The `studio-oci` workflow artifact retains the
+portable source build for three days. A draft release does not activate a
+deployment. Inspect both API and worker scans before GitOps rollout.
 
 Publisher Skopeo is pinned to v1.24.1, built without CGO using upstream's
-`containers_image_openpgp` build tag, installed under
-`/Volumes/A1/tools/studio-publisher/bin`. The same version is built in PR CI and
-exercised with a real OCI archive containing both a Linux image and an attestation.
-The test compares the copied index digest and every blob; it cannot pass by
-dropping attestations or selecting only the host platform. Reproduce installation
-with `CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1`
-using Go 1.26.8 and a dedicated GOBIN.
+`containers_image_openpgp` build tag. The same version is built in PR CI and
+exercised with a real OCI archive containing both a Linux image and an
+attestation. The test compares the copied index digest and every blob.
 
 ## Runtime activation and acceptance
 

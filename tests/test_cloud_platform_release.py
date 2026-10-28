@@ -15,7 +15,7 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert jobs['finalize']['needs'] == 'release'
     assert jobs['finalize']['permissions']['id-token'] == 'write'
     assert jobs['validate']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
-    assert release['runs-on'] == ['self-hosted', 'macOS', 'ARM64', 'macmini-a1']
+    assert release['runs-on'] == 'ubuntu-24.04'
     assert jobs['finalize']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker build --load -f operations/cloud-platform/Dockerfile' in validation
@@ -27,7 +27,7 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert publisher['env']['TENANT_IMAGE_DOCKERFILE'] == 'operations/cloud-platform/Dockerfile'
     assert publisher['env']['TENANT_IMAGE_INLINE_AUTH'] == '1'
     assert publisher['env']['TENANT_IMAGE_SKIP_FINALIZE'] == '1'
-    assert any('docker buildx create' in step.get('run', '') for step in release['steps'])
+    assert any('docker/setup-buildx-action@' in step.get('uses', '') for step in release['steps'])
     assert any('cloud-platform-release.yml@refs/heads/main' in step.get('run', '') and 'cosign verify' in step.get('run', '') for step in jobs['finalize']['steps'])
 
 
