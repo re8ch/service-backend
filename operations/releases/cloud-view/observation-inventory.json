@@ -231,6 +231,11 @@
         "kind": "Deployment",
         "namespace": "auth",
         "name": "auth-postgrest"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "auth",
+        "name": "re8ch-auth-gateway"
       }
     ]
   },
