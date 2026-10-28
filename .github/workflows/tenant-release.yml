@@ -22,41 +22,21 @@ concurrency:
   cancel-in-progress: false
 jobs:
   release:
-    # Harbor layer uploads from hosted runners stall at the public edge; this
-    # trusted runner reaches Harbor directly while GitHub still owns the run.
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    runs-on: ubuntu-24.04
     environment: production
     outputs:
       image: ${{ steps.publish.outputs.image }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: |
-          # The runner's personal Docker config uses a locked macOS Keychain.
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
-          printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
-          # The cached builder references Docker Desktop's desktop-linux
-          # context. Copy context metadata only, never the personal auth config.
-          install -d -m 700 "$DOCKER_CONFIG/contexts"
-          cp -R "${HOME}/.docker/contexts/meta" "$DOCKER_CONFIG/contexts/meta"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          # Keep registry auth isolated while reading the runner's existing
-          # Buildx instance index and cache.
-          export BUILDX_CONFIG="${HOME}/.docker/buildx"
-          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
-          # Reuse the trusted local builder so slow upstream package and SBOM
-          # layers survive retries and subsequent releases.
-          builder_name=re8ch-direct
-          docker buildx inspect --bootstrap "$builder_name" >/dev/null
-          builder_container=buildx_buildkit_re8ch-direct0
-          docker exec "$builder_container" sh -ec 'printf "nameserver 1.1.1.1\n" > /etc/resolv.conf'
-          registry_ip="$(docker exec "$builder_container" getent hosts registry.re8ch.com | awk 'NR == 1 {print $1}')"
-          case "$registry_ip" in
-            ""|198.18.*|198.19.*) echo "Registry DNS did not resolve to a public authority" >&2; exit 1 ;;
-          esac
-          echo "Builder resolves registry.re8ch.com to $registry_ip"
-          echo "TENANT_IMAGE_BUILDER=$builder_name" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        id: buildx
+      - run: echo "TENANT_IMAGE_BUILDER=${{ steps.buildx.outputs.name }}" >> "$GITHUB_ENV"
       - id: publish
         run: |
           ./operations/mcp-conformance/release-tenant-infrastructure.sh

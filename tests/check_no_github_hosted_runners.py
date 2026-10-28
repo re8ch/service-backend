@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Permit reviewed cloud delivery jobs; retain host-bound runner placement."""
+"""Permit reviewed cloud delivery jobs and Linux build workers."""
 
 from pathlib import Path
 
@@ -36,6 +36,10 @@ CLOUD_JOBS = {
     ".github/workflows/user-hub-release.yml": {"publish"},
     ".github/workflows/headlamp-runtime-release.yml": {"mirror"},
     ".github/workflows/tenant-provider-contracts.yml": {"tenant-ci"},
+    ".github/workflows/cloud-platform-release.yml": {"release"},
+    ".github/workflows/tenant-release.yml": {"release"},
+    ".github/workflows/studio-toolkit-release.yml": {"publish"},
+    ".github/workflows/workspace-memory-audit.yml": {"audit"},
 }
 
 

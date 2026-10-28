@@ -1,9 +1,7 @@
 # Self-hosted Actions runners
 
 Portable Linux CI runs on the repository-scoped R640 runner with labels
-`self-hosted`, `Linux`, `X64`, `r640`, and `untrusted-build`. Host-bound A1
-audits remain on the Macmini runner with labels `macmini-a1` and
-`trusted-audit`.
+`self-hosted`, `Linux`, `X64`, `r640`, and `untrusted-build`. Repository memory audits run on GitHub hosted Linux.
 
 R640 runs an eight-instance repository runner pool. Every instance has its own
 registration, credentials, installation directory, `_work`, and temporary

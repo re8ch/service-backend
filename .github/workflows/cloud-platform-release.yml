@@ -68,31 +68,21 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    # Publish over the trusted runner's local Harbor path; hosted uploads stall
-    # on large layers at the public edge.
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: production
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: Prepare isolated Docker builder
+      - name: Prepare isolated Docker authorization
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-platform-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           umask 077
-          printf '{"cliPluginsExtraDirs":["/Applications/Docker.app/Contents/Resources/cli-plugins"]}\n' > "$DOCKER_CONFIG/config.json"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          printf '[dns]\nnameservers = ["1.1.1.1"]\n' > "$RUNNER_TEMP/cloud-platform-release-buildkitd.toml"
-          docker buildx create --name "cloud-platform-release-${GITHUB_RUN_ID}" --driver docker-container \
-            --buildkitd-config "$RUNNER_TEMP/cloud-platform-release-buildkitd.toml" --use
-          docker buildx inspect --bootstrap "cloud-platform-release-${GITHUB_RUN_ID}" >/dev/null
-          builder_container="buildx_buildkit_cloud-platform-release-${GITHUB_RUN_ID}0"
-          docker exec "$builder_container" sh -ec 'printf "nameserver 1.1.1.1\n" > /etc/resolv.conf'
-          registry_ip="$(docker exec "$builder_container" getent hosts registry.re8ch.com | awk 'NR == 1 {print $1}')"
-          case "$registry_ip" in
-            ""|198.18.*|198.19.*) echo "Registry DNS did not resolve to a public authority" >&2; exit 1 ;;
-          esac
-          echo "TENANT_IMAGE_BUILDER=cloud-platform-release-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        id: buildx
+      - run: echo "TENANT_IMAGE_BUILDER=${{ steps.buildx.outputs.name }}" >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
           HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
@@ -110,10 +100,9 @@ jobs:
           name: cloud-platform-release-${{ github.sha }}
           path: cloud-platform.image
           if-no-files-found: error
-      - name: Remove temporary Docker authorization and builder
+      - name: Remove temporary Docker authorization
         if: always()
         run: |
-          docker buildx rm "cloud-platform-release-${GITHUB_RUN_ID}" || true
           if [ -n "${DOCKER_CONFIG:-}" ]; then
             rm -f "$DOCKER_CONFIG/config.json"
             rmdir "$DOCKER_CONFIG" || true

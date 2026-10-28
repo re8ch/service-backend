@@ -1,6 +1,4 @@
 self-hosted-runner:
   labels:
-    - macmini-a1
     - r640
-    - trusted-audit
     - untrusted-build
