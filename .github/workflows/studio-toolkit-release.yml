@@ -99,6 +99,8 @@ jobs:
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with: {go-version: '1.26.8'}
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+        with:
+          install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
       - name: Install pinned transfer tools
         run: |
           GOBIN="$RUNNER_TEMP/studio-tools" CGO_ENABLED=0 go install -tags containers_image_openpgp go.podman.io/skopeo/cmd/skopeo@v1.24.1

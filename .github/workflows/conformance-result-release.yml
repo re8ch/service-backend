@@ -49,6 +49,8 @@ jobs:
             ghcr.io/aquasecurity/trivy@sha256:ee940acbf1f58ebadb42d01434ce4609530bf1b52536afbd1eee66cd7123c5c9 \
             image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 "$IMAGE"
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+        with:
+          install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
       - name: Sign and verify immutable digest
         env:
           IMAGE: registry.re8ch.com/auth/api-conformance-result-proxy@${{ steps.build.outputs.digest }}

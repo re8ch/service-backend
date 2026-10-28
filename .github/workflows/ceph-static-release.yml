@@ -27,6 +27,8 @@ jobs:
     - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
       with: {version: '2.9.5'}
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+      with:
+        install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ghcr.io
@@ -133,6 +135,8 @@ jobs:
     - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
       with: {version: '2.9.5'}
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+      with:
+        install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ghcr.io
@@ -223,6 +227,8 @@ jobs:
     - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
       with: {version: '2.9.5'}
     - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+      with:
+        install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
     - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
       with:
         registry: ghcr.io
