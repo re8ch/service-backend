@@ -26,6 +26,16 @@ CLOUD_JOBS = {
     ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
     ".github/workflows/main-domain-reconcile.yml": {"select", "reconcile"},
     ".github/workflows/commerce-go-release.yml": {"release"},
+    ".github/workflows/auth-gateway-image-release.yml": {"release"},
+    ".github/workflows/auth-gateway-release.yml": {"release"},
+    ".github/workflows/conformance-result-release.yml": {"release"},
+    ".github/workflows/conformance-runner-release.yml": {"release"},
+    ".github/workflows/mirror-supabase-auth.yml": {"mirror"},
+    ".github/workflows/stagehand-service-release.yml": {"release"},
+    ".github/workflows/toolhive-cloud-ui-release.yml": {"release"},
+    ".github/workflows/user-hub-release.yml": {"publish"},
+    ".github/workflows/headlamp-runtime-release.yml": {"mirror"},
+    ".github/workflows/tenant-provider-contracts.yml": {"tenant-ci"},
 }
 
 
