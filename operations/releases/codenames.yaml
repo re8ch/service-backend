@@ -529,6 +529,8 @@ modules:
       digest: sha256:a09e69c3ba4f68a80f174f765d93d5ad266454ed403ae08c303fd5ddeab830ef
     - codename: grove-violet
       digest: sha256:ad7adb587a6028ff61d7af401e88c86fcd13ffa1e9216e4b4b96e680a716065c
+    - codename: reef-violet
+      digest: sha256:108b0cf2f659e968f58dadf83639ff592cccd976dcb6ef04ee4fadb265b621f1
   platform/cloud-platform:
     releases:
     - codename: atoll
