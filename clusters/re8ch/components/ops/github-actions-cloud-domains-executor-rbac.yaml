@@ -1134,6 +1134,7 @@ rules:
   - deployments
   resourceNames:
   - auth-postgrest
+  - re8ch-auth-gateway
   verbs:
   - get
   - patch

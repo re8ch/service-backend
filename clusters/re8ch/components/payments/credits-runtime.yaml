@@ -165,9 +165,13 @@ spec:
           env:
             - {name: BILLING_CREDITS_ENABLED, value: "true"}
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
+            - {name: RE8CH_AUTH_BASE_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest-ro.payments.svc.cluster.local:3000"}
+            - {name: BILLING_POSTGREST_RW_BASE_URL, value: "http://supabase-billing-rest.supabase-billing.svc.cluster.local:3000"}
+            - {name: BILLING_POSTGREST_RO_BASE_URL, value: "http://supabase-billing-rest-ro.supabase-billing.svc.cluster.local:3000"}
+            - {name: BILLING_PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: billing-api-secrets, key: PGRST_JWT_SECRET}}}
           readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}

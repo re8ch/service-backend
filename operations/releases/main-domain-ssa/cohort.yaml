@@ -12,7 +12,7 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 179
+objectCount: 181
 legacyObjectCount: 55
 deferredSSAObjects: []
 remainingCapabilities:
@@ -248,7 +248,7 @@ releases:
   domain: commerce-billing
   namespace: payments
   scope: namespaced
-  objects: 30
+  objects: 32
 - name: main-data-storage-cloud-disk
   domain: data-storage
   namespace: cloud-disk

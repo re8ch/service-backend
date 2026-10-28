@@ -23,12 +23,6 @@ resources:
 - ../../../../../platform/secretary-system
 - ../../../../../platform/stalwart
 patches:
-  - target: {group: apps, version: v1, kind: Deployment, name: re8ch-auth-gateway, namespace: auth}
-    patch: |-
-      apiVersion: apps/v1
-      kind: Deployment
-      metadata: {name: re8ch-auth-gateway, namespace: auth}
-      $patch: delete
   - target: {group: policy, version: v1, kind: PodDisruptionBudget, name: re8ch-auth-gateway, namespace: auth}
     patch: |-
       apiVersion: policy/v1

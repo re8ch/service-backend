@@ -7156,6 +7156,117 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: commerce-api
+  namespace: payments
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commerce-api
+  template:
+    metadata:
+      labels:
+        app: commerce-api
+    spec:
+      containers:
+      - env:
+        - name: WX_PAY_MCH_ID
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_MCH_ID
+              name: commerce-ruiqi-merchant-certificate
+        - name: WX_PAY_SERIAL_NO
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_SERIAL_NO
+              name: commerce-ruiqi-merchant-certificate
+        - name: WX_PAY_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_PRIVATE_KEY
+              name: commerce-ruiqi-merchant-certificate
+        - name: WX_PAY_API_V3_KEY
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_API_V3_KEY
+              name: commerce-ruiqi-api-v3
+        - name: WX_PAY_PLATFORM_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_PLATFORM_PUBLIC_KEY
+              name: commerce-ruiqi-platform-certificate
+        - name: WX_PAY_PLATFORM_SERIAL_NO
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_PLATFORM_SERIAL_NO
+              name: commerce-ruiqi-platform-certificate
+        - name: WX_PAY_APP_ID
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_APP_ID
+              name: commerce-wechat-app-identities
+        - name: WECHAT_MINI_APP_ID
+          valueFrom:
+            secretKeyRef:
+              key: WECHAT_MINI_APP_ID
+              name: commerce-wechat-app-identities
+        - name: RE8CH_AUTH_BASE_URL
+          value: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth
+        - name: COMMERCE_RW_URL
+          value: http://commerce-postgrest-rw.payments.svc.cluster.local:3000
+        - name: COMMERCE_RO_URL
+          value: http://commerce-postgrest-ro.payments.svc.cluster.local:3000
+        - name: WX_PAY_NOTIFY_URL
+          value: https://api.re8ch.com/commerce/v1/webhooks/wechat
+        - name: COMMERCE_CHECKOUT_ENABLED
+          value: "true"
+        - name: COMMERCE_MINI_CHECKOUT_ENABLED
+          value: "false"
+        envFrom:
+        - secretRef:
+            name: commerce-api-secrets
+        image: registry.re8ch.com/hyperswitch/processor-commerce-api@sha256:cc16ca8150d4140e988dbdfdfc8653f15472be1ff15ee3aefe59b243c52d0e4c
+        livenessProbe:
+          httpGet:
+            path: /v1/healthz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: commerce-api
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /v1/readyz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      imagePullSecrets:
+      - name: harbor-hyperswitch-admin
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: commerce-postgrest-ro
   namespace: payments
 spec:
@@ -7336,6 +7447,91 @@ spec:
         name: cache
       - emptyDir: {}
         name: run
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nuclio-payment-registry-api
+  namespace: payments
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-registry-api
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: payment-registry-api
+    spec:
+      containers:
+      - env:
+        - name: BILLING_CREDITS_ENABLED
+          value: "true"
+        - name: CREDITS_DISPATCH_ENABLED
+          value: "false"
+        - name: RE8CH_AUTH_BASE_URL
+          value: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth
+        - name: HYPERSWITCH_PROFILE_ID
+          value: pro_DrrIuD3GsS8AlvOkJCvo
+        - name: PAYMENT_POSTGREST_RW_BASE_URL
+          value: http://payment-postgrest.payments.svc.cluster.local:3000
+        - name: PAYMENT_POSTGREST_RO_BASE_URL
+          value: http://payment-postgrest-ro.payments.svc.cluster.local:3000
+        - name: BILLING_POSTGREST_RW_BASE_URL
+          value: http://supabase-billing-rest.supabase-billing.svc.cluster.local:3000
+        - name: BILLING_POSTGREST_RO_BASE_URL
+          value: http://supabase-billing-rest-ro.supabase-billing.svc.cluster.local:3000
+        - name: BILLING_PGRST_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: PGRST_JWT_SECRET
+              name: billing-api-secrets
+        envFrom:
+        - secretRef:
+            name: payment-registry-secrets
+        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:03bd6e17e917e6eb06211b11a9d9325b5980ebe82eec7fa4d43ac6f03f2b7153
+        livenessProbe:
+          httpGet:
+            path: /v1/healthz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        name: payment-registry-api
+        ports:
+        - containerPort: 8080
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /v1/readyz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      imagePullSecrets:
+      - name: harbor-hyperswitch-admin
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
