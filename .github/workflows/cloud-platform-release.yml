@@ -85,8 +85,8 @@ jobs:
       - run: echo "TENANT_IMAGE_BUILDER=${{ steps.buildx.outputs.name }}" >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/functions-shared/re8ch-cloud-platform
           TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
@@ -135,8 +135,8 @@ jobs:
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "$image" >/dev/null
         env:
-          HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.HARBOR_PASSWORD }}
+          HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cloud-platform-finalized-${{ github.sha }}
