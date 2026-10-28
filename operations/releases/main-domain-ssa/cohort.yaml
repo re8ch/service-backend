@@ -13,15 +13,12 @@ sourceDomains:
 - tenant-runtime
 releaseCount: 21
 objectCount: 179
-legacyObjectCount: 57
-deferredSSAObjects:
-- gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-ro
-- gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-rw
+legacyObjectCount: 55
+deferredSSAObjects: []
 remainingCapabilities:
   approved-secret-injection-required: 19
   bootstrap-namespace-executor-profile-required: 2
   cloud-helm-rendering-required: 3
-  explicitly-deferred: 2
   external-authority-cluster-bootstrap-required: 2
   immutable-image-digest-required: 2
   platform-owned-rbac-bootstrap: 11
@@ -58,12 +55,6 @@ remainingObjects:
 - domain: commerce-billing
   identity: core/Secret/payments/hyperswitch-bootstrap-admin
   reason: approved-secret-injection-required
-- domain: commerce-billing
-  identity: gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-ro
-  reason: explicitly-deferred
-- domain: commerce-billing
-  identity: gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-rw
-  reason: explicitly-deferred
 - domain: commerce-billing
   identity: helm.toolkit.fluxcd.io/HelmRelease/flux-system/hyperswitch
   reason: cloud-helm-rendering-required
@@ -238,7 +229,7 @@ executionProfiles:
   kubernetesGroup: re8ch:release-executor:tenant-runtime
 legacyShards:
 - domain: commerce-billing
-  objects: 14
+  objects: 12
 - domain: data-storage
   objects: 6
 - domain: delivery-products
