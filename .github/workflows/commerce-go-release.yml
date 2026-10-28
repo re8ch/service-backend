@@ -14,7 +14,7 @@ concurrency: {group: commerce-go-release, cancel-in-progress: false}
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, macOS, ARM64, macmini-a1]
+    runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 45
     steps:
@@ -42,12 +42,9 @@ jobs:
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/commerce-go-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
-          install -d -m 700 "$DOCKER_CONFIG/cli-plugins"
-          ln -s "${HOME}/.docker/cli-plugins/docker-buildx" "$DOCKER_CONFIG/cli-plugins/docker-buildx"
           umask 077
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
-          echo "BUILDX_CONFIG=${HOME}/.docker/buildx" >> "$GITHUB_ENV"
       - name: Verify runner Buildx
         run: docker buildx version
       - name: Write isolated registry authorization
@@ -100,6 +97,4 @@ jobs:
         if: always()
         run: |
           rm -f "$DOCKER_CONFIG/config.json"
-          rm -f "$DOCKER_CONFIG/cli-plugins/docker-buildx"
-          rmdir "$DOCKER_CONFIG/cli-plugins" || true
           rmdir "$DOCKER_CONFIG" || true
