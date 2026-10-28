@@ -127,7 +127,7 @@ modules:
     commit: bc4c867a44047b0fd0e016d47d2798b6570b6b7b
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/compocv.git
+    repository: https://github.com/compocv/compocv.git
   connectool:
     commit: 3be8546eeee8fe2c66bafb2f47f5b55f5da8fda2
     defaultBranch: main

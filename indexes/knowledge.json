@@ -377,7 +377,7 @@
     "kind": "agent-memory",
     "module": "compocv",
     "ref": "catalogs/compocv/modules/compocv/MEMORY.md",
-    "sha256": "a1fbaae7bde09784454036908d1a33e533f4f2a430c3092ed166ce6a34bfc58d"
+    "sha256": "ccb1148e10fdd59d0af873051f482720f29a4bf398c1a78d01413654354468fc"
   },
   {
     "module": "farseer",
