@@ -51,12 +51,10 @@ spec:
     - re8ch-catalog-db-ro
     - re8ch-catalog-db-rw
     - re8ch-payment-registry-auth-center
-    - re8ch-payment-registry-db-ro
-    - re8ch-payment-registry-db-rw
     - re8ch-payment-registry-public
     allowClusterScoped: false
   inventory:
-    digest: sha256:21c22ac3e386b7119e18b8eb6bbee5c38c0adaa42479db126896451a1423d090
+    digest: sha256:da989268901a962cf636ba1e59a17e1130b7a5cd734072c0179a7435ba7c545b
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -95,6 +93,4 @@ spec:
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-catalog-db-ro
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-catalog-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-auth-center
-    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-ro
-    - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-payment-registry-public
