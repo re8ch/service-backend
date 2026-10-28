@@ -7750,7 +7750,7 @@ spec:
             secretKeyRef:
               key: PGRST_JWT_SECRET
               name: billing-payment-postgrest-secrets
-        image: ghcr.io/re8ch-business/catalog@sha256:a2a54347d04d26eaa7392eb459d19fd8b1c31806f6c70b48d1dfbefa8e3152e5
+        image: ghcr.io/re8ch-business/catalog@sha256:193f96aaad40bc1a3ff0032f39bde3c31586a8bf301ff92f3e9e6b40a30b64d3
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
