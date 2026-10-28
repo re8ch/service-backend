@@ -157,7 +157,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: payment-registry-api
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:1760c45071bc18e598e6abfc3ccd4d89714dd8f583125583240b7df84e221e35
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:e010662e7f65c2daa8812df4147dc339ffb7035c616514673a4de2fb4cfcf52f
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 8080}]
           envFrom:
@@ -172,6 +172,13 @@ spec:
             - {name: BILLING_POSTGREST_RW_BASE_URL, value: "http://supabase-billing-rest.supabase-billing.svc.cluster.local:3000"}
             - {name: BILLING_POSTGREST_RO_BASE_URL, value: "http://supabase-billing-rest-ro.supabase-billing.svc.cluster.local:3000"}
             - {name: BILLING_PGRST_JWT_SECRET, valueFrom: {secretKeyRef: {name: billing-api-secrets, key: PGRST_JWT_SECRET}}}
+            - {name: WX_PAY_MCH_ID, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_MCH_ID}}}
+            - {name: WX_PAY_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_SERIAL_NO}}}
+            - {name: WX_PAY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-merchant-certificate, key: WX_PAY_PRIVATE_KEY}}}
+            - {name: WX_PAY_API_V3_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-api-v3, key: WX_PAY_API_V3_KEY}}}
+            - {name: WX_PAY_PLATFORM_PUBLIC_KEY, valueFrom: {secretKeyRef: {name: commerce-ruiqi-platform-certificate, key: WX_PAY_PLATFORM_PUBLIC_KEY}}}
+            - {name: WX_PAY_PLATFORM_SERIAL_NO, valueFrom: {secretKeyRef: {name: commerce-ruiqi-platform-certificate, key: WX_PAY_PLATFORM_SERIAL_NO}}}
+            - {name: WX_PAY_APP_ID, valueFrom: {secretKeyRef: {name: commerce-wechat-app-identities, key: WX_PAY_APP_ID}}}
           readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
           livenessProbe: {httpGet: {path: /v1/healthz, port: http}, initialDelaySeconds: 10, periodSeconds: 30}
           resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}

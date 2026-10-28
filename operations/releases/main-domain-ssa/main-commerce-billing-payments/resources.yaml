@@ -338,10 +338,45 @@ spec:
             secretKeyRef:
               key: PGRST_JWT_SECRET
               name: billing-api-secrets
+        - name: WX_PAY_MCH_ID
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_MCH_ID
+              name: commerce-ruiqi-merchant-certificate
+        - name: WX_PAY_SERIAL_NO
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_SERIAL_NO
+              name: commerce-ruiqi-merchant-certificate
+        - name: WX_PAY_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_PRIVATE_KEY
+              name: commerce-ruiqi-merchant-certificate
+        - name: WX_PAY_API_V3_KEY
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_API_V3_KEY
+              name: commerce-ruiqi-api-v3
+        - name: WX_PAY_PLATFORM_PUBLIC_KEY
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_PLATFORM_PUBLIC_KEY
+              name: commerce-ruiqi-platform-certificate
+        - name: WX_PAY_PLATFORM_SERIAL_NO
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_PLATFORM_SERIAL_NO
+              name: commerce-ruiqi-platform-certificate
+        - name: WX_PAY_APP_ID
+          valueFrom:
+            secretKeyRef:
+              key: WX_PAY_APP_ID
+              name: commerce-wechat-app-identities
         envFrom:
         - secretRef:
             name: payment-registry-secrets
-        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:1760c45071bc18e598e6abfc3ccd4d89714dd8f583125583240b7df84e221e35
+        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:e010662e7f65c2daa8812df4147dc339ffb7035c616514673a4de2fb4cfcf52f
         livenessProbe:
           httpGet:
             path: /v1/healthz
