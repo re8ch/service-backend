@@ -44,6 +44,10 @@ CLOUD_JOBS = {
 
 
 def reviewed_cloud_job(path: Path, job_name: str, job: dict) -> bool:
+    if (path == Path('.github/workflows/cloud-platform-release.yml')
+            and job_name == 'release'
+            and job.get('runs-on') == "${{ inputs.publisher == 'r640' && fromJSON('[\"self-hosted\",\"Linux\",\"X64\",\"r640\",\"untrusted-build\"]') || 'ubuntu-24.04' }}"):
+        return True
     return (job_name in CLOUD_JOBS.get(path.as_posix(), set())
             and job.get("runs-on") == "ubuntu-24.04")
 
