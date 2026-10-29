@@ -5,7 +5,7 @@ spec:
   interval: 1m
   provider: generic
   url: oci://ghcr.io/public-edge/charts/public-edge-manager
-  ref: {digest: sha256:d9105b985f675ac6d7d78f3cb8ea1c2e5397572d4bf2d89929f08dd502a40d64}
+  ref: {digest: sha256:9056ea7a997c540c3d0965a723c9e5b06e7294fcd73639cc5dc6e11bb676f13a}
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -51,9 +51,9 @@ spec:
   values:
     image:
       repository: ghcr.io/public-edge/public-edge-manager
-      tag: "0.8.2"
+      tag: "0.8.5"
       # Public upstream image is reachable by overseas DNS nodes during cluster DNS failures.
-      digest: sha256:beb7c2a21da18497cddc8229c8f73434e21983d588f14f2c3313568a2324df71
+      digest: sha256:f852bd8afecad98c0d0bb98fc2056a74fa92d2f1697fb07db3c63e6a2bf0b5fd
       pullPolicy: IfNotPresent
     enabled: true
     api: {group: networking.re8ch.com}
@@ -292,7 +292,7 @@ spec:
       responseTimeoutSeconds: 12
       intervalSeconds: 15
       maxWorkers: 8
-      userAgent: public-edge-manager/0.8.2
+      userAgent: public-edge-manager/0.8.5
     globalping:
       enabled: true
       apiUrl: https://api.globalping.io
