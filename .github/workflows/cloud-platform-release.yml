@@ -95,7 +95,9 @@ jobs:
       - if: inputs.publisher == 'r640'
         name: Reuse the existing host-proxy builder
         run: |
+          export BUILDX_CONFIG="$HOME/.docker/buildx"
           docker buildx inspect r640-mihomos >/dev/null
+          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
           echo 'TENANT_IMAGE_BUILDER=r640-mihomos' >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
