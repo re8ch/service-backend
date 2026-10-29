@@ -1,5 +1,21 @@
 # Webmail session encryption
 
+## Webmail sign-in
+
+Webmail offers both enterprise SSO and direct JMAP password sign-in. The direct
+form accepts a per-account Stalwart application password, including for accounts
+whose primary identity is managed by the external OIDC directory. Use the full
+mailbox address as the username. Create or revoke application passwords in the
+Stalwart account security UI or through an approved, bounded administrative tool;
+do not put generated values in Git, logs, or agent command arguments. This does
+not create a local primary password for an OIDC-managed account. The primary
+password remains with the external identity provider.
+
+The existing `stalwart-cli` image is used by cluster-internal jobs through the
+Stalwart management API. Agent access must remain on that authenticated platform
+path with narrow permissions and reviewed writes; do not copy the recovery
+administrator credential onto an agent workstation.
+
 Bulwark needs `SESSION_SECRET` to encrypt the server-side Stalwart authentication
 context used by account security operations. Without it, SSO can load mail while
 `POST /api/auth/stalwart-context` returns 500 (`SESSION_SECRET not configured`)

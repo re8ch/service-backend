@@ -7261,7 +7261,7 @@ spec:
         - name: OAUTH_ENABLED
           value: "true"
         - name: OAUTH_ONLY
-          value: "true"
+          value: "false"
         - name: OAUTH_CLIENT_ID
           value: stalwart-webui
         - name: OAUTH_ISSUER_URL
