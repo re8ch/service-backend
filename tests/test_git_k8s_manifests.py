@@ -873,7 +873,12 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     )
     pod = deployment["spec"]["template"]["spec"]
     container = pod["containers"][0]
-    env = {entry["name"]: entry["value"] for entry in container["env"]}
+    env = {entry["name"]: entry["value"] for entry in container["env"] if "value" in entry}
+    session_secret = next(entry for entry in container["env"] if entry["name"] == "SESSION_SECRET")
+    assert "value" not in session_secret
+    assert session_secret["valueFrom"]["secretKeyRef"] == {
+        "name": "stalwart-webmail-session", "key": "session-secret"
+    }
     assert "@sha256:" in container["image"]
     assert pod["automountServiceAccountToken"] is False
     assert pod["securityContext"]["runAsNonRoot"] is True
