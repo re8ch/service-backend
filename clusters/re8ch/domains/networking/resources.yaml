@@ -23477,6 +23477,7 @@ spec:
         class: api
         probeHost: kube-api.re8ch.com
         probePath: /readyz
+        probeTrust: kubernetes-ca
         service: kube-api
       ledger-decisions.service.re8ch.com.:
         acceptedStatuses:

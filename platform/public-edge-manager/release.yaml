@@ -240,7 +240,7 @@ spec:
       registry.re8ch.com.: {service: registry, class: registry, probePath: /v2/}
       # Publish the delegated DNS target only when the original client TLS name
       # answers through a healthy PublicEdge HTTPS listener.
-      kube-api.service.re8ch.com.: {service: kube-api, class: api, probeHost: kube-api.re8ch.com, probePath: /readyz, acceptedStatuses: [200]}
+      kube-api.service.re8ch.com.: {service: kube-api, class: api, probeHost: kube-api.re8ch.com, probeTrust: kubernetes-ca, probePath: /readyz, acceptedStatuses: [200]}
       headlamp.service.re8ch.com.: {service: headlamp-service, class: service-pilot, probePath: /}
       aesthete.service.re8ch.com.: {service: aesthete-native-api, class: service-pilot, probePath: /api/auth/challenge, acceptedStatuses: [200]}
       grafana.service.re8ch.com.: {service: grafana-service, class: service-pilot, probePath: /grafana/api/health}
