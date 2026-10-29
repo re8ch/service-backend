@@ -1535,6 +1535,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: sirocco-garnet
       digest: sha256:29b5158624ee711106fd8437bb376048f3d3f00d7f31307e4315dcdf12bef328
+    - codename: tramontane-garnet
+      digest: sha256:a6c76aedfee5e0c15c0e0107d5a76ed819e5f2351641691a383625f05ff53a48
   platform/adapter:
     releases:
     - codename: anchor

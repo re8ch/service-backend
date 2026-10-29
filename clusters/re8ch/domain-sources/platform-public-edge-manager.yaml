@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-garnet
+    delivery.re8ch.com/codename: tramontane-garnet
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
   ref:
-    digest: sha256:29b5158624ee711106fd8437bb376048f3d3f00d7f31307e4315dcdf12bef328
+    digest: sha256:a6c76aedfee5e0c15c0e0107d5a76ed819e5f2351641691a383625f05ff53a48
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/public-edge-manager
-    delivery.re8ch.com/codename: sirocco-garnet
+    delivery.re8ch.com/codename: tramontane-garnet
 spec:
   interval: 1m
   retryInterval: 1m
