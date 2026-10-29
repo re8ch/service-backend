@@ -21,7 +21,9 @@ def test_workflow_uses_native_attestation_without_runtime_cosign():
     assert "secrets.HARBOR_USERNAME" not in workflow
     assert "secrets.HARBOR_PASSWORD" not in workflow
     assert "docker/login-action" not in workflow
-    assert workflow.count("docker login registry.re8ch.com") == 2
+    assert workflow.count("docker login registry.re8ch.com") == 1
+    assert "push-to-registry: false" in workflow
+    assert "name: domain-attestation-${{ matrix.subject.slug }}" in workflow
 
 
 def release():
