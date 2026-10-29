@@ -1,0 +1,32 @@
+name: CompoCV mail feedback
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: compocv-mail-feedback
+  cancel-in-progress: false
+jobs:
+  intake:
+    if: github.ref == 'refs/heads/main' && vars.COMPOCV_MAIL_FEEDBACK_ENABLED == 'true'
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    environment: compocv-mail-feedback
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          owner: compocv
+          repositories: compocv
+          permission-issues: write
+          permission-organization-projects: write
+      - name: Reconcile private triage Issues and Project items
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          STALWART_APP_PASSWORD: ${{ secrets.COMPOCV_STALWART_FEEDBACK_APP_PASSWORD }}
+        run: python3 operations/stalwart-github-intake/compocv.py
