@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: tramontane-garnet
+codename: zephyr-garnet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:a6c76aedfee5e0c15c0e0107d5a76ed819e5f2351641691a383625f05ff53a48
+  digest: sha256:537952bc04e58d1cd852312cb97ca8f91d5dc5cdb4ee00cb1e309cd0cff1b565
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
