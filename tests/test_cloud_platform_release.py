@@ -12,7 +12,7 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert "github.event_name != 'pull_request'" in release['if']
     assert "github.ref == 'refs/heads/main'" in release['if']
     assert release['environment'] == 'production'
-    assert jobs['finalize']['needs'] == 'release'
+    assert jobs['finalize']['needs'] == ['validate', 'release']
     assert jobs['finalize']['permissions']['id-token'] == 'write'
     assert jobs['validate']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
     assert "inputs.publisher == 'r640'" in release['runs-on']
@@ -23,7 +23,15 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert fallback['if'] == "inputs.publisher == 'r640'"
     assert 'docker buildx inspect r640-mihomos' in fallback['run']
     assert 'create' not in fallback['run']
-    assert jobs['finalize']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
+    assert jobs['finalize']['runs-on'] == 'ubuntu-24.04'
+    assert jobs['finalize']['permissions']['actions'] == 'read'
+    assert "inputs.reuse_run_id == ''" in release['if']
+    assert "needs.release.result == 'skipped'" in jobs['finalize']['if']
+    source = next(step for step in jobs['finalize']['steps'] if step.get('id') == 'source')
+    assert 'git merge-base --is-ancestor' in source['run']
+    assert '.conclusion == "success"' in source['run']
+    download = next(step for step in jobs['finalize']['steps'] if 'actions/download-artifact@' in step.get('uses', ''))
+    assert download['with']['run-id'] == '${{ steps.source.outputs.build_run }}'
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker build --load -f operations/cloud-platform/Dockerfile' in validation
     assert 'docker run --rm --network none' in validation
