@@ -1,0 +1,15 @@
+{
+  "session_url": "https://id.re8ch.com/jmap/session",
+  "sender": "harry@re8ch.com",
+  "allowed_senders": ["harry@re8ch.com", "compocv-maintain@phonaid.com"],
+  "recipient": "compocv-maintain@phonaid.com",
+  "repository": "compocv/compocv",
+  "since": "2026-10-29T00:00:00Z",
+  "project_id": "PVT_kwDOE-MSvc4BpM8Z",
+  "project_owner": "compocv",
+  "defaults": {
+    "Status": {"field": "PVTSSF_lADOE-MSvc4BpM8ZzhnpnZ0", "option": "f75ad846"},
+    "Time horizon": {"field": "PVTSSF_lADOE-MSvc4BpM8Zzhnpnkc", "option": "f54aac92"},
+    "Environment": {"field": "PVTSSF_lADOE-MSvc4BpM8Zzhnpnlo", "option": "b6c03495"}
+  }
+}
