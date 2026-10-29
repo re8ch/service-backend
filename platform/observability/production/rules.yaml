@@ -263,3 +263,24 @@ spec:
             summary: Alertmanager receiver requests are failing
             description: Alertmanager integration {{ $labels.integration }} has failed one or more notification attempts in the last ten minutes.
             runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
+    - name: re8ch.billing.demo
+      interval: 60s
+      rules:
+        - record: re8ch:billing:rate_card_meters:by_service
+          expr: sum by (service_class, billable) (re8ch_billing_rate_card_meters)
+        - alert: Re8chBillingUnratedUsage
+          expr: increase(re8ch_billing_unrated_items_total[1h]) > 0
+          for: 10m
+          labels: {severity: warning, owner: platform-products, service: billing-rating, namespace: tenant-system, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateless}
+          annotations:
+            summary: Usage items have no rate-card entry
+            description: Rated charge reads returned usage meters absent from the active rate card; add them to rate_card.json (billable false if observation only).
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
+        - alert: Re8chBillingRateCardMissing
+          expr: absent(re8ch_billing_rate_card_info)
+          for: 15m
+          labels: {severity: warning, owner: platform-products, service: billing-rating, namespace: tenant-system, tier: high, alert_layer: prometheus, policy_id: platform-default, signal_domain: stateless}
+          annotations:
+            summary: Billing rate card metric is absent
+            description: tenant-mcp is not exporting re8ch_billing_rate_card_info; showback charges may be unavailable.
+            runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
