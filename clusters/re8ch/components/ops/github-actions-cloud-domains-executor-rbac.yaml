@@ -4804,6 +4804,15 @@ rules:
   - get
   - patch
 - apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - tlsroutes
+  resourceNames:
+  - kube-api-https
+  verbs:
+  - get
+  - patch
+- apiGroups:
   - ''
   resources:
   - configmaps

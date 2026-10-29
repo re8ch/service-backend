@@ -86,6 +86,15 @@ def test_new_identity_adoption_targets_are_exact_and_group_bound():
         assert binding['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group', 'name': 're8ch:release-executor:identity-access'}]
 
 
+def test_networking_executor_can_adopt_only_the_reviewed_kube_api_tlsroute():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'networking-native-kube-system')
+    tls_rules = [rule for rule in role['rules'] if rule['apiGroups'] == ['gateway.networking.k8s.io']
+                 and rule['resources'] == ['tlsroutes']]
+    assert tls_rules == [{'apiGroups': ['gateway.networking.k8s.io'], 'resources': ['tlsroutes'],
+                          'resourceNames': ['kube-api-https'], 'verbs': ['get', 'patch']}]
+
+
 def test_litellm_adoption_has_only_five_runtime_objects_plus_state():
     docs = list(yaml.safe_load_all(PATH.read_text()))
     role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'agent-runtime-domain-llm-gateway')
