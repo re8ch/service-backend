@@ -1,11 +1,11 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: bora-garnet
+codename: sirocco-garnet
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:905a87886152d946e489386f3d25f8039d4c75388c17d31e399e15bba63bb77b
-  signature: cosign-keyless
+  digest: sha256:29b5158624ee711106fd8437bb376048f3d3f00d7f31307e4315dcdf12bef328
+  signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
 images: []
