@@ -56,13 +56,14 @@ MIHOMOS_BY_NAME = {tool["name"]: tool for tool in MIHOMOS_TOOLS}
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
 from cilium_cidr_operation import TOOL as CILIUM_CIDR_TOOL, DELETE_TOOL as CILIUM_CIDR_DELETE_TOOL
 from network_native_mutations import BY_NAME as NETWORK_MUTATIONS
+from stalwart_admin import TOOLS as STALWART_ADMIN_TOOLS, BY_NAME as STALWART_ADMIN_BY_NAME
 
 GENERATED_PLUGIN_TOOLS = {
     item["name"]: item for item in json.loads(
         Path(__file__).with_name("plugin-operation-tools.json").read_text()
     )["tools"]
 }
-PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
+PRIVILEGED_TOOLS = {*STALWART_ADMIN_BY_NAME, *MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
 WRITE_TOOLS = {"credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
@@ -91,6 +92,7 @@ def tool_list(identity: Identity) -> list[dict[str, Any]]:
                        if name == "plugin.operation.http-check" else f"RE8CH typed operation {name}")
         result.append({"name": name, "description": description, "inputSchema": schema(properties, REQUIRED.get(name))})
     if writable:
+        result.extend(STALWART_ADMIN_TOOLS)
         result.extend(MIHOMOS_TOOLS)
         result.append(ANATOMY_DIFF_TOOL)
         result.append(ANATOMY_DIFF_DELETE_TOOL)
@@ -130,6 +132,9 @@ def authenticate(header: str) -> Identity | None:
 def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
+    if name in STALWART_ADMIN_BY_NAME:
+        from stalwart_admin import call
+        return call(name, args, identity.subject)
     if name == "credentials.webmail-session.ensure":
         if set(args) - {"apply"} or not isinstance(args.get("apply", False), bool):
             raise OperationError("INVALID_ARGUMENT", "only boolean apply is accepted")
