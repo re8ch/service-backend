@@ -365,3 +365,61 @@ func TestCollaborationFileDiscoveryUsesNativePrincipalAndOwnCollection(t *testin
 		t.Fatal("shared account gained automatic access")
 	}
 }
+
+func TestCollaborationAttachmentBelongsToSelectedEmail(t *testing.T) {
+	var downloads atomic.Int32
+	c, _ := collaborationFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		if collaborationSessionFixture(w, r) {
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/jmap/download/") {
+			downloads.Add(1)
+			fmt.Fprint(w, "blob")
+			return
+		}
+		method, _ := collaborationDecodeCall(t, r)
+		collaborationMethodResult(w, method, map[string]any{"list": []any{map[string]any{"id": "mail-1", "attachments": []any{map[string]any{"blobId": "blob-1", "size": 4}}}}})
+	})
+	if _, err := c.MailAttachment(context.Background(), "mail-1", "someone-elses-blob"); err == nil {
+		t.Fatal("unrelated blob downloaded")
+	}
+	content, err := c.MailAttachment(context.Background(), "mail-1", "blob-1")
+	if err != nil || string(content.Data) != "blob" || downloads.Load() != 1 {
+		t.Fatalf("attachment result: %q %v", content.Data, err)
+	}
+}
+func TestCollaborationForeignSessionEndpointNeverReceivesCredentials(t *testing.T) {
+	var leaks atomic.Int32
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { leaks.Add(1) }))
+	defer other.Close()
+	c, _ := collaborationFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]any{"apiUrl": other.URL + "/jmap/", "capabilities": map[string]any{collaborationMail: map[string]any{}}, "accounts": map[string]any{"acct": map[string]any{"accountCapabilities": map[string]any{collaborationMail: map[string]any{}}}}})
+	})
+	if _, err := c.Mailboxes(context.Background()); err == nil {
+		t.Fatal("foreign API origin accepted")
+	}
+	if leaks.Load() != 0 {
+		t.Fatal("provider credentials forwarded to foreign host")
+	}
+}
+func TestCollaborationInlineFilesRejectBinaryAndLargeText(t *testing.T) {
+	for _, mode := range []string{"binary", "large"} {
+		t.Run(mode, func(t *testing.T) {
+			c, _ := collaborationFixture(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == "HEAD" {
+					return
+				}
+				if mode == "binary" {
+					w.Header().Set("Content-Type", "application/octet-stream")
+					fmt.Fprint(w, "binary")
+				} else {
+					w.Header().Set("Content-Type", "text/plain")
+					fmt.Fprint(w, strings.Repeat("a", collaborationMaxText+1))
+				}
+			})
+			if _, err := c.FilesRead(context.Background(), "/dav/file/alice/file"); err == nil {
+				t.Fatal("unsafe inline file accepted")
+			}
+		})
+	}
+}

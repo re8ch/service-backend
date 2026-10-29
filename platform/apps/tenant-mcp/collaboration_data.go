@@ -97,6 +97,11 @@ func (c *collaborationDataClient) sameOrigin(raw string) (*url.URL, error) {
 	if err != nil || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return nil, errors.New("invalid provider resource reference")
 	}
+	for _, part := range strings.Split(u.Path, "/") {
+		if part == "." || part == ".." {
+			return nil, errors.New("noncanonical provider resource path")
+		}
+	}
 	u = c.base.ResolveReference(u)
 	if u.Scheme != c.base.Scheme || u.Host != c.base.Host || strings.ContainsAny(u.Path, "\\\x00\r\n") {
 		return nil, errors.New("provider resource outside configured origin")
