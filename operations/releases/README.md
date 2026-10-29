@@ -96,7 +96,9 @@ and root-level infrastructure declarations remain under signed Git authority.
 
 `domain-sources` carries the private Harbor OCI sources and independent module
 reconciliations. New publications pin digests whose GitHub native attestations
-must succeed before the promotion job can open its protected PR. Legacy Cosign
+must succeed before the promotion job can open its protected PR. The signed
+attestation bundle is retained as a GitHub workflow artifact; slow Harbor OCI
+referrer uploads are not part of this gate. Legacy Cosign
 releases retain Flux's exact OIDC identity verification. Flux does not natively
 verify GitHub private attestations, so the immutable digest and protected
 promotion PR form the runtime handoff. The SOPS-encrypted pull-only robot is not
