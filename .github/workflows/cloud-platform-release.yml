@@ -31,6 +31,10 @@ on:
         type: choice
         options: [cloud, r640]
         default: cloud
+      reuse_run_id:
+        description: Resume signing the immutable artifact from a successful release job
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -73,7 +77,7 @@ jobs:
           print("Packaged tool discovery and privilege filtering passed")
           '
   release:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && inputs.reuse_run_id == ''
     needs: validate
     runs-on: ${{ inputs.publisher == 'r640' && fromJSON('["self-hosted","Linux","X64","r640","untrusted-build"]') || 'ubuntu-24.04' }}
     timeout-minutes: 45
@@ -124,17 +128,46 @@ jobs:
             rmdir "$DOCKER_CONFIG" || true
           fi
   finalize:
-    needs: release
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    if: >-
+      always() && github.ref == 'refs/heads/main' && needs.validate.result == 'success' &&
+      (needs.release.result == 'success' || (inputs.reuse_run_id != '' && needs.release.result == 'skipped'))
+    needs: [validate, release]
+    runs-on: ubuntu-24.04
     environment: production
     permissions:
       contents: read
+      actions: read
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {fetch-depth: 0}
+      - name: Verify source release for artifact reuse
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REUSE_RUN_ID: ${{ inputs.reuse_run_id }}
+        run: |
+          source_sha="$GITHUB_SHA"
+          build_run="$GITHUB_RUN_ID"
+          if [[ -n "$REUSE_RUN_ID" ]]; then
+            [[ "$REUSE_RUN_ID" =~ ^[0-9]+$ ]] || exit 2
+            source="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REUSE_RUN_ID")"
+            [[ "$(jq -r .name <<<"$source")" == cloud-platform-release ]] || exit 2
+            [[ "$(jq -r .head_branch <<<"$source")" == main ]] || exit 2
+            source_sha="$(jq -r .head_sha <<<"$source")"
+            [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || exit 2
+            git merge-base --is-ancestor "$source_sha" "$GITHUB_SHA"
+            releases="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$REUSE_RUN_ID/jobs" --jq '[.jobs[] | select(.name == "release" and .conclusion == "success")] | length')"
+            [[ "$releases" -ge 1 ]] || exit 2
+            build_run="$REUSE_RUN_ID"
+          fi
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "build_run=$build_run" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: cloud-platform-release-${{ github.sha }}
+          name: cloud-platform-release-${{ steps.source.outputs.sha }}
+          run-id: ${{ steps.source.outputs.build_run }}
+          github-token: ${{ github.token }}
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
         with:
           install-dir: ${{ runner.temp }}/cloud-platform-cosign-${{ github.run_id }}-${{ github.run_attempt }}
