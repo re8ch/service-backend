@@ -1,0 +1,62 @@
+# One-time administrator operation; intentionally outside reconciled domains.
+# Pinned to the signed artifact from cloud-platform-release run 40852810756.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: webmail-session-broker-bootstrap
+  namespace: ai-operations
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app: webmail-session-broker-bootstrap
+    spec:
+      serviceAccountName: re8ch-cloud-platform
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: harbor-registry-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: broker
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:3920f7b0118d29dba795e1472f327aed6c33ced130912eeaad4cff47c10caadb
+          command: [python, -c]
+          args:
+            - |
+              import json
+              from runtime import CloudPlatform, Inventory, OperationRunner
+              service = CloudPlatform(Inventory([]), OperationRunner(),
+                  kubeconfig="/etc/broker/kubeconfig", ssh_config="")
+              print(json.dumps(service.ensure_webmail_session_secret(apply=True)))
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          volumeMounts:
+            - name: broker-kubeconfig
+              mountPath: /etc/broker
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: broker-kubeconfig
+          secret:
+            secretName: cloud-platform-runtime
+            defaultMode: 288
+            items:
+              - key: kubeconfig-re8ch.yaml
+                path: kubeconfig
+        - name: tmp
+          emptyDir: {medium: Memory, sizeLimit: 8Mi}
