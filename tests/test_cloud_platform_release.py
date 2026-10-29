@@ -15,7 +15,14 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert jobs['finalize']['needs'] == 'release'
     assert jobs['finalize']['permissions']['id-token'] == 'write'
     assert jobs['validate']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
-    assert release['runs-on'] == 'ubuntu-24.04'
+    assert "inputs.publisher == 'r640'" in release['runs-on']
+    assert release['runs-on'].endswith("|| 'ubuntu-24.04' }}")
+    dispatch = workflow[True]['workflow_dispatch']['inputs']['publisher']
+    assert dispatch['default'] == 'cloud' and dispatch['options'] == ['cloud', 'r640']
+    fallback = next(step for step in release['steps'] if step.get('name') == 'Reuse the existing host-proxy builder')
+    assert fallback['if'] == "inputs.publisher == 'r640'"
+    assert 'docker buildx inspect r640-mihomos' in fallback['run']
+    assert 'create' not in fallback['run']
     assert jobs['finalize']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker build --load -f operations/cloud-platform/Dockerfile' in validation
