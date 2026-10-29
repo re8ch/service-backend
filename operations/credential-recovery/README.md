@@ -6,6 +6,8 @@ adding privileges or copying credentials. The API tool and this Job execute the
 same implementation; no Secret values pass through the caller or logs. It does
 not require the Cloud Platform SSH inventory volumes, so it can finish the
 WebMail credential recovery while that separate rollout is blocked.
+The 15-minute Job deadline covers a first-time Harbor image pull; the fixed
+credential operation itself normally completes in seconds.
 
 Before execution, require a signed merged revision, successful Cloud Platform
 release/finalize checks and its immutable image digest. The manifest deliberately
