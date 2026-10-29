@@ -31,6 +31,11 @@ spec:
             - {name: HOSTNAME, value: 0.0.0.0}
             - {name: PORT, value: "3000"}
             - {name: JMAP_SERVER_URL, value: https://id.re8ch.com}
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: stalwart-webmail-session
+                  key: session-secret
             - {name: OAUTH_ENABLED, value: "true"}
             - {name: OAUTH_ONLY, value: "true"}
             - {name: OAUTH_CLIENT_ID, value: stalwart-webui}
