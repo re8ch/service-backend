@@ -1524,6 +1524,17 @@ modules:
       digest: sha256:0d084a0f5db24f1fb26a8425afdc0fd3a29d0b1357c439d666d3acec09ba6df1
     - codename: bora-garnet
       digest: sha256:905a87886152d946e489386f3d25f8039d4c75388c17d31e399e15bba63bb77b
+    - codename: chinook-garnet
+      digest: sha256:1c4f8ffca746e2b96df4dbd1edf0a22aa2e9e2ecc26b58f49648b3fdf4c5b9f6
+      quarantined: missing-or-invalid-signature
+    - codename: etesian-garnet
+      digest: sha256:dfb70cbfe8c08fdb344dbec63e783efe059b3499c8a60f1dbe378ccaec93a9dc
+      quarantined: missing-or-invalid-signature
+    - codename: mistral-garnet
+      digest: sha256:d60387d74036772c04b533ce71795d966434ee28fbff2e78c569ce6c9a2817e6
+      quarantined: missing-or-invalid-signature
+    - codename: sirocco-garnet
+      digest: sha256:29b5158624ee711106fd8437bb376048f3d3f00d7f31307e4315dcdf12bef328
   platform/adapter:
     releases:
     - codename: anchor
