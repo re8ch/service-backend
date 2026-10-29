@@ -885,7 +885,8 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
     assert env["JMAP_SERVER_URL"] == "https://id.re8ch.com"
     assert env["OAUTH_ISSUER_URL"] == "https://auth.re8ch.com"
-    assert env["OAUTH_ENABLED"] == env["OAUTH_ONLY"] == "true"
+    assert env["OAUTH_ENABLED"] == "true"
+    assert env["OAUTH_ONLY"] == "false"
     assert env["OAUTH_CLIENT_ID"] == "stalwart-webui"
     assert env["ALLOW_CUSTOM_JMAP_ENDPOINT"] == "false"
     assert env["SETTINGS_SYNC_ENABLED"] == "false"

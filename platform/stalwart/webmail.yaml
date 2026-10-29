@@ -37,7 +37,7 @@ spec:
                   name: stalwart-webmail-session
                   key: session-secret
             - {name: OAUTH_ENABLED, value: "true"}
-            - {name: OAUTH_ONLY, value: "true"}
+            - {name: OAUTH_ONLY, value: "false"}
             - {name: OAUTH_CLIENT_ID, value: stalwart-webui}
             - {name: OAUTH_ISSUER_URL, value: https://auth.re8ch.com}
             - {name: APP_NAME, value: RE8CH Mail}
