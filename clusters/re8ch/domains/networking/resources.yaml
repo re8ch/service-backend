@@ -23471,6 +23471,13 @@ spec:
         class: web
         probePath: /.well-known/openid-configuration
         service: stalwart
+      kube-api.service.re8ch.com.:
+        acceptedStatuses:
+        - 200
+        class: api
+        probeHost: kube-api.re8ch.com
+        probePath: /readyz
+        service: kube-api
       ledger-decisions.service.re8ch.com.:
         acceptedStatuses:
         - 200
