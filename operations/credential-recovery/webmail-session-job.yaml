@@ -7,7 +7,7 @@ metadata:
   namespace: ai-operations
 spec:
   backoffLimit: 0
-  activeDeadlineSeconds: 120
+  activeDeadlineSeconds: 900
   template:
     metadata:
       labels:
