@@ -84,10 +84,6 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Route local Harbor uploads directly
-        run: |
-          echo "NO_PROXY=${NO_PROXY:+$NO_PROXY,}registry.re8ch.com" >> "$GITHUB_ENV"
-          echo "no_proxy=${no_proxy:+$no_proxy,}registry.re8ch.com" >> "$GITHUB_ENV"
       - name: Authenticate native attestation publisher to Harbor
         env:
           DOMAIN_REGISTRY_USERNAME: ${{ secrets.DOMAIN_REGISTRY_USERNAME }}
