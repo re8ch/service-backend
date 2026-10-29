@@ -278,6 +278,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		mcpToolTelemetry.writePrometheus(w)
+		writeBillingMetrics(w)
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ready, checks := s.readiness(r.Context())
@@ -307,7 +308,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource/", metadataHandler)
 	mux.HandleFunc("POST /oauth/token", s.exchangeToken)
 	mux.HandleFunc("POST /oauth/token/compat", oauthTokenCompat)
-	mux.HandleFunc("OPTIONS /billing/usage", func(w http.ResponseWriter, r *http.Request) {
+	billingPreflight := func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Origin") != "https://auth.re8ch.com" {
 			writeJSON(w, 403, map[string]string{"error": "forbidden"})
 			return
@@ -317,7 +318,11 @@ func (s *server) handler() http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, X-RE8CH-Tenant")
 		w.Header().Set("Access-Control-Max-Age", "600")
 		w.WriteHeader(204)
-	})
+	}
+	mux.HandleFunc("OPTIONS /billing/usage", billingPreflight)
+	mux.HandleFunc("OPTIONS /billing/charges", billingPreflight)
+	mux.HandleFunc("GET /billing/charges", s.billingChargesHTTP)
+	mux.HandleFunc("GET /billing/rate-card", s.billingRateCardHTTP)
 	mux.HandleFunc("GET /billing/usage", s.billingHTTP)
 	mux.HandleFunc("OPTIONS /self-service/capabilities", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Origin") != "https://auth.re8ch.com" {
@@ -458,30 +463,61 @@ func billingHeaders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) billingHTTP(w http.ResponseWriter, r *http.Request) {
+	if usage, ok := s.billingWindow(w, r); ok {
+		writeJSON(w, 200, usage)
+	}
+}
+
+// billingChargesHTTP returns the same window priced under the demo rate card.
+func (s *server) billingChargesHTTP(w http.ResponseWriter, r *http.Request) {
+	usage, ok := s.billingWindow(w, r)
+	if !ok {
+		return
+	}
+	result, err := rateUsage(usage)
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "rate_card_unavailable"})
+		return
+	}
+	billingRated.observe(result)
+	writeJSON(w, 200, result)
+}
+
+func (s *server) billingRateCardHTTP(w http.ResponseWriter, r *http.Request) {
+	billingHeaders(w, r)
+	c, _, err := loadRateCard()
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "rate_card_unavailable"})
+		return
+	}
+	writeJSON(w, 200, c)
+}
+
+func (s *server) billingWindow(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
 	billingHeaders(w, r)
 	selected := r.Header.Get("X-RE8CH-Tenant")
 	if selected == "" || selected == "admin" || !tenantName.MatchString(selected) {
 		writeJSON(w, 400, map[string]string{"error": "select an organization"})
-		return
+		return nil, false
 	}
 	header := r.Header.Get("Authorization")
 	if !strings.HasPrefix(header, "Bearer ") {
 		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
-		return
+		return nil, false
 	}
 	bearer := strings.TrimPrefix(header, "Bearer ")
 	id, err := s.authenticate(r.Context(), bearer, selected)
 	if errors.Is(err, errIdentityUnavailable) {
 		writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
-		return
+		return nil, false
 	}
 	if errors.Is(err, errInvalidToken) || id.Service {
 		writeJSON(w, 401, map[string]string{"error": "unauthorized"})
-		return
+		return nil, false
 	}
 	if err != nil {
 		writeJSON(w, 403, map[string]string{"error": "organization access denied"})
-		return
+		return nil, false
 	}
 	now := time.Now().UTC()
 	start, end := now.Add(-24*time.Hour), now
@@ -489,22 +525,22 @@ func (s *server) billingHTTP(w http.ResponseWriter, r *http.Request) {
 		start, err = parseTime(value)
 		if err != nil {
 			writeJSON(w, 400, map[string]string{"error": "invalid billing window"})
-			return
+			return nil, false
 		}
 	}
 	if value := r.URL.Query().Get("to"); value != "" {
 		end, err = parseTime(value)
 		if err != nil {
 			writeJSON(w, 400, map[string]string{"error": "invalid billing window"})
-			return
+			return nil, false
 		}
 	}
 	result, err := s.billingUsage(id.Tenant, start, end)
 	if err != nil {
 		writeJSON(w, 400, map[string]string{"error": "invalid billing window"})
-		return
+		return nil, false
 	}
-	writeJSON(w, 200, result)
+	return result, true
 }
 
 func (s *server) receiveUsageHTTP(w http.ResponseWriter, r *http.Request) {

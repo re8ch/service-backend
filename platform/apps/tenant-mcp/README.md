@@ -229,3 +229,17 @@ empty; this change alone does not verify a domain or publish a plugin.
 that a successfully discovered backend did not publish. Unavailable backends
 remain unknown, not proof of missing operations. These fields measure registry
 publication only; they do not prove native API or semantic workflow coverage.
+
+## Demo billing (showback)
+
+`rate_card.json` is an embedded, versioned **demo** rate card covering every meter of every service
+class in `service_catalog.json` (`rating_test.go` fails if a meter is missing). Meters marked
+`billable:false` are observed but not charged, to avoid double counting.
+
+- `GET /billing/charges?from&to` – same auth and window as `/billing/usage`, priced under the card.
+  Always `accountingPosted:false`; nothing is debited. Unknown meters are listed under `unrated`.
+- `GET /billing/rate-card` – the card itself (read by Catalog for the billed-services view).
+- `/metrics` adds `re8ch_billing_rate_card_info`, `re8ch_billing_rate_card_meters{service_class,billable}`,
+  `re8ch_billing_charge_requests_total` and `re8ch_billing_unrated_items_total`; alerts live in
+  `platform/observability/production/rules.yaml` (`re8ch.billing.demo`). Per-tenant series are
+  intentionally not exported.

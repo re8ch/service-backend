@@ -1,0 +1,342 @@
+{
+ "version": "demo-2026-10",
+ "status": "demo",
+ "mode": "showback",
+ "currency": "CNY",
+ "effectiveFrom": "2026-10-01T00:00:00Z",
+ "notice": "Demonstration rates. Charges are computed for visibility only; no Credits are debited and no invoice is issued.",
+ "rates": [
+  {
+   "serviceClass": "ai.model-gateway.v1",
+   "meter": "input_tokens",
+   "unit": "token",
+   "per": 1000000,
+   "price": 2.0,
+   "billable": true
+  },
+  {
+   "serviceClass": "ai.model-gateway.v1",
+   "meter": "output_tokens",
+   "unit": "token",
+   "per": 1000000,
+   "price": 8.0,
+   "billable": true
+  },
+  {
+   "serviceClass": "ai.model-gateway.v1",
+   "meter": "gpu_time",
+   "unit": "GPU-second",
+   "per": 3600,
+   "price": 12.0,
+   "billable": true
+  },
+  {
+   "serviceClass": "ai.model-gateway.v1",
+   "meter": "requests",
+   "unit": "request",
+   "per": 1,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "database.postgresql.shared.v1",
+   "meter": "allocated_storage",
+   "unit": "GiB-hour",
+   "per": 1,
+   "price": 0.002,
+   "billable": true
+  },
+  {
+   "serviceClass": "database.postgresql.shared.v1",
+   "meter": "backup_storage",
+   "unit": "GiB-month",
+   "per": 1,
+   "price": 0.12,
+   "billable": true
+  },
+  {
+   "serviceClass": "database.postgresql.shared.v1",
+   "meter": "instance_hours",
+   "unit": "hour",
+   "per": 1,
+   "price": 0.15,
+   "billable": true
+  },
+  {
+   "serviceClass": "database.postgresql.shared.v1",
+   "meter": "connection_class",
+   "unit": "class-hour",
+   "per": 1,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "network.among-clusters.v1",
+   "meter": "egress_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0.5,
+   "billable": true
+  },
+  {
+   "serviceClass": "network.among-clusters.v1",
+   "meter": "ingress_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "network.among-clusters.v1",
+   "meter": "path_hours",
+   "unit": "path-hour",
+   "per": 1,
+   "price": 0.03,
+   "billable": true
+  },
+  {
+   "serviceClass": "network.among-clusters.v1",
+   "meter": "route_changes",
+   "unit": "change",
+   "per": 1,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "network.tenant.v1",
+   "meter": "egress_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0.6,
+   "billable": true
+  },
+  {
+   "serviceClass": "network.tenant.v1",
+   "meter": "ingress_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "network.tenant.v1",
+   "meter": "public_ip",
+   "unit": "IP-hour",
+   "per": 1,
+   "price": 0.02,
+   "billable": true
+  },
+  {
+   "serviceClass": "network.tenant.v1",
+   "meter": "tunnel_connections",
+   "unit": "connection-hour",
+   "per": 1,
+   "price": 0.005,
+   "billable": true
+  },
+  {
+   "serviceClass": "network.tenant.v1",
+   "meter": "bandwidth_class",
+   "unit": "class-hour",
+   "per": 1,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "network.tenant.v1",
+   "meter": "dns_queries",
+   "unit": "query",
+   "per": 1000000,
+   "price": 0.4,
+   "billable": true
+  },
+  {
+   "serviceClass": "observability.grafana.v1",
+   "meter": "active_series",
+   "unit": "series-hour",
+   "per": 1000000,
+   "price": 0.8,
+   "billable": true
+  },
+  {
+   "serviceClass": "observability.grafana.v1",
+   "meter": "samples",
+   "unit": "sample",
+   "per": 1000000000,
+   "price": 0.5,
+   "billable": true
+  },
+  {
+   "serviceClass": "observability.grafana.v1",
+   "meter": "logs",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0.3,
+   "billable": true
+  },
+  {
+   "serviceClass": "observability.grafana.v1",
+   "meter": "retained_data",
+   "unit": "GiB-hour",
+   "per": 1,
+   "price": 0.0015,
+   "billable": true
+  },
+  {
+   "serviceClass": "observability.grafana.v1",
+   "meter": "queries",
+   "unit": "query",
+   "per": 1000,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "registry.harbor.v1",
+   "meter": "artifact_storage",
+   "unit": "GiB-hour",
+   "per": 1,
+   "price": 0.0008,
+   "billable": true
+  },
+  {
+   "serviceClass": "registry.harbor.v1",
+   "meter": "pull_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0.1,
+   "billable": true
+  },
+  {
+   "serviceClass": "registry.harbor.v1",
+   "meter": "push_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "registry.harbor.v1",
+   "meter": "scans",
+   "unit": "scan",
+   "per": 1,
+   "price": 0.02,
+   "billable": true
+  },
+  {
+   "serviceClass": "sandbox.runtime.v1",
+   "meter": "cpu",
+   "unit": "core-second",
+   "per": 3600,
+   "price": 0.12,
+   "billable": true
+  },
+  {
+   "serviceClass": "sandbox.runtime.v1",
+   "meter": "memory",
+   "unit": "GiB-second",
+   "per": 3600,
+   "price": 0.03,
+   "billable": true
+  },
+  {
+   "serviceClass": "sandbox.runtime.v1",
+   "meter": "egress",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0.6,
+   "billable": true
+  },
+  {
+   "serviceClass": "sandbox.runtime.v1",
+   "meter": "artifacts",
+   "unit": "GiB-hour",
+   "per": 1,
+   "price": 0.0008,
+   "billable": true
+  },
+  {
+   "serviceClass": "sandbox.runtime.v1",
+   "meter": "runtime",
+   "unit": "second",
+   "per": 1,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "storage.bucket.v1",
+   "meter": "stored_data",
+   "unit": "GiB-hour",
+   "per": 1,
+   "price": 0.0002,
+   "billable": true
+  },
+  {
+   "serviceClass": "storage.bucket.v1",
+   "meter": "egress_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0.5,
+   "billable": true
+  },
+  {
+   "serviceClass": "storage.bucket.v1",
+   "meter": "requests",
+   "unit": "request",
+   "per": 10000,
+   "price": 0.01,
+   "billable": true
+  },
+  {
+   "serviceClass": "storage.bucket.v1",
+   "meter": "ingress_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "storage.volume.v1",
+   "meter": "provisioned_storage",
+   "unit": "GiB-hour",
+   "per": 1,
+   "price": 0.0004,
+   "billable": true
+  },
+  {
+   "serviceClass": "storage.volume.v1",
+   "meter": "snapshot_storage",
+   "unit": "GiB-month",
+   "per": 1,
+   "price": 0.2,
+   "billable": true
+  },
+  {
+   "serviceClass": "storage.volume.v1",
+   "meter": "read_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  },
+  {
+   "serviceClass": "storage.volume.v1",
+   "meter": "write_bytes",
+   "unit": "byte",
+   "per": 1073741824,
+   "price": 0,
+   "billable": false,
+   "reason": "observed only; not charged to avoid double counting"
+  }
+ ]
+}
