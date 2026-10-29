@@ -7253,6 +7253,11 @@ spec:
           value: "3000"
         - name: JMAP_SERVER_URL
           value: https://id.re8ch.com
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: session-secret
+              name: stalwart-webmail-session
         - name: OAUTH_ENABLED
           value: "true"
         - name: OAUTH_ONLY
