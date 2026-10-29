@@ -7,6 +7,7 @@ references to server-side executors and returns an operation/audit envelope.
 from __future__ import annotations
 
 import json
+import secrets
 import shlex
 import subprocess
 import time
@@ -174,6 +175,43 @@ class CloudPlatform:
         if verb in {"get", "list"}:
             argv += ["-o", "json"]
         return self._kubectl(argv, stdin=stdin)
+
+    def ensure_webmail_session_secret(self, *, apply: bool = False) -> dict[str, Any]:
+        """Create the reviewed system credential without accepting or returning values."""
+        target = {"namespace": "mail-system", "name": "stalwart-webmail-session",
+                  "keys": ["session-secret"], "applied": False}
+        if not apply:
+            return target
+        # The subprocess emits only presence, never credential bytes. Fail closed
+        # on errors and preserve existing credentials (including concurrent creates).
+        def exists() -> bool:
+            result = self._kubectl([
+                "get", "secret", target["name"], "-n", target["namespace"],
+                "--ignore-not-found", "-o",
+                'go-template={{if index .data "session-secret"}}present{{else}}invalid{{end}}',
+            ])
+            if result["exitCode"]:
+                raise OperationError("CREDENTIAL_STATUS_FAILED", "cannot check Webmail credential")
+            status = result["stdout"].strip()
+            if status not in {"", "present"}:
+                raise OperationError("CREDENTIAL_INVALID", "existing Webmail Secret lacks session-secret; refusing rotation")
+            return status == "present"
+
+        if exists():
+            return {**target, "applied": True, "created": False}
+        manifest = {"apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+                    "metadata": {"name": target["name"], "namespace": target["namespace"]},
+                    "stringData": {"session-secret": secrets.token_hex(32)}}
+        result = self._kubectl(["create", "-f", "-", "-o", "name"], stdin=json.dumps(manifest))
+        # Never return raw subprocess errors: API validation errors can echo input.
+        if result["exitCode"]:
+            if exists():
+                return {**target, "applied": True, "created": False}
+            raise OperationError("CREDENTIAL_CREATE_FAILED", "Webmail credential creation failed")
+        if not exists():
+            raise OperationError("CREDENTIAL_VERIFY_FAILED", "Webmail credential was not observed after creation")
+        return {**target, "applied": True, "created": True,
+                "operationId": result["operationId"], "auditRef": result["auditRef"]}
 
     def kube_events(self, *, namespace: str | None = None, involved_object: str | None = None,
                     reason: str | None = None, event_type: str | None = None, watch: bool = False) -> dict[str, Any]:

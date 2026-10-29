@@ -24,3 +24,18 @@ Rotate the key on suspected compromise or according to the credential system's
 rotation policy. Coordinate the Secret update with a Webmail rollout because the
 key is read from the environment. Rotation invalidates encrypted Webmail sessions;
 users must sign in again. It does not rotate Stalwart mailbox application passwords.
+
+## Bounded administrator provisioning
+
+The Cloud Platform tool `credentials.webmail-session.ensure` is restricted to
+platform administrators and the exact Secret named above. Call with `apply=false`
+to review the target, then `apply=true` to generate 32 random bytes server-side.
+It accepts no credential value, namespace, or Secret name. Existing nonempty keys
+are preserved; an existing Secret missing the key is rejected rather than rotated.
+Concurrent creates preserve the winner. Results contain metadata only. This tool
+requires the reviewed Cloud Platform release to be deployed before discovery.
+
+The generic `kube.resource.apply` interface intentionally rejects inline Secret
+values. Its Credential Broker message does not imply a supported content-reference
+upload API. Tenant Secret tools apply only to tenant-owned Ready namespaces and
+must not be used to reassign `mail-system` to a tenant.

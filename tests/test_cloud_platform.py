@@ -128,3 +128,72 @@ def test_ssh_uses_inventory_address_for_reachability():
                             kubeconfig="x", ssh_config="y")
     service.node_reachability("test-secondary")
     assert calls == [["ssh", "-F", "y", "--", "test-secondary.invalid", "hostname"]]
+
+
+def test_webmail_credential_preview_does_not_access_cluster():
+    def fail(*args, **kwargs):
+        pytest.fail("preview must not call Kubernetes")
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(fail), kubeconfig="x", ssh_config="y")
+    assert service.ensure_webmail_session_secret()["applied"] is False
+
+
+@pytest.mark.parametrize("initial,create_code,final,created", [
+    ("present", None, None, False),
+    ("", 0, "present", True),
+    ("", 1, "present", False),
+])
+def test_webmail_credential_create_preserves_existing_and_concurrent_keys(initial, create_code, final, created):
+    calls = []
+    statuses = iter([initial, final])
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        if "get" in argv:
+            return completed(next(statuses))
+        manifest = json.loads(kwargs["input"])
+        assert manifest["metadata"] == {"namespace": "mail-system", "name": "stalwart-webmail-session"}
+        value = manifest["stringData"]["session-secret"]
+        assert len(value) == 64 and int(value, 16) >= 0
+        assert "create" in argv and "apply" not in argv
+        return completed("secret/stalwart-webmail-session", create_code)
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    result = service.ensure_webmail_session_secret(apply=True)
+    assert result["created"] is created
+    for _, kwargs in calls:
+        if kwargs.get("input"):
+            assert json.loads(kwargs["input"])["stringData"]["session-secret"] not in json.dumps(result)
+
+
+def test_webmail_credential_rejects_invalid_existing_key_without_rotation():
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(lambda *a, **kw: completed("invalid")), kubeconfig="x", ssh_config="y")
+    with pytest.raises(OperationError) as exc:
+        service.ensure_webmail_session_secret(apply=True)
+    assert exc.value.code == "CREDENTIAL_INVALID"
+
+
+def test_webmail_credential_create_failure_does_not_return_payload():
+    def run(argv, **kwargs):
+        if "get" in argv:
+            return completed("")
+        return subprocess.CompletedProcess([], 1, kwargs["input"], kwargs["input"])
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    with pytest.raises(OperationError) as exc:
+        service.ensure_webmail_session_secret(apply=True)
+    assert str(exc.value) == "Webmail credential creation failed"
+
+
+def test_webmail_credential_tool_is_admin_only_and_rejects_target_overrides():
+    import importlib.util
+    from runtime import Identity
+    spec = importlib.util.spec_from_file_location("cloud_platform_server_broker_test", ROOT / "operations/cloud-platform/server.py")
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(), kubeconfig="x", ssh_config="y")
+    with pytest.raises(OperationError) as exc:
+        server.dispatch(service, "credentials.webmail-session.ensure", {}, Identity("reader", ()))
+    assert exc.value.code == "AUTHORIZATION_DENIED"
+    admin = Identity("operator", (server.ADMIN_GROUP,))
+    for args in ({"namespace": "other"}, {"apply": "true"}, {"values": {"x": "secret"}}):
+        with pytest.raises(OperationError) as exc:
+            server.dispatch(service, "credentials.webmail-session.ensure", args, admin)
+        assert exc.value.code == "INVALID_ARGUMENT"
+    assert server.dispatch(service, "credentials.webmail-session.ensure", {}, admin)["applied"] is False

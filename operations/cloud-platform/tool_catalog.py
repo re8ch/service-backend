@@ -1,6 +1,7 @@
 """Stable public tool catalog; transport code delegates to these methods."""
 
 TOOLS = {
+    "credentials.webmail-session.ensure": "ensure_webmail_session_secret",
     "mihomos.controllers.list": "mihomos_capabilities.controllers",
     "mihomos.controller.version": "mihomos_capabilities.controller_version",
     "mihomos.workloads.list": "mihomos_capabilities.workloads",

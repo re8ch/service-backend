@@ -26,6 +26,7 @@ ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
+    "credentials.webmail-session.ensure": {"apply": {"type": "boolean", "default": False}},
     "plugin.capabilities.list": {},
     "plugin.operations.list": {"groupVersion": {"type": "string"}},
     "plugin.operation.read": {"groupVersion": {"type": "string"}, "operationId": {"type": "string"}, "schemaHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "parameters": {"type": "object"}},
@@ -63,7 +64,7 @@ GENERATED_PLUGIN_TOOLS = {
 }
 PRIVILEGED_TOOLS = {*MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
-WRITE_TOOLS = {"node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
+WRITE_TOOLS = {"credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
 
 REQUIRED = {
@@ -129,6 +130,10 @@ def authenticate(header: str) -> Identity | None:
 def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
+    if name == "credentials.webmail-session.ensure":
+        if set(args) - {"apply"} or not isinstance(args.get("apply", False), bool):
+            raise OperationError("INVALID_ARGUMENT", "only boolean apply is accepted")
+        return service.ensure_webmail_session_secret(apply=args.get("apply", False))
     if name == "plugin.operation.http-check":
         from plugin_http_conformance import conformance
         return conformance(service, args.get("groupVersion"), args.get("operationId"), args.get("schemaHash"), args.get("parameters"))
