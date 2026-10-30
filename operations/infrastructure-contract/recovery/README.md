@@ -14,14 +14,15 @@ metadata matches the original trust-chain creation date, with key name
 `age.agekey`. No revocation was found. Controller retirement does not revoke the
 retained decryption key. No key value was inspected by the agent.
 
-The fixed official SOPS v3.13.1 image is
-`ghcr.io/getsops/sops@sha256:320f253aced1393537b1e90c77eb48295204d805d4c68933264cd1285192465d`.
+The fixed official SOPS v3.13.3 image is
+`ghcr.io/getsops/sops@sha256:857f5a151ac0b2bfc55c1e4e5581d66fb8e268e4d106b38e74191f3bac9d58ea`.
 An actual `cosign verify` succeeded with exact certificate identity
-`https://github.com/getsops/sops/.github/workflows/release.yml@refs/tags/v3.13.1`
+`https://github.com/getsops/sops/.github/workflows/release.yml@refs/tags/v3.13.3`
 and issuer `https://token.actions.githubusercontent.com`, including transparency
-log and CA verification. This is an existing release, not a custom build. Its
-Debian image contains Python through the official Azure CLI tool dependencies.
-No runtime package download is allowed. A runtime dependency failure is closed.
+log and CA verification. This is an existing release, not a custom build. The
+no-key preflight verifies its Python and SOPS dependencies before the age key is
+mounted. No runtime package download is allowed. A runtime dependency failure
+is closed.
 
 ## Boundaries
 
@@ -97,10 +98,9 @@ before source decryption, so a failed challenge can be distinguished from a
 source decrypt/validation failure without showing private material or CLI stderr.
 Any such failure still requires inspection and a newly reviewed candidate; it
 does not authorize retrying the failed Job or starting the apply Job.
-After the v2 init reached `source_decrypt_and_validate`, the next reviewed
-diagnostic dry-run has the distinct Job name
-`infra-contracts-recovery-dryrun-v3`. It distinguishes SOPS CLI decryption/MAC
-from decrypted document validation. The source SOPS metadata records version
-3.13.3 while the pinned recovery image provides 3.13.1; this is an unproven
-compatibility hypothesis until the bounded v3 result is observed. Its
-application selector and scoped permissions are unchanged.
+After the v3 init reported `source_sops_decrypt`, the next reviewed dry-run has
+the distinct Job name `infra-contracts-recovery-dryrun-v4`. The source SOPS
+metadata records version 3.13.3 while the first three dry-runs used 3.13.1.
+Version skew is a hypothesis, not proof of the failure cause; if the same-version
+v4 decryption fails, inspect source MAC integrity without bypassing validation.
+The application selector and scoped permissions are unchanged.

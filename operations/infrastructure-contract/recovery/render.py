@@ -8,7 +8,7 @@ import restore
 ROOT = Path(__file__).resolve().parents[3]
 DIR = Path(__file__).resolve().parent
 NAME = 'infra-contracts-recovery'
-IMAGE = 'ghcr.io/getsops/sops@sha256:320f253aced1393537b1e90c77eb48295204d805d4c68933264cd1285192465d'
+IMAGE = 'ghcr.io/getsops/sops@sha256:857f5a151ac0b2bfc55c1e4e5581d66fb8e268e4d106b38e74191f3bac9d58ea'
 
 def render(receipts=None, apply=False):
     receipts = receipts or {n: {'uid': 'REPLACE_WITH_PRECREATED_UID', 'resourceVersion': 'REPLACE_WITH_PRECREATED_RESOURCE_VERSION'} for n in restore.TARGETS}
@@ -26,7 +26,7 @@ def render(receipts=None, apply=False):
       {'apiVersion': 'rbac.authorization.k8s.io/v1', 'kind': 'RoleBinding', 'metadata': {'name': NAME, 'namespace': 'ai-operations'}, 'roleRef': {'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Role', 'name': NAME}, 'subjects': [{'kind': 'ServiceAccount', 'name': NAME, 'namespace': 'flux-system'}]},
       {'apiVersion': 'v1', 'kind': 'ConfigMap', 'metadata': common, 'immutable': True, 'data': data},
       {'apiVersion': 'cilium.io/v2', 'kind': 'CiliumNetworkPolicy', 'metadata': common, 'spec': {'endpointSelector': {'matchLabels': {'app': NAME}}, 'enableDefaultDeny': {'ingress': True, 'egress': True}, 'ingress': [], 'egress': [{'toEntities': ['kube-apiserver'], 'toPorts': [{'ports': [{'port': '443', 'protocol': 'TCP'}, {'port': '6443', 'protocol': 'TCP'}]}]}]}},
-      {'apiVersion': 'batch/v1', 'kind': 'Job', 'metadata': {**common, 'name': NAME + ('-apply' if apply else '-dryrun-v3')}, 'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 600, 'ttlSecondsAfterFinished': 3600, 'template': {'metadata': {'labels': {'app': NAME}}, 'spec': {
+      {'apiVersion': 'batch/v1', 'kind': 'Job', 'metadata': {**common, 'name': NAME + ('-apply' if apply else '-dryrun-v4')}, 'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 600, 'ttlSecondsAfterFinished': 3600, 'template': {'metadata': {'labels': {'app': NAME}}, 'spec': {
         'restartPolicy': 'Never', 'serviceAccountName': NAME, 'automountServiceAccountToken': False,
         'securityContext': {'runAsNonRoot': True, 'runAsUser': 65532, 'runAsGroup': 65532, 'fsGroup': 65532, 'seccompProfile': {'type': 'RuntimeDefault'}},
         'containers': [{'name': 'restore', 'image': IMAGE, 'command': ['python3', '-B', '/input/restore.py'] + (['--apply'] if apply else []),

@@ -178,7 +178,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: infra-contracts-recovery-dryrun-v3
+  name: infra-contracts-recovery-dryrun-v4
   namespace: flux-system
 spec:
   backoffLimit: 0
@@ -201,7 +201,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: restore
-        image: ghcr.io/getsops/sops@sha256:320f253aced1393537b1e90c77eb48295204d805d4c68933264cd1285192465d
+        image: ghcr.io/getsops/sops@sha256:857f5a151ac0b2bfc55c1e4e5581d66fb8e268e4d106b38e74191f3bac9d58ea
         command:
         - python3
         - -B
@@ -233,7 +233,7 @@ spec:
           readOnly: true
       initContainers:
       - name: decrypt
-        image: ghcr.io/getsops/sops@sha256:320f253aced1393537b1e90c77eb48295204d805d4c68933264cd1285192465d
+        image: ghcr.io/getsops/sops@sha256:857f5a151ac0b2bfc55c1e4e5581d66fb8e268e4d106b38e74191f3bac9d58ea
         command:
         - python3
         - -B
