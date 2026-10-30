@@ -40,7 +40,6 @@ TOOLS = {
 # They are listed here so schema discovery is stable while implementation is
 # promoted behind the same Credential Broker boundary.
 SSH_STREAM_TOOLS = {
-    "credentials.stalwart.ensure": "stalwart_bootstrap.call",
     "node.ssh.session.start",
     "node.ssh.session.poll",
     "node.ssh.session.write",
