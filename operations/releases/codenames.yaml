@@ -565,6 +565,8 @@ modules:
       digest: sha256:f5c5bb8fe554864235599bdbb3b867c2808bd12aff2dc1edeedeeeef6802b017
     - codename: delta-copper
       digest: sha256:23af266f93f6f674db0bb66e82ff5ddd30bc058f46e936e61b0e459d4bd0e746
+    - codename: grove-copper
+      digest: sha256:9eb33fa60ddcc54e39ffe49c3e370d5b5e29dd37d5fb16c602e4e02cd6e786e9
   platform/advanced-fabric:
     releases:
     - codename: bora
