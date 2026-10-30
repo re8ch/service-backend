@@ -93,9 +93,27 @@ fi
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 push_attempt=1
 push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
-while ! run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 --provenance=mode=max \
-  --attest "type=sbom,generator=${sbom_generator}" \
-  --progress plain --push --metadata-file "$metadata" -f "$dockerfile" -t "$image" .; do
+while true; do
+  if [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]]; then
+    # Harbor's BuildKit registry exporter can stall indefinitely on layer
+    # uploads. The Docker Engine uses a distinct, proven HTTP/1.1 upload path.
+    # GitHub's finalize job attests the immutable Harbor digest after this step.
+    if run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" \
+         docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 \
+           --provenance=false --progress plain --load -f "$dockerfile" -t "$image" . \
+       && run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker push "$image" \
+       && run_with_release_timeout 60s docker buildx imagetools inspect "$image" \
+            --format '{{json .Manifest}}' > "$metadata"; then
+      break
+    fi
+  else
+    if run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" \
+         docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 --provenance=mode=max \
+           --attest "type=sbom,generator=${sbom_generator}" \
+           --progress plain --push --metadata-file "$metadata" -f "$dockerfile" -t "$image" .; then
+      break
+    fi
+  fi
   if (( push_attempt >= push_attempts )); then
     echo "Image build/push failed after ${push_attempt} attempts" >&2
     exit 1
@@ -105,7 +123,14 @@ while ! run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker 
   sleep "$delay"
   push_attempt=$((push_attempt + 1))
 done
-digest=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["containerimage.digest"])' "$metadata")
+digest=$(python3 - "$metadata" <<'PY'
+import json
+import sys
+
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+print(value.get("containerimage.digest") or value["digest"])
+PY
+)
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
 printf '%s\n' "$immutable" | tee "${TENANT_IMAGE_ARTIFACT_NAME}.image"
 if [[ "${TENANT_IMAGE_SKIP_FINALIZE:-}" == "1" ]]; then

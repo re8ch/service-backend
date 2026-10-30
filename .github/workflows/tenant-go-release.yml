@@ -91,6 +91,9 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
+          # Use Docker Engine's upload path; Harbor's BuildKit exporter stalls
+          # even when both client and daemon are forced onto HTTP/1.1.
+          TENANT_IMAGE_DOCKER_PUSH: "1"
           # Harbor's HTTP/2 upload path can stall while pushing image layers.
           # Force the Go-based Buildx client onto the proven HTTP/1.1 path.
           GODEBUG: http2client=0
