@@ -762,6 +762,8 @@ modules:
       digest: sha256:304636ba3aac5356a71324f7ba16a1b8d82f2754bb53eb977595a93d22c626c5
     - codename: flare-pearl
       digest: sha256:83ead42e1a336a95918cc4daa5046f5a3d40a4efb0ce318e0e37070bda9c3d0b
+    - codename: lantern-pearl
+      digest: sha256:e10a4fa353318ab156667172a9a5fc7b12acc3c95ce7cca8090003f03750448b
   platform/apps/access-subscription:
     releases:
     - codename: aegis
