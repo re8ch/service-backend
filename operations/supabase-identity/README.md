@@ -220,8 +220,10 @@ Tenant calls shared session and organization APIs at `https://api.re8ch.com/auth
 Auth Gateway calls GoTrue at `https://db-rw.re8ch.com/auth/v1` and identity
 RO/RW at the internal Supabase identity REST Services. Manager RPCs belong to
 the separate auth schema and therefore use the matching internal
-`auth-postgrest.auth.svc.cluster.local:3000` Service. The managed proxy remains
-only for external provider connectivity (for example GitHub code exchange).
+`auth-postgrest` Service. Its Kubernetes-injected host and port environment
+variables avoid depending on the gateway binary's DNS resolver while still
+following the Service's current ClusterIP. The managed proxy remains only for
+external provider connectivity (for example GitHub code exchange).
 
 The legacy RPC client previously replaced the shared HTTP client's resolver on
 its first request, breaking later internal service-name lookups. The gateway
