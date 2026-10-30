@@ -1,6 +1,7 @@
 """Stable public tool catalog; transport code delegates to these methods."""
 
 TOOLS = {
+    "credentials.stalwart.ensure": "stalwart_bootstrap.call",
     "stalwart.admin.read": "stalwart_admin.call",
     "stalwart.admin.plan": "stalwart_admin.call",
     "stalwart.admin.apply": "stalwart_admin.call",

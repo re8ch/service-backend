@@ -94,3 +94,19 @@ def test_stalwart_management_uses_optional_dedicated_readonly_mounts():
                       "defaultMode": 288, "items": [{"key": "token", "path": "token"}]}
     assert volumes["stalwart-approved-plans"]["configMap"] == {
         "name": "stalwart-admin-approved-plans", "optional": True, "defaultMode": 288}
+
+
+def test_stalwart_bootstrap_mounts_are_separate_optional_and_readonly():
+    docs = list(yaml.safe_load_all((ROOT / 'platform/cloud-platform/runtime.yaml').read_text()))
+    pod = next(d for d in docs if d['kind'] == 'Deployment')['spec']['template']['spec']
+    container = pod['containers'][0]
+    env = {v['name']: v for v in container['env']}
+    assert env['STALWART_BOOTSTRAP_CONFIG']['value'] == '/etc/stalwart-bootstrap/config/config.json'
+    mounts = {v['name']: v for v in container['volumeMounts']}
+    volumes = {v['name']: v for v in pod['volumes']}
+    for name in ['stalwart-bootstrap-config', 'stalwart-bootstrap-credential']:
+        assert mounts[name]['readOnly'] is True
+        value = volumes[name].get('secret', volumes[name].get('configMap'))
+        assert value['optional'] is True and value['defaultMode'] == 288
+    assert volumes['stalwart-bootstrap-credential']['secret']['secretName'] == 'stalwart-bootstrap-authority'
+    assert volumes['stalwart-bootstrap-credential']['secret']['secretName'] != volumes['stalwart-admin-credential']['secret']['secretName']
