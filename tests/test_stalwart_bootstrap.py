@@ -28,7 +28,7 @@ class Broker:
         elif argv[0] == 'create':
             if self.secret: out.update(exitCode=1, stderr='secret-value-could-be-echoed')
             else:
-                self.secret = json.loads(stdin); self.secret['metadata']['resourceVersion'] = '1'
+                self.secret = json.loads(stdin); self.secret['metadata']['resourceVersion'] = '1'; self.secret['metadata']['uid'] = 'reservation-uid'
         elif argv[0] == 'replace':
             if self.fail_save: out.update(exitCode=1, stderr=stdin)
             else: self.secret = json.loads(stdin)
@@ -83,3 +83,38 @@ def test_tool_is_admin_only():
     with pytest.raises(OperationError) as error:
         server.dispatch(None, 'credentials.stalwart.ensure', {}, Identity('member', ()))
     assert error.value.code == 'AUTHORIZATION_DENIED'
+
+def test_ready_reuse_rechecks_native_key_permissions(monkeypatch):
+    monkeypatch.setattr(b.Client, 'discover', lambda self: None)
+    broker, provider = Broker(), Provider()
+    plan = invoke(broker, provider, {})
+    invoke(broker, provider, {'apply': True, 'planHash': plan['planHash']})
+    provider.objects['ApiKey']['permissions'] = {'@type': 'Inherit'}
+    with pytest.raises(OperationError) as error: invoke(broker, provider, {})
+    assert error.value.code == 'BOOTSTRAP_KEY_VERIFY_FAILED'
+    assert len(provider.writes) == 3
+
+
+def test_reservation_replacement_cannot_receive_generated_key(monkeypatch):
+    monkeypatch.setattr(b.Client, 'discover', lambda self: None)
+    broker, provider = Broker(), Provider()
+    original = provider.method
+    def replace_reservation(obj, action, args):
+        result = original(obj, action, args)
+        if obj == 'ApiKey' and action == 'set':
+            broker.secret['metadata']['uid'] = 'different-object'
+        return result
+    provider.method = replace_reservation
+    plan = invoke(broker, provider, {})
+    with pytest.raises(OperationError) as error:
+        invoke(broker, provider, {'apply': True, 'planHash': plan['planHash']})
+    assert error.value.code == 'BOOTSTRAP_RESERVATION_LOST'
+    assert not broker.secret.get('data')
+
+
+def test_broker_timeout_is_sanitized_and_nonretryable():
+    class TimeoutBroker:
+        def _kubectl(self, *args, **kwargs):
+            raise OperationError('BACKEND_TIMEOUT', 'secret-value', retryable=True)
+    with pytest.raises(OperationError) as error: invoke(TimeoutBroker(), Provider(), {})
+    assert not error.value.retryable and 'secret-value' not in str(error.value)

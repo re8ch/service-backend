@@ -109,8 +109,15 @@ def created(client, obj, value, account_id=None):
     return result
 
 
+def broker_call(service, argv, stdin=None):
+    try:
+        return service._kubectl(argv, stdin=stdin)
+    except OperationError:
+        fail('BOOTSTRAP_BROKER_UNCERTAIN')
+
+
 def secret_get(service):
-    result = service._kubectl(['get', 'secret', SECRET, '-n', NAMESPACE, '--ignore-not-found', '-o', 'json'])
+    result = broker_call(service, ['get', 'secret', SECRET, '-n', NAMESPACE, '--ignore-not-found', '-o', 'json'])
     if result['exitCode']:
         fail('BOOTSTRAP_SECRET_READ_FAILED')
     try:
@@ -143,6 +150,11 @@ def call(service, args, subject, *, configuration=None, client=None):
             Client(configuration['origin'], existing_token).discover()
         except (KeyError, ValueError, UnicodeError):
             fail('BOOTSTRAP_SECRET_CONFLICT')
+        keys = client.method('ApiKey', 'get', {'accountId': account['id'],
+                'ids': [annotations.get('re8ch.com/provider-key')],
+                'properties': ['id', 'permissions', 'expiresAt']}).get('list', [])
+        if len(keys) != 1 or keys[0].get('id') != annotations.get('re8ch.com/provider-key') or keys[0].get('expiresAt') != annotations['re8ch.com/expires-at'] or keys[0].get('permissions') != {'@type': 'Replace', 'permissions': {p: True for p in PERMISSIONS}}:
+            fail('BOOTSTRAP_KEY_VERIFY_FAILED')
         return {'state': 'Ready', 'credentialRef': f'kubernetes://{NAMESPACE}/{SECRET}', 'changed': False}
     plan = {'revision': configuration['revision'], 'origin': configuration['origin'],
             'domainId': configuration['domainId'], 'subject': subject,
@@ -160,9 +172,13 @@ def call(service, args, subject, *, configuration=None, client=None):
                 'metadata': {'name': SECRET, 'namespace': NAMESPACE,
                  'labels': {'re8ch.com/credential-owner': NAME},
                  'annotations': {'re8ch.com/bootstrap-state': 'Provisioning', 're8ch.com/plan-hash': plan_hash}}}
-    reserved = service._kubectl(['create', '-f', '-', '-o', 'name'], stdin=json.dumps(manifest))
+    reserved = broker_call(service, ['create', '-f', '-', '-o', 'name'], stdin=json.dumps(manifest))
     if reserved['exitCode']:
         fail('BOOTSTRAP_RESERVATION_FAILED')
+    reservation = secret_get(service)
+    if not reservation or not reservation.get('metadata', {}).get('uid'):
+        fail('BOOTSTRAP_RESERVATION_LOST')
+    reservation_uid = reservation['metadata']['uid']
     if not oauth:
         created(client, 'OAuthClient', CLIENT)
     if not account:
@@ -182,13 +198,15 @@ def call(service, args, subject, *, configuration=None, client=None):
     restricted = Client(configuration['origin'], token)
     restricted.discover()
     current = secret_get(service)
-    if not current or current.get('metadata', {}).get('annotations', {}).get('re8ch.com/plan-hash') != plan_hash:
+    metadata = current.get('metadata', {}) if current else {}
+    annotations = metadata.get('annotations', {})
+    if metadata.get('uid') != reservation_uid or annotations.get('re8ch.com/plan-hash') != plan_hash or annotations.get('re8ch.com/bootstrap-state') != 'Provisioning' or metadata.get('labels', {}).get('re8ch.com/credential-owner') != NAME:
         fail('BOOTSTRAP_RESERVATION_LOST')
     manifest['metadata']['resourceVersion'] = current['metadata']['resourceVersion']
     manifest['metadata']['annotations'].update({'re8ch.com/bootstrap-state': 'Ready',
             're8ch.com/provider-account': account['id'], 're8ch.com/provider-origin': configuration['origin'], 're8ch.com/provider-key': key['id'], 're8ch.com/expires-at': expiry})
     manifest['data'] = {'token': base64.b64encode(token.encode()).decode()}
-    saved = service._kubectl(['replace', '-f', '-', '-o', 'name'], stdin=json.dumps(manifest))
+    saved = broker_call(service, ['replace', '-f', '-', '-o', 'name'], stdin=json.dumps(manifest))
     if saved['exitCode']:
         fail('BOOTSTRAP_SECRET_WRITE_FAILED')
     observed = secret_get(service)
