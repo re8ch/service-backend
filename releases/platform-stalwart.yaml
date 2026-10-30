@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: signal-jade
+codename: starfire-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:d89dba7bc4713d3d8826db8adce0cf196f46744e817dfc2b96644510009e9cbd
+  digest: sha256:fbd674a7f8903fe1eaf64986026e1f0cb577caa558afa1f81f56742ea550f1cf
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
