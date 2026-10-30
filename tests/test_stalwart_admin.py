@@ -206,6 +206,32 @@ def test_native_client_uses_scoped_properties_and_same_origin():
     assert transport.calls[1].headers["Authorization"] == "Bearer test-only"
 
 
+def test_v1_management_capability_is_accepted_on_authenticated_primary_account():
+    transport = Transport([
+        {"capabilities": {"urn:ietf:params:jmap:core": {}},
+         "primaryAccounts": {admin.CAPABILITY: "admin-account"},
+         "accounts": {"admin-account": {"accountCapabilities": {admin.CAPABILITY: {}}}},
+         "apiUrl": "https://mail.example.test/jmap/"},
+        {"methodResponses": [["x:Domain/query", {"ids": []}, "admin"]]},
+    ])
+    client = admin.Client("https://mail.example.test", "test-only", opener=transport)
+    assert client.method("Domain", "query", {"limit": 1}) == {"ids": []}
+
+
+@pytest.mark.parametrize("session", [
+    {"capabilities": {}, "primaryAccounts": {admin.CAPABILITY: "missing"}, "accounts": {}},
+    {"capabilities": {}, "primaryAccounts": {admin.CAPABILITY: "ordinary"},
+     "accounts": {"ordinary": {"accountCapabilities": {}}}},
+])
+def test_primary_account_without_management_capability_fails_closed(session):
+    session["apiUrl"] = "https://mail.example.test/jmap/"
+    transport = Transport([session])
+    with pytest.raises(OperationError) as failure:
+        admin.Client("https://mail.example.test", "test-only", opener=transport).discover()
+    assert failure.value.code == "STALWART_UNSUPPORTED"
+    assert len(transport.calls) == 1
+
+
 @pytest.mark.parametrize("api_url", ["https://evil.test/jmap/", "http://mail.example.test/jmap/", "https://mail.example.test/api/keys", "https://mail.example.test/jmap/?secret=value"])
 def test_discovered_endpoint_cannot_redirect_credentials(api_url):
     transport = Transport([{"capabilities": {admin.CAPABILITY: {}}, "apiUrl": api_url}])
