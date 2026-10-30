@@ -284,3 +284,17 @@ def test_node_adoption_leaves_runtime_taints_with_existing_authority():
     cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert {"domain": "data-storage", "identity": "core/Node/_/b1-wsl-zt", "field": "spec.taints",
             "authority": "existing-runtime-node-authority", "reason": "cloud-adoption-manages-static-metadata-only"} in cohort["omissions"]
+
+
+def test_reset_requires_certified_reuse_and_materializes_only_reset():
+    import os
+    import subprocess
+    workflow = yaml.load((ROOT / '.github/workflows/main-domain-release.yml').read_text(), Loader=YAML_SAFE_LOADER)
+    assert 'reset' in workflow.get('on', workflow.get(True))['workflow_dispatch']['inputs']['mode']['options']
+    step = next(s for s in workflow['jobs']['validate']['steps'] if s.get('name') == 'Validate artifact reuse selection')
+    for artifact, source, expected in [('', '', False), ('sha256:' + 'a' * 64, '', False), ('sha256:' + 'a' * 64, 'b' * 40, True)]:
+        result = subprocess.run(['bash', '-e', '-c', step['run']], env={**os.environ, 'MODE': 'reset', 'REUSE_DIGEST': artifact, 'REUSE_SOURCE_COMMIT': source}, capture_output=True)
+        assert (result.returncode == 0) is expected
+    commands = '\n'.join(s.get('run', '') for s in workflow['jobs']['execute']['steps'])
+    assert 'if [[ "$RELEASE_MODE" == reset ]]; then takeover_args=(--action reset); fi' in commands
+    assert 'if [[ "$RELEASE_MODE" != publish ]]; then exit 1; fi' in commands

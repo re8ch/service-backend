@@ -243,10 +243,12 @@ class Executor:
                 raise Rejected("operation ID was reused with different content")
             return {}, [], request_digest
         state = store.state()
-        if state and state.get("blocked"):
+        if state and state.get("blocked") and operation["action"] != "reset":
             raise Rejected(f"release is blocked: {state.get('blockedReason', 'manual recovery required')}")
-        if state and state.get("suspended") and operation["action"] not in {"suspend", "resume"}:
+        if state and state.get("suspended") and operation["action"] not in {"suspend", "resume", "reset"}:
             raise Rejected("release is suspended; resume before reconciliation")
+        if operation["action"] == "reset" and operation.get("forceConflictObjects"):
+            raise Rejected("reset cannot request force conflicts")
         expected_sequence = 1 if state is None else state["sequence"] + 1
         if operation["sequence"] != expected_sequence:
             raise Rejected(f"out-of-order operation: expected sequence {expected_sequence}")
