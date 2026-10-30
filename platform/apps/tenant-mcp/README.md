@@ -11,6 +11,11 @@ token; every tenant request checks it with GoTrue and resolves current tenant
 membership through tenant-control. The ToolHive service credential supports
 MCP discovery only. Tenant tool calls need a tenant member token.
 
+`model_gateway_catalog` and `model_gateway_chat` provide optional bounded
+LiteLLM inference for the authenticated organization. They require an active
+model-gateway grant and a dedicated server-side tenant binding; configuration
+does not prove provider readiness. See [activation and research usage](MODEL-GATEWAY.md).
+
 Authentication and tenant authorization have separate outcomes. The identity
 RPC idempotently creates or restores the verified user's Personal organization
 owner membership before resolving a runtime. The identity database owns one

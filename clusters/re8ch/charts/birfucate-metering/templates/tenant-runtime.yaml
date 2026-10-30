@@ -2,6 +2,28 @@
 {{- if and .Values.tenantPlatform.tenantAPI.enabled (not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" .Values.tenantPlatform.tenantAPI.image)) }}
 {{- fail "tenantPlatform.tenantAPI.image must be pinned to a verified sha256 digest" }}
 {{- end }}
+{{- $modelGateway := .Values.tenantPlatform.tenantAPI.modelGateway | default dict }}
+{{- if $modelGateway.enabled }}
+{{- if not .Values.tenantPlatform.tenantAPI.enabled }}
+{{- fail "modelGateway requires tenantPlatform.tenantAPI.enabled" }}
+{{- end }}
+{{- if or (not $modelGateway.gatewayURL) (not $modelGateway.credentialsSecret) (not $modelGateway.bindings) }}
+{{- fail "modelGateway requires gatewayURL, credentialsSecret and non-empty bindings" }}
+{{- end }}
+{{- $keyEnvs := dict }}
+{{- range $tenant, $binding := $modelGateway.bindings }}
+{{- if not (regexMatch "^LITELLM_TENANT_[A-Z0-9_]+_KEY$" ($binding.tokenEnv | default "")) }}
+{{- fail "modelGateway binding tokenEnv must be a dedicated LITELLM_TENANT_*_KEY environment name" }}
+{{- end }}
+{{- if hasKey $keyEnvs $binding.tokenEnv }}
+{{- fail "modelGateway bindings must not share a tokenEnv" }}
+{{- end }}
+{{- $_ := set $keyEnvs $binding.tokenEnv true }}
+{{- if not $binding.models }}
+{{- fail "modelGateway bindings require a non-empty approved model ceiling" }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- if .Values.tenantPlatform.tenantAPI.enabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -177,6 +199,18 @@ spec:
             - {name: LISTEN_PORT, value: "19448"}
             - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
             - {name: OPENAI_APPS_CHALLENGE_TOKEN, value: {{ .Values.tenantPlatform.tenantAPI.openAIAppsChallengeToken | default "" | quote }}}
+            {{- if $modelGateway.enabled }}
+            - {name: LITELLM_GATEWAY_URL, value: {{ $modelGateway.gatewayURL | quote }}}
+            - {name: LITELLM_TENANT_BINDINGS_JSON, value: {{ $modelGateway.bindings | toJson | quote }}}
+            {{- range $tenant, $binding := $modelGateway.bindings }}
+            - name: {{ $binding.tokenEnv | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $modelGateway.credentialsSecret | quote }}
+                  key: {{ $binding.tokenEnv | quote }}
+                  optional: false
+            {{- end }}
+            {{- end }}
             - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
             - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}

@@ -21,6 +21,24 @@
             "usersURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "organizationsURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "platformSessionURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
+            "modelGateway": {
+              "type": "object", "additionalProperties": false,
+              "properties": {
+                "enabled": {"type": "boolean"},
+                "gatewayURL": {"type": "string"},
+                "credentialsSecret": {"type": "string"},
+                "bindings": {
+                  "type": "object", "propertyNames": {"pattern": "^[a-z0-9][a-z0-9._-]*$"},
+                  "additionalProperties": {
+                    "type": "object", "additionalProperties": false, "required": ["tokenEnv", "models"],
+                    "properties": {
+                      "tokenEnv": {"type": "string"},
+                      "models": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+                    }
+                  }
+                }
+              }
+            },
             "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"}
           }
         },
