@@ -173,7 +173,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: infra-contracts-recovery-dryrun
+  name: infra-contracts-recovery-dryrun-v2
   namespace: flux-system
 spec:
   backoffLimit: 0

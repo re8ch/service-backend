@@ -96,3 +96,6 @@ before source decryption, so a failed challenge can be distinguished from a
 source decrypt/validation failure without showing private material or CLI stderr.
 Any such failure still requires inspection and a newly reviewed candidate; it
 does not authorize retrying the failed Job or starting the apply Job.
+The next reviewed diagnostic dry-run has the distinct Job name
+`infra-contracts-recovery-dryrun-v2`; its application selector and scoped
+permissions are unchanged.
