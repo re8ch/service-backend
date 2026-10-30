@@ -14,7 +14,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",
 		"harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_vulnerability_report_get",
 		"harbor_sbom_get", "harbor_accessory_list", "harbor_audit_log_list", "harbor_build_get", "harbor_build_list",
-		"runtime_image_catalog",
+		"runtime_image_catalog", "model_gateway_catalog",
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
 		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read":
@@ -28,6 +28,9 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		destructive = true
 	case "tenant_exposure_create":
 		// Reconciles an externally reachable endpoint through the platform PublicEdge.
+		openWorld = true
+	case "model_gateway_chat":
+		// Sends content to a configured provider and consumes native gateway quota.
 		openWorld = true
 	case "dynamic_skill_submit":
 		// Stores caller-supplied workflow text for an independently reviewed platform process.

@@ -68,6 +68,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 	return map[string]any{
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready, "grantedConsumables": grants,
 		"capabilities": []map[string]any{
+			{"id": "model-gateway", "kinds": []string{}, "tools": []string{"model_gateway_catalog", "model_gateway_chat"}, "requiredConsumable": modelGatewayCapability, "configured": modelGatewayConfigured(id.Tenant), "providerState": "unverified", "canRequest": modelGatewayConfigured(id.Tenant) && hasRequestableGrant(grants, modelGatewayCapability), "canWrite": false, "consumesQuota": true},
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite},
 			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": kubernetesTools, "canWrite": namespacedWrite},

@@ -103,6 +103,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
 	s.registerServiceTools(ms)
+	s.registerModelGatewayTools(ms)
 	s.registerHarborTools(ms, false)
 	s.registerGrafanaTools(ms)
 	s.registerKubernetesTools(ms)
@@ -138,6 +139,7 @@ func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	s.registerClaimToolsNamed(ms, []string{"tenant_claim_plan", "tenant_claim_create", "tenant_claim_get", "tenant_claim_list", "tenant_claim_update", "tenant_claim_renew", "tenant_claim_cancel"})
 	s.registerHarborTools(ms, true)
 	s.registerGrafanaTools(ms)
+	s.registerModelGatewayTools(ms)
 	return ms
 }
 

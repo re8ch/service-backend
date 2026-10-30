@@ -15,7 +15,7 @@ def documents(path):
     return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if item]
 
 
-def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
+def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False, extra_values=None):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
     command = ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"]
@@ -23,10 +23,14 @@ def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
         command.extend(["--set", "tenantPlatform.provider.enabled=true", "--set-string", "tenantPlatform.provider.image=registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64])
     if tenant_go_enabled:
         command.extend(["--set", "tenantPlatform.tenantAPI.enabled=true", "--set-string", "tenantPlatform.tenantAPI.image=registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64])
-    rendered = subprocess.run(
-        command,
-        check=True, capture_output=True, text=True,
-    ).stdout
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as values:
+        if extra_values is not None:
+            yaml.safe_dump(extra_values, values)
+            values.flush()
+            command.extend(["--values", values.name])
+        rendered = subprocess.run(
+            command, check=True, capture_output=True, text=True,
+        ).stdout
     return [item for item in yaml.load_all(rendered, Loader=YAML_SAFE_LOADER) if item]
 
 
@@ -667,3 +671,49 @@ def test_shared_personal_runtime_class_has_owner_resource_policy():
     assert shared["byocAllowed"] is True
     assert shared["namespacePolicy"]["allowCreate"] is True
     assert shared["namespacePolicy"]["bootstrapNamespaces"] == ["personal-standard-default"]
+
+
+def test_model_gateway_defaults_do_not_expose_inference_credentials():
+    values = yaml.safe_load((ROOT / "clusters/re8ch/charts/birfucate-metering/values.yaml").read_text())
+    gateway = values["tenantPlatform"]["tenantAPI"]["modelGateway"]
+    assert gateway == {"enabled": False, "gatewayURL": "", "credentialsSecret": "", "bindings": {}}
+    for item in tenant_chart_documents(tenant_go_enabled=True):
+        if item["kind"] == "Deployment":
+            for container in item["spec"]["template"]["spec"]["containers"]:
+                assert not any(env["name"].startswith("LITELLM_") for env in container.get("env", []))
+
+
+def test_model_gateway_injects_only_explicit_tenant_secret_keys():
+    bindings = {"research-fixture": {"tokenEnv": "LITELLM_TENANT_RESEARCH_FIXTURE_KEY", "models": ["fixture-model"]}}
+    gateway = {"enabled": True, "gatewayURL": "http://litellm.llm-gateway.svc.cluster.local:4000", "credentialsSecret": "research-fixture-credentials", "bindings": bindings}
+    docs = tenant_chart_documents(tenant_go_enabled=True, extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": gateway}}})
+    deployments = {item["metadata"]["name"]: item for item in docs if item["kind"] == "Deployment"}
+    tenant = deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]
+    admin = deployments["admin-api"]["spec"]["template"]["spec"]["containers"][0]
+    env = {item["name"]: item for item in tenant["env"]}
+    assert env["LITELLM_GATEWAY_URL"]["value"] == gateway["gatewayURL"]
+    assert json.loads(env["LITELLM_TENANT_BINDINGS_JSON"]["value"]) == bindings
+    assert env[bindings["research-fixture"]["tokenEnv"]]["valueFrom"]["secretKeyRef"] == {
+        "name": gateway["credentialsSecret"], "key": "LITELLM_TENANT_RESEARCH_FIXTURE_KEY", "optional": False}
+    assert not any(item["name"].startswith("LITELLM_") for item in admin["env"])
+    for container in (tenant, admin):
+        assert not any(item.get("secretRef", {}).get("name") == gateway["credentialsSecret"] for item in container.get("envFrom", []))
+    assert not any(item["kind"] == "Secret" and item["metadata"]["name"] == gateway["credentialsSecret"] for item in docs)
+
+
+def test_model_gateway_rejects_incomplete_or_shared_credentials():
+    import pytest
+    base = {"enabled": True, "gatewayURL": "https://gateway.example.test", "credentialsSecret": "fixture-credentials"}
+    cases = [
+        ({}, "non-empty bindings"),
+        ({"a": {"tokenEnv": "SERVICE_API_TOKEN", "models": ["m"]}}, "dedicated LITELLM_TENANT"),
+        ({"a": {"tokenEnv": "LITELLM_TENANT_A_KEY", "models": []}}, "non-empty approved model ceiling"),
+        ({name: {"tokenEnv": "LITELLM_TENANT_SHARED_KEY", "models": ["m"]} for name in ("a", "b")}, "must not share"),
+    ]
+    for bindings, message in cases:
+        with pytest.raises(subprocess.CalledProcessError) as error:
+            tenant_chart_documents(tenant_go_enabled=True, extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": {**base, "bindings": bindings}}}})
+        assert message in error.value.stderr
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        tenant_chart_documents(extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": base}}})
+    assert "requires tenantPlatform.tenantAPI.enabled" in error.value.stderr
