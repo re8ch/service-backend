@@ -85,7 +85,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
 			"id": "collaboration", "requiredConsumable": "collaboration.stalwart.v1",
 			"tools":      []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "files_list", "files_read"},
-			"canConnect": hasRequestableGrant(grants, "collaboration.stalwart.v1"), "providerState": "unverified", "ownership": "organization-and-user",
+			"canConnect": hasPersonalCollaborationGrant(grants, id.Role), "providerState": "unverified", "ownership": "organization-and-user",
 		})
 	}
 	return result
@@ -134,4 +134,30 @@ func hasRequestableGrant(grants []map[string]any, capability string) bool {
 		}
 	}
 	return false
+}
+
+// A viewer may consent to their own provider account only when the tenant
+// explicitly grants collaboration to viewers. Infrastructure grants retain
+// the existing operator/admin request rules.
+func hasPersonalCollaborationGrant(grants []map[string]any, role string) bool {
+	for _, grant := range grants {
+		if grant["consumableRef"] != "collaboration.stalwart.v1" || grant["lifecycle"] != "Active" {
+			continue
+		}
+		if grant["canRequest"] == true || role == "viewer" && grant["roleRef"] == "viewer" {
+			return true
+		}
+	}
+	return false
+}
+
+func requirePersonalCollaborationGrant(ctx context.Context, id identity) error {
+	grants, err := tenantGrantedConsumables(ctx, id.Tenant, id.Role)
+	if err != nil {
+		return err
+	}
+	if id.Service || id.Subject == "" || !hasPersonalCollaborationGrant(grants, id.Role) {
+		return errors.New("active personal collaboration grant and membership are required")
+	}
+	return nil
 }
