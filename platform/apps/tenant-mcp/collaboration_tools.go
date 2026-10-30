@@ -51,7 +51,7 @@ func collaborationCaller(ctx context.Context) (identity, error) {
 	if err != nil {
 		return id, err
 	}
-	if err = requireGrantedConsumable(ctx, id, "collaboration.stalwart.v1"); err != nil {
+	if err = requirePersonalCollaborationGrant(ctx, id); err != nil {
 		return id, err
 	}
 	return id, nil
@@ -106,7 +106,7 @@ func (s *server) registerCollaborationTools(ms *mcp.Server) {
 		}
 		// Revocation remains possible after a resource grant is removed.
 		if in.Action != "revoke" && in.Action != "status" && in.Action != "list" {
-			if err = requireGrantedConsumable(ctx, id, "collaboration.stalwart.v1"); err != nil {
+			if err = requirePersonalCollaborationGrant(ctx, id); err != nil {
 				return nil, nil, err
 			}
 		}

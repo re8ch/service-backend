@@ -123,6 +123,45 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	}
 }
 
+func TestPersonalCollaborationGrantDoesNotWidenInfrastructureRoles(t *testing.T) {
+	viewerGrant := map[string]any{"consumableRef": "collaboration.stalwart.v1", "roleRef": "viewer", "lifecycle": "Active", "canRequest": false}
+	operatorGrant := map[string]any{"consumableRef": "collaboration.stalwart.v1", "roleRef": "operator", "lifecycle": "Active", "canRequest": false}
+	storageGrant := map[string]any{"consumableRef": "storage.volume.v1", "roleRef": "operator", "lifecycle": "Active", "canRequest": false}
+	if !hasPersonalCollaborationGrant([]map[string]any{viewerGrant}, "viewer") {
+		t.Fatal("viewer-specific personal consent grant was rejected")
+	}
+	if hasPersonalCollaborationGrant([]map[string]any{operatorGrant}, "viewer") || hasPersonalCollaborationGrant([]map[string]any{storageGrant}, "viewer") {
+		t.Fatal("viewer gained operator or infrastructure grant")
+	}
+	viewerGrant["lifecycle"] = "Suspended"
+	if hasPersonalCollaborationGrant([]map[string]any{viewerGrant}, "viewer") {
+		t.Fatal("suspended personal grant was accepted")
+	}
+	viewerGrant["lifecycle"] = "Active"
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/capabilities" {
+			t.Fatalf("unexpected control path: %s", r.URL.Path)
+		}
+		writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "grants": []any{viewerGrant, storageGrant}})
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	viewer := identity{Tenant: "re8ch", Subject: "viewer-subject", Role: "viewer"}
+	if err := requirePersonalCollaborationGrant(context.Background(), viewer); err != nil {
+		t.Fatalf("personal viewer consent rejected: %v", err)
+	}
+	if err := requireGrantedConsumable(context.Background(), viewer, "storage.volume.v1"); err == nil {
+		t.Fatal("viewer gained infrastructure request access")
+	}
+	if err := requirePersonalCollaborationGrant(context.Background(), identity{Tenant: "re8ch", Subject: "viewer-subject", Role: "viewer", Service: true}); err == nil {
+		t.Fatal("service identity gained personal consent access")
+	}
+	if err := requirePersonalCollaborationGrant(context.Background(), identity{Tenant: "re8ch", Role: "viewer"}); err == nil {
+		t.Fatal("subjectless identity gained personal consent access")
+	}
+}
+
 func TestExposureGrantCannotBeBypassedByOperatorRole(t *testing.T) {
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1/capabilities" {
