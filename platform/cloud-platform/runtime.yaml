@@ -34,6 +34,13 @@ spec:
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
             - {name: HYPOTHESIS_STORAGE_DIRECTORY, value: /tmp/hypothesis}
             - {name: OAUTH_AUDIENCE, value: re8ch-cloud-platform-tool}
+            # Optional until platform-authorized provisioning completes. Missing
+            # origin/token/plans keeps the bounded management adapter closed.
+            - name: STALWART_ADMIN_ORIGIN
+              valueFrom:
+                configMapKeyRef: {name: stalwart-admin-runtime, key: origin, optional: true}
+            - {name: STALWART_ADMIN_TOKEN_FILE, value: /etc/stalwart-admin/credential/token}
+            - {name: STALWART_APPROVED_PLANS_DIR, value: /etc/stalwart-admin/approved-plans}
             - {name: PUBLIC_MCP_URL, value: "https://operate.tools.re8ch.com/cloud/mcp"}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
           readinessProbe: {httpGet: {path: /readyz, port: mcp}, initialDelaySeconds: 2, periodSeconds: 5}
@@ -41,6 +48,8 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
           volumeMounts:
+            - {name: stalwart-admin-credential, mountPath: /etc/stalwart-admin/credential, readOnly: true}
+            - {name: stalwart-approved-plans, mountPath: /etc/stalwart-admin/approved-plans, readOnly: true}
             - {name: http-acceptance-tmp, mountPath: /tmp}
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
             - {name: ssh-projected, mountPath: /etc/re8ch-platform/ssh, readOnly: true}
@@ -48,6 +57,17 @@ spec:
             - {name: ssh-known-hosts, mountPath: /var/lib/re8ch-ai-operations}
             - {name: infrastructure-contracts, mountPath: /etc/re8ch-platform/infrastructure, readOnly: true}
       volumes:
+        - name: stalwart-admin-credential
+          secret:
+            secretName: stalwart-self-service-admin
+            optional: true
+            defaultMode: 288
+            items: [{key: token, path: token}]
+        - name: stalwart-approved-plans
+          configMap:
+            name: stalwart-admin-approved-plans
+            optional: true
+            defaultMode: 288
         - {name: ssh-known-hosts, emptyDir: {medium: Memory, sizeLimit: 1Mi}}
         - {name: http-acceptance-tmp, emptyDir: {medium: Memory, sizeLimit: 16Mi}}
         - {name: kubeconfig, secret: {secretName: cloud-platform-runtime, items: [{key: kubeconfig-re8ch.yaml, path: kubeconfig}]}}

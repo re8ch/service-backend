@@ -54,6 +54,7 @@ def test_native_upload_attempts_fit_the_release_budget():
     attempts = int(settings['TENANT_IMAGE_PUSH_ATTEMPTS'])
     duration = int(settings['TENANT_IMAGE_PUSH_TIMEOUT_SECONDS'])
     assert 1 <= attempts <= 3 and 60 <= duration <= 3600
+    assert attempts == 1 and duration == 1800
     # Includes hard-kill grace and retry delay, with time for signing and SBOM.
     assert release['timeout-minutes'] * 60 - attempts * (duration + 30) - 30 >= 8 * 60
 

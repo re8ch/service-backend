@@ -112,3 +112,22 @@ Official references:
 - https://stalw.art/docs/ref/object/account/
 - https://stalw.art/docs/ref/object/domain/
 - https://www.rfc-editor.org/rfc/rfc8620#section-5.3
+
+## Runtime mount provisioning
+
+The owned `platform/cloud-platform/runtime.yaml` projects optional read-only
+mounts. Before publishing the admin allowlist, platform-authorized credential
+provisioning must create `ai-operations/stalwart-self-service-admin` Secret with
+key `token` using a dedicated Account/Domain management identity. Provision
+`stalwart-admin-runtime` ConfigMap key `origin` with the reviewed HTTPS origin;
+changing that environment value requires a reviewed rollout. Neither value is
+accepted from callers. Recovery-administrator credentials must not be reused.
+
+Reviewed signed delivery owns `stalwart-admin-approved-plans` ConfigMap in the
+same namespace. Its data keys are approved `<planHash>.json` records described
+above. Start with an empty ConfigMap; no plan is approved by adding the mount.
+Do not grant tenant-api access to this ConfigMap or Secret. The optional sources
+allow an unconfigured deployment to remain healthy while management calls fail
+closed. The token and plan mounts have mode 0440, are read-only, and avoid subPath
+so credential rotation and approved-plan expiration/removal project normally.
+Never create these objects through an unreviewed local credential path.
