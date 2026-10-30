@@ -7,7 +7,23 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+type authenticatedMCPTransport struct {
+	token string
+	base  http.RoundTripper
+}
+
+func (t authenticatedMCPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	clone := request.Clone(request.Context())
+	clone.Header = request.Header.Clone()
+	clone.Header.Set("Authorization", "Bearer "+t.token)
+	clone.Header.Set("X-RE8CH-Tenant", "re8ch")
+	return t.base.RoundTrip(clone)
+}
 
 func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 	s := testServer(t)
@@ -159,6 +175,68 @@ func TestPersonalCollaborationGrantDoesNotWidenInfrastructureRoles(t *testing.T)
 	}
 	if err := requirePersonalCollaborationGrant(context.Background(), identity{Tenant: "re8ch", Role: "viewer"}); err == nil {
 		t.Fatal("subjectless identity gained personal consent access")
+	}
+}
+
+func TestCapabilityRefreshPublishesDynamicToolList(t *testing.T) {
+	s := testServer(t)
+	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"id": "user-1"})
+	}))
+	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/namespaces":
+			writeJSON(w, 200, map[string]any{"items": []any{map[string]any{"spec": map[string]any{"tenantRef": "re8ch", "operation": "EnsurePresent", "namespaceName": "re8ch-default"}, "status": map[string]any{"phase": "Ready"}}}})
+		case "/v1/capabilities":
+			writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "grants": []any{map[string]any{"name": "collaboration", "consumableRef": "collaboration.stalwart.v1", "roleRef": "operator", "lifecycle": "Active"}}})
+		default:
+			writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch-default"})
+		}
+	}))
+	defer control.Close()
+	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	t.Setenv("COLLABORATION_ENABLED", "true")
+
+	httpServer := httptest.NewServer(s.handler())
+	defer httpServer.Close()
+	changed := make(chan struct{}, 1)
+	client := mcp.NewClient(&mcp.Implementation{Name: "dynamic-tools-test", Version: "1"}, &mcp.ClientOptions{
+		ToolListChangedHandler: func(context.Context, *mcp.ToolListChangedRequest) {
+			select {
+			case changed <- struct{}{}:
+			default:
+			}
+		},
+	})
+	httpClient := &http.Client{Transport: authenticatedMCPTransport{token: fixtureToken(), base: http.DefaultTransport}}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	session, err := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: httpServer.URL + "/mcp", HTTPClient: httpClient}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer session.Close()
+	if _, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "tenant_self_service_capabilities", Arguments: map[string]any{}}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-changed:
+	case <-ctx.Done():
+		t.Fatal("tools/list_changed was not delivered to the connected client")
+	}
+	listed, err := session.ListTools(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, tool := range listed.Tools {
+		found = found || tool.Name == "mail_query"
+	}
+	if !found {
+		t.Fatal("refreshed tool list omitted mail_query")
 	}
 }
 

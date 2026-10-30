@@ -46,7 +46,7 @@ type submitInput struct {
 }
 
 func (s *server) skillMCP(id identity) *mcp.Server {
-	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
+	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
 	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
@@ -99,15 +99,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if !id.Service && id.Subject != "" && id.Tenant == "" {
 		return ms
 	}
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's resource operations, Ready namespaces, and current grant entitlements. A grant does not prove provider readiness. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure; search dynamic_skill_search for reviewed internal workflows."},
-		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
-			caller, err := identityFrom(ctx)
-			if err != nil {
-				return nil, nil, err
-			}
-			value, err := selfServiceCapabilities(ctx, caller)
-			return nil, value, err
-		})
+	s.registerSelfServiceCapabilitiesTool(ms)
 	s.registerClaimTools(ms)
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
@@ -138,8 +130,29 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	return ms
 }
 
+func (s *server) registerSelfServiceCapabilitiesTool(ms *mcp.Server) {
+	tool := &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's resource operations, Ready namespaces, and current grant entitlements. A grant does not prove provider readiness. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure; search dynamic_skill_search for reviewed internal workflows."}
+	var handler mcp.ToolHandlerFor[struct{}, any]
+	handler = func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		caller, err := identityFrom(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		value, err := selfServiceCapabilities(ctx, caller)
+		if err == nil {
+			// Re-registering an existing tool is the SDK-supported way to emit
+			// notifications/tools/list_changed to the session's subscription
+			// stream. Stateless callers still receive the directory result and can
+			// reconnect through the stateful initialize path when they want updates.
+			mcp.AddTool(ms, tool, handler)
+		}
+		return nil, value, err
+	}
+	mcp.AddTool(ms, tool, handler)
+}
+
 func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
-	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant-self-service", Version: "0.3.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}}})
+	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant-self-service", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}}})
 	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
 	if id.Service || id.Subject == "" || id.Tenant == "" {
 		return ms
@@ -191,6 +204,13 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 
+type mcpInitializeKey struct{}
+
+func mcpInitialize(ctx context.Context) bool {
+	initialize, _ := ctx.Value(mcpInitializeKey{}).(bool)
+	return initialize
+}
+
 func rewriteReviewDemoToolCall(r *http.Request) error {
 	if r.Method != http.MethodPost || r.Body == nil {
 		return nil
@@ -206,8 +226,13 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	if json.Unmarshal(body, &request) != nil {
 		return nil
 	}
+	initialize := containsMCPMethod(request, "initialize") || containsMCPMethod(request, "server/discover")
 	uses := []toolAliasUse{}
-	if !rewriteToolNames(request, &uses) {
+	changed := rewriteToolNames(request, &uses)
+	if !changed {
+		if initialize {
+			*r = *r.WithContext(context.WithValue(r.Context(), mcpInitializeKey{}, true))
+		}
 		return nil
 	}
 	normalized, err := json.Marshal(request)
@@ -217,8 +242,25 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	r.Body = io.NopCloser(bytes.NewReader(normalized))
 	r.ContentLength = int64(len(normalized))
 	rctx := withToolAliasUses(r.Context(), uses)
+	if initialize {
+		rctx = context.WithValue(rctx, mcpInitializeKey{}, true)
+	}
 	*r = *r.WithContext(rctx)
 	return nil
+}
+
+func containsMCPMethod(value any, method string) bool {
+	switch request := value.(type) {
+	case []any:
+		for _, item := range request {
+			if containsMCPMethod(item, method) {
+				return true
+			}
+		}
+	case map[string]any:
+		return request["method"] == method
+	}
+	return false
 }
 
 func rewriteReviewDemoToolNames(value any) bool {
@@ -273,14 +315,21 @@ func rewriteToolNames(value any, uses *[]toolAliasUse) bool {
 }
 
 func (s *server) handler() http.Handler {
-	mcpHandler := mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
+	serverFor := func(req *http.Request) *mcp.Server {
 		id, _ := req.Context().Value(identityKey{}).(identity)
 		if publicSelfService(req.Context()) {
 			return s.publicSelfServiceMCP(id)
 		}
 		return s.skillMCP(id)
-	},
+	}
+	mcpHandler := mcp.NewStreamableHTTPHandler(serverFor,
 		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
+	// Initialized clients retain a server session and a standalone SSE or
+	// subscriptions/listen stream. That is the channel used for true dynamic
+	// tools/list_changed delivery. Calls without a session remain compatible
+	// with the historical stateless endpoint above.
+	statefulMCPHandler := mcp.NewStreamableHTTPHandler(serverFor,
+		&mcp.StreamableHTTPOptions{JSONResponse: true, MaxRequestBodyBytes: 1 << 20, SessionTimeout: 30 * time.Minute})
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /.well-known/openai-apps-challenge", openAIChallenge)
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) {
@@ -352,11 +401,6 @@ func (s *server) handler() http.Handler {
 		if isPublic {
 			r = r.WithContext(context.WithValue(r.Context(), publicSelfServiceKey{}, true))
 		}
-		if r.Method == http.MethodGet {
-			w.Header().Set("Allow", "POST")
-			writeJSON(w, 405, map[string]any{"error": "method_not_allowed", "allowed": []string{"POST"}})
-			return
-		}
 		header := r.Header.Get("Authorization")
 		challenge := func() {
 			metadata := os.Getenv("PUBLIC_RESOURCE_METADATA_URL")
@@ -401,7 +445,11 @@ func (s *server) handler() http.Handler {
 			return
 		}
 		recordToolAliasUses(r.Context())
-		mcpHandler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
+		handler := http.Handler(mcpHandler)
+		if mcpInitialize(r.Context()) || r.Header.Get("Mcp-Session-Id") != "" || r.Method == http.MethodGet || r.Method == http.MethodDelete {
+			handler = statefulMCPHandler
+		}
+		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	}
 	mux.HandleFunc("/mcp", mcpEndpoint)
 	mux.HandleFunc("/self-service/mcp", mcpEndpoint)
