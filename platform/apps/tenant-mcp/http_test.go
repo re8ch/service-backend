@@ -659,6 +659,11 @@ func TestLegacyMCPInitializeAndOAuthMetadata(t *testing.T) {
 	if object(result["result"])["protocolVersion"] != "2025-06-18" {
 		t.Fatalf("protocol version changed: %v", result)
 	}
+	capabilities := object(object(result["result"])["capabilities"])
+	tools := object(capabilities["tools"])
+	if listChanged, _ := tools["listChanged"].(bool); !listChanged {
+		t.Fatalf("dynamic tool refresh is not advertised: %v", result)
+	}
 	request = httptest.NewRequest("GET", "/.well-known/oauth-protected-resource/mcp", nil)
 	response = httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
