@@ -205,6 +205,7 @@ jobs:
             if [[ "$RELEASE_MODE" != publish ]]; then exit 1; fi
             case "$RELEASE_ID" in
               main-data-storage-ops) takeover_object=apps/Deployment/ops/cloudbeaver ;;
+              main-tenant-runtime-ai-operations) takeover_object=apps/Deployment/ai-operations/re8ch-cloud-platform ;;
               main-tenant-runtime-scheduling-system) takeover_object=apps/Deployment/scheduling-system/penrose-controller ;;
               *) echo 'No reviewed deployment takeover for this release' >&2; exit 1 ;;
             esac

@@ -32,6 +32,8 @@ spec:
     - re8ch-cloud-platform
     - re8ch-cloud-platform-admin
     allowClusterScoped: false
+    forceConflictObjects:
+    - apps/Deployment/ai-operations/re8ch-cloud-platform
   inventory:
     digest: sha256:602415bb8a9777f19f7d0b1c96437ef15e8c06fbaf448ed4963fc3a2f0550536
   lifecycle:

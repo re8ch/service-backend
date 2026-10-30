@@ -29,12 +29,6 @@
     "fromContractDigest": "sha256:61fd7af91338e346d5eb7bbec78e0d9daf105a8f787cd45595e1ebab68f1f11b",
     "toContractDigest": "sha256:904bdf6c217e3d9f19c9343127d914a0ecdb47a2ee99d1574a0b64336e76b212"
   },
-  "main-tenant-runtime-ai-operations": {
-    "bundleDigest": "sha256:b83f571ea2acba9b219bf6de2c1107c4e9107b829675aebb82eeabfa40a1c017",
-    "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-ai-operations",
-    "fromContractDigest": "sha256:96895aa165ec6231ed77ee486880d7d451bf0e0e20f855a5ff8aa07601b500e1",
-    "toContractDigest": "sha256:410fefe8ed9f540767098950a81c35d0e2bf994e56b0aebd1a7280cf1677b91b"
-  },
   "main-tenant-runtime-scheduler-system": {
     "bundleDigest": "sha256:0de38da325efcaaed08b134a71fe2cac39108f54eaa9d4d4ab1db07ca2b6fefc",
     "bundleReference": "oci://ghcr.io/re8ch/service-backend-release/main-tenant-runtime-scheduler-system",
