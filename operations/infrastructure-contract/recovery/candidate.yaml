@@ -55,9 +55,10 @@ data:
     \ {'compat-nodes.yaml'}}\nKEY = '/age/age.agekey'\nCIPHER_HASHES = {'ai-operations-ssh-config':\
     \ 'ba5c7754c495e4c7f96dc90a0392a34298ec2c8980191cee518143d3d3992509', 'infrastructure-contracts':\
     \ '5e88cf065289f24a53f54fdf8568846d2cdf9ca2f1e76eb12f02e5c88499f89c'}\nclass Rejected(Exception):\
-    \ pass\nclass NoRedirect(urllib.request.HTTPRedirectHandler):\n    def redirect_request(self,\
-    \ *args, **kwargs): raise Rejected()\n\ndef sops(args, body, runner=subprocess.run):\n\
-    \    env = {'PATH': os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin'),\n\
+    \ pass\nclass DiagnosticRejected(Rejected):\n    def __init__(self, stage):\n\
+    \        self.stage = stage\n        super().__init__()\nclass NoRedirect(urllib.request.HTTPRedirectHandler):\n\
+    \    def redirect_request(self, *args, **kwargs): raise Rejected()\n\ndef sops(args,\
+    \ body, runner=subprocess.run):\n    env = {'PATH': os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin'),\n\
     \           'HOME': '/tmp', 'SOPS_AGE_KEY_FILE': KEY}\n    r = runner(['sops',\
     \ *args], input=body, stdout=subprocess.PIPE,\n               stderr=subprocess.DEVNULL,\
     \ env=env, cwd='/tmp', timeout=30, check=False)\n    if r.returncode or len(r.stdout)\
@@ -97,38 +98,47 @@ data:
     \ method='PATCH',\n          headers={'Authorization': 'Bearer ' + token, 'Content-Type':\
     \ 'application/json-patch+json'})\n    with opener.open(req, timeout=30) as response:\n\
     \        raw = response.read(1048577)\n    if len(raw) > 1048576: raise Rejected()\n\
-    \    return json.loads(raw)\n\ndef prepare(directory, state):\n    decoded = {}\n\
-    \    for name in TARGETS:\n        raw = (directory / (name + '.json')).read_bytes()\n\
-    \        if len(raw) > 1048576 or hashlib.sha256(raw).hexdigest() != CIPHER_HASHES[name]:\
-    \ raise Rejected()\n        decoded[name] = decode(name, raw)\n    verify_key()\n\
-    \    fd = os.open(state / 'prepared.json', os.O_CREAT | os.O_EXCL | os.O_WRONLY,\
-    \ 0o600)\n    with os.fdopen(fd, 'w') as out:\n        json.dump({'sourceDigest':\
-    \ SOURCE, 'data': decoded}, out)\n    return {'prepared': True, 'recipientMatched':\
-    \ True, 'sourceDigest': SOURCE}\n\ndef run(directory, dry_run=True, state=Path('/state')):\n\
-    \    receipts = json.loads((directory / 'targets.json').read_text())\n    if set(receipts)\
-    \ != set(TARGETS): raise Rejected()\n    raw = (state / 'prepared.json').read_bytes()\n\
-    \    if len(raw) > 1048576: raise Rejected()\n    document = json.loads(raw)\n\
-    \    if document.get('sourceDigest') != SOURCE or set(document.get('data', {}))\
-    \ != set(TARGETS): raise Rejected()\n    prepared = {}\n    for name, data in\
-    \ document['data'].items():\n        if not isinstance(data, dict) or set(data)\
-    \ != TARGETS[name]: raise Rejected()\n        if any(not isinstance(v, str) or\
-    \ not base64.b64decode(v, validate=True) for v in data.values()): raise Rejected()\n\
-    \        prepared[name] = (data, patch(name, data, receipts[name]))\n    result\
-    \ = []\n    # Preflight both objects before any real write. No automatic retries.\n\
-    \    for name, (data, ops) in prepared.items():\n        returned = send(name,\
-    \ ops, True)\n        if returned.get('data') != data or returned['metadata']['uid']\
-    \ != receipts[name]['uid']: raise Rejected()\n    if not dry_run:\n        for\
-    \ name, (data, ops) in prepared.items():\n            returned = send(name, ops,\
-    \ False)\n            if returned.get('data') != data or returned['metadata']['uid']\
-    \ != receipts[name]['uid']: raise Rejected()\n    for name, (data, _) in prepared.items():\n\
-    \        result.append({'reference': 'kubernetes://ai-operations/' + name, 'matched':\
-    \ True,\n                       'contentHash': hashlib.sha256(json.dumps(data,\
-    \ sort_keys=True).encode()).hexdigest()})\n    return {'dryRun': dry_run, 'sourceDigest':\
-    \ SOURCE, 'recipientMatched': True, 'secrets': result}\n\ndef main():\n    try:\n\
-    \        if sys.argv[1:] not in ([], ['--apply'], ['--prepare']): raise Rejected()\n\
-    \        result = prepare(Path('/input'), Path('/state')) if sys.argv[1:] == ['--prepare']\
-    \ else run(Path('/input'), dry_run=not sys.argv[1:])\n        print(json.dumps(result))\n\
-    \    except Exception:\n        print('{\"status\":\"failed\",\"reason\":\"recovery_not_confirmed_do_not_retry\"\
+    \    return json.loads(raw)\n\ndef prepare(directory, state):\n    ciphertexts\
+    \ = {}\n    for name in TARGETS:\n        try:\n            raw = (directory /\
+    \ (name + '.json')).read_bytes()\n            if len(raw) > 1048576 or hashlib.sha256(raw).hexdigest()\
+    \ != CIPHER_HASHES[name]: raise Rejected()\n            ciphertexts[name] = raw\n\
+    \        except Exception:\n            raise DiagnosticRejected('source_cipher_hash')\
+    \ from None\n    try:\n        verify_key()\n    except Exception:\n        raise\
+    \ DiagnosticRejected('key_challenge') from None\n    decoded = {}\n    for name,\
+    \ raw in ciphertexts.items():\n        try:\n            decoded[name] = decode(name,\
+    \ raw)\n        except Exception:\n            raise DiagnosticRejected('source_decrypt_and_validate')\
+    \ from None\n    try:\n        fd = os.open(state / 'prepared.json', os.O_CREAT\
+    \ | os.O_EXCL | os.O_WRONLY, 0o600)\n        with os.fdopen(fd, 'w') as out:\n\
+    \            json.dump({'sourceDigest': SOURCE, 'data': decoded}, out)\n    except\
+    \ Exception:\n        raise DiagnosticRejected('memory_handoff') from None\n \
+    \   return {'prepared': True, 'recipientMatched': True, 'sourceDigest': SOURCE}\n\
+    \ndef run(directory, dry_run=True, state=Path('/state')):\n    receipts = json.loads((directory\
+    \ / 'targets.json').read_text())\n    if set(receipts) != set(TARGETS): raise\
+    \ Rejected()\n    raw = (state / 'prepared.json').read_bytes()\n    if len(raw)\
+    \ > 1048576: raise Rejected()\n    document = json.loads(raw)\n    if document.get('sourceDigest')\
+    \ != SOURCE or set(document.get('data', {})) != set(TARGETS): raise Rejected()\n\
+    \    prepared = {}\n    for name, data in document['data'].items():\n        if\
+    \ not isinstance(data, dict) or set(data) != TARGETS[name]: raise Rejected()\n\
+    \        if any(not isinstance(v, str) or not base64.b64decode(v, validate=True)\
+    \ for v in data.values()): raise Rejected()\n        prepared[name] = (data, patch(name,\
+    \ data, receipts[name]))\n    result = []\n    # Preflight both objects before\
+    \ any real write. No automatic retries.\n    for name, (data, ops) in prepared.items():\n\
+    \        returned = send(name, ops, True)\n        if returned.get('data') !=\
+    \ data or returned['metadata']['uid'] != receipts[name]['uid']: raise Rejected()\n\
+    \    if not dry_run:\n        for name, (data, ops) in prepared.items():\n   \
+    \         returned = send(name, ops, False)\n            if returned.get('data')\
+    \ != data or returned['metadata']['uid'] != receipts[name]['uid']: raise Rejected()\n\
+    \    for name, (data, _) in prepared.items():\n        result.append({'reference':\
+    \ 'kubernetes://ai-operations/' + name, 'matched': True,\n                   \
+    \    'contentHash': hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()})\n\
+    \    return {'dryRun': dry_run, 'sourceDigest': SOURCE, 'recipientMatched': True,\
+    \ 'secrets': result}\n\ndef main():\n    try:\n        if sys.argv[1:] not in\
+    \ ([], ['--apply'], ['--prepare']): raise Rejected()\n        result = prepare(Path('/input'),\
+    \ Path('/state')) if sys.argv[1:] == ['--prepare'] else run(Path('/input'), dry_run=not\
+    \ sys.argv[1:])\n        print(json.dumps(result))\n    except DiagnosticRejected\
+    \ as error:\n        print(json.dumps({'status': 'failed', 'stage': error.stage,\
+    \ 'reason': 'recovery_not_confirmed_do_not_retry'}))\n        return 1\n    except\
+    \ Exception:\n        print('{\"status\":\"failed\",\"reason\":\"recovery_not_confirmed_do_not_retry\"\
     }')\n        return 1\n    return 0\nif __name__ == '__main__': sys.exit(main())\n"
   ai-operations-ssh-config.json: '{"apiVersion":"v1","kind":"Secret","metadata":{"annotations":{"operations.re8ch.com/schema-version":"operations.re8ch.com/v1alpha1","operations.re8ch.com/source-digest":"sha256:99c7f741aec926fe7e3839adf488d58c6fb7522d73b42fbd820a9bdbf8fbdc64"},"name":"ai-operations-ssh-config","namespace":"ai-operations"},"sops":{"age":[{"enc":"-----BEGIN
     AGE ENCRYPTED FILE-----\nYWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBCZ2RyVXRsV3ZNaUZDZ0pi\naGQ3b1MyQUkwVFVGckhhSndBYmFHSTRudlZjCjlZZDVxMi9NK0d0Qk1LM1pHKy9L\nSEhLYXZGdjB5WURXNzBQZElabHpzOGcKLS0tIDFIejN6eityRWtsMlJvNEgyL1d4\nV3h0N0NGZ0thbUs0U3cwR3lKVW9LbmcKfgzOYOKMhcnn9iyOjy6C05Vjjz1uUyJK\nECV6Lo36G7toZ3URSw6L0RS5a0bnyXSdhjouv6wzUMidPJtrzO0U+A==\n-----END

@@ -104,6 +104,31 @@ def test_cipher_change_fails_before_sops(tmp_path, monkeypatch):
     with pytest.raises(restore.Rejected): restore.prepare(tmp_path, tmp_path)
 
 
+@pytest.mark.parametrize('stage, failure', [
+    ('key_challenge', 'verify_key'),
+    ('source_decrypt_and_validate', 'decode'),
+])
+def test_prepare_reports_only_fixed_stage(tmp_path, monkeypatch, stage, failure):
+    make_input(tmp_path)
+    monkeypatch.setattr(restore, 'verify_key', lambda: None)
+    monkeypatch.setattr(restore, 'decode', lambda name, c: {k: 'CONFIDENTIAL-FIXTURE' for k in restore.TARGETS[name]})
+    def fail(*args): raise ValueError('CONFIDENTIAL-FIXTURE')
+    monkeypatch.setattr(restore, failure, fail)
+    with pytest.raises(restore.DiagnosticRejected) as error:
+        restore.prepare(tmp_path, tmp_path)
+    assert error.value.stage == stage
+
+
+def test_fixed_stage_log_never_emits_private_error(capsys, monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['restore.py', '--prepare'])
+    def fail(*args): raise restore.DiagnosticRejected('key_challenge')
+    monkeypatch.setattr(restore, 'prepare', fail)
+    assert restore.main() == 1
+    output = capsys.readouterr().out
+    assert json.loads(output)['stage'] == 'key_challenge'
+    assert 'CONFIDENTIAL-FIXTURE' not in output
+
+
 def test_errors_and_redirects_never_emit_payload(capsys, monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['restore.py'])
     def fail(*a, **kw): raise ValueError('CONFIDENTIAL')

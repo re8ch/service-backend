@@ -19,6 +19,10 @@ TARGETS = {'ai-operations-ssh-config': {'ssh-config', 'byoc-known-hosts'},
 KEY = '/age/age.agekey'
 CIPHER_HASHES = {'ai-operations-ssh-config': 'ba5c7754c495e4c7f96dc90a0392a34298ec2c8980191cee518143d3d3992509', 'infrastructure-contracts': '5e88cf065289f24a53f54fdf8568846d2cdf9ca2f1e76eb12f02e5c88499f89c'}
 class Rejected(Exception): pass
+class DiagnosticRejected(Rejected):
+    def __init__(self, stage):
+        self.stage = stage
+        super().__init__()
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs): raise Rejected()
 
@@ -77,15 +81,30 @@ def send(name, ops, dry_run):
     return json.loads(raw)
 
 def prepare(directory, state):
-    decoded = {}
+    ciphertexts = {}
     for name in TARGETS:
-        raw = (directory / (name + '.json')).read_bytes()
-        if len(raw) > 1048576 or hashlib.sha256(raw).hexdigest() != CIPHER_HASHES[name]: raise Rejected()
-        decoded[name] = decode(name, raw)
-    verify_key()
-    fd = os.open(state / 'prepared.json', os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    with os.fdopen(fd, 'w') as out:
-        json.dump({'sourceDigest': SOURCE, 'data': decoded}, out)
+        try:
+            raw = (directory / (name + '.json')).read_bytes()
+            if len(raw) > 1048576 or hashlib.sha256(raw).hexdigest() != CIPHER_HASHES[name]: raise Rejected()
+            ciphertexts[name] = raw
+        except Exception:
+            raise DiagnosticRejected('source_cipher_hash') from None
+    try:
+        verify_key()
+    except Exception:
+        raise DiagnosticRejected('key_challenge') from None
+    decoded = {}
+    for name, raw in ciphertexts.items():
+        try:
+            decoded[name] = decode(name, raw)
+        except Exception:
+            raise DiagnosticRejected('source_decrypt_and_validate') from None
+    try:
+        fd = os.open(state / 'prepared.json', os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, 'w') as out:
+            json.dump({'sourceDigest': SOURCE, 'data': decoded}, out)
+    except Exception:
+        raise DiagnosticRejected('memory_handoff') from None
     return {'prepared': True, 'recipientMatched': True, 'sourceDigest': SOURCE}
 
 def run(directory, dry_run=True, state=Path('/state')):
@@ -119,6 +138,9 @@ def main():
         if sys.argv[1:] not in ([], ['--apply'], ['--prepare']): raise Rejected()
         result = prepare(Path('/input'), Path('/state')) if sys.argv[1:] == ['--prepare'] else run(Path('/input'), dry_run=not sys.argv[1:])
         print(json.dumps(result))
+    except DiagnosticRejected as error:
+        print(json.dumps({'status': 'failed', 'stage': error.stage, 'reason': 'recovery_not_confirmed_do_not_retry'}))
+        return 1
     except Exception:
         print('{"status":"failed","reason":"recovery_not_confirmed_do_not_retry"}')
         return 1

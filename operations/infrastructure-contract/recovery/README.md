@@ -88,3 +88,11 @@ initial preflight result establishes tool availability, not network isolation.
 Validation includes negative identity/source/key/CAS tests, no-write preflight
 failure, output redaction, API-only policy, immutable image pin and a local SOPS
 roundtrip with a newly generated disposable fixture key (never the cluster key).
+
+If the init container fails, its only added diagnostic is a fixed stage code:
+`source_cipher_hash`, `key_challenge`, `source_decrypt_and_validate`, or
+`memory_handoff`. The key challenge runs after both ciphertext hashes pass and
+before source decryption, so a failed challenge can be distinguished from a
+source decrypt/validation failure without showing private material or CLI stderr.
+Any such failure still requires inspection and a newly reviewed candidate; it
+does not authorize retrying the failed Job or starting the apply Job.
