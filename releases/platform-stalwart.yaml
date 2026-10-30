@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: torch-jade
+codename: aurora-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:d9d69bf02396839249c71b4dbfbcbfcaa6e3adaaf8bbb67cc52c9b092a0558fb
+  digest: sha256:304636ba3aac5356a71324f7ba16a1b8d82f2754bb53eb977595a93d22c626c5
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
