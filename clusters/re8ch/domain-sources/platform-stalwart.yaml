@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: flare-pearl
+    delivery.re8ch.com/codename: lantern-pearl
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:83ead42e1a336a95918cc4daa5046f5a3d40a4efb0ce318e0e37070bda9c3d0b
+    digest: sha256:e10a4fa353318ab156667172a9a5fc7b12acc3c95ce7cca8090003f03750448b
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: flare-pearl
+    delivery.re8ch.com/codename: lantern-pearl
 spec:
   interval: 1m
   retryInterval: 1m
