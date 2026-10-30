@@ -43,6 +43,7 @@ def test_tenant_go_release_allows_cold_builder_pulls_within_job_budget():
     duration = int(publisher["env"]["TENANT_IMAGE_PUSH_TIMEOUT_SECONDS"])
     assert 300 < duration <= 3600
     assert duration < release["timeout-minutes"] * 60
+    assert publisher["env"]["GODEBUG"] == "http2client=0"
 
 
 def test_tenant_go_release_uses_stable_router_and_local_go_cache():
