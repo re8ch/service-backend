@@ -72,3 +72,25 @@ def test_shared_ssh_configuration_paths_exist_in_readonly_runtime():
     assert not hosts.get("readOnly", False)
     assert "emptyDir" in volumes[hosts["name"]]
     assert volumes["infrastructure-contracts"]["secret"]["secretName"] == "infrastructure-contracts"
+
+
+def test_stalwart_management_uses_optional_dedicated_readonly_mounts():
+    deployment = next(item for item in resources() if item["kind"] == "Deployment")
+    pod = deployment["spec"]["template"]["spec"]
+    container = pod["containers"][0]
+    env = {entry["name"]: entry for entry in container["env"]}
+    assert env["STALWART_ADMIN_ORIGIN"]["valueFrom"]["configMapKeyRef"] == {
+        "name": "stalwart-admin-runtime", "key": "origin", "optional": True}
+    mounts = {m["mountPath"]: m for m in container["volumeMounts"]}
+    volumes = {v["name"]: v for v in pod["volumes"]}
+    token_path = env["STALWART_ADMIN_TOKEN_FILE"]["value"]
+    assert token_path == "/etc/stalwart-admin/credential/token"
+    for path in ["/etc/stalwart-admin/credential", env["STALWART_APPROVED_PLANS_DIR"]["value"]]:
+        mount = mounts[path]
+        assert mount["readOnly"] is True
+        assert "subPath" not in mount  # rotations project without replacing pod
+    secret = volumes["stalwart-admin-credential"]["secret"]
+    assert secret == {"secretName": "stalwart-self-service-admin", "optional": True,
+                      "defaultMode": 288, "items": [{"key": "token", "path": "token"}]}
+    assert volumes["stalwart-approved-plans"]["configMap"] == {
+        "name": "stalwart-admin-approved-plans", "optional": True, "defaultMode": 288}
