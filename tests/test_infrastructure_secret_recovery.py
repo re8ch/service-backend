@@ -48,6 +48,7 @@ def test_patch_is_cas_and_preserves_unrelated_metadata():
 
 def test_render_has_patch_only_identity_and_api_only_network():
     docs = render.render()
+    assert next(d for d in docs if d['kind'] == 'Job')['metadata']['name'] == 'infra-contracts-recovery-dryrun-v2'
     role = next(d for d in docs if d['kind'] == 'Role')
     assert role['rules'] == [{'apiGroups': [''], 'resources': ['secrets'], 'resourceNames': list(restore.TARGETS), 'verbs': ['patch']}]
     policy = next(d for d in docs if d['kind'] == 'CiliumNetworkPolicy')
