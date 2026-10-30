@@ -567,6 +567,8 @@ modules:
       digest: sha256:23af266f93f6f674db0bb66e82ff5ddd30bc058f46e936e61b0e459d4bd0e746
     - codename: grove-copper
       digest: sha256:9eb33fa60ddcc54e39ffe49c3e370d5b5e29dd37d5fb16c602e4e02cd6e786e9
+    - codename: reef-copper
+      digest: sha256:f801fee8f616e3e818a82e491c58cd1c267ac8dd3c110f0624fd190217c35865
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -752,6 +754,8 @@ modules:
       digest: sha256:d89dba7bc4713d3d8826db8adce0cf196f46744e817dfc2b96644510009e9cbd
     - codename: starfire-jade
       digest: sha256:fbd674a7f8903fe1eaf64986026e1f0cb577caa558afa1f81f56742ea550f1cf
+    - codename: torch-jade
+      digest: sha256:d9d69bf02396839249c71b4dbfbcbfcaa6e3adaaf8bbb67cc52c9b092a0558fb
   platform/apps/access-subscription:
     releases:
     - codename: aegis
