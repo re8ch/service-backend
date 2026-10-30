@@ -38,13 +38,13 @@ def test_auth_gateway_rollout_isolates_degraded_local_podcidr_and_preserves_sess
     assert pdb["spec"]["selector"] == spec["selector"]
 
 
-def test_identity_rpc_calls_use_cluster_services_while_public_auth_routes_remain_available():
+def test_manager_rpc_calls_use_the_matching_internal_auth_postgrest_service():
     deployment = yaml.safe_load((ROOT / "clusters/re8ch/components/auth/deployments/re8ch-auth-gateway.yaml").read_text())
     env = {item["name"]: item.get("value") for item in deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert env["IDENTITY_RO_URL"] == "http://supabase-identity-rest-ro.supabase-identity.svc.cluster.local:3000"
     assert env["IDENTITY_RW_URL"] == "http://supabase-identity-rest.supabase-identity.svc.cluster.local:3000"
-    assert env["MGR_RPC_RO_BASE_URL"] == env["IDENTITY_RO_URL"]
-    assert env["MGR_RPC_RW_BASE_URL"] == env["IDENTITY_RW_URL"]
+    assert env["MGR_RPC_RO_BASE_URL"] == "http://auth-postgrest.auth.svc.cluster.local:3000"
+    assert env["MGR_RPC_RW_BASE_URL"] == "http://auth-postgrest.auth.svc.cluster.local:3000"
     assert {"api.re8ch.com", "db-ro.re8ch.com", "db-rw.re8ch.com"}.issubset(set(env["NO_PROXY"].split(",")))
     release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
     api = release["spec"]["values"]["tenantPlatform"]["tenantAPI"]
