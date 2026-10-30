@@ -674,7 +674,7 @@ def test_shared_personal_runtime_class_has_owner_resource_policy():
 
 
 def test_model_gateway_defaults_do_not_expose_inference_credentials():
-    values = yaml.safe_load((ROOT / "clusters/re8ch/charts/birfucate-metering/values.yaml").read_text())
+    values = yaml.load((ROOT / "clusters/re8ch/charts/birfucate-metering/values.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     gateway = values["tenantPlatform"]["tenantAPI"]["modelGateway"]
     assert gateway == {"enabled": False, "gatewayURL": "", "credentialsSecret": "", "bindings": {}}
     for item in tenant_chart_documents(tenant_go_enabled=True):
