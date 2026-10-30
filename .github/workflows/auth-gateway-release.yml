@@ -47,7 +47,7 @@ jobs:
           file: functions/re8ch-auth-gateway/Dockerfile.server
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/re8ch/re8ch-auth-gateway:${{ inputs.revision }}
+          tags: ghcr.io/re8ch/service-backend-auth-gateway:${{ inputs.revision }}
           provenance: mode=max
           sbom: true
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
@@ -55,7 +55,7 @@ jobs:
           install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
       - name: Sign and verify immutable digest
         env:
-          IMAGE: ghcr.io/re8ch/re8ch-auth-gateway@${{ steps.build.outputs.digest }}
+          IMAGE: ghcr.io/re8ch/service-backend-auth-gateway@${{ steps.build.outputs.digest }}
           IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/auth-gateway-release.yml@refs/heads/main
         run: |
           cosign sign --yes "$IMAGE"
