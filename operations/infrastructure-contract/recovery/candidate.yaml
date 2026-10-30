@@ -45,10 +45,10 @@ data:
   targets.json: '{"ai-operations-ssh-config": {"resourceVersion": "REPLACE_WITH_PRECREATED_RESOURCE_VERSION",
     "uid": "REPLACE_WITH_PRECREATED_UID"}, "infrastructure-contracts": {"resourceVersion":
     "REPLACE_WITH_PRECREATED_RESOURCE_VERSION", "uid": "REPLACE_WITH_PRECREATED_UID"}}'
-  restore.py: "\"\"\"One-shot fixed Secret recovery; private material never leaves\
-    \ this process.\"\"\"\nimport base64\nimport hashlib\nimport json\nimport os\n\
-    from pathlib import Path\nimport secrets\nimport ssl\nimport subprocess\nimport\
-    \ sys\nimport urllib.error\nimport urllib.request\n\nRECIPIENT = 'age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj'\n\
+  restore.py: "\"\"\"One-shot fixed Secret recovery; private material stays inside\
+    \ pod memory.\"\"\"\nimport base64\nimport hashlib\nimport json\nimport os\nfrom\
+    \ pathlib import Path\nimport secrets\nimport ssl\nimport subprocess\nimport sys\n\
+    import urllib.error\nimport urllib.request\n\nRECIPIENT = 'age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj'\n\
     SOURCE = 'sha256:99c7f741aec926fe7e3839adf488d58c6fb7522d73b42fbd820a9bdbf8fbdc64'\n\
     OWNER = 'infra-contracts-recovery-20261030'\nTARGETS = {'ai-operations-ssh-config':\
     \ {'ssh-config', 'byoc-known-hosts'},\n           'infrastructure-contracts':\
@@ -91,8 +91,8 @@ data:
     \ + host + ']'\n    path = '/api/v1/namespaces/ai-operations/secrets/' + name\n\
     \    url = f'https://{host}:{port}{path}' + ('?dryRun=All' if dry_run else '')\n\
     \    sa = Path('/var/run/secrets/kubernetes.io/serviceaccount')\n    token = (sa\
-    \ / 'token').read_text().strip()\n    opener = urllib.request.build_opener(NoRedirect(),\
-    \ urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(sa\
+    \ / 'token').read_text().strip()\n    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}),\
+    \ NoRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(sa\
     \ / 'ca.crt'))))\n    req = urllib.request.Request(url, data=json.dumps(ops).encode(),\
     \ method='PATCH',\n          headers={'Authorization': 'Bearer ' + token, 'Content-Type':\
     \ 'application/json-patch+json'})\n    with opener.open(req, timeout=30) as response:\n\
@@ -167,7 +167,7 @@ metadata:
   namespace: flux-system
 spec:
   backoffLimit: 0
-  activeDeadlineSeconds: 180
+  activeDeadlineSeconds: 600
   ttlSecondsAfterFinished: 3600
   template:
     metadata:

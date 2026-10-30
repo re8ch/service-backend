@@ -20,7 +20,7 @@ metadata:
   namespace: flux-system
 spec:
   backoffLimit: 0
-  activeDeadlineSeconds: 90
+  activeDeadlineSeconds: 600
   ttlSecondsAfterFinished: 3600
   template:
     metadata:

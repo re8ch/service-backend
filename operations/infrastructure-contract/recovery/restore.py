@@ -1,4 +1,4 @@
-"""One-shot fixed Secret recovery; private material never leaves this process."""
+"""One-shot fixed Secret recovery; private material stays inside pod memory."""
 import base64
 import hashlib
 import json
@@ -68,7 +68,7 @@ def send(name, ops, dry_run):
     url = f'https://{host}:{port}{path}' + ('?dryRun=All' if dry_run else '')
     sa = Path('/var/run/secrets/kubernetes.io/serviceaccount')
     token = (sa / 'token').read_text().strip()
-    opener = urllib.request.build_opener(NoRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(sa / 'ca.crt'))))
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect(), urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=str(sa / 'ca.crt'))))
     req = urllib.request.Request(url, data=json.dumps(ops).encode(), method='PATCH',
           headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json-patch+json'})
     with opener.open(req, timeout=30) as response:
