@@ -70,7 +70,7 @@ spec:
             secretKeyRef:
               key: token
               name: cluster-infra-service-auth
-        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:779465757b402159dd8586d7707af8da114dfee44c56e3f40e88c4fb040ab943
+        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:9c373e188664449043ea68984719288d192ec383bc0ed918900205e9728f7199
         livenessProbe:
           httpGet:
             path: /healthz
