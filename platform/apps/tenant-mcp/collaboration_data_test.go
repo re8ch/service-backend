@@ -423,3 +423,39 @@ func TestCollaborationInlineFilesRejectBinaryAndLargeText(t *testing.T) {
 		})
 	}
 }
+
+// DAV hrefs must remain URI references when a caller passes a listed file to read.
+func TestCollaborationDAVListedHrefRoundTrip(t *testing.T) {
+	const href = "/dav/file/alice/notes%23draft%3F.txt"
+	c, _ := collaborationFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "PROPFIND":
+			w.WriteHeader(207)
+			fmt.Fprintf(w, `<d:multistatus xmlns:d="DAV:"><d:response><d:href>%s</d:href><d:propstat><d:status>HTTP/1.1 200 OK</d:status><d:prop><d:getcontenttype>text/plain</d:getcontenttype></d:prop></d:propstat></d:response></d:multistatus>`, href)
+		case "HEAD", "GET":
+			if r.URL.EscapedPath() != href || r.URL.RawQuery != "" {
+				t.Errorf("changed file reference: %s", r.URL)
+			}
+			w.Header().Set("Content-Type", "text/plain")
+			if r.Method == "GET" {
+				fmt.Fprint(w, "round trip")
+			}
+		}
+	})
+	listed, err := c.FilesList(context.Background(), "/dav/file/alice/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := listed["items"].([]any)
+	if len(items) != 1 {
+		t.Fatalf("listing: %#v", listed)
+	}
+	ref, _ := collaborationMap(items[0])["href"].(string)
+	if ref != href {
+		t.Fatalf("href changed: %q", ref)
+	}
+	read, err := c.FilesRead(context.Background(), ref)
+	if err != nil || read["text"] != "round trip" {
+		t.Fatalf("read: %#v %v", read, err)
+	}
+}

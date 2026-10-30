@@ -734,7 +734,7 @@ func (c *collaborationDataClient) FilesList(ctx context.Context, href string) (m
 				continue
 			}
 			p := ps.Prop
-			items = append(items, map[string]any{"href": target.Path, "name": p.Name, "size": p.Size, "contentType": p.Type, "etag": p.ETag, "isCollection": p.ResourceType.Collection != nil})
+			items = append(items, map[string]any{"href": target.EscapedPath(), "name": p.Name, "size": p.Size, "contentType": p.Type, "etag": p.ETag, "isCollection": p.ResourceType.Collection != nil})
 			accepted = true
 			break
 		}
