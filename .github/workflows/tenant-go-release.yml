@@ -78,6 +78,9 @@ jobs:
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
       - id: builder
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        with:
+          # The BuildKit daemon, not only the buildx client, uploads layers.
+          driver-opts: env.GODEBUG=http2client=0
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
           TENANT_IMAGE_BUILDER: ${{ steps.builder.outputs.name }}
