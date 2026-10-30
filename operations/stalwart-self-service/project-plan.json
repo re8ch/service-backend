@@ -38,7 +38,8 @@
         "Dedicated credential, state conflict protection and readback",
         "63 focused and regression tests passed"
       ],
-      "issueUrl": "https://github.com/re8ch/service-backend/issues/2517"
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2517",
+      "pullRequestUrl": "https://github.com/re8ch/service-backend/pull/2516"
     },
     {
       "key": "data",
@@ -53,7 +54,8 @@
         "Invitation plan, state precondition and readback",
         "No remote delivery claim; no separate free/busy implementation claim"
       ],
-      "issueUrl": "https://github.com/re8ch/service-backend/issues/2518"
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2518",
+      "pullRequestUrl": "https://github.com/re8ch/service-backend/pull/2520"
     },
     {
       "key": "binding",
@@ -74,7 +76,8 @@
         "Go suite and collaboration race tests passed",
         "Existing account connection only; new mailbox provisioning remains separate"
       ],
-      "issueUrl": "https://github.com/re8ch/service-backend/issues/2519"
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2519",
+      "pullRequestUrl": "https://github.com/re8ch/service-backend/pull/2520"
     },
     {
       "key": "delivery",
@@ -95,7 +98,24 @@
         "tenant-api runtime changes belong to observability-gitops",
         "No fabricated digest or automatic provider upgrade"
       ],
-      "issueUrl": "https://github.com/8iops/agent-gitops/issues/38"
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/38",
+      "pullRequestUrl": "https://github.com/8iops/agent-gitops/pull/36"
+    },
+    {
+      "key": "compatibility",
+      "repository": "8iops/agent-gitops",
+      "title": "Validate scoped Stalwart OAuth compatibility before activation",
+      "agent": "gitops_delivery",
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/39",
+      "status": "Blocked on reviewed prerequisites"
+    },
+    {
+      "key": "runtime",
+      "repository": "siren-observer/observability-gitops",
+      "title": "Wire reviewed collaboration release into tenant-api runtime",
+      "agent": "gitops_delivery",
+      "issueUrl": "https://github.com/siren-observer/observability-gitops/issues/50",
+      "status": "Blocked on reviewed prerequisites"
     }
   ],
   "projectUrl": "https://github.com/orgs/8iops/projects/1",
