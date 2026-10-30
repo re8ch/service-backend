@@ -142,7 +142,7 @@ func TestCollaborationUserHubSSOIsDefaultAndDeviceRemainsAvailable(t *testing.T)
 	if err != nil || authorization.Host != strings.TrimPrefix(auth.URL, "https://") || authorization.Query().Get("code_challenge_method") != "S256" || authorization.Query().Get("code_challenge") == "" {
 		t.Fatalf("invalid authorization URL: %v %v", authorization, err)
 	}
-	if authorization.Query().Get("scope") != "openid profile email offline_access" || authorization.Query().Get("redirect_uri") != "https://tools.service.re8ch.com/collaboration/oauth/callback" {
+	if authorization.Query().Get("scope") != "openid profile email offline_access urn:ietf:params:oauth:scope:calendars urn:ietf:params:oauth:scope:files urn:ietf:params:oauth:scope:mail" || authorization.Query().Get("redirect_uri") != "https://tools.service.re8ch.com/collaboration/oauth/callback" {
 		t.Fatalf("invalid Auth Hub request: %v", authorization.Query())
 	}
 	pending, pendingErr := s.collaborationConnection(ctx, id, started["connectionRef"].(string))

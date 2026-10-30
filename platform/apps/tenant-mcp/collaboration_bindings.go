@@ -436,7 +436,7 @@ func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, sco
 		}
 		return old.public(), nil
 	}
-	selected, _, _ := collaborationScopes(scopes)
+	selected, providerScope, _ := collaborationScopes(scopes)
 	encoded, _ := json.Marshal(selected)
 	clientID := strings.TrimSpace(os.Getenv("STALWART_CLIENT_ID"))
 	if clientID == "" {
@@ -469,7 +469,7 @@ func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, sco
 	query.Set("response_type", "code")
 	query.Set("client_id", clientID)
 	query.Set("redirect_uri", redirectURI)
-	query.Set("scope", "openid profile email offline_access")
+	query.Set("scope", "openid profile email offline_access "+providerScope)
 	query.Set("state", state)
 	query.Set("code_challenge", base64.RawURLEncoding.EncodeToString(challenge[:]))
 	query.Set("code_challenge_method", "S256")
