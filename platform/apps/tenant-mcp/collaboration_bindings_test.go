@@ -293,3 +293,22 @@ func TestCollaborationPublicToolPublication(t *testing.T) {
 		ss.Close()
 	}
 }
+
+func TestCollaborationCredentialNamespaceIsolation(t *testing.T) {
+	ref := "collaboration://0123456789abcdef0123456789abcdef"
+	for _, tc := range []struct{ name, collaboration, shared, want string }{
+		{"default", "", "", "credential-broker"},
+		{"legacy override", "", "legacy-broker", "legacy-broker"},
+		{"isolated", "stalwart-credentials", "credential-broker", "stalwart-credentials"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("COLLABORATION_CREDENTIAL_NAMESPACE", tc.collaboration)
+			t.Setenv("CREDENTIAL_NAMESPACE", tc.shared)
+			got, err := collaborationSecretPath(ref)
+			want := "/api/v1/namespaces/" + tc.want + "/secrets/stalwart-0123456789abcdef0123456789abcdef"
+			if err != nil || got != want {
+				t.Fatalf("got %q, %v; want %q", got, err, want)
+			}
+		})
+	}
+}

@@ -126,7 +126,10 @@ func collaborationSecretPath(ref string) (string, error) {
 	if len(suffix) != 32 || strings.Trim(suffix, "0123456789abcdef") != "" {
 		return "", errors.New("invalid connection reference")
 	}
-	namespace := os.Getenv("CREDENTIAL_NAMESPACE")
+	namespace := os.Getenv("COLLABORATION_CREDENTIAL_NAMESPACE")
+	if namespace == "" {
+		namespace = os.Getenv("CREDENTIAL_NAMESPACE")
+	}
 	if namespace == "" {
 		namespace = "credential-broker"
 	}

@@ -229,3 +229,19 @@ empty; this change alone does not verify a domain or publish a plugin.
 that a successfully discovered backend did not publish. Unavailable backends
 remain unknown, not proof of missing operations. These fields measure registry
 publication only; they do not prove native API or semantic workflow coverage.
+
+### Collaboration credential isolation
+
+Set `COLLABORATION_CREDENTIAL_NAMESPACE` to a dedicated Stalwart credential
+namespace before enabling collaboration. Only collaboration connection operations
+use this namespace; existing Harbor references continue using
+`CREDENTIAL_NAMESPACE`. For existing deployments, an unset collaboration namespace
+falls back to `CREDENTIAL_NAMESPACE`, then `credential-broker`.
+
+The tenant-api service account needs only `get`, `create`, `update`, and `delete`
+on Secrets in the dedicated namespace. Do not add collaboration write permissions
+to the shared credential-broker namespace. Connection references generate Secret
+names dynamically, so Kubernetes RBAC cannot enumerate resourceNames for create;
+the dedicated namespace limits that authority. Tenant and subject ownership checks
+remain mandatory in the application. Namespace changes do not migrate existing
+credentials; revoke existing bindings before moving an enabled installation.
