@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: grove-copper
+codename: reef-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:9eb33fa60ddcc54e39ffe49c3e370d5b5e29dd37d5fb16c602e4e02cd6e786e9
+  digest: sha256:f801fee8f616e3e818a82e491c58cd1c267ac8dd3c110f0624fd190217c35865
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: grove-copper
+    delivery.re8ch.com/codename: reef-copper
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:9eb33fa60ddcc54e39ffe49c3e370d5b5e29dd37d5fb16c602e4e02cd6e786e9
+    digest: sha256:f801fee8f616e3e818a82e491c58cd1c267ac8dd3c110f0624fd190217c35865
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: grove-copper
+    delivery.re8ch.com/codename: reef-copper
 spec:
   interval: 1m
   retryInterval: 1m
