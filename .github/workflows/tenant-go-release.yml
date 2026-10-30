@@ -8,6 +8,12 @@ on:
       - operations/mcp-conformance/release-tenant-infrastructure.sh
   workflow_dispatch:
     inputs:
+      publisher:
+        description: Publisher route; R640 is the default because hosted uploads to Harbor stall
+        required: false
+        type: choice
+        options: [r640, cloud]
+        default: r640
       reuse_run_id:
         description: Existing successful release run whose immutable image needs finalization
         required: false
@@ -60,7 +66,7 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && inputs.reuse_run_id == ''
     needs: tenant-go-validate
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.publisher == 'cloud' && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64","r640","untrusted-build"]') }}
     timeout-minutes: 30
     environment: production
     permissions:
@@ -77,13 +83,22 @@ jobs:
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
       - id: builder
+        if: inputs.publisher == 'cloud'
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           # The BuildKit daemon, not only the buildx client, uploads layers.
           driver-opts: env.GODEBUG=http2client=0
+      - if: inputs.publisher == 'cloud'
+        run: echo "TENANT_IMAGE_BUILDER=${{ steps.builder.outputs.name }}" >> "$GITHUB_ENV"
+      - if: inputs.publisher != 'cloud'
+        name: Reuse the governed R640 host-proxy builder
+        run: |
+          export BUILDX_CONFIG="$HOME/.docker/buildx"
+          docker buildx inspect r640-mihomos >/dev/null
+          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
+          echo 'TENANT_IMAGE_BUILDER=r640-mihomos' >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
-          TENANT_IMAGE_BUILDER: ${{ steps.builder.outputs.name }}
           HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
           TENANT_IMAGE_REPOSITORY: registry.re8ch.com/image/re8ch-tenant-mcp
@@ -91,11 +106,8 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          # Use Docker Engine's upload path; Harbor's BuildKit exporter stalls
-          # even when both client and daemon are forced onto HTTP/1.1.
-          TENANT_IMAGE_DOCKER_PUSH: "1"
-          # Harbor's HTTP/2 upload path can stall while pushing image layers.
-          # Force the Go-based Buildx client onto the proven HTTP/1.1 path.
+          # Keep the cloud recovery route on HTTP/1.1. The default R640 route
+          # publishes through its governed host-proxy BuildKit daemon.
           GODEBUG: http2client=0
           # Bound cold pulls and uploads on the disposable cloud builder.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
