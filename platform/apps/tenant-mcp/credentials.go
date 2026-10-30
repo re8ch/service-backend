@@ -127,6 +127,12 @@ func kubeClient() (*http.Client, string, string, error) {
 	return client, "https://" + host + ":" + port, strings.TrimSpace(string(token)), nil
 }
 
+type kubeResponseError struct{ Status int }
+
+func (e kubeResponseError) Error() string {
+	return fmt.Sprintf("Kubernetes API returned HTTP %d", e.Status)
+}
+
 func kubeRequest(ctx context.Context, method, path string, payload any) (map[string]any, error) {
 	client, base, token, err := kubeClient()
 	if err != nil {
@@ -151,7 +157,7 @@ func kubeRequest(ctx context.Context, method, path string, payload any) (map[str
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("Kubernetes API returned HTTP %d", response.StatusCode)
+		return nil, kubeResponseError{Status: response.StatusCode}
 	}
 	var result map[string]any
 	if err = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&result); err != nil {

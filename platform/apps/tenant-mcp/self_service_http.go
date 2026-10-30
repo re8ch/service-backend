@@ -65,7 +65,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 	canReadDatabaseBindings := len(ready) > 0 && hasRequestableGrant(grants, "database.postgresql.shared.v1")
 	kubernetesTools := []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
 	namespacedWrite := canWrite && len(ready) > 0
-	return map[string]any{
+	result := map[string]any{
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready, "grantedConsumables": grants,
 		"capabilities": []map[string]any{
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite},
@@ -81,6 +81,14 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "requiredConsumable": "network.tenant.v1", "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canExpose},
 		},
 	}
+	if collaborationEnabled() {
+		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
+			"id": "collaboration", "requiredConsumable": "collaboration.stalwart.v1",
+			"tools":      []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "files_list", "files_read"},
+			"canConnect": hasRequestableGrant(grants, "collaboration.stalwart.v1"), "providerState": "unverified", "ownership": "organization-and-user",
+		})
+	}
+	return result
 }
 
 func tenantGrantedConsumables(ctx context.Context, tenant, role string) ([]map[string]any, error) {
