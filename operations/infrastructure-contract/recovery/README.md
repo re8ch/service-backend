@@ -51,6 +51,10 @@ No runtime package download is allowed. A runtime dependency failure is closed.
 
 ## Reviewed execution
 
+First complete [the temporary network window](NETWORK-WINDOW.md). Existing
+namespace-wide allow policies otherwise override the task restriction. The
+initial preflight result establishes tool availability, not network isolation.
+
 0. Review and run `preflight.yaml` first. This uses the exact verified image with
    no age key, no Secret mount, no ServiceAccount token, and deny-all networking.
    It verifies Python, required standard-library modules and exact SOPS version.
