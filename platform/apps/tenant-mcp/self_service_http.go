@@ -84,7 +84,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 	if collaborationEnabled() {
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
 			"id": "collaboration", "requiredConsumable": "collaboration.stalwart.v1",
-			"tools":      []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "files_list", "files_read"},
+			"tools":      []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "contacts_query", "files_list", "files_read"},
 			"canConnect": hasPersonalCollaborationGrant(grants, id.Role), "providerState": "unverified", "ownership": "organization-and-user",
 		})
 	}

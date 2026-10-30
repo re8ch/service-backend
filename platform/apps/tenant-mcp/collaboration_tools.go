@@ -12,7 +12,7 @@ import (
 type collaborationConnectionInput struct {
 	Action         string   `json:"action" jsonschema:"plan, start, complete, status, list, or revoke"`
 	ConnectionRef  string   `json:"connectionRef,omitempty" jsonschema:"Opaque connection reference returned by this tool"`
-	Scopes         []string `json:"scopes,omitempty" jsonschema:"Explicit mail.read, calendar.read, calendar.respond, files.read permissions"`
+	Scopes         []string `json:"scopes,omitempty" jsonschema:"Explicit mail.read, calendar.read, calendar.respond, contacts.read, files.read permissions"`
 	PlanHash       string   `json:"planHash,omitempty" jsonschema:"Exact current plan hash for start"`
 	IdempotencyKey string   `json:"idempotencyKey,omitempty" jsonschema:"Stable unique key for start; use a new key to reconnect"`
 }
@@ -21,6 +21,8 @@ type collaborationQueryInput struct {
 	Action        string `json:"action,omitempty" jsonschema:"Query action: list, search, or get; default search"`
 	Text          string `json:"text,omitempty"`
 	MailboxID     string `json:"mailboxId,omitempty"`
+	AddressBookID string `json:"addressBookId,omitempty"`
+	ContactID     string `json:"contactId,omitempty"`
 	EventID       string `json:"eventId,omitempty"`
 	After         string `json:"after,omitempty" jsonschema:"Inclusive RFC3339 start"`
 	Before        string `json:"before,omitempty" jsonschema:"Exclusive RFC3339 end, within 31 days of start"`
@@ -181,6 +183,28 @@ func (s *server) registerCollaborationTools(ms *mcp.Server) {
 			return nil, value, err
 		}
 		value, err := s.applyCalendarResponse(ctx, id, client, in)
+		return nil, value, err
+	})
+	mcp.AddTool(ms, &mcp.Tool{Name: "contacts_query", Description: "List your authorized address books or search bounded contact summaries.", Annotations: toolAnnotations("contacts_query")}, func(ctx context.Context, _ *mcp.CallToolRequest, in collaborationQueryInput) (*mcp.CallToolResult, any, error) {
+		id, err := collaborationCaller(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
+		client, err := s.resolveCollaboration(ctx, id, in.ConnectionRef)
+		if err != nil {
+			return nil, nil, err
+		}
+		var value map[string]any
+		switch in.Action {
+		case "list":
+			value, err = client.AddressBooks(ctx)
+		case "get":
+			value, err = client.ContactRead(ctx, in.ContactID)
+		case "", "search":
+			value, err = client.ContactQuery(ctx, in.Text, in.AddressBookID, in.Position, in.Limit)
+		default:
+			err = errors.New("unsupported contacts query action")
+		}
 		return nil, value, err
 	})
 	for _, name := range []string{"files_list", "files_read"} {

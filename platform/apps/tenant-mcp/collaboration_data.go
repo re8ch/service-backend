@@ -27,6 +27,7 @@ const (
 	collaborationCore        = "urn:ietf:params:jmap:core"
 	collaborationMail        = "urn:ietf:params:jmap:mail"
 	collaborationCalendars   = "urn:ietf:params:jmap:calendars"
+	collaborationContacts    = "urn:ietf:params:jmap:contacts"
 	collaborationFiles       = "urn:ietf:params:jmap:filenode"
 	collaborationMaxJSON     = 8 << 20
 	collaborationMaxDownload = 5 << 20
@@ -64,7 +65,7 @@ func newCollaborationDataClient(id identity, access collaborationDataAccess, con
 		return nil, errors.New("invalid configured collaboration origin")
 	}
 	for _, scope := range access.Scopes {
-		if scope != "mail.read" && scope != "calendar.read" && scope != "calendar.respond" && scope != "files.read" {
+		if scope != "mail.read" && scope != "calendar.read" && scope != "calendar.respond" && scope != "contacts.read" && scope != "files.read" {
 			return nil, errors.New("unsupported collaboration scope")
 		}
 	}
@@ -423,6 +424,81 @@ func (c *collaborationDataClient) MailAttachment(ctx context.Context, emailID, b
 
 var collaborationCalendarFields = []string{"id", "name", "color", "timeZone", "isDefault", "myRights"}
 var collaborationEventFields = []string{"id", "uid", "calendarIds", "title", "description", "start", "duration", "timeZone", "utcStart", "utcEnd", "recurrenceId", "participants", "isOrigin", "isDraft"}
+
+var collaborationAddressBookFields = []string{"id", "name", "description", "sortOrder", "isDefault", "isSubscribed", "myRights"}
+var collaborationContactSummary = []string{"id", "uid", "addressBookIds", "kind", "name", "emails", "phones", "organizations", "titles"}
+var collaborationContactDetail = []string{"id", "uid", "addressBookIds", "kind", "name", "emails", "phones", "onlineServices", "organizations", "titles", "addresses", "notes", "members", "created", "updated"}
+
+func (c *collaborationDataClient) AddressBooks(ctx context.Context) (map[string]any, error) {
+	if err := c.require("contacts.read"); err != nil {
+		return nil, err
+	}
+	r, err := c.jmap(ctx, collaborationContacts, "AddressBook/get", map[string]any{"properties": collaborationAddressBookFields})
+	if err != nil {
+		return nil, err
+	}
+	return collaborationList(r, collaborationAddressBookFields, 50), nil
+}
+
+func (c *collaborationDataClient) ContactQuery(ctx context.Context, text, addressBookID string, position, limit int) (map[string]any, error) {
+	if err := c.require("contacts.read"); err != nil {
+		return nil, err
+	}
+	limit, err := collaborationPage(position, limit)
+	if err != nil {
+		return nil, err
+	}
+	if len(text) > 2048 {
+		return nil, errors.New("contact search text too long")
+	}
+	filter := map[string]any{}
+	if text != "" {
+		filter["text"] = text
+	}
+	if addressBookID != "" {
+		if err = collaborationID(addressBookID); err != nil {
+			return nil, err
+		}
+		filter["inAddressBook"] = addressBookID
+	}
+	q, err := c.jmap(ctx, collaborationContacts, "ContactCard/query", map[string]any{"filter": filter, "position": position, "limit": limit, "sort": []any{map[string]any{"property": "updated", "isAscending": false}}})
+	if err != nil {
+		return nil, err
+	}
+	ids, ok := q["ids"].([]any)
+	if !ok || len(ids) > limit {
+		return nil, errors.New("invalid bounded contact query response")
+	}
+	if len(ids) == 0 {
+		return map[string]any{"items": []any{}, "position": position, "mayHaveMore": false, "untrustedContent": true}, nil
+	}
+	r, err := c.jmap(ctx, collaborationContacts, "ContactCard/get", map[string]any{"ids": ids, "properties": collaborationContactSummary})
+	if err != nil {
+		return nil, err
+	}
+	result := collaborationList(r, collaborationContactSummary, limit)
+	result["position"] = position
+	result["nextPosition"] = position + len(ids)
+	result["mayHaveMore"] = len(ids) == limit
+	return result, nil
+}
+
+func (c *collaborationDataClient) ContactRead(ctx context.Context, contactID string) (map[string]any, error) {
+	if err := c.require("contacts.read"); err != nil {
+		return nil, err
+	}
+	if err := collaborationID(contactID); err != nil {
+		return nil, err
+	}
+	r, err := c.jmap(ctx, collaborationContacts, "ContactCard/get", map[string]any{"ids": []string{contactID}, "properties": collaborationContactDetail})
+	if err != nil {
+		return nil, err
+	}
+	if len(collaborationItems(r)) != 1 || collaborationMap(collaborationItems(r)[0])["id"] != contactID {
+		return nil, errors.New("contact not found")
+	}
+	return collaborationList(r, collaborationContactDetail, 1), nil
+}
 
 func (c *collaborationDataClient) Calendars(ctx context.Context) (map[string]any, error) {
 	if err := c.require("calendar.read"); err != nil {

@@ -42,7 +42,7 @@ func collaborationOrigin() (string, error) {
 	return u.String(), nil
 }
 func collaborationScopes(scopes []string) ([]string, string, error) {
-	allowed := map[string]string{"mail.read": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "files.read": "files"}
+	allowed := map[string]string{"mail.read": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "contacts.read": "contacts", "files.read": "files"}
 	unique, native := map[string]bool{}, map[string]bool{}
 	for _, scope := range scopes {
 		service, ok := allowed[scope]

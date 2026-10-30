@@ -16,7 +16,7 @@ func collaborationFixture(t *testing.T, handler http.HandlerFunc) (*collaboratio
 	t.Helper()
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
-	c, err := newCollaborationDataClient(identity{Tenant: "team", Subject: "alice"}, collaborationDataAccess{Tenant: "team", Subject: "alice", AccountID: "acct", CredentialRef: "credential://stalwart/team/opaque", Bearer: "provider-secret", Scopes: []string{"mail.read", "calendar.read", "calendar.respond", "files.read"}, FileRoots: []string{"/dav/file/alice/"}, ExpiresAt: time.Now().Add(time.Hour)}, srv.URL)
+	c, err := newCollaborationDataClient(identity{Tenant: "team", Subject: "alice"}, collaborationDataAccess{Tenant: "team", Subject: "alice", AccountID: "acct", CredentialRef: "credential://stalwart/team/opaque", Bearer: "provider-secret", Scopes: []string{"mail.read", "calendar.read", "calendar.respond", "contacts.read", "files.read"}, FileRoots: []string{"/dav/file/alice/"}, ExpiresAt: time.Now().Add(time.Hour)}, srv.URL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func collaborationSessionFixture(w http.ResponseWriter, r *http.Request) bool {
 	if r.URL.Path != "/jmap/session" {
 		return false
 	}
-	writeJSON(w, 200, map[string]any{"apiUrl": "/jmap/", "downloadUrl": "/jmap/download/{accountId}/{blobId}/{name}", "capabilities": map[string]any{collaborationMail: map[string]any{}, collaborationCalendars: map[string]any{}}, "accounts": map[string]any{"acct": map[string]any{"accountCapabilities": map[string]any{collaborationMail: map[string]any{}, collaborationCalendars: map[string]any{}}}}})
+	writeJSON(w, 200, map[string]any{"apiUrl": "/jmap/", "downloadUrl": "/jmap/download/{accountId}/{blobId}/{name}", "capabilities": map[string]any{collaborationMail: map[string]any{}, collaborationCalendars: map[string]any{}, collaborationContacts: map[string]any{}}, "accounts": map[string]any{"acct": map[string]any{"accountCapabilities": map[string]any{collaborationMail: map[string]any{}, collaborationCalendars: map[string]any{}, collaborationContacts: map[string]any{}}}}})
 	return true
 }
 func collaborationDecodeCall(t *testing.T, r *http.Request) (string, map[string]any) {
@@ -91,12 +91,61 @@ func TestCollaborationScopeCheckedBeforeNetwork(t *testing.T) {
 	if _, err := c.CalendarRead(context.Background(), "event", "Etc/UTC"); err == nil {
 		t.Fatal("calendar access allowed")
 	}
+	if _, err := c.ContactRead(context.Background(), "contact"); err == nil {
+		t.Fatal("contact access allowed")
+	}
 	c.access.Revoked = true
 	if _, err := c.FilesRead(context.Background(), "/dav/file/alice/a.txt"); err == nil {
 		t.Fatal("revoked access allowed")
 	}
 	if calls.Load() != 0 {
 		t.Fatal("unauthorized request reached provider")
+	}
+}
+
+func TestCollaborationContactsAreBoundedAndProjected(t *testing.T) {
+	c, _ := collaborationFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		if collaborationSessionFixture(w, r) {
+			return
+		}
+		method, args := collaborationDecodeCall(t, r)
+		switch method {
+		case "AddressBook/get":
+			collaborationMethodResult(w, method, map[string]any{"state": "a1", "list": []any{map[string]any{"id": "book", "name": "Personal", "unexpected": "omit"}}})
+		case "ContactCard/query":
+			filter := collaborationMap(args["filter"])
+			if args["limit"] != float64(2) || filter["text"] != "alice" || filter["inAddressBook"] != "book" {
+				t.Errorf("wrong bounded contact query: %#v", args)
+			}
+			collaborationMethodResult(w, method, map[string]any{"ids": []string{"contact-1", "contact-2"}})
+		case "ContactCard/get":
+			ids, _ := args["ids"].([]any)
+			items := []any{map[string]any{"id": "contact-1", "name": map[string]any{"full": "Alice"}, "emails": map[string]any{"work": map[string]any{"address": "alice@example.com"}}, "unexpected": "omit"}}
+			if len(ids) == 2 {
+				items = append(items, map[string]any{"id": "contact-2", "name": map[string]any{"full": "Bob"}})
+			}
+			collaborationMethodResult(w, method, map[string]any{"state": "c1", "list": items})
+		default:
+			t.Errorf("unexpected method %s", method)
+		}
+	})
+	books, err := c.AddressBooks(context.Background())
+	if err != nil || collaborationMap(books["items"].([]any)[0])["unexpected"] != nil {
+		t.Fatalf("address books: %#v %v", books, err)
+	}
+	result, err := c.ContactQuery(context.Background(), "alice", "book", 0, 2)
+	if err != nil || result["nextPosition"] != 2 || result["mayHaveMore"] != true {
+		t.Fatalf("contact query: %#v %v", result, err)
+	}
+	if collaborationMap(result["items"].([]any)[0])["unexpected"] != nil {
+		t.Fatal("unselected contact property returned")
+	}
+	contact, err := c.ContactRead(context.Background(), "contact-1")
+	if err != nil || collaborationMap(contact["items"].([]any)[0])["id"] != "contact-1" {
+		t.Fatalf("contact read: %#v %v", contact, err)
+	}
+	if _, err = c.ContactQuery(context.Background(), "", "", 0, 51); err == nil {
+		t.Fatal("contact limit accepted")
 	}
 }
 func TestCollaborationMailQueryBoundsAndBodyBudget(t *testing.T) {
