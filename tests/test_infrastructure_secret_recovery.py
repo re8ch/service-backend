@@ -133,3 +133,13 @@ def test_real_sops_mac_survives_yaml_to_json_projection(tmp_path, monkeypatch):
     projected = json.dumps(yaml.safe_load(encrypted), sort_keys=True, separators=(',', ':')).encode()
     assert set(restore.decode(name, projected)) == restore.TARGETS[name]
     restore.verify_key()
+
+
+def test_preflight_has_no_identity_or_key_or_network():
+    docs = list(yaml.safe_load_all((DIR / 'preflight.yaml').read_text()))
+    policy = docs[0]['spec']
+    assert policy['egress'] == [] and policy['ingress'] == []
+    pod = docs[1]['spec']['template']['spec']
+    assert pod['automountServiceAccountToken'] is False
+    assert not pod.get('volumes') and not pod['containers'][0].get('volumeMounts')
+    assert pod['containers'][0]['image'] == render.IMAGE

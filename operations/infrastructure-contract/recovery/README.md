@@ -51,6 +51,10 @@ No runtime package download is allowed. A runtime dependency failure is closed.
 
 ## Reviewed execution
 
+0. Review and run `preflight.yaml` first. This uses the exact verified image with
+   no age key, no Secret mount, no ServiceAccount token, and deny-all networking.
+   It verifies Python, required standard-library modules and exact SOPS version.
+   Require all three booleans true before creating reservations or mounting a key.
 1. Verify both destinations are absent using platform metadata-only inspection.
    Review then **create** `reservations.yaml`; never apply it over existing Secrets.
    Existing Cloud mounts require exact keys, so these empty reservations cannot

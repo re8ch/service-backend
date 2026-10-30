@@ -1,0 +1,58 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: infra-contracts-recovery-preflight
+  namespace: flux-system
+spec:
+  endpointSelector:
+    matchLabels:
+      app: infra-contracts-recovery-preflight
+  ingress: []
+  egress: []
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: infra-contracts-recovery-preflight
+  namespace: flux-system
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 90
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: infra-contracts-recovery-preflight
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: preflight
+        image: ghcr.io/getsops/sops@sha256:320f253aced1393537b1e90c77eb48295204d805d4c68933264cd1285192465d
+        command:
+        - python3
+        - -B
+        - -c
+        - import base64, hashlib, json, os, pathlib, secrets, ssl, subprocess, sys,
+          urllib.request; r=subprocess.run(["sops", "--version"],capture_output=True,text=True,timeout=15);
+          assert r.returncode==0 and r.stdout.splitlines()[0].strip()=="sops 3.13.1";
+          print(json.dumps({"pythonAvailable":True,"requiredModulesAvailable":True,"sopsVersionMatched":True}))
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
