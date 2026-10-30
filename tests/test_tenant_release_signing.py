@@ -18,6 +18,9 @@ def test_tenant_release_uses_github_oidc_and_pinned_digest_verification():
     assert 'syft "$immutable" -o spdx-json' in release
     assert 'TENANT_IMAGE_PUSH_ATTEMPTS' in release
     assert 'fresh registry upload session' in release
+    assert 'docker push "$image"' in release
+    assert "docker buildx imagetools inspect" in release
+    assert '--provenance=false --progress plain --load' in release
     assert "workflow_dispatch:" in workflow
     assert "clusters/re8ch/components/ai-operations/**" in workflow
 
@@ -39,8 +42,10 @@ def test_publisher_executes_configured_upload_timeout_without_network(tmp_path):
         path.chmod(0o755)
     executable('docker', '''import json, pathlib, sys
 args = sys.argv[1:]
-if args[:2] == ['buildx', 'build']:
+if args[:2] == ['buildx', 'build'] and '--metadata-file' in args:
     pathlib.Path(args[args.index('--metadata-file') + 1]).write_text(json.dumps({'containerimage.digest': 'sha256:' + 'a' * 64}))
+elif args[:3] == ['buildx', 'imagetools', 'inspect']:
+    print(json.dumps({'digest': 'sha256:' + 'b' * 64}))
 ''')
     executable('cosign', 'pass\n')
     executable('timeout', '''import json, os, subprocess, sys
@@ -65,6 +70,16 @@ sys.exit(subprocess.call(sys.argv[4:]))
         upload = [row for row in calls if row[3:6] == ['docker', 'buildx', 'build']]
         assert len(upload) == 1 and upload[0][:3] == ['--signal=TERM', '--kill-after=30s', duration]
         assert (tmp_path / 'tenant-infrastructure.image').read_text().strip().endswith('@sha256:' + 'a' * 64)
+    env['TENANT_IMAGE_DOCKER_PUSH'] = '1'
+    env['TENANT_IMAGE_PUSH_TIMEOUT_SECONDS'] = '300'
+    (tmp_path / 'timeouts.jsonl').write_text('')
+    result = subprocess.run(['bash', script], cwd=tmp_path, env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    calls = [json.loads(line) for line in (tmp_path / 'timeouts.jsonl').read_text().splitlines()]
+    assert any(row[3:5] == ['docker', 'push'] for row in calls)
+    assert any('--load' in row and '--provenance=false' in row for row in calls)
+    assert (tmp_path / 'tenant-infrastructure.image').read_text().strip().endswith('@sha256:' + 'b' * 64)
+    env.pop('TENANT_IMAGE_DOCKER_PUSH')
     for invalid in ['0', '59', '3601', '0100', 'unbounded']:
         env['TENANT_IMAGE_PUSH_TIMEOUT_SECONDS'] = invalid
         result = subprocess.run(['bash', script], cwd=tmp_path, env=env, capture_output=True, text=True)

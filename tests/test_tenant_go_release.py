@@ -77,6 +77,7 @@ def test_tenant_go_release_uses_disposable_cloud_builder_without_host_state():
     assert builder["with"]["driver-opts"] == "env.GODEBUG=http2client=0"
     publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
     assert publisher["env"]["TENANT_IMAGE_BUILDER"] == "${{ steps.builder.outputs.name }}"
+    assert publisher["env"]["TENANT_IMAGE_DOCKER_PUSH"] == "1"
     assert "r640-mihomos" not in str(release)
     assert "BUILDX_CONFIG" not in prepare
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare
