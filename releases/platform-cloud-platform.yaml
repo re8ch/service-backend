@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: tundra-copper
+codename: wetland-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:e1379cae1cfd500cb61a5aa1d579aeb3ac75abeaabaff4f709e33d24a6665da1
+  digest: sha256:80ef98d3e2d2e38ea5709db78748f39e95fd0998833f67e67f5ebf69ca5416f2
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

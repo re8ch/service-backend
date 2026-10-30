@@ -571,6 +571,8 @@ modules:
       digest: sha256:f801fee8f616e3e818a82e491c58cd1c267ac8dd3c110f0624fd190217c35865
     - codename: tundra-copper
       digest: sha256:e1379cae1cfd500cb61a5aa1d579aeb3ac75abeaabaff4f709e33d24a6665da1
+    - codename: wetland-copper
+      digest: sha256:80ef98d3e2d2e38ea5709db78748f39e95fd0998833f67e67f5ebf69ca5416f2
   platform/advanced-fabric:
     releases:
     - codename: bora

@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: tundra-copper
+    delivery.re8ch.com/codename: wetland-copper
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:e1379cae1cfd500cb61a5aa1d579aeb3ac75abeaabaff4f709e33d24a6665da1
+    digest: sha256:80ef98d3e2d2e38ea5709db78748f39e95fd0998833f67e67f5ebf69ca5416f2
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: tundra-copper
+    delivery.re8ch.com/codename: wetland-copper
 spec:
   interval: 1m
   retryInterval: 1m
