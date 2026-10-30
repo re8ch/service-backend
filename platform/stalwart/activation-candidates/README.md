@@ -25,7 +25,10 @@ configuration and steady-state management configuration have different gates.
    `action: discover`; no new image build is needed for discovery. MCP serverInfo
    `0.1.0` is not evidence of that source revision.
 2. After provider v1 validation, review the exact provider origin and replace
-   `REVIEWED_CONFIGURATION_COMMIT` with the signed configuration review revision.
+   `REVIEWED_CONFIGURATION_COMMIT` with the already reviewed configuration commit
+   when rendering the exact apply payload for review. This references the reviewed
+   template revision; it does not require a self-referential commit or another
+   commit merely to embed its own SHA.
    Deliver only the bootstrap ConfigMap with empty domainId. Its mounted token may
    remain absent for discovery. Publish the two bootstrap tools through the separate
    protected catalog switch; re-discover actual names and schemas before calling.
@@ -42,11 +45,13 @@ configuration and steady-state management configuration have different gates.
    No plan/apply write is authorized by the empty approved-plans ConfigMap.
 6. Plan/apply temporary authority revoke; remove its config and token-free receipt
    through reviewed platform delivery. Disable `stalwartBootstrapEnabled` again.
-7. Separately activate user collaboration only after scoped OAuth acceptance and
+7. Separately activate user collaboration only after isolated-provider scoped OAuth
+   compatibility evidence (before tenant grants) and
    isolated namespace/RBAC exist. Set verified origin, fixed registered clientID
    `re8ch-self-service`, and validationRef; approve Consumable and activate only the
    verified application's Suspended grant. Refresh locked chart snapshots and
-   release. Present device consent to the user, then verify isolated reads and
+   release. Final tenant self-service acceptance follows the active grant: present
+   device consent to the user, then verify isolated reads and
    revocation with the acceptance runbook. Do not send mail or RSVP during read-only
    acceptance.
 
