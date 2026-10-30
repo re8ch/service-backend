@@ -63,7 +63,7 @@ def test_patch_is_cas_and_preserves_unrelated_metadata():
 
 def test_render_has_patch_only_identity_and_api_only_network():
     docs = render.render()
-    assert next(d for d in docs if d['kind'] == 'Job')['metadata']['name'] == 'infra-contracts-recovery-dryrun-v3'
+    assert next(d for d in docs if d['kind'] == 'Job')['metadata']['name'] == 'infra-contracts-recovery-dryrun-v4'
     role = next(d for d in docs if d['kind'] == 'Role')
     assert role['rules'] == [{'apiGroups': [''], 'resources': ['secrets'], 'resourceNames': list(restore.TARGETS), 'verbs': ['patch']}]
     policy = next(d for d in docs if d['kind'] == 'CiliumNetworkPolicy')
@@ -185,3 +185,4 @@ def test_preflight_has_no_identity_or_key_or_network():
     assert pod['automountServiceAccountToken'] is False
     assert not pod.get('volumes') and not pod['containers'][0].get('volumeMounts')
     assert pod['containers'][0]['image'] == render.IMAGE
+    assert 'sops 3.13.3' in pod['containers'][0]['command'][-1]
