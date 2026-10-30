@@ -160,3 +160,21 @@ is lost, a later explicit revoke plan reads the recorded key. Only an exact nati
 that plan never repeats native deletion. If the key still exists or the identity
 receipt changed, it stops for operator recovery. This is a bounded recovery path,
 not automatic retry of an unknown write.
+
+### Exact configuration and domain discovery
+
+The reviewed ConfigMap key `config.json` has this shape (replace only non-secret
+values with actual inspected references):
+
+```json
+{"origin":"https://id.re8ch.com","domainId":"","revision":"REVIEWED_COMMIT_SHA","tokenFile":"/etc/stalwart-bootstrap/credential/token"}
+```
+
+Use the actual post-migration origin; the sample does not authorize cutover. An
+empty domainId is accepted only for `action:"discover"`. That read-only action
+returns at most 50 native Domain IDs, names and enabled flags, never accounts or
+credentials. It refuses apply/planHash and makes no provider or broker writes.
+Select the intended enabled existing domain, then deliver the exact returned ID
+in the reviewed ConfigMap. Seed/revoke require a nonempty configured ID and verify
+the native Domain is enabled. No domain is created, guessed from an email address
+or automatically selected from multiple results.

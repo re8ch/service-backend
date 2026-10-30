@@ -27,6 +27,9 @@ class Broker:
         return result
 
 class Native(Provider):
+    def __init__(self):
+        super().__init__()
+        self.objects['Domain'] = {'id': CONFIG['domainId'], 'name': 'example.test', 'enable': True}
     def method(self, obj, action, args):
         if obj == 'ApiKey' and action == 'get' and obj not in self.objects:
             return {'list': [], 'notFound': args['ids']}
@@ -129,3 +132,17 @@ def test_timeout_after_native_destroy_recovers_without_destroy_replay(monkeypatc
     result = invoke(broker, native, {'action': 'revoke', 'apply': True, 'planHash': cleanup['planHash']})
     assert result['state'] == 'Revoked' and not broker.secrets[a.SECRET]['data']
     assert sum('destroy' in args for _, args in native.writes) == 1
+
+def test_domain_discovery_is_bounded_read_only_and_needs_no_domain_id():
+    native, broker = Native(), Broker()
+    result = a.call(broker, {'action': 'discover'}, 'platform-admin', config={**CONFIG, 'domainId': ''}, client=native)
+    assert result == {'domains': [{'id': 'domain', 'name': 'example.test', 'enable': True}], 'truncated': False}
+    assert not native.writes and not broker.secrets
+    with pytest.raises(OperationError): invoke(broker, native, {'action': 'discover', 'apply': True})
+
+
+def test_disabled_or_wrong_domain_prevents_seed():
+    native, broker = Native(), Broker()
+    native.objects['Domain']['enable'] = False
+    with pytest.raises(OperationError) as error: invoke(broker, native, {})
+    assert error.value.code == 'AUTHORITY_DOMAIN_INVALID' and not native.writes

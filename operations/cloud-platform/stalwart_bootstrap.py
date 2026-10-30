@@ -31,7 +31,7 @@ def fail(code):
 
 class BootstrapClient(Client):
     def method(self, obj, action, args):
-        if obj not in {'Account', 'OAuthClient', 'ApiKey'} or action not in {'query', 'get', 'set'}:
+        if obj not in {'Account', 'OAuthClient', 'ApiKey', 'Domain'} or action not in {'query', 'get', 'set'} or (obj == 'Domain' and action == 'set'):
             fail('BOOTSTRAP_METHOD_DENIED')
         if self.api_url is None:
             self.discover()
@@ -47,10 +47,10 @@ class BootstrapClient(Client):
         return value
 
 
-def load_configuration():
+def load_configuration(*, allow_missing_domain=False):
     try:
         config = json.loads(Path(os.environ['STALWART_BOOTSTRAP_CONFIG']).read_text())
-        if set(config) != {'origin', 'domainId', 'revision', 'tokenFile'} or not all(isinstance(v, str) and v for v in config.values()):
+        if set(config) != {'origin', 'domainId', 'revision', 'tokenFile'} or not all(isinstance(v, str) and (v or (k == 'domainId' and allow_missing_domain)) for k, v in config.items()):
             fail('BOOTSTRAP_CONFIGURATION_INVALID')
         if not re.fullmatch(r'[0-9a-f]{40,64}', config['revision']) or config['tokenFile'] != '/etc/stalwart-bootstrap/credential/token':
             fail('BOOTSTRAP_CONFIGURATION_INVALID')

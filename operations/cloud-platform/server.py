@@ -26,7 +26,7 @@ ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
-    "credentials.stalwart.authority.ensure": {"action": {"type": "string", "enum": ["seed", "revoke"], "default": "seed"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "credentials.stalwart.authority.ensure": {"action": {"type": "string", "enum": ["discover", "seed", "revoke"], "default": "seed"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.stalwart.ensure": {"apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.webmail-session.ensure": {"apply": {"type": "boolean", "default": False}},
     "plugin.capabilities.list": {},

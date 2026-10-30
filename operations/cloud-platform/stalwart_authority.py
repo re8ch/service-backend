@@ -77,10 +77,25 @@ def key_metadata(client, account_id, key_id):
 
 
 def call(service, args, subject, *, config=None, client=None):
-    if set(args) - {'action', 'apply', 'planHash'} or type(args.get('apply', False)) is not bool or args.get('action', 'seed') not in {'seed', 'revoke'}:
+    if set(args) - {'action', 'apply', 'planHash'} or type(args.get('apply', False)) is not bool or args.get('action', 'seed') not in {'discover', 'seed', 'revoke'}:
         fail('INVALID_ARGUMENT')
-    config = config or load_configuration()
+    config = config or load_configuration(allow_missing_domain=args.get('action') == 'discover')
     client = client or recovery(service, config)
+    if args.get('action') == 'discover':
+        if args.get('apply') or args.get('planHash'):
+            fail('INVALID_ARGUMENT')
+        client.discover()
+        query = client.method('Domain', 'query', {'limit': 50, 'calculateTotal': False})
+        ids = query.get('ids', [])
+        if not isinstance(ids, list) or len(ids) > 50:
+            fail('AUTHORITY_DOMAIN_INVALID')
+        rows = client.method('Domain', 'get', {'ids': ids, 'properties': ['id', 'name', 'enable']}).get('list', []) if ids else []
+        if len(rows) != len(ids) or any(row.get('id') not in ids for row in rows):
+            fail('AUTHORITY_DOMAIN_INVALID')
+        return {'domains': [{k: row.get(k) for k in ['id', 'name', 'enable']} for row in rows], 'truncated': len(ids) == 50}
+    domain = client.method('Domain', 'get', {'ids': [config['domainId']], 'properties': ['id', 'enable']}).get('list', [])
+    if len(domain) != 1 or domain[0].get('id') != config['domainId'] or domain[0].get('enable') is not True:
+        fail('AUTHORITY_DOMAIN_INVALID')
     account = inspect(config, client)
     existing = secret(service, SECRET)
     action = args.get('action', 'seed')
