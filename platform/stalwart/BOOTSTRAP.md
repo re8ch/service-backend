@@ -102,3 +102,79 @@ config and Secret through the reviewed platform path, revoke its native authorit
 and disable bootstrap publication. The distinct management key remains mounted.
 A later explicit rotation requires its own reviewed plan; deleting a Ready Secret
 is not a supported rotation procedure.
+
+## Obtaining temporary authority without a user-supplied token
+
+`credentials.stalwart.authority.ensure` closes the initial token dependency. Its
+only arguments are `action` (`seed` or `revoke`), `apply` and `planHash`. It runs
+under the same platform administrator authorization as the existing credential
+provisioner. It does not ask the user to paste or generate a token.
+
+After migration has completed, all v1 integrity gates have passed, and the
+reviewed HTTPS origin is serving the migrated store:
+
+1. Deliver `stalwart-bootstrap-config/config.json` with the observed existing
+   domain ID, exact origin, signed revision and fixed tokenFile path. The token
+   file can be absent initially. Enable the two exact bootstrap tools temporarily
+   in the protected platform catalog. This is not ordinary tenant publication.
+2. Plan `credentials.stalwart.authority.ensure` with `{"action":"seed"}`. It
+   reads only the fixed `mail-system/stalwart-recovery-admin` Secret and its
+   `STALWART_RECOVERY_ADMIN` key inside the platform process, matching the existing
+   mailbox-provisioner's source. Basic authentication is built in memory and sent
+   over same-origin HTTPS with redirects disabled. No credential appears in tool
+   arguments, subprocess argv, plan, output or logs. The source Secret is never
+   modified, copied into the bootstrap Secret, or mounted into the management pod.
+3. Apply that exact plan. It creates `re8ch-self-service-provisioner` and a
+   provider-generated one-hour API key at the fixed bootstrap Secret. Permissions
+   are Replace: authenticate, impersonate, Account Create/Get/Query, ApiKey
+   Create/Get, OAuthClient Create/Get/Query, plus the bounded runtime management
+   permissions. Account/Domain Update are required because v1 refuses to grant a
+   permission absent from the caller's effective permission set. There is no
+   superuser, arbitrary object writer, account deletion, or API-key deletion
+   permission on this temporary key. The platform-controlled recovery authority
+   performs its later revocation; the key cannot broaden its own permission set.
+4. Wait for Kubernetes to project that Secret, then run the separate
+   `credentials.stalwart.ensure` plan/apply workflow above. It uses the temporary
+   bearer and stores a different 30-day management key.
+5. Plan/apply `credentials.stalwart.authority.ensure` with `action:"revoke"`.
+   It requires the distinct runtime Secret to report the expected owner, origin
+   and Ready state. Using the controlled recovery authority, it destroys only the
+   recorded temporary native API key, then replaces its Secret with a Revoked
+   receipt containing no token bytes. Provider or broker uncertainty stops the
+   operation; there is no automatic native-write replay.
+6. Remove the optional bootstrap config/receipt and disable bootstrap publication
+   through reviewed delivery. The dedicated management account/key is untouched.
+   Do not automatically renew the one-hour authority; a new window requires
+   explicit operator review, including any orphan keys after an interrupted seed.
+
+These steps do not run on the old v0.16 store, during cold backup, on the isolated
+IdP instance, or before cutover validation. The native v1 recovery Basic path is
+verified in `common/src/auth/authentication.rs`; API key creation and permission
+subset enforcement are verified in the pinned mapping/permissions source. This
+implements the existing platform provisioning trust boundary, rather than adding
+an external credential exchange or treating recovery credentials as an AI token.
+
+Revocation writes a `Revoking` reservation before native deletion. If its result
+is lost, a later explicit revoke plan reads the recorded key. Only an exact native
+`notFound` result permits a new cleanup-only plan to erase the Secret bytes;
+that plan never repeats native deletion. If the key still exists or the identity
+receipt changed, it stops for operator recovery. This is a bounded recovery path,
+not automatic retry of an unknown write.
+
+### Exact configuration and domain discovery
+
+The reviewed ConfigMap key `config.json` has this shape (replace only non-secret
+values with actual inspected references):
+
+```json
+{"origin":"https://id.re8ch.com","domainId":"","revision":"REVIEWED_COMMIT_SHA","tokenFile":"/etc/stalwart-bootstrap/credential/token"}
+```
+
+Use the actual post-migration origin; the sample does not authorize cutover. An
+empty domainId is accepted only for `action:"discover"`. That read-only action
+returns at most 50 native Domain IDs, names and enabled flags, never accounts or
+credentials. It refuses apply/planHash and makes no provider or broker writes.
+Select the intended enabled existing domain, then deliver the exact returned ID
+in the reviewed ConfigMap. Seed/revoke require a nonempty configured ID and verify
+the native Domain is enabled. No domain is created, guessed from an email address
+or automatically selected from multiple results.

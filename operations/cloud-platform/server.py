@@ -26,6 +26,7 @@ ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
+    "credentials.stalwart.authority.ensure": {"action": {"type": "string", "enum": ["discover", "seed", "revoke"], "default": "seed"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.stalwart.ensure": {"apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.webmail-session.ensure": {"apply": {"type": "boolean", "default": False}},
     "plugin.capabilities.list": {},
@@ -66,7 +67,7 @@ GENERATED_PLUGIN_TOOLS = {
 }
 PRIVILEGED_TOOLS = {*STALWART_ADMIN_BY_NAME, *MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
-WRITE_TOOLS = {"credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
+WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
 
 REQUIRED = {
@@ -136,6 +137,9 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
     if name in STALWART_ADMIN_BY_NAME:
         from stalwart_admin import call
         return call(name, args, identity.subject)
+    if name == "credentials.stalwart.authority.ensure":
+        from stalwart_authority import call
+        return call(service, args, identity.subject)
     if name == "credentials.stalwart.ensure":
         from stalwart_bootstrap import call
         return call(service, args, identity.subject)

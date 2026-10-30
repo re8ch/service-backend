@@ -103,9 +103,12 @@ class Client:
             raise OperationError("STALWART_CREDENTIAL_UNAVAILABLE", "Dedicated management credential is unavailable") from None
         return cls(endpoint, token)
 
+    def authorization_header(self):
+        return "Bearer " + self.token
+
     def request(self, url, payload=None):
         body = canonical(payload) if payload is not None else None
-        req = urllib.request.Request(url, data=body, headers={"Authorization": "Bearer " + self.token,
+        req = urllib.request.Request(url, data=body, headers={"Authorization": self.authorization_header(),
                                      "Accept": "application/json", "Content-Type": "application/json"})
         try:
             with self.opener.open(req, timeout=15) as response:
