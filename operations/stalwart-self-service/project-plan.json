@@ -9,8 +9,7 @@
     "siren-observer/observability-gitops"
   ],
   "newRepositoryRequired": false,
-  "state": "prepared-not-created",
-  "identityBlocker": "GitHub connector issue creation returned 403; installed organization Apps do not have Projects write permission. Await explicit exception to use the existing signed-in CLI identity for this project and associated issues/PRs.",
+  "state": "project-created-implementation-in-review",
   "items": [
     {
       "key": "epic",
@@ -22,7 +21,8 @@
         "Immutable build references from existing build workflows",
         "Provider version and scoped OAuth acceptance",
         "Live read/RSVP/revocation and admin-isolation evidence"
-      ]
+      ],
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/37"
     },
     {
       "key": "admin",
@@ -37,7 +37,8 @@
         "Reviewed immutable plan required for apply",
         "Dedicated credential, state conflict protection and readback",
         "63 focused and regression tests passed"
-      ]
+      ],
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2517"
     },
     {
       "key": "data",
@@ -51,7 +52,8 @@
         "JMAP mail/calendar and WebDAV path/origin limits",
         "Invitation plan, state precondition and readback",
         "No remote delivery claim; no separate free/busy implementation claim"
-      ]
+      ],
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2518"
     },
     {
       "key": "binding",
@@ -71,7 +73,8 @@
         "Default-disabled tool publication and active grant check",
         "Go suite and collaboration race tests passed",
         "Existing account connection only; new mailbox provisioning remains separate"
-      ]
+      ],
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2519"
     },
     {
       "key": "delivery",
@@ -91,7 +94,10 @@
         "v0.16.18 missing OAuth scope schema blocks activation",
         "tenant-api runtime changes belong to observability-gitops",
         "No fabricated digest or automatic provider upgrade"
-      ]
+      ],
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/38"
     }
-  ]
+  ],
+  "projectUrl": "https://github.com/orgs/8iops/projects/1",
+  "identityAuthorization": "User explicitly authorized the signed-in Woomou CLI identity for this project, its issues and implementation PRs on 2026-10-30; repository protections remain unchanged."
 }

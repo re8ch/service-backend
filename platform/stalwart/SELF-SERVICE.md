@@ -174,8 +174,9 @@ eventRef、预期事件版本及响应状态，不接受任意组织者或收件
 ## 本次分工与交付状态
 
 Project 目标归属：`8iops`，名称 `Re8ch Collaboration Self-service`。
-GitHub Project/Issue 写入等待符合本次身份策略的授权；不得把本地任务表当作
-已创建的 GitHub Project。三个已有仓库足够，不创建重复源码仓库。
+Project 已创建：https://github.com/orgs/8iops/projects/1 。用户已明确授权本次
+Project、Issue 和 PR 使用已登录的 Woomou CLI 身份；签名和仓库保护不变。
+三个已有仓库足够，不创建重复源码仓库。
 
 | Agent | 实现范围 | 仓库 | 状态 |
 | --- | --- | --- | --- |
