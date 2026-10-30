@@ -20,7 +20,7 @@ SECRET = 'stalwart-self-service-admin'
 NAMESPACE = 'ai-operations'
 PERMISSIONS = ['authenticate', 'sysAccountGet', 'sysAccountQuery', 'sysAccountUpdate',
                'sysDomainGet', 'sysDomainQuery', 'sysDomainUpdate']
-CLIENT = {'clientId': CLIENT_ID, 'description': 'Re8ch self-service scoped device consent',
+CLIENT = {'clientId': CLIENT_ID, 'description': 'Re8ch self-service user-authorized mail, calendars and lightweight files',
           'firstParty': False, 'scopes': {'mail': True, 'calendars': True, 'files': True},
           'grantTypes': {'deviceCode': True}, 'redirectUris': {}}
 
@@ -47,17 +47,25 @@ class BootstrapClient(Client):
         return value
 
 
-def configured():
+def load_configuration():
     try:
         config = json.loads(Path(os.environ['STALWART_BOOTSTRAP_CONFIG']).read_text())
         if set(config) != {'origin', 'domainId', 'revision', 'tokenFile'} or not all(isinstance(v, str) and v for v in config.values()):
             fail('BOOTSTRAP_CONFIGURATION_INVALID')
         if not re.fullmatch(r'[0-9a-f]{40,64}', config['revision']) or config['tokenFile'] != '/etc/stalwart-bootstrap/credential/token':
             fail('BOOTSTRAP_CONFIGURATION_INVALID')
+        return config
+    except (KeyError, OSError, ValueError):
+        fail('BOOTSTRAP_CONFIGURATION_INVALID')
+
+
+def configured():
+    config = load_configuration()
+    try:
         with open(config['tokenFile'], 'rb') as handle:
             token = handle.read(16385).decode().strip()
         client = BootstrapClient(config['origin'], token)
-    except (KeyError, OSError, ValueError):
+    except (OSError, ValueError):
         fail('BOOTSTRAP_CONFIGURATION_INVALID')
     return config, client
 
