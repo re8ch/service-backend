@@ -5717,9 +5717,9 @@ spec:
         - name: IDENTITY_V2_RETURN_ORIGINS
           value: https://auth.re8ch.com,https://re8ch.com,https://api.re8ch.com
         - name: MGR_RPC_RW_BASE_URL
-          value: http://auth-postgrest.auth.svc.cluster.local:3000
+          value: http://$(AUTH_POSTGREST_SERVICE_HOST):$(AUTH_POSTGREST_SERVICE_PORT_HTTP)
         - name: MGR_RPC_RO_BASE_URL
-          value: http://auth-postgrest.auth.svc.cluster.local:3000
+          value: http://$(AUTH_POSTGREST_SERVICE_HOST):$(AUTH_POSTGREST_SERVICE_PORT_HTTP)
         - name: AUTH_SERVICE_ROLE
           value: auth_app_rw
         - name: AUTH_GATEWAY_COOKIE_NAME
