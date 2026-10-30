@@ -611,7 +611,7 @@ def test_stalwart_idp_public_route_serves_oidc_and_jmap_from_mail_instance():
         for rule in route["spec"]["rules"]
         for match in rule.get("matches", [])
     }
-    assert paths == {"/", "/.well-known", "/auth", "/login", "/account", "/jmap", "/dav", "/api/auth", "/api/discover"}
+    assert paths == {"/", "/.well-known", "/auth", "/login", "/device", "/account", "/jmap", "/dav", "/api/auth", "/api/discover"}
     assert "/api" not in paths
     assert all(rule["backendRefs"] == [{"name": "stalwart", "port": 8080}] for rule in route["spec"]["rules"] if "backendRefs" in rule)
     assert dns["spec"]["rules"][0]["http"]["paths"][0]["backend"]["service"]["name"] == "stalwart"

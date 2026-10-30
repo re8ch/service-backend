@@ -14080,6 +14080,9 @@ spec:
         value: /login
     - path:
         type: PathPrefix
+        value: /device
+    - path:
+        type: PathPrefix
         value: /account
     - path:
         type: PathPrefix
