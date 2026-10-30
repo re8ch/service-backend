@@ -42,16 +42,26 @@ def verify_key():
     if json.loads(plain) != json.loads(body): raise Rejected()
 
 def decode(name, ciphertext):
-    c = json.loads(ciphertext)
-    if [a['recipient'] for a in c['sops']['age']] != [RECIPIENT]: raise Rejected()
-    value = json.loads(sops(['decrypt', '--input-type', 'json', '--output-type', 'json', '/dev/stdin'], ciphertext))
-    if value.get('apiVersion') != 'v1' or value.get('kind') != 'Secret': raise Rejected()
-    m = value['metadata']
-    if m['name'] != name or m['namespace'] != 'ai-operations' or m['annotations']['operations.re8ch.com/source-digest'] != SOURCE: raise Rejected()
-    data = value.get('stringData')
-    if not isinstance(data, dict) or set(data) != TARGETS[name] or 'data' in value: raise Rejected()
-    if any(not isinstance(v, str) or not v for v in data.values()): raise Rejected()
-    return {k: base64.b64encode(v.encode()).decode() for k, v in data.items()}
+    try:
+        c = json.loads(ciphertext)
+        if [a['recipient'] for a in c['sops']['age']] != [RECIPIENT]: raise Rejected()
+    except Exception:
+        raise DiagnosticRejected('source_envelope') from None
+    try:
+        plain = sops(['decrypt', '--input-type', 'json', '--output-type', 'json', '/dev/stdin'], ciphertext)
+    except Exception:
+        raise DiagnosticRejected('source_sops_decrypt') from None
+    try:
+        value = json.loads(plain)
+        if value.get('apiVersion') != 'v1' or value.get('kind') != 'Secret': raise Rejected()
+        m = value['metadata']
+        if m['name'] != name or m['namespace'] != 'ai-operations' or m['annotations']['operations.re8ch.com/source-digest'] != SOURCE: raise Rejected()
+        data = value.get('stringData')
+        if not isinstance(data, dict) or set(data) != TARGETS[name] or 'data' in value: raise Rejected()
+        if any(not isinstance(v, str) or not v for v in data.values()): raise Rejected()
+        return {k: base64.b64encode(v.encode()).decode() for k, v in data.items()}
+    except Exception:
+        raise DiagnosticRejected('source_document_validation') from None
 
 def patch(name, data, receipt):
     if set(receipt) != {'uid', 'resourceVersion'} or any(not isinstance(v, str) or not v or v.startswith('REPLACE') for v in receipt.values()): raise Rejected()
@@ -97,6 +107,8 @@ def prepare(directory, state):
     for name, raw in ciphertexts.items():
         try:
             decoded[name] = decode(name, raw)
+        except DiagnosticRejected:
+            raise
         except Exception:
             raise DiagnosticRejected('source_decrypt_and_validate') from None
     try:
