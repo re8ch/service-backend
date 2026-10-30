@@ -143,6 +143,14 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if rpcCalls != 1 {
 		t.Fatalf("first session made %d membership calls", rpcCalls)
 	}
+	assertPlatformStatus := func(subject, session string, allowed bool) {
+		response := call(subject, session, "tools/call", map[string]any{"name": "tenant_access_status", "arguments": map[string]any{}})
+		status := response["result"].(map[string]any)["structuredContent"].(map[string]any)
+		if status["platformAdminAuthorized"] != allowed || status["platformToolsAvailable"] != allowed {
+			t.Fatalf("wrong platform diagnostic for %s: %#v", subject, status)
+		}
+	}
+	assertPlatformStatus("admin-user", "session-1", true)
 	privileged := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
 	if privileged["error"] != nil || privileged["result"].(map[string]any)["isError"] == true {
 		t.Fatalf("admin call without AAL2 failed: %#v", privileged)
@@ -153,6 +161,7 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if contains(call("ordinary-user", "session-2", "tools/list", map[string]any{})) {
 		t.Fatal("ordinary user sees admin tool")
 	}
+	assertPlatformStatus("ordinary-user", "session-2", false)
 	guessed := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
 	if guessed["error"] == nil {
 		t.Fatal("guessed privileged call was accepted")

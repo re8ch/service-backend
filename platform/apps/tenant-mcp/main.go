@@ -59,6 +59,15 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 				"tenantAuthorized":            caller.Tenant != "" || caller.RuntimeTenantRef != "",
 				"resourceOperationsAvailable": caller.Tenant != "",
 			}
+			// Report the server-side gate separately from tenant access so clients
+			// can distinguish a stale tool list from a denied platform session.
+			status["platformAdminAuthorized"] = caller.PlatformAdmin
+			status["platformToolsAvailable"] = caller.PlatformAdmin && caller.Tenant != ""
+			if caller.PlatformAdmin && caller.Tenant != "" {
+				status["platformToolDiscovery"] = "Refresh the connection tool list if platform_tool_catalog and platform_tool_call are absent."
+			} else {
+				status["platformToolDiscovery"] = "Platform tools require a verified platform administrator session and an active organization; tenant admin role alone is insufficient."
+			}
 			accessStatus := caller.AccessStatus
 			if accessStatus == "" {
 				if caller.Tenant != "" {
