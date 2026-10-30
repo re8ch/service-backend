@@ -40,7 +40,7 @@ spec:
         - -B
         - -c
         - import base64, hashlib, json, os, pathlib, secrets, ssl, subprocess, sys,
-          urllib.request; r=subprocess.run(["sops", "--version"],capture_output=True,text=True,timeout=15);
+          urllib.request; r=subprocess.run(["sops", "--disable-version-check", "--version"],capture_output=True,text=True,timeout=15);
           assert r.returncode==0 and r.stdout.splitlines()[0].strip()=="sops 3.13.1";
           print(json.dumps({"pythonAvailable":True,"requiredModulesAvailable":True,"sopsVersionMatched":True}))
         securityContext:
