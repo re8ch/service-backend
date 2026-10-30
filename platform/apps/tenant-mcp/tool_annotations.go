@@ -8,7 +8,7 @@ import "github.com/modelcontextprotocol/go-sdk/mcp"
 func toolAnnotations(name string) *mcp.ToolAnnotations {
 	readOnly, destructive, openWorld := false, false, false
 	switch name {
-	case "tenant_access_status", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
+	case "mail_query", "mail_read", "calendar_query", "files_list", "files_read", "tenant_access_status", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",
@@ -23,6 +23,8 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		readOnly = true
 	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
 		// Additive operations against the configured tenant platform.
+	case "collaboration_connection", "calendar_respond":
+		destructive, openWorld = true, true
 	case "tenant_secret_upsert":
 		// Replaces existing write-only Secret data and cannot restore prior values.
 		destructive = true

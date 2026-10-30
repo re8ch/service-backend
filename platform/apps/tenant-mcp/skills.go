@@ -102,6 +102,10 @@ func open(path string) (*server, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err = db.Exec(collaborationDDL); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return &server{db: db, results: map[string]resultRecord{}}, nil
 }
 

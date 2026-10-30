@@ -1,0 +1,123 @@
+{
+  "owner": "8iops",
+  "title": "Re8ch Collaboration Self-service",
+  "repository": "8iops/agent-gitops",
+  "description": "Deliver bounded Stalwart administration and user-owned mail, calendar and lightweight file access through existing Re8ch self-service.",
+  "repositories": [
+    "8iops/agent-gitops",
+    "re8ch/service-backend",
+    "siren-observer/observability-gitops"
+  ],
+  "newRepositoryRequired": false,
+  "state": "project-created-implementation-in-review",
+  "items": [
+    {
+      "key": "epic",
+      "title": "Deliver Stalwart collaboration through Re8ch self-service",
+      "agent": "root",
+      "status": "In progress",
+      "acceptance": [
+        "Signed PRs and required checks",
+        "Immutable build references from existing build workflows",
+        "Provider version and scoped OAuth acceptance",
+        "Live read/RSVP/revocation and admin-isolation evidence"
+      ],
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/37"
+    },
+    {
+      "key": "admin",
+      "title": "Implement bounded Stalwart administrator tools",
+      "agent": "admin_implementation",
+      "repository": "re8ch/service-backend",
+      "branch": "codex/stalwart-admin",
+      "commit": "a2048cd65deb30d465af0cbc86825ade2169fd55",
+      "status": "Local implementation tested",
+      "acceptance": [
+        "Restricted metadata and quota operations",
+        "Reviewed immutable plan required for apply",
+        "Dedicated credential, state conflict protection and readback",
+        "63 focused and regression tests passed"
+      ],
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2517",
+      "pullRequestUrl": "https://github.com/re8ch/service-backend/pull/2516"
+    },
+    {
+      "key": "data",
+      "title": "Implement mail, calendar and lightweight file adapters",
+      "agent": "collaboration_implementation",
+      "repository": "re8ch/service-backend",
+      "branch": "codex/stalwart-self-service",
+      "status": "Integrated locally and tested",
+      "acceptance": [
+        "Tenant and user scopes enforced",
+        "JMAP mail/calendar and WebDAV path/origin limits",
+        "Invitation plan, state precondition and readback",
+        "No remote delivery claim; no separate free/busy implementation claim"
+      ],
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2518",
+      "pullRequestUrl": "https://github.com/re8ch/service-backend/pull/2520"
+    },
+    {
+      "key": "binding",
+      "title": "Integrate self-service user authorization and revocable bindings",
+      "agent": "root",
+      "repository": "re8ch/service-backend",
+      "branch": "codex/stalwart-self-service",
+      "commit": "cfc15b7b5",
+      "status": "Local implementation tested",
+      "dependsOn": [
+        "data"
+      ],
+      "acceptance": [
+        "Native device consent; credentials stay in broker",
+        "Organization and subject bound references",
+        "Single-use device-code exchange; unknown outcomes require new consent",
+        "Default-disabled tool publication and active grant check",
+        "Go suite and collaboration race tests passed",
+        "Existing account connection only; new mailbox provisioning remains separate"
+      ],
+      "issueUrl": "https://github.com/re8ch/service-backend/issues/2519",
+      "pullRequestUrl": "https://github.com/re8ch/service-backend/pull/2520"
+    },
+    {
+      "key": "delivery",
+      "title": "Publish collaboration with provider compatibility and runtime evidence gates",
+      "agent": "gitops_delivery",
+      "repository": "8iops/agent-gitops",
+      "branch": "codex/stalwart-self-service-delivery",
+      "commit": "9ac1241861aecb273ce9186ef9a60409321da63f",
+      "status": "Local preparation tested; activation blocked",
+      "dependsOn": [
+        "admin",
+        "binding"
+      ],
+      "acceptance": [
+        "Preserve mail-system authority and existing writer ownership",
+        "133 tests plus deterministic compiler and policy validation passed",
+        "v0.16.18 missing OAuth scope schema blocks activation",
+        "tenant-api runtime changes belong to observability-gitops",
+        "No fabricated digest or automatic provider upgrade"
+      ],
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/38",
+      "pullRequestUrl": "https://github.com/8iops/agent-gitops/pull/36"
+    },
+    {
+      "key": "compatibility",
+      "repository": "8iops/agent-gitops",
+      "title": "Validate scoped Stalwart OAuth compatibility before activation",
+      "agent": "gitops_delivery",
+      "issueUrl": "https://github.com/8iops/agent-gitops/issues/39",
+      "status": "Blocked on reviewed prerequisites"
+    },
+    {
+      "key": "runtime",
+      "repository": "siren-observer/observability-gitops",
+      "title": "Wire reviewed collaboration release into tenant-api runtime",
+      "agent": "gitops_delivery",
+      "issueUrl": "https://github.com/siren-observer/observability-gitops/issues/50",
+      "status": "Blocked on reviewed prerequisites"
+    }
+  ],
+  "projectUrl": "https://github.com/orgs/8iops/projects/1",
+  "identityAuthorization": "User explicitly authorized the signed-in Woomou CLI identity for this project, its issues and implementation PRs on 2026-10-30; repository protections remain unchanged."
+}

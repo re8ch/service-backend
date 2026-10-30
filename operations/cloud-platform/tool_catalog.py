@@ -1,6 +1,9 @@
 """Stable public tool catalog; transport code delegates to these methods."""
 
 TOOLS = {
+    "stalwart.admin.read": "stalwart_admin.call",
+    "stalwart.admin.plan": "stalwart_admin.call",
+    "stalwart.admin.apply": "stalwart_admin.call",
     "credentials.webmail-session.ensure": "ensure_webmail_session_secret",
     "mihomos.controllers.list": "mihomos_capabilities.controllers",
     "mihomos.controller.version": "mihomos_capabilities.controller_version",
