@@ -6005,7 +6005,7 @@ spec:
               key: FOSSBILLING_API_KEY
               name: re8ch-auth-gateway-secrets
               optional: true
-        image: registry.re8ch.com/auth/re8ch-auth-gateway@sha256:feea5d98503624156e581b330a131068d7769377750269c16a90685198ee817f
+        image: ghcr.io/re8ch/service-backend-auth-gateway@sha256:e117a9b9c23ad9eb7d353d8e2c92bb23a9a40f5a806fc4562c9f4a43dbb9bc7a
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
