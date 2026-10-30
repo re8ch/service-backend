@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lantern-jade
+    delivery.re8ch.com/codename: signal-jade
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:2be3f560251a66f68373dee586de64798a33be0ba6848757878a474b43548a02
+    digest: sha256:d89dba7bc4713d3d8826db8adce0cf196f46744e817dfc2b96644510009e9cbd
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lantern-jade
+    delivery.re8ch.com/codename: signal-jade
 spec:
   interval: 1m
   retryInterval: 1m
