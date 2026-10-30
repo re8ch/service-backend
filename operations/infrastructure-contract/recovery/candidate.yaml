@@ -146,6 +146,9 @@ spec:
   endpointSelector:
     matchLabels:
       app: infra-contracts-recovery
+  enableDefaultDeny:
+    ingress: true
+    egress: true
   ingress: []
   egress:
   - toEntities:

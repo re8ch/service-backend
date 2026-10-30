@@ -139,6 +139,7 @@ def test_preflight_has_no_identity_or_key_or_network():
     docs = list(yaml.safe_load_all((DIR / 'preflight.yaml').read_text()))
     policy = docs[0]['spec']
     assert policy['egress'] == [] and policy['ingress'] == []
+    assert policy['enableDefaultDeny'] == {'ingress': True, 'egress': True}
     pod = docs[1]['spec']['template']['spec']
     assert pod['automountServiceAccountToken'] is False
     assert not pod.get('volumes') and not pod['containers'][0].get('volumeMounts')

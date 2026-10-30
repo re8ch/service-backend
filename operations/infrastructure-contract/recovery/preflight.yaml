@@ -9,6 +9,9 @@ spec:
       app: infra-contracts-recovery-preflight
   ingress: []
   egress: []
+  enableDefaultDeny:
+    ingress: true
+    egress: true
 ---
 apiVersion: batch/v1
 kind: Job
