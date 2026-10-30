@@ -748,6 +748,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: signal-jade
       digest: sha256:d89dba7bc4713d3d8826db8adce0cf196f46744e817dfc2b96644510009e9cbd
+    - codename: starfire-jade
+      digest: sha256:fbd674a7f8903fe1eaf64986026e1f0cb577caa558afa1f81f56742ea550f1cf
   platform/apps/access-subscription:
     releases:
     - codename: aegis
