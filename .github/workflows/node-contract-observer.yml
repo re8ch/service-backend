@@ -8,7 +8,7 @@ on:
     inputs:
       scope:
         type: choice
-        options: [nodes, flux, config, topology]
+        options: [nodes, flux, config, topology, recover]
         default: nodes
 
 concurrency:
@@ -16,6 +16,66 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  recover:
+    name: Restore exact infrastructure projections
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.scope == 'recover'
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    timeout-minutes: 8
+    environment: cluster-observation
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+        with: {version: v1.33.1}
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23'
+      - name: Materialize verified source and restore two reserved Secrets
+        env:
+          CONTRACT_BUNDLE: ${{ secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64 }}
+          KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
+        run: |
+          set -euo pipefail
+          umask 077
+          private_dir="$(mktemp -d "$RUNNER_TEMP/infra-recovery.XXXXXX")"
+          cleanup() { rm -rf "$private_dir"; }
+          trap cleanup EXIT
+          python operations/infrastructure-contract/bundle.py --output "$private_dir/contracts"
+          INFRASTRUCTURE_CONTRACT_DIR="$private_dir/contracts" INFRASTRUCTURE_OUTPUT_DIR="$private_dir/rendered" \
+            python operations/infrastructure-contract/compiler.py render >/dev/null
+          printf '%s' "$KUBE_API_CA" > "$private_dir/ca.crt"
+          curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            --data-urlencode 'audience=https://kube-api.re8ch.com/observer' \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$private_dir/oidc.json"
+          token="$(jq -r .value "$private_dir/oidc.json")"; echo "::add-mask::$token"
+          kubectl config --kubeconfig "$private_dir/kubeconfig" set-cluster re8ch \
+            --server=https://kube-api.re8ch.com:6443 --certificate-authority="$private_dir/ca.crt" --embed-certs=true >/dev/null
+          kubectl config --kubeconfig "$private_dir/kubeconfig" set-credentials recovery --token="$token" >/dev/null
+          kubectl config --kubeconfig "$private_dir/kubeconfig" set-context recovery --cluster=re8ch --user=recovery >/dev/null
+          kubectl config --kubeconfig "$private_dir/kubeconfig" use-context recovery >/dev/null
+          export KUBECONFIG="$private_dir/kubeconfig"
+          test "$(kubectl auth can-i get secret/ai-operations-ssh-config -n ai-operations)" = yes
+          test "$(kubectl auth can-i patch secret/ai-operations-ssh-config -n ai-operations)" = yes
+          test "$(kubectl auth can-i patch secret/infrastructure-contracts -n ai-operations)" = yes
+          test "$(kubectl auth can-i list secrets -n ai-operations)" = no
+          kubectl get secret ai-operations-ssh-config -n ai-operations -o json > "$private_dir/ssh-target.json"
+          kubectl get secret infrastructure-contracts -n ai-operations -o json > "$private_dir/contracts-target.json"
+          python operations/infrastructure-contract/recovery/bundle_restore.py \
+            --rendered "$private_dir/rendered" --ssh-target "$private_dir/ssh-target.json" \
+            --contracts-target "$private_dir/contracts-target.json" --output "$private_dir/patches"
+          for name in ai-operations-ssh-config infrastructure-contracts; do
+            kubectl patch secret "$name" -n ai-operations --type=json \
+              --patch-file "$private_dir/patches/$name.json" --dry-run=server -o name >/dev/null
+          done
+          for name in ai-operations-ssh-config infrastructure-contracts; do
+            kubectl patch secret "$name" -n ai-operations --type=json \
+              --patch-file "$private_dir/patches/$name.json" -o name >/dev/null
+          done
+          python operations/infrastructure-contract/recovery/bundle_restore.py \
+            --verify --ssh-target <(kubectl get secret ai-operations-ssh-config -n ai-operations -o json) \
+            --contracts-target <(kubectl get secret infrastructure-contracts -n ai-operations -o json)
+
   config:
     name: Restricted configuration validation
     env:
