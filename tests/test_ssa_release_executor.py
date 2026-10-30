@@ -872,3 +872,57 @@ def test_invalid_operation_failure_envelope_never_echoes_untrusted_values():
     value = executor.cli_failure_result({"operationId": "SECRET"}, NOW.isoformat(), "SECRET")
     assert value["apiVersion"] == "delivery.re8ch.com/workflow-failure/v1alpha1"
     assert value["outcome"] == "failed" and "SECRET" not in json.dumps(value)
+
+
+def test_blocked_reset_preserves_release_and_verifies_signature(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW)
+    instance.reconcile(value, operation, bundle_path, tmp_path / 'state', verify_signature=False)
+    store = executor.Store(tmp_path / 'state', 'demo')
+    before = store.state()
+    before.update(blocked=True, blockedReason='rollback failed', suspended=True)
+    store.accept(before)
+    _, reset, _ = prepare(tmp_path, sequence=2, previous=before['appliedDigest'])
+    reset['action'] = 'reset'
+    runner.calls.clear()
+    result = instance.reconcile(value, reset, bundle_path, tmp_path / 'state')
+    after = store.state()
+    assert after['blocked'] is False and 'blockedReason' not in after
+    assert after['suspended'] is True
+    for key in ('appliedDigest', 'healthyDigest', 'inventory', 'inventoryDigest', 'bundleReference', 'payloadDigest'):
+        assert after[key] == before[key]
+    assert after['sequence'] == 2
+    assert [call[0][0] for call in runner.calls] == ['cosign']
+    assert result['observedDigest'] == before['appliedDigest']
+    assert instance.reconcile(value, reset, bundle_path, tmp_path / 'state') == result
+    assert len(runner.calls) == 1
+
+
+@pytest.mark.parametrize('fault', ['sequence', 'previous', 'target', 'contract', 'audience', 'workflow', 'expired', 'payload', 'force', 'signature'])
+def test_blocked_reset_does_not_bypass_authorization(tmp_path, fault):
+    value, operation, bundle_path = prepare(tmp_path)
+    runner = Runner()
+    instance = executor.Executor(runner=runner, now=lambda: NOW)
+    instance.reconcile(value, operation, bundle_path, tmp_path / 'state', verify_signature=False)
+    store = executor.Store(tmp_path / 'state', 'demo')
+    before = store.state(); before.update(blocked=True, blockedReason='rollback failed'); store.accept(before)
+    _, reset, _ = prepare(tmp_path, sequence=2, previous=before['appliedDigest'])
+    reset['action'] = 'reset'
+    if fault == 'sequence': reset['sequence'] = 1
+    elif fault == 'previous': reset['previousApprovedDigest'] = 'sha256:' + '0' * 64
+    elif fault == 'target': reset['target'] = 're8ch/other'
+    elif fault == 'contract': reset['contractDigest'] = 'sha256:' + '0' * 64
+    elif fault == 'audience': reset['github']['audience'] += '-other'
+    elif fault == 'workflow': reset['github']['workflow'] = '.github/workflows/other.yml'
+    elif fault == 'expired': reset['expiresAt'] = (NOW - dt.timedelta(seconds=1)).isoformat()
+    elif fault == 'payload': reset['bundle']['payloadDigest'] = 'sha256:' + '0' * 64
+    elif fault == 'force': reset['forceConflictObjects'] = ['apps/Deployment/demo/demo']
+    elif fault == 'signature':
+        def reject_signature(_): raise executor.Rejected('signature rejected')
+        instance.verify_signature = reject_signature
+    runner.calls.clear()
+    with pytest.raises(executor.Rejected):
+        instance.reconcile(value, reset, bundle_path, tmp_path / 'state')
+    assert store.state() == before
+    assert not any(call[0][0] == 'kubectl' for call in runner.calls)

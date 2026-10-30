@@ -8,9 +8,9 @@ on:
       reviewed_takeover: {description: Force only the reviewed deployment adoption in this signed contract, type: boolean, default: false}
       execute: {description: Execute through the bounded SSA executor, type: boolean, default: false}
       mode:
-        description: Publish a new bundle or reconcile the accepted digest without building
+        description: Publish, reconcile accepted state, or clear a block using a certified existing bundle
         type: choice
-        options: [publish, reconcile]
+        options: [publish, reconcile, reset]
         default: publish
 concurrency:
   group: main-domain-release-${{ inputs.contract }}
@@ -34,8 +34,11 @@ jobs:
       - name: Validate artifact reuse selection
         env: {MODE: '${{ inputs.mode }}', REUSE_DIGEST: '${{ inputs.reuse_digest }}', REUSE_SOURCE_COMMIT: '${{ inputs.reuse_source_commit }}'}
         run: |
+          if [[ "$MODE" == reset ]]; then
+            [[ -n "$REUSE_DIGEST" && -n "$REUSE_SOURCE_COMMIT" ]] || exit 1
+          fi
           if [[ -n "$REUSE_DIGEST" || -n "$REUSE_SOURCE_COMMIT" ]]; then
-            [[ "$MODE" == publish && "$REUSE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ && "$REUSE_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+            [[ ( "$MODE" == publish || "$MODE" == reset ) && "$REUSE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ && "$REUSE_SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]] || exit 1
           fi
       - id: profile
         env: {CONTRACT: '${{ inputs.contract }}'}
@@ -197,6 +200,7 @@ jobs:
             --certificate-oidc-issuer https://token.actions.githubusercontent.com "$immutable" >/dev/null
           flux pull artifact "${OCI_REFERENCE}@${OCI_DIGEST}" --output "$RUNNER_TEMP/pulled"
           takeover_args=(--action reconcile)
+          if [[ "$RELEASE_MODE" == reset ]]; then takeover_args=(--action reset); fi
           if [[ "$REVIEWED_TAKEOVER" == true ]]; then
             if [[ "$RELEASE_MODE" != publish ]]; then exit 1; fi
             case "$RELEASE_ID" in
