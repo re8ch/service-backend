@@ -48,6 +48,10 @@ def reviewed_cloud_job(path: Path, job_name: str, job: dict) -> bool:
             and job_name == 'release'
             and job.get('runs-on') == "${{ inputs.publisher == 'r640' && fromJSON('[\"self-hosted\",\"Linux\",\"X64\",\"r640\",\"untrusted-build\"]') || 'ubuntu-24.04' }}"):
         return True
+    if (path == Path('.github/workflows/tenant-go-release.yml')
+            and job_name == 'release'
+            and job.get('runs-on') == "${{ inputs.publisher == 'cloud' && 'ubuntu-24.04' || fromJSON('[\"self-hosted\",\"Linux\",\"X64\",\"r640\",\"untrusted-build\"]') }}"):
+        return True
     return (job_name in CLOUD_JOBS.get(path.as_posix(), set())
             and job.get("runs-on") == "ubuntu-24.04")
 

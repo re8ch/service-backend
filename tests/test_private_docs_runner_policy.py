@@ -23,6 +23,13 @@ def test_cloud_delivery_allowlist_only_permits_reviewed_jobs():
     assert not policy.reviewed_cloud_job(Path(".github/workflows/main-domain-release.yml"), "execute", {"runs-on": "ubuntu-latest"})
 
 
+def test_tenant_publisher_recovery_expression_is_exactly_bounded():
+    expression = "${{ inputs.publisher == 'cloud' && 'ubuntu-24.04' || fromJSON('[\"self-hosted\",\"Linux\",\"X64\",\"r640\",\"untrusted-build\"]') }}"
+    job = {"runs-on": expression}
+    assert policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "release", job)
+    assert not policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "finalize", job)
+
+
 def test_private_document_runner_exception_requires_every_boundary():
     document = yaml.safe_load((ROOT / PATH).read_text())
     job = document['jobs']['verify']
