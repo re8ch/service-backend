@@ -10,11 +10,12 @@ import (
 )
 
 type collaborationConnectionInput struct {
-	Action         string   `json:"action" jsonschema:"plan, start, complete, status, list, or revoke"`
-	ConnectionRef  string   `json:"connectionRef,omitempty" jsonschema:"Opaque connection reference returned by this tool"`
-	Scopes         []string `json:"scopes,omitempty" jsonschema:"Explicit mail.read, calendar.read, calendar.respond, contacts.read, files.read permissions"`
-	PlanHash       string   `json:"planHash,omitempty" jsonschema:"Exact current plan hash for start"`
-	IdempotencyKey string   `json:"idempotencyKey,omitempty" jsonschema:"Stable unique key for start; use a new key to reconnect"`
+	Action            string   `json:"action" jsonschema:"plan, start, complete, status, list, or revoke"`
+	ConnectionRef     string   `json:"connectionRef,omitempty" jsonschema:"Opaque connection reference returned by this tool"`
+	Scopes            []string `json:"scopes,omitempty" jsonschema:"Explicit mail.read, calendar.read, calendar.respond, contacts.read, files.read permissions"`
+	AuthorizationMode string   `json:"authorizationMode,omitempty" jsonschema:"userhub (default when published) or device"`
+	PlanHash          string   `json:"planHash,omitempty" jsonschema:"Exact current plan hash for start"`
+	IdempotencyKey    string   `json:"idempotencyKey,omitempty" jsonschema:"Stable unique key for start; use a new key to reconnect"`
 }
 type collaborationQueryInput struct {
 	ConnectionRef string `json:"connectionRef"`
@@ -61,9 +62,9 @@ func collaborationCaller(ctx context.Context) (identity, error) {
 func (s *server) callCollaborationConnection(ctx context.Context, id identity, in collaborationConnectionInput) (any, error) {
 	switch in.Action {
 	case "plan":
-		return collaborationPlan(id, in.Scopes)
+		return collaborationPlanMode(id, in.Scopes, in.AuthorizationMode)
 	case "start":
-		return s.startCollaboration(ctx, id, in.Scopes, in.PlanHash, in.IdempotencyKey)
+		return s.startCollaborationMode(ctx, id, in.Scopes, in.PlanHash, in.IdempotencyKey, in.AuthorizationMode)
 	case "complete":
 		return s.completeCollaboration(ctx, id, in.ConnectionRef)
 	case "status":
@@ -101,7 +102,7 @@ func (s *server) registerCollaborationTools(ms *mcp.Server) {
 	if !collaborationEnabled() {
 		return
 	}
-	mcp.AddTool(ms, &mcp.Tool{Name: "collaboration_connection", Description: "Plan and authorize your existing Stalwart account through provider device consent, inspect or revoke your user-owned connection. Never supply passwords or tokens. Does not provision a new mailbox.", Annotations: toolAnnotations("collaboration_connection")}, func(ctx context.Context, _ *mcp.CallToolRequest, in collaborationConnectionInput) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(ms, &mcp.Tool{Name: "collaboration_connection", Description: "Plan and authorize your existing Stalwart account through User Hub SSO by default or explicit provider device consent, then inspect or revoke your user-owned connection. Never supply passwords or tokens. Does not provision a new mailbox.", Annotations: toolAnnotations("collaboration_connection")}, func(ctx context.Context, _ *mcp.CallToolRequest, in collaborationConnectionInput) (*mcp.CallToolResult, any, error) {
 		id, err := identityFrom(ctx)
 		if err != nil {
 			return nil, nil, err

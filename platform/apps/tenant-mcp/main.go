@@ -396,6 +396,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
 	mux.HandleFunc("POST /credentials/redeem", s.redeemHTTP)
 	mux.HandleFunc("POST /credentials/adopt", s.adoptHTTP)
+	mux.HandleFunc("GET /collaboration/oauth/callback", s.collaborationOAuthCallback)
 	mcpEndpoint := func(w http.ResponseWriter, r *http.Request) {
 		isPublic := r.URL.Path == "/self-service/mcp"
 		if isPublic {

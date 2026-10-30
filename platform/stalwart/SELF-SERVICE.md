@@ -1,6 +1,6 @@
 # Stalwart 接入 Re8ch self-service
 
-状态：实现与测试进行中；默认禁用，尚未发布。2026-10-30。
+状态：动态工具和 device 授权已发布；User Hub SSO 授权接线待发布。2026-10-31。
 
 ## 产品目标与入口
 
@@ -102,11 +102,13 @@ credentialRef、授权范围、允许的集合、generation、到期与撤销状
 `files.read`。这些是 Re8ch 权限，不声称是 Stalwart OAuth 的原生 scope。
 Stalwart 的服务 scope 可能比只读更宽，适配器必须继续限制具体方法。
 
-优先复用受保护浏览器授权和 Credential Broker。provider OAuth token 不得
-等同于 Re8ch 登录 token：现有 issuer/audience 合约不同，禁止无验证透传。
-验证运行版本支持的 scope 后使用对应原生授权；若需应用密码兼容模式，
-只能通过受保护用户输入页面进入 broker，不能进入 MCP 参数、聊天或日志。
-UI 清楚显示它授权了哪个账户及哪些能力。
+普通用户默认使用 Auth Hub Authorization Code + PKCE。浏览器复用 User Hub
+登录会话，Auth Hub 为 `stalwart-webui` audience 签发令牌，回调只接受预注册
+URI、一次性随机 state 和 S256 verifier；provider access/refresh token 只进入
+Credential Broker。设备授权继续作为显式 `authorizationMode: device` 的兼容及
+机器人入口，不要求普通用户开启 Stalwart 本地密码。provider OAuth token 不得
+直接替换为 Re8ch MCP 登录 token：两者 issuer/audience 合约不同，禁止无验证
+透传。UI 清楚显示它授权了哪个账户及哪些能力。
 
 机器人默认使用单独的可撤销授权绑定。管理凭据只在管理适配器内使用，
 现有 recovery administrator 不作为日常 AI 数据访问身份，也不交给客户端。
@@ -185,11 +187,11 @@ Project、Issue 和 PR 使用已登录的 Woomou CLI 身份；签名和仓库保
 | root | 用户授权、绑定、工具注册及集成 | re8ch/service-backend | 集成与测试 |
 | gitops_delivery | DAV 发现、OAuth 兼容门禁、发布契约 | 8iops/agent-gitops | 本地实现和检查完成 |
 
-第一版连接现有用户账户，使用 Stalwart 原生 device authorization。工具
-只返回 verification URI/user code；device code/access token 保存在现有
-Credential Broker Secret，绑定按组织和用户双重检查。默认关闭，需显式
-`collaboration.stalwart.v1` grant。当前不保存 refresh token：到期需重新授权。
-不把连接功能声称为新邮箱开通；新账户 provisioning 仍需后续 provider 工作。
+第一版连接现有用户账户。普通用户默认使用 User Hub/Auth Hub SSO；显式 device
+模式返回 verification URI/user code。PKCE verifier、device code、access token
+及轮换 refresh token 都保存在现有 Credential Broker Secret，绑定按组织和用户
+双重检查。需显式 `collaboration.stalwart.v1` grant。不把连接功能声称为新邮箱
+开通；新账户 provisioning 仍需后续 provider 工作。
 
 兼容门禁：官方 v0.16.18 OAuthClient schema 缺少新版 `scopes`/`firstParty`
 字段。运行 schema、服务 scopes 和用户 session 验证通过之前不得启用。
