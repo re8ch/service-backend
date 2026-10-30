@@ -278,7 +278,7 @@ func TestCollaborationPublicToolPublication(t *testing.T) {
 		for _, tool := range result.Tools {
 			names[tool.Name] = tool
 		}
-		for _, name := range []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "files_list", "files_read"} {
+		for _, name := range []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "contacts_query", "files_list", "files_read"} {
 			if (names[name] != nil) != (enabled == "true") {
 				t.Fatalf("incorrect publication of %s with enabled=%s", name, enabled)
 			}
