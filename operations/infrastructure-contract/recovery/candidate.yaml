@@ -69,17 +69,21 @@ data:
     \ 'json', '/dev/stdin'], body)\n    plain = sops(['decrypt', '--input-type', 'json',\
     \ '--output-type', 'json', '/dev/stdin'], encrypted)\n    if json.loads(plain)\
     \ != json.loads(body): raise Rejected()\n\ndef decode(name, ciphertext):\n   \
-    \ c = json.loads(ciphertext)\n    if [a['recipient'] for a in c['sops']['age']]\
-    \ != [RECIPIENT]: raise Rejected()\n    value = json.loads(sops(['decrypt', '--input-type',\
-    \ 'json', '--output-type', 'json', '/dev/stdin'], ciphertext))\n    if value.get('apiVersion')\
-    \ != 'v1' or value.get('kind') != 'Secret': raise Rejected()\n    m = value['metadata']\n\
-    \    if m['name'] != name or m['namespace'] != 'ai-operations' or m['annotations']['operations.re8ch.com/source-digest']\
-    \ != SOURCE: raise Rejected()\n    data = value.get('stringData')\n    if not\
-    \ isinstance(data, dict) or set(data) != TARGETS[name] or 'data' in value: raise\
-    \ Rejected()\n    if any(not isinstance(v, str) or not v for v in data.values()):\
-    \ raise Rejected()\n    return {k: base64.b64encode(v.encode()).decode() for k,\
-    \ v in data.items()}\n\ndef patch(name, data, receipt):\n    if set(receipt) !=\
-    \ {'uid', 'resourceVersion'} or any(not isinstance(v, str) or not v or v.startswith('REPLACE')\
+    \ try:\n        c = json.loads(ciphertext)\n        if [a['recipient'] for a in\
+    \ c['sops']['age']] != [RECIPIENT]: raise Rejected()\n    except Exception:\n\
+    \        raise DiagnosticRejected('source_envelope') from None\n    try:\n   \
+    \     plain = sops(['decrypt', '--input-type', 'json', '--output-type', 'json',\
+    \ '/dev/stdin'], ciphertext)\n    except Exception:\n        raise DiagnosticRejected('source_sops_decrypt')\
+    \ from None\n    try:\n        value = json.loads(plain)\n        if value.get('apiVersion')\
+    \ != 'v1' or value.get('kind') != 'Secret': raise Rejected()\n        m = value['metadata']\n\
+    \        if m['name'] != name or m['namespace'] != 'ai-operations' or m['annotations']['operations.re8ch.com/source-digest']\
+    \ != SOURCE: raise Rejected()\n        data = value.get('stringData')\n      \
+    \  if not isinstance(data, dict) or set(data) != TARGETS[name] or 'data' in value:\
+    \ raise Rejected()\n        if any(not isinstance(v, str) or not v for v in data.values()):\
+    \ raise Rejected()\n        return {k: base64.b64encode(v.encode()).decode() for\
+    \ k, v in data.items()}\n    except Exception:\n        raise DiagnosticRejected('source_document_validation')\
+    \ from None\n\ndef patch(name, data, receipt):\n    if set(receipt) != {'uid',\
+    \ 'resourceVersion'} or any(not isinstance(v, str) or not v or v.startswith('REPLACE')\
     \ for v in receipt.values()): raise Rejected()\n    return [\n        {'op': 'test',\
     \ 'path': '/metadata/uid', 'value': receipt['uid']},\n        {'op': 'test', 'path':\
     \ '/metadata/resourceVersion', 'value': receipt['resourceVersion']},\n       \
@@ -106,7 +110,8 @@ data:
     \ from None\n    try:\n        verify_key()\n    except Exception:\n        raise\
     \ DiagnosticRejected('key_challenge') from None\n    decoded = {}\n    for name,\
     \ raw in ciphertexts.items():\n        try:\n            decoded[name] = decode(name,\
-    \ raw)\n        except Exception:\n            raise DiagnosticRejected('source_decrypt_and_validate')\
+    \ raw)\n        except DiagnosticRejected:\n            raise\n        except\
+    \ Exception:\n            raise DiagnosticRejected('source_decrypt_and_validate')\
     \ from None\n    try:\n        fd = os.open(state / 'prepared.json', os.O_CREAT\
     \ | os.O_EXCL | os.O_WRONLY, 0o600)\n        with os.fdopen(fd, 'w') as out:\n\
     \            json.dump({'sourceDigest': SOURCE, 'data': decoded}, out)\n    except\
@@ -173,7 +178,7 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: infra-contracts-recovery-dryrun-v2
+  name: infra-contracts-recovery-dryrun-v3
   namespace: flux-system
 spec:
   backoffLimit: 0

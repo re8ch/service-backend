@@ -90,12 +90,17 @@ failure, output redaction, API-only policy, immutable image pin and a local SOPS
 roundtrip with a newly generated disposable fixture key (never the cluster key).
 
 If the init container fails, its only added diagnostic is a fixed stage code:
-`source_cipher_hash`, `key_challenge`, `source_decrypt_and_validate`, or
-`memory_handoff`. The key challenge runs after both ciphertext hashes pass and
+`source_cipher_hash`, `key_challenge`, `source_envelope`,
+`source_sops_decrypt`, `source_document_validation`, or `memory_handoff`.
+The key challenge runs after both ciphertext hashes pass and
 before source decryption, so a failed challenge can be distinguished from a
 source decrypt/validation failure without showing private material or CLI stderr.
 Any such failure still requires inspection and a newly reviewed candidate; it
 does not authorize retrying the failed Job or starting the apply Job.
-The next reviewed diagnostic dry-run has the distinct Job name
-`infra-contracts-recovery-dryrun-v2`; its application selector and scoped
-permissions are unchanged.
+After the v2 init reached `source_decrypt_and_validate`, the next reviewed
+diagnostic dry-run has the distinct Job name
+`infra-contracts-recovery-dryrun-v3`. It distinguishes SOPS CLI decryption/MAC
+from decrypted document validation. The source SOPS metadata records version
+3.13.3 while the pinned recovery image provides 3.13.1; this is an unproven
+compatibility hypothesis until the bounded v3 result is observed. Its
+application selector and scoped permissions are unchanged.

@@ -38,6 +38,21 @@ def test_sops_mac_failure_suppresses_output():
     with pytest.raises(restore.Rejected): restore.sops([], b'x', runner)
 
 
+def test_decode_substages_are_fixed_and_do_not_emit_private_errors(monkeypatch):
+    name = next(iter(restore.TARGETS))
+    cipher = json.dumps({'sops': {'age': [{'recipient': restore.RECIPIENT}]}}).encode()
+    def fail(*args): raise ValueError('CONFIDENTIAL-FIXTURE')
+    monkeypatch.setattr(restore, 'sops', fail)
+    with pytest.raises(restore.DiagnosticRejected) as error:
+        restore.decode(name, cipher)
+    assert error.value.stage == 'source_sops_decrypt'
+    assert 'CONFIDENTIAL-FIXTURE' not in str(error.value)
+    monkeypatch.setattr(restore, 'sops', lambda *args: json.dumps({'kind': 'Wrong'}).encode())
+    with pytest.raises(restore.DiagnosticRejected) as error:
+        restore.decode(name, cipher)
+    assert error.value.stage == 'source_document_validation'
+
+
 def test_patch_is_cas_and_preserves_unrelated_metadata():
     p = restore.patch('infrastructure-contracts', {'compat-nodes.yaml': 'Zg=='}, {'uid': 'u', 'resourceVersion': '12'})
     assert [x['op'] for x in p[:3]] == ['test'] * 3
@@ -48,7 +63,7 @@ def test_patch_is_cas_and_preserves_unrelated_metadata():
 
 def test_render_has_patch_only_identity_and_api_only_network():
     docs = render.render()
-    assert next(d for d in docs if d['kind'] == 'Job')['metadata']['name'] == 'infra-contracts-recovery-dryrun-v2'
+    assert next(d for d in docs if d['kind'] == 'Job')['metadata']['name'] == 'infra-contracts-recovery-dryrun-v3'
     role = next(d for d in docs if d['kind'] == 'Role')
     assert role['rules'] == [{'apiGroups': [''], 'resources': ['secrets'], 'resourceNames': list(restore.TARGETS), 'verbs': ['patch']}]
     policy = next(d for d in docs if d['kind'] == 'CiliumNetworkPolicy')
