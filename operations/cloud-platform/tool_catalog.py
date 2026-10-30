@@ -1,6 +1,7 @@
 """Stable public tool catalog; transport code delegates to these methods."""
 
 TOOLS = {
+    "credentials.stalwart.ensure": "stalwart_bootstrap.call",
     "stalwart.admin.read": "stalwart_admin.call",
     "stalwart.admin.plan": "stalwart_admin.call",
     "stalwart.admin.apply": "stalwart_admin.call",
@@ -39,6 +40,7 @@ TOOLS = {
 # They are listed here so schema discovery is stable while implementation is
 # promoted behind the same Credential Broker boundary.
 SSH_STREAM_TOOLS = {
+    "credentials.stalwart.ensure": "stalwart_bootstrap.call",
     "node.ssh.session.start",
     "node.ssh.session.poll",
     "node.ssh.session.write",
