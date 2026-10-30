@@ -29,6 +29,13 @@ tenantPlatform:
     organizationsURL: ""
     usersURL: ""
     openAIAppsChallengeToken: ""
+    # Opt-in inference transport; native LiteLLM keys keep model/budget authority.
+    # Never put key values here. Bindings only locate same-named Secret keys.
+    modelGateway:
+      enabled: false
+      gatewayURL: ""
+      credentialsSecret: ""
+      bindings: {}
   provider:
     enabled: false
     image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
