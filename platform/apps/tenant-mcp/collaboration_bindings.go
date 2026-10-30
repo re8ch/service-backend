@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -34,12 +37,60 @@ var collaborationBrokerRequest = kubeRequest
 var errCollaborationCredentialMissing = errors.New("collaboration credential missing")
 
 func collaborationEnabled() bool { return os.Getenv("COLLABORATION_ENABLED") == "true" }
+func collaborationAuthHubEnabled() bool {
+	return os.Getenv("COLLABORATION_AUTH_MODE") == "auth-hub-pkce"
+}
+func collaborationAuthorizationMode(requested string) (string, error) {
+	if requested == "" {
+		if collaborationAuthHubEnabled() {
+			return "userhub", nil
+		}
+		return "device", nil
+	}
+	if requested != "userhub" && requested != "device" {
+		return "", errors.New("authorization mode must be userhub or device")
+	}
+	if requested == "userhub" && !collaborationAuthHubEnabled() {
+		return "", errors.New("User Hub collaboration authorization is not published")
+	}
+	return requested, nil
+}
 func collaborationOrigin() (string, error) {
 	u, err := url.Parse(strings.TrimRight(os.Getenv("STALWART_URL"), "/"))
 	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" {
 		return "", errors.New("reviewed HTTPS Stalwart origin is required")
 	}
 	return u.String(), nil
+}
+func collaborationHTTPSURL(name, fallback string, allowPath bool) (string, error) {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		raw = fallback
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", fmt.Errorf("reviewed HTTPS %s is required", name)
+	}
+	if !allowPath && u.Path != "" {
+		return "", fmt.Errorf("reviewed HTTPS %s origin is required", name)
+	}
+	return u.String(), nil
+}
+func collaborationAuthorizationURL() (string, error) {
+	return collaborationHTTPSURL("STALWART_AUTHORIZATION_URL", "https://auth.re8ch.com/authorize", true)
+}
+func collaborationTokenURL() (string, error) {
+	return collaborationHTTPSURL("STALWART_TOKEN_URL", "https://auth.re8ch.com/token", true)
+}
+func collaborationRedirectURL() (string, error) {
+	return collaborationHTTPSURL("STALWART_REDIRECT_URI", "https://tools.service.re8ch.com/collaboration/oauth/callback", true)
+}
+func collaborationRandom() (string, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", errors.New("authorization entropy unavailable")
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 func collaborationScopes(scopes []string) ([]string, string, error) {
 	allowed := map[string]string{"mail.read": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "contacts.read": "contacts", "files.read": "files"}
@@ -70,8 +121,15 @@ func collaborationScopes(scopes []string) ([]string, string, error) {
 	return out, strings.Join(provider, " "), nil
 }
 func collaborationPlan(id identity, scopes []string) (map[string]any, error) {
+	return collaborationPlanMode(id, scopes, "")
+}
+func collaborationPlanMode(id identity, scopes []string, requestedMode string) (map[string]any, error) {
 	if id.Service || id.Tenant == "" || id.Subject == "" {
 		return nil, errors.New("authenticated organization member required")
+	}
+	mode, err := collaborationAuthorizationMode(requestedMode)
+	if err != nil {
+		return nil, err
 	}
 	selected, _, err := collaborationScopes(scopes)
 	if err != nil {
@@ -81,8 +139,23 @@ func collaborationPlan(id identity, scopes []string) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash, _ := canonicalHash(map[string]any{"tenant": id.Tenant, "subject": id.Subject, "scopes": selected, "origin": origin, "client": os.Getenv("STALWART_CLIENT_ID")})
-	return map[string]any{"decision": "authorization_required", "planHash": hash, "scopes": selected, "providerOrigin": origin, "accountSource": "existing_user_authorization", "newStorageBytes": 0, "quotaImpact": "uses existing account quota", "retention": "provider data unchanged on disconnect", "approvalState": "user_browser_consent_required"}, nil
+	request := map[string]any{"tenant": id.Tenant, "subject": id.Subject, "scopes": selected, "origin": origin, "client": os.Getenv("STALWART_CLIENT_ID"), "authorizationMode": mode}
+	approval := "user_browser_consent_required"
+	if mode == "userhub" {
+		authorization, authErr := collaborationAuthorizationURL()
+		redirect, redirectErr := collaborationRedirectURL()
+		if authErr != nil {
+			return nil, authErr
+		}
+		if redirectErr != nil {
+			return nil, redirectErr
+		}
+		request["authorization"] = authorization
+		request["redirect"] = redirect
+		approval = "auth_hub_browser_consent_required"
+	}
+	hash, _ := canonicalHash(request)
+	return map[string]any{"decision": "authorization_required", "planHash": hash, "scopes": selected, "providerOrigin": origin, "authorizationMode": mode, "accountSource": "existing_user_authorization", "newStorageBytes": 0, "quotaImpact": "uses existing account quota", "retention": "provider data unchanged on disconnect", "approvalState": approval}, nil
 }
 
 type collaborationConnection struct {
@@ -106,6 +179,13 @@ func (s *server) collaborationConnection(ctx context.Context, id identity, ref s
 	}
 	return c, nil
 }
+func (s *server) collaborationConnectionByRef(ctx context.Context, ref string) (collaborationConnection, error) {
+	c, err := scanCollaboration(s.db.QueryRowContext(ctx, `SELECT `+collaborationColumns+` FROM collaboration_connections WHERE ref=?`, ref))
+	if err != nil {
+		return c, errors.New("collaboration connection not found")
+	}
+	return c, nil
+}
 func (c collaborationConnection) public() map[string]any {
 	state := c.State
 	if (state == "Ready" || state == "AuthorizationRequired") && c.Expires <= time.Now().Unix() {
@@ -116,7 +196,11 @@ func (c collaborationConnection) public() map[string]any {
 	out := map[string]any{"connectionRef": c.Ref, "bindingRef": c.Ref, "state": state, "scopes": scopes, "expiresAt": c.Expires, "credentialMaterialReturned": false}
 	if state == "AuthorizationRequired" {
 		out["verificationUri"] = c.VerificationURI
-		out["userCode"] = c.UserCode
+		if c.UserCode != "" {
+			out["userCode"] = c.UserCode
+		} else {
+			out["authorizationUri"] = c.VerificationURI
+		}
 		out["pollAfterSeconds"] = c.PollInterval
 	}
 	return out
@@ -232,13 +316,26 @@ func collaborationHTTP(ctx context.Context, path string, form url.Values, bearer
 	return result, nil
 }
 func (s *server) startCollaboration(ctx context.Context, id identity, scopes []string, planHash, key string) (map[string]any, error) {
+	return s.startCollaborationMode(ctx, id, scopes, planHash, key, "")
+}
+func (s *server) startCollaborationMode(ctx context.Context, id identity, scopes []string, planHash, key, requestedMode string) (map[string]any, error) {
+	mode, err := collaborationAuthorizationMode(requestedMode)
+	if err != nil {
+		return nil, err
+	}
+	if mode == "userhub" {
+		return s.startAuthHubCollaboration(ctx, id, scopes, planHash, key, mode)
+	}
+	return s.startDeviceCollaboration(ctx, id, scopes, planHash, key, mode)
+}
+func (s *server) startDeviceCollaboration(ctx context.Context, id identity, scopes []string, planHash, key, mode string) (map[string]any, error) {
 	if !collaborationEnabled() {
 		return nil, errors.New("collaboration is not published")
 	}
 	if len(key) < 8 || len(key) > 128 {
 		return nil, errors.New("idempotency key must contain 8 to 128 characters")
 	}
-	plan, err := collaborationPlan(id, scopes)
+	plan, err := collaborationPlanMode(id, scopes, mode)
 	if err != nil {
 		return nil, err
 	}
@@ -288,6 +385,176 @@ func (s *server) startCollaboration(ctx context.Context, id identity, scopes []s
 		return nil, err
 	}
 	c, err = s.collaborationConnection(ctx, id, ref)
+	return c.public(), err
+}
+
+func collaborationTokenHTTP(ctx context.Context, endpoint string, form url.Values) (map[string]any, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, errors.New("invalid authorization server request")
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	client := &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, errors.New("authorization server unavailable")
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
+	if err != nil || len(raw) > 1<<20 {
+		return nil, errors.New("authorization server response exceeds limit")
+	}
+	var result map[string]any
+	if json.Unmarshal(raw, &result) != nil {
+		return nil, errors.New("invalid authorization server response")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("authorization server rejected the request: %s", asString(result, "error"))
+	}
+	return result, nil
+}
+
+func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, scopes []string, planHash, key, mode string) (map[string]any, error) {
+	if !collaborationEnabled() {
+		return nil, errors.New("collaboration is not published")
+	}
+	if len(key) < 8 || len(key) > 128 {
+		return nil, errors.New("idempotency key must contain 8 to 128 characters")
+	}
+	plan, err := collaborationPlanMode(id, scopes, mode)
+	if err != nil {
+		return nil, err
+	}
+	if planHash != plan["planHash"] {
+		return nil, errors.New("review the current collaboration plan first")
+	}
+	ref := "collaboration://" + tokenDigest(id.Tenant + "\x00" + id.Subject + "\x00" + key)[:32]
+	if old, e := s.collaborationConnection(ctx, id, ref); e == nil {
+		if old.RequestHash != planHash {
+			return nil, errors.New("idempotency key already used for different scopes")
+		}
+		return old.public(), nil
+	}
+	selected, _, _ := collaborationScopes(scopes)
+	encoded, _ := json.Marshal(selected)
+	clientID := strings.TrimSpace(os.Getenv("STALWART_CLIENT_ID"))
+	if clientID == "" {
+		return nil, errors.New("reviewed provider OAuth client is required")
+	}
+	authorizationEndpoint, err := collaborationAuthorizationURL()
+	if err != nil {
+		return nil, err
+	}
+	tokenEndpoint, err := collaborationTokenURL()
+	if err != nil {
+		return nil, err
+	}
+	redirectURI, err := collaborationRedirectURL()
+	if err != nil {
+		return nil, err
+	}
+	stateSecret, err := collaborationRandom()
+	if err != nil {
+		return nil, err
+	}
+	verifier, err := collaborationRandom()
+	if err != nil {
+		return nil, err
+	}
+	challenge := sha256.Sum256([]byte(verifier))
+	state := strings.TrimPrefix(ref, "collaboration://") + "." + stateSecret
+	authorization, _ := url.Parse(authorizationEndpoint)
+	query := authorization.Query()
+	query.Set("response_type", "code")
+	query.Set("client_id", clientID)
+	query.Set("redirect_uri", redirectURI)
+	query.Set("scope", "openid profile email offline_access")
+	query.Set("state", state)
+	query.Set("code_challenge", base64.RawURLEncoding.EncodeToString(challenge[:]))
+	query.Set("code_challenge_method", "S256")
+	authorization.RawQuery = query.Encode()
+	_, err = s.db.ExecContext(ctx, `INSERT INTO collaboration_connections(ref,tenant,subject,request_hash,scopes,state) VALUES(?,?,?,?,?,'Starting')`, ref, id.Tenant, id.Subject, planHash, string(encoded))
+	if err != nil {
+		return nil, errors.New("connection request already started; read its status")
+	}
+	c := collaborationConnection{Ref: ref, Tenant: id.Tenant, Subject: id.Subject}
+	origin, _ := collaborationOrigin()
+	err = saveCollaborationSecret(ctx, id, c, nil, map[string]string{
+		"oauthState": state, "codeVerifier": verifier, "origin": origin,
+		"clientID": clientID, "redirectURI": redirectURI, "tokenEndpoint": tokenEndpoint,
+	})
+	if err != nil {
+		return nil, err
+	}
+	_, err = s.db.ExecContext(ctx, `UPDATE collaboration_connections SET state='AuthorizationRequired',expires=?,verification_uri=?,user_code='',poll_interval=5,next_poll=? WHERE ref=? AND state='Starting'`, time.Now().Unix()+900, authorization.String(), time.Now().Unix()+5, ref)
+	if err != nil {
+		return nil, err
+	}
+	c, err = s.collaborationConnection(ctx, id, ref)
+	return c.public(), err
+}
+
+func (s *server) finishCollaborationToken(ctx context.Context, id identity, c collaborationConnection, secret map[string]any, data map[string]string, token map[string]any, retainRefresh bool) (map[string]any, error) {
+	bearer := asString(token, "access_token")
+	expires := int64(collaborationNumber(token["expires_in"]))
+	if bearer == "" || !strings.EqualFold(asString(token, "token_type"), "Bearer") || expires <= 0 || expires > 86400 {
+		return nil, errors.New("invalid scoped provider token")
+	}
+	if !retainRefresh {
+		var scopes []string
+		_ = json.Unmarshal([]byte(c.Scopes), &scopes)
+		_, expected, _ := collaborationScopes(scopes)
+		granted := strings.Fields(asString(token, "scope"))
+		sort.Strings(granted)
+		if strings.Join(granted, " ") != expected {
+			return nil, errors.New("provider did not return exactly the requested service scopes")
+		}
+	}
+	session, err := collaborationHTTP(ctx, "/jmap/session", nil, bearer)
+	if err != nil {
+		return nil, err
+	}
+	if _, management := object(session["capabilities"])["urn:stalwart:jmap"]; management {
+		return nil, errors.New("unscoped management token cannot be used for collaboration")
+	}
+	accountID := ""
+	for key, raw := range object(session["accounts"]) {
+		account := object(raw)
+		if account["isPersonal"] == true {
+			if accountID != "" {
+				return nil, errors.New("ambiguous personal provider account")
+			}
+			accountID = key
+		}
+	}
+	if accountID == "" {
+		return nil, errors.New("provider returned no personal account")
+	}
+	if c.AccountID != "" && c.AccountID != accountID {
+		return nil, errors.New("provider account changed during token renewal")
+	}
+	stored := map[string]string{"accessToken": bearer, "origin": data["origin"], "clientID": data["clientID"], "accountID": accountID}
+	if retainRefresh {
+		stored["tokenEndpoint"] = data["tokenEndpoint"]
+		stored["redirectURI"] = data["redirectURI"]
+		stored["refreshToken"] = asString(token, "refresh_token")
+		if stored["refreshToken"] == "" {
+			stored["refreshToken"] = data["refreshToken"]
+		}
+	}
+	if err = saveCollaborationSecret(ctx, id, c, secret, stored); err != nil {
+		return nil, err
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE collaboration_connections SET state='Ready',account_id=?,expires=?,verification_uri='',user_code='' WHERE ref=? AND state='Exchanging'`, accountID, time.Now().Unix()+expires, c.Ref)
+	if err != nil {
+		return nil, err
+	}
+	n, _ := result.RowsAffected()
+	if n != 1 {
+		return nil, errors.New("connection was revoked during authorization")
+	}
+	c, err = s.collaborationConnection(ctx, id, c.Ref)
 	return c.public(), err
 }
 func (s *server) completeCollaboration(ctx context.Context, id identity, ref string) (map[string]any, error) {
@@ -388,6 +655,144 @@ func (s *server) completeCollaboration(ctx context.Context, id identity, ref str
 	c, err = s.collaborationConnection(ctx, id, ref)
 	return c.public(), err
 }
+
+func collaborationCallbackPage(w http.ResponseWriter, status int, title, message string) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	fmt.Fprintf(w, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>%s</title><style>body{font:16px system-ui;max-width:42rem;margin:12vh auto;padding:0 1.5rem;color:#17202a}main{border:1px solid #d8dee4;border-radius:14px;padding:2rem}h1{font-size:1.45rem}</style></head><body><main><h1>%s</h1><p>%s</p></main></body></html>`, title, title, message)
+}
+
+func collaborationRefFromState(state string) (string, bool) {
+	parts := strings.Split(state, ".")
+	if len(parts) != 2 || len(parts[0]) != 32 || len(parts[1]) != 43 || strings.Trim(parts[0], "0123456789abcdef") != "" {
+		return "", false
+	}
+	if _, err := base64.RawURLEncoding.DecodeString(parts[1]); err != nil {
+		return "", false
+	}
+	return "collaboration://" + parts[0], true
+}
+
+func (s *server) collaborationOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	if !collaborationEnabled() || !collaborationAuthHubEnabled() {
+		collaborationCallbackPage(w, http.StatusNotFound, "Authorization unavailable", "User Hub collaboration authorization is not published.")
+		return
+	}
+	state := r.URL.Query().Get("state")
+	ref, ok := collaborationRefFromState(state)
+	if !ok {
+		collaborationCallbackPage(w, http.StatusBadRequest, "Authorization failed", "The authorization state is invalid or expired.")
+		return
+	}
+	c, err := s.collaborationConnectionByRef(r.Context(), ref)
+	if err != nil {
+		collaborationCallbackPage(w, http.StatusBadRequest, "Authorization failed", "The collaboration request was not found.")
+		return
+	}
+	id := identity{Tenant: c.Tenant, Subject: c.Subject}
+	if c.State == "Ready" {
+		collaborationCallbackPage(w, http.StatusOK, "Authorization complete", "This Re8ch collaboration connection is already ready. You can return to Re8ch.")
+		return
+	}
+	if c.State != "AuthorizationRequired" || c.Expires <= time.Now().Unix() {
+		collaborationCallbackPage(w, http.StatusBadRequest, "Authorization expired", "Return to Re8ch and start a new collaboration connection.")
+		return
+	}
+	secret, data, err := collaborationSecret(r.Context(), id, c)
+	if err != nil || len(data["oauthState"]) != len(state) || subtle.ConstantTimeCompare([]byte(data["oauthState"]), []byte(state)) != 1 {
+		collaborationCallbackPage(w, http.StatusBadRequest, "Authorization failed", "The authorization state could not be verified.")
+		return
+	}
+	if r.URL.Query().Get("error") != "" || r.URL.Query().Get("code") == "" {
+		s.db.ExecContext(r.Context(), `UPDATE collaboration_connections SET state='ReauthorizationRequired',verification_uri='',user_code='' WHERE ref=? AND state='AuthorizationRequired'`, ref)
+		collaborationCallbackPage(w, http.StatusBadRequest, "Authorization declined", "No mailbox access was granted. Return to Re8ch to try again.")
+		return
+	}
+	result, err := s.db.ExecContext(r.Context(), `UPDATE collaboration_connections SET state='Exchanging' WHERE ref=? AND state='AuthorizationRequired'`, ref)
+	if err != nil {
+		collaborationCallbackPage(w, http.StatusInternalServerError, "Authorization failed", "The connection could not be updated.")
+		return
+	}
+	n, _ := result.RowsAffected()
+	if n != 1 {
+		collaborationCallbackPage(w, http.StatusConflict, "Authorization in progress", "This authorization response is already being processed.")
+		return
+	}
+	finished := false
+	defer func() {
+		if !finished {
+			cleanup, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
+			defer cancel()
+			s.db.ExecContext(cleanup, `UPDATE collaboration_connections SET state='ReauthorizationRequired',verification_uri='',user_code='' WHERE ref=? AND state='Exchanging'`, ref)
+		}
+	}()
+	tokenEndpoint, tokenErr := collaborationTokenURL()
+	redirectURI, redirectErr := collaborationRedirectURL()
+	if tokenErr != nil || redirectErr != nil || data["tokenEndpoint"] != tokenEndpoint || data["redirectURI"] != redirectURI || data["clientID"] != os.Getenv("STALWART_CLIENT_ID") {
+		collaborationCallbackPage(w, http.StatusConflict, "Authorization changed", "The provider configuration changed. Return to Re8ch and reconnect.")
+		return
+	}
+	token, err := collaborationTokenHTTP(r.Context(), tokenEndpoint, url.Values{
+		"grant_type":    {"authorization_code"},
+		"client_id":     {data["clientID"]},
+		"code":          {r.URL.Query().Get("code")},
+		"redirect_uri":  {redirectURI},
+		"code_verifier": {data["codeVerifier"]},
+	})
+	if err != nil {
+		collaborationCallbackPage(w, http.StatusBadGateway, "Authorization failed", "Auth Hub did not complete the mailbox authorization. Return to Re8ch and try again.")
+		return
+	}
+	if _, err = s.finishCollaborationToken(r.Context(), id, c, secret, data, token, true); err != nil {
+		collaborationCallbackPage(w, http.StatusBadGateway, "Mailbox connection failed", "Auth Hub signed in successfully, but Stalwart did not accept the account token.")
+		return
+	}
+	finished = true
+	collaborationCallbackPage(w, http.StatusOK, "Authorization complete", "Your Stalwart mailbox, calendar and files are connected. You can return to Re8ch.")
+}
+
+func (s *server) refreshCollaboration(ctx context.Context, id identity, c collaborationConnection) (collaborationConnection, error) {
+	result, err := s.db.ExecContext(ctx, `UPDATE collaboration_connections SET state='Exchanging' WHERE ref=? AND tenant=? AND subject=? AND state='Ready'`, c.Ref, id.Tenant, id.Subject)
+	if err != nil {
+		return c, err
+	}
+	n, _ := result.RowsAffected()
+	if n != 1 {
+		return s.collaborationConnection(ctx, id, c.Ref)
+	}
+	finished := false
+	defer func() {
+		if !finished {
+			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			defer cancel()
+			s.db.ExecContext(cleanup, `UPDATE collaboration_connections SET state='ReauthorizationRequired',verification_uri='',user_code='' WHERE ref=? AND state='Exchanging'`, c.Ref)
+		}
+	}()
+	secret, data, err := collaborationSecret(ctx, id, c)
+	if err != nil {
+		return c, err
+	}
+	tokenEndpoint, err := collaborationTokenURL()
+	if err != nil || data["tokenEndpoint"] != tokenEndpoint || data["clientID"] != os.Getenv("STALWART_CLIENT_ID") || data["refreshToken"] == "" {
+		return c, errors.New("collaboration authorization must be renewed in User Hub")
+	}
+	token, err := collaborationTokenHTTP(ctx, tokenEndpoint, url.Values{
+		"grant_type":    {"refresh_token"},
+		"client_id":     {data["clientID"]},
+		"refresh_token": {data["refreshToken"]},
+	})
+	if err != nil {
+		return c, err
+	}
+	if _, err = s.finishCollaborationToken(ctx, id, c, secret, data, token, true); err != nil {
+		return c, err
+	}
+	finished = true
+	return s.collaborationConnection(ctx, id, c.Ref)
+}
+
 func (s *server) resolveCollaboration(ctx context.Context, id identity, ref string) (*collaborationDataClient, error) {
 	if !collaborationEnabled() {
 		return nil, errors.New("collaboration is not published")
@@ -395,6 +800,12 @@ func (s *server) resolveCollaboration(ctx context.Context, id identity, ref stri
 	c, err := s.collaborationConnection(ctx, id, ref)
 	if err != nil {
 		return nil, err
+	}
+	if c.State == "Ready" && c.Expires <= time.Now().Unix()+60 {
+		c, err = s.refreshCollaboration(ctx, id, c)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if c.State != "Ready" || c.Expires <= time.Now().Unix() {
 		return nil, errors.New("collaboration binding is revoked, expired or not ready")

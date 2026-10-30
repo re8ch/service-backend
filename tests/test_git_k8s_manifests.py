@@ -589,6 +589,7 @@ def test_stalwart_unified_identity_bootstraps_existing_mail_store():
     gateway_env = {entry["name"]: entry.get("value") for entry in gateway["spec"]["template"]["spec"]["containers"][0]["env"]}
     broker_callbacks = {value.strip() for value in gateway_env["AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS"].split(",")}
     assert set(webmail["redirectUris"]) <= broker_callbacks
+    assert "https://tools.service.re8ch.com/collaboration/oauth/callback" in broker_callbacks
     container = job["spec"]["template"]["spec"]["containers"][0]
     assert "http://stalwart.mail-system.svc.cluster.local:8080" in container["args"][0]
     assert container["envFrom"] == [{"secretRef": {"name": "stalwart-recovery-admin"}}]

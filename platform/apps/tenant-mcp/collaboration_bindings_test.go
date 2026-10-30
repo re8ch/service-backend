@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -39,6 +41,138 @@ func TestCollaborationScopesAndPlanOwnership(t *testing.T) {
 		if _, err := collaborationOrigin(); err == nil {
 			t.Fatalf("accepted origin %s", origin)
 		}
+	}
+}
+
+func TestCollaborationUserHubSSOIsDefaultAndDeviceRemainsAvailable(t *testing.T) {
+	s := testServer(t)
+	ctx := context.Background()
+	id := identity{Tenant: "re8ch", Subject: "owner"}
+
+	provider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/jmap/session" || (r.Header.Get("Authorization") != "Bearer auth-hub-access" && r.Header.Get("Authorization") != "Bearer auth-hub-access-renewed") {
+			t.Errorf("unexpected provider request %s", r.URL.Path)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		writeJSON(w, 200, map[string]any{
+			"capabilities": map[string]any{"urn:ietf:params:jmap:mail": map[string]any{}},
+			"accounts":     map[string]any{"account-1": map[string]any{"isPersonal": true}},
+		})
+	}))
+	defer provider.Close()
+	auth := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/token" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		r.ParseForm()
+		if r.Form.Get("grant_type") == "refresh_token" {
+			if r.Form.Get("refresh_token") != "auth-hub-refresh" || r.Form.Get("client_id") != "stalwart-webui" {
+				t.Errorf("invalid Auth Hub refresh: %v", r.Form)
+			}
+			writeJSON(w, 200, map[string]any{"access_token": "auth-hub-access-renewed", "refresh_token": "auth-hub-refresh-rotated", "token_type": "Bearer", "expires_in": 900})
+			return
+		}
+		if r.Form.Get("grant_type") != "authorization_code" || r.Form.Get("code") != "approved-code" || r.Form.Get("code_verifier") == "" || r.Form.Get("client_id") != "stalwart-webui" {
+			t.Errorf("invalid Auth Hub exchange: %v", r.Form)
+		}
+		writeJSON(w, 200, map[string]any{"access_token": "auth-hub-access", "refresh_token": "auth-hub-refresh", "token_type": "Bearer", "expires_in": 900})
+	}))
+	defer auth.Close()
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} // test servers only
+	t.Cleanup(func() { http.DefaultTransport = oldTransport })
+
+	t.Setenv("COLLABORATION_ENABLED", "true")
+	t.Setenv("COLLABORATION_AUTH_MODE", "auth-hub-pkce")
+	t.Setenv("STALWART_URL", provider.URL)
+	t.Setenv("STALWART_CLIENT_ID", "stalwart-webui")
+	t.Setenv("STALWART_AUTHORIZATION_URL", auth.URL+"/authorize")
+	t.Setenv("STALWART_TOKEN_URL", auth.URL+"/token")
+	t.Setenv("STALWART_REDIRECT_URI", "https://tools.service.re8ch.com/collaboration/oauth/callback")
+
+	secrets := map[string]map[string]any{}
+	oldBroker := collaborationBrokerRequest
+	collaborationBrokerRequest = func(_ context.Context, method, path string, payload any) (map[string]any, error) {
+		name := path[strings.LastIndex(path, "/")+1:]
+		switch method {
+		case http.MethodPost, http.MethodPut:
+			body := object(payload)
+			meta := object(body["metadata"])
+			name = asString(meta, "name")
+			if current := secrets[name]; current != nil && meta["resourceVersion"] == nil {
+				meta["resourceVersion"] = object(current["metadata"])["resourceVersion"]
+			}
+			meta["resourceVersion"] = "2"
+			metaJSON, _ := json.Marshal(meta)
+			var wireMeta map[string]any
+			json.Unmarshal(metaJSON, &wireMeta)
+			data := map[string]any{}
+			for key, value := range body["stringData"].(map[string]string) {
+				data[key] = base64.StdEncoding.EncodeToString([]byte(value))
+			}
+			secret := map[string]any{"metadata": wireMeta, "data": data}
+			secrets[name] = secret
+			return secret, nil
+		case http.MethodGet:
+			if secrets[name] == nil {
+				return nil, kubeResponseError{Status: 404}
+			}
+			return secrets[name], nil
+		default:
+			return nil, errors.New("unexpected broker request")
+		}
+	}
+	t.Cleanup(func() { collaborationBrokerRequest = oldBroker })
+
+	plan, err := collaborationPlanMode(id, []string{"mail.read", "calendar.read", "files.read"}, "")
+	if err != nil || plan["authorizationMode"] != "userhub" {
+		t.Fatalf("User Hub was not the default: %v %v", plan, err)
+	}
+	devicePlan, err := collaborationPlanMode(id, []string{"mail.read"}, "device")
+	if err != nil || devicePlan["authorizationMode"] != "device" {
+		t.Fatalf("explicit device authorization was removed: %v %v", devicePlan, err)
+	}
+	started, err := s.startCollaborationMode(ctx, id, []string{"mail.read", "calendar.read", "files.read"}, plan["planHash"].(string), "userhub-start-1", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	authorization, err := url.Parse(started["authorizationUri"].(string))
+	if err != nil || authorization.Host != strings.TrimPrefix(auth.URL, "https://") || authorization.Query().Get("code_challenge_method") != "S256" || authorization.Query().Get("code_challenge") == "" {
+		t.Fatalf("invalid authorization URL: %v %v", authorization, err)
+	}
+	if authorization.Query().Get("scope") != "openid profile email offline_access" || authorization.Query().Get("redirect_uri") != "https://tools.service.re8ch.com/collaboration/oauth/callback" {
+		t.Fatalf("invalid Auth Hub request: %v", authorization.Query())
+	}
+	pending, pendingErr := s.collaborationConnection(ctx, id, started["connectionRef"].(string))
+	_, pendingMaterial, materialErr := collaborationSecret(ctx, id, pending)
+	if pendingErr != nil || materialErr != nil || pendingMaterial["oauthState"] != authorization.Query().Get("state") {
+		t.Fatalf("authorization state was not brokered: connection=%v material=%v stateMatches=%v", pendingErr, materialErr, pendingMaterial["oauthState"] == authorization.Query().Get("state"))
+	}
+	callback := httptest.NewRequest(http.MethodGet, "/collaboration/oauth/callback?code=approved-code&state="+url.QueryEscape(authorization.Query().Get("state")), nil)
+	response := httptest.NewRecorder()
+	s.collaborationOAuthCallback(response, callback)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "Authorization complete") {
+		t.Fatalf("callback failed: %d %s", response.Code, response.Body.String())
+	}
+	ref := started["connectionRef"].(string)
+	c, err := s.collaborationConnection(ctx, id, ref)
+	if err != nil || c.State != "Ready" || c.AccountID != "account-1" {
+		t.Fatalf("connection not ready: %+v %v", c, err)
+	}
+	_, material, err := collaborationSecret(ctx, id, c)
+	if err != nil || material["accessToken"] != "auth-hub-access" || material["refreshToken"] != "auth-hub-refresh" || material["oauthState"] != "" || material["codeVerifier"] != "" {
+		t.Fatalf("incorrect broker material: %v %v", material, err)
+	}
+	s.db.Exec(`UPDATE collaboration_connections SET expires=? WHERE ref=?`, time.Now().Unix()+1, ref)
+	if _, err = s.resolveCollaboration(ctx, id, ref); err != nil {
+		t.Fatalf("refresh failed: %v", err)
+	}
+	c, _ = s.collaborationConnection(ctx, id, ref)
+	_, material, err = collaborationSecret(ctx, id, c)
+	if err != nil || material["accessToken"] != "auth-hub-access-renewed" || material["refreshToken"] != "auth-hub-refresh-rotated" || c.State != "Ready" {
+		t.Fatalf("refresh token lifecycle incorrect: %v %+v %v", material, c, err)
 	}
 }
 

@@ -267,6 +267,7 @@ spec:
             - name: AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS
               value: >-
                 https://id.re8ch.com/account/oauth/callback,https://id.re8ch.com/admin/oauth/callback,https://stalwart-admin.service.re8ch.com/admin/oauth/callback,
+                https://tools.service.re8ch.com/collaboration/oauth/callback,
                 https://mail.re8ch.com/ar/auth/callback,https://mail.re8ch.com/ca/auth/callback,https://mail.re8ch.com/cs/auth/callback,https://mail.re8ch.com/da/auth/callback,https://mail.re8ch.com/de/auth/callback,https://mail.re8ch.com/en/auth/callback,https://mail.re8ch.com/es/auth/callback,https://mail.re8ch.com/fa/auth/callback,https://mail.re8ch.com/fr/auth/callback,https://mail.re8ch.com/he/auth/callback,https://mail.re8ch.com/hu/auth/callback,https://mail.re8ch.com/it/auth/callback,https://mail.re8ch.com/ja/auth/callback,https://mail.re8ch.com/ko/auth/callback,https://mail.re8ch.com/lv/auth/callback,https://mail.re8ch.com/mn/auth/callback,https://mail.re8ch.com/nb/auth/callback,https://mail.re8ch.com/nl/auth/callback,https://mail.re8ch.com/pl/auth/callback,https://mail.re8ch.com/pt/auth/callback,https://mail.re8ch.com/ro/auth/callback,https://mail.re8ch.com/ru/auth/callback,https://mail.re8ch.com/sk/auth/callback,https://mail.re8ch.com/tr/auth/callback,https://mail.re8ch.com/uk/auth/callback,https://mail.re8ch.com/zh/auth/callback,https://mail.re8ch.com/zh-TW/auth/callback
             - name: AUTH_OIDC_ISSUER
               value: https://auth.re8ch.com
