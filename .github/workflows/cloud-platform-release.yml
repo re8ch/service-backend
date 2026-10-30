@@ -12,6 +12,7 @@ on:
       - tests/test_mihomos_capabilities.py
       - tests/test_plugin_declaration_audit.py
       - tests/test_cloud_platform*.py
+      - tests/test_stalwart_admin.py
       - inventory/**
       - operations/mcp-conformance/release-tenant-infrastructure.sh
   push:
@@ -48,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: python3 -m pip install 'PyYAML==6.0.2' 'jsonschema==4.23.0' 'pytest>=8.3' 'schemathesis==4.29.1'
-      - run: python3 -m pytest -q tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py tests/test_anatomy_diff_operation.py tests/test_plugin_operation_progress.py
+      - run: python3 -m pytest -q tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py tests/test_anatomy_diff_operation.py tests/test_plugin_operation_progress.py tests/test_stalwart_admin.py
       - name: Verify generated contracts and native schema enumeration
         run: |
           python3 operations/plugin-capabilities/generate.py
@@ -69,6 +70,7 @@ jobs:
           assert {"plugin.operations.list", "plugin.operation.read", "plugin.operation.http-check", "mihomos.workloads.list"} <= tools
           assert "anatomy.runtimediff.create" in tools
           assert "anatomy.runtimediff.delete" in tools
+          assert set(server.STALWART_ADMIN_BY_NAME) <= tools
           assert {"cilium.cidrgroup.create", "cilium.cidrgroup.delete"} <= tools
           assert len(server.NETWORK_MUTATIONS) == 72
           assert set(server.NETWORK_MUTATIONS) <= tools
