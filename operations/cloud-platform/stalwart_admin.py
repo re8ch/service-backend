@@ -131,7 +131,18 @@ class Client:
     def discover(self):
         session = self.request(self.endpoint + "/jmap/session")
         capabilities = session.get("capabilities")
-        if not isinstance(capabilities, dict) or CAPABILITY not in capabilities:
+        primary = session.get("primaryAccounts")
+        accounts = session.get("accounts")
+        management_account = primary.get(CAPABILITY) if isinstance(primary, dict) else None
+        account = accounts.get(management_account) if isinstance(accounts, dict) and isinstance(management_account, str) else None
+        account_capabilities = account.get("accountCapabilities") if isinstance(account, dict) else None
+        # Stalwart 1.0 advertises its management extension on the authenticated
+        # primary account. Older compatible releases advertised it at the
+        # server level. Accept only those two exact, authenticated session
+        # shapes and continue to fail closed for an ordinary user session.
+        server_management = isinstance(capabilities, dict) and CAPABILITY in capabilities
+        account_management = isinstance(account_capabilities, dict) and CAPABILITY in account_capabilities
+        if not server_management and not account_management:
             raise OperationError("STALWART_UNSUPPORTED", "Server does not advertise the required management capability")
         api_url = session.get("apiUrl")
         if not isinstance(api_url, str):
