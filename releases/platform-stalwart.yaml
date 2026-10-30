@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: lantern-jade
+codename: signal-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:2be3f560251a66f68373dee586de64798a33be0ba6848757878a474b43548a02
+  digest: sha256:d89dba7bc4713d3d8826db8adce0cf196f46744e817dfc2b96644510009e9cbd
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

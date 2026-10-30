@@ -743,6 +743,11 @@ modules:
       digest: sha256:cfed25ddf1bf1f163b3f7375576447713c03aabc0526ee5d9f16606ee282a08b
     - codename: lantern-jade
       digest: sha256:2be3f560251a66f68373dee586de64798a33be0ba6848757878a474b43548a02
+    - codename: lighthouse-jade
+      digest: sha256:8d317e3bed4b763e792ee5a38736074ac6f2e7da917813078d820c4e45a00cbc
+      quarantined: missing-or-invalid-signature
+    - codename: signal-jade
+      digest: sha256:d89dba7bc4713d3d8826db8adce0cf196f46744e817dfc2b96644510009e9cbd
   platform/apps/access-subscription:
     releases:
     - codename: aegis
