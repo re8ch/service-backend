@@ -41,6 +41,7 @@ spec:
                 configMapKeyRef: {name: stalwart-admin-runtime, key: origin, optional: true}
             - {name: STALWART_ADMIN_TOKEN_FILE, value: /etc/stalwart-admin/credential/token}
             - {name: STALWART_APPROVED_PLANS_DIR, value: /etc/stalwart-admin/approved-plans}
+            - {name: STALWART_BOOTSTRAP_CONFIG, value: /etc/stalwart-bootstrap/config/config.json}
             - {name: PUBLIC_MCP_URL, value: "https://operate.tools.re8ch.com/cloud/mcp"}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
           readinessProbe: {httpGet: {path: /readyz, port: mcp}, initialDelaySeconds: 2, periodSeconds: 5}
@@ -48,6 +49,8 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
           volumeMounts:
+            - {name: stalwart-bootstrap-config, mountPath: /etc/stalwart-bootstrap/config, readOnly: true}
+            - {name: stalwart-bootstrap-credential, mountPath: /etc/stalwart-bootstrap/credential, readOnly: true}
             - {name: stalwart-admin-credential, mountPath: /etc/stalwart-admin/credential, readOnly: true}
             - {name: stalwart-approved-plans, mountPath: /etc/stalwart-admin/approved-plans, readOnly: true}
             - {name: http-acceptance-tmp, mountPath: /tmp}
@@ -57,6 +60,19 @@ spec:
             - {name: ssh-known-hosts, mountPath: /var/lib/re8ch-ai-operations}
             - {name: infrastructure-contracts, mountPath: /etc/re8ch-platform/infrastructure, readOnly: true}
       volumes:
+        # Temporary platform-owned provisioning authority, never the runtime key.
+        - name: stalwart-bootstrap-config
+          configMap:
+            name: stalwart-bootstrap-config
+            optional: true
+            defaultMode: 288
+            items: [{key: config.json, path: config.json}]
+        - name: stalwart-bootstrap-credential
+          secret:
+            secretName: stalwart-bootstrap-authority
+            optional: true
+            defaultMode: 288
+            items: [{key: token, path: token}]
         - name: stalwart-admin-credential
           secret:
             secretName: stalwart-self-service-admin

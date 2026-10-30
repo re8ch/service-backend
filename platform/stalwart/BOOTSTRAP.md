@@ -83,3 +83,22 @@ parses API keys as Bearer credentials and requires authenticate permission. The
 [credential mapping](https://github.com/stalwartlabs/stalwart/blob/v1.0.1/crates/jmap/src/registry/mapping/account.rs)
 creates an API key under the request accountId and returns its secret only upon
 creation. Mock tests establish software handling; actual v1 acceptance is pending.
+
+## Deployment ownership and lifetime
+
+The source runtime declares optional read-only `0440` projections. Absence keeps
+bootstrap unavailable without blocking the Cloud Platform pod:
+
+| Object in ai-operations | Owner | Lifetime |
+| --- | --- | --- |
+| ConfigMap `stalwart-bootstrap-config`, key `config.json` | Signed platform delivery | Provisioning window only |
+| Secret `stalwart-bootstrap-authority`, key `token` | Platform Credential Broker | Short-lived authority; revoke and remove after verified provisioning |
+| Secret `stalwart-self-service-admin`, key `token` | This bootstrap operation / platform broker | Dedicated 30-day runtime key; explicit rotation before expiry |
+
+The config's `tokenFile` must equal `/etc/stalwart-bootstrap/credential/token`;
+it cannot select another mounted credential. The optional projection does not
+create any Secret or populate authority. After success, remove the bootstrap
+config and Secret through the reviewed platform path, revoke its native authority,
+and disable bootstrap publication. The distinct management key remains mounted.
+A later explicit rotation requires its own reviewed plan; deleting a Ready Secret
+is not a supported rotation procedure.

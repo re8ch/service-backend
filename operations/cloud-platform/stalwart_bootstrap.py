@@ -52,7 +52,7 @@ def configured():
         config = json.loads(Path(os.environ['STALWART_BOOTSTRAP_CONFIG']).read_text())
         if set(config) != {'origin', 'domainId', 'revision', 'tokenFile'} or not all(isinstance(v, str) and v for v in config.values()):
             fail('BOOTSTRAP_CONFIGURATION_INVALID')
-        if not re.fullmatch(r'[0-9a-f]{40,64}', config['revision']) or not Path(config['tokenFile']).is_absolute():
+        if not re.fullmatch(r'[0-9a-f]{40,64}', config['revision']) or config['tokenFile'] != '/etc/stalwart-bootstrap/credential/token':
             fail('BOOTSTRAP_CONFIGURATION_INVALID')
         with open(config['tokenFile'], 'rb') as handle:
             token = handle.read(16385).decode().strip()

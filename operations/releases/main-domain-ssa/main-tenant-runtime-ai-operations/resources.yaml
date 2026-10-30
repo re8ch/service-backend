@@ -61,6 +61,8 @@ spec:
           value: /etc/stalwart-admin/credential/token
         - name: STALWART_APPROVED_PLANS_DIR
           value: /etc/stalwart-admin/approved-plans
+        - name: STALWART_BOOTSTRAP_CONFIG
+          value: /etc/stalwart-bootstrap/config/config.json
         - name: PUBLIC_MCP_URL
           value: https://operate.tools.re8ch.com/cloud/mcp
         - name: SERVICE_API_TOKEN
@@ -100,6 +102,12 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
         volumeMounts:
+        - mountPath: /etc/stalwart-bootstrap/config
+          name: stalwart-bootstrap-config
+          readOnly: true
+        - mountPath: /etc/stalwart-bootstrap/credential
+          name: stalwart-bootstrap-credential
+          readOnly: true
         - mountPath: /etc/stalwart-admin/credential
           name: stalwart-admin-credential
           readOnly: true
@@ -130,6 +138,22 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       serviceAccountName: re8ch-cloud-platform
       volumes:
+      - configMap:
+          defaultMode: 288
+          items:
+          - key: config.json
+            path: config.json
+          name: stalwart-bootstrap-config
+          optional: true
+        name: stalwart-bootstrap-config
+      - name: stalwart-bootstrap-credential
+        secret:
+          defaultMode: 288
+          items:
+          - key: token
+            path: token
+          optional: true
+          secretName: stalwart-bootstrap-authority
       - name: stalwart-admin-credential
         secret:
           defaultMode: 288
