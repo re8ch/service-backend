@@ -51,6 +51,16 @@ spec:
           value: /tmp/hypothesis
         - name: OAUTH_AUDIENCE
           value: re8ch-cloud-platform-tool
+        - name: STALWART_ADMIN_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              key: origin
+              name: stalwart-admin-runtime
+              optional: true
+        - name: STALWART_ADMIN_TOKEN_FILE
+          value: /etc/stalwart-admin/credential/token
+        - name: STALWART_APPROVED_PLANS_DIR
+          value: /etc/stalwart-admin/approved-plans
         - name: PUBLIC_MCP_URL
           value: https://operate.tools.re8ch.com/cloud/mcp
         - name: SERVICE_API_TOKEN
@@ -90,6 +100,12 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
         volumeMounts:
+        - mountPath: /etc/stalwart-admin/credential
+          name: stalwart-admin-credential
+          readOnly: true
+        - mountPath: /etc/stalwart-admin/approved-plans
+          name: stalwart-approved-plans
+          readOnly: true
         - mountPath: /tmp
           name: http-acceptance-tmp
         - mountPath: /etc/re8ch-platform/kubeconfig
@@ -114,6 +130,19 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       serviceAccountName: re8ch-cloud-platform
       volumes:
+      - name: stalwart-admin-credential
+        secret:
+          defaultMode: 288
+          items:
+          - key: token
+            path: token
+          optional: true
+          secretName: stalwart-self-service-admin
+      - configMap:
+          defaultMode: 288
+          name: stalwart-admin-approved-plans
+          optional: true
+        name: stalwart-approved-plans
       - emptyDir:
           medium: Memory
           sizeLimit: 1Mi
