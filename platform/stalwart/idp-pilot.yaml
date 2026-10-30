@@ -206,6 +206,7 @@ spec:
         - {path: {type: PathPrefix, value: /.well-known}}
         - {path: {type: PathPrefix, value: /auth}}
         - {path: {type: Exact, value: /login}}
+        - {path: {type: PathPrefix, value: /device}}
         - {path: {type: PathPrefix, value: /account}}
         - {path: {type: PathPrefix, value: /jmap}}
         - {path: {type: PathPrefix, value: /dav}}
