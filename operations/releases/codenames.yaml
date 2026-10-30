@@ -756,6 +756,8 @@ modules:
       digest: sha256:fbd674a7f8903fe1eaf64986026e1f0cb577caa558afa1f81f56742ea550f1cf
     - codename: torch-jade
       digest: sha256:d9d69bf02396839249c71b4dbfbcbfcaa6e3adaaf8bbb67cc52c9b092a0558fb
+    - codename: aurora-pearl
+      digest: sha256:304636ba3aac5356a71324f7ba16a1b8d82f2754bb53eb977595a93d22c626c5
   platform/apps/access-subscription:
     releases:
     - codename: aegis

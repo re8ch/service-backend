@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: torch-jade
+    delivery.re8ch.com/codename: aurora-pearl
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:d9d69bf02396839249c71b4dbfbcbfcaa6e3adaaf8bbb67cc52c9b092a0558fb
+    digest: sha256:304636ba3aac5356a71324f7ba16a1b8d82f2754bb53eb977595a93d22c626c5
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: torch-jade
+    delivery.re8ch.com/codename: aurora-pearl
 spec:
   interval: 1m
   retryInterval: 1m
