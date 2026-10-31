@@ -121,10 +121,10 @@ spec:
       stabilityHours: 72
       state: inventory
       source:
-        organization: null
-        repository: null
+        organization: strata-silica
+        repository: strata-silica/storage-gitops
         ref: refs/heads/main
-        mappingState: pending-enterprise-inventory
+        mappingState: inventory
       bootstrap:
         repository: re8ch/service-backend
         workflow: .github/workflows/main-domain-release.yml
