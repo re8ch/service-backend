@@ -1,0 +1,133 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  name: stalwart-mail
+  namespace: mail-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  discoveryRole: endpointslice
+  namespaceSelector: {matchNames: [mail-system]}
+  selector: {matchLabels: {app.kubernetes.io/name: stalwart}}
+  endpoints:
+    - port: management
+      path: /metrics/prometheus
+      interval: 30s
+      scrapeTimeout: 10s
+      basicAuth:
+        username:
+          name: stalwart-metrics-auth
+          key: username
+        password:
+          name: stalwart-metrics-auth
+          key: password
+      relabelConfigs:
+        - {targetLabel: service, replacement: stalwart-mail}
+        - {targetLabel: signal_domain, replacement: mail}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: stalwart-metrics-secret-bootstrap, namespace: mail-system}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: stalwart-metrics-secret-bootstrap, namespace: mail-system}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create]
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [stalwart-metrics-auth]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: stalwart-metrics-secret-bootstrap, namespace: mail-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: stalwart-metrics-secret-bootstrap}
+subjects: [{kind: ServiceAccount, name: stalwart-metrics-secret-bootstrap, namespace: mail-system}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-metrics-secret-bootstrap, namespace: mail-system}
+data:
+  ensure.py: |
+    import base64
+    import json
+    import os
+    import secrets
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    root = "/var/run/secrets/kubernetes.io/serviceaccount"
+    token = open(root + "/token", encoding="utf-8").read().strip()
+    context = ssl.create_default_context(cafile=root + "/ca.crt")
+    api = "https://%s:%s" % (
+        os.environ["KUBERNETES_SERVICE_HOST"],
+        os.environ["KUBERNETES_SERVICE_PORT_HTTPS"],
+    )
+    path = "/api/v1/namespaces/mail-system/secrets/stalwart-metrics-auth"
+    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+
+    request = urllib.request.Request(api + path, headers=headers)
+    try:
+        with urllib.request.urlopen(request, context=context, timeout=15):
+            print(json.dumps({"ensured": True, "created": False, "secret": "stalwart-metrics-auth"}))
+            raise SystemExit(0)
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+
+    password = secrets.token_urlsafe(48)
+    body = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "metadata": {
+            "name": "stalwart-metrics-auth",
+            "namespace": "mail-system",
+            "labels": {"app.kubernetes.io/managed-by": "stalwart-metrics-secret-bootstrap"},
+        },
+        "type": "Opaque",
+        "data": {
+            "username": base64.b64encode(b"metrics").decode(),
+            "password": base64.b64encode(password.encode()).decode(),
+        },
+    }
+    create = urllib.request.Request(
+        api + "/api/v1/namespaces/mail-system/secrets",
+        data=json.dumps(body, separators=(",", ":")).encode(),
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(create, context=context, timeout=15):
+        print(json.dumps({"ensured": True, "created": True, "secret": "stalwart-metrics-auth"}))
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: stalwart-metrics-secret-bootstrap-v1
+  namespace: mail-system
+  labels: {governance.re8ch.com/change-plane: deploying}
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata: {labels: {app.kubernetes.io/name: stalwart-metrics-secret-bootstrap}}
+    spec:
+      serviceAccountName: stalwart-metrics-secret-bootstrap
+      restartPolicy: Never
+      nodeSelector: {kubernetes.io/hostname: overseas-flk}
+      tolerations:
+        - {key: dedicated, operator: Equal, value: overseas-edge, effect: NoSchedule}
+        - {key: scheduling.re8ch.com/capacity-window, operator: Equal, value: closed, effect: NoSchedule}
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: ensure
+          image: docker.1ms.run/library/python@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+          command: [python3, /app/ensure.py]
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: app, mountPath: /app, readOnly: true}]
+      volumes: [{name: app, configMap: {name: stalwart-metrics-secret-bootstrap}}]

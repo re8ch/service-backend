@@ -1,0 +1,63 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: stalwart-phonaid-cloudflare-dns01
+  namespace: mail-system
+spec:
+  acme:
+    email: admin@re8ch.com
+    privateKeySecretRef: {name: stalwart-phonaid-acme-account}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: stalwart-cloudflare-phonaid-token
+              key: CF_API_TOKEN
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: stalwart-phonaid-mta-sts
+  namespace: mail-system
+spec:
+  secretName: stalwart-phonaid-mta-sts-tls
+  issuerRef: {kind: Issuer, name: stalwart-phonaid-cloudflare-dns01}
+  dnsNames: [mta-sts.phonaid.com]
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: stalwart-phonaid-mta-sts-certificate
+  namespace: mail-system
+spec:
+  from:
+    - {group: gateway.networking.k8s.io, kind: Gateway, namespace: kube-system}
+  to:
+    - {group: "", kind: Secret, name: stalwart-phonaid-mta-sts-tls}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: stalwart-mta-sts-re8ch, namespace: mail-system}
+spec:
+  hostnames: [mta-sts.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mta-sts-re8ch-https}]
+  rules:
+    - matches: [{path: {type: Exact, value: /.well-known/mta-sts.txt}}]
+      backendRefs: [{name: stalwart, port: 8080}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: stalwart-mta-sts-phonaid, namespace: mail-system}
+spec:
+  hostnames: [mta-sts.phonaid.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: mta-sts-phonaid-https}]
+  rules:
+    - matches: [{path: {type: Exact, value: /.well-known/mta-sts.txt}}]
+      backendRefs: [{name: stalwart, port: 8080}]

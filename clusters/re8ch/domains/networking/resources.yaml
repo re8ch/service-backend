@@ -20433,6 +20433,37 @@ spec:
       mode: Terminate
   - allowedRoutes:
       namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            kubernetes.io/metadata.name: mail-system
+    hostname: mta-sts.re8ch.com
+    name: mta-sts-re8ch-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - kind: Secret
+        name: re8ch-wildcard-tls
+      mode: Terminate
+  - allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            kubernetes.io/metadata.name: mail-system
+    hostname: mta-sts.phonaid.com
+    name: mta-sts-phonaid-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - kind: Secret
+        name: stalwart-phonaid-mta-sts-tls
+        namespace: mail-system
+      mode: Terminate
+  - allowedRoutes:
+      namespaces:
         from: All
     hostname: id.re8ch.com
     name: id-https

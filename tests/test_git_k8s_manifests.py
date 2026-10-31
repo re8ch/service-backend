@@ -858,6 +858,85 @@ def test_stalwart_bootstrap_is_additive_non_root_and_digest_pinned():
     assert "@sha256:" in cli_volume["image"]["reference"]
 
 
+def test_stalwart_security_baseline_is_safe_and_observable():
+    resources = documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")
+    plan = next(item for item in resources if item["kind"] == "ConfigMap")
+    rows = [json.loads(line) for line in plan["data"]["plan.ndjson"].splitlines()]
+    by_object = {row["object"]: row for row in rows if row["@type"] == "update"}
+    sender_auth = by_object["SenderAuth"]["value"]
+    assert sender_auth["arcVerify"] == {"else": "relaxed"}
+    assert sender_auth["dmarcVerify"]["else"] == "disable"
+    spam = by_object["SpamSettings"]["value"]
+    assert spam == {
+        "enable": True, "scoreSpam": 5.0, "scoreReject": 15.0,
+        "scoreDiscard": 0.0, "greylistFor": None,
+        "trustContacts": True, "trustReplies": True,
+    }
+    security = by_object["Security"]["value"]
+    assert security["authBanPeriod"] == 900000
+    assert all(security[key] is not None for key in (
+        "authBanPeriod", "abuseBanPeriod", "loiterBanPeriod", "scanBanPeriod"
+    ))
+    assert by_object["MtaSts"]["value"]["mode"] == "testing"
+    prometheus = by_object["Metrics"]["value"]["prometheus"]
+    assert prometheus["@type"] == "Enabled"
+    assert prometheus["authUsername"] == "metrics"
+    assert prometheus["authSecret"] == {
+        "@type": "File", "filePath": "/var/run/stalwart-secrets/metrics/password"
+    }
+
+    domain = next(row for row in rows if row["object"] == "Domain")
+    for value in domain["value"].values():
+        records = value["dnsManagement"]["publishRecords"]
+        assert records == {"dkim": True, "mtaSts": True, "tlsRpt": True}
+        assert "tlsa" not in records and "dmarc" not in records
+
+    scrape = documents(ROOT / "platform/stalwart/observability.yaml")[0]
+    assert scrape["kind"] == "VMServiceScrape"
+    assert scrape["spec"]["endpoints"][0]["path"] == "/metrics/prometheus"
+    assert scrape["spec"]["endpoints"][0]["basicAuth"]["password"] == {
+        "name": "stalwart-metrics-auth", "key": "password"
+    }
+    observation_resources = documents(ROOT / "platform/stalwart/observability.yaml")
+    assert not any(item["kind"] == "Secret" for item in observation_resources)
+    secret_job = next(item for item in observation_resources if item["kind"] == "Job")
+    assert "stalwart-metrics-auth" in next(
+        item for item in observation_resources if item["kind"] == "ConfigMap"
+    )["data"]["ensure.py"]
+    assert "@sha256:" in secret_job["spec"]["template"]["spec"]["containers"][0]["image"]
+
+
+def test_stalwart_mta_sts_has_certificates_and_dedicated_routes():
+    resources = documents(ROOT / "platform/stalwart/mta-sts.yaml")
+    certificate = next(item for item in resources if item["kind"] == "Certificate")
+    assert certificate["spec"]["dnsNames"] == ["mta-sts.phonaid.com"]
+    grant = next(item for item in resources if item["kind"] == "ReferenceGrant")
+    assert grant["spec"]["to"] == [{
+        "group": "", "kind": "Secret", "name": "stalwart-phonaid-mta-sts-tls"
+    }]
+    routes = [item for item in resources if item["kind"] == "HTTPRoute"]
+    assert {item["spec"]["hostnames"][0] for item in routes} == {
+        "mta-sts.re8ch.com", "mta-sts.phonaid.com"
+    }
+    for route in routes:
+        assert route["spec"]["rules"][0]["matches"][0]["path"] == {
+            "type": "Exact", "value": "/.well-known/mta-sts.txt"
+        }
+        assert route["spec"]["rules"][0]["backendRefs"] == [{"name": "stalwart", "port": 8080}]
+
+    gateway = next(
+        item for item in documents(ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml")
+        if item["kind"] == "Gateway" and item["metadata"]["name"] == "re8ch-gateway-canary"
+    )
+    listeners = {item["name"]: item for item in gateway["spec"]["listeners"]}
+    assert listeners["mta-sts-re8ch-https"]["hostname"] == "mta-sts.re8ch.com"
+    phonaid = listeners["mta-sts-phonaid-https"]
+    assert phonaid["hostname"] == "mta-sts.phonaid.com"
+    assert phonaid["tls"]["certificateRefs"] == [{
+        "kind": "Secret", "name": "stalwart-phonaid-mta-sts-tls", "namespace": "mail-system"
+    }]
+
+
 def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     resources = documents(ROOT / "platform/stalwart/webmail.yaml")
     deployment = next(item for item in resources if item["kind"] == "Deployment")

@@ -8,6 +8,8 @@ resources:
   - unified-identity.yaml
   - desired-mail-domain.yaml
   - bootstrap-plan.yaml
+  - mta-sts.yaml
+  - observability.yaml
   - mailbox-provisioner.yaml
   - harry-admin-alias.yaml
   - cloudflare-token-sync.yaml
