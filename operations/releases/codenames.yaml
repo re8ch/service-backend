@@ -764,6 +764,8 @@ modules:
       digest: sha256:83ead42e1a336a95918cc4daa5046f5a3d40a4efb0ce318e0e37070bda9c3d0b
     - codename: lantern-pearl
       digest: sha256:e10a4fa353318ab156667172a9a5fc7b12acc3c95ce7cca8090003f03750448b
+    - codename: lighthouse-pearl
+      digest: sha256:8e5b4780813308670922b359c38d96ee552d6dfb65ed449752d4863064ddf4f6
   platform/apps/access-subscription:
     releases:
     - codename: aegis
