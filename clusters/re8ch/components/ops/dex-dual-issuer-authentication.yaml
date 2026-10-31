@@ -227,6 +227,28 @@ jwt:
                're8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'] &&
              claims.environment == 'release-ceph-compiler' &&
              claims.event_name == 'workflow_dispatch'))) ||
+          (claims.repository_id == '1440886799' &&
+           claims.repository_owner_id == '334604832' &&
+           claims.repository == 'strata-silica/storage-gitops' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
+           ((claims.aud == 'https://kube-api.re8ch.com/release-executor-data-storage' &&
+             claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/storage-static-release.yml@refs/heads/main' &&
+             claims.environment == 'release-executor-data-storage' &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' &&
+             claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/storage-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-data-storage') ||
+            (claims.aud in ['https://kube-api.re8ch.com/release-executor-ceph-infra',
+                            'https://kube-api.re8ch.com/release-executor-ceph-runtime'] &&
+             claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
+             claims.environment in ['release-executor-ceph-infra', 'release-executor-ceph-runtime'] &&
+             claims.aud == 'https://kube-api.re8ch.com/' + claims.environment &&
+             claims.event_name == 'workflow_dispatch') ||
+            (claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher' &&
+             claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/ceph-shadow-compile.yml@refs/heads/main' &&
+             claims.environment == 'release-ceph-compiler' &&
+             claims.event_name == 'workflow_dispatch'))) ||
           (claims.repository_id == '1431915128' &&
            claims.repository_owner_id == '283958313' &&
            claims.repository == 're8ch/delivery-products-gitops' &&

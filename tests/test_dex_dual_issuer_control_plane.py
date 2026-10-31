@@ -117,6 +117,17 @@ def test_all_control_planes_share_supabase_authentication():
         assert f"claims.environment == 'release-executor-{domain}'" in route
         assert f"github-actions:release-executor-{domain}:" in github['claimMappings']['username']['expression']
         assert f"re8ch:release-executor:{domain}" in github['claimMappings']['groups']['expression']
+    for expected in (
+        "claims.repository_id == '1440886799'",
+        "claims.repository_owner_id == '334604832'",
+        "claims.repository == 'strata-silica/storage-gitops'",
+        "strata-silica/storage-gitops/.github/workflows/storage-static-release.yml@refs/heads/main",
+        "strata-silica/storage-gitops/.github/workflows/storage-reconcile.yml@refs/heads/main",
+        "strata-silica/storage-gitops/.github/workflows/ceph-static-release.yml@refs/heads/main",
+        "strata-silica/storage-gitops/.github/workflows/ceph-shadow-compile.yml@refs/heads/main",
+        "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage'",
+    ):
+        assert expected in route
     assert "github-actions:release-artifact-publisher:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-artifact-publisher" in github['claimMappings']['groups']['expression']
     configs = [ROOT / f'{node}-k3s-server-config.yaml' for node in ('a1-wsl2', 'b1-wsl2')]
