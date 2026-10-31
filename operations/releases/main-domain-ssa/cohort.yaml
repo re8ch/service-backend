@@ -11,15 +11,15 @@ sourceDomains:
 - delivery-products
 - operations-ui
 - tenant-runtime
-releaseCount: 21
-objectCount: 181
-legacyObjectCount: 56
+releaseCount: 20
+objectCount: 173
+legacyObjectCount: 64
 deferredSSAObjects: []
 remainingCapabilities:
   approved-secret-injection-required: 20
   bootstrap-namespace-executor-profile-required: 2
   cloud-helm-rendering-required: 3
-  external-authority-cluster-bootstrap-required: 2
+  external-authority-cluster-bootstrap-required: 10
   immutable-image-digest-required: 2
   platform-owned-rbac-bootstrap: 11
   replace-flux-lifecycle-reference: 9
@@ -65,8 +65,26 @@ remainingObjects:
   identity: source.toolkit.fluxcd.io/HelmRepository/flux-system/hyperswitch
   reason: replace-flux-lifecycle-reference
 - domain: data-storage
+  identity: admissionregistration.k8s.io/ValidatingAdmissionPolicy/_/replicated-storage-whitelist.re8ch.com
+  reason: external-authority-cluster-bootstrap-required
+- domain: data-storage
+  identity: admissionregistration.k8s.io/ValidatingAdmissionPolicyBinding/_/replicated-storage-whitelist.re8ch.com
+  reason: external-authority-cluster-bootstrap-required
+- domain: data-storage
+  identity: core/Namespace/_/cloud-disk
+  reason: external-authority-cluster-bootstrap-required
+- domain: data-storage
   identity: core/Namespace/_/observable
   reason: retained-data-no-automatic-mutation
+- domain: data-storage
+  identity: core/Node/_/a1-wsl-zt
+  reason: external-authority-cluster-bootstrap-required
+- domain: data-storage
+  identity: core/Node/_/b1-wsl-zt
+  reason: external-authority-cluster-bootstrap-required
+- domain: data-storage
+  identity: core/Node/_/r640
+  reason: external-authority-cluster-bootstrap-required
 - domain: data-storage
   identity: core/Secret/auth/cloud-disk-oidc-client-auth
   reason: approved-secret-injection-required
@@ -82,6 +100,12 @@ remainingObjects:
 - domain: data-storage
   identity: core/Secret/toolhive-system/cloud-disk-mcp-internal
   reason: approved-secret-injection-required
+- domain: data-storage
+  identity: storage.k8s.io/StorageClass/_/local-a1
+  reason: external-authority-cluster-bootstrap-required
+- domain: data-storage
+  identity: storage.k8s.io/StorageClass/_/local-b1
+  reason: external-authority-cluster-bootstrap-required
 - domain: delivery-products
   identity: core/Namespace/_/adapter
   reason: external-authority-cluster-bootstrap-required
@@ -193,16 +217,11 @@ remainingObjects:
 - domain: tenant-runtime
   identity: source.toolkit.fluxcd.io/HelmRepository/flux-system/kyverno-official
   reason: replace-flux-lifecycle-reference
-omissions:
-- domain: data-storage
-  identity: core/Node/_/b1-wsl-zt
-  field: spec.taints
-  authority: existing-runtime-node-authority
-  reason: cloud-adoption-manages-static-metadata-only
+omissions: []
 executionProfiles:
 - domain: data-storage
-  repository: re8ch/service-backend
-  workflow: .github/workflows/main-domain-release.yml
+  repository: strata-silica/storage-gitops
+  workflow: .github/workflows/storage-static-release.yml
   protectedEnvironment: release-executor-data-storage
   audience: https://kube-api.re8ch.com/release-executor-data-storage
   kubernetesGroup: re8ch:release-executor:data-storage
@@ -234,7 +253,7 @@ legacyShards:
 - domain: commerce-billing
   objects: 13
 - domain: data-storage
-  objects: 6
+  objects: 14
 - domain: delivery-products
   objects: 10
 - domain: operations-ui
@@ -256,11 +275,6 @@ releases:
   domain: data-storage
   namespace: cloud-disk
   scope: namespaced
-  objects: 8
-- name: main-data-storage-cluster-bootstrap
-  domain: data-storage
-  namespace: ops
-  scope: cluster-bootstrap
   objects: 8
 - name: main-data-storage-ops
   domain: data-storage

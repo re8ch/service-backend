@@ -35,7 +35,7 @@ def test_generated_partition_is_current_complete_and_excludes_autonomous_domains
     cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
     assert set(cohort["sourceDomains"]) == DOMAINS
     assert set(cohort["autonomousDomainsExcluded"]) == AUTONOMOUS
-    assert cohort["releaseCount"] == 21
+    assert cohort["releaseCount"] == 20
     source = {compiler.identity(item) for domain in DOMAINS
               for item in documents(ROOT / f"clusters/re8ch/domains/{domain}/resources.yaml")}
     ssa = {compiler.identity(item) for path in (ROOT / "operations/releases/main-domain-ssa").glob("main-*/resources.yaml")
@@ -201,7 +201,7 @@ def test_old_native_hint_does_not_block_eligible_namespaced_workload():
 def test_cluster_bootstrap_has_no_rbac_mutation_or_deletion_authority():
     rbac = documents(ROOT / 'clusters/re8ch/components/ops/github-actions-main-domain-executor-rbac.yaml')
     roles = [item for item in rbac if item['kind'] == 'ClusterRole']
-    assert len(roles) == 4
+    assert len(roles) == 3
     for role in roles:
         assert role['metadata']['name'].endswith('-cluster-bootstrap')
         for rule in role['rules']:
@@ -276,14 +276,7 @@ def test_node_adoption_leaves_runtime_taints_with_existing_authority():
     source = next(item for item in documents(ROOT / "clusters/re8ch/domains/data-storage/resources.yaml")
                   if item["kind"] == "Node" and item["metadata"]["name"] == "b1-wsl-zt")
     assert source["spec"]["taints"] == [{"key": "storage.re8ch.com/coordinator", "value": "true", "effect": "NoSchedule"}]
-    rendered = documents(ROOT / "operations/releases/main-domain-ssa/main-data-storage-cluster-bootstrap/resources.yaml")
-    nodes = [item for item in rendered if item["kind"] == "Node"]
-    assert nodes and all("spec" not in item for item in nodes)
-    adopted = next(item for item in nodes if item["metadata"]["name"] == "b1-wsl-zt")
-    assert adopted["metadata"] == source["metadata"]
-    cohort = yaml.load((ROOT / "operations/releases/main-domain-ssa/cohort.yaml").read_text(), Loader=YAML_SAFE_LOADER)
-    assert {"domain": "data-storage", "identity": "core/Node/_/b1-wsl-zt", "field": "spec.taints",
-            "authority": "existing-runtime-node-authority", "reason": "cloud-adoption-manages-static-metadata-only"} in cohort["omissions"]
+    assert not (ROOT / "operations/releases/main-domain-ssa/main-data-storage-cluster-bootstrap").exists()
 
 
 def test_reset_requires_certified_reuse_and_materializes_only_reset():

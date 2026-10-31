@@ -13,12 +13,12 @@ spec:
     repository: re8ch/service-backend
     path: operations/releases/main-domain-ssa/main-data-storage-supabase-pg-re8ch
   provenance:
-    repository: re8ch/service-backend
-    workflow: .github/workflows/main-domain-release.yml
+    repository: strata-silica/storage-gitops
+    workflow: .github/workflows/storage-static-release.yml
     ref: refs/heads/main
     environment: release-executor-data-storage
     audience: https://kube-api.re8ch.com/release-executor-data-storage
-    signer: https://github.com/re8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main
+    signer: https://github.com/strata-silica/storage-gitops/.github/workflows/storage-static-release.yml@refs/heads/main
     issuer: https://token.actions.githubusercontent.com
   authorization:
     fieldManager: re8ch-release/main-data-storage-supabase-pg-re8ch
