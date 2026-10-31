@@ -125,18 +125,18 @@ spec:
             - {name: https, containerPort: 443}
             - {name: management, containerPort: 8080}
           livenessProbe:
-            httpGet: {path: /healthz/live, port: management}
+            tcpSocket: {port: management}
             initialDelaySeconds: 20
             periodSeconds: 20
             timeoutSeconds: 10
             failureThreshold: 6
           readinessProbe:
-            httpGet: {path: /healthz/ready, port: management}
+            tcpSocket: {port: management}
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 10
           startupProbe:
-            httpGet: {path: /healthz/live, port: management}
+            tcpSocket: {port: management}
             periodSeconds: 10
             timeoutSeconds: 10
             failureThreshold: 60
