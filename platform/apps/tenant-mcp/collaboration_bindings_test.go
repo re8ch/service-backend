@@ -44,6 +44,20 @@ func TestCollaborationScopesAndPlanOwnership(t *testing.T) {
 	}
 }
 
+func TestCollaborationConnectOriginIsInternalOnly(t *testing.T) {
+	t.Setenv("STALWART_CONNECT_URL", "http://stalwart.mail-system.svc.cluster.local:8080")
+	got, err := collaborationConnectOrigin("https://id.re8ch.com")
+	if err != nil || got != "http://stalwart.mail-system.svc.cluster.local:8080" {
+		t.Fatalf("unexpected connect origin %q: %v", got, err)
+	}
+	for _, origin := range []string{"http://example.com", "https://stalwart.mail-system.svc.cluster.local", "http://user:pass@stalwart.mail-system.svc.cluster.local"} {
+		t.Setenv("STALWART_CONNECT_URL", origin)
+		if _, err = collaborationConnectOrigin("https://id.re8ch.com"); err == nil {
+			t.Fatalf("accepted connect origin %s", origin)
+		}
+	}
+}
+
 func TestCollaborationUserHubSSOIsDefaultAndDeviceRemainsAvailable(t *testing.T) {
 	s := testServer(t)
 	ctx := context.Background()
