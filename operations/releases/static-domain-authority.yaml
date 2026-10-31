@@ -119,23 +119,20 @@ spec:
     data-storage:
       risk: critical
       stabilityHours: 72
-      state: inventory
+      state: active
       source:
         organization: strata-silica
         repository: strata-silica/storage-gitops
         ref: refs/heads/main
-        mappingState: inventory
-      bootstrap:
-        repository: re8ch/service-backend
-        workflow: .github/workflows/main-domain-release.yml
+        mappingState: verified
       execution:
-        repository: re8ch/service-backend
-        workflow: .github/workflows/main-domain-release.yml
+        repository: strata-silica/storage-gitops
+        workflow: .github/workflows/storage-static-release.yml
         protectedEnvironment: release-executor-data-storage
         audience: https://kube-api.re8ch.com/release-executor-data-storage
         kubernetesGroup: re8ch:release-executor:data-storage
         replay:
-          workflow: .github/workflows/main-domain-reconcile.yml
+          workflow: .github/workflows/storage-reconcile.yml
           environment: release-reconciler-data-storage
           audience: https://kube-api.re8ch.com/release-reconciler-data-storage
     commerce-billing:
