@@ -96,6 +96,11 @@ jobs:
             echo "No accepted artifact for $RELEASE_ID; initial publication requires the protected publish workflow." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          decision="$(python operations/releases/operation_materialize.py replay-decision --configmap "$RUNNER_TEMP/state-cm.json" --contract "$CONTRACT")"
+          if [[ "$decision" != eligible ]]; then
+            echo "Skipped $RELEASE_ID: accepted release is $decision and requires an explicit protected recovery operation." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           python operations/releases/operation_materialize.py hydrate --configmap "$RUNNER_TEMP/state-cm.json" --state-dir "$root" --release-id "$RELEASE_ID"
           python operations/releases/operation_materialize.py accepted-bundle --configmap "$RUNNER_TEMP/state-cm.json" \
               --contract "$CONTRACT" > "$RUNNER_TEMP/accepted-bundle.json"
