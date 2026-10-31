@@ -323,6 +323,13 @@ def test_replay_resolves_only_target_bound_healthy_acceptance(tmp_path, fault):
     cm_path.write_text(json.dumps(cm))
     contract_path = tmp_path / "contract.yaml"
     contract_path.write_text(yaml.safe_dump(value))
+    if fault in {"blocked", "suspended"}:
+        assert materialize.replay_decision(cm_path, contract_path) == fault
+    elif fault is None:
+        assert materialize.replay_decision(cm_path, contract_path) == "eligible"
+    else:
+        with pytest.raises(ValueError):
+            materialize.replay_decision(cm_path, contract_path)
     if fault:
         with pytest.raises(ValueError):
             materialize.accepted_bundle(cm_path, contract_path)

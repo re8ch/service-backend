@@ -33,6 +33,8 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
     assert job['concurrency'] == {'group': 'main-domain-release-${{ matrix.contract }}', 'cancel-in-progress': False}
     assert 'flux push' not in raw and 'cosign sign' not in raw and 'kubectl kustomize' not in raw
     assert 'accepted-bundle --configmap' in raw and 'request --replay-only' in raw
+    assert 'replay-decision --configmap' in raw
+    assert 'accepted release is $decision' in raw
     assert 'No accepted artifact' in raw
     assert 'state-patch' in raw and 'cosign verify' in raw
     assert '--force-conflicts' not in raw
