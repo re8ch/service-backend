@@ -154,7 +154,7 @@ jobs:
         python operations/releases/refresh_kubeconfig.py --initialize
         echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
         echo "EXECUTOR_AUDIENCE=$EXECUTOR_AUDIENCE" >> "$GITHUB_ENV"
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
       with: {name: 'ceph-request-${{ github.run_id }}', path: '${{ runner.temp }}'}
     - name: Rematerialize immutable request and durable state
       env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
@@ -244,7 +244,7 @@ jobs:
         python operations/releases/refresh_kubeconfig.py --initialize
         echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
         echo "EXECUTOR_AUDIENCE=$EXECUTOR_AUDIENCE" >> "$GITHUB_ENV"
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
       with: {name: 'ceph-request-${{ github.run_id }}', path: '${{ runner.temp }}'}
     - name: Verify request again and materialize durable state
       env: {RELEASE: '${{ needs.infra.outputs.release }}', ACTION: '${{ needs.infra.outputs.action }}'}
