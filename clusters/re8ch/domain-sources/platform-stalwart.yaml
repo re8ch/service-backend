@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lighthouse-pearl
+    delivery.re8ch.com/codename: signal-pearl
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:8e5b4780813308670922b359c38d96ee552d6dfb65ed449752d4863064ddf4f6
+    digest: sha256:93b258ae431cca7215108320b6381bc7c6d5e03d3d9572a14f7529d7c258f523
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: lighthouse-pearl
+    delivery.re8ch.com/codename: signal-pearl
 spec:
   interval: 1m
   retryInterval: 1m

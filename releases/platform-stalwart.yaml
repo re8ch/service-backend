@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/stalwart
-codename: lighthouse-pearl
+codename: signal-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
-  digest: sha256:8e5b4780813308670922b359c38d96ee552d6dfb65ed449752d4863064ddf4f6
+  digest: sha256:93b258ae431cca7215108320b6381bc7c6d5e03d3d9572a14f7529d7c258f523
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
