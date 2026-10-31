@@ -1,7 +1,11 @@
 # Authenticated collaboration acceptance
 
-Status: **not executed against the real provider**. Unit tests and source inspection
-are preparation, not runtime acceptance. Run through the authenticated Re8ch tenant
+Status: **core read path executed against the real provider on 2026-10-31**. User Hub
+PKCE, refresh, mail list/search, calendar list/window query, contacts list/search and
+file-root discovery/list passed. RSVP, revoke-after-read, file-content read and real
+cross-user/cross-tenant rejection remain follow-ups. See
+`OAUTH-INTEGRATION-HANDOFF.md` for sanitized evidence and the public Gateway issue.
+Repeat this checklist for later releases through the authenticated Re8ch tenant
 self-service plugin; never substitute the Admin organization or local provider credentials.
 
 ## Prerequisites and evidence
