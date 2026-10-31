@@ -606,7 +606,7 @@ def test_stalwart_idp_public_route_serves_oidc_and_jmap_from_mail_instance():
     assert route["spec"]["parentRefs"][0]["sectionName"] == "id-https"
     dns = next(item for item in resources if item.get("metadata", {}).get("name") == "stalwart-idp-public-dns")
     assert dns["spec"]["rules"][0]["host"] == "id.re8ch.com"
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
+    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "2.28.106.230"
     paths = {
         match["path"]["value"]
         for rule in route["spec"]["rules"]
