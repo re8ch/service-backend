@@ -770,6 +770,8 @@ modules:
       digest: sha256:93b258ae431cca7215108320b6381bc7c6d5e03d3d9572a14f7529d7c258f523
     - codename: starfire-pearl
       digest: sha256:84e1814a164a22355117cbcaacca7f80b44f05055819f5215f006c9b38b81805
+    - codename: torch-pearl
+      digest: sha256:50ccb31f29d892d489cba62feb3afdac4c29a75f2b1961305c4ac80196bb6d96
   platform/apps/access-subscription:
     releases:
     - codename: aegis
