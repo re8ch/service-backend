@@ -122,6 +122,12 @@ metadata:
   namespace: mail-system
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stalwart-metrics-secret-bootstrap
+  namespace: mail-system
+---
+apiVersion: v1
 automountServiceAccountToken: false
 imagePullSecrets:
 - name: harbor-secretary-system-admin
@@ -296,6 +302,27 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: stalwart-metrics-secret-bootstrap
+  namespace: mail-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resourceNames:
+  - stalwart-metrics-auth
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: stalwart-cloudflare-token-source
   namespace: qianwen-ops
 rules:
@@ -443,6 +470,20 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: stalwart-mailbox-provisioner
+  namespace: mail-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stalwart-metrics-secret-bootstrap
+  namespace: mail-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: stalwart-metrics-secret-bootstrap
+subjects:
+- kind: ServiceAccount
+  name: stalwart-metrics-secret-bootstrap
   namespace: mail-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1857,10 +1898,16 @@ metadata:
 apiVersion: v1
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}},"re8ch-domain":{"name":"re8ch.com","isEnabled":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Manual"},"subAddressing":{"@type":"Enabled"}}}}
+    {"@type":"upsert","object":"DnsServer","matchOn":["description"],"value":{"cloudflare-phonaid":{"@type":"Cloudflare","description":"Cloudflare DNS for phonaid.com","secret":{"@type":"File","filePath":"/var/run/stalwart-secrets/cloudflare/token"},"timeout":30000,"ttl":300000,"pollInterval":15000,"propagationTimeout":300000},"cloudflare-re8ch":{"@type":"Cloudflare","description":"Cloudflare DNS for re8ch.com","secret":{"@type":"File","filePath":"/var/run/stalwart-secrets/cloudflare-re8ch/token"},"timeout":30000,"ttl":300000,"pollInterval":15000,"propagationTimeout":300000}}}
+    {"@type":"upsert","object":"Domain","matchOn":["name"],"value":{"phonaid-domain":{"name":"phonaid.com","enable":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Automatic","dnsServerId":"#cloudflare-phonaid","publishRecords":{"dkim":true,"mtaSts":true,"tlsRpt":true}},"reportAddressUri":"mailto:dmarc@phonaid.com","subAddressing":{"@type":"Enabled"}},"re8ch-domain":{"name":"re8ch.com","enable":true,"aliases":{},"certificateManagement":{"@type":"Manual"},"dkimManagement":{"@type":"Automatic"},"dnsManagement":{"@type":"Automatic","dnsServerId":"#cloudflare-re8ch","publishRecords":{"dkim":true,"mtaSts":true,"tlsRpt":true}},"reportAddressUri":"mailto:postmaster@re8ch.com","subAddressing":{"@type":"Enabled"}}}}
     {"@type":"upsert","object":"Certificate","matchOn":["certificate"],"value":{"mail-re8ch-com":{"certificate":{"@type":"File","filePath":"/var/run/stalwart-tls/tls.crt"},"privateKey":{"@type":"File","filePath":"/var/run/stalwart-tls/tls.key"}}}}
     {"@type":"update","object":"SystemSettings","value":{"defaultHostname":"mail.re8ch.com","defaultCertificateId":"#mail-re8ch-com","mailExchangers":{"0":{"hostname":"mail.re8ch.com","priority":10}},"services":{"caldav":{"hostname":"mail.re8ch.com","cleartext":false},"carddav":{"hostname":"mail.re8ch.com","cleartext":false},"imap":{"hostname":"mail.re8ch.com","cleartext":false},"jmap":{"hostname":"mail.re8ch.com","cleartext":false},"managesieve":{"hostname":"mail.re8ch.com","cleartext":false},"pop3":{"hostname":"mail.re8ch.com","cleartext":false},"smtp":{"hostname":"mail.re8ch.com","cleartext":false},"webdav":{"hostname":"mail.re8ch.com","cleartext":false}}}}
     {"@type":"upsert","object":"NetworkListener","matchOn":["name"],"value":{"submission":{"name":"submission","protocol":"smtp","bind":{"[::]:587":true},"tlsImplicit":false},"imap":{"name":"imap","protocol":"imap","bind":{"[::]:143":true},"tlsImplicit":false}}}
+    {"@type":"update","object":"SenderAuth","value":{"dkimStrict":true,"dkimVerify":{"else":"relaxed"},"spfEhloVerify":{"match":{"0":{"if":"local_port == 25","then":"relaxed"}},"else":"disable"},"spfFromVerify":{"match":{"0":{"if":"local_port == 25","then":"relaxed"}},"else":"disable"},"dmarcVerify":{"match":{"0":{"if":"local_port == 25","then":"relaxed"}},"else":"disable"},"arcVerify":{"else":"relaxed"},"reverseIpVerify":{"match":{"0":{"if":"local_port == 25","then":"relaxed"}},"else":"disable"}}}
+    {"@type":"update","object":"SpamSettings","value":{"enable":true,"scoreSpam":5.0,"scoreReject":15.0,"scoreDiscard":0.0,"greylistFor":null,"trustContacts":true,"trustReplies":true}}
+    {"@type":"update","object":"Security","value":{"authBanRate":{"count":20,"period":300000},"authBanPeriod":900000,"abuseBanRate":{"count":35,"period":86400000},"abuseBanPeriod":43200000,"loiterBanRate":{"count":150,"period":86400000},"loiterBanPeriod":3600000,"scanBanRate":{"count":30,"period":86400000},"scanBanPeriod":3600000}}
+    {"@type":"update","object":"MtaSts","value":{"mode":"testing","maxAge":604800000,"mxHosts":{}}}
+    {"@type":"update","object":"Metrics","value":{"prometheus":{"@type":"Enabled","authUsername":"metrics","authSecret":{"@type":"File","filePath":"/var/run/stalwart-secrets/metrics/password"}},"metrics":{},"metricsPolicy":"exclude","serviceName":"stalwart","serviceNamespace":"mail-system"}}
     {"@type":"update","object":"Sharing","value":{"allowDirectoryQueries":false,"maxShares":25}}
 kind: ConfigMap
 metadata:
@@ -2300,6 +2347,64 @@ data:
 kind: ConfigMap
 metadata:
   name: stalwart-mailbox-provisioner
+  namespace: mail-system
+---
+apiVersion: v1
+data:
+  ensure.py: |
+    import base64
+    import json
+    import os
+    import secrets
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    root = "/var/run/secrets/kubernetes.io/serviceaccount"
+    token = open(root + "/token", encoding="utf-8").read().strip()
+    context = ssl.create_default_context(cafile=root + "/ca.crt")
+    api = "https://%s:%s" % (
+        os.environ["KUBERNETES_SERVICE_HOST"],
+        os.environ["KUBERNETES_SERVICE_PORT_HTTPS"],
+    )
+    path = "/api/v1/namespaces/mail-system/secrets/stalwart-metrics-auth"
+    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+
+    request = urllib.request.Request(api + path, headers=headers)
+    try:
+        with urllib.request.urlopen(request, context=context, timeout=15):
+            print(json.dumps({"ensured": True, "created": False, "secret": "stalwart-metrics-auth"}))
+            raise SystemExit(0)
+    except urllib.error.HTTPError as error:
+        if error.code != 404:
+            raise
+
+    password = secrets.token_urlsafe(48)
+    body = {
+        "apiVersion": "v1",
+        "kind": "Secret",
+        "metadata": {
+            "name": "stalwart-metrics-auth",
+            "namespace": "mail-system",
+            "labels": {"app.kubernetes.io/managed-by": "stalwart-metrics-secret-bootstrap"},
+        },
+        "type": "Opaque",
+        "data": {
+            "username": base64.b64encode(b"metrics").decode(),
+            "password": base64.b64encode(password.encode()).decode(),
+        },
+    }
+    create = urllib.request.Request(
+        api + "/api/v1/namespaces/mail-system/secrets",
+        data=json.dumps(body, separators=(",", ":")).encode(),
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(create, context=context, timeout=15):
+        print(json.dumps({"ensured": True, "created": True, "secret": "stalwart-metrics-auth"}))
+kind: ConfigMap
+metadata:
+  name: stalwart-metrics-secret-bootstrap
   namespace: mail-system
 ---
 apiVersion: v1
@@ -4558,6 +4663,14 @@ kind: Service
 metadata:
   annotations:
     governance.re8ch.com/exposure: collaboration-https-public-management-internal
+    observability.re8ch.com/metrics-doc: https://stalw.art/docs/ref/metrics/
+    observability.re8ch.com/owner: identity-access
+    observability.re8ch.com/runbook: platform/stalwart/MAIL-SECURITY.md
+  labels:
+    app.kubernetes.io/component: mail-server
+    app.kubernetes.io/name: stalwart
+    observability.re8ch.com/scrape: "true"
+    observability.re8ch.com/tier: critical
   name: stalwart
   namespace: mail-system
 spec:
@@ -10765,6 +10878,9 @@ spec:
         - mountPath: /var/run/stalwart-idp
           name: oidc-keys
           readOnly: true
+        - mountPath: /var/run/stalwart-secrets/metrics
+          name: metrics-auth
+          readOnly: true
       dnsConfig:
         nameservers:
         - 1.1.1.1
@@ -10840,6 +10956,10 @@ spec:
       - name: oidc-keys
         secret:
           secretName: stalwart-idp-oidc-keys
+      - name: metrics-auth
+        secret:
+          optional: true
+          secretName: stalwart-metrics-auth
   updateStrategy:
     type: RollingUpdate
 ---
@@ -11954,7 +12074,7 @@ kind: Job
 metadata:
   labels:
     governance.re8ch.com/change-plane: deploying
-  name: stalwart-bootstrap-reconciler-v10
+  name: stalwart-bootstrap-reconciler-v11
   namespace: mail-system
 spec:
   backoffLimit: 2
@@ -11972,6 +12092,11 @@ spec:
           export STALWART_PASSWORD="${STALWART_RECOVERY_ADMIN#*:}"
           unset STALWART_RECOVERY_ADMIN
           cli=/cli/usr/local/bin/stalwart-cli
+          for attempt in $(seq 1 60); do
+            if [ -s /var/run/stalwart-secrets/metrics/password ]; then break; fi
+            if [ "${attempt}" -eq 60 ]; then exit 1; fi
+            sleep 2
+          done
           "${cli}" apply --file /plan/plan.ndjson --dry-run
           "${cli}" apply --file /plan/plan.ndjson --json
           "${cli}" create Action/ReloadSettings
@@ -12009,6 +12134,9 @@ spec:
           readOnly: true
         - mountPath: /cache
           name: cache
+        - mountPath: /var/run/stalwart-secrets/metrics
+          name: metrics-auth
+          readOnly: true
       nodeSelector:
         kubernetes.io/hostname: overseas-flk
       restartPolicy: Never
@@ -12037,6 +12165,9 @@ spec:
         name: cli
       - emptyDir: {}
         name: cache
+      - name: metrics-auth
+        secret:
+          secretName: stalwart-metrics-auth
   ttlSecondsAfterFinished: 604800
 ---
 apiVersion: batch/v1
@@ -12315,6 +12446,68 @@ spec:
       - name: destination
         persistentVolumeClaim:
           claimName: stalwart-idp-flk-data
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    governance.re8ch.com/change-plane: deploying
+  name: stalwart-metrics-secret-bootstrap-v1
+  namespace: mail-system
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stalwart-metrics-secret-bootstrap
+    spec:
+      containers:
+      - command:
+        - python3
+        - /app/ensure.py
+        image: docker.1ms.run/library/python@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+        name: ensure
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /app
+          name: app
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: overseas-flk
+      restartPolicy: Never
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: stalwart-metrics-secret-bootstrap
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: overseas-edge
+      - effect: NoSchedule
+        key: scheduling.re8ch.com/capacity-window
+        operator: Equal
+        value: closed
+      volumes:
+      - configMap:
+          name: stalwart-metrics-secret-bootstrap
+        name: app
+  ttlSecondsAfterFinished: 604800
 ---
 apiVersion: batch/v1
 kind: Job
@@ -13159,6 +13352,43 @@ spec:
     size: 2048
   renewBefore: 360h
   secretName: stalwart-mail-re8ch-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: stalwart-phonaid-mta-sts
+  namespace: mail-system
+spec:
+  dnsNames:
+  - mta-sts.phonaid.com
+  duration: 2160h
+  issuerRef:
+    kind: Issuer
+    name: stalwart-phonaid-cloudflare-dns01
+  privateKey:
+    algorithm: ECDSA
+    rotationPolicy: Always
+    size: 256
+  renewBefore: 360h
+  secretName: stalwart-phonaid-mta-sts-tls
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: stalwart-phonaid-cloudflare-dns01
+  namespace: mail-system
+spec:
+  acme:
+    email: admin@re8ch.com
+    privateKeySecretRef:
+      name: stalwart-phonaid-acme-account
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            key: CF_API_TOKEN
+            name: stalwart-cloudflare-phonaid-token
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -14116,6 +14346,48 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
+  name: stalwart-mta-sts-phonaid
+  namespace: mail-system
+spec:
+  hostnames:
+  - mta-sts.phonaid.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: mta-sts-phonaid-https
+  rules:
+  - backendRefs:
+    - name: stalwart
+      port: 8080
+    matches:
+    - path:
+        type: Exact
+        value: /.well-known/mta-sts.txt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: stalwart-mta-sts-re8ch
+  namespace: mail-system
+spec:
+  hostnames:
+  - mta-sts.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: mta-sts-re8ch-https
+  rules:
+  - backendRefs:
+    - name: stalwart
+      port: 8080
+    matches:
+    - path:
+        type: Exact
+        value: /.well-known/mta-sts.txt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     external-dns.alpha.kubernetes.io/hostname: mail.re8ch.com
@@ -14769,6 +15041,21 @@ spec:
     - name: personal-access-us-la
       port: 24443
 ---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: stalwart-phonaid-mta-sts-certificate
+  namespace: mail-system
+spec:
+  from:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    namespace: kube-system
+  to:
+  - group: ""
+    kind: Secret
+    name: stalwart-phonaid-mta-sts-tls
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -15383,6 +15670,39 @@ spec:
       app: tenant-control-controller
   policyTypes:
   - Ingress
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMServiceScrape
+metadata:
+  labels:
+    observability.re8ch.com/managed: "true"
+  name: stalwart-mail
+  namespace: mail-system
+spec:
+  discoveryRole: endpointslice
+  endpoints:
+  - basicAuth:
+      password:
+        key: password
+        name: stalwart-metrics-auth
+      username:
+        key: username
+        name: stalwart-metrics-auth
+    interval: 30s
+    path: /metrics/prometheus
+    port: management
+    relabelConfigs:
+    - replacement: stalwart-mail
+      targetLabel: service
+    - replacement: mail
+      targetLabel: signal_domain
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - mail-system
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stalwart
 ---
 apiVersion: tenancy.re8ch.com/v1alpha1
 kind: TenantNamespace

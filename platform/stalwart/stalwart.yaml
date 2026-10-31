@@ -19,8 +19,16 @@ kind: Service
 metadata:
   name: stalwart
   namespace: mail-system
+  labels:
+    app.kubernetes.io/name: stalwart
+    app.kubernetes.io/component: mail-server
+    observability.re8ch.com/scrape: "true"
+    observability.re8ch.com/tier: critical
   annotations:
     governance.re8ch.com/exposure: collaboration-https-public-management-internal
+    observability.re8ch.com/owner: identity-access
+    observability.re8ch.com/runbook: platform/stalwart/MAIL-SECURITY.md
+    observability.re8ch.com/metrics-doc: https://stalw.art/docs/ref/metrics/
 spec:
   type: ClusterIP
   selector: {app.kubernetes.io/name: stalwart}
@@ -155,6 +163,7 @@ spec:
             - {name: cloudflare-token, mountPath: /var/run/stalwart-secrets/cloudflare, readOnly: true}
             - {name: cloudflare-re8ch-token, mountPath: /var/run/stalwart-secrets/cloudflare-re8ch, readOnly: true}
             - {name: oidc-keys, mountPath: /var/run/stalwart-idp, readOnly: true}
+            - {name: metrics-auth, mountPath: /var/run/stalwart-secrets/metrics, readOnly: true}
       volumes:
         - {name: config, configMap: {name: stalwart-config}}
         - {name: tmp, emptyDir: {}}
@@ -178,3 +187,7 @@ spec:
             items: [{key: CF_API_TOKEN, path: token}]
         - name: oidc-keys
           secret: {secretName: stalwart-idp-oidc-keys}
+        - name: metrics-auth
+          secret:
+            secretName: stalwart-metrics-auth
+            optional: true

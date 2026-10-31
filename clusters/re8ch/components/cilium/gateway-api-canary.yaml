@@ -132,6 +132,8 @@ spec:
     - {name: admin-https, hostname: admin.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: hooks-https, hostname: hooks.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: mail-https, hostname: mail.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: mta-sts-re8ch-https, hostname: mta-sts.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
+    - {name: mta-sts-phonaid-https, hostname: mta-sts.phonaid.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: stalwart-phonaid-mta-sts-tls, namespace: mail-system}]}, allowedRoutes: {namespaces: {from: Selector, selector: {matchLabels: {kubernetes.io/metadata.name: mail-system}}}}}
     - {name: id-https, hostname: id.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - name: tools-wildcard-https
       hostname: "*.tools.re8ch.com"
