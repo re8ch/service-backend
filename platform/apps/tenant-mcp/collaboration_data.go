@@ -44,9 +44,10 @@ type collaborationDataAccess struct {
 }
 
 type collaborationDataClient struct {
-	access collaborationDataAccess
-	base   *url.URL
-	http   *http.Client
+	access  collaborationDataAccess
+	base    *url.URL
+	connect *url.URL
+	http    *http.Client
 }
 
 type collaborationDataContent struct {
@@ -65,12 +66,17 @@ func newCollaborationDataClient(id identity, access collaborationDataAccess, con
 	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 		return nil, errors.New("invalid configured collaboration origin")
 	}
+	connectOrigin, err := collaborationConnectOrigin(u.String())
+	if err != nil {
+		return nil, err
+	}
+	connect, _ := url.Parse(connectOrigin)
 	for _, scope := range access.Scopes {
 		if scope != "mail.read" && scope != "calendar.read" && scope != "calendar.respond" && scope != "contacts.read" && scope != "files.read" {
 			return nil, errors.New("unsupported collaboration scope")
 		}
 	}
-	c := &collaborationDataClient{access: access, base: u, http: &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+	c := &collaborationDataClient{access: access, base: u, connect: connect, http: &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 	for _, root := range access.FileRoots {
 		target, err := c.sameOrigin(root)
 		if err != nil || !strings.HasPrefix(target.Path, "/dav/file/") || !strings.HasSuffix(target.Path, "/") {
@@ -143,7 +149,10 @@ func (c *collaborationDataClient) request(ctx context.Context, method, target st
 	if err != nil {
 		return nil, nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), bytes.NewReader(payload))
+	destination := *u
+	destination.Scheme = c.connect.Scheme
+	destination.Host = c.connect.Host
+	req, err := http.NewRequestWithContext(ctx, method, destination.String(), bytes.NewReader(payload))
 	if err != nil {
 		return nil, nil, errors.New("invalid provider request")
 	}

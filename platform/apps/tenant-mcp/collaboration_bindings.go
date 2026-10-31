@@ -63,6 +63,17 @@ func collaborationOrigin() (string, error) {
 	}
 	return u.String(), nil
 }
+func collaborationConnectOrigin(fallback string) (string, error) {
+	raw := strings.TrimRight(strings.TrimSpace(os.Getenv("STALWART_CONNECT_URL")), "/")
+	if raw == "" {
+		return fallback, nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "http" || !strings.HasSuffix(u.Hostname(), ".svc.cluster.local") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" {
+		return "", errors.New("reviewed internal Stalwart connect origin is required")
+	}
+	return u.String(), nil
+}
 func collaborationHTTPSURL(name, fallback string, allowPath bool) (string, error) {
 	raw := strings.TrimSpace(os.Getenv(name))
 	if raw == "" {
@@ -273,6 +284,10 @@ func saveCollaborationSecret(ctx context.Context, id identity, c collaborationCo
 }
 func collaborationHTTP(ctx context.Context, path string, form url.Values, bearer string) (map[string]any, error) {
 	origin, err := collaborationOrigin()
+	if err != nil {
+		return nil, err
+	}
+	origin, err = collaborationConnectOrigin(origin)
 	if err != nil {
 		return nil, err
 	}
