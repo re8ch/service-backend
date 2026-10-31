@@ -768,6 +768,8 @@ modules:
       digest: sha256:8e5b4780813308670922b359c38d96ee552d6dfb65ed449752d4863064ddf4f6
     - codename: signal-pearl
       digest: sha256:93b258ae431cca7215108320b6381bc7c6d5e03d3d9572a14f7529d7c258f523
+    - codename: starfire-pearl
+      digest: sha256:84e1814a164a22355117cbcaacca7f80b44f05055819f5215f006c9b38b81805
   platform/apps/access-subscription:
     releases:
     - codename: aegis
