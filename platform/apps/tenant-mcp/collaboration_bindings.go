@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -746,6 +747,7 @@ func (s *server) collaborationOAuthCallback(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	if _, err = s.finishCollaborationToken(r.Context(), id, c, secret, data, token, true); err != nil {
+		log.Printf("collaboration OAuth token validation failed: %v", err)
 		collaborationCallbackPage(w, http.StatusBadGateway, "Mailbox connection failed", "Auth Hub signed in successfully, but Stalwart did not accept the account token.")
 		return
 	}
