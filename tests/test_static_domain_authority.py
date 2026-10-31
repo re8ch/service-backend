@@ -12,7 +12,7 @@ DOMAINS = {
     "data-storage", "commerce-billing", "delivery-products", "operations-ui", "tenant-runtime",
 }
 MAIN = {"data-storage", "commerce-billing", "delivery-products", "operations-ui", "tenant-runtime"}
-PENDING_MAIN = MAIN - {"delivery-products"}
+PENDING_MAIN = MAIN - {"delivery-products", "data-storage"}
 
 spec = importlib.util.spec_from_file_location(
     "main_domain_profile", ROOT / "operations/releases/main_domain_profile.py")
@@ -71,6 +71,20 @@ def test_delivery_products_is_the_first_verified_main_domain_mapping():
     }
     assert item["execution"]["repository"] == "re8ch/delivery-products-gitops"
     assert item["execution"]["workflow"] == ".github/workflows/static-release.yml"
+
+
+def test_data_storage_inventory_maps_destination_without_moving_execution_authority():
+    item = authority()["domains"]["data-storage"]
+    assert item["state"] == "inventory"
+    assert item["source"] == {
+        "organization": "strata-silica",
+        "repository": "strata-silica/storage-gitops",
+        "ref": "refs/heads/main",
+        "mappingState": "inventory",
+    }
+    assert item["execution"]["repository"] == "re8ch/service-backend"
+    assert item["execution"]["workflow"] == ".github/workflows/main-domain-release.yml"
+    assert item["execution"]["protectedEnvironment"] == "release-executor-data-storage"
 
 
 def test_profile_validator_rejects_cross_domain_environment(tmp_path, monkeypatch):
