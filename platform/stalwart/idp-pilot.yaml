@@ -178,7 +178,7 @@ spec:
         - {name: cache, emptyDir: {}}
         - name: cli
           image:
-            reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+            reference: ghcr.io/stalwartlabs/cli@sha256:5b70732cb69cdab3ff0894c501544cf0bfa180fa75bcd0eeba4eebe04c1064e1
             pullPolicy: IfNotPresent
 ---
 apiVersion: gateway.networking.k8s.io/v1

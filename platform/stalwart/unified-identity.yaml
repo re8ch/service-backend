@@ -2,13 +2,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: stalwart-unified-identity-bootstrap-plan-v2
+  name: stalwart-unified-identity-bootstrap-plan-v3
   namespace: mail-system
 data:
   plan.ndjson: |
     {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true,"profile":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
-    {"@type":"update","object":"Http","value":{"usePermissiveCors":true}}
+    {"@type":"update","object":"Http","value":{"usePermissiveCors":true,"clientIpSource":"xForwardedFor","forwardedHops":1}}
     {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":900000,"idTokenExpiry":900000,"refreshTokenExpiry":28800000,"refreshTokenRenewal":3600000}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"kubectl-pilot":{"clientId":"kubectl-stalwart-pilot","description":"Kubernetes RBAC Stalwart pilot","redirectUris":{"http://127.0.0.1:8000":true,"http://localhost:8000":true}}}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"headlamp":{"clientId":"headlamp","description":"Headlamp Kubernetes console","redirectUris":{"https://headlamp.service.re8ch.com/oidc-callback":true}}}}
@@ -21,7 +21,7 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: stalwart-unified-identity-bootstrap-v2
+  name: stalwart-unified-identity-bootstrap-v3
   namespace: mail-system
   labels:
     governance.re8ch.com/change-plane: deploying
@@ -95,10 +95,10 @@ spec:
       volumes:
       - name: plan
         configMap:
-          name: stalwart-unified-identity-bootstrap-plan-v2
+          name: stalwart-unified-identity-bootstrap-plan-v3
       - name: cache
         emptyDir: {}
       - name: cli
         image:
-          reference: ghcr.io/stalwartlabs/cli@sha256:fe199affac1d120a8c200ef39ae629765a2976270e0453575c1caf906ee15b52
+          reference: ghcr.io/stalwartlabs/cli@sha256:5b70732cb69cdab3ff0894c501544cf0bfa180fa75bcd0eeba4eebe04c1064e1
           pullPolicy: IfNotPresent
