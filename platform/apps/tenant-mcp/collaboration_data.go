@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	_ "time/tzdata"
 	"unicode/utf8"
 )
 
