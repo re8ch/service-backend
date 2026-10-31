@@ -1,6 +1,9 @@
 # Stalwart 接入 Re8ch self-service
 
-状态：动态工具和 device 授权已发布；User Hub SSO 授权接线待发布。2026-10-31。
+状态：动态工具、device 授权和 User Hub PKCE 已发布；邮件、日历、通讯录、
+Drive 读取及 refresh 已完成生产验收。`id.re8ch.com` 公网 Gateway 503 是独立的
+剩余故障。2026-10-31。完整排障与统一 OAuth 交接见
+`OAUTH-INTEGRATION-HANDOFF.md`。
 
 ## 产品目标与入口
 
@@ -171,7 +174,9 @@ eventRef、预期事件版本及响应状态，不接受任意组织者或收件
 - [WebDAV](https://stalw.art/docs/http/webdav/)
 - [OAuth scopes](https://stalw.art/docs/auth/oauth/scopes/)
 
-以上为当前在线文档，不能替代 v0.16.18 运行实例的兼容性验证。
+以上为当前在线文档，不能替代实际运行实例的兼容性验证。当前生产验收和版本
+边界见 `OAUTH-INTEGRATION-HANDOFF.md`，不再以本目录历史 v0.16.18 声明推断
+生产版本。
 
 ## 本次分工与交付状态
 
