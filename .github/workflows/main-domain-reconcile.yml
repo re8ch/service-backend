@@ -20,7 +20,7 @@ jobs:
     outputs:
       matrix: ${{ steps.select.outputs.matrix }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
       - id: select
         run: echo "matrix=$(python operations/releases/main_domain_profile.py --replay-matrix)" >> "$GITHUB_OUTPUT"
@@ -41,7 +41,7 @@ jobs:
       # The executor refreshes OIDC tokens during SSA, after the login step.
       EXECUTOR_AUDIENCE: '${{ matrix.audience }}'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
       - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
