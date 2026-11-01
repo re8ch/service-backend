@@ -46,6 +46,29 @@ def require(condition: bool, message: str) -> None:
 
 
 def main() -> None:
+    root_kustomization = yaml.load(
+        (ROOT / "clusters/re8ch/kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER
+    )
+    authority = yaml.load(
+        (ROOT / "operations/flux-federation/authority.yaml").read_text(), Loader=YAML_SAFE_LOADER
+    )
+    if authority["spec"].get("deliveryMode") == "github-actions-ssa":
+        require(
+            "flux-federation" not in root_kustomization.get("resources", []),
+            "retired Flux federation is still rendered by the cluster root",
+        )
+        require(
+            {domain["state"] for domain in authority["spec"]["domains"].values()}
+            == {"github-actions-ssa"},
+            "every retired autonomous domain must declare GitHub Actions SSA authority",
+        )
+        require(
+            authority["spec"].get("controllerVersion") == "retired",
+            "retired controller authority must not advertise an active Flux version",
+        )
+        print("Flux federation retired: GitHub Actions SSA is the four-domain delivery authority")
+        return
+
     controller_docs = documents(FEDERATION / "controllers.yaml")
     deployments = [doc for doc in controller_docs if doc["kind"] == "Deployment"]
     require(len(deployments) == 16, "expected four controller Deployments per domain")

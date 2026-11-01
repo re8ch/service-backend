@@ -3,6 +3,7 @@ kind: FluxFederationAuthority
 metadata:
   name: re8ch
 spec:
+  deliveryMode: github-actions-ssa
   # Historical cutover SHAs below are bootstrap/rollback evidence, not moving
   # deployment pins. Steady-state revisions come from signed GitRepository status.
   lockSemantics: cutover-baseline
@@ -25,25 +26,25 @@ spec:
       repository: ssh://git@ssh.github.com:443/siren-observer/observability-gitops.git
       controllerNamespace: flux-observability-system
       lock: 9ddb096b25ee9b1ab0d37f730c504b7b13bea626
-      state: autonomous
+      state: github-actions-ssa
     agent-runtime:
       organization: 8iops
       repository: ssh://git@ssh.github.com:443/8iops/agent-gitops.git
       controllerNamespace: flux-agent-system
       lock: fe9cae9809804832433c73decdd9dc9fceddcbee
-      state: autonomous
+      state: github-actions-ssa
     identity-access:
       organization: re8ch
       repository: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git
       controllerNamespace: flux-identity-system
       lock: 04dcbe952d261f533bbc179a5c2767e7280b3cb2
-      state: autonomous
+      state: github-actions-ssa
     networking:
       organization: pillars-infra
       repository: https://github.com/pillars-infra/network-gitops
       controllerNamespace: flux-network-system
       lock: 1fdda9a16730d0b440b8cce1a0ba528df07a7af8
-      state: autonomous
+      state: github-actions-ssa
   sharedBootstrapSecrets:
     - sops-age
     - gitops-oci-reader
@@ -53,9 +54,7 @@ spec:
   mainFluxOwns:
     - native-annotated-main-domain-resources
     - flux-crds
-    - autonomous-controller-lifecycle
-    - namespaces
     - global-rbac
     - shared-gateway-authority
     - secret-and-policy-boundaries
-  controllerVersion: v2.6.1
+  controllerVersion: retired

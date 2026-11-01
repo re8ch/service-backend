@@ -27,7 +27,8 @@ def test_every_domain_has_one_desired_state_reconciler():
                   for item in reconcilers if item["metadata"]["name"].startswith("reconcile-main-legacy-")}
     legacy = {item["metadata"]["name"].removeprefix("reconcile-"): item for item in reconcilers
               if not item["metadata"]["name"].startswith("reconcile-main-legacy")}
-    federation = yaml.load(FEDERATION_AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)["spec"]["domains"]
+    federation_authority = yaml.load(FEDERATION_AUTHORITY.read_text(), Loader=YAML_SAFE_LOADER)["spec"]
+    federation = federation_authority["domains"]
     registrations = {
         item["metadata"]["namespace"]: item
         for item in load_all(FEDERATION_REGISTRATIONS)
@@ -54,7 +55,14 @@ def test_every_domain_has_one_desired_state_reconciler():
     for domain, authority in federation.items():
         state = authority["state"]
         autonomous = registrations[authority["controllerNamespace"]]["spec"]
-        if state == "staged":
+        if state == "github-actions-ssa":
+            assert federation_authority["deliveryMode"] == "github-actions-ssa"
+            assert domain not in legacy
+            root = yaml.load(
+                (ROOT / "clusters/re8ch/kustomization.yaml").read_text(), Loader=YAML_SAFE_LOADER
+            )
+            assert "flux-federation" not in root["resources"]
+        elif state == "staged":
             assert domain in legacy and legacy[domain]["spec"].get("suspend", False) is False
             assert autonomous["suspend"] is True and autonomous["prune"] is False
         elif state == "cutover-verification":
