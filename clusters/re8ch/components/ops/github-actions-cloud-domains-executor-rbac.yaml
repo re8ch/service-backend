@@ -4668,6 +4668,101 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: ssa-state-networking-native-kube-api
+  namespace: kube-system
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: networking
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: networking-native-kube-api
+  namespace: kube-system
+rules:
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  resourceNames:
+  - kube-api-observer-proxy
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - kube-api-observer-proxy
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - services
+  resourceNames:
+  - kube-api-observer-proxy
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - backendtlspolicies
+  resourceNames:
+  - kube-api-observer-proxy
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  resourceNames:
+  - kube-api-service
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - tcproutes
+  resourceNames:
+  - kube-api-public
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-networking-native-kube-api
+  verbs:
+  - get
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: networking-native-kube-api
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: networking-native-kube-api
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:networking
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: ssa-state-networking-native-kube-system
   namespace: kube-system
   labels:
@@ -4701,7 +4796,6 @@ rules:
   resources:
   - deployments
   resourceNames:
-  - kube-api-observer-proxy
   - kube-api-overseas-relay
   - zerotier-planet
   verbs:
@@ -4755,7 +4849,6 @@ rules:
   - control-transit-controller-98df2kft25
   - host-network-contract
   - host-network-controller-679588ggt2
-  - kube-api-observer-proxy
   - kube-api-overseas-relay
   - native-routing-rollout-order
   - podcidr-fabric-inventory
@@ -4779,18 +4872,8 @@ rules:
   resources:
   - services
   resourceNames:
-  - kube-api-observer-proxy
   - kube-api-overseas-relay
   - kube-dns
-  verbs:
-  - get
-  - patch
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - backendtlspolicies
-  resourceNames:
-  - kube-api-observer-proxy
   verbs:
   - get
   - patch
@@ -4800,24 +4883,6 @@ rules:
   - gateways
   resourceNames:
   - re8ch-gateway-canary
-  verbs:
-  - get
-  - patch
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - tcproutes
-  resourceNames:
-  - kube-api-public
-  verbs:
-  - get
-  - patch
-- apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - httproutes
-  resourceNames:
-  - kube-api-service
   verbs:
   - get
   - patch

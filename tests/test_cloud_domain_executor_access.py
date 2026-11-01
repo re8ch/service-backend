@@ -8,7 +8,7 @@ PATH = ROOT / 'clusters/re8ch/components/ops/github-actions-cloud-domains-execut
 def test_cloud_domain_adoption_is_named_and_non_destructive():
     docs = list(yaml.safe_load_all(PATH.read_text()))
     states = [d for d in docs if d['kind'] == 'ConfigMap']
-    assert len(states) == 80
+    assert len(states) == 81
     for d in docs:
         if d['kind'] == 'ConfigMap':
             assert 'data' not in d
@@ -86,17 +86,25 @@ def test_new_identity_adoption_targets_are_exact_and_group_bound():
         assert binding['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group', 'name': 're8ch:release-executor:identity-access'}]
 
 
-def test_networking_executor_can_adopt_only_the_reviewed_kube_api_http_route_and_tls_policy():
+def test_networking_executor_scopes_kube_api_to_its_own_release():
     docs = list(yaml.safe_load_all(PATH.read_text()))
-    role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'networking-native-kube-system')
-    api_rules = [rule for rule in role['rules'] if rule['apiGroups'] == ['gateway.networking.k8s.io']
-                 and rule['resources'] in (['backendtlspolicies'], ['httproutes'], ['tlsroutes'])]
-    assert api_rules == [
-        {'apiGroups': ['gateway.networking.k8s.io'], 'resources': ['backendtlspolicies'],
-         'resourceNames': ['kube-api-observer-proxy'], 'verbs': ['get', 'patch']},
-        {'apiGroups': ['gateway.networking.k8s.io'], 'resources': ['httproutes'],
-         'resourceNames': ['kube-api-service'], 'verbs': ['get', 'patch']},
-    ]
+    role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'networking-native-kube-api')
+    names = {(resource, name) for rule in role['rules'] for resource in rule['resources'] for name in rule['resourceNames']}
+    assert names == {('deployments', 'kube-api-observer-proxy'),
+                     ('configmaps', 'kube-api-observer-proxy'),
+                     ('services', 'kube-api-observer-proxy'),
+                     ('backendtlspolicies', 'kube-api-observer-proxy'),
+                     ('httproutes', 'kube-api-service'),
+                     ('tcproutes', 'kube-api-public'),
+                     ('configmaps', 'ssa-state-networking-native-kube-api')}
+    assert all(rule['verbs'] == ['get', 'patch'] for rule in role['rules'])
+    binding = next(d for d in docs if d['kind'] == 'RoleBinding' and d['metadata']['name'] == 'networking-native-kube-api')
+    assert binding['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group',
+                                    'name': 're8ch:release-executor:networking'}]
+    assert any(d['kind'] == 'ConfigMap' and d['metadata']['name'] == 'ssa-state-networking-native-kube-api' for d in docs)
+    old = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'networking-native-kube-system')
+    assert not any(name in {'kube-api-observer-proxy', 'kube-api-public', 'kube-api-service'}
+                   for rule in old['rules'] for name in rule['resourceNames'])
 
 
 def test_litellm_adoption_has_only_five_runtime_objects_plus_state():
