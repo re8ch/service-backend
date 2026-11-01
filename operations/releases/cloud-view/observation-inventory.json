@@ -850,6 +850,18 @@
   {
     "domain": "networking",
     "namespace": "kube-system",
+    "name": "ssa-state-networking-native-kube-api",
+    "workloads": [
+      {
+        "kind": "Deployment",
+        "namespace": "kube-system",
+        "name": "kube-api-observer-proxy"
+      }
+    ]
+  },
+  {
+    "domain": "networking",
+    "namespace": "kube-system",
     "name": "ssa-state-networking-native-kube-system",
     "workloads": [
       {
@@ -881,11 +893,6 @@
         "kind": "DaemonSet",
         "namespace": "kube-system",
         "name": "public-mesh-podcidr-reconciler"
-      },
-      {
-        "kind": "Deployment",
-        "namespace": "kube-system",
-        "name": "kube-api-observer-proxy"
       },
       {
         "kind": "Deployment",
