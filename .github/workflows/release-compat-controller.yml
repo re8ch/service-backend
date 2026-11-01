@@ -61,7 +61,7 @@ jobs:
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
         token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
         kubeconfig="$RUNNER_TEMP/publisher.kubeconfig"
-        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:6443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.re8ch.com:443 --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
         kubectl config --kubeconfig "$kubeconfig" set-credentials publisher --token="$token"
         kubectl config --kubeconfig "$kubeconfig" set-context publisher --cluster=re8ch --user=publisher --namespace=flux-system
         kubectl config --kubeconfig "$kubeconfig" use-context publisher

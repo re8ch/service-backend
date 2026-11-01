@@ -245,7 +245,7 @@ class Cluster:
         url = urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
         self.token = request_json(url, os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN'])['value']
         # Fixed public service endpoint; no local kubeconfig or credential fallback.
-        self.server = 'https://kube-api.re8ch.com:6443'
+        self.server = 'https://kube-api.re8ch.com:443'
         for path in ('/api/v1/namespaces/default/secrets', '/api/v1/configmaps'):
             try:
                 request_json(self.server+path, self.token, self.context)

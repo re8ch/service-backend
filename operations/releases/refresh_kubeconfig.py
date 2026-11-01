@@ -41,7 +41,7 @@ def initialize() -> None:
         raise Rejected('missing Kubernetes CA')
     config = {'apiVersion': 'v1', 'kind': 'Config',
               'clusters': [{'name': 're8ch-main', 'cluster': {
-                  'server': 'https://kube-api.re8ch.com:6443',
+                  'server': 'https://kube-api.re8ch.com:443',
                   'certificate-authority-data': base64.b64encode(ca.encode()).decode()}}],
               'users': [{'name': 'release-executor', 'user': {}}],
               'contexts': [{'name': 'release-executor', 'context': {
