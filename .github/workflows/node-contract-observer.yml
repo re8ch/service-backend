@@ -427,7 +427,6 @@ jobs:
       - name: Collect bounded cloud state and live workload health
         if: always()
         env:
-          KUBE_API_CA: ${{ secrets.KUBE_API_CA_PEM }}
           MAIN_OBSERVER_TOKEN: ${{ steps.observe-main.outputs.token }}
           IDENTITY_OBSERVER_TOKEN: ${{ steps.observe-identity.outputs.token }}
           DELIVERY_OBSERVER_TOKEN: ${{ steps.observe-delivery.outputs.token }}

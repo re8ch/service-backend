@@ -239,7 +239,7 @@ def operation(domain):
 
 class Cluster:
     def __init__(self):
-        self.context = ssl.create_default_context(cadata=os.environ['KUBE_API_CA'])
+        self.context = ssl.create_default_context()
         parts = urllib.parse.urlsplit(os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'])
         query = dict(urllib.parse.parse_qsl(parts.query))
         query['audience'] = 'https://kube-api.re8ch.com/observer'
