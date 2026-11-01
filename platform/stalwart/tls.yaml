@@ -14,7 +14,9 @@ spec:
   privateKey:
     algorithm: RSA
     size: 2048
-    rotationPolicy: Always
+    # DANE TLSA publication pins the SPKI. Reuse the key across routine
+    # renewals so a successful ACME renewal cannot invalidate SMTP delivery.
+    rotationPolicy: Never
 ---
 apiVersion: batch/v1
 kind: CronJob

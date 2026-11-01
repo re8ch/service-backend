@@ -14,7 +14,7 @@ transport mechanism that is safe without external prerequisites.
 - Outbound STARTTLS, DANE and MTA-STS are optional. “Optional” still enforces a
   recipient domain's valid DANE or MTA-STS policy, but does not reject delivery
   to domains that publish neither mechanism.
-- Hosted-domain MTA-STS is published in `testing` mode and TLS-RPT is sent to
+- Hosted-domain MTA-STS is published in `enforce` mode and TLS-RPT is sent to
   each domain's report address. DKIM, MTA-STS and TLS-RPT DNS records are
   refreshed through the domain-scoped Cloudflare credentials.
 - Automatic bans expire. Authentication bans last 15 minutes; scan and loiter
@@ -25,15 +25,16 @@ transport mechanism that is safe without external prerequisites.
 
 ## Activation gates
 
-Do not move MTA-STS from `testing` to `enforce` until at least two weeks of
-TLS-RPT reports show that every advertised MX presents a valid certificate and
-accepts STARTTLS. Do not globally set outbound DANE, MTA-STS or STARTTLS to
-`require`: that would make delivery to domains without those policies fail.
+MTA-STS was moved to `enforce` after the sole advertised MX and its public
+certificate path were aligned. Do not globally set outbound DANE, MTA-STS or
+STARTTLS to `require`: that would make delivery to domains without those
+policies fail.
 
 Publish TLSA records only after the relevant zone has DNSSEC and every MX name,
-certificate and renewal path is aligned. `phonaid.com` has DNSSEC today;
-`re8ch.com` does not. DANE remains active for outbound delivery in optional
-mode, while inbound TLSA publication stays gated.
+certificate and renewal path is aligned. The `mail.re8ch.com` certificate reuses
+its private key across routine renewals so its SPKI-based TLSA record remains
+valid. DANE remains active for outbound delivery in optional mode; inbound TLSA
+publication remains gated on the registrar DS record becoming publicly valid.
 
 Move DMARC from monitoring to quarantine/reject only after aggregate reports
 show that every legitimate sender is aligned. `phonaid.com` is already at
@@ -46,7 +47,7 @@ adds ARC sets. It signs relayed mail with DKIM/DKIM2 instead.
 
 Verify public SPF, DKIM, DMARC, TLS-RPT and MTA-STS records with an independent
 resolver. Fetch `https://mta-sts.<domain>/.well-known/mta-sts.txt`, verify the
-certificate and confirm the mode is `testing`. Confirm the Prometheus target is
+certificate and confirm the mode is `enforce`. Confirm the Prometheus target is
 up and watch inbound rejects, Junk placement, outbound queue size and TLS
 failures.
 
