@@ -20256,12 +20256,6 @@ spec:
     protocol: TCP
   - allowedRoutes:
       namespaces:
-        from: Same
-    name: kube-api
-    port: 6443
-    protocol: TCP
-  - allowedRoutes:
-      namespaces:
         from: Selector
         selector:
           matchExpressions:
@@ -22029,38 +22023,6 @@ spec:
     - name: homer-ui
       port: 80
 ---
-apiVersion: gateway.networking.k8s.io/v1alpha2
-kind: TCPRoute
-metadata:
-  labels:
-    operations.re8ch.com/credential-contract: node-observer
-  name: kube-api-public
-  namespace: kube-system
-spec:
-  parentRefs:
-  - name: re8ch-gateway-canary
-    sectionName: kube-api
-  rules:
-  - backendRefs:
-    - name: kubernetes
-      namespace: default
-      port: 443
----
-apiVersion: gateway.networking.k8s.io/v1beta1
-kind: ReferenceGrant
-metadata:
-  name: kube-api-public
-  namespace: default
-spec:
-  from:
-  - group: gateway.networking.k8s.io
-    kind: TCPRoute
-    namespace: kube-system
-  to:
-  - group: ""
-    kind: Service
-    name: kubernetes
----
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -23676,33 +23638,6 @@ spec:
             name: dataspace-gateway
             port:
               number: 8080
-        path: /
-        pathType: Prefix
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  annotations:
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/hostname: kube-api.re8ch.com
-    external-dns.alpha.kubernetes.io/target: 223.159.210.222
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    networking.re8ch.com/public-authority: operations/network/manifests/network/public-mesh/inventory.json#r640.publicAuthority
-  labels:
-    public.re8ch.com/external-dns: enabled
-  name: kube-api-public-dns-authority
-  namespace: kube-system
-spec:
-  ingressClassName: external-dns-only
-  rules:
-  - host: kube-api.re8ch.com
-    http:
-      paths:
-      - backend:
-          service:
-            name: re8ch-gateway-canary
-            port:
-              number: 6443
         path: /
         pathType: Prefix
 ---
