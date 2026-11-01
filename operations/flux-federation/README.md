@@ -1,4 +1,16 @@
-# Flux federation operating model
+# Retired Flux federation operating model
+
+The four autonomous domain controller stacks are retired. GitHub Actions uses
+bounded executor identities and server-side apply as the only delivery path for
+Agent, Identity, Observability and Network. The cluster root intentionally does
+not render `clusters/re8ch/flux-federation`; those manifests remain only as
+historical cutover and rollback evidence and must not be applied.
+
+The live cluster must contain no controller workloads, `GitRepository/domain`,
+or `Kustomization/domain` in the four former federation namespaces. Cleanup is
+performed through the audited platform path after this declaration merges.
+
+The material below documents the superseded design.
 
 This directory records the reviewed authority split between the main Flux and
 four autonomous controller stacks. `authority.yaml` is the machine-readable
