@@ -877,7 +877,8 @@ def test_stalwart_security_baseline_is_safe_and_observable():
     assert all(security[key] is not None for key in (
         "authBanPeriod", "abuseBanPeriod", "loiterBanPeriod", "scanBanPeriod"
     ))
-    assert by_object["MtaSts"]["value"]["mode"] == "testing"
+    assert by_object["MtaSts"]["value"]["mode"] == "enforce"
+    assert by_object["SystemSettings"]["value"]["defaultDomainId"] == "#re8ch-domain"
     prometheus = by_object["Metrics"]["value"]["prometheus"]
     assert prometheus["@type"] == "Enabled"
     assert prometheus["authUsername"] == "metrics"

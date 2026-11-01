@@ -24,6 +24,31 @@ spec:
         - {targetLabel: service, replacement: stalwart-mail}
         - {targetLabel: signal_domain, replacement: mail}
 ---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: stalwart-mail
+  namespace: mail-system
+  labels: {observability.re8ch.com/managed: "true"}
+spec:
+  groups:
+    - name: stalwart-mail-availability
+      rules:
+        - alert: StalwartMetricsUnavailable
+          expr: up{service="stalwart-mail"} == 0
+          for: 5m
+          labels: {severity: critical, signal_domain: mail}
+          annotations:
+            summary: Stalwart metrics endpoint is unavailable
+            description: The overseas-flk Stalwart target has failed scrapes for five minutes.
+        - alert: StalwartOutboundQueueGrowing
+          expr: stalwart_queue_count{service="stalwart-mail"} > 100
+          for: 15m
+          labels: {severity: warning, signal_domain: mail}
+          annotations:
+            summary: Stalwart outbound queue is growing
+            description: More than 100 messages have remained in the outbound queue for 15 minutes.
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: stalwart-metrics-secret-bootstrap, namespace: mail-system}
