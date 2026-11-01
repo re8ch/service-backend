@@ -82,6 +82,10 @@ spec:
       serviceAccountName: {{ include "runtime-anatomy.fullname" . }}-observer
       hostPID: true
       priorityClassName: system-node-critical
+      {{- with .Values.observer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: observer
           image: {{ .Values.observer.image }}
