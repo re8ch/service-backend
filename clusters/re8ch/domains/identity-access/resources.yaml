@@ -15672,6 +15672,38 @@ spec:
   - Ingress
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  labels:
+    observability.re8ch.com/managed: "true"
+  name: stalwart-mail
+  namespace: mail-system
+spec:
+  groups:
+  - name: stalwart-mail-availability
+    rules:
+    - alert: StalwartMetricsUnavailable
+      annotations:
+        description: The overseas-flk Stalwart target has failed scrapes for five
+          minutes.
+        summary: Stalwart metrics endpoint is unavailable
+      expr: up{service="stalwart-mail"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        signal_domain: mail
+    - alert: StalwartOutboundQueueGrowing
+      annotations:
+        description: More than 100 messages have remained in the outbound queue for
+          15 minutes.
+        summary: Stalwart outbound queue is growing
+      expr: stalwart_queue_count{service="stalwart-mail"} > 100
+      for: 15m
+      labels:
+        severity: warning
+        signal_domain: mail
+---
+apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
   labels:
@@ -15703,36 +15735,6 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: stalwart
----
-apiVersion: operator.victoriametrics.com/v1beta1
-kind: VMRule
-metadata:
-  labels:
-    observability.re8ch.com/managed: "true"
-  name: stalwart-mail
-  namespace: mail-system
-spec:
-  groups:
-  - name: stalwart-mail-availability
-    rules:
-    - alert: StalwartMetricsUnavailable
-      annotations:
-        description: The overseas-flk Stalwart target has failed scrapes for five minutes.
-        summary: Stalwart metrics endpoint is unavailable
-      expr: up{service="stalwart-mail"} == 0
-      for: 5m
-      labels:
-        severity: critical
-        signal_domain: mail
-    - alert: StalwartOutboundQueueGrowing
-      annotations:
-        description: More than 100 messages have remained in the outbound queue for 15 minutes.
-        summary: Stalwart outbound queue is growing
-      expr: stalwart_queue_count{service="stalwart-mail"} > 100
-      for: 15m
-      labels:
-        severity: warning
-        signal_domain: mail
 ---
 apiVersion: tenancy.re8ch.com/v1alpha1
 kind: TenantNamespace
