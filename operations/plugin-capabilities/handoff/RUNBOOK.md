@@ -29,7 +29,7 @@
 
 ## 2. 已接入系统与能力深度
 
-self-service 的管理员路径是 `platform_tool_catalog → platform_tool_call`，按返回的 backend/name/inputSchema 调用；不是绕过 self-service 直连另一个管理入口。
+当前租户操作先通过同一个 `Re8ch` 插件调用 `tenant_self_service_capabilities`，再按实际发布的工具和 schema 执行。`platform_tool_catalog → platform_tool_call` 是本清单所研究的可选历史管理员桥接路径，不是租户 self-service 的前置条件，也不能用它是否出现在客户端来判定租户工具可用性。
 
 | 入口／系统 | 当前实现范围 | 不能据此推断的能力 |
 |---|---|---|

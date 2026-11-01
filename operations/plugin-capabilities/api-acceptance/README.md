@@ -1,8 +1,8 @@
 # API acceptance cases
 
-`cases.json` specifies 55 finite collection GET cases through the authenticated
-self-service `platform_tool_call` API. These are a first explicit suite, not full
-plugin operation coverage. Each case fixes the backend, tool, operationId,
+`cases.json` specifies 55 finite collection GET cases through the historical
+administrator bridge `platform_tool_call` API. This specialized suite is not a
+health gate or prerequisite for current Re8ch tenant self-service. Each case fixes the backend, tool, operationId,
 OpenAPI hash, bounded request and expected status. CLI exit zero alone is never
 acceptance. No credentials are stored here.
 

@@ -110,6 +110,19 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
         "collaboration/read-only modules must not be pushed as owned code. Never copy credentials "
         "into patches, logs, MEMORY, or Git."
     )
+    if module.name == "service-backend":
+        working_rules += (
+            "\n\nThe current `Re8ch` plugin is the single tenant self-service entry. "
+            "Discover `tenant_self_service_capabilities`, use the specific published operation, "
+            "and verify its real result. Check the active organization before provider-backed work. "
+            "Tenant Kubernetes tools are restricted to allowlisted kinds and Ready namespaces owned "
+            "by that organization. Older Cloud Platform connections and `platform_tool_catalog` / "
+            "`platform_tool_call` are not tenant self-service prerequisites or health checks. "
+            "Use an administrator bridge only for an explicitly authorized platform task when its "
+            "current tool is actually available. For Pigsty schema changes, discover the current "
+            "authorized plan/apply operation, keep credentials inside the cluster, follow GitOps "
+            "review, and retain migration evidence."
+        )
     return "\n".join([
         f"# {module.name} Agent MEMORY",
         "",
