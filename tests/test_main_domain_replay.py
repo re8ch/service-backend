@@ -162,12 +162,12 @@ def test_private_kubeconfig_initializer_refuses_overwrite_and_keeps_token_out_of
     import refresh_kubeconfig as refresh
     path = tmp_path / 'kubeconfig'
     monkeypatch.setenv('KUBECONFIG', str(path))
-    monkeypatch.setenv('KUBE_API_CA', 'fixture-ca')
     monkeypatch.setattr(refresh.Executor, 'actions_kube_token', lambda self: 'PRIVATE-TOKEN')
     refresh.initialize()
     assert path.stat().st_mode & 0o777 == 0o600
     config = yaml.safe_load(path.read_text())
     assert config['clusters'][0]['cluster']['server'] == 'https://kube-api.service.re8ch.com'
+    assert 'certificate-authority-data' not in config['clusters'][0]['cluster']
     assert config['users'][0]['user']['token'] == 'PRIVATE-TOKEN'
     assert 'PRIVATE-TOKEN' not in capsys.readouterr().out
     with pytest.raises(FileExistsError):
