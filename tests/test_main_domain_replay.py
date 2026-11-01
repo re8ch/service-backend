@@ -40,6 +40,23 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
     assert '--force-conflicts' not in raw
 
 
+def test_cloud_reconcilers_use_public_edge_https_port():
+    paths = [
+        ROOT / '.github/workflows/ceph-shadow-compile.yml',
+        ROOT / '.github/workflows/main-domain-reconcile.yml',
+        ROOT / '.github/workflows/main-domain-release.yml',
+        ROOT / '.github/workflows/node-contract-observer.yml',
+        ROOT / '.github/workflows/release-compat-controller.yml',
+        ROOT / '.github/workflows/unified-release.yml',
+        ROOT / 'operations/releases/cloud-view/collect.py',
+        ROOT / 'operations/releases/refresh_kubeconfig.py',
+    ]
+    for path in paths:
+        raw = path.read_text()
+        assert 'https://kube-api.service.re8ch.com' in raw
+        assert 'https://kube-api.service.re8ch.com:' not in raw
+        assert 'https://kube-api.re8ch.com:6443' not in raw
+
 def test_durable_state_write_refreshes_expired_outer_identity(tmp_path):
     import os
     import subprocess
@@ -151,7 +168,7 @@ def test_private_kubeconfig_initializer_refuses_overwrite_and_keeps_token_out_of
     refresh.initialize()
     assert path.stat().st_mode & 0o777 == 0o600
     config = yaml.safe_load(path.read_text())
-    assert config['clusters'][0]['cluster']['server'] == 'https://kube-api.re8ch.com:6443'
+    assert config['clusters'][0]['cluster']['server'] == 'https://kube-api.service.re8ch.com'
     assert config['users'][0]['user']['token'] == 'PRIVATE-TOKEN'
     assert 'PRIVATE-TOKEN' not in capsys.readouterr().out
     with pytest.raises(FileExistsError):

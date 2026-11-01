@@ -102,6 +102,7 @@ def request_json(url, token, context=None):
     with urllib.request.urlopen(req, context=context, timeout=remaining_timeout()) as response:
         return json.loads(read_bounded(response, 4 * 1024 * 1024))
 
+
 # Only full executor results qualify. In particular Ceph runtime/infra are stages.
 MAX_ARCHIVE = 1024 * 1024
 MAX_RESULT = 256 * 1024
@@ -245,7 +246,7 @@ class Cluster:
         url = urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
         self.token = request_json(url, os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN'])['value']
         # Fixed public service endpoint; no local kubeconfig or credential fallback.
-        self.server = 'https://kube-api.re8ch.com:6443'
+        self.server = 'https://kube-api.service.re8ch.com'
         for path in ('/api/v1/namespaces/default/secrets', '/api/v1/configmaps'):
             try:
                 request_json(self.server+path, self.token, self.context)

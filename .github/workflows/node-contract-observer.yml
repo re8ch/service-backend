@@ -50,7 +50,8 @@ jobs:
             "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$private_dir/oidc.json"
           token="$(jq -r .value "$private_dir/oidc.json")"; echo "::add-mask::$token"
           kubectl config --kubeconfig "$private_dir/kubeconfig" set-cluster re8ch \
-            --server=https://kube-api.re8ch.com:6443 --certificate-authority="$private_dir/ca.crt" --embed-certs=true >/dev/null
+            --server=https://kube-api.service.re8ch.com \
+            --certificate-authority="$private_dir/ca.crt" --embed-certs=true >/dev/null
           kubectl config --kubeconfig "$private_dir/kubeconfig" set-credentials recovery --token="$token" >/dev/null
           kubectl config --kubeconfig "$private_dir/kubeconfig" set-context recovery --cluster=re8ch --user=recovery >/dev/null
           kubectl config --kubeconfig "$private_dir/kubeconfig" use-context recovery >/dev/null
