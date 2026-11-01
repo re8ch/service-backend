@@ -95,7 +95,6 @@ def test_networking_executor_scopes_kube_api_to_its_own_release():
                      ('services', 'kube-api-observer-proxy'),
                      ('backendtlspolicies', 'kube-api-observer-proxy'),
                      ('httproutes', 'kube-api-service'),
-                     ('tcproutes', 'kube-api-public'),
                      ('configmaps', 'ssa-state-networking-native-kube-api')}
     assert all(rule['verbs'] == ['get', 'patch'] for rule in role['rules'])
     binding = next(d for d in docs if d['kind'] == 'RoleBinding' and d['metadata']['name'] == 'networking-native-kube-api')

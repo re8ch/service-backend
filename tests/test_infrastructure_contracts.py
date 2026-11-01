@@ -135,12 +135,9 @@ def test_oidc_rbac_gateway_and_dns_are_fail_closed():
 
     gateway = [item for item in yaml.safe_load_all((ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml").read_text()) if item]
     public_gateway = next(item for item in gateway if item["kind"] == "Gateway" and item["metadata"]["name"] == "re8ch-gateway-canary")
-    listener = next(item for item in public_gateway["spec"]["listeners"] if item["name"] == "kube-api")
-    assert listener == {"name": "kube-api", "protocol": "TCP", "port": 6443, "allowedRoutes": {"namespaces": {"from": "Same"}}}
-    route = next(item for item in gateway if item["kind"] == "TCPRoute" and item["metadata"]["name"] == "kube-api-public")
-    assert route["spec"]["rules"][0]["backendRefs"] == [{"name": "kubernetes", "namespace": "default", "port": 443}]
-    dns = next(item for item in gateway if item["kind"] == "Ingress" and item["metadata"]["name"] == "kube-api-public-dns-authority")
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
+    assert all(item["name"] != "kube-api" for item in public_gateway["spec"]["listeners"])
+    assert not any(item["kind"] == "TCPRoute" and item["metadata"]["name"] == "kube-api-public" for item in gateway)
+    assert not any(item["kind"] == "Ingress" and item["metadata"]["name"] == "kube-api-public-dns-authority" for item in gateway)
 
 
 def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():

@@ -4728,15 +4728,6 @@ rules:
   - get
   - patch
 - apiGroups:
-  - gateway.networking.k8s.io
-  resources:
-  - tcproutes
-  resourceNames:
-  - kube-api-public
-  verbs:
-  - get
-  - patch
-- apiGroups:
   - ''
   resources:
   - configmaps
