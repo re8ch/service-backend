@@ -741,6 +741,7 @@ rules:
   - ssa-state-networking-helm-advanced-fabric-kube-system
   - ssa-state-networking-helm-among-clusters-hub-kube-system
   - ssa-state-networking-helm-cilium-kube-system
+  - ssa-state-networking-native-kube-api
   - ssa-state-networking-native-kube-system
   - ssa-state-observability-chart-birfucate-metering-kube-system
   - ssa-state-observability-domain-kube-system
