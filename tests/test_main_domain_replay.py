@@ -53,8 +53,14 @@ def test_cloud_reconcilers_use_public_edge_https_port():
     ]
     for path in paths:
         raw = path.read_text()
-        assert 'https://kube-api.re8ch.com:443' in raw
+        assert 'https://kube-api.service.re8ch.com' in raw
+        assert 'https://kube-api.service.re8ch.com:' not in raw
         assert 'https://kube-api.re8ch.com:6443' not in raw
+
+    for name in ('a1-wsl2-k3s-server-config.yaml', 'b1-wsl2-k3s-server-config.yaml'):
+        config = yaml.safe_load((ROOT / 'clusters/re8ch/components/ops' / name).read_text())
+        assert 'kube-api.service.re8ch.com' in config['tls-san']
+        assert 'kube-api.re8ch.com' not in config['tls-san']
 
 
 def test_durable_state_write_refreshes_expired_outer_identity(tmp_path):
@@ -168,7 +174,7 @@ def test_private_kubeconfig_initializer_refuses_overwrite_and_keeps_token_out_of
     refresh.initialize()
     assert path.stat().st_mode & 0o777 == 0o600
     config = yaml.safe_load(path.read_text())
-    assert config['clusters'][0]['cluster']['server'] == 'https://kube-api.re8ch.com:443'
+    assert config['clusters'][0]['cluster']['server'] == 'https://kube-api.service.re8ch.com'
     assert config['users'][0]['user']['token'] == 'PRIVATE-TOKEN'
     assert 'PRIVATE-TOKEN' not in capsys.readouterr().out
     with pytest.raises(FileExistsError):
