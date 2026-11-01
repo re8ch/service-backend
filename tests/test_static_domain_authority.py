@@ -73,17 +73,18 @@ def test_delivery_products_is_the_first_verified_main_domain_mapping():
     assert item["execution"]["workflow"] == ".github/workflows/static-release.yml"
 
 
-def test_data_storage_inventory_maps_destination_without_moving_execution_authority():
+def test_data_storage_execution_authority_moved_to_storage_gitops():
     item = authority()["domains"]["data-storage"]
-    assert item["state"] == "inventory"
+    assert item["state"] == "active"
     assert item["source"] == {
         "organization": "strata-silica",
         "repository": "strata-silica/storage-gitops",
         "ref": "refs/heads/main",
-        "mappingState": "inventory",
+        "mappingState": "verified",
     }
-    assert item["execution"]["repository"] == "re8ch/service-backend"
-    assert item["execution"]["workflow"] == ".github/workflows/main-domain-release.yml"
+    assert "bootstrap" not in item
+    assert item["execution"]["repository"] == "strata-silica/storage-gitops"
+    assert item["execution"]["workflow"] == ".github/workflows/storage-static-release.yml"
     assert item["execution"]["protectedEnvironment"] == "release-executor-data-storage"
 
 
@@ -100,4 +101,10 @@ def test_profile_validator_rejects_cross_domain_environment(tmp_path, monkeypatc
 def test_service_backend_profile_rejects_externally_mapped_delivery_domain():
     path = ROOT / "contracts/releases/main-domain/main-delivery-products-aesthete.yaml"
     with pytest.raises(ValueError, match="execution authority moved to re8ch/delivery-products-gitops"):
+        profile.validate_contract(path)
+
+
+def test_service_backend_profile_rejects_migrated_data_storage_domain():
+    path = ROOT / "contracts/releases/main-domain/main-data-storage-toolhive-system.yaml"
+    with pytest.raises(ValueError, match="unknown or non-bootstrap main domain"):
         profile.validate_contract(path)
