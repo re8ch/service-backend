@@ -44,6 +44,9 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-reconciler-operations-ui',
         'https://kube-api.re8ch.com/release-reconciler-tenant-runtime',
         'https://kube-api.re8ch.com/release-reconciler-networking',
+        'https://kube-api.re8ch.com/release-reconciler-agent-runtime',
+        'https://kube-api.re8ch.com/release-reconciler-identity-access',
+        'https://kube-api.re8ch.com/release-reconciler-observability-metering',
         'https://kube-api.re8ch.com/release-reconciler-delivery-products',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
@@ -224,6 +227,28 @@ def test_delivery_replay_private_runner_claims_are_exact():
     for event in ('pull_request', 'pull_request_target', 'repository_dispatch'):
         assert not accepted({**values, 'event_name': event})
     assert "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? ['re8ch:release-executor:delivery-products']" in github['claimMappings']['groups']['expression']
+
+
+def test_autonomous_domain_reconcilers_are_exact_github_hosted_routes():
+    github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
+    expressions = [' '.join(item['expression'].split()) for item in github['claimValidationRules']]
+    routes = {
+        'agent-runtime': ('8iops/agent-gitops', 'agent-runtime-reconcile.yml', 'public'),
+        'identity-access': ('re8ch/identity-gitops', 'identity-access-reconcile.yml', 'public'),
+        'observability-metering': ('siren-observer/observability-gitops', 'observability-metering-reconcile.yml', 'private'),
+    }
+    for domain, (repository, workflow, visibility) in routes.items():
+        audience = f'https://kube-api.re8ch.com/release-reconciler-{domain}'
+        for fragment in (
+            f"claims.repository_visibility == '{visibility}'",
+            f"claims.repository == '{repository}'",
+            f".github/workflows/{workflow}@refs/heads/main'",
+            "claims.runner_environment == 'github-hosted'",
+            f"claims.environment == 'release-reconciler-{domain}'",
+            f"claims.aud == '{audience}'",
+        ):
+            assert any(fragment in expression for expression in expressions)
+        assert f"claims.aud == '{audience}' ? ['re8ch:release-executor:{domain}']" in github['claimMappings']['groups']['expression']
 
 
 def test_ceph_cloud_runner_exception_keeps_each_exact_claim_and_environment_audience_pair():

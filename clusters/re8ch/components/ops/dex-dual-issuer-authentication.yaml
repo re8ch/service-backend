@@ -35,6 +35,9 @@ jwt:
         - https://kube-api.re8ch.com/release-reconciler-operations-ui
         - https://kube-api.re8ch.com/release-reconciler-tenant-runtime
         - https://kube-api.re8ch.com/release-reconciler-networking
+        - https://kube-api.re8ch.com/release-reconciler-agent-runtime
+        - https://kube-api.re8ch.com/release-reconciler-identity-access
+        - https://kube-api.re8ch.com/release-reconciler-observability-metering
         - https://kube-api.re8ch.com/release-reconciler-delivery-products
       audienceMatchPolicy: MatchAny
     claimValidationRules:
@@ -82,6 +85,17 @@ jwt:
            claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
            claims.environment == 'release-reconciler-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking')
+          || (claims.runner_environment == 'github-hosted' && claims.ref == 'refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] && (
+            (claims.repository_visibility == 'public' && claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
+             claims.repository == '8iops/agent-gitops' && claims.workflow_ref == '8iops/agent-gitops/.github/workflows/agent-runtime-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-agent-runtime' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime') ||
+            (claims.repository_visibility == 'public' && claims.repository_id == '1423312101' && claims.repository_owner_id == '283958313' &&
+             claims.repository == 're8ch/identity-gitops' && claims.workflow_ref == 're8ch/identity-gitops/.github/workflows/identity-access-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-identity-access' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-identity-access') ||
+            (claims.repository_visibility == 'private' && claims.repository_id == '1423312205' && claims.repository_owner_id == '334604879' &&
+             claims.repository == 'siren-observer/observability-gitops' && claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/observability-metering-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-observability-metering' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-observability-metering')))
           || (claims.repository_visibility == 'public' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
@@ -146,6 +160,17 @@ jwt:
            claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
            claims.environment == 'release-reconciler-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking')
+          || (claims.runner_environment == 'github-hosted' && claims.ref == 'refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] && (
+            (claims.repository_visibility == 'public' && claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
+             claims.repository == '8iops/agent-gitops' && claims.workflow_ref == '8iops/agent-gitops/.github/workflows/agent-runtime-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-agent-runtime' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime') ||
+            (claims.repository_visibility == 'public' && claims.repository_id == '1423312101' && claims.repository_owner_id == '283958313' &&
+             claims.repository == 're8ch/identity-gitops' && claims.workflow_ref == 're8ch/identity-gitops/.github/workflows/identity-access-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-identity-access' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-identity-access') ||
+            (claims.repository_visibility == 'private' && claims.repository_id == '1423312205' && claims.repository_owner_id == '334604879' &&
+             claims.repository == 'siren-observer/observability-gitops' && claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/observability-metering-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-observability-metering' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-observability-metering')))
           || (claims.repository_visibility == 'public' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
@@ -299,6 +324,17 @@ jwt:
            claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
            claims.environment == 'release-reconciler-networking' &&
            claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking')
+          || (claims.runner_environment == 'github-hosted' && claims.ref == 'refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule', 'push'] && (
+            (claims.repository_visibility == 'public' && claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
+             claims.repository == '8iops/agent-gitops' && claims.workflow_ref == '8iops/agent-gitops/.github/workflows/agent-runtime-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-agent-runtime' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime') ||
+            (claims.repository_visibility == 'public' && claims.repository_id == '1423312101' && claims.repository_owner_id == '283958313' &&
+             claims.repository == 're8ch/identity-gitops' && claims.workflow_ref == 're8ch/identity-gitops/.github/workflows/identity-access-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-identity-access' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-identity-access') ||
+            (claims.repository_visibility == 'private' && claims.repository_id == '1423312205' && claims.repository_owner_id == '334604879' &&
+             claims.repository == 'siren-observer/observability-gitops' && claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/observability-metering-reconcile.yml@refs/heads/main' &&
+             claims.environment == 'release-reconciler-observability-metering' && claims.aud == 'https://kube-api.re8ch.com/release-reconciler-observability-metering')))
           || (claims.repository_visibility == 'private' &&
            claims.repository_id == '1431915128' &&
            claims.repository_owner_id == '283958313' &&
@@ -325,6 +361,9 @@ jwt:
         expression: >-
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? 'github-actions:release-reconciler-delivery-products:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? 'github-actions:release-reconciler-networking:' + claims.run_id :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime' ? 'github-actions:release-reconciler-agent-runtime:' + claims.run_id :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-identity-access' ? 'github-actions:release-reconciler-identity-access:' + claims.run_id :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-observability-metering' ? 'github-actions:release-reconciler-observability-metering:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? 'github-actions:release-reconciler-data-storage:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? 'github-actions:release-reconciler-commerce-billing:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? 'github-actions:release-reconciler-operations-ui:' + claims.run_id :
@@ -360,6 +399,9 @@ jwt:
         expression: >-
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? ['re8ch:release-executor:delivery-products'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? ['re8ch:release-executor:networking'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime' ? ['re8ch:release-executor:agent-runtime'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-identity-access' ? ['re8ch:release-executor:identity-access'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-observability-metering' ? ['re8ch:release-executor:observability-metering'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? ['re8ch:release-executor:data-storage'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? ['re8ch:release-executor:commerce-billing'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? ['re8ch:release-executor:operations-ui'] :
