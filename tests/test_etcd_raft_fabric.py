@@ -7,6 +7,18 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIGS = {
     "clusters/re8ch/components/ops/a1-wsl2-k3s-server-config.yaml": ("a1-wsl-zt", "10.250.0.147"),
 }
+
+
+def test_control_plane_serving_cert_uses_delegated_public_edge_hostname():
+    for filename in (
+        "a1-wsl2-k3s-server-config.yaml",
+        "b1-wsl2-k3s-server-config.yaml",
+    ):
+        config = yaml.safe_load((ROOT / "clusters/re8ch/components/ops" / filename).read_text())
+        assert "kube-api.service.re8ch.com" in config["tls-san"]
+        assert "kube-api.re8ch.com" not in config["tls-san"]
+
+
 def test_etcd_members_advertise_node_owned_advanced_fabric_identities():
     for filename, (_, address) in CONFIGS.items():
         config = yaml.safe_load((ROOT / filename).read_text())
