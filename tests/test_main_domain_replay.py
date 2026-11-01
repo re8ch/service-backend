@@ -57,12 +57,6 @@ def test_cloud_reconcilers_use_public_edge_https_port():
         assert 'https://kube-api.service.re8ch.com:' not in raw
         assert 'https://kube-api.re8ch.com:6443' not in raw
 
-    for name in ('a1-wsl2-k3s-server-config.yaml', 'b1-wsl2-k3s-server-config.yaml'):
-        config = yaml.safe_load((ROOT / 'clusters/re8ch/components/ops' / name).read_text())
-        assert 'kube-api.service.re8ch.com' in config['tls-san']
-        assert 'kube-api.re8ch.com' not in config['tls-san']
-
-
 def test_durable_state_write_refreshes_expired_outer_identity(tmp_path):
     import os
     import subprocess

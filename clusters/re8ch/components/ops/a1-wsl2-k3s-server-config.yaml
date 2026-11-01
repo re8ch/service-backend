@@ -14,7 +14,7 @@ tls-san:
   - 10.181.22.147
   - 10.181.22.125
   - k3s-api.internal.re8ch.com
-  - kube-api.service.re8ch.com
+  - kube-api.re8ch.com
 flannel-backend: none
 disable-network-policy: true
 disable-scheduler: false
