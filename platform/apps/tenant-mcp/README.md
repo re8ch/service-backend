@@ -104,9 +104,11 @@ version revokes the previous version of the same name and tenant.
 
 ## Build and rollout
 
-The tenant MCP also exposes `platform_tool_catalog` and `platform_tool_call`
-only to a verified user with a current `owner` or `admin` membership in the
-hidden `admin` organization while `admin` is the account's active organization.
+The tenant MCP lists `platform_tool_catalog` and `platform_tool_call` for
+authenticated users with an active tenant so clients can cache a stable tool
+schema. Calls require a verified user with a current `owner` or `admin`
+membership in the hidden `admin` organization. Listing the entry points does
+not grant access to the catalog or any backend tool.
 It reads the Supabase membership projection once per verified login session and
 caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
@@ -119,8 +121,8 @@ never returned to the caller. The old Admin and Cloud/Infra MCP connections
 remain published.
 
 The authenticated self-service plugin is the preferred administrator entry.
-An active `admin` organization session with verified platform-admin membership
-uses the platform catalog's separate allowlist and backend permissions. Empty
+An active organization session with verified platform-admin membership uses
+the platform catalog's separate allowlist and backend permissions. Empty
 tenant consumables or service classes do not restrict this administrator path.
 The `admin` backend publishes `postgres_admin_sql` for reviewed Pigsty SQL:
 read-only queries execute through the fixed Supabase database identity; writes
