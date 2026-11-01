@@ -62,7 +62,8 @@ def test_flux_compat_admission_ignores_unlabelled_flux_consumers():
     }
     for name in ("flux-compat-projections", "flux-source-compat-projections"):
         expression = policies[name]["spec"]["matchConditions"][0]["expression"]
-        assert "'delivery.re8ch.com/compat-projection' in object.metadata.labels" in expression
+        assert "request.operation == 'DELETE' ? oldObject : object" in expression
+        assert "'delivery.re8ch.com/compat-projection' in" in expression
 
 
 def test_flux_compat_admission_handles_optional_helmrelease_fields():
