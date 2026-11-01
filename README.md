@@ -78,21 +78,21 @@ No plaintext credential belongs in this repository. Runtime identities refer to
 Kubernetes Secrets or SOPS-encrypted values and never return credential material
 to MCP callers.
 
-## Administrator self-service
+## Re8ch self-service
 
-Use the authenticated `re8ch-tenant` self-service plugin as the primary entry
-for both tenant operations and published platform administration. Its
-`platform_tool_catalog` and `platform_tool_call` expose administrator tools to
-a verified platform-admin session; ordinary tenant grant and service-class
-limits do not reduce that separately authorized administrator scope. The
-catalog's exact tool schema and backend authorization remain authoritative.
-For PostgreSQL schema work, the administrator-only `postgres_admin_sql` tool
-uses the existing Supabase/Pigsty credential inside the cluster. It requires a
-reviewed approval ID and returns a plan hash before a write; it never returns
-the credential. Run reviewed SQL,
-retain the plan and result as migration evidence, and follow the GitOps PR
-policy for desired-state changes. Interactive Supabase Studio login is optional
-for human inspection, not a prerequisite for agent database migrations.
+The current `Re8ch` plugin is the single entry for tenant self-service. Check
+`tenant_access_status` when organization scope matters, discover
+`tenant_self_service_capabilities`, and call the exact published operation.
+Confirm a real read or plan result before reporting a capability as working.
+Tenant Kubernetes tools are scoped to allowlisted kinds and Ready namespaces
+owned by the active organization; they are not unrestricted cluster `kubectl`.
+
+Older Cloud Platform connections and the optional `platform_tool_catalog` /
+`platform_tool_call` administrator bridge are not prerequisites or health
+checks for tenant self-service. A missing administrator entry point does not
+mean tenant self-service is down. For database schema work, discover the
+currently authorized operation, keep credentials inside the platform, retain
+plan and result evidence, and use a reviewed GitOps PR for desired state.
 
 ## Federated workspace
 

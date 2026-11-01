@@ -15,9 +15,10 @@ documents a separate historical migration procedure if that decision changes.
    their order, payment and ledger tables were verified empty. Do not apply
    historical import migrations `050`–`051` or run snapshot/import scripts for
    this rollout. Recheck schema and backup state before opening checkout.
-   The authenticated administrator self-service catalog publishes
-   `postgres_admin_sql` for this database work. Use `platform_tool_catalog`
-   to discover it, run read-only inventory first, and pass each reviewed SQL
+   For this historical administrator workflow, verify that the current Re8ch
+   plugin actually publishes and authorizes `postgres_admin_sql`; do not infer
+   availability from an old Cloud Platform or tool catalog instruction. When
+   available, run read-only inventory first and pass each reviewed SQL
    script with a PR approval ID. The first write call returns a plan hash;
    execute only with `apply=true` and that hash. The tool accepts SQL, not
    `psql` meta commands: translate `bootstrap.sql`'s `\gexec` and
