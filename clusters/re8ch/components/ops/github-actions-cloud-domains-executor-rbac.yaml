@@ -4788,6 +4788,15 @@ rules:
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
+  - backendtlspolicies
+  resourceNames:
+  - kube-api-observer-proxy
+  verbs:
+  - get
+  - patch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
   - gateways
   resourceNames:
   - re8ch-gateway-canary
@@ -4806,9 +4815,9 @@ rules:
 - apiGroups:
   - gateway.networking.k8s.io
   resources:
-  - tlsroutes
+  - httproutes
   resourceNames:
-  - kube-api-https
+  - kube-api-service
   verbs:
   - get
   - patch
