@@ -36,3 +36,13 @@ def test_launchagents_execute_from_local_application_support():
     assert "/Library/Application Support/RE8CH/bin/sync-main-anchor.sh" in anchor
     assert "/Library/Application Support/RE8CH/bin/run-gitops-drift-audit.sh" in drift
     assert "/Volumes/A1/service-backend/operations/" not in anchor + drift
+    assert "RE8CH_NAMESPACE_CLASSIFICATION" in drift
+
+
+def test_drift_audit_is_bounded_and_preserves_last_good_report():
+    audit = (ROOT / "operations/gitops-drift/audit.py").read_text()
+    runner = (ROOT / "operations/gitops-drift/run-audit.sh").read_text()
+    assert 'command.insert(1, "--request-timeout=20s")' in audit
+    assert '"resourcequotas,limitranges,networkpolicies,rolebindings"' in audit
+    assert 'python3 -m json.tool "$tmp"' in runner
+    assert 'mv "$tmp" "$state_dir/latest.json"' in runner
