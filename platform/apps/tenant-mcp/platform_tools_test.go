@@ -158,13 +158,17 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if rpcCalls != 1 {
 		t.Fatalf("same-session call repeated membership lookup: %d", rpcCalls)
 	}
-	if contains(call("ordinary-user", "session-2", "tools/list", map[string]any{})) {
-		t.Fatal("ordinary user sees admin tool")
+	if !contains(call("ordinary-user", "session-2", "tools/list", map[string]any{})) {
+		t.Fatal("platform entry point missing from stable tool list")
 	}
 	assertPlatformStatus("ordinary-user", "session-2", false)
 	guessed := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
-	if guessed["error"] == nil {
-		t.Fatal("guessed privileged call was accepted")
+	if guessed["error"] == nil && guessed["result"].(map[string]any)["isError"] != true {
+		t.Fatal("ordinary user's privileged call was accepted")
+	}
+	deniedCatalog := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_catalog", "arguments": map[string]any{}})
+	if deniedCatalog["error"] == nil && deniedCatalog["result"].(map[string]any)["isError"] != true {
+		t.Fatal("ordinary user read platform catalog")
 	}
 	if rpcCalls != 2 {
 		t.Fatalf("ordinary session repeated membership lookup: %d", rpcCalls)
@@ -173,7 +177,8 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if !contains(call("admin-user", "session-1", "tools/list", map[string]any{})) || rpcCalls != 2 {
 		t.Fatal("existing login session lost its cached admin decision")
 	}
-	if contains(call("admin-user", "session-3", "tools/list", map[string]any{})) || rpcCalls != 3 {
-		t.Fatal("new login session did not receive a fresh membership decision")
+	if !contains(call("admin-user", "session-3", "tools/list", map[string]any{})) || rpcCalls != 3 {
+		t.Fatal("new login session lost stable platform entry points")
 	}
+	assertPlatformStatus("admin-user", "session-3", false)
 }

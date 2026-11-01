@@ -113,12 +113,10 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if !id.Service && id.Tenant == artcTenant() {
 		s.registerArtcTools(ms)
 	}
-	// Platform administration is a separately verified session capability. It is
-	// intentionally independent from the caller's active application tenant so
-	// an administrator can operate platform modules while remaining scoped to
-	// the Re8ch application organization. Organization/user administration stays
-	// restricted to the Admin organization below.
-	if id.PlatformAdmin && !id.Service {
+	// Publish stable platform entry points to authenticated users so MCP clients
+	// that cache tools/list do not lose them when a membership decision changes.
+	// Every call still checks live session authorization and the backend allowlist.
+	if !id.Service {
 		s.registerPlatformTools(ms)
 	}
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {

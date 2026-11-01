@@ -169,7 +169,7 @@ func platformIdentity(ctx context.Context) (identity, error) {
 	if err != nil {
 		return identity{}, err
 	}
-	if !id.PlatformAdmin {
+	if id.Service || id.Tenant == "" || !id.PlatformAdmin {
 		return identity{}, errors.New("platform admin membership required for this session")
 	}
 	return id, nil
