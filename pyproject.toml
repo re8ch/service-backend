@@ -8,7 +8,7 @@ dependencies = ["PyYAML>=6.0.2"]
 re8ch-workspace = "workspace:main"
 
 [project.optional-dependencies]
-test = ["jsonschema>=4.23", "pytest>=8.3", "schemathesis==4.29.1"]
+test = ["jsonschema>=4.26.0", "pytest>=8.3", "schemathesis==4.29.1"]
 
 [tool.pytest.ini_options]
 pythonpath = ["operations/cloud-platform"]
