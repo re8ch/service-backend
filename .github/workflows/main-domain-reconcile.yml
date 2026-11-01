@@ -1,15 +1,6 @@
 name: main-domain-reconcile
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '7,37 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - contracts/releases/main-domain/**
-      - operations/releases/main-domain-ssa/**
-      - operations/releases/static-domain-authority.yaml
-      - .github/workflows/main-domain-reconcile.yml
 permissions:
   contents: read
 jobs:
