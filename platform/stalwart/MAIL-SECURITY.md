@@ -30,11 +30,17 @@ certificate path were aligned. Do not globally set outbound DANE, MTA-STS or
 STARTTLS to `require`: that would make delivery to domains without those
 policies fail.
 
-Publish TLSA records only after the relevant zone has DNSSEC and every MX name,
-certificate and renewal path is aligned. The `mail.re8ch.com` certificate reuses
-its private key across routine renewals so its SPKI-based TLSA record remains
-valid. DANE remains active for outbound delivery in optional mode; inbound TLSA
-publication remains gated on the registrar DS record becoming publicly valid.
+`re8ch.com` has a validated DNSSEC delegation and publishes an SPKI SHA-256
+TLSA record for `_25._tcp.mail.re8ch.com`. The `mail.re8ch.com` certificate
+reuses its private key across routine renewals so the TLSA record remains valid.
+DANE remains active for outbound delivery in optional mode: it is enforced for
+signed recipient domains that publish TLSA, without rejecting domains that do
+not deploy DANE.
+
+`mail.re8ch.com` publishes a scoped CAA `issue` record for
+`letsencrypt.org`. The CAA is intentionally scoped to the mail hostname rather
+than the zone apex so Cloudflare-managed certificates for other hostnames keep
+their own valid issuer choices.
 
 Move DMARC from monitoring to quarantine/reject only after aggregate reports
 show that every legitimate sender is aligned. `phonaid.com` is already at
