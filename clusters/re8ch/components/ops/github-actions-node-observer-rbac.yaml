@@ -2036,6 +2036,7 @@ rules:
   resources:
   - configmaps
   resourceNames:
+  - ssa-state-agent-runtime-domain-tenant-infrastructure
   - ssa-state-identity-access-domain-tenant-infrastructure
   - ssa-state-observability-chart-birfucate-metering-ten-dff87672e0
   - ssa-state-observability-domain-tenant-infrastructure

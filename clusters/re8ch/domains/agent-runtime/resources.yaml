@@ -1513,6 +1513,140 @@ kind: Role
 metadata:
   labels:
     delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+rules:
+- apiGroups:
+  - apps
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  - tenant-provider-reconciler
+  resources:
+  - deployments
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - apps
+  resourceNames:
+  - tenant-runtime-image-cache
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - ssa-state-agent-runtime-domain-tenant-infrastructure
+  - tenant-platform-modules
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - tenant-platform-state
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  - tenant-infrastructure
+  resources:
+  - services
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  - tenant-provider-reconciler
+  resources:
+  - serviceaccounts
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - cilium.io
+  resourceNames:
+  - tenant-api-gateway
+  resources:
+  - ciliumnetworkpolicies
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - gateway.networking.k8s.io
+  resourceNames:
+  - tenant-billing-auth-center
+  - tenant-billing-read
+  - tenant-credential-redemption
+  - tenant-native-mcp
+  - tenant-self-service-capabilities
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - networking.k8s.io
+  resourceNames:
+  - admin-api
+  - tenant-api
+  - tenant-control-controller
+  resources:
+  - networkpolicies
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - policy
+  resourceNames:
+  - tenant-control-controller
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
   name: agent-runtime-toolhive-operator
   namespace: toolhive-system
 rules:
@@ -2350,6 +2484,22 @@ subjects:
 - kind: ServiceAccount
   name: ops-mcp-operate
   namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-tenant-infrastructure
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -4046,6 +4196,17 @@ metadata:
     governance.re8ch.com/approval: required
   name: repo-pilot-bot-dex-grant-request
   namespace: git-workspaces
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/authority-domain: agent-runtime
+    delivery.re8ch.com/state: accepted
+  name: ssa-state-agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
 ---
 apiVersion: v1
 data:
