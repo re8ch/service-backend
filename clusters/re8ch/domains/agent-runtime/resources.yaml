@@ -1708,6 +1708,17 @@ rules:
   - patch
   - update
   - delete
+- apiGroups:
+  - gateway.networking.k8s.io
+  resourceNames:
+  - tenant-mcp
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
