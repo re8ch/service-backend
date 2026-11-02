@@ -197,3 +197,131 @@ def test_webmail_credential_tool_is_admin_only_and_rejects_target_overrides():
             server.dispatch(service, "credentials.webmail-session.ensure", args, admin)
         assert exc.value.code == "INVALID_ARGUMENT"
     assert server.dispatch(service, "credentials.webmail-session.ensure", {}, admin)["applied"] is False
+
+
+def authentication_git_authority(monkeypatch, commit_sha):
+    reconciler = """apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: re8ch-authentication-config-reconciler
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: re8ch-authentication-config-reconciler
+    app.kubernetes.io/component: control-plane
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: re8ch-authentication-config-reconciler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: re8ch-authentication-config-reconciler
+    spec:
+      containers: [{name: reconciler, image: example.invalid/reconciler@sha256:deadbeef}]
+"""
+
+    def read(url, *, json_body=False, limit=1_048_576):
+        del limit
+        if url.endswith("/commits/main"):
+            assert json_body
+            return {"sha": commit_sha, "commit": {"verification": {"verified": True}}}
+        if url.endswith("/dex-dual-issuer-authentication.yaml"):
+            return "apiVersion: apiserver.config.k8s.io/v1\nkind: AuthenticationConfiguration\n"
+        if url.endswith("/authentication-config-reconciler.yaml"):
+            return reconciler
+        raise AssertionError(url)
+
+    monkeypatch.setattr(CloudPlatform, "_github_read", staticmethod(read))
+
+
+def test_authentication_reconcile_plans_with_server_dry_run(monkeypatch):
+    commit_sha = "a" * 40
+    authentication_git_authority(monkeypatch, commit_sha)
+    calls = []
+    service = CloudPlatform(
+        Inventory([NODE_FIXTURE]),
+        OperationRunner(lambda argv, **kwargs: calls.append((argv, kwargs)) or completed("configured")),
+        kubeconfig="x",
+        ssh_config="y",
+    )
+
+    result = service.reconcile_control_plane_authentication_config(commit_sha)
+
+    assert result["applied"] is False
+    assert result["restartRequested"] is False
+    assert result["offlineNodesTolerated"] is True
+    assert len(result["planHash"]) == 64
+    assert len(calls) == 1
+    argv, kwargs = calls[0]
+    assert "--dry-run=server" in argv
+    assert "restart" not in argv
+    assert "kind: ConfigMap" in kwargs["input"]
+    assert "kind: DaemonSet" in kwargs["input"]
+
+
+def test_authentication_reconcile_requires_exact_plan_and_tolerates_offline_nodes(monkeypatch):
+    commit_sha = "b" * 40
+    authentication_git_authority(monkeypatch, commit_sha)
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        if "daemonset" in argv:
+            return completed(json.dumps({"status": {
+                "desiredNumberScheduled": 3,
+                "currentNumberScheduled": 2,
+                "numberReady": 2,
+                "numberAvailable": 2,
+                "numberUnavailable": 1,
+            }}))
+        if "--raw=/livez" in argv:
+            return completed("ok")
+        return completed("configured")
+
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    plan = service.reconcile_control_plane_authentication_config(commit_sha)
+    calls.clear()
+    with pytest.raises(OperationError) as caught:
+        service.reconcile_control_plane_authentication_config(commit_sha, apply=True, plan_hash="0" * 64)
+    assert caught.value.code == "PLAN_HASH_MISMATCH"
+    assert not calls
+
+    result = service.reconcile_control_plane_authentication_config(commit_sha, apply=True, plan_hash=plan["planHash"])
+
+    assert result["applied"] is True
+    assert result["apiLive"] is True
+    assert result["daemonSet"]["numberUnavailable"] == 1
+    assert result["offlineNodesTolerated"] is True
+    assert all("restart" not in argv for argv, _ in calls)
+    assert "--dry-run=server" not in calls[0][0]
+
+
+def test_authentication_reconcile_rejects_unverified_main(monkeypatch):
+    commit_sha = "c" * 40
+    monkeypatch.setattr(CloudPlatform, "_github_read", staticmethod(
+        lambda *_args, **_kwargs: {"sha": commit_sha, "commit": {"verification": {"verified": False}}}
+    ))
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(), kubeconfig="x", ssh_config="y")
+    with pytest.raises(OperationError) as caught:
+        service.reconcile_control_plane_authentication_config(commit_sha)
+    assert caught.value.code == "UNREVIEWED_REVISION"
+
+
+def test_authentication_reconcile_tool_is_admin_only_and_bounded(monkeypatch):
+    import importlib.util
+    from runtime import Identity
+
+    commit_sha = "d" * 40
+    authentication_git_authority(monkeypatch, commit_sha)
+    spec = importlib.util.spec_from_file_location("cloud_platform_server_auth_reconcile_test", ROOT / "operations/cloud-platform/server.py")
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(lambda *a, **kw: completed("configured")), kubeconfig="x", ssh_config="y")
+    with pytest.raises(OperationError) as caught:
+        server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha}, Identity("reader", ()))
+    assert caught.value.code == "AUTHORIZATION_DENIED"
+    admin = Identity("operator", (server.ADMIN_GROUP,))
+    with pytest.raises(OperationError) as caught:
+        server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha, "namespace": "default"}, admin)
+    assert caught.value.code == "INVALID_ARGUMENT"
+    assert server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha}, admin)["applied"] is False

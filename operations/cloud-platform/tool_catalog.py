@@ -20,6 +20,7 @@ TOOLS = {
     "nodes.get": "nodes_get",
     "nodes.reachability": "node_reachability",
     "node.ssh.exec": "node_ssh_exec",
+    "reconcile_control_plane_authentication_config": "reconcile_control_plane_authentication_config",
     "kube.nodes": "kube_simple",
     "kube.namespaces": "kube_simple",
     "kube.pods": "kube_simple",

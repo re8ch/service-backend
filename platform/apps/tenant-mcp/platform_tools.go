@@ -62,6 +62,12 @@ type platformToolInput struct {
 	Arguments map[string]any `json:"arguments,omitempty" jsonschema:"Arguments matching the selected tool's inputSchema"`
 }
 
+type controlPlaneAuthenticationInput struct {
+	CommitSHA string `json:"commitSha" jsonschema:"Full reviewed service-backend main commit SHA"`
+	Apply     bool   `json:"apply,omitempty" jsonschema:"Apply the exact plan; false performs server-side dry-run"`
+	PlanHash  string `json:"planHash,omitempty" jsonschema:"Exact plan hash returned by the dry-run"`
+}
+
 type platformBackend struct {
 	URL       string          `json:"url"`
 	Namespace string          `json:"namespace"`
@@ -176,6 +182,32 @@ func platformIdentity(ctx context.Context) (identity, error) {
 }
 
 func (s *server) registerPlatformTools(ms *mcp.Server) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("reconcile_control_plane_authentication_config"), Name: "reconcile_control_plane_authentication_config", Description: "Plan or apply the reviewed kube-apiserver authentication configuration and its node-local reconciler. Offline control-plane nodes converge when they return; this never restarts K3s."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			const backendName = "native"
+			const toolName = "reconcile_control_plane_authentication_config"
+			backend, ok := s.moduleRegistry().backend(backendName)
+			if !ok || !backend.Allowed[toolName] {
+				return nil, nil, errors.New("control-plane authentication reconciler is not published")
+			}
+			arguments := map[string]any{"commitSha": input.CommitSHA, "apply": input.Apply}
+			if input.PlanHash != "" {
+				arguments["planHash"] = input.PlanHash
+			}
+			value, err := s.moduleRegistry().call(ctx, backendName, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
+				if !allowed[toolName] {
+					return nil, errors.New("control-plane authentication reconciler is not allowlisted")
+				}
+				return session.CallTool(ctx, &mcp.CallToolParams{Name: toolName, Arguments: arguments})
+			})
+			if err != nil {
+				return nil, nil, err
+			}
+			return value.(*mcp.CallToolResult), nil, nil
+		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "List Cloud Platform, Cluster Infra, and platform admin tools available to the current platform administrator."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
