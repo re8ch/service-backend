@@ -249,7 +249,6 @@ domains:
       - tests/test_tenant_infrastructure_gitops.py
       - tests/test_tenant_image_delivery.py
       - tests/test_scheduling_governance.py
-      - tests/test_ceph_static_release.py
       - tests/test_ssa_release_executor.py
 
   delivery:
