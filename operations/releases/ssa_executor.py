@@ -527,18 +527,19 @@ class Executor:
 
     def reconcile(self, contract: dict, operation: dict, bundle_path: Path, state_root: Path,
                   verify_signature: bool = True, stages: set[str] | None = None, finalize: bool = True,
-                  current_bundle_path: Path | None = None, rollback_stages: set[str] | None = None) -> dict:
+                  current_bundle_path: Path | None = None, rollback_stages: set[str] | None = None,
+                  observe_only: bool = False) -> dict:
         started = self.now()
         validate_schema(operation, "release-operation.schema.json")
         store = Store(state_root, operation["releaseId"])
         with store.lock():
             return self._reconcile_locked(contract, operation, bundle_path, store, started, verify_signature, stages,
-                                          finalize, current_bundle_path, rollback_stages or set())
+                                          finalize, current_bundle_path, rollback_stages or set(), observe_only)
 
     def _reconcile_locked(self, contract: dict, operation: dict, bundle_path: Path, store: Store,
                           started: dt.datetime, verify_signature: bool, selected_stages: set[str] | None,
                           finalize: bool, current_bundle_path: Path | None,
-                          rollback_stages: set[str]) -> dict:
+                          rollback_stages: set[str], observe_only: bool) -> dict:
         runtime_only = is_runtime_operation(contract, operation)
         if runtime_only and (finalize or not selected_stages
                 or not selected_stages <= {"runtime", "custom-resources"}
@@ -615,6 +616,24 @@ class Executor:
             stage_objects = [by_identity[identity] for identity in stage["inventory"]]
             self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force,
                        require_existing=contract["spec"]["authorization"].get("requireExisting", False))
+        if observe_only:
+            lifecycle = contract["spec"]["lifecycle"]
+            try:
+                healthy, reason = self.wait_healthy(selected_objects, 0, lifecycle.get("healthChecks"))
+            except (subprocess.TimeoutExpired, Rejected):
+                healthy, reason = False, "readiness observation unavailable; diagnostics withheld"
+            result = {
+                "apiVersion": "delivery.re8ch.com/release-result/v1alpha1",
+                "operationId": operation["operationId"], "releaseId": operation["releaseId"],
+                "requestDigest": request_digest, "approvedDigest": operation["bundle"]["digest"],
+                "observedDigest": operation["bundle"]["digest"],
+                "inventoryDigest": manifest["inventoryDigest"], "startedAt": started.isoformat(),
+                "finishedAt": self.now().isoformat(), "outcome": "healthy" if healthy else "degraded",
+                "health": {"status": "healthy" if healthy else "degraded", "reason": reason},
+            }
+            validate_schema(result, "release-operation-result.schema.json")
+            store.save_result(result)
+            return result
         attempted_inventory, applied_inventory = [], []
         command_timed_out = False
         try:
@@ -739,6 +758,8 @@ def main() -> int:
     parser.add_argument("--partial", action="store_true")
     parser.add_argument("--current-bundle", type=Path)
     parser.add_argument("--rollback-stage", action="append", default=[])
+    parser.add_argument("--observe-only", action="store_true",
+                        help="validate, server-side dry-run, and snapshot readiness without applying")
     args = parser.parse_args()
     if args.no_stage_apply and args.stage:
         parser.error("--no-stage-apply cannot be combined with --stage")
@@ -753,7 +774,7 @@ def main() -> int:
         result = Executor().reconcile(contract, operation, args.bundle, args.state_dir,
                                       stages=selected_stages, finalize=not args.partial,
                                       current_bundle_path=args.current_bundle,
-                                      rollback_stages=set(args.rollback_stage))
+                                  rollback_stages=set(args.rollback_stage), observe_only=args.observe_only)
     except Exception as error:
         # Never serialize exception argv, captured streams or rejected input values.
         result = cli_failure_result(operation, started, type(error).__name__)
