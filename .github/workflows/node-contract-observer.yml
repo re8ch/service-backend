@@ -245,28 +245,6 @@ jobs:
               raise SystemExit("Observed node count differs from the pinned restricted configuration")
           PY
 
-          git_source_status="$RUNNER_TEMP/git-source-status.json"
-          git_apply_status="$RUNNER_TEMP/git-apply-status.json"
-          kubectl --kubeconfig "$kubeconfig" get --raw \
-            /apis/source.toolkit.fluxcd.io/v1/namespaces/flux-system/gitrepositories/service-backend \
-            > "$git_source_status"
-          kubectl --kubeconfig "$kubeconfig" get --raw \
-            /apis/kustomize.toolkit.fluxcd.io/v1/namespaces/flux-system/kustomizations/service-backend \
-            > "$git_apply_status"
-          python - "$git_source_status" "$git_apply_status" <<'PY'
-          import json, os, sys
-          items = [json.load(open(name, encoding="utf-8")) for name in sys.argv[1:]]
-          lines = ["### Live root GitOps observation", ""]
-          for item in items:
-              status = item.get("status", {})
-              ready = next((c for c in status.get("conditions", []) if c.get("type") == "Ready"), {})
-              revision = status.get("artifact", {}).get("revision") or status.get("lastAppliedRevision") or "unknown"
-              lines.append(f"- `{item['kind']}/{item['metadata']['name']}`: revision `{revision}`, Ready `{ready.get('status', 'Unknown')}`, reason `{ready.get('reason', 'Unknown')}`")
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
-              stream.write("\n".join(lines) + "\n")
-          print("\n".join(lines))
-          PY
-
           expect_forbidden() {
             local label="$1"
             shift
@@ -331,7 +309,7 @@ jobs:
           import os, pathlib, shutil
           root = pathlib.Path(os.environ['RUNNER_TEMP'])
           shutil.rmtree(root / 'infrastructure-contracts', ignore_errors=True)
-          for name in ('re8ch-ca.crt', 'node-observer.kubeconfig', 'oidc.json', 'nodes.json', 'git-source-status.json', 'git-apply-status.json', 'node-contract-evidence.json', 'node-contract-evidence.fernet', 'secret-list.stdout', 'secret-list.stderr', 'pod-log.stdout', 'pod-log.stderr', 'pod-exec.stdout', 'pod-exec.stderr', 'token-request.stdout', 'token-request.stderr'):
+          for name in ('re8ch-ca.crt', 'node-observer.kubeconfig', 'oidc.json', 'nodes.json', 'node-contract-evidence.json', 'node-contract-evidence.fernet', 'secret-list.stdout', 'secret-list.stderr', 'pod-log.stdout', 'pod-log.stderr', 'pod-exec.stdout', 'pod-exec.stderr', 'token-request.stdout', 'token-request.stderr'):
               (root / name).unlink(missing_ok=True)
           PY
 
