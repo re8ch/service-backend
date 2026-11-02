@@ -596,10 +596,6 @@ class Executor:
                 raise Rejected(f"unknown bundle stages: {sorted(unknown)}")
             stages = [stage for stage in stages if stage["name"] in selected_stages]
         selected_objects = [by_identity[identity] for stage in stages for identity in stage["inventory"]]
-        if runtime_only and any(
-                item["apiVersion"].split("/")[0] in {"rbac.authorization.k8s.io", "apiextensions.k8s.io"}
-                or item["metadata"].get("namespace") != "rook-ceph" for item in selected_objects):
-            raise Rejected("Ceph runtime identity cannot apply infrastructure objects")
         if contract["spec"]["authorization"].get("requireExisting", False):
             selected_objects = self.with_existing_versions(selected_objects)
             by_identity.update({object_identity(item): item for item in selected_objects})
