@@ -245,6 +245,25 @@ jobs:
               raise SystemExit("Observed node count differs from the pinned restricted configuration")
           PY
 
+          gitops_status="$RUNNER_TEMP/gitops-status.json"
+          kubectl --kubeconfig "$kubeconfig" -n flux-system get \
+            gitrepository.source.toolkit.fluxcd.io/service-backend \
+            kustomization.kustomize.toolkit.fluxcd.io/service-backend \
+            -o json > "$gitops_status"
+          python - "$gitops_status" <<'PY'
+          import json, os, sys
+          items = json.load(open(sys.argv[1], encoding="utf-8"))["items"]
+          lines = ["### Live root GitOps observation", ""]
+          for item in items:
+              status = item.get("status", {})
+              ready = next((c for c in status.get("conditions", []) if c.get("type") == "Ready"), {})
+              revision = status.get("artifact", {}).get("revision") or status.get("lastAppliedRevision") or "unknown"
+              lines.append(f"- `{item['kind']}/{item['metadata']['name']}`: revision `{revision}`, Ready `{ready.get('status', 'Unknown')}`, reason `{ready.get('reason', 'Unknown')}`")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
+              stream.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          PY
+
           expect_forbidden() {
             local label="$1"
             shift
@@ -309,7 +328,7 @@ jobs:
           import os, pathlib, shutil
           root = pathlib.Path(os.environ['RUNNER_TEMP'])
           shutil.rmtree(root / 'infrastructure-contracts', ignore_errors=True)
-          for name in ('re8ch-ca.crt', 'node-observer.kubeconfig', 'oidc.json', 'nodes.json', 'node-contract-evidence.json', 'node-contract-evidence.fernet', 'secret-list.stdout', 'secret-list.stderr', 'pod-log.stdout', 'pod-log.stderr', 'pod-exec.stdout', 'pod-exec.stderr', 'token-request.stdout', 'token-request.stderr'):
+          for name in ('re8ch-ca.crt', 'node-observer.kubeconfig', 'oidc.json', 'nodes.json', 'gitops-status.json', 'node-contract-evidence.json', 'node-contract-evidence.fernet', 'secret-list.stdout', 'secret-list.stderr', 'pod-log.stdout', 'pod-log.stderr', 'pod-exec.stdout', 'pod-exec.stderr', 'token-request.stdout', 'token-request.stderr'):
               (root / name).unlink(missing_ok=True)
           PY
 
