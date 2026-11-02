@@ -10,9 +10,6 @@ resources:
 - retained-observable.yaml
 - ../../../components/supabase-pg-re8ch/supabase-rest-runtime.yaml
 - ../../../components/cloud-disk
-- ../../../components/rook-ceph/storage-node-labels.yaml
-- ../../../components/rook-ceph/local-storage-classes.yaml
-- ../../../components/rook-ceph/replicated-storage-whitelist-policy.yaml
 - ../../../components/ops/cloudbeaver.yaml
 configMapGenerator:
 - name: pg-re8ch-topology

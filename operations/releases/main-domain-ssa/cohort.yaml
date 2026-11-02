@@ -12,7 +12,7 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 181
+objectCount: 174
 legacyObjectCount: 56
 deferredSSAObjects: []
 remainingCapabilities:
@@ -193,12 +193,7 @@ remainingObjects:
 - domain: tenant-runtime
   identity: source.toolkit.fluxcd.io/HelmRepository/flux-system/kyverno-official
   reason: replace-flux-lifecycle-reference
-omissions:
-- domain: data-storage
-  identity: core/Node/_/b1-wsl-zt
-  field: spec.taints
-  authority: existing-runtime-node-authority
-  reason: cloud-adoption-manages-static-metadata-only
+omissions: []
 executionProfiles:
 - domain: data-storage
   repository: re8ch/service-backend
@@ -261,7 +256,7 @@ releases:
   domain: data-storage
   namespace: ops
   scope: cluster-bootstrap
-  objects: 8
+  objects: 1
 - name: main-data-storage-ops
   domain: data-storage
   namespace: ops

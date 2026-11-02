@@ -62,9 +62,6 @@ def test_all_control_planes_share_supabase_authentication():
             "claims.event_name == 'workflow_dispatch'",
             "claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime']",
             "claims.aud == 'https://kube-api.re8ch.com/' + claims.environment",
-            "claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main'",
-            "claims.environment == 'release-ceph-compiler'",
-            "claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher'",
         ):
             assert boundary in expression
     assert "claims.runner_environment == 'github-hosted'" in runner_rule['expression']
@@ -78,8 +75,6 @@ def test_all_control_planes_share_supabase_authentication():
         "claims.environment == 'release-api-conformance'",
         "claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main'",
         "claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher'",
-        "re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main",
-        "re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main",
         "claims.environment == 'release-ceph-compiler'",
         "claims.event_name == 'workflow_dispatch'",
     ):
@@ -251,22 +246,23 @@ def test_autonomous_domain_reconcilers_are_exact_github_hosted_routes():
         assert f"claims.aud == '{audience}' ? ['re8ch:release-executor:{domain}']" in github['claimMappings']['groups']['expression']
 
 
-def test_ceph_cloud_runner_exception_keeps_each_exact_claim_and_environment_audience_pair():
-    from types import SimpleNamespace
+def test_ceph_cloud_runner_exception_is_owned_by_storage_gitops():
     github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
-    for rule in github['claimValidationRules'][:2]:
-        branch = next(b for b in rule['expression'].split('|| (') if 'ceph-static-release.yml' in b)
-        expression = branch.strip().removesuffix(')').replace('&&', ' and ')
-        expression = ' '.join(expression.split())
-        values = dict(repository_visibility='public', repository_id='1367237854', repository_owner_id='283958313',
-                      repository='re8ch/service-backend', ref='refs/heads/main', runner_environment='github-hosted',
-                      workflow_ref='re8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main',
-                      event_name='workflow_dispatch', environment='release-executor-ceph-infra',
-                      aud='https://kube-api.re8ch.com/release-executor-ceph-infra')
-        def accepted(claims):
-            return eval(expression, {'__builtins__': {}}, {'claims': SimpleNamespace(**claims)})
-        assert accepted(values)
-        for key in values:
-            assert not accepted({**values, key: 'untrusted'})
-        assert accepted({**values, 'environment': 'release-executor-ceph-runtime', 'aud': 'https://kube-api.re8ch.com/release-executor-ceph-runtime'})
-        assert not accepted({**values, 'environment': 'release-executor-ceph-runtime'})
+    runner = github['claimValidationRules'][1]['expression']
+    for boundary in (
+        "claims.runner_environment == 'github-hosted'",
+        "claims.repository_visibility == 'private'",
+        "claims.repository_id == '1440886799'",
+        "claims.repository_owner_id == '334604832'",
+        "claims.repository == 'strata-silica/storage-gitops'",
+        "claims.ref == 'refs/heads/main'",
+        "claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/ceph-static-release.yml@refs/heads/main'",
+        "claims.event_name == 'workflow_dispatch'",
+        "claims.environment in ['release-executor-ceph-infra', 'release-executor-ceph-runtime']",
+        "claims.aud == 'https://kube-api.re8ch.com/' + claims.environment",
+    ):
+        assert boundary in runner
+    route = github['claimValidationRules'][-1]['expression']
+    assert "claims.repository == 'strata-silica/storage-gitops'" in route
+    assert "claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/ceph-static-release.yml@refs/heads/main'" in route
+    assert "re8ch/service-backend/.github/workflows/ceph-static-release.yml" not in route

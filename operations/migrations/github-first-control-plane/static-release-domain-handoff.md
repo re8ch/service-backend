@@ -2,14 +2,15 @@
 
 ## Current cloud operation entry (2026-10-28)
 
-Ceph operations now start directly in `ceph-static-release.yml` through GitHub
+Ceph operations now start in `strata-silica/storage-gitops` through GitHub
+`ceph-static-release.yml`
 `workflow_dispatch`; no local compatibility listener, controller or dispatcher
 is needed. All three jobs run on GitHub-hosted `ubuntu-24.04`, with exact
-public-repository/workflow/environment/audience OIDC exceptions and no R640
+private-repository/workflow/environment/audience OIDC exceptions and no R640
 runner dependency. For a normal reconcile, use:
 
 ```sh
-gh workflow run ceph-static-release.yml --repo re8ch/service-backend --ref main \
+gh workflow run ceph-static-release.yml --repo strata-silica/storage-gitops --ref main \
   -f release=rook-ceph -f action=reconcile -f reason='Reconcile reviewed accepted artifact'
 ```
 
@@ -214,7 +215,7 @@ Reference implementations:
 - [protected Harbor mirror](../../releases/protected_harbor_mirror.py)
 - [Ceph promotion](../../releases/promote_ceph.py)
 - [controller promotion](../../releases/promote_release_compat.py)
-- [Ceph execution workflow](../../../.github/workflows/ceph-static-release.yml)
+- [Ceph execution workflow](https://github.com/strata-silica/storage-gitops/blob/main/.github/workflows/ceph-static-release.yml)
 - [controller release workflow](../../../.github/workflows/release-compat-controller.yml)
 
 ## Per-domain migration procedure

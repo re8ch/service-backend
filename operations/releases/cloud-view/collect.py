@@ -16,7 +16,7 @@ import urllib.request
 
 DOMAINS = ('main', 'networking', 'identity-access', 'agent-runtime', 'observability-metering', 'delivery-products')
 WORKFLOWS = {
-    'main': ('re8ch/service-backend', ['main-domain-release.yml', 'main-domain-reconcile.yml', 'ceph-static-release.yml'], 'MAIN_OBSERVER_TOKEN'),
+    'main': ('re8ch/service-backend', ['main-domain-release.yml', 'main-domain-reconcile.yml'], 'MAIN_OBSERVER_TOKEN'),
     'networking': ('pillars-infra/network-gitops', ['static-release.yml', 'networking-reconcile.yml'], 'NETWORK_OBSERVER_TOKEN'),
     'identity-access': ('re8ch/identity-gitops', ['static-release.yml'], 'IDENTITY_OBSERVER_TOKEN'),
     'agent-runtime': ('8iops/agent-gitops', ['static-release.yml'], 'AGENT_OBSERVER_TOKEN'),

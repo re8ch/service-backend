@@ -42,7 +42,6 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
 
 def test_cloud_reconcilers_use_public_edge_https_port():
     paths = [
-        ROOT / '.github/workflows/ceph-shadow-compile.yml',
         ROOT / '.github/workflows/main-domain-reconcile.yml',
         ROOT / '.github/workflows/main-domain-release.yml',
         ROOT / '.github/workflows/node-contract-observer.yml',

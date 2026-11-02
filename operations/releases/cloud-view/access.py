@@ -10,7 +10,7 @@ APPS = {'deployments': 'Deployment', 'statefulsets': 'StatefulSet', 'daemonsets'
 
 def inventory(root=ROOT):
     ops = root / 'clusters/re8ch/components/ops'
-    paths = sorted(ops.glob('*executor-rbac.yaml')) + [root / 'clusters/re8ch/components/release-compat/ceph-executor-rbac.yaml']
+    paths = sorted(ops.glob('*executor-rbac.yaml'))
     retired = yaml.safe_load((root / 'operations/releases/static-domain-authority.yaml').read_text())['spec'].get('retiredReleases', {})
     entries = {}
     for path in paths:

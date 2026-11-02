@@ -19,18 +19,13 @@ ISSUER = "https://token.actions.githubusercontent.com"
 PUBLISHER_AUDIENCE = "https://kube-api.re8ch.com/release-artifact-publisher"
 
 SOURCE_RE = re.compile(
-    r"^ghcr\.io/re8ch/(?:release-compat-controller|"
-    r"service-backend-chart/(?:rook-ceph|ceph-csi-drivers|rook-ceph-cluster)|"
-    r"service-backend-release/(?:rook-ceph|ceph-csi-drivers|rook-ceph-cluster))$"
+    r"^ghcr\.io/re8ch/release-compat-controller$"
 )
 TARGET_RE = re.compile(
-    r"^registry\.re8ch\.com/functions-shared/(?:release-compat-controller|"
-    r"rook-ceph|ceph-csi-drivers|rook-ceph-cluster|"
-    r"ceph-release-(?:rook-ceph|ceph-csi-drivers|rook-ceph-cluster))$"
+    r"^registry\.re8ch\.com/functions-shared/release-compat-controller$"
 )
 SIGNERS = {
     "https://github.com/re8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main",
-    "https://github.com/re8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main",
 }
 
 
