@@ -9,6 +9,87 @@ metadata:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/authority-domain: agent-runtime
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+rules:
+- apiGroups: [apps]
+  resources: [deployments]
+  resourceNames: [admin-api, tenant-api, tenant-control-controller, tenant-provider-reconciler]
+  verbs: [get, patch, update, delete]
+- apiGroups: [apps]
+  resources: [daemonsets]
+  resourceNames: [tenant-runtime-image-cache]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [configmaps]
+  resourceNames: [ssa-state-agent-runtime-domain-tenant-infrastructure, tenant-platform-modules]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [persistentvolumeclaims]
+  resourceNames: [tenant-platform-state]
+  verbs: [get, patch, update]
+- apiGroups: ['']
+  resources: [services]
+  resourceNames: [admin-api, tenant-api, tenant-control-controller, tenant-infrastructure]
+  verbs: [get, patch, update, delete]
+- apiGroups: ['']
+  resources: [serviceaccounts]
+  resourceNames: [admin-api, tenant-api, tenant-control-controller, tenant-provider-reconciler]
+  verbs: [get, patch, update, delete]
+- apiGroups: [cilium.io]
+  resources: [ciliumnetworkpolicies]
+  resourceNames: [tenant-api-gateway]
+  verbs: [get, patch, update, delete]
+- apiGroups: [gateway.networking.k8s.io]
+  resources: [httproutes]
+  resourceNames:
+  - tenant-billing-auth-center
+  - tenant-billing-read
+  - tenant-credential-redemption
+  - tenant-native-mcp
+  - tenant-self-service-capabilities
+  verbs: [get, patch, update, delete]
+- apiGroups: [networking.k8s.io]
+  resources: [networkpolicies]
+  resourceNames: [admin-api, tenant-api, tenant-control-controller]
+  verbs: [get, patch, update, delete]
+- apiGroups: [policy]
+  resources: [poddisruptionbudgets]
+  resourceNames: [tenant-control-controller]
+  verbs: [get, patch, update, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: agent-runtime-domain-tenant-infrastructure
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:

@@ -142,6 +142,38 @@
   },
   {
     "domain": "agent-runtime",
+    "namespace": "tenant-infrastructure",
+    "name": "ssa-state-agent-runtime-domain-tenant-infrastructure",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-runtime-image-cache"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "admin-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-control-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-provider-reconciler"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
     "namespace": "toolhive-system",
     "name": "ssa-state-agent-runtime-domain-toolhive-system",
     "workloads": [
