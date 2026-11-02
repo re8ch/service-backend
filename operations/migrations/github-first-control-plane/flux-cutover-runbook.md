@@ -1,6 +1,7 @@
 # GitHub–Flux cutover runbook
 
-Current operation entry: dispatch `ceph-static-release.yml` on `main` with
+Current operation entry: dispatch `ceph-static-release.yml` from
+`strata-silica/storage-gitops` on `main` with
 `release` and `action` using the existing protected Environments. See
 [cloud Ceph operations](static-release-domain-handoff.md#current-cloud-operation-entry-2026-10-28).
 The dispatcher App Secret described below is historical and is not required for

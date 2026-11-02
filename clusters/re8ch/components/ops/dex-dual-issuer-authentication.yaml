@@ -50,12 +50,9 @@ jwt:
              claims.repository == 're8ch/service-backend' &&
              claims.ref == 'refs/heads/main' &&
              claims.event_name == 'workflow_dispatch' &&
-             ((claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
-               claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
-               claims.aud == 'https://kube-api.re8ch.com/' + claims.environment) ||
-              (claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' &&
-               claims.environment == 'release-ceph-compiler' &&
-               claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher')))))
+             claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+             claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
+             claims.aud == 'https://kube-api.re8ch.com/' + claims.environment))
           || (claims.repository_visibility == 'public' && (
           (claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
            claims.repository == '8iops/agent-gitops' && claims.ref == 'refs/heads/main' &&
@@ -105,32 +102,29 @@ jwt:
            claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-reconcile.yml@refs/heads/main' &&
            claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
            claims.environment in ['release-reconciler-data-storage', 'release-reconciler-commerce-billing', 'release-reconciler-operations-ui', 'release-reconciler-tenant-runtime'] &&
-           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
-          || (claims.repository_visibility == 'public' &&
-           claims.repository_id == '1367237854' &&
-           claims.repository_owner_id == '283958313' &&
-           claims.repository == 're8ch/service-backend' &&
-           claims.ref == 'refs/heads/main' &&
-           claims.runner_environment == 'github-hosted' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
-           claims.event_name == 'workflow_dispatch' &&
-           claims.environment in ['release-executor-ceph-infra', 'release-executor-ceph-runtime'] &&
-           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment))
         message: public tokens require the observer or exact protected cloud release route
       - expression: >-
           claims.runner_environment == 'self-hosted' ||
+          (claims.runner_environment == 'github-hosted' &&
+           claims.repository_visibility == 'private' &&
+           claims.repository_id == '1440886799' &&
+           claims.repository_owner_id == '334604832' &&
+           claims.repository == 'strata-silica/storage-gitops' &&
+           claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
+           claims.event_name == 'workflow_dispatch' &&
+           claims.environment in ['release-executor-ceph-infra', 'release-executor-ceph-runtime'] &&
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment) ||
           (claims.runner_environment == 'github-hosted' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
            claims.repository == 're8ch/service-backend' &&
            claims.ref == 'refs/heads/main' &&
            claims.event_name == 'workflow_dispatch' &&
-           ((claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
-             claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
-             claims.aud == 'https://kube-api.re8ch.com/' + claims.environment) ||
-            (claims.workflow_ref == 're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main' &&
-             claims.environment == 'release-ceph-compiler' &&
-             claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher')))
+           claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
+           claims.environment in ['release-executor-data-storage', 'release-executor-commerce-billing', 'release-executor-operations-ui', 'release-executor-tenant-runtime'] &&
+           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
           || (claims.runner_environment == 'github-hosted' && (
           (claims.repository_id == '1435935941' && claims.repository_owner_id == '334604670' &&
            claims.repository == '8iops/agent-gitops' && claims.ref == 'refs/heads/main' &&
@@ -181,16 +175,6 @@ jwt:
            claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
            claims.environment in ['release-reconciler-data-storage', 'release-reconciler-commerce-billing', 'release-reconciler-operations-ui', 'release-reconciler-tenant-runtime'] &&
            claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
-          || (claims.repository_visibility == 'public' &&
-           claims.repository_id == '1367237854' &&
-           claims.repository_owner_id == '283958313' &&
-           claims.repository == 're8ch/service-backend' &&
-           claims.ref == 'refs/heads/main' &&
-           claims.runner_environment == 'github-hosted' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
-           claims.event_name == 'workflow_dispatch' &&
-           claims.environment in ['release-executor-ceph-infra', 'release-executor-ceph-runtime'] &&
-           claims.aud == 'https://kube-api.re8ch.com/' + claims.environment)
           || (claims.runner_environment == 'github-hosted' &&
            claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' &&
@@ -234,23 +218,6 @@ jwt:
              claims.ref == 'refs/heads/main' &&
              claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
              claims.environment == 'release-executor-tenant-runtime' &&
-             claims.event_name == 'workflow_dispatch') ||
-            (claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-infra' &&
-             claims.ref == 'refs/heads/main' &&
-             claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
-             claims.environment == 'release-executor-ceph-infra' &&
-             claims.event_name == 'workflow_dispatch') ||
-            (claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime' &&
-             claims.ref == 'refs/heads/main' &&
-             claims.workflow_ref == 're8ch/service-backend/.github/workflows/ceph-static-release.yml@refs/heads/main' &&
-             claims.environment == 'release-executor-ceph-runtime' &&
-             claims.event_name == 'workflow_dispatch') ||
-            (claims.aud == 'https://kube-api.re8ch.com/release-artifact-publisher' &&
-             claims.ref == 'refs/heads/main' &&
-             claims.workflow_ref in [
-               're8ch/service-backend/.github/workflows/release-compat-controller.yml@refs/heads/main',
-               're8ch/service-backend/.github/workflows/ceph-shadow-compile.yml@refs/heads/main'] &&
-             claims.environment == 'release-ceph-compiler' &&
              claims.event_name == 'workflow_dispatch'))) ||
           (claims.repository_id == '1440886799' &&
            claims.repository_owner_id == '334604832' &&

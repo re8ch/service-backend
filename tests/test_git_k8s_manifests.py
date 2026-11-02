@@ -78,10 +78,10 @@ def test_live_nodes_receive_optional_mihomos_placement():
 
     node_documents = documents(
         ROOT / "clusters/re8ch/components/egress-fabric/live-node-egress-labels.yaml"
-    ) + documents(ROOT / "clusters/re8ch/components/rook-ceph/storage-node-labels.yaml")
+    )
     live_nodes = {
-        "a1-wsl-zt", "amdwsl-zt", "b1-wsl-zt", "domain-ex", "muaya-ecs",
-        "muaya-lightweight", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk", "r640",
+        "amdwsl-zt", "domain-ex", "muaya-ecs",
+        "muaya-lightweight", "overseas-kl", "overseas-la", "overseas-la-2", "overseas-flk",
         "suxunji", "vm-20-12-ubuntu", "zan",
     }
     by_name = {item["metadata"]["name"]: item for item in node_documents}
@@ -800,7 +800,7 @@ def test_public_edge_public_release_requires_fabric_and_node_evidence():
 def test_public_edge_owns_capacity_inventory_without_creating_nodes():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/regional-routing/public-edge-node-metadata.yaml" not in root["resources"]
-    assert "../../../components/rook-ceph/storage-node-labels.yaml" in domain_resources("data-storage")
+    assert "../../../components/rook-ceph/storage-node-labels.yaml" not in domain_resources("data-storage")
     assert not (ROOT / "clusters/re8ch/components/regional-routing/public-edge-node-metadata.yaml").exists()
     regional = yaml.safe_load((ROOT / "clusters/re8ch/components/regional-routing/kustomization.yaml").read_text())
     assert "public-edge-node-metadata.yaml" not in regional["resources"]

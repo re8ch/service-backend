@@ -101,24 +101,7 @@ func (d *dispatcher) github(ctx context.Context, method, path, token string, bod
 }
 
 func (d *dispatcher) dispatch(ctx context.Context, operation string) error {
-	jwt, err := d.appJWT()
-	if err != nil {
-		return err
-	}
-	data, err := d.github(ctx, "POST", "/app/installations/"+d.installationID+"/access_tokens", jwt,
-		map[string]any{"repositories": []string{"service-backend"}, "permissions": map[string]string{"actions": "write", "metadata": "read"}})
-	if err != nil {
-		return err
-	}
-	var token struct {
-		Token string `json:"token"`
-	}
-	if json.Unmarshal(data, &token) != nil || token.Token == "" {
-		return errors.New("invalid installation token")
-	}
-	_, err = d.github(ctx, "POST", "/repos/re8ch/service-backend/actions/workflows/ceph-static-release.yml/dispatches", token.Token,
-		map[string]any{"ref": "main", "inputs": map[string]string{"operation_id": operation}})
-	return err
+	return errors.New("local Ceph dispatcher is retired; dispatch the protected strata-silica/storage-gitops workflow")
 }
 
 func (d *dispatcher) run(ctx context.Context) error {
