@@ -376,54 +376,11 @@ metadata:
     delivery.re8ch.com/rbac-profile: data-storage
 rules:
 - apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - validatingadmissionpolicies
-  resourceNames:
-  - replicated-storage-whitelist.re8ch.com
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - admissionregistration.k8s.io
-  resources:
-  - validatingadmissionpolicybindings
-  resourceNames:
-  - replicated-storage-whitelist.re8ch.com
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - ''
   resources:
   - namespaces
   resourceNames:
   - cloud-disk
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - ''
-  resources:
-  - nodes
-  resourceNames:
-  - a1-wsl-zt
-  - b1-wsl-zt
-  - r640
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - storage.k8s.io
-  resources:
-  - storageclasses
-  resourceNames:
-  - local-a1
-  - local-b1
   verbs:
   - get
   - patch
