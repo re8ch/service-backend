@@ -39,6 +39,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "nodes.reachability": {"name": {"type": "string"}},
     "node.ssh.exec": {"name": {"type": "string"}, "argv": {"type": "array", "items": {"type": "string"}}, "timeout": {"type": "integer", "minimum": 1, "maximum": 3600}},
     "kubectl.exec": {"argv": {"type": "array", "items": {"type": "string"}}, "stdin": {"type": "string"}, "timeout": {"type": "integer", "minimum": 1, "maximum": 3600}},
+    "reconcile_control_plane_authentication_config": {"commitSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     **{f"kube.{resource}": {"namespace": {"type": "string"}, "name": {"type": "string"}, "labels": {"type": "string"}, "fields": {"type": "string"}} for resource in ("nodes", "namespaces", "pods", "deployments", "services", "endpoints", "secrets")},
     **{f"kube.resource.{verb}": {"resource": {"type": "string"}, "namespace": {"type": "string"}, "name": {"type": "string"}, "manifest": {"type": "object"}, "resourceVersion": {"type": "string"}} for verb in ("get", "list", "watch", "apply", "patch", "delete")},
     "kube.events.query": {"namespace": {"type": "string"}, "involvedObject": {"type": "string"}, "reason": {"type": "string"}, "type": {"type": "string"}},
@@ -67,7 +68,7 @@ GENERATED_PLUGIN_TOOLS = {
 }
 PRIVILEGED_TOOLS = {*STALWART_ADMIN_BY_NAME, *MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
-WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
+WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "reconcile_control_plane_authentication_config", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
 
 REQUIRED = {
@@ -75,7 +76,7 @@ REQUIRED = {
     "plugin.operation.read": ["groupVersion", "operationId", "schemaHash"],
     "plugin.operation.http-check": ["groupVersion", "operationId", "schemaHash"],
     "plugin.openapi.get": ["groupVersion"],
-    "nodes.get": ["name"], "nodes.reachability": ["name"], "node.ssh.exec": ["name", "argv"], "kubectl.exec": ["argv"],
+    "nodes.get": ["name"], "nodes.reachability": ["name"], "node.ssh.exec": ["name", "argv"], "kubectl.exec": ["argv"], "reconcile_control_plane_authentication_config": ["commitSha"],
     **{f"kube.resource.{verb}": ["resource"] for verb in ("get", "list", "watch", "apply", "patch", "delete")},
 }
 
@@ -198,6 +199,10 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
         return service.node_ssh_exec(args["name"], args["argv"], args.get("timeout", 30))
     if name == "kubectl.exec":
         return service.kubectl_exec(args["argv"], stdin=args.get("stdin"), timeout=args.get("timeout", 30))
+    if name == "reconcile_control_plane_authentication_config":
+        if set(args) - {"commitSha", "apply", "planHash"} or not isinstance(args.get("apply", False), bool):
+            raise OperationError("INVALID_ARGUMENT", "only commitSha, boolean apply and planHash are accepted")
+        return service.reconcile_control_plane_authentication_config(args["commitSha"], apply=args.get("apply", False), plan_hash=args.get("planHash", ""))
     if name.startswith("workspace."):
         command = name.removeprefix("workspace.")
         argv = ["python", "/app/workspace.py", "--root", str(WORKSPACE_ROOT), command]

@@ -6,11 +6,15 @@ references to server-side executors and returns an operation/audit envelope.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import re
 import secrets
 import shlex
 import subprocess
 import time
+import urllib.request
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +24,9 @@ import yaml
 
 SECRET_KEYS = {"data", "stringData", "token", "password", "privateKey", "clientSecret"}
 READ_ONLY_KUBE_VERBS = {"get", "list", "watch", "logs", "events", "auth-can-i"}
+AUTH_CONFIG_PATH = "clusters/re8ch/components/ops/dex-dual-issuer-authentication.yaml"
+AUTH_RECONCILER_PATH = "clusters/re8ch/components/ops/authentication-config-reconciler.yaml"
+COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 
 class OperationError(RuntimeError):
@@ -114,6 +121,96 @@ class CloudPlatform:
         if not argv:
             raise OperationError("INVALID_ARGUMENT", "argv must not be empty")
         return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", timeout=timeout, stdin=stdin)
+
+    @staticmethod
+    def _github_read(url: str, *, json_body: bool = False, limit: int = 1_048_576) -> Any:
+        request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "RE8CH-Control-Plane-Reconciler/1.0"})
+        try:
+            with urllib.request.urlopen(request, timeout=15) as response:
+                payload = response.read(limit + 1)
+        except Exception as exc:
+            raise OperationError("GIT_AUTHORITY_UNAVAILABLE", "cannot read the reviewed Git authority", retryable=True) from exc
+        if len(payload) > limit:
+            raise OperationError("GIT_AUTHORITY_INVALID", "reviewed Git payload exceeds the fixed limit")
+        try:
+            return json.loads(payload) if json_body else payload.decode("utf-8")
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise OperationError("GIT_AUTHORITY_INVALID", "reviewed Git payload is invalid") from exc
+
+    def reconcile_control_plane_authentication_config(self, commit_sha: str, *, apply: bool = False, plan_hash: str = "") -> dict[str, Any]:
+        """Apply only the reviewed authentication ConfigMap and reconciler DaemonSet.
+
+        The GitHub main head is the authority. Offline nodes are deliberately not a
+        failure: the DaemonSet converges their host file when they return.
+        """
+        if not COMMIT_SHA.fullmatch(commit_sha or ""):
+            raise OperationError("INVALID_ARGUMENT", "commitSha must be a full lowercase Git commit SHA")
+        api = os.getenv("SERVICE_BACKEND_GITHUB_API", "https://api.github.com/repos/re8ch/service-backend").rstrip("/")
+        raw = os.getenv("SERVICE_BACKEND_RAW_BASE", "https://raw.githubusercontent.com/re8ch/service-backend").rstrip("/")
+        head = self._github_read(f"{api}/commits/main", json_body=True, limit=262_144)
+        verification = ((head.get("commit") or {}).get("verification") or {}) if isinstance(head, dict) else {}
+        if not isinstance(head, dict) or head.get("sha") != commit_sha or verification.get("verified") is not True:
+            raise OperationError("UNREVIEWED_REVISION", "commitSha must equal the verified service-backend main head")
+        auth_config = self._github_read(f"{raw}/{commit_sha}/{AUTH_CONFIG_PATH}")
+        reconciler_text = self._github_read(f"{raw}/{commit_sha}/{AUTH_RECONCILER_PATH}")
+        try:
+            reconciler = yaml.safe_load(reconciler_text)
+        except yaml.YAMLError as exc:
+            raise OperationError("GIT_AUTHORITY_INVALID", "authentication reconciler YAML is invalid") from exc
+        metadata = reconciler.get("metadata", {}) if isinstance(reconciler, dict) else {}
+        labels = metadata.get("labels", {}) if isinstance(metadata, dict) else {}
+        if (
+            not isinstance(reconciler, dict)
+            or reconciler.get("apiVersion") != "apps/v1"
+            or reconciler.get("kind") != "DaemonSet"
+            or metadata.get("name") != "re8ch-authentication-config-reconciler"
+            or metadata.get("namespace") != "kube-system"
+            or labels.get("app.kubernetes.io/name") != "re8ch-authentication-config-reconciler"
+            or labels.get("app.kubernetes.io/component") != "control-plane"
+        ):
+            raise OperationError("GIT_AUTHORITY_INVALID", "authentication reconciler identity differs from the reviewed contract")
+        digests = {
+            "authenticationConfig": hashlib.sha256(auth_config.encode()).hexdigest(),
+            "reconciler": hashlib.sha256(reconciler_text.encode()).hexdigest(),
+        }
+        expected_plan = hashlib.sha256(json.dumps({"commitSha": commit_sha, "digests": digests}, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        if apply and plan_hash != expected_plan:
+            raise OperationError("PLAN_HASH_MISMATCH", "apply requires the exact current planHash")
+        configmap = {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "metadata": {
+                "name": "re8ch-kube-apiserver-authentication-config",
+                "namespace": "kube-system",
+                "annotations": {"gitops.re8ch.com/revision": commit_sha},
+            },
+            "data": {"dex-dual-issuer-authentication.yaml": auth_config},
+        }
+        manifest = yaml.safe_dump_all([configmap, reconciler], sort_keys=False)
+        argv = ["apply", "--server-side", "--field-manager=re8ch-auth-config-self-service", "-f", "-", "-o", "name"]
+        if not apply:
+            argv.insert(1, "--dry-run=server")
+        operation = self._kubectl(argv, stdin=manifest)
+        if operation["exitCode"]:
+            raise OperationError("AUTH_CONFIG_RECONCILE_FAILED", "server-side authentication reconciliation failed", retryable=True)
+        result: dict[str, Any] = {
+            "commitSha": commit_sha,
+            "planHash": expected_plan,
+            "digests": digests,
+            "applied": apply,
+            "restartRequested": False,
+            "offlineNodesTolerated": True,
+            "operationId": operation["operationId"],
+            "auditRef": operation["auditRef"],
+        }
+        if apply:
+            status_operation = self._kubectl(["get", "daemonset", "re8ch-authentication-config-reconciler", "-n", "kube-system", "-o", "json"])
+            live_operation = self._kubectl(["get", "--raw=/livez"])
+            daemonset = self._json_stdout(status_operation) if status_operation["exitCode"] == 0 else None
+            status = (daemonset or {}).get("status", {}) if isinstance(daemonset, dict) else {}
+            result["daemonSet"] = {key: status.get(key, 0) for key in ("desiredNumberScheduled", "currentNumberScheduled", "numberReady", "numberAvailable", "numberUnavailable")}
+            result["apiLive"] = live_operation["exitCode"] == 0 and live_operation["stdout"].strip() == "ok"
+        return result
 
     def kube_simple(self, resource: str, *, namespace: str | None = None, name: str | None = None,
                     labels: str | None = None, fields: str | None = None) -> dict[str, Any]:

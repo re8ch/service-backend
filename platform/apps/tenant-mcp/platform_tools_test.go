@@ -105,10 +105,21 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	mcp.AddTool(backend, &mcp.Tool{Name: "tenant_list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 		return nil, map[string]any{"tenants": []string{"re8ch"}}, nil
 	})
+	var authenticationInput controlPlaneAuthenticationInput
+	mcp.AddTool(backend, &mcp.Tool{Name: "reconcile_control_plane_authentication_config"}, func(_ context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
+		authenticationInput = input
+		return nil, map[string]any{"applied": input.Apply, "commitSha": input.CommitSHA, "planHash": input.PlanHash}, nil
+	})
 	upstream := httptest.NewServer(mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return backend }, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true}))
 	defer upstream.Close()
 	t.Setenv("SERVICE_API_TOKEN", "fixture-service-token")
 	t.Setenv("PLATFORM_TENANT_ADMIN_MCP_URL", upstream.URL)
+	originalNative := platformBackends["native"]
+	platformBackends["native"] = platformBackend{
+		URL: upstream.URL, Namespace: "tenant-infrastructure", Secret: "admin-vmcp-backend-auth", SecretKey: "token", Header: "Authorization",
+		Allowed: map[string]bool{"reconcile_control_plane_authentication_config": true},
+	}
+	defer func() { platformBackends["native"] = originalNative }()
 	call := func(subject, session, method string, params any) map[string]any {
 		claims, _ := json.Marshal(map[string]any{"iss": supabaseIssuer, "aud": "authenticated", "sub": subject, "session_id": session, "exp": time.Now().Add(time.Hour).Unix()})
 		token := "eyJhbGciOiJub25lIn0." + base64.RawURLEncoding.EncodeToString(claims) + ".signature"
@@ -128,16 +139,17 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		}
 		return result
 	}
-	contains := func(result map[string]any) bool {
+	contains := func(result map[string]any, name string) bool {
 		tools := result["result"].(map[string]any)["tools"].([]any)
 		for _, item := range tools {
-			if item.(map[string]any)["name"] == "platform_tool_call" {
+			if item.(map[string]any)["name"] == name {
 				return true
 			}
 		}
 		return false
 	}
-	if !contains(call("admin-user", "session-1", "tools/list", map[string]any{})) {
+	adminTools := call("admin-user", "session-1", "tools/list", map[string]any{})
+	if !contains(adminTools, "platform_tool_call") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("admin tool absent")
 	}
 	if rpcCalls != 1 {
@@ -155,10 +167,18 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if privileged["error"] != nil || privileged["result"].(map[string]any)["isError"] == true {
 		t.Fatalf("admin call without AAL2 failed: %#v", privileged)
 	}
+	direct := call("admin-user", "session-1", "tools/call", map[string]any{"name": "reconcile_control_plane_authentication_config", "arguments": map[string]any{"commitSha": strings.Repeat("a", 40), "apply": true, "planHash": strings.Repeat("b", 64)}})
+	if direct["error"] != nil || direct["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("direct authentication reconcile failed: %#v", direct)
+	}
+	if authenticationInput.CommitSHA != strings.Repeat("a", 40) || !authenticationInput.Apply || authenticationInput.PlanHash != strings.Repeat("b", 64) {
+		t.Fatalf("direct authentication arguments changed: %#v", authenticationInput)
+	}
 	if rpcCalls != 1 {
 		t.Fatalf("same-session call repeated membership lookup: %d", rpcCalls)
 	}
-	if !contains(call("ordinary-user", "session-2", "tools/list", map[string]any{})) {
+	ordinaryTools := call("ordinary-user", "session-2", "tools/list", map[string]any{})
+	if !contains(ordinaryTools, "platform_tool_call") || !contains(ordinaryTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("platform entry point missing from stable tool list")
 	}
 	assertPlatformStatus("ordinary-user", "session-2", false)
@@ -170,14 +190,18 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if deniedCatalog["error"] == nil && deniedCatalog["result"].(map[string]any)["isError"] != true {
 		t.Fatal("ordinary user read platform catalog")
 	}
+	deniedDirect := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "reconcile_control_plane_authentication_config", "arguments": map[string]any{"commitSha": strings.Repeat("a", 40)}})
+	if deniedDirect["error"] == nil && deniedDirect["result"].(map[string]any)["isError"] != true {
+		t.Fatal("ordinary user called direct authentication reconciler")
+	}
 	if rpcCalls != 2 {
 		t.Fatalf("ordinary session repeated membership lookup: %d", rpcCalls)
 	}
 	active = false
-	if !contains(call("admin-user", "session-1", "tools/list", map[string]any{})) || rpcCalls != 2 {
+	if !contains(call("admin-user", "session-1", "tools/list", map[string]any{}), "reconcile_control_plane_authentication_config") || rpcCalls != 2 {
 		t.Fatal("existing login session lost its cached admin decision")
 	}
-	if !contains(call("admin-user", "session-3", "tools/list", map[string]any{})) || rpcCalls != 3 {
+	if !contains(call("admin-user", "session-3", "tools/list", map[string]any{}), "reconcile_control_plane_authentication_config") || rpcCalls != 3 {
 		t.Fatal("new login session lost stable platform entry points")
 	}
 	assertPlatformStatus("admin-user", "session-3", false)

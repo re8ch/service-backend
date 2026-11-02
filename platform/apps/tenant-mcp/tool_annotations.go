@@ -40,6 +40,9 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_tool_call", "harbor_build_start", "runtime_image_build":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
+	case "reconcile_control_plane_authentication_config":
+		// Replaces two fixed control-plane resources from a verified Git revision.
+		destructive = true
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
 		"harbor_tag_delete", "harbor_build_cancel", "runtime_image_manage", "grafana_exploration_save", "grafana_exploration_delete",

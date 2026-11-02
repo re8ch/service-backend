@@ -85,6 +85,7 @@
         "nodes.reachability": true,
         "node.ssh.exec": true,
         "kubectl.exec": true,
+        "reconcile_control_plane_authentication_config": true,
         "kube.nodes": true,
         "kube.namespaces": true,
         "kube.pods": true,
