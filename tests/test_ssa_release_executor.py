@@ -180,6 +180,32 @@ def test_reconcile_dry_runs_applies_persists_and_is_idempotent(tmp_path):
     assert len(runner.calls) == count
 
 
+def test_observe_only_dry_runs_and_snapshots_without_apply_or_acceptance(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    runner = Runner(live={"metadata": {"generation": 2}, "spec": {"replicas": 1},
+                          "status": {"observedGeneration": 2, "availableReplicas": 0}})
+    root = tmp_path / "state"
+    result = executor.Executor(runner=runner, now=lambda: NOW, sleeper=lambda _: None).reconcile(
+        value, operation, bundle_path, root, verify_signature=False, observe_only=True)
+    apply_calls = [call for call in runner.calls if call[0][:2] == ["kubectl", "apply"]]
+    assert result["outcome"] == "degraded" and result["health"]["status"] == "degraded"
+    assert apply_calls and all("--dry-run=server" in call[0] for call in apply_calls)
+    assert not (root / "state/demo.json").exists()
+
+
+def test_observe_only_health_read_failure_is_degraded_without_sensitive_diagnostics(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    base = Runner()
+    def runner(argv, **kwargs):
+        if argv[:2] == ["kubectl", "get"]:
+            raise subprocess.TimeoutExpired(["kubectl", "--token=fixture-secret"], 30)
+        return base(argv, **kwargs)
+    result = executor.Executor(runner=runner, now=lambda: NOW).reconcile(
+        value, operation, bundle_path, tmp_path / "state", verify_signature=False, observe_only=True)
+    assert result["outcome"] == "degraded" and result["health"]["status"] == "degraded"
+    assert "fixture-secret" not in json.dumps(result)
+
+
 @pytest.mark.parametrize("fault", [None, "payload", "inventory", "empty-stages"])
 def test_signed_legacy_bundle_replays_without_repacking_or_skipping_validation(tmp_path, fault):
     from jsonschema import ValidationError

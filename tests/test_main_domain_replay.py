@@ -36,6 +36,7 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
     assert 'accepted release is $decision' in raw
     assert 'No accepted artifact' in raw
     assert 'state-patch' in raw and 'cosign verify' in raw
+    assert '--observe-only' in raw
     assert '--force-conflicts' not in raw
 
 
