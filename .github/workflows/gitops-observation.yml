@@ -40,3 +40,45 @@ jobs:
           BOARD: ${{ matrix.project }}
           WORKFLOW: ${{ matrix.workflow }}
         run: bash operations/github-maintenance/record-observation.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: observation-summary-${{ matrix.repo }}
+          path: ${{ runner.temp }}/observation-summary.txt
+          retention-days: 7
+          overwrite: true
+          if-no-files-found: error
+  summarize:
+    needs: record
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions: {actions: read}
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: service-backend
+          permission-organization-projects: write
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          PROJECT_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rows"
+          if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[].name' | grep '^observation-summary-' >/dev/null; then
+            gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -p 'observation-summary-*' -D "$RUNNER_TEMP/rows"
+          fi
+          count=$(find "$RUNNER_TEMP/rows" -name observation-summary.txt | wc -l)
+          body=$(printf 'Domain records: %d/6\n\n' "$count"; find "$RUNNER_TEMP/rows" -name observation-summary.txt -exec cat {} \; | sort)
+          export GH_TOKEN="$PROJECT_TOKEN"
+          title="GitOps inspection summary · $GITHUB_RUN_ID"
+          items=$(gh project item-list 1 --owner re8ch --format json --limit 1000)
+          draft=$(jq -r --arg t "$title" '.items[] | select(.title==$t) | .content.id' <<< "$items")
+          if [[ -n "$draft" ]]; then
+            gh project item-edit --id "$draft" --title "$title" --body "$body"
+          else
+            gh project item-create 1 --owner re8ch --title "$title" --body "$body"
+          fi
+          test "$count" -eq 6
