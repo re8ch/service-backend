@@ -343,7 +343,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           NODE_EVIDENCE_KEY: ${{ secrets.NODE_OBSERVATION_EVIDENCE_KEY }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          GITOPS_MAINTENANCE_PROJECT: "1"
+          GITOPS_MAINTENANCE_PROJECT: "4"
         run: python operations/github-maintenance/node_contract_governance.py node-contract-evidence.fernet
 
   flux:

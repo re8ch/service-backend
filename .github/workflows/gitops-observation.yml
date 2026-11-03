@@ -1,0 +1,42 @@
+name: GitOps observation evidence
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 0 * * *'
+permissions: {}
+concurrency:
+  group: gitops-observation-evidence
+  cancel-in-progress: false
+jobs:
+  record:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions: {contents: read}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {owner: re8ch, repo: service-backend, project: 4, workflow: main-domain-reconcile.yml}
+          - {owner: strata-silica, repo: storage-gitops, project: 1, workflow: storage-static-release.yml}
+          - {owner: pillars-infra, repo: network-gitops, project: 1, workflow: networking-reconcile.yml}
+          - {owner: 8iops, repo: agent-gitops, project: 2, workflow: agent-runtime-reconcile.yml}
+          - {owner: siren-observer, repo: observability-gitops, project: 1, workflow: observability-metering-reconcile.yml}
+          - {owner: re8ch, repo: identity-gitops, project: 5, workflow: identity-access-reconcile.yml}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          owner: ${{ matrix.owner }}
+          repositories: ${{ matrix.repo }}
+          permission-actions: read
+          permission-organization-projects: write
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          OWNER: ${{ matrix.owner }}
+          REPO: ${{ matrix.repo }}
+          BOARD: ${{ matrix.project }}
+          WORKFLOW: ${{ matrix.workflow }}
+        run: bash operations/github-maintenance/record-observation.sh
