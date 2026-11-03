@@ -14,7 +14,10 @@ if run=$(gh api "repos/$source_repo/actions/workflows/$WORKFLOW/runs?branch=main
     logs=$(jq -r .html_url <<<"$run")
     revision=$(jq -r .head_sha <<<"$run")
     signal="Latest completed Action: $(jq -r .conclusion <<<"$run") at $(jq -r .updated_at <<<"$run")"
-    if [[ $(jq -r .conclusion <<<"$run") == failure ]]; then state=Failed; fi
+    case $(jq -r .conclusion <<<"$run") in
+      success) state=Healthy ;;
+      failure|timed_out|action_required|startup_failure) state=Failed ;;
+    esac
   fi
 else
   signal="Actions evidence read failed"
@@ -22,9 +25,43 @@ fi
 body="$signal. Evidence: $logs. Inspection: $audit."
 project=$(gh project view "$BOARD" --owner "$OWNER" --format json --jq .id)
 items=$(gh project item-list "$BOARD" --owner "$OWNER" --limit 1000 --format json)
+prior=$(jq -c --arg prefix "Inspection $source_repo · " --arg title "$title" '[.items[]|select((.title|startswith($prefix)) and .title!=$title)]|max_by(.title|split(" · ")[-1]|tonumber)' <<<"$items")
+previous=$(jq -r '."workflow Run ID" // ""' <<<"$prior")
+prior_state=$(jq -r '."observation State" // "Unknown"' <<<"$prior")
+attempt=$(jq -r '.run_attempt // 1' <<<"${run:-null}")
+fresh="new source run"
+if [[ "$source_id" == "$previous" && -n "$source_id" ]]; then
+  fresh="previously observed source run"
+  if [[ $(jq -r '.content.body' <<<"$prior") != *"attempt $attempt."* && "$attempt" != 1 ]]; then fresh="new source attempt"; fi
+fi
+transition=""
+if [[ "$state" == Failed ]]; then
+  transition=新增
+  [[ "$prior_state" != Failed ]] || transition=持续
+elif [[ "$state" == Healthy && "$prior_state" == Failed ]]; then
+  transition=已恢复
+fi
+body="$body Source: $fresh, attempt $attempt."
+if [[ "$state" == Failed ]]; then
+  jobs=$(gh api --paginate --slurp "repos/$source_repo/actions/runs/$source_id/attempts/$attempt/jobs?per_page=100")
+  while IFS=$'\t' read -r job_id job step; do
+    [[ -n "$job_id" ]] || continue
+    reason="Source job reported failure; no classified diagnostic"
+    if gh api "repos/$source_repo/actions/jobs/$job_id/logs" > "$RUNNER_TEMP/job.log" 2>/dev/null; then
+      for cause in 'apiserver not ready' 'accepted bundle is outside the main-domain repository' 'restricted age identity was not provisioned' 'Apply failed with 1 conflict' 'context deadline exceeded'; do
+        if grep -F "$cause" "$RUNNER_TEMP/job.log" | grep -vE '##\[group\]|\[36;1m' >/dev/null; then reason="$cause"; break; fi
+      done
+    fi
+    rm -f "$RUNNER_TEMP/job.log"
+    body+=$'\n'"- $job | $step | $reason | $logs/job/$job_id"
+  done < <(jq -r '.[]|.jobs[]|select(.conclusion=="failure" or .conclusion=="timed_out")|[.id,.name,([.steps[]?|select(.conclusion=="failure" or .conclusion=="timed_out")|.name]|join(", ")|if .=="" then "job termination" else . end)]|@tsv' <<<"$jobs")
+fi
 item=$(jq -r --arg title "$title" '.items[]|select(.title==$title)|.id' <<<"$items")
 if [[ -z "$item" ]]; then
   item=$(gh project item-create "$BOARD" --owner "$OWNER" --title "$title" --body "$body" --format json --jq .id)
+else
+  draft=$(jq -r --arg i "$item" '.items[]|select(.id==$i)|.content.id' <<<"$items")
+  gh project item-edit --id "$draft" --title "$title" --body "$body"
 fi
 fields=$(gh project field-list "$BOARD" --owner "$OWNER" --format json)
 edit() {
@@ -46,4 +83,8 @@ if [[ -n "$revision" ]]; then edit 'Revision' --text "$revision"; fi
 select_value 'Observation State' "$state"
 select_value 'Reconcile Action' 'Observe Only'
 echo "$body" >> "$GITHUB_STEP_SUMMARY"
-printf '%s | %s | https://github.com/orgs/%s/projects/%s\n' "$source_repo" "$signal" "$OWNER" "$BOARD" > "$RUNNER_TEMP/observation-summary.txt"
+number=$(gh api graphql -f query='query($id:ID!){node(id:$id){... on ProjectV2Item{fullDatabaseId}}}' -f id="$item" --jq .data.node.fullDatabaseId)
+: > "$RUNNER_TEMP/observation-summary.txt"
+if [[ -n "$transition" ]]; then
+  printf '%s | %s | %s | [明细](https://github.com/orgs/%s/projects/%s?pane=issue&itemId=%s)\n' "$transition" "$source_repo" "$fresh" "$OWNER" "$BOARD" "$number" > "$RUNNER_TEMP/observation-summary.txt"
+fi
