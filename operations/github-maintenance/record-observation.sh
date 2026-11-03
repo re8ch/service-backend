@@ -46,3 +46,4 @@ if [[ -n "$revision" ]]; then edit 'Revision' --text "$revision"; fi
 select_value 'Observation State' "$state"
 select_value 'Reconcile Action' 'Observe Only'
 echo "$body" >> "$GITHUB_STEP_SUMMARY"
+printf '%s | %s | https://github.com/orgs/%s/projects/%s\n' "$source_repo" "$signal" "$OWNER" "$BOARD" > "$RUNNER_TEMP/observation-summary.txt"
