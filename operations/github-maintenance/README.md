@@ -24,3 +24,26 @@ The `gitops-merge` Environment is restricted to `main`. Its job uses the
 repository's Maintenance App ID and private-key secret to request a short-lived
 installation token with only `contents:write` and `pull_requests:write`. The
 default workflow token remains read-only.
+
+## Repository-specific GitOps observation Projects
+
+`gitops-observation-projects.json` declares one organization-level Project for
+each GitOps repository. Each Project is linked to its repository so it appears
+on that repository's Projects page. These Projects hold bounded observation
+results, reconcile actions, revisions, workflow run IDs and links to redacted
+logs. Raw telemetry and credentials remain outside GitHub.
+
+`RE8CH GitOps Maintenance` remains the cross-repository summary and escalation
+view. Repository-specific observations must not be added to that summary
+Project.
+
+Preview and apply the reviewed declaration with:
+
+```console
+python operations/github-maintenance/reconcile_observation_projects.py
+python operations/github-maintenance/reconcile_observation_projects.py --apply
+```
+
+The apply command uses GitHub's ProjectV2 GraphQL API, is idempotent for existing
+projects and fields, and reads back Projects and fields before creating missing
+state.
