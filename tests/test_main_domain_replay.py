@@ -25,7 +25,8 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
     workflow = yaml.safe_load(raw)
     triggers = workflow.get('on', workflow.get(True))
     assert triggers['workflow_dispatch'] is None
-    assert set(triggers) == {'workflow_dispatch'}
+    assert set(triggers) == {'workflow_dispatch', 'schedule'}
+    assert triggers['schedule'] == [{'cron': '17 1 * * *'}]
     job = workflow['jobs']['reconcile']
     assert job['permissions'] == {'contents': 'read', 'id-token': 'write', 'packages': 'read'}
     assert job['environment'] == '${{ matrix.environment }}'
