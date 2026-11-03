@@ -295,7 +295,10 @@ spec:
               healthCheckInterval: 30s
               healthCheckTimeout: 10s
               unhealthyThreshold: 3
-              circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}
+              # This backend exchanges the authenticated caller's token. ToolHive's
+              # background health probe has no caller token and can legitimately get
+              # invalid_token; it must not open a breaker that blocks valid user calls.
+              circuitBreaker: {enabled: false, failureThreshold: 5, timeout: 1m}
           authorization:
             groupClaim: groups
             policies:

@@ -100,6 +100,11 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
     assert by_name["tenant-vmcp"]["operational"]["listChanged"] == {
         "disabledWorkloads": ["tenant-api-backend"],
     }
+    assert by_name["tenant-vmcp"]["operational"]["failureHandling"]["circuitBreaker"]["enabled"] is False
+    assert all(
+        by_name[name]["operational"]["failureHandling"]["circuitBreaker"]["enabled"] is True
+        for name in ("re8ch-tools-vmcp", "re8ch-operate-vmcp", "re8ch-admin-vmcp")
+    )
     assert "listChanged" not in by_name["re8ch-tools-vmcp"]["operational"]
     assert "listChanged" not in by_name["re8ch-admin-vmcp"]["operational"]
     assert all(

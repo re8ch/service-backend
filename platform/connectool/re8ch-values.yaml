@@ -148,7 +148,9 @@ toolhive:
         default: {type: externalAuthConfigRef, externalAuthConfigRef: {name: tenant-vmcp-backend-auth}}
       operational:
         listChanged: {disabledWorkloads: [tenant-api-backend]}
-        failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: true, failureThreshold: 5, timeout: 1m}}
+        # tenant-api exchanges the authenticated caller's token. An unauthenticated
+        # background probe must not trip a breaker that blocks valid user calls.
+        failureHandling: {partialFailureMode: best_effort, healthCheckInterval: 30s, healthCheckTimeout: 10s, unhealthyThreshold: 3, circuitBreaker: {enabled: false, failureThreshold: 5, timeout: 1m}}
       authorization:
         groupClaim: groups
         policies:
