@@ -175,6 +175,17 @@ func TestMCPIdentityAndDynamicSkill(t *testing.T) {
 	}
 	if status, body := call("backend-secret", "", "tools/list", map[string]any{}); status != 200 || body["result"] == nil {
 		t.Fatalf("ToolHive service discovery failed: %d %v", status, body)
+	} else {
+		found := map[string]bool{}
+		for _, item := range body["result"].(map[string]any)["tools"].([]any) {
+			found[item.(map[string]any)["name"].(string)] = true
+		}
+		if !found["platform_tool_catalog"] || !found["platform_tool_call"] {
+			t.Fatalf("ToolHive service discovery omitted platform entry points: %v", found)
+		}
+	}
+	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "platform_tool_catalog", "arguments": map[string]any{}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
+		t.Fatalf("ToolHive service credential called platform catalog: %d %v", status, body)
 	}
 	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "tenant_access_status", "arguments": map[string]any{}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
 		t.Fatalf("ToolHive service credential called user status: %d %v", status, body)
@@ -560,13 +571,13 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"tenant_access_status", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit"} {
+	for _, name := range []string{"tenant_access_status", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_tool_catalog", "platform_tool_call", "reconcile_control_plane_authentication_config"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy)-hiddenAliases+4 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+4)
+	if len(names) != len(legacy)-hiddenAliases+7 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+7)
 	}
 }
 

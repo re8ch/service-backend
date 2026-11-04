@@ -113,12 +113,10 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	if !id.Service && id.Tenant == artcTenant() {
 		s.registerArtcTools(ms)
 	}
-	// Publish stable platform entry points to authenticated users so MCP clients
-	// that cache tools/list do not lose them when a membership decision changes.
-	// Every call still checks live session authorization and the backend allowlist.
-	if !id.Service {
-		s.registerPlatformTools(ms)
-	}
+	// ToolHive discovers tools with its service credential. Publish these stable
+	// entry points to that discovery session too; each call still requires an
+	// authenticated platform administrator and the backend allowlist.
+	s.registerPlatformTools(ms)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
