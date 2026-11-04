@@ -1639,5 +1639,67 @@
       },
       "required": ["action"]
     }
+  },
+  {
+    "name": "model_gateway_catalog",
+    "description": "List models available through the current tenant virtual key and reviewed safety ceiling. Requires active ai.model-gateway.v1 grant and server-side binding; never returns keys or management configuration.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "model_gateway_chat",
+    "description": "Run one bounded, non-streaming text completion using the current tenant virtual key. Consumes native gateway quota; no automatic HTTP retry. Synthetic output is not browser execution or real user research. Requires an active ai.model-gateway.v1 grant and configured tenant binding.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "messages"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "messages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "content"
+            ],
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "system",
+                  "user",
+                  "assistant"
+                ]
+              },
+              "content": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32768
+              }
+            }
+          }
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048,
+          "default": 1200
+        }
+      }
+    }
   }
 ]

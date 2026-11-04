@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestPublicSelfServiceEndpointPublishesOnlyFourCapabilities(t *testing.T) {
+func TestPublicSelfServiceEndpointPublishesReviewedCapabilities(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, 200, map[string]string{"id": "user-1"})
@@ -49,7 +49,7 @@ func TestPublicSelfServiceEndpointPublishesOnlyFourCapabilities(t *testing.T) {
 	for _, tool := range listed.Result.Tools {
 		names[tool.Name] = true
 	}
-	for _, name := range []string{"tenant_namespace_list", "tenant_claim_plan", "runtime_image_catalog", "monitoring_query"} {
+	for _, name := range []string{"tenant_namespace_list", "tenant_claim_plan", "runtime_image_catalog", "monitoring_query", "model_gateway_catalog", "model_gateway_chat"} {
 		if !names[name] {
 			t.Errorf("missing public tool %s", name)
 		}
@@ -59,7 +59,7 @@ func TestPublicSelfServiceEndpointPublishesOnlyFourCapabilities(t *testing.T) {
 			t.Errorf("unexpected public tool %s", name)
 		}
 	}
-	if len(names) != 17 {
+	if len(names) != 19 {
 		t.Errorf("unexpected public tool count: %d", len(names))
 	}
 	if status, body = call("/self-service/mcp", "tools/call", `{"name":"byoc_cluster_register","arguments":{}}`); status != 200 || !strings.Contains(body, "unknown tool") {
