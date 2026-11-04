@@ -95,7 +95,7 @@ def test_transport_and_self_service_allowlist_register_same_tools():
     assert registry == chart
     for name in ["plugin.capabilities.list", "plugin.openapi.get"]:
         assert name in tools
-        assert registry["backends"]["native"]["allowed"][name]
+        assert registry["backends"]["native"]["url"]
     assert module.dispatch(Service(), "plugin.openapi.get", {"groupVersion": KEY}, Identity("fixture", (module.ADMIN_GROUP,)))["operations"]
 
 
@@ -274,8 +274,7 @@ def test_generated_tools_are_callable_and_match_directory_and_self_service():
     registry = json.loads((root / "operations/plugin-capabilities/registry.json").read_text())
     metadata = registry["servers"][0]["_meta"]["io.modelcontextprotocol.registry/publisher-provided"]["io.github.stacklok"]["streamable-http"]
     assert names | set(module.MIHOMOS_BY_NAME) == {tool["name"] for tool in metadata["tool_definitions"]}
-    allowed = json.loads((root / "platform/apps/tenant-mcp/platform-modules.json").read_text())["backends"]["native"]["allowed"]
-    assert all(allowed[name] for name in names)
+    assert json.loads((root / "platform/apps/tenant-mcp/platform-modules.json").read_text())["backends"]["native"]["url"]
     tool = next(item for item in generated if item["operationId"] == "listAnatomyRe8chComV1alpha1NamespacedRuntimeCommit")
     service = ResourceService()
     service.document = json.loads((root / "operations/plugin-capabilities/openapi/apis_anatomy.re8ch.com_v1alpha1.json").read_text())
@@ -340,9 +339,11 @@ def test_generator_is_byte_stable_when_a_new_mihomos_tool_is_added(tmp_path, mon
     first = {relative: (tmp_path / relative).read_bytes() for relative in outputs}
     generator.generate()
     assert first == {relative: (tmp_path / relative).read_bytes() for relative in outputs}
+    registry = json.loads(first["operations/plugin-capabilities/registry.json"])
+    metadata = registry["servers"][0]["_meta"]["io.modelcontextprotocol.registry/publisher-provided"]["io.github.stacklok"]["streamable-http"]
+    assert added["name"] in {tool["name"] for tool in metadata["tool_definitions"]}
     for relative in relatives[3:]:
-        allowed = json.loads(first[relative])["backends"]["native"]["allowed"]
-        assert allowed[added["name"]] is True
+        assert first[relative] == (root / relative).read_bytes()
 
 
 def test_anatomy_mutation_classification_tracks_controller_source_without_enabling_writes():

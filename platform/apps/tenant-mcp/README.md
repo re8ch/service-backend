@@ -118,16 +118,16 @@ membership in the hidden `admin` organization. Listing the entry points does
 not grant access to the catalog or any backend tool.
 `platform_kubectl_exec` exposes the native `kubectl.exec` operation directly
 with an `argv` array and bounded timeout, while preserving the same platform
-administrator gate, backend allowlist, and audit result. Its action definition
+administrator gate, backend authorization, and audit result. Its action definition
 is explicit so a plugin reviewer can assess it independently of the generic
 backend dispatch action. Publishing one explicit operation does not publish
 the remaining dynamic backend tools.
 It reads the Supabase membership projection once per verified login session and
 caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
-cache. The service bearer cannot use it. The call
-tool uses a fixed allowlist of published Cloud/Infra/Admin and native Cloud
-Platform tool names; backend discovery cannot silently grant a new tool.
+cache. The service bearer cannot use it. The call tool uses the operations
+currently registered by the configured backends. Each backend enforces its
+own authorization; the gateway does not duplicate its tool registry.
 Backend credentials are read by the tenant runtime's Kubernetes
 service account from three named Secrets via tightly scoped `get` RBAC and are
 never returned to the caller. The old Admin and Cloud/Infra MCP connections
@@ -135,7 +135,7 @@ remain published.
 
 The authenticated self-service plugin is the preferred administrator entry.
 An active organization session with verified platform-admin membership uses
-the platform catalog's separate allowlist and backend permissions. Empty
+the live platform catalog and backend permissions. Empty
 tenant consumables or service classes do not restrict this administrator path.
 The `admin` backend publishes `postgres_admin_sql` for reviewed Pigsty SQL:
 read-only queries execute through the fixed Supabase database identity; writes
@@ -177,8 +177,10 @@ ConfigMap changes atomically. The gateway checks the file on requests, at most
 once per second, validates the complete document, and swaps modules atomically.
 Invalid or missing updates retain the previous valid registry. The embedded
 `platform-modules.json` is the startup fallback; the chart copy must match it in CI.
-Only GitOps administrators may change module URLs, credential references, and
-explicit tool allowlists. Credentials never appear in the registry.
+Only GitOps administrators may change module URLs and credential references.
+The currently registered tools from each backend are discovered at runtime;
+the gateway does not maintain a second per-tool allowlist. Credentials never
+appear in the registry.
 
 Discovery runs concurrently with a five-second total budget per module,
 including initialization, and caches successful or failed discovery for 30
@@ -239,11 +241,11 @@ empty; this change alone does not verify a domain or publish a plugin.
 
 ### Registration completeness
 
-`platform_tool_catalog` returns `missingTools` alongside callable `tools` and
-`unavailableBackends`. Each missing entry identifies an allowlisted operation
-that a successfully discovered backend did not publish. Unavailable backends
-remain unknown, not proof of missing operations. These fields measure registry
-publication only; they do not prove native API or semantic workflow coverage.
+`platform_tool_catalog` returns each backend's currently registered tools with
+their descriptions, input schemas and annotations, plus `unavailableBackends`.
+Unavailable backends remain unknown, not proof of missing operations. The
+catalog measures backend publication only; it does not prove native API or
+semantic workflow coverage.
 
 ### Collaboration credential isolation
 

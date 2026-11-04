@@ -115,7 +115,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	}
 	// ToolHive discovers tools with its service credential. Publish these stable
 	// entry points to that discovery session too; each call still requires an
-	// authenticated platform administrator and the backend allowlist.
+	// authenticated platform administrator and the backend's own authorization.
 	s.registerPlatformTools(ms)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)

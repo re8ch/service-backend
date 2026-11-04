@@ -130,5 +130,5 @@ def test_admin_only_registration_and_dispatch():
         assert denied.value.code == "AUTHORIZATION_DENIED"
         for relative in ("platform/apps/tenant-mcp/platform-modules.json",
                          "clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json"):
-            assert json.loads((ROOT / relative).read_text())["backends"]["native"]["allowed"][tool["name"]]
+            assert json.loads((ROOT / relative).read_text())["backends"]["native"]["url"]
     assert not service.calls

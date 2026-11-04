@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -74,24 +73,15 @@ type controlPlaneAuthenticationInput struct {
 }
 
 type platformBackend struct {
-	URL       string          `json:"url"`
-	Namespace string          `json:"namespace"`
-	Secret    string          `json:"secret"`
-	SecretKey string          `json:"secretKey"`
-	Header    string          `json:"header"`
-	Allowed   map[string]bool `json:"allowed"`
-}
-
-func names(text string) map[string]bool {
-	result := map[string]bool{}
-	for _, name := range strings.Fields(text) {
-		result[name] = true
-	}
-	return result
+	URL       string `json:"url"`
+	Namespace string `json:"namespace"`
+	Secret    string `json:"secret"`
+	SecretKey string `json:"secretKey"`
+	Header    string `json:"header"`
 }
 
 // Defaults are also published as the GitOps module registry. Runtime configuration
-// is data: changing an endpoint or allowlist does not require a gateway rebuild.
+// is data: changing a backend endpoint does not require a gateway rebuild.
 //
 //go:embed platform-modules.json
 var defaultPlatformModules []byte
@@ -169,7 +159,7 @@ type platformResponseBody struct {
 
 func (b *platformResponseBody) Close() error { defer b.cancel(); return b.ReadCloser.Close() }
 
-func withPlatformBackend(ctx context.Context, name string, fn func(*mcp.ClientSession, map[string]bool) (any, error)) (any, error) {
+func withPlatformBackend(ctx context.Context, name string, fn func(*mcp.ClientSession) (any, error)) (any, error) {
 	registry := newPlatformRegistry("")
 	defer registry.close()
 	return registry.call(ctx, name, fn)
@@ -194,18 +184,11 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			const backendName = "native"
 			const toolName = "reconcile_control_plane_authentication_config"
-			backend, ok := s.moduleRegistry().backend(backendName)
-			if !ok || !backend.Allowed[toolName] {
-				return nil, nil, errors.New("control-plane authentication reconciler is not published")
-			}
 			arguments := map[string]any{"commitSha": input.CommitSHA, "apply": input.Apply}
 			if input.PlanHash != "" {
 				arguments["planHash"] = input.PlanHash
 			}
-			value, err := s.moduleRegistry().call(ctx, backendName, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
-				if !allowed[toolName] {
-					return nil, errors.New("control-plane authentication reconciler is not allowlisted")
-				}
+			value, err := s.moduleRegistry().call(ctx, backendName, func(session *mcp.ClientSession) (any, error) {
 				return session.CallTool(ctx, &mcp.CallToolParams{Name: toolName, Arguments: arguments})
 			})
 			if err != nil {
@@ -213,7 +196,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "Read metadata for allowlisted platform tools, including their descriptions and input schemas. This inventory action does not execute any listed operation."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "Read metadata for tools currently registered by the platform backends, including their descriptions and input schemas. This inventory action does not execute any listed operation."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
@@ -234,14 +217,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if input.Timeout < 1 || input.Timeout > 3600 {
 				return nil, nil, errors.New("kubectl timeout must be between 1 and 3600 seconds")
 			}
-			backend, ok := s.moduleRegistry().backend("native")
-			if !ok || !backend.Allowed["kubectl.exec"] {
-				return nil, nil, errors.New("kubectl.exec is not allowlisted")
-			}
-			value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
-				if !allowed["kubectl.exec"] {
-					return nil, errors.New("kubectl.exec is not allowlisted")
-				}
+			value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession) (any, error) {
 				return session.CallTool(ctx, &mcp.CallToolParams{Name: "kubectl.exec", Arguments: map[string]any{"argv": input.Argv, "timeout": input.Timeout}})
 			})
 			if err != nil {
@@ -249,19 +225,12 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_call"), Name: "platform_tool_call", Description: "Call one allowlisted Cloud Platform, Cluster Infra, or platform admin tool. Copy backend, name, and arguments from platform_tool_catalog."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_call"), Name: "platform_tool_call", Description: "Call one tool registered by a Cloud Platform, Cluster Infra, or platform admin backend. Copy backend, name, and arguments from platform_tool_catalog."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformToolInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
-			backend, ok := s.moduleRegistry().backend(input.Backend)
-			if !ok || !backend.Allowed[input.ToolName] {
-				return nil, nil, errors.New("platform tool is not allowlisted")
-			}
-			value, err := s.moduleRegistry().call(ctx, input.Backend, func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
-				if !allowed[input.ToolName] {
-					return nil, errors.New("platform tool is not allowlisted")
-				}
+			value, err := s.moduleRegistry().call(ctx, input.Backend, func(session *mcp.ClientSession) (any, error) {
 				return session.CallTool(ctx, &mcp.CallToolParams{Name: input.ToolName, Arguments: input.Arguments})
 			})
 			if err != nil {

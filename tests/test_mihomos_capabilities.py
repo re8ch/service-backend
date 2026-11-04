@@ -65,7 +65,7 @@ def test_mihomos_admin_registration_and_dispatch():
     assert module.dispatch(service, "mihomos.workloads.list", {}, admin)["workloads"]
     assert "mihomos.workloads.list" in {t["name"] for t in module.tool_list(admin)}
     for relative in ["platform/apps/tenant-mcp/platform-modules.json", "clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json"]:
-        assert json.loads((root / relative).read_text())["backends"]["native"]["allowed"]["mihomos.workloads.list"]
+        assert json.loads((root / relative).read_text())["backends"]["native"]["url"]
 
 
 def test_invalid_status_counter_fails_closed():
@@ -265,7 +265,7 @@ def test_additional_controller_reads_dispatch_through_admin_contract(operation, 
     # Neither upgrade headers nor an interval/query string enter this transport.
     assert "?" not in service.calls[-1][2]
     for relative in ["platform/apps/tenant-mcp/platform-modules.json", "clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json"]:
-        assert json.loads((root / relative).read_text())["backends"]["native"]["allowed"][tool["name"]]
+        assert json.loads((root / relative).read_text())["backends"]["native"]["url"]
 
 
 def test_config_projection_omits_embedded_credentials_and_arbitrary_settings():

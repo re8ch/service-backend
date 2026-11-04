@@ -50,13 +50,8 @@ func decodePlatformRegistry(data []byte) (platformRegistryDocument, error) {
 		if !moduleName.MatchString(name) || err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 			return doc, fmt.Errorf("invalid endpoint for module %q", name)
 		}
-		if b.Namespace == "" || b.Secret == "" || b.SecretKey == "" || b.Header == "" || strings.ContainsAny(b.Header, "\r\n :") || len(b.Allowed) == 0 {
+		if b.Namespace == "" || b.Secret == "" || b.SecretKey == "" || b.Header == "" || strings.ContainsAny(b.Header, "\r\n :") {
 			return doc, fmt.Errorf("incomplete module %q", name)
-		}
-		for tool, enabled := range b.Allowed {
-			if tool == "" || !enabled {
-				return doc, fmt.Errorf("invalid allowlist for module %q", name)
-			}
 		}
 	}
 	return doc, nil
@@ -262,7 +257,7 @@ func connectPlatformModule(ctx context.Context, name string, b platformBackend) 
 	connecting.Store(false)
 	return session, err
 }
-func (r *platformRegistry) call(ctx context.Context, name string, fn func(*mcp.ClientSession, map[string]bool) (any, error)) (any, error) {
+func (r *platformRegistry) call(ctx context.Context, name string, fn func(*mcp.ClientSession) (any, error)) (any, error) {
 	e := r.snapshot()[name]
 	if e == nil {
 		return nil, errors.New("unknown platform backend")
@@ -272,7 +267,7 @@ func (r *platformRegistry) call(ctx context.Context, name string, fn func(*mcp.C
 		return nil, err
 	}
 	defer e.release()
-	value, err := fn(session, e.backend.Allowed)
+	value, err := fn(session)
 	// Never replay an invocation: a failed response may follow a committed write.
 	if err != nil {
 		e.mu.Lock()
@@ -323,9 +318,7 @@ func (e *platformModule) discover(ctx context.Context, name string) (discovered 
 			return nil, err
 		}
 		for _, t := range result.Tools {
-			if e.backend.Allowed[t.Name] {
-				items = append(items, map[string]any{"backend": name, "name": t.Name, "description": t.Description, "inputSchema": t.InputSchema})
-			}
+			items = append(items, map[string]any{"backend": name, "name": t.Name, "description": t.Description, "inputSchema": t.InputSchema, "annotations": t.Annotations})
 		}
 		if result.NextCursor == "" {
 			break
@@ -364,27 +357,12 @@ func (r *platformRegistry) catalog(ctx context.Context) map[string]any {
 	wg.Wait()
 	items := []map[string]any{}
 	unavailable := []string{}
-	missing := []map[string]any{}
 	for i, name := range names {
 		if results[i].err != nil {
 			unavailable = append(unavailable, name)
 		} else {
 			items = append(items, results[i].items...)
-			published := map[string]bool{}
-			for _, tool := range results[i].items {
-				published[tool["name"].(string)] = true
-			}
-			allowed := make([]string, 0, len(entries[name].backend.Allowed))
-			for tool := range entries[name].backend.Allowed {
-				allowed = append(allowed, tool)
-			}
-			sort.Strings(allowed)
-			for _, tool := range allowed {
-				if !published[tool] {
-					missing = append(missing, map[string]any{"backend": name, "name": tool, "status": "not_published"})
-				}
-			}
 		}
 	}
-	return map[string]any{"tools": items, "unavailableBackends": unavailable, "missingTools": missing}
+	return map[string]any{"tools": items, "unavailableBackends": unavailable}
 }

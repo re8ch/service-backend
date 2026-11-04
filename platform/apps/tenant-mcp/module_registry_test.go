@@ -104,7 +104,7 @@ func TestModuleHotReloadDrainsAndKeepsLastValidConfiguration(t *testing.T) {
 	registry := newPlatformRegistry(path)
 	defer registry.close()
 	call := func() (any, error) {
-		return registry.call(context.Background(), "module", func(s *mcp.ClientSession, _ map[string]bool) (any, error) {
+		return registry.call(context.Background(), "module", func(s *mcp.ClientSession) (any, error) {
 			return s.CallTool(context.Background(), &mcp.CallToolParams{Name: "tenant_list"})
 		})
 	}
@@ -148,7 +148,7 @@ func TestModuleSessionsAreReusedAndWritesAreNotRetried(t *testing.T) {
 	defer registry.close()
 	var first *mcp.ClientSession
 	for i := 0; i < 2; i++ {
-		_, err := registry.call(context.Background(), "module", func(s *mcp.ClientSession, _ map[string]bool) (any, error) {
+		_, err := registry.call(context.Background(), "module", func(s *mcp.ClientSession) (any, error) {
 			if first == nil {
 				first = s
 			} else if s != first {
@@ -165,29 +165,20 @@ func TestModuleSessionsAreReusedAndWritesAreNotRetried(t *testing.T) {
 	}
 }
 
-func TestCatalogReportsMissingAllowedTools(t *testing.T) {
+func TestCatalogReflectsBackendRegistration(t *testing.T) {
 	t.Setenv("SERVICE_API_TOKEN", "fixture")
 	healthy, _ := registryFixture(t, func(context.Context) (any, error) { return map[string]bool{"ok": true}, nil })
 	backend := fixtureBackend(healthy.URL)
-	backend.Allowed = names("tenant_list absent_z absent_a")
 	path := filepath.Join(t.TempDir(), "modules.json")
 	writeRegistry(t, path, map[string]platformBackend{"fixture": backend})
 	registry := newPlatformRegistry(path)
 	defer registry.close()
 	result := registry.catalog(context.Background())
-	missing := result["missingTools"].([]map[string]any)
-	if len(missing) != 2 || missing[0]["name"] != "absent_a" || missing[1]["name"] != "absent_z" || missing[0]["backend"] != "fixture" || missing[0]["status"] != "not_published" {
-		t.Fatalf("missing registration evidence: %#v", result)
-	}
 	items := result["tools"].([]map[string]any)
-	if len(items) != 1 || items[0]["name"] != "tenant_list" {
-		t.Fatalf("unpublished tools advertised as callable: %#v", result)
+	if len(items) != 1 || items[0]["name"] != "tenant_list" || items[0]["backend"] != "fixture" {
+		t.Fatalf("backend registration was not reflected: %#v", result)
 	}
-	backend.Allowed = names("tenant_list")
-	writeRegistry(t, path, map[string]platformBackend{"fixture": backend})
-	reloadRegistry(registry)
-	result = registry.catalog(context.Background())
-	if len(result["missingTools"].([]map[string]any)) != 0 {
-		t.Fatalf("stale missing tools after registry reload: %#v", result)
+	if _, ok := result["missingTools"]; ok {
+		t.Fatalf("catalog retained static tool filtering: %#v", result)
 	}
 }
