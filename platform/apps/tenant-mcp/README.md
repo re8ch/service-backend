@@ -104,6 +104,13 @@ version revokes the previous version of the same name and tenant.
 
 ## Build and rollout
 
+`tenant_credits_wallets_list` reads the signed-in user's authorized personal
+and organization Credits balances through the existing Identity Credits Ledger
+`api.credits_wallets()` RPC. The tenant MCP forwards the verified Supabase
+bearer to the read-only identity PostgREST endpoint; the RPC applies wallet
+authorization using `auth.uid()`. Results are Credits units, not currency or
+unpriced usage totals.
+
 The tenant MCP lists `platform_tool_catalog` and `platform_tool_call` for
 authenticated users with an active tenant so clients can cache a stable tool
 schema. Calls require a verified user with a current `owner` or `admin`

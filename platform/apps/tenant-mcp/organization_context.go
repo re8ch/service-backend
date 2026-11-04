@@ -72,6 +72,22 @@ func contextRPCURL(name string) string {
 }
 
 func (s *server) registerOrganizationContextTools(ms *mcp.Server) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_credits_wallets_list"), Name: "tenant_credits_wallets_list", Description: "Read Credits wallet balances authorized for the signed-in user, including personal and active organization wallets. Balances are Credits units, not currency."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			id, ok := ctx.Value(identityKey{}).(identity)
+			if !ok {
+				return nil, nil, errors.New("an authenticated user is required")
+			}
+			data, err := identityRPC(ctx, id, contextRPCURL("credits_wallets"), map[string]any{})
+			if err != nil {
+				return nil, nil, err
+			}
+			var wallets map[string]any
+			if err := json.Unmarshal(data, &wallets); err != nil || wallets == nil {
+				return nil, nil, errors.New("invalid Credits wallet response")
+			}
+			return nil, wallets, nil
+		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_organization_context_list"), Name: "tenant_organization_context_list", Description: "List organizations available to this account and identify the single active resource context."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			id, ok := ctx.Value(identityKey{}).(identity)
