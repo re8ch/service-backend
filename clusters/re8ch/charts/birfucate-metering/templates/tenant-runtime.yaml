@@ -265,7 +265,7 @@ spec:
     - matches: [{path: {type: Exact, value: /tenant-native/mcp}}]
       filters:
         - type: URLRewrite
-          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /mcp}}
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /plugin/mcp}}
       backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /tenant-self-service/mcp}}]
       filters:

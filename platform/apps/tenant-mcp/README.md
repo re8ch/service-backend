@@ -111,17 +111,21 @@ bearer to the read-only identity PostgREST endpoint; the RPC applies wallet
 authorization using `auth.uid()`. Results are Credits units, not currency or
 unpriced usage totals.
 
-The tenant MCP lists `platform_tool_catalog` and `platform_tool_call` for
-authenticated users with an active tenant so clients can cache a stable tool
-schema. Calls require a verified user with a current `owner` or `admin`
-membership in the hidden `admin` organization. Listing the entry points does
-not grant access to the catalog or any backend tool.
+The internal `/mcp` endpoint lists the legacy `platform_tool_catalog` and
+`platform_tool_call` bridge for authenticated users with an active tenant.
+The Re8ch plugin's public `/tenant-native/mcp` route maps to `/plugin/mcp`,
+which omits that generic bridge from model-callable discovery. This keeps
+existing internal consumers intact without advertising an opaque operation
+through the reviewed plugin. Calls require a verified user with a current
+`owner` or `admin` membership in the hidden `admin` organization. Listing an
+entry point does not grant access to any backend tool.
 `platform_kubectl_exec` exposes the native `kubectl.exec` operation directly
 with an `argv` array and bounded timeout, while preserving the same platform
 administrator gate, backend authorization, and audit result. Its action definition
 is explicit so a plugin reviewer can assess it independently of the generic
 backend dispatch action. Publishing one explicit operation does not publish
-the remaining dynamic backend tools.
+the remaining dynamic backend tools. Plugin clients must use only operations
+in their current tool list; an authorization flag cannot attest publication.
 It reads the Supabase membership projection once per verified login session and
 caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
@@ -130,14 +134,14 @@ currently registered by the configured backends. Each backend enforces its
 own authorization; the gateway does not duplicate its tool registry.
 Backend credentials are read by the tenant runtime's Kubernetes
 service account from three named Secrets via tightly scoped `get` RBAC and are
-never returned to the caller. The old Admin and Cloud/Infra MCP connections
-remain published.
+never returned to the caller.
 
-The authenticated self-service plugin is the preferred administrator entry.
-An active organization session with verified platform-admin membership uses
-the live platform catalog and backend permissions. Empty
-tenant consumables or service classes do not restrict this administrator path.
-The `admin` backend publishes `postgres_admin_sql` for reviewed Pigsty SQL:
+The authenticated Re8ch plugin is the administrator entry for explicitly
+published operations. An active organization session with verified
+platform-admin membership is still subject to the current plugin tool list
+and backend permissions. Empty tenant consumables or service classes do not
+restrict this administrator authority. The internal `admin` backend publishes
+`postgres_admin_sql` for reviewed Pigsty SQL:
 read-only queries execute through the fixed Supabase database identity; writes
 require an approval ID, first return a plan hash, and execute only with
 `apply=true` and that hash.

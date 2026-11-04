@@ -148,6 +148,8 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
         "/tenant-self-service/mcp", "/.well-known/oauth-protected-resource/tenant-self-service/mcp",
         "/.well-known/openai-apps-challenge",
     }
+    plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-native/mcp")
+    assert plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
     assert tenant_env["OPENAI_APPS_CHALLENGE_TOKEN"] == ""
     challenge_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/.well-known/openai-apps-challenge")
     assert challenge_rule["backendRefs"] == [{"name": "tenant-api", "port": 80}]

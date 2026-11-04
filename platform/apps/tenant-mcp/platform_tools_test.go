@@ -122,11 +122,11 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		URL: upstream.URL, Namespace: "tenant-infrastructure", Secret: "admin-vmcp-backend-auth", SecretKey: "token", Header: "Authorization",
 	}
 	defer func() { platformBackends["native"] = originalNative }()
-	call := func(subject, session, method string, params any) map[string]any {
+	callPath := func(path, subject, session, method string, params any) map[string]any {
 		claims, _ := json.Marshal(map[string]any{"iss": supabaseIssuer, "aud": "authenticated", "sub": subject, "session_id": session, "exp": time.Now().Add(time.Hour).Unix()})
 		token := "eyJhbGciOiJub25lIn0." + base64.RawURLEncoding.EncodeToString(claims) + ".signature"
 		body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
-		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(string(body)))
+		req := httptest.NewRequest("POST", path, strings.NewReader(string(body)))
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json, text/event-stream")
@@ -141,6 +141,9 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		}
 		return result
 	}
+	call := func(subject, session, method string, params any) map[string]any {
+		return callPath("/mcp", subject, session, method, params)
+	}
 	contains := func(result map[string]any, name string) bool {
 		tools := result["result"].(map[string]any)["tools"].([]any)
 		for _, item := range tools {
@@ -153,6 +156,18 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	adminTools := call("admin-user", "session-1", "tools/list", map[string]any{})
 	if !contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("admin tool absent")
+	}
+	pluginTools := callPath("/plugin/mcp", "admin-user", "session-1", "tools/list", map[string]any{})
+	if contains(pluginTools, "platform_tool_catalog") || contains(pluginTools, "platform_tool_call") || !contains(pluginTools, "platform_kubectl_exec") {
+		t.Fatal("plugin publication exposed a generic bridge or omitted explicit kubectl")
+	}
+	pluginLegacyCall := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
+	if pluginLegacyCall["error"] == nil && pluginLegacyCall["result"].(map[string]any)["isError"] != true {
+		t.Fatal("unpublished generic bridge was callable through plugin path")
+	}
+	pluginKubectl := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "--raw=/version"}}})
+	if pluginKubectl["error"] != nil || pluginKubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/version" {
+		t.Fatalf("plugin kubectl argv was not routed: %#v; argv=%v", pluginKubectl, kubectlArgv)
 	}
 	for _, listed := range adminTools["result"].(map[string]any)["tools"].([]any) {
 		tool := listed.(map[string]any)
@@ -173,6 +188,9 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		status := response["result"].(map[string]any)["structuredContent"].(map[string]any)
 		if status["platformAdminAuthorized"] != allowed || status["platformToolsAvailable"] != allowed {
 			t.Fatalf("wrong platform diagnostic for %s: %#v", subject, status)
+		}
+		if allowed && !strings.Contains(status["platformToolDiscovery"].(string), "Backend authorization does not prove plugin publication") {
+			t.Fatalf("platform diagnostic implies unavailable tools are callable: %#v", status)
 		}
 	}
 	assertPlatformStatus("admin-user", "session-1", true)

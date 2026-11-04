@@ -23,9 +23,15 @@ var legacyToolPrefixes = []string{"re8ch_review_demo.", "re8ch_tenant.", "re8ch.
 var mcpToolTelemetry = newToolTelemetry()
 
 type publicSelfServiceKey struct{}
+type pluginPublicationKey struct{}
 
 func publicSelfService(ctx context.Context) bool {
 	value, _ := ctx.Value(publicSelfServiceKey{}).(bool)
+	return value
+}
+
+func pluginPublication(ctx context.Context) bool {
+	value, _ := ctx.Value(pluginPublicationKey{}).(bool)
 	return value
 }
 
@@ -46,6 +52,10 @@ type submitInput struct {
 }
 
 func (s *server) skillMCP(id identity) *mcp.Server {
+	return s.skillMCPFor(id, true)
+}
+
+func (s *server) skillMCPFor(id identity, includeLegacyPlatformBridge bool) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
 	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
@@ -59,12 +69,12 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 				"tenantAuthorized":            caller.Tenant != "" || caller.RuntimeTenantRef != "",
 				"resourceOperationsAvailable": caller.Tenant != "",
 			}
-			// Report the server-side gate separately from tenant access so clients
-			// can distinguish a stale tool list from a denied platform session.
+			// This reports backend authorization, not publication to a model's
+			// current tool list. A plugin review can exclude registered tools.
 			status["platformAdminAuthorized"] = caller.PlatformAdmin
 			status["platformToolsAvailable"] = caller.PlatformAdmin && caller.Tenant != ""
 			if caller.PlatformAdmin && caller.Tenant != "" {
-				status["platformToolDiscovery"] = "Refresh the connection tool list if platform_tool_catalog and platform_tool_call are absent."
+				status["platformToolDiscovery"] = "Inspect the current Re8ch model-callable tool list and each tool's input schema. Backend authorization does not prove plugin publication; execute an explicit operation only when that tool is exposed."
 			} else {
 				status["platformToolDiscovery"] = "Platform tools require a verified platform administrator session and an active organization; tenant admin role alone is insufficient."
 			}
@@ -116,7 +126,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	// ToolHive discovers tools with its service credential. Publish these stable
 	// entry points to that discovery session too; each call still requires an
 	// authenticated platform administrator and the backend's own authorization.
-	s.registerPlatformTools(ms)
+	s.registerPlatformTools(ms, includeLegacyPlatformBridge)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
@@ -316,6 +326,9 @@ func (s *server) handler() http.Handler {
 		if publicSelfService(req.Context()) {
 			return s.publicSelfServiceMCP(id)
 		}
+		if pluginPublication(req.Context()) {
+			return s.skillMCPFor(id, false)
+		}
 		return s.skillMCP(id)
 	}
 	mcpHandler := mcp.NewStreamableHTTPHandler(serverFor,
@@ -398,6 +411,9 @@ func (s *server) handler() http.Handler {
 		if isPublic {
 			r = r.WithContext(context.WithValue(r.Context(), publicSelfServiceKey{}, true))
 		}
+		if r.URL.Path == "/plugin/mcp" {
+			r = r.WithContext(context.WithValue(r.Context(), pluginPublicationKey{}, true))
+		}
 		header := r.Header.Get("Authorization")
 		challenge := func() {
 			metadata := os.Getenv("PUBLIC_RESOURCE_METADATA_URL")
@@ -449,6 +465,7 @@ func (s *server) handler() http.Handler {
 		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	}
 	mux.HandleFunc("/mcp", mcpEndpoint)
+	mux.HandleFunc("/plugin/mcp", mcpEndpoint)
 	mux.HandleFunc("/self-service/mcp", mcpEndpoint)
 	return mux
 }
