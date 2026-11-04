@@ -154,16 +154,14 @@ is normalized because the Go SDK sorts the list by URI.
 Build locally from the repository root with
 `docker build -f platform/apps/tenant-mcp/Dockerfile -t re8ch-tenant-mcp:local .`.
 
-The `tenant-go-release` GitHub workflow validates PRs. On `main`, its trusted
-Macmini job publishes an amd64 Harbor image, signs the immutable digest, and
-uploads `tenant-mcp.image` plus an SPDX SBOM. After that release succeeds,
-create a separate signed GitOps PR setting both
-`tenantPlatform.tenantAPI.enabled: true` and
-`tenantPlatform.tenantAPI.image: <verified image digest>` in
-`platform/birfucate-metering/release.yaml`. Verify image signature, deployment
-readiness, tenant ToolHive canary, tenant billing, and credential redemption
-before considering the migration complete. Rollback is the previous HelmRelease
-revision with `tenantAPI.enabled: false`; SQLite tenant state remains compatible.
+The `tenant-go-release` GitHub workflow validates PRs. On `main`, a GitHub-hosted
+runner publishes one amd64 GHCR image with provenance and SBOM, then attests its
+immutable digest. Its scoped promotion PR updates
+`clusters/re8ch/tenant-mcp-image/image.yaml`; the active observability
+HelmRelease reads that ConfigMap through a required `valuesFrom` reference.
+Verify the image digest, deployment readiness, tenant ToolHive canary, billing,
+and credential redemption through the runtime before calling the release
+complete. Rollback is a signed PR restoring the previous image digest.
 
 The public HTTP routes and ToolHive backend URL do not change during cutover.
 No credentials or submitted workflow records are committed to Git. Reviewed

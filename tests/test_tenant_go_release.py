@@ -6,26 +6,34 @@ import yaml
 ROOT = Path(__file__).parents[1]
 
 
-def test_only_tenant_publisher_receives_dedicated_registry_identity():
+def test_only_tenant_publisher_receives_ghcr_write_identity():
     workflow = yaml.safe_load((ROOT / ".github/workflows/tenant-go-release.yml").read_text())
     release = workflow["jobs"]["release"]
     finalize = workflow["jobs"]["finalize"]
     assert release["environment"] == finalize["environment"] == "production"
 
-    publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
-    assert publisher["env"]["HARBOR_USERNAME"] == "${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}"
-    assert publisher["env"]["HARBOR_PASSWORD"] == "${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}"
+    publisher = next(s for s in release["steps"] if "IMAGE_REGISTRY_PASSWORD" in s.get("env", {}))
+    assert release["permissions"]["packages"] == "write"
+    assert publisher["env"]["IMAGE_REGISTRY_USERNAME"] == "${{ github.actor }}"
+    assert publisher["env"]["IMAGE_REGISTRY_PASSWORD"] == "${{ github.token }}"
+    assert publisher["env"]["TENANT_IMAGE_REPOSITORY"] == "ghcr.io/re8ch/service-backend-tenant-mcp"
+    assert "HARBOR_USERNAME" not in publisher["env"]
+    assert "HARBOR_PASSWORD" not in publisher["env"]
 
-    # Finalization attests the immutable digest without pushing to Harbor, so it
+    # Finalization attests the immutable digest without pushing to GHCR, so it
     # must not receive the registry credentials used only by the build publisher.
     assert not any(
         step.get("uses", "").startswith("docker/login-action@")
         for step in finalize["steps"]
     )
-    assert "TENANT_MCP_REGISTRY_USERNAME" not in str(finalize)
-    assert "TENANT_MCP_REGISTRY_PASSWORD" not in str(finalize)
+    assert finalize["permissions"].get("packages") != "write"
     attest = next(step for step in finalize["steps"] if step.get("id") == "attest")
     assert attest["with"]["push-to-registry"] is False
+    subject = next(s for s in finalize["steps"] if s.get("id") == "subject")
+    assert "ghcr\\.io/re8ch/service-backend-tenant-mcp@sha256" in subject["run"]
+    anonymous = next(s for s in finalize["steps"] if s.get("name") == "Verify anonymous cluster pull access")
+    assert "docker manifest inspect" in anonymous["run"]
+    assert "${{ steps.subject.outputs.image }}" in anonymous["run"]
 
 
 def test_tenant_go_release_allows_cold_builder_pulls_within_job_budget():
@@ -60,7 +68,7 @@ def test_tenant_go_release_uses_stable_router_and_local_go_cache():
     assert workflow["jobs"]["release"]["needs"] == "tenant-go-validate"
 
 
-def test_tenant_go_release_defaults_to_hosted_engine_push_with_r640_fallback():
+def test_tenant_go_release_defaults_to_hosted_ghcr_push_with_r640_fallback():
     workflow = yaml.safe_load(
         (ROOT / ".github/workflows/tenant-go-release.yml").read_text()
     )
@@ -73,6 +81,7 @@ def test_tenant_go_release_defaults_to_hosted_engine_push_with_r640_fallback():
 
     assert "r640" in str(release["runs-on"])
     assert workflow.get("on", workflow.get(True))["workflow_dispatch"]["inputs"]["publisher"]["default"] == "cloud"
+    assert ".github/workflows/tenant-go-release.yml" in workflow.get("on", workflow.get(True))["push"]["paths"]
     assert workflow["jobs"]["finalize"]["runs-on"] == "ubuntu-24.04"
     builder = next(s for s in release["steps"] if s.get("id") == "builder")
     assert builder["uses"].startswith("docker/setup-buildx-action@")
@@ -81,9 +90,9 @@ def test_tenant_go_release_defaults_to_hosted_engine_push_with_r640_fallback():
     fallback = next(s for s in release["steps"] if s.get("name") == "Reuse the governed R640 host-proxy builder")
     assert fallback["if"] == "inputs.publisher == 'r640'"
     assert "docker buildx inspect r640-mihomos" in fallback["run"]
-    publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
+    publisher = next(s for s in release["steps"] if "IMAGE_REGISTRY_PASSWORD" in s.get("env", {}))
     assert "TENANT_IMAGE_BUILDER" not in publisher["env"]
-    assert publisher["env"]["TENANT_IMAGE_DOCKER_PUSH"] == "${{ inputs.publisher != 'r640' && '1' || '0' }}"
+    assert publisher["env"]["TENANT_IMAGE_DOCKER_PUSH"] == "0"
     assert "BUILDX_CONFIG" not in prepare
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare
     assert "macmini" not in prepare.lower()
