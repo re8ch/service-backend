@@ -106,6 +106,12 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		return nil, map[string]any{"tenants": []string{"re8ch"}}, nil
 	})
 	var authenticationInput controlPlaneAuthenticationInput
+	var kubectlArgv []string
+	var kubectlTimeout int
+	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
+		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
+		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
+	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "reconcile_control_plane_authentication_config"}, func(_ context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
 		authenticationInput = input
 		return nil, map[string]any{"applied": input.Apply, "commitSha": input.CommitSHA, "planHash": input.PlanHash}, nil
@@ -117,7 +123,7 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	originalNative := platformBackends["native"]
 	platformBackends["native"] = platformBackend{
 		URL: upstream.URL, Namespace: "tenant-infrastructure", Secret: "admin-vmcp-backend-auth", SecretKey: "token", Header: "Authorization",
-		Allowed: map[string]bool{"reconcile_control_plane_authentication_config": true},
+		Allowed: map[string]bool{"kubectl.exec": true, "reconcile_control_plane_authentication_config": true},
 	}
 	defer func() { platformBackends["native"] = originalNative }()
 	call := func(subject, session, method string, params any) map[string]any {
@@ -149,8 +155,19 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		return false
 	}
 	adminTools := call("admin-user", "session-1", "tools/list", map[string]any{})
-	if !contains(adminTools, "platform_tool_call") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
+	if !contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("admin tool absent")
+	}
+	for _, listed := range adminTools["result"].(map[string]any)["tools"].([]any) {
+		tool := listed.(map[string]any)
+		if tool["name"] != "platform_kubectl_exec" {
+			continue
+		}
+		properties := tool["inputSchema"].(map[string]any)["properties"].(map[string]any)
+		argv := properties["argv"].(map[string]any)
+		if argv["type"] != "array" || argv["items"].(map[string]any)["type"] != "string" {
+			t.Fatalf("kubectl argv schema is not a string array: %#v", argv)
+		}
 	}
 	if rpcCalls != 1 {
 		t.Fatalf("first session made %d membership calls", rpcCalls)
@@ -167,6 +184,10 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	if privileged["error"] != nil || privileged["result"].(map[string]any)["isError"] == true {
 		t.Fatalf("admin call without AAL2 failed: %#v", privileged)
 	}
+	kubectl := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "--raw=/readyz"}}})
+	if kubectl["error"] != nil || kubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/readyz" || kubectlTimeout != 30 {
+		t.Fatalf("explicit kubectl argv was not routed unchanged: %#v; argv=%v timeout=%d", kubectl, kubectlArgv, kubectlTimeout)
+	}
 	direct := call("admin-user", "session-1", "tools/call", map[string]any{"name": "reconcile_control_plane_authentication_config", "arguments": map[string]any{"commitSha": strings.Repeat("a", 40), "apply": true, "planHash": strings.Repeat("b", 64)}})
 	if direct["error"] != nil || direct["result"].(map[string]any)["isError"] == true {
 		t.Fatalf("direct authentication reconcile failed: %#v", direct)
@@ -178,13 +199,17 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		t.Fatalf("same-session call repeated membership lookup: %d", rpcCalls)
 	}
 	ordinaryTools := call("ordinary-user", "session-2", "tools/list", map[string]any{})
-	if !contains(ordinaryTools, "platform_tool_call") || !contains(ordinaryTools, "reconcile_control_plane_authentication_config") {
+	if !contains(ordinaryTools, "platform_tool_call") || !contains(ordinaryTools, "platform_kubectl_exec") || !contains(ordinaryTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("platform entry point missing from stable tool list")
 	}
 	assertPlatformStatus("ordinary-user", "session-2", false)
 	guessed := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
 	if guessed["error"] == nil && guessed["result"].(map[string]any)["isError"] != true {
 		t.Fatal("ordinary user's privileged call was accepted")
+	}
+	deniedKubectl := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "pods"}}})
+	if deniedKubectl["error"] == nil && deniedKubectl["result"].(map[string]any)["isError"] != true {
+		t.Fatal("ordinary user called explicit kubectl tool")
 	}
 	deniedCatalog := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_catalog", "arguments": map[string]any{}})
 	if deniedCatalog["error"] == nil && deniedCatalog["result"].(map[string]any)["isError"] != true {
