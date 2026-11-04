@@ -20,8 +20,8 @@ operations and UI workflows are complete.
 - Live `get_platform_service_catalog`: 95 namespaces, 365 workloads, 356
   Services; 50 namespaces have unclassified configuration authority. This is
   one platform inventory, not proof of coverage of every connected cluster.
-- Registry code: `platform/apps/tenant-mcp/module_registry.go`; explicit
-  allowlists in `platform-modules.json`; admin dispatch in `platform_tools.go`.
+- Registry code: `platform/apps/tenant-mcp/module_registry.go`; this historical
+  snapshot used explicit tool allowlists in `platform-modules.json`.
 - User-confirmed surface: RE8CH management tools directory, implemented by
   ToolHive Cloud UI at `https://tools.re8ch.com`. Its registry metadata differs
   from the Headlamp tenant tool catalog.
@@ -65,6 +65,9 @@ A static matrix, passing unit tests, or tools/list alone is insufficient.
 The first registry change exposes missing allowlisted publications as
 `missingTools`, separately from unavailable backends. It supplies gap evidence
 for subsequent registration work and does not satisfy the full delivery gates.
+
+Current gateway behavior discovers registered tools directly from each backend;
+this historical `missingTools` snapshot no longer describes its live catalog.
 
 ## Current implementation evidence
 

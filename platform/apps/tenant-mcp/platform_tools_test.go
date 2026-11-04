@@ -59,10 +59,7 @@ func TestPlatformBackendMCPProxyPreservesAuthAndResult(t *testing.T) {
 	defer upstream.Close()
 	t.Setenv("SERVICE_API_TOKEN", "fixture-service-token")
 	t.Setenv("PLATFORM_TENANT_ADMIN_MCP_URL", upstream.URL)
-	value, err := withPlatformBackend(context.Background(), "tenant_admin", func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
-		if !allowed["tenant_list"] || allowed["unexpected_tool"] {
-			t.Fatal("backend tool allowlist changed")
-		}
+	value, err := withPlatformBackend(context.Background(), "tenant_admin", func(session *mcp.ClientSession) (any, error) {
 		return session.CallTool(context.Background(), &mcp.CallToolParams{Name: "tenant_list", Arguments: map[string]any{}})
 	})
 	if err != nil {
@@ -123,7 +120,6 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 	originalNative := platformBackends["native"]
 	platformBackends["native"] = platformBackend{
 		URL: upstream.URL, Namespace: "tenant-infrastructure", Secret: "admin-vmcp-backend-auth", SecretKey: "token", Header: "Authorization",
-		Allowed: map[string]bool{"kubectl.exec": true, "reconcile_control_plane_authentication_config": true},
 	}
 	defer func() { platformBackends["native"] = originalNative }()
 	call := func(subject, session, method string, params any) map[string]any {

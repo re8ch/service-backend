@@ -76,8 +76,6 @@ def generate():
     NETWORK_MANIFEST.write_text(json.dumps(network_rows, indent=2) + "\n")
     network_tools = tool_definitions(network_rows)
     matrix = json.loads((ROOT / "operations/plugin-capabilities/native-operation-matrix.json").read_text())
-    output = ROOT / "operations/cloud-platform/plugin-operation-tools.json"
-    previous_names = {item["name"] for item in json.loads(output.read_text())["tools"]} if output.exists() else set()
     tools = {}
     for source in matrix["sources"]:
         doc = json.loads((ROOT / "operations/plugin-capabilities" / source["schemaFile"]).read_text())
@@ -114,25 +112,6 @@ def generate():
     definitions = sorted([*tools.values(), ANATOMY_DIFF_TOOL, ANATOMY_DIFF_DELETE_TOOL, CILIUM_CIDR_TOOL, CILIUM_CIDR_DELETE_TOOL, *network_tools], key=lambda tool: tool["name"])
     generated = {"version": 1, "cluster": matrix["cluster"], "tools": definitions}
     (ROOT / "operations/cloud-platform/plugin-operation-tools.json").write_text(json.dumps(generated, indent=2) + "\n")
-    for relative in ["platform/apps/tenant-mcp/platform-modules.json", "clusters/re8ch/charts/birfucate-metering/files/tenant-platform-modules.json"]:
-        path = ROOT / relative
-        registry = json.loads(path.read_text())
-        allowed = registry["backends"]["native"]["allowed"]
-        # Remove every currently owned entry before inserting in stable order.
-        # Otherwise new Mihomos entries move across Kubernetes entries on the
-        # second run because dict.update preserves existing key positions.
-        owned_names = previous_names | {tool["name"] for tool in MIHOMOS_TOOLS} | {ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"]} | {tool["name"] for tool in network_tools}
-        for name in list(allowed):
-            if name in owned_names:
-                del allowed[name]
-        allowed.update({name: True for name in sorted(tools)})
-        allowed.update({tool["name"]: True for tool in MIHOMOS_TOOLS})
-        allowed[ANATOMY_DIFF_TOOL["name"]] = True
-        allowed[ANATOMY_DIFF_DELETE_TOOL["name"]] = True
-        allowed[CILIUM_CIDR_TOOL["name"]] = True
-        allowed[CILIUM_CIDR_DELETE_TOOL["name"]] = True
-        allowed.update({tool["name"]: True for tool in network_tools})
-        path.write_text(json.dumps(registry, indent=2) + "\n")
     registry = {"servers": [{"name": "com.re8ch/cluster-plugin-operations", "version": "0.1.0",
         "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
         "remotes": [{"type": "streamable-http", "url": "https://operate.tools.re8ch.com/cloud/mcp"}],

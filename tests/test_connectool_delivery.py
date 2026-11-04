@@ -148,8 +148,9 @@ def test_standalone_platform_marketplace_is_retired_into_tenant_self_service():
     assert not (ROOT / "platform/plugins/re8ch-platform-observe/.codex-plugin/plugin.json").exists()
     assert not (ROOT / "platform/plugins/re8ch-platform-operate/.codex-plugin/plugin.json").exists()
     registry = __import__("json").loads((ROOT / "platform/apps/tenant-mcp/platform-modules.json").read_text())
-    assert "get_platform_service_health" in registry["backends"]["cloud"]["allowed"]
-    assert "get_managed_platform_operation_status" in registry["backends"]["infra"]["allowed"]
+    assert registry["backends"]["cloud"]["url"]
+    assert registry["backends"]["infra"]["url"]
+    assert all("allowed" not in backend for backend in registry["backends"].values())
 
 
 def test_artifact_hub_uses_registered_repository_id():

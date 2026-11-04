@@ -38,7 +38,8 @@ The native backend implements four discovery/read entry points:
 `plugin.operation.read`. The generator also registers **197 individually named
 GET tools** from eight reviewed schemas. The two Cilium schemas currently contribute
 inventory only; reads require a projection review, including Envoy inline credentials. The same definitions drive backend
-MCP schemas, the two self-service allowlists, and management directory metadata.
+MCP schemas and management directory metadata. The self-service gateway reads
+the backend's current registration directly.
 Run `python operations/plugin-capabilities/generate.py` to regenerate them.
 
 Reads require platform administrator authorization. Each generated tool pins its
@@ -137,7 +138,7 @@ roll back its tenant-mcp/cloud-platform images while preparing this feature.
 ## Mihomos native surface (in progress)
 
 `mihomos.workloads.list` is implemented, administrator-only and registered in
-both self-service allowlists and management directory metadata. It returns only
+the native backend and management directory metadata. It returns only
 fixed Mihomos DaemonSet identity, generation and readiness counters from
 `egress-fabric`; it never returns pod configuration, environment or annotations.
 Absent optional workloads are reported as missing, not automatically unhealthy.
@@ -261,7 +262,7 @@ The added `csi.ceph.io/v1` and `objectbucket.io/v1alpha1` documents were capture
 through the authenticated native backend and enumerated with Schemathesis.
 They add 76 native operations to the matrix, including 27 GET operations.
 The 27 GET adapters are now enabled for platform administrators and generated
-into both self-service allowlists. `storage-read-projection.json` specifies the
+in the native backend. `storage-read-projection.json` specifies the
 reviewed output fields for all seven kinds. It preserves resource identity,
 pagination and selected configuration while omitting authentication, arbitrary
 additional state/configuration, mount options, container arguments, volumes,
