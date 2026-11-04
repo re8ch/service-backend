@@ -82,6 +82,21 @@ jobs:
           umask 077
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+      - name: Limit hosted Harbor uploads to one layer
+        if: inputs.publisher != 'r640'
+        run: |
+          sudo python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('/etc/docker/daemon.json')
+          config = json.loads(path.read_text()) if path.exists() else {}
+          config['max-concurrent-uploads'] = 1
+          path.write_text(json.dumps(config) + '\n')
+          PY
+          sudo kill -HUP "$(pidof dockerd)"
+          sleep 2
+          docker info >/dev/null
       - id: builder
         if: inputs.publisher != 'r640'
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3

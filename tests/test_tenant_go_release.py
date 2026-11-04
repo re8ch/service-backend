@@ -78,6 +78,10 @@ def test_tenant_go_release_defaults_to_hosted_engine_push_with_r640_fallback():
     assert builder["uses"].startswith("docker/setup-buildx-action@")
     assert builder["if"] == "inputs.publisher != 'r640'"
     assert builder["with"]["driver-opts"] == "env.GODEBUG=http2client=0"
+    upload_limit = next(s for s in release["steps"] if s.get("name") == "Limit hosted Harbor uploads to one layer")
+    assert upload_limit["if"] == "inputs.publisher != 'r640'"
+    assert "config['max-concurrent-uploads'] = 1" in upload_limit["run"]
+    assert 'sudo kill -HUP "$(pidof dockerd)"' in upload_limit["run"]
     fallback = next(s for s in release["steps"] if s.get("name") == "Reuse the governed R640 host-proxy builder")
     assert fallback["if"] == "inputs.publisher == 'r640'"
     assert "docker buildx inspect r640-mihomos" in fallback["run"]
