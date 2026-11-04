@@ -62,6 +62,11 @@ type platformToolInput struct {
 	Arguments map[string]any `json:"arguments,omitempty" jsonschema:"Arguments matching the selected tool's inputSchema"`
 }
 
+type platformKubectlInput struct {
+	Argv    []string `json:"argv" jsonschema:"kubectl arguments as an array of strings, for example [get,--raw=/version]"`
+	Timeout int      `json:"timeout,omitempty" jsonschema:"Execution timeout in seconds, from 1 to 3600; defaults to 30"`
+}
+
 type controlPlaneAuthenticationInput struct {
 	CommitSHA string `json:"commitSha" jsonschema:"Full reviewed service-backend main commit SHA"`
 	Apply     bool   `json:"apply,omitempty" jsonschema:"Apply the exact plan; false performs server-side dry-run"`
@@ -208,12 +213,41 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "List Cloud Platform, Cluster Infra, and platform admin tools available to the current platform administrator."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "Read metadata for allowlisted platform tools, including their descriptions and input schemas. This inventory action does not execute any listed operation."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
 			return nil, s.moduleRegistry().catalog(ctx), nil
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command in the RE8CH platform cluster with an argv string array. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments, for example [\"get\",\"--raw=/version\"]"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"}},"required":["argv"],"additionalProperties":false}`)},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			if len(input.Argv) == 0 {
+				return nil, nil, errors.New("kubectl argv is required")
+			}
+			if input.Timeout == 0 {
+				input.Timeout = 30
+			}
+			if input.Timeout < 1 || input.Timeout > 3600 {
+				return nil, nil, errors.New("kubectl timeout must be between 1 and 3600 seconds")
+			}
+			backend, ok := s.moduleRegistry().backend("native")
+			if !ok || !backend.Allowed["kubectl.exec"] {
+				return nil, nil, errors.New("kubectl.exec is not allowlisted")
+			}
+			value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession, allowed map[string]bool) (any, error) {
+				if !allowed["kubectl.exec"] {
+					return nil, errors.New("kubectl.exec is not allowlisted")
+				}
+				return session.CallTool(ctx, &mcp.CallToolParams{Name: "kubectl.exec", Arguments: map[string]any{"argv": input.Argv, "timeout": input.Timeout}})
+			})
+			if err != nil {
+				return nil, nil, err
+			}
+			return value.(*mcp.CallToolResult), nil, nil
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_call"), Name: "platform_tool_call", Description: "Call one allowlisted Cloud Platform, Cluster Infra, or platform admin tool. Copy backend, name, and arguments from platform_tool_catalog."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformToolInput) (*mcp.CallToolResult, any, error) {

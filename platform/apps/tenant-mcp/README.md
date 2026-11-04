@@ -116,6 +116,12 @@ authenticated users with an active tenant so clients can cache a stable tool
 schema. Calls require a verified user with a current `owner` or `admin`
 membership in the hidden `admin` organization. Listing the entry points does
 not grant access to the catalog or any backend tool.
+`platform_kubectl_exec` exposes the native `kubectl.exec` operation directly
+with an `argv` array and bounded timeout, while preserving the same platform
+administrator gate, backend allowlist, and audit result. Its action definition
+is explicit so a plugin reviewer can assess it independently of the generic
+backend dispatch action. Publishing one explicit operation does not publish
+the remaining dynamic backend tools.
 It reads the Supabase membership projection once per verified login session and
 caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
