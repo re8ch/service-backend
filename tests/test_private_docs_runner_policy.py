@@ -24,7 +24,7 @@ def test_cloud_delivery_allowlist_only_permits_reviewed_jobs():
 
 
 def test_tenant_publisher_recovery_expression_is_exactly_bounded():
-    expression = "${{ inputs.publisher == 'cloud' && 'ubuntu-24.04' || fromJSON('[\"self-hosted\",\"Linux\",\"X64\",\"r640\",\"untrusted-build\"]') }}"
+    expression = "${{ inputs.publisher != 'r640' && 'ubuntu-24.04' || fromJSON('[\"self-hosted\",\"Linux\",\"X64\",\"r640\",\"untrusted-build\"]') }}"
     job = {"runs-on": expression}
     assert policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "release", job)
     assert not policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "finalize", job)

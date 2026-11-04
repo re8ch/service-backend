@@ -60,7 +60,7 @@ def test_tenant_go_release_uses_stable_router_and_local_go_cache():
     assert workflow["jobs"]["release"]["needs"] == "tenant-go-validate"
 
 
-def test_tenant_go_release_defaults_to_governed_r640_publisher_with_cloud_recovery():
+def test_tenant_go_release_defaults_to_hosted_engine_push_with_r640_fallback():
     workflow = yaml.safe_load(
         (ROOT / ".github/workflows/tenant-go-release.yml").read_text()
     )
@@ -72,17 +72,18 @@ def test_tenant_go_release_defaults_to_governed_r640_publisher_with_cloud_recove
     )
 
     assert "r640" in str(release["runs-on"])
+    assert workflow.get("on", workflow.get(True))["workflow_dispatch"]["inputs"]["publisher"]["default"] == "cloud"
     assert workflow["jobs"]["finalize"]["runs-on"] == "ubuntu-24.04"
     builder = next(s for s in release["steps"] if s.get("id") == "builder")
     assert builder["uses"].startswith("docker/setup-buildx-action@")
-    assert builder["if"] == "inputs.publisher == 'cloud'"
+    assert builder["if"] == "inputs.publisher != 'r640'"
     assert builder["with"]["driver-opts"] == "env.GODEBUG=http2client=0"
     fallback = next(s for s in release["steps"] if s.get("name") == "Reuse the governed R640 host-proxy builder")
-    assert fallback["if"] == "inputs.publisher != 'cloud'"
+    assert fallback["if"] == "inputs.publisher == 'r640'"
     assert "docker buildx inspect r640-mihomos" in fallback["run"]
     publisher = next(s for s in release["steps"] if "HARBOR_PASSWORD" in s.get("env", {}))
     assert "TENANT_IMAGE_BUILDER" not in publisher["env"]
-    assert "TENANT_IMAGE_DOCKER_PUSH" not in publisher["env"]
+    assert publisher["env"]["TENANT_IMAGE_DOCKER_PUSH"] == "${{ inputs.publisher != 'r640' && '1' || '0' }}"
     assert "BUILDX_CONFIG" not in prepare
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare
     assert "macmini" not in prepare.lower()

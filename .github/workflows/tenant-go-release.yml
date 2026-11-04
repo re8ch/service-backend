@@ -9,11 +9,11 @@ on:
   workflow_dispatch:
     inputs:
       publisher:
-        description: Publisher route; R640 is the default because hosted uploads to Harbor stall
+        description: Publisher route; GitHub-hosted is the default and R640 is the fallback
         required: false
         type: choice
         options: [r640, cloud]
-        default: r640
+        default: cloud
       reuse_run_id:
         description: Existing successful release run whose immutable image needs finalization
         required: false
@@ -66,7 +66,7 @@ jobs:
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && inputs.reuse_run_id == ''
     needs: tenant-go-validate
-    runs-on: ${{ inputs.publisher == 'cloud' && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64","r640","untrusted-build"]') }}
+    runs-on: ${{ inputs.publisher != 'r640' && 'ubuntu-24.04' || fromJSON('["self-hosted","Linux","X64","r640","untrusted-build"]') }}
     timeout-minutes: 30
     environment: production
     permissions:
@@ -83,14 +83,14 @@ jobs:
           printf '{}\n' > "$DOCKER_CONFIG/config.json"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
       - id: builder
-        if: inputs.publisher == 'cloud'
+        if: inputs.publisher != 'r640'
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           # The BuildKit daemon, not only the buildx client, uploads layers.
           driver-opts: env.GODEBUG=http2client=0
-      - if: inputs.publisher == 'cloud'
+      - if: inputs.publisher != 'r640'
         run: echo "TENANT_IMAGE_BUILDER=${{ steps.builder.outputs.name }}" >> "$GITHUB_ENV"
-      - if: inputs.publisher != 'cloud'
+      - if: inputs.publisher == 'r640'
         name: Reuse the governed R640 host-proxy builder
         run: |
           export BUILDX_CONFIG="$HOME/.docker/buildx"
@@ -106,8 +106,10 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          # Keep the cloud recovery route on HTTP/1.1. The default R640 route
-          # publishes through its governed host-proxy BuildKit daemon.
+          # The hosted Docker Engine uses a distinct HTTP/1.1 Harbor upload
+          # path after BuildKit loads the image. R640 retains its governed
+          # host-proxy BuildKit exporter as a fallback.
+          TENANT_IMAGE_DOCKER_PUSH: ${{ inputs.publisher != 'r640' && '1' || '0' }}
           GODEBUG: http2client=0
           # Bound cold pulls and uploads on the disposable cloud builder.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
