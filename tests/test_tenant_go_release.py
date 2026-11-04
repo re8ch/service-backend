@@ -15,7 +15,7 @@ def test_only_tenant_publisher_receives_ghcr_write_identity():
     publisher = next(s for s in release["steps"] if "IMAGE_REGISTRY_PASSWORD" in s.get("env", {}))
     assert release["permissions"]["packages"] == "write"
     assert publisher["env"]["IMAGE_REGISTRY_USERNAME"] == "${{ github.actor }}"
-    assert publisher["env"]["IMAGE_REGISTRY_PASSWORD"] == "${{ github.token }}"
+    assert publisher["env"]["IMAGE_REGISTRY_PASSWORD"] == "${{ secrets.GITHUB_TOKEN }}"
     assert publisher["env"]["TENANT_IMAGE_REPOSITORY"] == "ghcr.io/re8ch/service-backend-tenant-mcp"
     assert "HARBOR_USERNAME" not in publisher["env"]
     assert "HARBOR_PASSWORD" not in publisher["env"]
