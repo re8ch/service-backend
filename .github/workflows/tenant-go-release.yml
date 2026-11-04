@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - .github/workflows/tenant-go-release.yml
       - platform/apps/tenant-mcp/**
-      - operations/mcp-conformance/release-tenant-infrastructure.sh
   workflow_dispatch:
     inputs:
       publisher:
@@ -73,6 +73,7 @@ jobs:
       contents: read
       id-token: write
       attestations: write
+      packages: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Prepare isolated cloud release authentication
@@ -99,17 +100,14 @@ jobs:
           echo 'TENANT_IMAGE_BUILDER=r640-mihomos' >> "$GITHUB_ENV"
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
-          HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
-          TENANT_IMAGE_REPOSITORY: registry.re8ch.com/image/re8ch-tenant-mcp
+          IMAGE_REGISTRY_USERNAME: ${{ github.actor }}
+          IMAGE_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TENANT_IMAGE_REPOSITORY: ghcr.io/re8ch/service-backend-tenant-mcp
           TENANT_IMAGE_DOCKERFILE: platform/apps/tenant-mcp/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          # The hosted Docker Engine uses a distinct HTTP/1.1 Harbor upload
-          # path after BuildKit loads the image. R640 retains its governed
-          # host-proxy BuildKit exporter as a fallback.
-          TENANT_IMAGE_DOCKER_PUSH: ${{ inputs.publisher != 'r640' && '1' || '0' }}
+          TENANT_IMAGE_DOCKER_PUSH: "0"
           GODEBUG: http2client=0
           # Bound cold pulls and uploads on the disposable cloud builder.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
@@ -158,12 +156,12 @@ jobs:
           name: tenant-go-release-${{ steps.source.outputs.sha }}
           run-id: ${{ steps.source.outputs.build_run }}
           github-token: ${{ github.token }}
-      - name: Prepare immutable Harbor subject
+      - name: Prepare immutable GHCR subject
         id: subject
         timeout-minutes: 1
         run: |
           image="$(cat tenant-mcp.image)"
-          if [[ ! "$image" =~ ^registry\.re8ch\.com/image/re8ch-tenant-mcp@sha256:[0-9a-f]{64}$ ]]; then
+          if [[ ! "$image" =~ ^ghcr\.io/re8ch/service-backend-tenant-mcp@sha256:[0-9a-f]{64}$ ]]; then
             echo "Invalid tenant MCP image reference" >&2
             exit 1
           fi
@@ -174,7 +172,10 @@ jobs:
             echo "image=$image"
           } >> "$GITHUB_OUTPUT"
           echo "TENANT_MCP_IMAGE=$image" >> "$GITHUB_ENV"
-      - name: Attest immutable Harbor image
+      - name: Verify anonymous cluster pull access
+        timeout-minutes: 2
+        run: docker manifest inspect "${{ steps.subject.outputs.image }}" >/dev/null
+      - name: Attest immutable GHCR image
         id: attest
         timeout-minutes: 2
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
@@ -205,7 +206,7 @@ jobs:
           SOURCE_SHA: ${{ steps.source.outputs.sha }}
         run: |
           # Do not let an old rerun roll back a newer source or build definition.
-          if ! git diff --quiet "$SOURCE_SHA" HEAD -- platform/apps/tenant-mcp operations/mcp-conformance/release-tenant-infrastructure.sh; then
+          if ! git diff --quiet "$SOURCE_SHA" HEAD -- platform/apps/tenant-mcp .github/workflows/tenant-go-release.yml operations/mcp-conformance/release-tenant-infrastructure.sh; then
             echo 'Source changed since this build; leave desired state unchanged.'
             exit 0
           fi

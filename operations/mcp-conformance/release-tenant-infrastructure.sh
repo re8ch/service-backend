@@ -64,8 +64,11 @@ image="${TENANT_IMAGE_REPOSITORY}:${TENANT_IMAGE_TAG}"
 metadata=$(mktemp)
 trap 'rm -f "$metadata"' EXIT
 
-: "${HARBOR_USERNAME:?HARBOR_USERNAME is required for registry publication}"
-: "${HARBOR_PASSWORD:?HARBOR_PASSWORD is required for registry publication}"
+registry_username="${IMAGE_REGISTRY_USERNAME:-${HARBOR_USERNAME:-}}"
+registry_password="${IMAGE_REGISTRY_PASSWORD:-${HARBOR_PASSWORD:-}}"
+: "${registry_username:?registry username is required for image publication}"
+: "${registry_password:?registry password is required for image publication}"
+export IMAGE_REGISTRY_USERNAME="$registry_username" IMAGE_REGISTRY_PASSWORD="$registry_password"
 echo "Configuring image registry authentication for ${TENANT_IMAGE_REPOSITORY%%/*}"
 if [[ "${TENANT_IMAGE_INLINE_AUTH:-}" == "1" ]]; then
   : "${DOCKER_CONFIG:?DOCKER_CONFIG is required for inline release auth}"
@@ -78,7 +81,7 @@ import sys
 path, registry = sys.argv[1:]
 with open(path, encoding="utf-8") as stream:
     config = json.load(stream)
-credential = f"{os.environ['HARBOR_USERNAME']}:{os.environ['HARBOR_PASSWORD']}".encode()
+credential = f"{os.environ['IMAGE_REGISTRY_USERNAME']}:{os.environ['IMAGE_REGISTRY_PASSWORD']}".encode()
 config.setdefault("auths", {})[registry] = {
     "auth": base64.b64encode(credential).decode("ascii")
 }
@@ -87,7 +90,7 @@ with open(path, "w", encoding="utf-8") as stream:
 os.chmod(path, 0o600)
 PY
 else
-  printf '%s' "$HARBOR_PASSWORD" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+  printf '%s' "$registry_password" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$registry_username" --password-stdin >/dev/null
 fi
 
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"

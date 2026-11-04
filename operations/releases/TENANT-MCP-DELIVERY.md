@@ -1,5 +1,23 @@
 # Tenant MCP: source to deployment
 
+## System-image GHCR publication (2026-11-04)
+
+The tenant MCP is system infrastructure. Its current publisher uses a
+GitHub-hosted runner and `GITHUB_TOKEN` with job-scoped `packages: write` to
+publish `ghcr.io/re8ch/service-backend-tenant-mcp`. The image carries an OCI
+source label linking it to this public repository. Harbor remains the
+application-image registry. The release saves the immutable GHCR digest,
+attests it, and uses the existing signed image-reference PR to update only
+`clusters/re8ch/tenant-mcp-image/image.yaml`. The active observability
+HelmRelease consumes that ConfigMap as a required value. The Harbor robot and
+its environment secrets are no longer used by this publisher.
+
+Before merging the first GHCR image-reference PR, confirm the new package is
+publicly pullable or provision an approved GHCR pull credential in
+`flux-observability-system`. A pushed image alone does not establish that the
+cluster can pull it. The sections below retain the 2026-10-25 Harbor handoff
+history for audit.
+
 ## Audited chain (2026-10-25)
 
 Product source: `platform/apps/tenant-mcp` (Go). The actual container build is

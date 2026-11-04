@@ -18,7 +18,7 @@ def test_image_handoff_renders_one_immutable_reference_for_the_active_owner():
     assert image["kind"] == "ConfigMap"
     assert image["metadata"]["namespace"] == "flux-observability-system"
     assert image["metadata"]["labels"]["reconcile.fluxcd.io/watch"] == "Enabled"
-    assert re.fullmatch(r"registry\.re8ch\.com/image/re8ch-tenant-mcp@sha256:[0-9a-f]{64}", image["data"]["image"])
+    assert re.fullmatch(r"(?:registry\.re8ch\.com/image/re8ch-tenant-mcp|ghcr\.io/re8ch/service-backend-tenant-mcp)@sha256:[0-9a-f]{64}", image["data"]["image"])
 
 
 def test_image_sync_reuses_verified_source_without_a_second_bundle():
