@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -45,34 +46,46 @@ func (s *server) readiness(ctx context.Context) (bool, map[string]string) {
 		urls["supplyChain"] = "http://harbor-supply-chain.tenant-infrastructure.svc/healthz"
 	}
 	client := &http.Client{Timeout: 3 * time.Second}
+	type probeResult struct{ name, status string }
+	results := make(chan probeResult, len(urls))
+	var probes sync.WaitGroup
 	for name, target := range urls {
-		if target == "" {
-			checks[name] = "failed"
-			continue
-		}
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
-		if err != nil {
-			checks[name] = "failed"
-			continue
-		}
-		req.Header.Set("Accept", "application/json")
-		response, err := client.Do(req)
-		if err != nil {
-			checks[name] = "failed"
-			continue
-		}
-		response.Body.Close()
-		if response.StatusCode < 400 {
-			checks[name] = "ok"
-		} else {
-			checks[name] = "failed"
+		probes.Add(1)
+		go func() {
+			defer probes.Done()
+			status := "failed"
+			if target != "" {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+				if err == nil {
+					req.Header.Set("Accept", "application/json")
+					response, err := client.Do(req)
+					if err == nil {
+						response.Body.Close()
+						if response.StatusCode < 400 {
+							status = "ok"
+						}
+					}
+				}
+			}
+			results <- probeResult{name, status}
+		}()
+	}
+	probes.Wait()
+	close(results)
+	for result := range results {
+		checks[result.name] = result.status
+	}
+	return readyForTraffic(checks, strings.EqualFold(os.Getenv("HARBOR_SUPPLY_CHAIN_REQUIRED"), "true")), checks
+}
+
+func readyForTraffic(checks map[string]string, supplyChainRequired bool) bool {
+	// External dependencies fail their own requests closed. Removing the only MCP
+	// endpoint during a transient control-plane outage also blocks discovery and
+	// unrelated platform tools, so only local state gates endpoint readiness.
+	for _, name := range []string{"dynamicSkills", "stateStore", "redemptionRegistry", "claimServiceCredential"} {
+		if checks[name] != "ok" {
+			return false
 		}
 	}
-	ready := true
-	for name, value := range checks {
-		if value != "ok" && (name != "supplyChain" || strings.EqualFold(os.Getenv("HARBOR_SUPPLY_CHAIN_REQUIRED"), "true")) {
-			ready = false
-		}
-	}
-	return ready, checks
+	return !supplyChainRequired || checks["supplyChain"] == "ok"
 }
