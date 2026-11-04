@@ -101,7 +101,7 @@ jobs:
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
           IMAGE_REGISTRY_USERNAME: ${{ github.actor }}
-          IMAGE_REGISTRY_PASSWORD: ${{ github.token }}
+          IMAGE_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           TENANT_IMAGE_REPOSITORY: ghcr.io/re8ch/service-backend-tenant-mcp
           TENANT_IMAGE_DOCKERFILE: platform/apps/tenant-mcp/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
