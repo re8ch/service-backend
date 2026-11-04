@@ -138,6 +138,13 @@ jwt:
            claims.environment == 'release-executor-identity-access' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-identity-access' &&
            claims.event_name == 'workflow_dispatch') ||
+          (claims.repository_visibility == 'private' &&
+           claims.repository_id == '1423312205' && claims.repository_owner_id == '334604879' &&
+           claims.repository == 'siren-observer/observability-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/static-release.yml@refs/heads/main' &&
+           claims.environment == 'release-executor-observability-metering' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-observability-metering' &&
+           claims.event_name == 'workflow_dispatch') ||
           (claims.repository_id == '1435935851' && claims.repository_owner_id == '334604858' &&
            claims.repository == 'pillars-infra/network-gitops' && claims.ref == 'refs/heads/main' &&
            claims.workflow_ref == 'pillars-infra/network-gitops/.github/workflows/static-release.yml@refs/heads/main' &&

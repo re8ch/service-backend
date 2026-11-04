@@ -266,3 +266,21 @@ def test_ceph_cloud_runner_exception_is_owned_by_storage_gitops():
     assert "claims.repository == 'strata-silica/storage-gitops'" in route
     assert "claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/ceph-static-release.yml@refs/heads/main'" in route
     assert "re8ch/service-backend/.github/workflows/ceph-static-release.yml" not in route
+
+
+def test_observability_static_release_passes_hosted_runner_gate():
+    github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
+    runner_gate = github['claimValidationRules'][1]['expression']
+    for boundary in (
+        "claims.runner_environment == 'github-hosted'",
+        "claims.repository_visibility == 'private'",
+        "claims.repository_id == '1423312205'",
+        "claims.repository_owner_id == '334604879'",
+        "claims.repository == 'siren-observer/observability-gitops'",
+        "claims.ref == 'refs/heads/main'",
+        "claims.workflow_ref == 'siren-observer/observability-gitops/.github/workflows/static-release.yml@refs/heads/main'",
+        "claims.environment == 'release-executor-observability-metering'",
+        "claims.aud == 'https://kube-api.re8ch.com/release-executor-observability-metering'",
+        "claims.event_name == 'workflow_dispatch'",
+    ):
+        assert boundary in runner_gate
