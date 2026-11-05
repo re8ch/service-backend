@@ -660,9 +660,6 @@ rules:
   - ssa-state-main-data-storage-toolhive-system
   verbs:
   - get
-  - patch
-  - update
-  - delete
 - apiGroups:
   - toolhive.stacklok.dev
   resources:
@@ -671,9 +668,6 @@ rules:
   - cloud-disk-mcp
   verbs:
   - get
-  - patch
-  - update
-  - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

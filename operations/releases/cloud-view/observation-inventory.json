@@ -678,12 +678,6 @@
     ]
   },
   {
-    "domain": "main",
-    "namespace": "toolhive-system",
-    "name": "ssa-state-main-data-storage-toolhive-system",
-    "workloads": []
-  },
-  {
     "domain": "networking",
     "namespace": "advfab-system",
     "name": "ssa-state-networking-native-advfab-system",

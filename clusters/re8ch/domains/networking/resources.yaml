@@ -1484,7 +1484,6 @@ rules:
   resourceNames:
   - ssa-state-agent-runtime-domain-toolhive-system
   - ssa-state-agent-runtime-toolhive-operator
-  - ssa-state-main-data-storage-toolhive-system
   - ssa-state-networking-native-toolhive-system
   - ssa-state-observability-chart-birfucate-metering-too-25959610d0
   resources:
