@@ -48,6 +48,7 @@ jobs:
           owner: ${{ matrix.owner }}
           repositories: ${{ matrix.repo }}
           permission-actions: write
+          permission-contents: read
       - id: executor
         env:
           GH_TOKEN: ${{ steps.dispatch.outputs.token }}
@@ -65,9 +66,12 @@ jobs:
             name="Storage accepted reconcile $DELIVERY"
             args+=(-f 'inputs[release_id]=main-data-storage-toolhive-system')
           fi
+          revision=$(gh api "repos/$repo/commits/main" --jq .sha)
           find_run() {
             gh api --paginate --slurp "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=main&per_page=100" |
-              jq -r --arg name "$name" '[.[].workflow_runs[] | select(.display_title==$name)] | first.id // empty'
+              jq -r --arg name "$name" --arg revision "$revision" '[.[].workflow_runs[] |
+                select(.display_title==$name and .actor.login=="re8ch-enterprise-maintenance[bot]") |
+                select(.head_sha==$revision or .conclusion=="success" or .status!="completed")] | first.id // empty'
           }
           id=$(find_run)
           if [[ -z "$id" ]]; then
