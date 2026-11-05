@@ -108,6 +108,14 @@ jwt:
           claims.runner_environment == 'self-hosted' ||
           (claims.runner_environment == 'github-hosted' &&
            claims.repository_visibility == 'private' &&
+           claims.repository_id == '1440886799' && claims.repository_owner_id == '334604832' &&
+           claims.repository == 'strata-silica/storage-gitops' && claims.ref == 'refs/heads/main' &&
+           claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/storage-reconcile.yml@refs/heads/main' &&
+           claims.event_name in ['workflow_dispatch', 'schedule'] &&
+           claims.environment == 'release-reconciler-data-storage' &&
+           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage') ||
+          (claims.runner_environment == 'github-hosted' &&
+           claims.repository_visibility == 'private' &&
            claims.repository_id == '1440886799' &&
            claims.repository_owner_id == '334604832' &&
            claims.repository == 'strata-silica/storage-gitops' &&
