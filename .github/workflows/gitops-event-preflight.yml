@@ -9,6 +9,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Read effective installation grants and event subscriptions
         env:
-          APP_ID: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
-          APP_KEY: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          APP_ID: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          APP_KEY: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
         run: ruby operations/github-maintenance/event_preflight.rb
