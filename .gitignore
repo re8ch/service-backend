@@ -11,3 +11,4 @@ contracts/infrastructure/trust/
 .private-infrastructure-output/
 clusters/re8ch/components/ai-operations/nodes.json
 clusters/re8ch/components/ai-operations/ssh_config.template
+.re8ch/task-context.json

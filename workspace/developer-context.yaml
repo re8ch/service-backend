@@ -1,0 +1,33 @@
+apiVersion: workspace.re8ch.com/v1alpha1
+kind: DeveloperContext
+metadata: {name: re8ch}
+spec:
+  authority:
+    repository: https://github.com/re8ch/service-backend.git
+    branch: main
+    rule: Git declarations are authoritative; GitHub collaboration surfaces are projections and evidence.
+  sources:
+    modules: catalogs/*/modules/*/module.yaml
+    gitops: operations/flux-federation/authority.yaml
+    context:
+      - AGENTS.md
+      - catalogs/_shared/backend-platform-context.md
+      - catalogs/*/modules/*/MEMORY.md
+  surfaces:
+    wiki:
+      repository: re8ch/service-backend.wiki.git
+      role: Human navigation and rendered context summaries.
+      authority: false
+      policy: Generated pages link to the exact source commit and never contain secrets or undeclared desired state.
+    projects:
+      - {organization: re8ch, number: 1, title: RE8CH GitOps Maintenance, role: Cross-domain GitOps work, authority: false}
+      - {organization: re8ch, number: 2, title: Service Backend Internal Operations, role: Host-bound and restricted operations, authority: false}
+      - {organization: re8ch, number: 4, title: Service Backend GitOps Observations, role: Runtime observation and reconciliation evidence, authority: false}
+    gists:
+      role: Short-lived, non-secret reproduction snippets referenced by an Issue or pull request.
+      authority: false
+      policy: A gist is never private, never desired state, and must be promoted to a repository before it becomes a dependency.
+  workspace:
+    codespaces: .devcontainer/devcontainer.json
+    worktrees: operations/workspace-controller/GITOPS-WORKTREE-POLICY.md
+    taskContext: .re8ch/task-context.json

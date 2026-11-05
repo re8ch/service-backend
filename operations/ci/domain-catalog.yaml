@@ -87,10 +87,13 @@ domains:
   control-plane:
     theme: constellations
     paths:
+      - .devcontainer/**
+      - operations/developer-context/**
       - operations/github-policy-reviewer/**
       - clusters/re8ch/components/gitops-events/**
       - catalogs/**
       - indexes/**
+      - workspace/**
       - workspace.yaml
       - platform/workspace-controller/**
       - platform/git-workspaces/**
@@ -112,6 +115,7 @@ domains:
       - tests/test_workspace_controller.py
       - tests/test_workspace_mirror.py
       - tests/test_declarations.py
+      - tests/test_developer_context.py
 
   networking:
     theme: winds
@@ -328,7 +332,7 @@ domains:
 # Inputs of standalone CI checks. Shared/unknown changes enable every check.
 # These declarations narrow execution, not ownership or required status checks.
 check_paths:
-  workspace: [catalogs/**, indexes/**, workspace/**, workspace.yaml, operations/workspace-controller/**]
+  workspace: [catalogs/**, indexes/**, workspace/**, workspace.yaml, operations/workspace-controller/**, operations/developer-context/**]
   helm_inventory: [clusters/**, platform/**, operations/releases/helmrelease_inventory.py, operations/releases/helmrelease-*.yaml]
   commerce: [operations/commerce/**]
   k6: [operations/k6/**, clusters/re8ch/components/synthetic-monitoring/**, tests/test_k6*]

@@ -1,0 +1,1344 @@
+{
+  "apiVersion": "workspace.re8ch.com/v1alpha1",
+  "edges": [
+    {
+      "from": "2woodblog",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "advanced-fabric",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "aesthete",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "among-clusters",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "anycam",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "anycam-backend",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "anycam-ios",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "anycam-ios",
+      "to": "anycam-backend",
+      "type": "depends-on"
+    },
+    {
+      "from": "anycam-website",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "anysiteonearth",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "anysiteonearth-website",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "artchais-microservices",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "artchais-microservices",
+      "to": "artchais-web",
+      "type": "depends-on"
+    },
+    {
+      "from": "artchais-web",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "arthandler-artchais-web",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "arthandler-artchais-web",
+      "to": "artchais-web",
+      "type": "depends-on"
+    },
+    {
+      "from": "arthandler-gallery-robot",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "arthandler-gallery-robot",
+      "to": "artchais-web",
+      "type": "depends-on"
+    },
+    {
+      "from": "baozou-ppt-studio",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "bifurcate",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "brand-assets",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "career-ops",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "catalog",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "catalog",
+      "to": "among-clusters",
+      "type": "depends-on"
+    },
+    {
+      "from": "catalog",
+      "to": "bifurcate",
+      "type": "depends-on"
+    },
+    {
+      "from": "catalog",
+      "to": "connectool",
+      "type": "depends-on"
+    },
+    {
+      "from": "catalog",
+      "to": "user-hub",
+      "type": "depends-on"
+    },
+    {
+      "from": "cloud-functions",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "cluster-website",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "codex-admin-plugins",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "compocv",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "connectool",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "director-engines",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "farseer",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "garageband-mcp",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "garageband-mcp-site",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "garageband-mcp-site",
+      "to": "garageband-mcp",
+      "type": "depends-on"
+    },
+    {
+      "from": "github:gists",
+      "to": "service-backend-context",
+      "type": "projects"
+    },
+    {
+      "from": "github:project:re8ch:1",
+      "to": "service-backend-context",
+      "type": "projects"
+    },
+    {
+      "from": "github:project:re8ch:2",
+      "to": "service-backend-context",
+      "type": "projects"
+    },
+    {
+      "from": "github:project:re8ch:4",
+      "to": "service-backend-context",
+      "type": "projects"
+    },
+    {
+      "from": "github:wiki",
+      "to": "service-backend-context",
+      "type": "projects"
+    },
+    {
+      "from": "gitops:agent-runtime",
+      "to": "service-backend-context",
+      "type": "governed-by"
+    },
+    {
+      "from": "gitops:identity-access",
+      "to": "service-backend-context",
+      "type": "governed-by"
+    },
+    {
+      "from": "gitops:networking",
+      "to": "service-backend-context",
+      "type": "governed-by"
+    },
+    {
+      "from": "gitops:observability-metering",
+      "to": "service-backend-context",
+      "type": "governed-by"
+    },
+    {
+      "from": "headlamp-advanced-fabric",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "headlamp-advanced-fabric",
+      "to": "advanced-fabric",
+      "type": "depends-on"
+    },
+    {
+      "from": "headlamp-birfucate",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "headlamp-birfucate",
+      "to": "among-clusters",
+      "type": "depends-on"
+    },
+    {
+      "from": "image-website",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "jjklive",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "ledger",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "ledger",
+      "to": "ledger-dashboard",
+      "type": "depends-on"
+    },
+    {
+      "from": "ledger-dashboard",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "ledger-site",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "mcp-registry",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "mihomos-cluster",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "motor-muscle-sim",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "netbird-core",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "network-decomplexer-ios",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "observable-website",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "phonaid-android",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "phonaid-android",
+      "to": "phonaid-service",
+      "type": "depends-on"
+    },
+    {
+      "from": "phonaid-service",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "phonaid-website",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "phonaid-website",
+      "to": "phonaid-service",
+      "type": "depends-on"
+    },
+    {
+      "from": "product-assets",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "product-prd",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "product-prd",
+      "to": "artchais-microservices",
+      "type": "depends-on"
+    },
+    {
+      "from": "product-prd",
+      "to": "artchais-web",
+      "type": "depends-on"
+    },
+    {
+      "from": "product-public-data",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-app",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-brand",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-capture-helper",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-extension",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-ios",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-ios",
+      "to": "qianwen-app",
+      "type": "depends-on"
+    },
+    {
+      "from": "qianwen-web",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-web",
+      "to": "qianwen-app",
+      "type": "depends-on"
+    },
+    {
+      "from": "qianwen-wechat",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "qianwen-wechat",
+      "to": "qianwen-app",
+      "type": "depends-on"
+    },
+    {
+      "from": "re8ch-core",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "registry-product-site",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "service-backend",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "space-mining-stage",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "thiking-machine",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "tool-distribution",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "user-hub",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    },
+    {
+      "from": "z-anatomy-models",
+      "to": "service-backend-context",
+      "type": "context-provided-by"
+    }
+  ],
+  "kind": "DeveloperContextGraph",
+  "nodes": [
+    {
+      "catalog": "2woodblog",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/2woodblog/modules/2woodblog/MEMORY.md"
+      ],
+      "declaration": "catalogs/2woodblog/modules/2woodblog/module.yaml",
+      "id": "2woodblog",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/Woomou/2woodblog.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/advanced-fabric/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/advanced-fabric/module.yaml",
+      "id": "advanced-fabric",
+      "kind": "module",
+      "projectType": "network-controller",
+      "repository": "https://github.com/advanced-fabrics/core.git"
+    },
+    {
+      "catalog": "aesthete",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/aesthete/modules/aesthete/MEMORY.md"
+      ],
+      "declaration": "catalogs/aesthete/modules/aesthete/module.yaml",
+      "id": "aesthete",
+      "kind": "module",
+      "projectType": "visual-product",
+      "repository": "https://github.com/re8ch/aesthete.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/among-clusters/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/among-clusters/module.yaml",
+      "id": "among-clusters",
+      "kind": "module",
+      "projectType": "kubernetes-controller",
+      "repository": "https://github.com/among-clusters/among-clusters.git"
+    },
+    {
+      "catalog": "anycam",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/anycam/modules/anycam/MEMORY.md"
+      ],
+      "declaration": "catalogs/anycam/modules/anycam/module.yaml",
+      "id": "anycam",
+      "kind": "module",
+      "projectType": "app",
+      "repository": "https://github.com/re8ch/Anycam.git"
+    },
+    {
+      "catalog": "anycam",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/anycam/modules/anycam-backend/MEMORY.md"
+      ],
+      "declaration": "catalogs/anycam/modules/anycam-backend/module.yaml",
+      "id": "anycam-backend",
+      "kind": "module",
+      "projectType": "service",
+      "repository": "https://github.com/re8ch/anycam-backend.git"
+    },
+    {
+      "catalog": "anycam",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/anycam/modules/anycam-ios/MEMORY.md"
+      ],
+      "declaration": "catalogs/anycam/modules/anycam-ios/module.yaml",
+      "id": "anycam-ios",
+      "kind": "module",
+      "projectType": "ios",
+      "repository": "https://github.com/re8ch/AnycamIOS.git"
+    },
+    {
+      "catalog": "anycam",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/anycam/modules/anycam-website/MEMORY.md"
+      ],
+      "declaration": "catalogs/anycam/modules/anycam-website/module.yaml",
+      "id": "anycam-website",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch/anycam-website.git"
+    },
+    {
+      "catalog": "anysiteonearth",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/anysiteonearth/modules/anysiteonearth/MEMORY.md"
+      ],
+      "declaration": "catalogs/anysiteonearth/modules/anysiteonearth/module.yaml",
+      "id": "anysiteonearth",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch/anysiteonearth.git"
+    },
+    {
+      "catalog": "anysiteonearth",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/anysiteonearth/modules/anysiteonearth-website/MEMORY.md"
+      ],
+      "declaration": "catalogs/anysiteonearth/modules/anysiteonearth-website/module.yaml",
+      "id": "anysiteonearth-website",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch/anysiteonearth-website.git"
+    },
+    {
+      "catalog": "artchais",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/artchais/modules/artchais-microservices/MEMORY.md"
+      ],
+      "declaration": "catalogs/artchais/modules/artchais-microservices/module.yaml",
+      "id": "artchais-microservices",
+      "kind": "module",
+      "projectType": "microservices",
+      "repository": "https://github.com/Rchais/Artchais-MicroServices.git"
+    },
+    {
+      "catalog": "artchais",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/artchais/modules/artchais-web/MEMORY.md"
+      ],
+      "declaration": "catalogs/artchais/modules/artchais-web/module.yaml",
+      "id": "artchais-web",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/Rchais/ArtChais-Web.git"
+    },
+    {
+      "catalog": "artchais",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/artchais/modules/arthandler-artchais-web/MEMORY.md"
+      ],
+      "declaration": "catalogs/artchais/modules/arthandler-artchais-web/module.yaml",
+      "id": "arthandler-artchais-web",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/Rchais/arthandler-artchais-web.git"
+    },
+    {
+      "catalog": "artchais",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/artchais/modules/arthandler-gallery-robot/MEMORY.md"
+      ],
+      "declaration": "catalogs/artchais/modules/arthandler-gallery-robot/module.yaml",
+      "id": "arthandler-gallery-robot",
+      "kind": "module",
+      "projectType": "automation",
+      "repository": "https://github.com/Rchais/ArtHandler-Gallery-Robot.git"
+    },
+    {
+      "catalog": "baozou-ppt-studio",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/MEMORY.md"
+      ],
+      "declaration": "catalogs/baozou-ppt-studio/modules/baozou-ppt-studio/module.yaml",
+      "id": "baozou-ppt-studio",
+      "kind": "module",
+      "projectType": "presentation-product",
+      "repository": "https://github.com/re8ch/baozou-ppt-studio.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/bifurcate/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/bifurcate/module.yaml",
+      "id": "bifurcate",
+      "kind": "module",
+      "projectType": "metering-api",
+      "repository": "https://github.com/bifurcate-systems/bifurcate.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/brand-assets/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/brand-assets/module.yaml",
+      "id": "brand-assets",
+      "kind": "module",
+      "projectType": "brand-assets",
+      "repository": "https://github.com/re8ch/brand-assets.git"
+    },
+    {
+      "catalog": "career-ops",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/career-ops/modules/career-ops/MEMORY.md"
+      ],
+      "declaration": "catalogs/career-ops/modules/career-ops/module.yaml",
+      "id": "career-ops",
+      "kind": "module",
+      "projectType": "operations",
+      "repository": "https://github.com/Woomou/career-ops.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/catalog/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/catalog/module.yaml",
+      "id": "catalog",
+      "kind": "module",
+      "projectType": "static-web-application",
+      "repository": "https://github.com/re8ch-business/catalog.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/cloud-functions/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/cloud-functions/module.yaml",
+      "id": "cloud-functions",
+      "kind": "module",
+      "projectType": "nuclio-functions",
+      "repository": "https://github.com/re8ch/cloud-functions.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/cluster-website/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/cluster-website/module.yaml",
+      "id": "cluster-website",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch-cloud/cluster-website.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/codex-admin-plugins/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/codex-admin-plugins/module.yaml",
+      "id": "codex-admin-plugins",
+      "kind": "module",
+      "projectType": "codex-plugin-bundle",
+      "repository": "https://github.com/re8ch-ai/codex-admin-plugins.git"
+    },
+    {
+      "catalog": "compocv",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/compocv/modules/compocv/MEMORY.md"
+      ],
+      "declaration": "catalogs/compocv/modules/compocv/module.yaml",
+      "id": "compocv",
+      "kind": "module",
+      "projectType": "product-api",
+      "repository": "https://github.com/compocv/compocv.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/connectool/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/connectool/module.yaml",
+      "id": "connectool",
+      "kind": "module",
+      "projectType": "ai-tool-distribution",
+      "repository": "https://github.com/among-clusters/connectool.git"
+    },
+    {
+      "catalog": "baozou-ppt-studio",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/baozou-ppt-studio/modules/director-engines/MEMORY.md"
+      ],
+      "declaration": "catalogs/baozou-ppt-studio/modules/director-engines/module.yaml",
+      "id": "director-engines",
+      "kind": "module",
+      "projectType": "rendering-engine",
+      "repository": "https://github.com/re8ch/director-engines.git"
+    },
+    {
+      "catalog": "farseer",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/farseer/modules/farseer/MEMORY.md"
+      ],
+      "declaration": "catalogs/farseer/modules/farseer/module.yaml",
+      "id": "farseer",
+      "kind": "module",
+      "projectType": "product-api",
+      "repository": "https://github.com/re8ch/farseer.git"
+    },
+    {
+      "catalog": "garageband",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/garageband/modules/garageband-mcp/MEMORY.md"
+      ],
+      "declaration": "catalogs/garageband/modules/garageband-mcp/module.yaml",
+      "id": "garageband-mcp",
+      "kind": "module",
+      "projectType": "mcp-server",
+      "repository": "https://github.com/re8ch/garageband-mcp.git"
+    },
+    {
+      "catalog": "garageband",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/garageband/modules/garageband-mcp-site/MEMORY.md"
+      ],
+      "declaration": "catalogs/garageband/modules/garageband-mcp-site/module.yaml",
+      "id": "garageband-mcp-site",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch/garageband-mcp-site.git"
+    },
+    {
+      "authority": false,
+      "id": "github:gists",
+      "kind": "collaboration-surface",
+      "policy": "A gist is never private, never desired state, and must be promoted to a repository before it becomes a dependency.",
+      "role": "Short-lived, non-secret reproduction snippets referenced by an Issue or pull request."
+    },
+    {
+      "authority": false,
+      "id": "github:project:re8ch:1",
+      "kind": "collaboration-surface",
+      "number": 1,
+      "organization": "re8ch",
+      "role": "Cross-domain GitOps work",
+      "title": "RE8CH GitOps Maintenance"
+    },
+    {
+      "authority": false,
+      "id": "github:project:re8ch:2",
+      "kind": "collaboration-surface",
+      "number": 2,
+      "organization": "re8ch",
+      "role": "Host-bound and restricted operations",
+      "title": "Service Backend Internal Operations"
+    },
+    {
+      "authority": false,
+      "id": "github:project:re8ch:4",
+      "kind": "collaboration-surface",
+      "number": 4,
+      "organization": "re8ch",
+      "role": "Runtime observation and reconciliation evidence",
+      "title": "Service Backend GitOps Observations"
+    },
+    {
+      "authority": false,
+      "id": "github:wiki",
+      "kind": "collaboration-surface",
+      "policy": "Generated pages link to the exact source commit and never contain secrets or undeclared desired state.",
+      "repository": "re8ch/service-backend.wiki.git",
+      "role": "Human navigation and rendered context summaries."
+    },
+    {
+      "controllerNamespace": "flux-agent-system",
+      "declaration": "operations/flux-federation/authority.yaml",
+      "domain": "agent-runtime",
+      "id": "gitops:agent-runtime",
+      "kind": "gitops-repository",
+      "repository": "ssh://git@ssh.github.com:443/8iops/agent-gitops.git"
+    },
+    {
+      "controllerNamespace": "flux-identity-system",
+      "declaration": "operations/flux-federation/authority.yaml",
+      "domain": "identity-access",
+      "id": "gitops:identity-access",
+      "kind": "gitops-repository",
+      "repository": "ssh://git@ssh.github.com:443/re8ch/identity-gitops.git"
+    },
+    {
+      "controllerNamespace": "flux-network-system",
+      "declaration": "operations/flux-federation/authority.yaml",
+      "domain": "networking",
+      "id": "gitops:networking",
+      "kind": "gitops-repository",
+      "repository": "https://github.com/pillars-infra/network-gitops"
+    },
+    {
+      "controllerNamespace": "flux-observability-system",
+      "declaration": "operations/flux-federation/authority.yaml",
+      "domain": "observability-metering",
+      "id": "gitops:observability-metering",
+      "kind": "gitops-repository",
+      "repository": "ssh://git@ssh.github.com:443/siren-observer/observability-gitops.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/headlamp-advanced-fabric/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/headlamp-advanced-fabric/module.yaml",
+      "id": "headlamp-advanced-fabric",
+      "kind": "module",
+      "projectType": "headlamp-plugin",
+      "repository": "https://github.com/advanced-fabrics/headlamp-advanced-fabric.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/headlamp-birfucate/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/headlamp-birfucate/module.yaml",
+      "id": "headlamp-birfucate",
+      "kind": "module",
+      "projectType": "headlamp-plugin",
+      "repository": "https://github.com/among-clusters/headlamp-birfucate.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/image-website/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/image-website/module.yaml",
+      "id": "image-website",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch-image/image-website.git"
+    },
+    {
+      "catalog": "jjklive",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/jjklive/modules/jjklive/MEMORY.md"
+      ],
+      "declaration": "catalogs/jjklive/modules/jjklive/module.yaml",
+      "id": "jjklive",
+      "kind": "module",
+      "projectType": "game",
+      "repository": "https://github.com/re8ch/jjklive.git"
+    },
+    {
+      "catalog": "ledger",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/ledger/modules/ledger/MEMORY.md"
+      ],
+      "declaration": "catalogs/ledger/modules/ledger/module.yaml",
+      "id": "ledger",
+      "kind": "module",
+      "projectType": "finance-platform",
+      "repository": "https://github.com/re8ch/ledger.git"
+    },
+    {
+      "catalog": "ledger",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/ledger/modules/ledger-dashboard/MEMORY.md"
+      ],
+      "declaration": "catalogs/ledger/modules/ledger-dashboard/module.yaml",
+      "id": "ledger-dashboard",
+      "kind": "module",
+      "projectType": "web-dashboard",
+      "repository": "https://github.com/re8ch/ledger-dashboard.git"
+    },
+    {
+      "catalog": "ledger",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/ledger/modules/ledger-site/MEMORY.md"
+      ],
+      "declaration": "catalogs/ledger/modules/ledger-site/module.yaml",
+      "id": "ledger-site",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch/ledger-website.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/mcp-registry/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/mcp-registry/module.yaml",
+      "id": "mcp-registry",
+      "kind": "module",
+      "projectType": "upstream-dependency",
+      "repository": "https://github.com/modelcontextprotocol/registry.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/mihomos-cluster/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/mihomos-cluster/module.yaml",
+      "id": "mihomos-cluster",
+      "kind": "module",
+      "projectType": "kubernetes-network-controller",
+      "repository": "https://github.com/public-edge/mihomos-cluster.git"
+    },
+    {
+      "catalog": "motor-muscle-sim",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/motor-muscle-sim/modules/motor-muscle-sim/MEMORY.md"
+      ],
+      "declaration": "catalogs/motor-muscle-sim/modules/motor-muscle-sim/module.yaml",
+      "id": "motor-muscle-sim",
+      "kind": "module",
+      "projectType": "simulation",
+      "repository": "https://github.com/re8ch/motor-muscle-sim.git"
+    },
+    {
+      "catalog": "network-decomplexer",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/network-decomplexer/modules/netbird-core/MEMORY.md"
+      ],
+      "declaration": "catalogs/network-decomplexer/modules/netbird-core/module.yaml",
+      "id": "netbird-core",
+      "kind": "module",
+      "projectType": "upstream-dependency",
+      "repository": "https://github.com/netbirdio/netbird.git"
+    },
+    {
+      "catalog": "network-decomplexer",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/network-decomplexer/modules/network-decomplexer-ios/MEMORY.md"
+      ],
+      "declaration": "catalogs/network-decomplexer/modules/network-decomplexer-ios/module.yaml",
+      "id": "network-decomplexer-ios",
+      "kind": "module",
+      "projectType": "ios",
+      "repository": "https://github.com/Woomou/network-decomplexer-ios.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/observable-website/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/observable-website/module.yaml",
+      "id": "observable-website",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch-observability/observable-website.git"
+    },
+    {
+      "catalog": "phonaid",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/phonaid/modules/phonaid-android/MEMORY.md"
+      ],
+      "declaration": "catalogs/phonaid/modules/phonaid-android/module.yaml",
+      "id": "phonaid-android",
+      "kind": "module",
+      "projectType": "android",
+      "repository": "https://github.com/re8ch/phonaid-android.git"
+    },
+    {
+      "catalog": "phonaid",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/phonaid/modules/phonaid-service/MEMORY.md"
+      ],
+      "declaration": "catalogs/phonaid/modules/phonaid-service/module.yaml",
+      "id": "phonaid-service",
+      "kind": "module",
+      "projectType": "service",
+      "repository": "https://github.com/re8ch/phonaid-service.git"
+    },
+    {
+      "catalog": "phonaid",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/phonaid/modules/phonaid-website/MEMORY.md"
+      ],
+      "declaration": "catalogs/phonaid/modules/phonaid-website/module.yaml",
+      "id": "phonaid-website",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch/phonaid-website.git"
+    },
+    {
+      "catalog": "artchais",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/artchais/modules/product-assets/MEMORY.md"
+      ],
+      "declaration": "catalogs/artchais/modules/product-assets/module.yaml",
+      "id": "product-assets",
+      "kind": "module",
+      "projectType": "brand-assets",
+      "repository": "https://github.com/Rchais/product-assets.git"
+    },
+    {
+      "catalog": "artchais",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/artchais/modules/product-prd/MEMORY.md"
+      ],
+      "declaration": "catalogs/artchais/modules/product-prd/module.yaml",
+      "id": "product-prd",
+      "kind": "module",
+      "projectType": "product-documentation",
+      "repository": "https://github.com/Rchais/product-prd.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/product-public-data/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/product-public-data/module.yaml",
+      "id": "product-public-data",
+      "kind": "module",
+      "projectType": "public-data",
+      "repository": "https://github.com/re8ch/product-public-data.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-app/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-app/module.yaml",
+      "id": "qianwen-app",
+      "kind": "module",
+      "projectType": "web-app",
+      "repository": "https://github.com/OCGS-with-pattern/Qianwen-app.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-brand/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-brand/module.yaml",
+      "id": "qianwen-brand",
+      "kind": "module",
+      "projectType": "brand-assets",
+      "repository": "https://github.com/OCGS-with-pattern/Qianwen-brand.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-capture-helper/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-capture-helper/module.yaml",
+      "id": "qianwen-capture-helper",
+      "kind": "module",
+      "projectType": "helper",
+      "repository": "https://github.com/OCGS-with-pattern/Qianwen-capture-helper.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-extension/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-extension/module.yaml",
+      "id": "qianwen-extension",
+      "kind": "module",
+      "projectType": "browser-extension",
+      "repository": "https://github.com/OCGS-with-pattern/Qianwen-extension.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-ios/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-ios/module.yaml",
+      "id": "qianwen-ios",
+      "kind": "module",
+      "projectType": "ios",
+      "repository": "https://github.com/OCGS-with-pattern/QianwenIOS.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-web/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-web/module.yaml",
+      "id": "qianwen-web",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/OCGS-with-pattern/Qianwen-web.git"
+    },
+    {
+      "catalog": "qianwen",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/qianwen/modules/qianwen-wechat/MEMORY.md"
+      ],
+      "declaration": "catalogs/qianwen/modules/qianwen-wechat/module.yaml",
+      "id": "qianwen-wechat",
+      "kind": "module",
+      "projectType": "wechat-miniprogram",
+      "repository": "https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/re8ch-core/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/re8ch-core/module.yaml",
+      "id": "re8ch-core",
+      "kind": "module",
+      "projectType": "organization-core",
+      "repository": "https://github.com/re8ch/re8ch.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/registry-product-site/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/registry-product-site/module.yaml",
+      "id": "registry-product-site",
+      "kind": "module",
+      "projectType": "web",
+      "repository": "https://github.com/re8ch-image/registry-website.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/service-backend/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/service-backend/module.yaml",
+      "id": "service-backend",
+      "kind": "module",
+      "projectType": "gitops-control-plane",
+      "repository": "https://github.com/re8ch/service-backend.git"
+    },
+    {
+      "id": "service-backend-context",
+      "kind": "context-authority",
+      "repository": "https://github.com/re8ch/service-backend.git"
+    },
+    {
+      "catalog": "space-mining-stage",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/space-mining-stage/modules/space-mining-stage/MEMORY.md"
+      ],
+      "declaration": "catalogs/space-mining-stage/modules/space-mining-stage/module.yaml",
+      "id": "space-mining-stage",
+      "kind": "module",
+      "projectType": "game",
+      "repository": "https://github.com/re8ch/space-mining-stage.git"
+    },
+    {
+      "catalog": "thiking-machine",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/thiking-machine/modules/thiking-machine/MEMORY.md"
+      ],
+      "declaration": "catalogs/thiking-machine/modules/thiking-machine/module.yaml",
+      "id": "thiking-machine",
+      "kind": "module",
+      "projectType": "ai-research",
+      "repository": "https://github.com/re8ch/thiking-machine.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/tool-distribution/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/tool-distribution/module.yaml",
+      "id": "tool-distribution",
+      "kind": "module",
+      "projectType": "tool-distribution",
+      "repository": "https://github.com/re8ch/tool-distribution.git"
+    },
+    {
+      "catalog": "platform",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/platform/modules/user-hub/MEMORY.md"
+      ],
+      "declaration": "catalogs/platform/modules/user-hub/module.yaml",
+      "id": "user-hub",
+      "kind": "module",
+      "projectType": "static-web-application",
+      "repository": "https://github.com/re8ch/user-hub.git"
+    },
+    {
+      "catalog": "aesthete",
+      "context": [
+        "AGENTS.md",
+        "catalogs/_shared/backend-platform-context.md",
+        "catalogs/aesthete/modules/z-anatomy-models/MEMORY.md"
+      ],
+      "declaration": "catalogs/aesthete/modules/z-anatomy-models/module.yaml",
+      "id": "z-anatomy-models",
+      "kind": "module",
+      "projectType": "model-assets",
+      "repository": "https://github.com/Z-Anatomy/Models-of-human-anatomy.git"
+    }
+  ],
+  "sourceSha256": "f5689a7df9c1d5a3978e67c521324d039a80bced31c529979810b4a759809fb9"
+}

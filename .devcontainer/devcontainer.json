@@ -1,0 +1,21 @@
+{
+  "name": "RE8CH developer context",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.13-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "containerEnv": {
+    "RE8CH_CONTEXT_DECLARATION": "workspace/developer-context.yaml"
+  },
+  "onCreateCommand": "python -m pip install --user 'PyYAML>=6.0.2' 'pytest>=8.3'",
+  "postCreateCommand": "python operations/developer-context/context.py doctor",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "redhat.vscode-yaml",
+        "ms-python.python"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

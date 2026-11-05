@@ -115,6 +115,14 @@ worktree. There is no shared RE8CH checkout tree. GitHub remains product source
 authority. This repository is the catalog/GitOps authority and its signed GitHub
 `main` is the Flux source.
 
+The cross-repository development context is declared in
+[`workspace/developer-context.yaml`](workspace/developer-context.yaml) and
+rendered to [`indexes/developer-context.json`](indexes/developer-context.json).
+It connects this control plane to every catalog module and autonomous GitOps
+repository, and defines Codespaces, task worktrees, Wiki, Projects and Gists as
+bounded collaboration surfaces. See
+[`operations/developer-context/README.md`](operations/developer-context/README.md).
+
 The cluster and platform history formerly stored in
 `re8ch/cloud-functions` was imported on 2026-08-24. Its old-to-new commit maps
 are maintained under `operations/migrations/cloud-functions-history/`.
