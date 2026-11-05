@@ -1,0 +1,23 @@
+apiVersion: v1
+data:
+    secret: ENC[AES256_GCM,data:rt/QrWIYH0UBVgeo1/hYCZtLu3QUhCbSBnsbN1v6VmNRaoWiex894rT9sKptrT1uJKABAy/AOQOiDB9pf/yb1oBu5wwOio44oYl49UaapoSSnS0UNOaxBw==,iv:ZB4bxJubeTJyZ52IeCkLzwY8o+9PaCClQljMqEQ07ts=,tag:GxYQIKJkrQ3Z5GEwXIa4Hw==,type:str]
+kind: Secret
+metadata:
+    creationTimestamp: null
+    name: maintenance-event-signature
+    namespace: gitops-events
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA0TFJFbnoyaTNQU0hGYWx2
+            QXIvUG90aEpBNVhJSlNVWEZoNTd3YlcwU1JVCmJuVmN5azF4cnA2V0tsZ0tYL0pi
+            dEFKY3BFcE01bmRnVTBhR0FYL3RZZm8KLS0tIDFOMFBseWJHeHU4dEwzK05ZUTg2
+            QjRmV0hzSnY1OHAwTzBQK3FKN0t6aVEKPiXugv7INuxMx9HStBC5SQAYaBrwfuXk
+            59AZkNCLrplVSi0HDmkmBpk279n3DPL1J3d7RAHOh2Cee277u6QluQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1c7camhc8ql85t5u4hrjmsmkurfa0n0v7lg05espasa9fqapjz5vqql8lfj
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-05T18:59:31Z"
+    mac: ENC[AES256_GCM,data:to0ZPCvKaMObRa6bCZTXRgbaSDkTWWQ8RYLMke+XnSJCoNN+yUjg7U4sVNpEG4oTJKDcp2/VjbGjCe3+l8fBbQuEDoxaqF2HhKgT7nT3FMBhK3kF9PcxKL9zk+z2m8BdL/mm2YSl4Y8CgEB0/mRX4Vj+3cao+5kKfAnD9YgCkzw=,iv:zrLVEEe+HcXOHzLeo0ySSpB1SriHf34kBqMefXq9PVE=,tag:xj30NP6B1Ql3x7Z3sJ3RcA==,type:str]
+    version: 3.13.3
