@@ -8,8 +8,8 @@ jobs:
     steps:
       - name: Bind the existing App callback and verify its URL
         env:
-          APP_ID: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
-          APP_KEY: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          APP_ID: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          APP_KEY: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
           SIGNATURE_KEY: ${{ secrets.GITOPS_RELEASE_WEBHOOK_SECRET }}
         shell: ruby {0}
         run: |

@@ -79,8 +79,8 @@ def test_refuses_stale_unsigned_or_rejected_prs(api, expected_sha, message):
 
 def test_workflow_uses_app_identity_without_repository_write_token():
     text = (ROOT / ".github/workflows/github-bot-merge.yml").read_text()
-    assert "GITOPS_MAINTENANCE_APP_ID" in text
-    assert "GITOPS_MAINTENANCE_PRIVATE_KEY" in text
+    assert "GITOPS_ENTERPRISE_MAINTENANCE_APP_ID" in text
+    assert "GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY" in text
     assert "permission-contents: write" in text
     assert "permission-pull-requests: write" in text
     assert "permissions: {contents: read}" in text
