@@ -20,7 +20,10 @@ if [[ -n "${RECEIPT_EXECUTOR_ID:-}" ]]; then
   selector='select(.status=="completed")'
   dedupe="$dedupe:$RECEIPT_EXECUTOR_ID"
 fi
-if run=$(gh api "$endpoint" --jq "$selector"); then
+if [[ -n "${DELIVERY:-}" && -z "${RECEIPT_EXECUTOR_ID:-}" ]]; then
+  signal="Receipt observed; no correlated executor run or managed-object readback"
+  dedupe="$dedupe:receipt-only"
+elif run=$(gh api "$endpoint" --jq "$selector"); then
   if [[ -n "$run" ]]; then
     source_id=$(jq -r .id <<<"$run")
     logs=$(jq -r .html_url <<<"$run")
@@ -95,7 +98,12 @@ edit 'Workflow Run ID' --text "${source_id:-$GITHUB_RUN_ID}"
 edit 'Related Logs' --text "$logs"
 edit 'Signal' --text "$signal"
 
-if [[ -n "$revision" ]]; then edit 'Revision' --text "$revision"; fi
+if [[ -n "$revision" ]]; then
+  edit 'Revision' --text "$revision"
+elif [[ -n "${DELIVERY:-}" ]]; then
+  revision_field=$(jq -er '.fields[]|select(.name=="Revision")|.id' <<<"$fields")
+  gh project item-edit --project-id "$project" --id "$item" --field-id "$revision_field" --clear
+fi
 select_value 'Observation State' "$state"
 select_value 'Reconcile Action' 'Observe Only'
 edit 'Dedupe Key' --text "$dedupe"
