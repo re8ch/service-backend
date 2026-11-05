@@ -45,8 +45,17 @@ def test_cert_manager_webhook_is_ha_on_owned_service_plane():
             "key": "node-role.kubernetes.io/control-plane",
             "operator": "Exists",
             "effect": "NoSchedule",
-        }
+        },
+        {
+            "key": "scheduling.re8ch.com/capacity-window",
+            "operator": "Equal",
+            "value": "closed",
+            "effect": "NoSchedule",
+        },
     ]
+    assert webhook["resources"]["requests"]["memory"] == "64Mi"
+    terms = webhook["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"]
+    assert terms[0]["matchExpressions"][1]["values"] == ["a1-wsl-zt", "r640"]
     assert webhook["strategy"] == {
         "type": "RollingUpdate",
         "rollingUpdate": {"maxSurge": 0, "maxUnavailable": 1},
