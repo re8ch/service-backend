@@ -45,6 +45,8 @@ spec:
     metadata: {labels: {app: gitops-intake}}
     spec:
       serviceAccountName: intake
+      nodeSelector: {scheduling.re8ch.com/service-plane: core}
+      tolerations: [{key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}]
       automountServiceAccountToken: true
       securityContext: {runAsNonRoot: true, runAsUser: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
@@ -76,6 +78,8 @@ spec:
     metadata: {labels: {app: gitops-admission}}
     spec:
       serviceAccountName: default
+      nodeSelector: {scheduling.re8ch.com/service-plane: core}
+      tolerations: [{key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}]
       automountServiceAccountToken: false
       securityContext: {runAsNonRoot: true, runAsUser: 65532, seccompProfile: {type: RuntimeDefault}}
       containers:
