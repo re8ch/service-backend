@@ -16,6 +16,7 @@ CLOUD_JOBS = {
     ".github/workflows/gitops-maintenance-summary.yml": {"summarize"},
     ".github/workflows/gitops-observation.yml": {"record", "summarize"},
     ".github/workflows/gitops-event-preflight.yml": {"inspect"},
+    ".github/workflows/gitops-maintenance-callback.yml": {"configure"},
     ".github/workflows/node-contract-observer.yml": {"flux"},
     ".github/workflows/ci.yml": {
         "impact", "contract", "k6-contracts", "schema", "unit", "render",

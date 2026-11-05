@@ -1,0 +1,37 @@
+name: Configure verified Maintenance callback
+on: workflow_dispatch
+permissions: {}
+jobs:
+  configure:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Bind the existing App callback and verify its URL
+        env:
+          APP_ID: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          APP_KEY: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          SIGNATURE_KEY: ${{ secrets.GITOPS_RELEASE_WEBHOOK_SECRET }}
+        shell: ruby {0}
+        run: |
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          require 'net/http'
+          abort 'Missing receiver key' unless ENV.fetch('SIGNATURE_KEY').match?(/\A[0-9a-f]{64}\z/)
+          encode = ->(v) { Base64.urlsafe_encode64(v, padding: false) }
+          header = encode.call(JSON.generate(alg: 'RS256', typ: 'JWT'))
+          now = Time.now.to_i
+          claims = encode.call(JSON.generate(iss: ENV.fetch('APP_ID'), iat: now-60, exp: now+300))
+          payload = "#{header}.#{claims}"
+          jwt = "#{payload}.#{encode.call(OpenSSL::PKey::RSA.new(ENV.delete('APP_KEY')).sign('SHA256',payload))}"
+          target = 'https://hooks.re8ch.com/events/github/gitops'
+          uri = URI('https://api.github.com/app/hook/config')
+          headers = {'Authorization'=>"Bearer #{jwt}", 'User-Agent'=>'gitops-maintenance', 'Content-Type'=>'application/json'}
+          Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
+            current = http.get(uri.path, headers)
+            abort "Cannot inspect callback: #{current.code}" unless current.is_a?(Net::HTTPSuccess)
+            abort 'Existing callback has a different destination' unless ['', target].include?(JSON.parse(current.body)['url'].to_s)
+            reply = http.patch(uri.path, JSON.generate(url: target, content_type: 'json', insecure_ssl: '0', secret: ENV.delete('SIGNATURE_KEY')), headers)
+            abort "Callback update failed: #{reply.code}" unless reply.is_a?(Net::HTTPSuccess)
+            abort 'Callback readback failed' unless JSON.parse(http.get(uri.path, headers).body)['url'] == target
+          end
