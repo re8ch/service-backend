@@ -5687,6 +5687,45 @@ spec:
         severity: high
         signal_domain: observability
         tier: critical
+  - interval: 60s
+    name: re8ch.billing.demo
+    rules:
+    - expr: sum by (service_class, billable) (re8ch_billing_rate_card_meters)
+      record: re8ch:billing:rate_card_meters:by_service
+    - alert: Re8chBillingUnratedUsage
+      annotations:
+        description: Rated charge reads returned usage meters absent from the active
+          rate card; add them to rate_card.json (billable false if observation only).
+        runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
+        summary: Usage items have no rate-card entry
+      expr: increase(re8ch_billing_unrated_items_total[1h]) > 0
+      for: 10m
+      labels:
+        alert_layer: prometheus
+        namespace: tenant-system
+        owner: platform-products
+        policy_id: platform-default
+        service: billing-rating
+        severity: warning
+        signal_domain: stateless
+        tier: high
+    - alert: Re8chBillingRateCardMissing
+      annotations:
+        description: tenant-mcp is not exporting re8ch_billing_rate_card_info; showback
+          charges may be unavailable.
+        runbook_url: https://github.com/re8ch/service-backend/blob/main/platform/observability/README.md
+        summary: Billing rate card metric is absent
+      expr: absent(re8ch_billing_rate_card_info)
+      for: 15m
+      labels:
+        alert_layer: prometheus
+        namespace: tenant-system
+        owner: platform-products
+        policy_id: platform-default
+        service: billing-rating
+        severity: warning
+        signal_domain: stateless
+        tier: high
 ---
 apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMRule
