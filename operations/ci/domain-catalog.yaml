@@ -88,6 +88,7 @@ domains:
     theme: constellations
     paths:
       - operations/github-policy-reviewer/**
+      - clusters/re8ch/components/gitops-events/**
       - catalogs/**
       - indexes/**
       - workspace.yaml
@@ -100,6 +101,7 @@ domains:
       - operations/flux-federation/**
     roots:
       - platform/workspace-controller
+      - clusters/re8ch/components/gitops-events
       - platform/git-workspaces
       - clusters/re8ch/components/codex-app-server-console
       - clusters/re8ch/components/ai-operations/sandbox-trials

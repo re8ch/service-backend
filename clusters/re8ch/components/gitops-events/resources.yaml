@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: Namespace
+metadata: {name: gitops-events}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: intake, namespace: gitops-events}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: receipts, namespace: gitops-events}
+rules:
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [create, get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: receipts, namespace: gitops-events}
+subjects: [{kind: ServiceAccount, name: intake, namespace: gitops-events}]
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: receipts}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata: {name: admission-selfsigned, namespace: gitops-events}
+spec: {selfSigned: {}}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata: {name: admission, namespace: gitops-events}
+spec:
+  isCA: true
+  commonName: gitops-admission.gitops-events.svc
+  dnsNames: [gitops-admission.gitops-events.svc]
+  secretName: admission-tls
+  issuerRef: {name: admission-selfsigned, kind: Issuer}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gitops-intake, namespace: gitops-events}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: gitops-intake}}
+  template:
+    metadata: {labels: {app: gitops-intake}}
+    spec:
+      serviceAccountName: intake
+      nodeSelector: {scheduling.re8ch.com/service-plane: core}
+      tolerations: [{key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}]
+      automountServiceAccountToken: true
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: server
+        image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+        command: [python, -B, /app/receiver.py, intake]
+        resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 250m, memory: 96Mi}}
+        readinessProbe: {httpGet: {path: /healthz, port: 8080, scheme: HTTP}}
+        securityContext: {readOnlyRootFilesystem: true, allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        volumeMounts:
+        - {name: app, mountPath: /app, readOnly: true}
+        - {name: credential, mountPath: /key, readOnly: true}
+      volumes:
+      - {name: app, configMap: {name: gitops-events-code}}
+      - {name: credential, secret: {secretName: maintenance-event-signature}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: gitops-intake, namespace: gitops-events}
+spec: {selector: {app: gitops-intake}, ports: [{port: 80, targetPort: 8080}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gitops-admission, namespace: gitops-events}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: gitops-admission}}
+  template:
+    metadata: {labels: {app: gitops-admission}}
+    spec:
+      serviceAccountName: default
+      nodeSelector: {scheduling.re8ch.com/service-plane: core}
+      tolerations: [{key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}]
+      automountServiceAccountToken: false
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: server
+        image: python:3.13-alpine@sha256:540c7d91f98ff6880174c40e99067bf5941eb54d818a7a5e094d188b196a934d
+        command: [python, -B, /app/receiver.py, admission]
+        resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 250m, memory: 96Mi}}
+        readinessProbe: {httpGet: {path: /healthz, port: 8443, scheme: HTTPS}}
+        securityContext: {readOnlyRootFilesystem: true, allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+        volumeMounts:
+        - {name: app, mountPath: /app, readOnly: true}
+        - {name: credential, mountPath: /tls, readOnly: true}
+      volumes:
+      - {name: app, configMap: {name: gitops-events-code}}
+      - {name: credential, secret: {secretName: admission-tls}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: gitops-admission, namespace: gitops-events}
+spec: {selector: {app: gitops-admission}, ports: [{port: 443, targetPort: 8443}]}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: gitops-event-receipts
+  annotations: {cert-manager.io/inject-ca-from: gitops-events/admission}
+webhooks:
+- name: receipts.gitops.re8ch.com
+  admissionReviewVersions: [v1]
+  sideEffects: None
+  timeoutSeconds: 3
+  failurePolicy: Fail
+  namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: gitops-events}}
+  matchConditions:
+  - {name: receipt, expression: "object.metadata.name.startsWith('release-')"}
+  rules:
+  - {apiGroups: [""], apiVersions: [v1], resources: [configmaps], operations: [CREATE, UPDATE], scope: Namespaced}
+  clientConfig: {service: {name: gitops-admission, namespace: gitops-events, path: /validate}}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata: {name: gitops-release-intake, namespace: gitops-events}
+spec:
+  hostnames: [hooks.re8ch.com]
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: hooks-https}]
+  rules:
+  - matches: [{path: {type: Exact, value: /events/github/gitops}}]
+    backendRefs: [{name: gitops-intake, port: 80}]
