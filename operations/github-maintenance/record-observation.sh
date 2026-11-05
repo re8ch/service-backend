@@ -3,6 +3,11 @@ set -euo pipefail
 source_repo="$OWNER/$REPO"
 title="Inspection $source_repo · $GITHUB_RUN_ID"
 audit="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+dedupe="$source_repo:$GITHUB_RUN_ID"
+if [[ -n "${DELIVERY:-}" ]]; then
+  title="Release receipt $source_repo · $DELIVERY"
+  dedupe="$source_repo:$DELIVERY"
+fi
 state=Unknown
 signal="No completed reconcile run available"
 logs="$audit"
@@ -25,6 +30,10 @@ fi
 body="$signal. Evidence: $logs. Inspection: $audit."
 project=$(gh project view "$BOARD" --owner "$OWNER" --format json --jq .id)
 items=$(gh project item-list "$BOARD" --owner "$OWNER" --limit 1000 --format json)
+if [[ -n "${DELIVERY:-}" ]]; then
+  body+=" Release $RELEASE_ID. Kubernetes receipt: gitops-events/release-$DELIVERY."
+  if jq -e --arg key "$dedupe" 'any(.items[]; ."dedupe Key"==$key)' <<<"$items" >/dev/null; then exit 0; fi
+fi
 prior=$(jq -c --arg prefix "Inspection $source_repo · " --arg title "$title" '[.items[]|select((.title|startswith($prefix)) and .title!=$title)]|max_by(.title|split(" · ")[-1]|tonumber)' <<<"$items")
 previous=$(jq -r '."workflow Run ID" // ""' <<<"$prior")
 prior_state=$(jq -r '."observation State" // "Unknown"' <<<"$prior")
@@ -78,10 +87,11 @@ edit 'Observed At' --date "$(date -u +%F)"
 edit 'Workflow Run ID' --text "${source_id:-$GITHUB_RUN_ID}"
 edit 'Related Logs' --text "$logs"
 edit 'Signal' --text "$signal"
-edit 'Dedupe Key' --text "$source_repo:$GITHUB_RUN_ID"
+
 if [[ -n "$revision" ]]; then edit 'Revision' --text "$revision"; fi
 select_value 'Observation State' "$state"
 select_value 'Reconcile Action' 'Observe Only'
+edit 'Dedupe Key' --text "$dedupe"
 echo "$body" >> "$GITHUB_STEP_SUMMARY"
 number=$(gh api graphql -f query='query($id:ID!){node(id:$id){... on ProjectV2Item{fullDatabaseId}}}' -f id="$item" --jq .data.node.fullDatabaseId)
 : > "$RUNNER_TEMP/observation-summary.txt"

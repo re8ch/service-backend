@@ -1,0 +1,54 @@
+name: Observe accepted GitOps webhook receipts
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+permissions: {contents: read}
+concurrency:
+  group: gitops-receipt-observation
+  cancel-in-progress: false
+jobs:
+  receipts:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.scan.outputs.matrix }}
+      available: ${{ steps.scan.outputs.available }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: scan
+        env:
+          APP_ID: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          APP_KEY: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
+        run: ruby operations/github-maintenance/receipt_matrix.rb
+  observe:
+    needs: receipts
+    if: needs.receipts.outputs.available == 'true'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.receipts.outputs.matrix) }}
+    name: Observe ${{ matrix.owner }}/${{ matrix.repo }} · ${{ matrix.delivery }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
+          owner: ${{ matrix.owner }}
+          repositories: ${{ matrix.repo }}
+          permission-actions: read
+          permission-organization-projects: write
+      - env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          OWNER: ${{ matrix.owner }}
+          REPO: ${{ matrix.repo }}
+          DELIVERY: ${{ matrix.delivery }}
+          RELEASE_ID: ${{ matrix.release }}
+        run: |
+          set -euo pipefail
+          selection=$(ruby -ryaml -rjson -e 'puts JSON.generate(YAML.load_file(ARGV.first).dig("jobs","record","strategy","matrix","include"))' .github/workflows/gitops-observation.yml)
+          export BOARD=$(jq -er --arg repo "$REPO" '.[]|select(.repo==$repo)|.project' <<<"$selection")
+          export WORKFLOW=$(jq -er --arg repo "$REPO" '.[]|select(.repo==$repo)|.workflow' <<<"$selection")
+          bash operations/github-maintenance/record-observation.sh
