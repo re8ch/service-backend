@@ -13,7 +13,14 @@ signal="No completed reconcile run available"
 logs="$audit"
 revision=""
 source_id=""
-if run=$(gh api "repos/$source_repo/actions/workflows/$WORKFLOW/runs?branch=main&status=completed&per_page=1" --jq '.workflow_runs[0] // empty'); then
+endpoint="repos/$source_repo/actions/workflows/$WORKFLOW/runs?branch=main&status=completed&per_page=1"
+selector='.workflow_runs[0] // empty'
+if [[ -n "${RECEIPT_EXECUTOR_ID:-}" ]]; then
+  endpoint="repos/$source_repo/actions/runs/$RECEIPT_EXECUTOR_ID"
+  selector='select(.status=="completed")'
+  dedupe="$dedupe:$RECEIPT_EXECUTOR_ID"
+fi
+if run=$(gh api "$endpoint" --jq "$selector"); then
   if [[ -n "$run" ]]; then
     source_id=$(jq -r .id <<<"$run")
     logs=$(jq -r .html_url <<<"$run")
