@@ -40,10 +40,38 @@ jobs:
           repositories: ${{ matrix.repo }}
           permission-actions: read
           permission-organization-projects: write
+      - id: storage
+        if: matrix.owner == 'strata-silica' && matrix.repo == 'storage-gitops'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
+          owner: strata-silica
+          repositories: storage-gitops
+          permission-actions: write
+      - id: executor
+        if: steps.storage.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ steps.storage.outputs.token }}
+          DELIVERY: ${{ matrix.delivery }}
+        run: |
+          set -euo pipefail
+          repo=strata-silica/storage-gitops
+          workflow=storage-reconcile.yml
+          name="Storage accepted reconcile $DELIVERY"
+          runs=$(gh api --paginate --slurp "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=main&per_page=100")
+          id=$(jq -r --arg name "$name" '[.[].workflow_runs[] | select(.display_title==$name)] | first.id // empty' <<<"$runs")
+          if [[ -z "$id" ]]; then
+            response=$(gh api -X POST "repos/$repo/actions/workflows/$workflow/dispatches" -f ref=main -F return_run_details=true -f 'inputs[release_id]=main-data-storage-toolhive-system' -f "inputs[delivery_id]=$DELIVERY")
+            id=$(jq -er .workflow_run_id <<<"$response")
+          fi
+          gh run watch "$id" --repo "$repo" --interval 10 || true
+          echo "id=$id" >> "$GITHUB_OUTPUT"
       - env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           OWNER: ${{ matrix.owner }}
           REPO: ${{ matrix.repo }}
+          RECEIPT_EXECUTOR_ID: ${{ steps.executor.outputs.id }}
           DELIVERY: ${{ matrix.delivery }}
           RELEASE_ID: ${{ matrix.release }}
         run: |
