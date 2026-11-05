@@ -47,6 +47,10 @@ def test_cert_manager_webhook_is_ha_on_owned_service_plane():
             "effect": "NoSchedule",
         }
     ]
+    assert webhook["strategy"] == {
+        "type": "RollingUpdate",
+        "rollingUpdate": {"maxSurge": 0, "maxUnavailable": 1},
+    }
     assert webhook["podDisruptionBudget"] == {
         "enabled": True,
         "minAvailable": 1,
