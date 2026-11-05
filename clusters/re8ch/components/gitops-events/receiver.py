@@ -53,7 +53,7 @@ class Handler(BaseHTTPRequestHandler):
             self.connection.settimeout(8)
             body = self.rfile.read(length)
             if self.server.admission:
-                if self.path != "/validate":
+                if self.path.partition("?")[0] != "/validate":
                     return self.send_error(404)
                 req = json.loads(body)["request"]
                 obj = req["object"]
