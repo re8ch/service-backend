@@ -36,8 +36,8 @@ jobs:
           # for both token creation and the action's post-job token revocation.
           NODE_USE_ENV_PROXY: '1'
         with:
-          app-id: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
-          private-key: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: service-backend
           permission-contents: write

@@ -47,8 +47,8 @@ def test_render_is_quiet_and_contains_signal_counts():
 
 def test_workflow_uses_maintenance_app_and_cloud_runner():
     workflow = (ROOT / ".github/workflows/gitops-maintenance-summary.yml").read_text()
-    assert "GITOPS_MAINTENANCE_APP_ID" in workflow
-    assert "GITOPS_MAINTENANCE_PRIVATE_KEY" in workflow
+    assert "GITOPS_ENTERPRISE_MAINTENANCE_APP_ID" in workflow
+    assert "GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY" in workflow
     assert "runs-on: ubuntu-24.04" in workflow
     assert 'cron: "0 1 * * 1"' in workflow
 
