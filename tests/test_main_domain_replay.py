@@ -24,7 +24,7 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
     raw = (ROOT / '.github/workflows/main-domain-reconcile.yml').read_text()
     workflow = yaml.safe_load(raw)
     triggers = workflow.get('on', workflow.get(True))
-    assert triggers['workflow_dispatch'] is None
+    assert set(triggers['workflow_dispatch']['inputs']) == {'delivery_id'}
     assert set(triggers) == {'workflow_dispatch', 'schedule'}
     assert triggers['schedule'] == [{'cron': '17 1 * * *'}]
     job = workflow['jobs']['reconcile']
@@ -63,7 +63,7 @@ def test_durable_state_write_refreshes_expired_outer_identity(tmp_path):
     for workflow, job in [('main-domain-release.yml', 'execute'), ('main-domain-reconcile.yml', 'reconcile')]:
         definition = yaml.safe_load((ROOT / '.github/workflows' / workflow).read_text())
         script = next(step['run'] for step in definition['jobs'][job]['steps'] if 'state-patch --configmap' in step.get('run', ''))
-        script = script[script.index('if [[ -s "$RUNNER_TEMP/state-patch.json"'):]
+        script = script[script.rindex('if [[ -s "$RUNNER_TEMP/state-patch.json"'):]
         assert '--token=' not in script and 'Authorization: bearer' not in script
         run_dir = tmp_path / job
         run_dir.mkdir()
