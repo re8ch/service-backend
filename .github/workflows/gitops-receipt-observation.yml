@@ -40,30 +40,44 @@ jobs:
           repositories: ${{ matrix.repo }}
           permission-actions: read
           permission-organization-projects: write
-      - id: storage
-        if: matrix.owner == 'strata-silica' && matrix.repo == 'storage-gitops'
+      - id: dispatch
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
           app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
           private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
-          owner: strata-silica
-          repositories: storage-gitops
+          owner: ${{ matrix.owner }}
+          repositories: ${{ matrix.repo }}
           permission-actions: write
       - id: executor
-        if: steps.storage.outcome == 'success'
         env:
-          GH_TOKEN: ${{ steps.storage.outputs.token }}
+          GH_TOKEN: ${{ steps.dispatch.outputs.token }}
           DELIVERY: ${{ matrix.delivery }}
+          OWNER: ${{ matrix.owner }}
+          REPO: ${{ matrix.repo }}
         run: |
           set -euo pipefail
-          repo=strata-silica/storage-gitops
-          workflow=storage-reconcile.yml
-          name="Storage accepted reconcile $DELIVERY"
-          runs=$(gh api --paginate --slurp "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=main&per_page=100")
-          id=$(jq -r --arg name "$name" '[.[].workflow_runs[] | select(.display_title==$name)] | first.id // empty' <<<"$runs")
+          repo="$OWNER/$REPO"
+          selection=$(ruby -ryaml -rjson -e 'puts JSON.generate(YAML.load_file(ARGV.first).dig("jobs","record","strategy","matrix","include"))' .github/workflows/gitops-observation.yml)
+          workflow=$(jq -er --arg repo "$REPO" '.[]|select(.repo==$repo)|.workflow' <<<"$selection")
+          name="${workflow%.yml} $DELIVERY"
+          args=(-f "inputs[delivery_id]=$DELIVERY")
+          if [[ "$repo" == strata-silica/storage-gitops ]]; then
+            name="Storage accepted reconcile $DELIVERY"
+            args+=(-f 'inputs[release_id]=main-data-storage-toolhive-system')
+          fi
+          find_run() {
+            gh api --paginate --slurp "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=main&per_page=100" |
+              jq -r --arg name "$name" '[.[].workflow_runs[] | select(.display_title==$name)] | first.id // empty'
+          }
+          id=$(find_run)
           if [[ -z "$id" ]]; then
-            response=$(gh api -X POST "repos/$repo/actions/workflows/$workflow/dispatches" -f ref=main -F return_run_details=true -f 'inputs[release_id]=main-data-storage-toolhive-system' -f "inputs[delivery_id]=$DELIVERY")
-            id=$(jq -er .workflow_run_id <<<"$response")
+            gh api -X POST "repos/$repo/actions/workflows/$workflow/dispatches" -f ref=main -F return_run_details=false "${args[@]}"
+            for retry in {1..12}; do
+              id=$(find_run)
+              [[ -z "$id" ]] || break
+              sleep 5
+            done
+            test -n "$id"
           fi
           gh run watch "$id" --repo "$repo" --interval 10 || true
           echo "id=$id" >> "$GITHUB_OUTPUT"

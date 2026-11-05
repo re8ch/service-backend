@@ -37,7 +37,27 @@ elif run=$(gh api "$endpoint" --jq "$selector"); then
 else
   signal="Actions evidence read failed"
 fi
+action="Observe Only"
+readback=""
+if [[ -n "${RECEIPT_EXECUTOR_ID:-}" && "$source_repo" != strata-silica/storage-gitops ]]; then
+  directory=$(mktemp -d "$RUNNER_TEMP/readback.XXXXXX")
+  if gh run download "$RECEIPT_EXECUTOR_ID" -R "$source_repo" --pattern '*-reconcile-*' --dir "$directory"; then
+    mapfile -t reports < <(find "$directory" -type f -name result.json | sort)
+    if (( ${#reports[@]} )); then
+      readback=$(jq -sr --arg delivery "$DELIVERY" '
+        map(select(.delivery==$delivery and (.digest|type)=="string")) |
+        map("- " + .release + " " + .digest + " " + .outcome + " (" + ((.objects|length)|tostring) + " objects)" + (if .checking then " at " + .checking else "" end) + (if .reason then " " + .reason else "" end)) | join("\n")
+      ' "${reports[@]}")
+      if jq -se --arg d "$DELIVERY" 'any(.[]; .delivery==$d and (.applied|length)>0)' "${reports[@]}" >/dev/null; then action=Reconcile; fi
+    fi
+  fi
+  if [[ -z "$readback" ]]; then
+    state=Unknown
+    signal="Executor readback unavailable"
+  fi
+fi
 body="$signal. Evidence: $logs. Inspection: $audit."
+body+=$'\n'"$readback"
 project=$(gh project view "$BOARD" --owner "$OWNER" --format json --jq .id)
 items=$(gh project item-list "$BOARD" --owner "$OWNER" --limit 1000 --format json)
 if [[ -n "${DELIVERY:-}" ]]; then
@@ -105,7 +125,7 @@ elif [[ -n "${DELIVERY:-}" ]]; then
   gh project item-edit --project-id "$project" --id "$item" --field-id "$revision_field" --clear
 fi
 select_value 'Observation State' "$state"
-select_value 'Reconcile Action' 'Observe Only'
+select_value 'Reconcile Action' "$action"
 edit 'Dedupe Key' --text "$dedupe"
 echo "$body" >> "$GITHUB_STEP_SUMMARY"
 number=$(gh api graphql -f query='query($id:ID!){node(id:$id){... on ProjectV2Item{fullDatabaseId}}}' -f id="$item" --jq .data.node.fullDatabaseId)
