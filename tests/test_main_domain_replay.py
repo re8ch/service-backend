@@ -147,7 +147,7 @@ def test_reviewed_takeover_is_publish_only_and_exactly_three_deployments(tmp_pat
 def test_retired_identity_contracts_cannot_publish_or_replay():
     import pytest
     retired = {"main-commerce-billing-payments", "main-data-storage-supabase-pg-re8ch",
-               "main-operations-ui-supabase-pg-re8ch"}
+               "main-data-storage-toolhive-system", "main-operations-ui-supabase-pg-re8ch"}
     assert set(profile.retired_releases()) == retired
     assert retired.isdisjoint({entry["release-id"] for entry in profile.replay_matrix()})
     for name in retired:
@@ -156,6 +156,16 @@ def test_retired_identity_contracts_cannot_publish_or_replay():
         assert profile.replay_provenance(contract) is None
         with pytest.raises(ValueError, match="retired from main execution"):
             profile.validate_contract(path)
+
+
+def test_toolhive_retirement_records_the_live_storage_authority():
+    retirement = profile.retired_releases()["main-data-storage-toolhive-system"]
+    assert retirement == {
+        "destinationRepository": "strata-silica/storage-gitops",
+        "reason": "storage authority migration completed; preserve the accepted external bundle and field manager",
+        "acceptedSourceCommit": "ac868a5151cf29cd9e972f4c3a52d4d80d3d2ab9",
+        "acceptedDigest": "sha256:ecb9862fa05c6dcfc6788c75256cc66128f3471eaa6ad9aa716d997f9929d971",
+    }
 
 
 def test_private_kubeconfig_initializer_refuses_overwrite_and_keeps_token_out_of_output(tmp_path, monkeypatch, capsys):
