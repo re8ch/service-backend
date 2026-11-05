@@ -22046,9 +22046,17 @@ spec:
       timeoutSeconds: 10
       hostNetwork: true
       securePort: 10260
+      resources:
+        requests:
+          cpu: 20m
+          memory: 64Mi
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
+          effect: NoSchedule
+        - key: scheduling.re8ch.com/capacity-window
+          operator: Equal
+          value: closed
           effect: NoSchedule
       strategy:
         type: RollingUpdate
@@ -22066,6 +22074,9 @@ spec:
                   - key: scheduling.re8ch.com/service-plane
                     operator: In
                     values: [core]
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [a1-wsl-zt, r640]
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - topologyKey: kubernetes.io/hostname
