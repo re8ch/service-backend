@@ -36,6 +36,7 @@ resources:
 - components/ops/retire-unused-observable-ontology.yaml
 - components/ops/authentication-config-reconciler.yaml
 - components/release-compat
+- components/gitops-events
 configMapGenerator:
 - name: re8ch-kube-apiserver-authentication-config
   namespace: kube-system
