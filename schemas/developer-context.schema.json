@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.re8ch.com/developer-context.v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "workspace.re8ch.com/v1alpha1"},
+    "kind": {"const": "DeveloperContext"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {"name": {"const": "re8ch"}}
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority", "sources", "surfaces", "workspace"],
+      "properties": {
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["repository", "branch", "rule"],
+          "properties": {
+            "repository": {"type": "string", "format": "uri"},
+            "branch": {"type": "string", "minLength": 1},
+            "rule": {"type": "string", "minLength": 1}
+          }
+        },
+        "sources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["modules", "gitops", "context"],
+          "properties": {
+            "modules": {"type": "string"},
+            "gitops": {"type": "string"},
+            "context": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+          }
+        },
+        "surfaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wiki", "projects", "gists"],
+          "properties": {
+            "wiki": {"$ref": "#/$defs/surface"},
+            "projects": {"type": "array", "items": {"$ref": "#/$defs/project"}},
+            "gists": {"$ref": "#/$defs/surface"}
+          }
+        },
+        "workspace": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["codespaces", "worktrees", "taskContext"],
+          "properties": {
+            "codespaces": {"type": "string"},
+            "worktrees": {"type": "string"},
+            "taskContext": {"type": "string"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "authority", "policy"],
+      "properties": {
+        "repository": {"type": "string"},
+        "role": {"type": "string"},
+        "authority": {"const": false},
+        "policy": {"type": "string"}
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization", "number", "title", "role", "authority"],
+      "properties": {
+        "organization": {"type": "string"},
+        "number": {"type": "integer", "minimum": 1},
+        "title": {"type": "string"},
+        "role": {"type": "string"},
+        "authority": {"const": false}
+      }
+    }
+  }
+}

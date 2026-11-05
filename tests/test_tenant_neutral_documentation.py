@@ -6,6 +6,8 @@ EXCLUDED_PREFIXES = (
     "catalogs/qianwen/",
     "inventory/platform/generated/",
     "operations/ansible/roles/qwen_realtime/",
+    # Generated cross-catalog inventory intentionally names every product.
+    "operations/developer-context/wiki/Repository-Context.md",
     "runbooks/platform-history/",
 )
 

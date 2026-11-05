@@ -26,6 +26,7 @@ validate("inventory/*.yaml", "infrastructure-target.schema.json",
 validate("inventory/public-sites.yaml", "public-site-catalog.schema.json",
          {"PublicSiteCatalog"})
 validate("catalogs/*/modules/*/module.yaml", "workspace-module.schema.json")
+validate("workspace/developer-context.yaml", "developer-context.schema.json")
 validate(".re8ch/project.yaml", "project-binding.schema.json")
 validate(".re8ch/cluster-resources.yaml", "cluster-resource-index.schema.json")
 validate("catalogs/*/modules/*/overlay/.re8ch/project.yaml", "project-binding.schema.json")
