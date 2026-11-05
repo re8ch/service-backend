@@ -17,7 +17,7 @@ jobs:
       matrix:
         include:
           - {owner: re8ch, repo: service-backend, project: 4, workflow: main-domain-reconcile.yml}
-          - {owner: strata-silica, repo: storage-gitops, project: 1, workflow: storage-static-release.yml}
+          - {owner: strata-silica, repo: storage-gitops, project: 1, workflow: storage-reconcile.yml}
           - {owner: pillars-infra, repo: network-gitops, project: 1, workflow: networking-reconcile.yml}
           - {owner: 8iops, repo: agent-gitops, project: 2, workflow: agent-runtime-reconcile.yml}
           - {owner: siren-observer, repo: observability-gitops, project: 1, workflow: observability-metering-reconcile.yml}
