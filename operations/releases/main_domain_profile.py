@@ -103,10 +103,16 @@ def main() -> int:
     inputs = parser.add_mutually_exclusive_group(required=True)
     inputs.add_argument("--contract", type=Path)
     inputs.add_argument("--replay-matrix", action="store_true")
+    parser.add_argument("--release-id", default="")
     parser.add_argument("--github-output", type=Path)
     args = parser.parse_args()
     if args.replay_matrix:
-        print(json.dumps({"include": replay_matrix()}, separators=(",", ":")))
+        rows = replay_matrix()
+        if args.release_id:
+            rows = [row for row in rows if row["release-id"] == args.release_id]
+            if len(rows) != 1:
+                parser.error("release-id must match exactly one replay-eligible contract")
+        print(json.dumps({"include": rows}, separators=(",", ":")))
         return 0
     result = validate_contract(args.contract)
     if args.github_output:
