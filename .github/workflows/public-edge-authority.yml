@@ -10,15 +10,27 @@ jobs:
     permissions: {contents: read}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Install DNS probe
-        run: sudo apt-get update && sudo apt-get install -y bind9-dnsutils
+      - name: Verify runner DNS probe
+        run: |
+          set -euo pipefail
+          command -v dig
+          dig -v
       - name: Probe delegation and public authorities
-        run: python operations/scripts/check-public-edge-authority.py platform/public-edge-manager/authority-monitor.json > public-edge-authority-result.json
+        run: |
+          set -euo pipefail
+          python operations/scripts/check-public-edge-authority.py \
+            platform/public-edge-manager/authority-monitor.json \
+            | tee public-edge-authority-result.json
       - name: Publish observation
         if: always()
         run: |
           if [ -f public-edge-authority-result.json ]; then
-            cat public-edge-authority-result.json >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo '```json'
+              cat public-edge-authority-result.json
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Retain observation
         if: always()
