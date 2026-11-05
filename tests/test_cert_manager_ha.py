@@ -40,6 +40,13 @@ def test_cert_manager_webhook_is_ha_on_owned_service_plane():
     assert webhook["timeoutSeconds"] == 10
     assert webhook["hostNetwork"] is True
     assert webhook["securePort"] == 10260
+    assert webhook["tolerations"] == [
+        {
+            "key": "node-role.kubernetes.io/control-plane",
+            "operator": "Exists",
+            "effect": "NoSchedule",
+        }
+    ]
     assert webhook["podDisruptionBudget"] == {
         "enabled": True,
         "minAvailable": 1,

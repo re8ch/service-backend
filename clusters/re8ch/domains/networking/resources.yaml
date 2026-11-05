@@ -22046,6 +22046,10 @@ spec:
       timeoutSeconds: 10
       hostNetwork: true
       securePort: 10260
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
       podDisruptionBudget:
         enabled: true
         minAvailable: 1
