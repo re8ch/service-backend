@@ -1,0 +1,14 @@
+name: GitOps event installation preflight
+on: workflow_dispatch
+permissions: {contents: read}
+jobs:
+  inspect:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Read effective installation grants and event subscriptions
+        env:
+          APP_ID: ${{ vars.GITOPS_MAINTENANCE_APP_ID }}
+          APP_KEY: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+        run: ruby operations/github-maintenance/event_preflight.rb
