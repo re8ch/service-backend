@@ -48,6 +48,7 @@ jobs:
           owner: ${{ matrix.owner }}
           repositories: ${{ matrix.repo }}
           permission-actions: write
+          permission-contents: read
       - id: executor
         env:
           GH_TOKEN: ${{ steps.dispatch.outputs.token }}
