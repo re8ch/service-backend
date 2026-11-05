@@ -28,7 +28,9 @@ File.open(ENV.fetch('GITHUB_STEP_SUMMARY'), 'a') do |report|
     installation = JSON.parse(response.body)
     dispatch = installation.dig('permissions', 'actions') == 'write'
     release = installation.fetch('events').include?('release')
-    report.puts "- #{repo} — actions:write=#{dispatch}, release subscription=#{release}"
+    verdict = "- #{repo} — actions:write=#{dispatch}, release subscription=#{release}"
+    report.puts verdict
+    puts verdict
     ready &&= dispatch && release
   end
 end
