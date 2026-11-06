@@ -159,7 +159,9 @@ def test_cloud_replay_skips_build_and_keeps_release_identity_and_serialization()
     assert "cosign verify" in commands and "ssa_executor.py" in commands
     assert "|| executor_status=$?" in commands
     assert commands.index("operation_materialize.py state-patch") < commands.index('exit "$executor_status"')
-    assert '.outcome == "healthy" and .health.status == "healthy"' in commands
+    assert '--apply-only' in commands
+    assert 'observe_runtime.py' in commands
+    assert '.outcome == "healthy" and .health.status == "healthy"' not in commands
 
 
 def test_former_native_namespaced_objects_have_bounded_cloud_contracts():
