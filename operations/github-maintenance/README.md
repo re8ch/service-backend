@@ -47,3 +47,17 @@ python operations/github-maintenance/reconcile_observation_projects.py --apply
 The apply command uses GitHub's ProjectV2 GraphQL API, is idempotent for existing
 projects and fields, and reads back Projects and fields before creating missing
 state.
+
+## Runtime health evidence
+
+The existing observation workflow polls the six domain workflows every 15 minutes.
+It reads completed main-branch runs and their release artifacts, including scheduled
+runs without a webhook delivery. A successful Action with degraded release results
+is Degraded; absent or malformed readback is Unknown. Failed Actions remain Failed,
+even if one artifact is healthy. Rollback is not target-release recovery. This uses
+the existing Maintenance App and Projects without another controller or event relay.
+
+The Admin API credential kubeconfig is runtime credential material. Its in-cluster
+server must use `https://kubernetes.default.svc:443`; provisioners must not pin it
+to a node that can leave the control plane. Credentials and CA remain in the
+existing Secret; no credential values belong in Git or operation evidence.
