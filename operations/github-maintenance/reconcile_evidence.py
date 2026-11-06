@@ -31,7 +31,7 @@ def summarize(directory, conclusion, delivery=""):
     elif any(r["outcome"] in ("degraded", "unhealthy") or r["health"] in ("degraded", "unhealthy") or r["warning"] for r in reports):
         state = "Degraded"
     elif conclusion == "success" and reports and not invalid and all(
-        (r["outcome"] == "healthy" and r["health"] == "healthy") or
+        (r["outcome"] in ("healthy", "applied") and r["health"] == "healthy") or
         (r["outcome"] in ("aligned", "recovered") and r["health"] in (None, "healthy"))
         for r in reports
     ):

@@ -63,3 +63,10 @@ def test_authorized_node_warning_stays_visible_in_project(tmp_path):
     evidence = module.summarize(tmp_path, 'success')
     assert evidence['state'] == 'Degraded'
     assert evidence['reports'][0]['warning'].startswith('Warning:')
+
+
+def test_applied_result_uses_separate_health_observation(tmp_path):
+    report(tmp_path, 'applied', 'degraded')
+    assert module.summarize(tmp_path, 'success')['state'] == 'Degraded'
+    report(tmp_path, 'applied', 'healthy')
+    assert module.summarize(tmp_path, 'success')['state'] == 'Healthy'
