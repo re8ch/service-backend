@@ -212,8 +212,6 @@ spec:
                   key: UI_PASSWORD
             - name: PROXY_BASE_URL
               value: https://litellm.service.re8ch.com
-            - name: FORWARDED_ALLOW_IPS
-              value: "*"
             - name: GENERIC_CLIENT_ID
               valueFrom:
                 secretKeyRef: {name: litellm-dex-sso, key: client-id}
