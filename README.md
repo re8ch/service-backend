@@ -1,5 +1,21 @@
 # RE8CH Service Backend
 
+<!-- gitops-status:start -->
+[![Reconcile](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
+[![Control plane CI](https://github.com/re8ch/service-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/ci.yml?query=branch%3Amain)
+[![Security checks](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml?query=branch%3Amain)
+[![Policy reviewer](https://github.com/re8ch/service-backend/actions/workflows/github-policy-reviewer.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/github-policy-reviewer.yml?query=branch%3Amain)
+[![Receipt dispatch](https://github.com/re8ch/service-backend/actions/workflows/gitops-receipt-observation.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/gitops-receipt-observation.yml?query=branch%3Amain)
+
+These live badges show the latest workflow result on `main`, including scheduled
+and manual runs. Reconcile runs can cover a single release; a passing badge is
+not proof that every release is healthy or that SSA changed an object. Open the
+run for its release scope, accepted digest, comparison, apply and health results.
+The [domain observation Project](https://github.com/orgs/re8ch/projects/4) retains release-level evidence;
+receipt dispatch and governance checks do not replace runtime health verification.
+Private workflow badges require repository access.
+<!-- gitops-status:end -->
+
 GitHub-first collaboration and desired state for the RE8CH platform. GitHub
 Issues are work/events, pull requests are proposals, signed commits are state
 transitions, and Actions/webhooks are reactions. Kubernetes remains the runtime,
