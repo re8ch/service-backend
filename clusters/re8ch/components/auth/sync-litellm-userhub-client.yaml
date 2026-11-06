@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: sync-litellm-userhub-client, namespace: auth}
+---
+apiVersion: v1
+kind: Secret
+metadata: {name: litellm-userhub-oidc-client, namespace: auth}
+type: Opaque
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: read-litellm-userhub-client, namespace: llm-gateway}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [litellm-dex-sso]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: read-litellm-userhub-client, namespace: llm-gateway}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: read-litellm-userhub-client}
+subjects:
+  - {kind: ServiceAccount, name: sync-litellm-userhub-client, namespace: auth}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: sync-litellm-userhub-client, namespace: auth}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [litellm-userhub-oidc-client]
+    verbs: [get, patch]
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [re8ch-auth-gateway]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: sync-litellm-userhub-client, namespace: auth}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: sync-litellm-userhub-client}
+subjects:
+  - {kind: ServiceAccount, name: sync-litellm-userhub-client, namespace: auth}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sync-litellm-userhub-client-v1
+  namespace: auth
+  annotations:
+    governance.re8ch.com/change: register-litellm-with-userhub
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: sync-litellm-userhub-client}
+    spec:
+      serviceAccountName: sync-litellm-userhub-client
+      restartPolicy: OnFailure
+      containers:
+        - name: sync
+          image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+          command: [python3, -c]
+          args:
+            - |
+              import base64
+              import json
+              import os
+              import ssl
+              import time
+              import urllib.request
+
+              root = "/var/run/secrets/kubernetes.io/serviceaccount"
+              token = open(root + "/token", encoding="utf-8").read().strip()
+              api = "https://%s:%s" % (os.environ["KUBERNETES_SERVICE_HOST"], os.environ["KUBERNETES_SERVICE_PORT_HTTPS"])
+              context = ssl.create_default_context(cafile=root + "/ca.crt")
+              headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+
+              def request(path, method="GET", body=None, content_type="application/json"):
+                  current = dict(headers)
+                  current["Content-Type"] = content_type
+                  encoded = json.dumps(body).encode() if body is not None else None
+                  call = urllib.request.Request(api + path, data=encoded, headers=current, method=method)
+                  with urllib.request.urlopen(call, context=context, timeout=30) as response:
+                      return json.load(response) if response.length != 0 else {}
+
+              source = request("/api/v1/namespaces/llm-gateway/secrets/litellm-dex-sso")
+              data = source.get("data", {})
+              if base64.b64decode(data.get("client-id", ""), validate=True) != b"litellm":
+                  raise RuntimeError("LiteLLM client identity is not the registered UserHub client")
+              if not base64.b64decode(data.get("client-secret", ""), validate=True):
+                  raise RuntimeError("LiteLLM client credential is empty")
+
+              request(
+                  "/api/v1/namespaces/auth/secrets/litellm-userhub-oidc-client",
+                  "PATCH",
+                  {"data": {"client-secret": data["client-secret"]}},
+                  "application/merge-patch+json",
+              )
+              request(
+                  "/apis/apps/v1/namespaces/auth/deployments/re8ch-auth-gateway",
+                  "PATCH",
+                  {"spec": {"template": {"metadata": {"annotations": {
+                      "auth.re8ch.com/litellm-client-synced-at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                  }}}}},
+                  "application/merge-patch+json",
+              )
+              print("LiteLLM UserHub client synchronized; auth gateway rollout requested")
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile: {type: RuntimeDefault}
