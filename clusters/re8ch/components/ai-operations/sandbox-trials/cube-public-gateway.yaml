@@ -25,7 +25,7 @@ spec:
           image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0@sha256:37c1570c0427e02fc7c947ef2c04e8995b8347b7abc9fcf1dbb4e376a4b221a7
           args:
             - --provider=oidc
-            - --oidc-issuer-url=https://dex.service.re8ch.com
+            - --oidc-issuer-url=https://id.re8ch.com
             - --redirect-url=https://cube.service.re8ch.com/oauth2/callback
             - --upstream=http://cube-trial-webui:12088
             - --http-address=0.0.0.0:4180
@@ -83,9 +83,9 @@ spec:
   parentRefs:
     - name: re8ch-gateway-canary
       namespace: kube-system
-      sectionName: cube-https
+      sectionName: service-wildcard-https
   hostnames:
-    - cube.re8ch.com
+    - cube.service.re8ch.com
   rules:
     - backendRefs:
         - name: oauth2-proxy-cube
@@ -96,16 +96,16 @@ kind: Ingress
 metadata:
   name: cube-dns-authority
   namespace: cube-trial
-  labels: {networking.re8ch.com/dns-authority: migrated-to-service-zone}
+  labels: {networking.re8ch.com/dns-authority: public-edge}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: cube.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: cube.service.re8ch.com
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
     networking.re8ch.com/provider: public-edge-manager
 spec:
   ingressClassName: external-dns-only
   rules:
-    - host: cube.re8ch.com
+    - host: cube.service.re8ch.com
       http:
         paths:
           - path: /
