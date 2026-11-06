@@ -13,6 +13,8 @@ def latest_artifacts(pages):
     for page in pages:
         for artifact in page['artifacts']:
             name = artifact['name']
+            if name.startswith(('runtime-observation-', 'workflow-failure-')):
+                continue
             if not any(fnmatch.fnmatch(name, p) for p in ('*reconcile*', '*release-result*')):
                 continue
             if name not in latest or artifact['created_at'] > latest[name]['created_at']:
