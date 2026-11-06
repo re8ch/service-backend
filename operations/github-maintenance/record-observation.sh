@@ -39,21 +39,17 @@ else
 fi
 action="Observe Only"
 readback=""
-if [[ -n "${RECEIPT_EXECUTOR_ID:-}" && "$source_repo" != strata-silica/storage-gitops ]]; then
+if [[ -n "$source_id" ]]; then
   directory=$(mktemp -d "$RUNNER_TEMP/readback.XXXXXX")
-  if gh run download "$RECEIPT_EXECUTOR_ID" -R "$source_repo" --pattern '*-reconcile-*' --dir "$directory"; then
-    mapfile -t reports < <(find "$directory" -type f -name result.json | sort)
-    if (( ${#reports[@]} )); then
-      readback=$(jq -sr --arg delivery "$DELIVERY" '
-        map(select(.delivery==$delivery and (.digest|type)=="string")) |
-        map("- " + .release + " " + .digest + " " + .outcome + " (" + ((.objects|length)|tostring) + " objects)" + (if .checking then " at " + .checking else "" end) + (if .reason then " " + .reason else "" end)) | join("\n")
-      ' "${reports[@]}")
-      if jq -se --arg d "$DELIVERY" 'any(.[]; .delivery==$d and (.applied|length)>0)' "${reports[@]}" >/dev/null; then action=Reconcile; fi
-    fi
-  fi
-  if [[ -z "$readback" ]]; then
-    state=Unknown
-    signal="Executor readback unavailable"
+  if gh run download "$source_id" -R "$source_repo" --pattern '*reconcile*' --dir "$directory"; then
+    evidence=$(python operations/github-maintenance/reconcile_evidence.py "$directory" "$(jq -r .conclusion <<<"$run")" --delivery "${DELIVERY:-}")
+    state=$(jq -r .state <<<"$evidence")
+    action=$(jq -r .action <<<"$evidence")
+    readback=$(jq -r '.reports[] | "- " + .release + " " + (.digest // "digest unavailable") + " " + .outcome + " health=" + (.health // "receipt readback")' <<<"$evidence")
+    signal+="; release evidence: $state"
+  else
+    [[ "$state" == Failed ]] || state=Unknown
+    signal+="; release readback unavailable"
   fi
 fi
 body="$signal. Evidence: $logs. Inspection: $audit."
@@ -74,7 +70,7 @@ if [[ "$source_id" == "$previous" && -n "$source_id" ]]; then
   if [[ $(jq -r '.content.body' <<<"$prior") != *"attempt $attempt."* && "$attempt" != 1 ]]; then fresh="new source attempt"; fi
 fi
 transition=""
-if [[ "$state" == Failed ]]; then
+if [[ "$state" == Failed || "$state" == Degraded ]]; then
   transition=新增
   [[ "$prior_state" != Failed ]] || transition=持续
 elif [[ "$state" == Healthy && "$prior_state" == Failed ]]; then
