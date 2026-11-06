@@ -47,7 +47,7 @@ action="Observe Only"
 readback=""
 if [[ -n "$source_id" ]]; then
   directory=$(mktemp -d "$RUNNER_TEMP/readback.XXXXXX")
-  if gh run download "$source_id" -R "$source_repo" --pattern '*reconcile*' --pattern '*release-result*' --dir "$directory"; then
+  if python operations/github-maintenance/download_reconcile_evidence.py "$source_repo" "$source_id" "$directory"; then
     evidence=$(python operations/github-maintenance/reconcile_evidence.py "$directory" "$(jq -r .conclusion <<<"$run")" --delivery "${DELIVERY:-}")
     state=$(jq -r .state <<<"$evidence")
     action=$(jq -r .action <<<"$evidence")
