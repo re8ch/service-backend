@@ -60,7 +60,7 @@ def replay_decision(configmap: Path, contract_path: Path) -> str:
         return "blocked"
     if state.get("suspended"):
         return "suspended"
-    if state.get("healthyDigest") != state["appliedDigest"]:
+    if state.get("acceptedDigest", state.get("healthyDigest")) != state["appliedDigest"]:
         raise ValueError("replay requires a previously healthy accepted digest")
     return "eligible"
 
@@ -70,7 +70,7 @@ def accepted_bundle(configmap: Path, contract_path: Path) -> dict[str, str]:
     _, state, expected = replay_state(configmap, contract_path)
     if state["blocked"] or state.get("suspended"):
         raise ValueError("release is blocked or suspended")
-    if state.get("healthyDigest") != state["appliedDigest"]:
+    if state.get("acceptedDigest", state.get("healthyDigest")) != state["appliedDigest"]:
         raise ValueError("replay requires a previously healthy accepted digest")
     return {"reference": expected, "digest": state["appliedDigest"]}
 
