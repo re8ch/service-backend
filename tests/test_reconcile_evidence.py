@@ -52,3 +52,14 @@ def test_scheduled_ssa_application_is_recorded_as_reconcile(tmp_path):
     value['application'] = {'appliedInventory': ['apps/Deployment/demo/service']}
     p.write_text(json.dumps(value))
     assert module.summarize(tmp_path, 'success')['action'] == 'Reconcile'
+
+
+def test_authorized_node_warning_stays_visible_in_project(tmp_path):
+    report(tmp_path)
+    p = tmp_path / 'result.json'
+    value = json.loads(p.read_text())
+    value['health']['reason'] = 'Warning: NotReady nodes offline; Ready-node daemon Pods healthy'
+    p.write_text(json.dumps(value))
+    evidence = module.summarize(tmp_path, 'success')
+    assert evidence['state'] == 'Degraded'
+    assert evidence['reports'][0]['warning'].startswith('Warning:')

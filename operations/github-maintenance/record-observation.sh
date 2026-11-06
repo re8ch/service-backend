@@ -51,7 +51,7 @@ if [[ -n "$source_id" ]]; then
     evidence=$(python operations/github-maintenance/reconcile_evidence.py "$directory" "$(jq -r .conclusion <<<"$run")" --delivery "${DELIVERY:-}")
     state=$(jq -r .state <<<"$evidence")
     action=$(jq -r .action <<<"$evidence")
-    readback=$(jq -r '.reports[] | "- " + .release + " " + (.digest // "digest unavailable") + " " + .outcome + " health=" + (.health // "receipt readback")' <<<"$evidence")
+    readback=$(jq -r '.reports[] | "- " + .release + " " + (.digest // "digest unavailable") + " " + .outcome + " health=" + (.health // "receipt readback") + (if .warning != "" then " " + .warning else "" end)' <<<"$evidence")
     signal+="; release evidence: $state"
   else
     [[ "$state" == Failed ]] || state=Unknown

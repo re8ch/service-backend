@@ -20,7 +20,7 @@ def summarize(directory, conclusion, delivery=""):
                 invalid = True
                 continue
             reports.append({"release": release, "digest": digest, "outcome": outcome,
-                            "health": health, "applied": bool(value.get("applied") or value.get("application", {}).get("appliedInventory"))})
+                            "health": health, "warning": value.get("health", {}).get("reason", "") if value.get("health", {}).get("reason", "").startswith("Warning:") else "", "applied": bool(value.get("applied") or value.get("application", {}).get("appliedInventory"))})
         except (ValueError, TypeError, AttributeError):
             invalid = True
     state = "Unknown"
@@ -28,7 +28,7 @@ def summarize(directory, conclusion, delivery=""):
         state = "Failed"
     elif any(r["outcome"] in ("failed", "blocked", "rolled-back") for r in reports):
         state = "Failed"
-    elif any(r["outcome"] in ("degraded", "unhealthy") or r["health"] in ("degraded", "unhealthy") for r in reports):
+    elif any(r["outcome"] in ("degraded", "unhealthy") or r["health"] in ("degraded", "unhealthy") or r["warning"] for r in reports):
         state = "Degraded"
     elif conclusion == "success" and reports and not invalid and all(
         (r["outcome"] == "healthy" and r["health"] == "healthy") or
