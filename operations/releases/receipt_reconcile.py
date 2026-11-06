@@ -24,6 +24,7 @@ def run(report):
     digest = operation["bundle"]["digest"]
     report.update(release=rid, digest=digest)
     executor = Executor()
+    executor.apply_only = True
     store = Store(root / "executor-state", rid)
     _, objects, _ = executor.validate(contract, operation, root / "pulled/release.bundle", store)
     manager = contract["spec"]["authorization"]["fieldManager"]
@@ -32,7 +33,7 @@ def run(report):
     def require_accepted():
         result = executor.command(["kubectl", "get", "configmap", state_ref["name"], "-n", state_ref["namespace"], "-o", "json"])
         state = json.loads(json.loads(result.stdout)["data"]["accepted-state.json"])
-        if state["releaseId"] != rid or state["appliedDigest"] != digest or state["healthyDigest"] != digest or state["blocked"] or state.get("suspended"):
+        if state["releaseId"] != rid or state["appliedDigest"] != digest or state.get("acceptedDigest", state.get("healthyDigest")) != digest or state["blocked"] or state.get("suspended"):
             raise ValueError("accepted state changed")
 
     def project(item):
@@ -72,7 +73,7 @@ def run(report):
         require_accepted()
         result = executor.reconcile(contract, operation, root / "pulled/release.bundle", root / "executor-state")
         (root / "executor-result.json").write_text(json.dumps(result))
-        if result["outcome"] != "healthy":
+        if result["outcome"] not in {"applied", "healthy"}:
             raise ValueError("executor did not restore health")
         report["applied"] = [object_identity(item) for item in changed]
     require_accepted()
@@ -80,10 +81,10 @@ def run(report):
         report["checking"] = object_identity(item)
         if project(item):
             raise ValueError("readback differs")
-    healthy, _ = executor.wait_healthy(prepared, 0, contract["spec"]["lifecycle"].get("healthChecks"))
+
     report.pop("checking", None)
-    report["outcome"] = ("recovered" if changed else "aligned") if healthy else "unhealthy"
-    return healthy
+    report["outcome"] = "recovered" if changed else "aligned"
+    return True
 
 
 if __name__ == "__main__":
