@@ -62,10 +62,3 @@ old.each do |owner, installation|
   abort "Legacy repository scope differs for #{owner}" unless installation[:repos] == expected.fetch(owner)
   puts "#{owner}: verified #{installation[:repos].join(', ')}"
 end
-mode = ENV.fetch('MODE')
-abort 'Unknown cutover mode' unless %w[audit retire].include?(mode)
-if mode == 'retire'
-  old.each_value { |i| api(Net::HTTP::Delete, "/app/installations/#{i[:id]}", legacy) }
-  abort 'Legacy installations remain' unless api(Net::HTTP::Get, '/app/installations?per_page=100', legacy).empty?
-  puts 'Legacy installations: 0'
-end
