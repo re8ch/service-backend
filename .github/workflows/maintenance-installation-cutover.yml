@@ -1,0 +1,26 @@
+name: Maintenance App installation cutover
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Compare installations or uninstall the retired App
+        type: choice
+        options: [audit, retire]
+        default: audit
+permissions: {contents: read}
+concurrency:
+  group: maintenance-installation-cutover
+  cancel-in-progress: false
+jobs:
+  installations:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify exact installation coverage before retiring the legacy App
+        env:
+          LEGACY_KEY: ${{ secrets.GITOPS_MAINTENANCE_PRIVATE_KEY }}
+          ENTERPRISE_KEY: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
+          MODE: ${{ inputs.mode }}
+        run: ruby operations/github-maintenance/installation_cutover.rb
