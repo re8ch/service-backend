@@ -41,6 +41,26 @@ def test_gateway_reads_dedicated_broker_secret():
     assert env["AUTH_OIDC_SIGNING_KEY_PEM"]["valueFrom"]["secretKeyRef"] == {
         "name": "re8ch-auth-broker-client", "key": "AUTH_OIDC_SIGNING_KEY_PEM"
     }
+    assert env["AUTH_OIDC_LITELLM_CLIENT_SECRET"]["valueFrom"]["secretKeyRef"] == {
+        "name": "litellm-userhub-oidc-client", "key": "client-secret"
+    }
+
+
+def test_litellm_userhub_client_sync_is_secret_safe_and_least_privilege():
+    path = ROOT / "clusters/re8ch/components/auth/sync-litellm-userhub-client.yaml"
+    documents = list(yaml.safe_load_all(path.read_text()))
+    source_role = next(item for item in documents if item["kind"] == "Role" and item["metadata"]["namespace"] == "llm-gateway")
+    assert source_role["rules"] == [{
+        "apiGroups": [""], "resources": ["secrets"],
+        "resourceNames": ["litellm-dex-sso"], "verbs": ["get"]
+    }]
+    target_role = next(item for item in documents if item["kind"] == "Role" and item["metadata"]["namespace"] == "auth")
+    assert target_role["rules"][0]["resourceNames"] == ["litellm-userhub-oidc-client"]
+    job = next(item for item in documents if item["kind"] == "Job")
+    script = job["spec"]["template"]["spec"]["containers"][0]["args"][0]
+    assert "litellm-dex-sso" in script
+    assert "litellm-userhub-oidc-client" in script
+    assert 'print("LiteLLM UserHub client synchronized; auth gateway rollout requested")' in script
 
 
 def test_dex_github_credentials_are_migrated_without_exposing_values():

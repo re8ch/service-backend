@@ -11,6 +11,7 @@ resources:
 - ../../../components/auth/deployments/auth-postgrest.yaml
 - ../../../components/auth/deployments/re8ch-auth-gateway.yaml
 - ../../../components/auth/deployments/re8ch-auth-gateway-pdb.yaml
+- ../../../components/auth/sync-litellm-userhub-client.yaml
 - ../../../components/auth/dependency-policy.yaml
 - ../../../components/auth/services/re8ch-auth-gateway.yaml
 - ../../../components/auth/user-center.yaml

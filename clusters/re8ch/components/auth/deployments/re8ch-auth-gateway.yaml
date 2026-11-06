@@ -62,7 +62,7 @@ spec:
         - name: ghcr-re8ch
       containers:
         - name: gateway
-          image: ghcr.io/re8ch/service-backend-auth-gateway@sha256:e117a9b9c23ad9eb7d353d8e2c92bb23a9a40f5a806fc4562c9f4a43dbb9bc7a
+          image: ghcr.io/re8ch/service-backend-auth-gateway@sha256:0fdfe848486e1d64865c5db988eb91443feb8fb35416160c588182f10717d736
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -262,6 +262,9 @@ spec:
             - name: AUTH_OIDC_CLOUD_DISK_CLIENT_SECRET
               valueFrom:
                 secretKeyRef: {name: cloud-disk-oidc-client-auth, key: client-secret}
+            - name: AUTH_OIDC_LITELLM_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: litellm-userhub-oidc-client, key: client-secret}
             - name: AUTH_OIDC_PUBLIC_CLIENT_IDS
               value: re8ch-cloud-platform-tool,re8ch-platform-admin,re8ch-tenant
             - name: AUTH_OIDC_STALWART_WEBUI_REDIRECT_URIS
