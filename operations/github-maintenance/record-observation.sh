@@ -37,6 +37,12 @@ elif run=$(gh api "$endpoint" --jq "$selector"); then
 else
   signal="Actions evidence read failed"
 fi
+# A scheduled inspection updates the source run's record instead of adding 96
+# identical rows per day. Receipt records keep their own delivery correlation.
+if [[ -z "${DELIVERY:-}" && -n "$source_id" ]]; then
+  title="Inspection $source_repo · $source_id"
+  dedupe="$source_repo:$source_id:$(jq -r '.run_attempt // 1' <<<"$run")"
+fi
 action="Observe Only"
 readback=""
 if [[ -n "$source_id" ]]; then

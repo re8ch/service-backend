@@ -20,7 +20,7 @@ def summarize(directory, conclusion, delivery=""):
                 invalid = True
                 continue
             reports.append({"release": release, "digest": digest, "outcome": outcome,
-                            "health": health, "applied": bool(value.get("applied"))})
+                            "health": health, "applied": bool(value.get("applied") or value.get("application", {}).get("appliedInventory"))})
         except (ValueError, TypeError, AttributeError):
             invalid = True
     state = "Unknown"
