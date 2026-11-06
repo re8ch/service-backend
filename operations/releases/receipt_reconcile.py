@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from uuid import UUID
+from ssa_compare import retry_read_conflict, safe_failure_reason
 
 import yaml
 from ssa_executor import Executor, Store, object_identity
@@ -36,7 +37,7 @@ def run(report):
         if state["releaseId"] != rid or state["appliedDigest"] != digest or state.get("acceptedDigest", state.get("healthyDigest")) != digest or state["blocked"] or state.get("suspended"):
             raise ValueError("accepted state changed")
 
-    def project(item):
+    def project_once(item):
         data = json.dumps(item)
         live = json.loads(executor.command(["kubectl", "get", "-f", "-", "-o", "json"], data).stdout)
         if live.get("kind") == "List":
@@ -56,6 +57,9 @@ def run(report):
         argv = ["kubectl", "apply", "--server-side", "--field-manager=" + manager, "-f", "-"]
         predicted = json.loads(executor.command(argv + ["--dry-run=server", "-o", "json"], json.dumps(item), timeout=120).stdout)
         return comparable(predicted) != comparable(live)
+
+    def project(item):
+        return retry_read_conflict(lambda: project_once(item))
 
     require_accepted()
     prepared = executor.with_audit(objects, operation)
@@ -96,6 +100,8 @@ if __name__ == "__main__":
         report.update(outcome="blocked", error=type(error).__name__)
         if type(error) is ValueError and str(error) in {"accepted state changed", "release ownership differs", "ToolHive replay awaits dedicated runtime acceptance", "readback differs", "executor did not restore health"}:
             report["reason"] = str(error)
+        if type(error).__name__ == "Rejected":
+            report["reason"] = safe_failure_reason(error)
         success = False
     print(json.dumps(report))
     raise SystemExit(0 if success else 1)
