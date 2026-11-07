@@ -41,7 +41,7 @@ jobs:
           SOURCE_REVISION: ${{ inputs.revision }}
         run: |
           set -euo pipefail
-          kubectl=(k3s kubectl)
+          kubectl=(sudo -n k3s kubectl)
           manifest=clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml
           test -f "$manifest"
 
@@ -82,7 +82,7 @@ jobs:
         run: |
           set -euo pipefail
           : "${SOURCE_REVISION:?}"
-          kubectl=(k3s kubectl)
+          kubectl=(sudo -n k3s kubectl)
           for controller in source-controller kustomize-controller notification-controller; do
             available="$("${kubectl[@]}" get deployment "$controller" -n flux-system -o "jsonpath={.status.availableReplicas}")"
             printf '%s availableReplicas=%s\n' "$controller" "${available:-0}" >> "$GITHUB_STEP_SUMMARY"
