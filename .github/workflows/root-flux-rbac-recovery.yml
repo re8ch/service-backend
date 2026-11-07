@@ -8,97 +8,102 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: read
-
-concurrency:
-  group: root-flux-rbac-recovery
-  cancel-in-progress: false
+permissions: {contents: read}
+concurrency: {group: root-flux-rbac-recovery, cancel-in-progress: false}
 
 jobs:
   recover:
     if: github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
-    environment: release-executor-agent-runtime
+    environment: root-flux-recovery
+    permissions: {contents: read, id-token: write}
     env:
-      http_proxy: ''
-      https_proxy: ''
-      all_proxy: ''
+      EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/root-flux-recovery
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          fetch-depth: 0
-          persist-credentials: false
+        with: {fetch-depth: 0, persist-credentials: false}
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+        with: {version: v1.33.1}
+      - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
       - name: Require the exact signed merged source
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_REVISION: ${{ inputs.revision }}
+        env: {GH_TOKEN: '${{ github.token }}', SOURCE_REVISION: '${{ inputs.revision }}'}
         run: |
           set -euo pipefail
           [[ "$SOURCE_REVISION" =~ ^[a-f0-9]{40}$ ]]
           git merge-base --is-ancestor "$SOURCE_REVISION" origin/main
           test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE_REVISION" --jq '.commit.verification.verified')" = true
           git checkout --detach "$SOURCE_REVISION"
-      - name: Restore exact agent executor RBAC and request root reconciliation
-        env:
-          SOURCE_REVISION: ${{ inputs.revision }}
+      - name: Acquire bounded root recovery identity
         run: |
           set -euo pipefail
-          kubectl=(k3s kubectl --kubeconfig /etc/re8ch/codex-fleet/kubeconfig)
-          manifest=clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml
-          test -f "$manifest"
-
-          "${kubectl[@]}" apply --server-side --dry-run=server \
-            --field-manager=kustomize-controller -f "$manifest" -o name
-          "${kubectl[@]}" apply --server-side \
-            --field-manager=kustomize-controller -f "$manifest" -o name
-
-          executor='github-actions:release-executor-agent-runtime:recovery-probe'
-          group='re8ch:release-executor:agent-runtime'
-          test "$("${kubectl[@]}" auth can-i --as="$executor" --as-group="$group" \
-            get configmap/ssa-state-agent-runtime-domain-tenant-infrastructure -n tenant-infrastructure)" = yes
-          test "$("${kubectl[@]}" auth can-i --as="$executor" --as-group="$group" \
-            patch httproute.gateway.networking.k8s.io/tenant-mcp -n toolhive-system)" = yes
-
+          curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+          token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+          kubeconfig="$RUNNER_TEMP/root-recovery.kubeconfig"
+          kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main --server=https://kube-api.service.re8ch.com
+          kubectl config --kubeconfig "$kubeconfig" set-credentials root-recovery --token="$token"
+          kubectl config --kubeconfig "$kubeconfig" set-context root-recovery --cluster=re8ch-main --user=root-recovery
+          kubectl config --kubeconfig "$kubeconfig" use-context root-recovery
+          echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+      - name: Prove bounded recovery permissions
+        run: |
+          set -euo pipefail
+          test "$(kubectl auth can-i get role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
+          test "$(kubectl auth can-i patch role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
+          test "$(kubectl auth can-i escalate role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
+          test "$(kubectl auth can-i patch gitrepository/service-backend.source.toolkit.fluxcd.io -n flux-system)" = yes
+          test "$(kubectl auth can-i patch kustomization/service-backend.kustomize.toolkit.fluxcd.io -n flux-system)" = yes
+          for denied in "get secrets -A" "create clusterroles.rbac.authorization.k8s.io" \
+            "patch deployments -A" "impersonate users"; do
+            read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no
+          done
+      - name: Restore exact identity executor role and request root reconciliation
+        env: {SOURCE_REVISION: '${{ inputs.revision }}'}
+        run: |
+          # shellcheck disable=SC2016,SC2153
+          set -euo pipefail
+          python - <<'PY' > "$RUNNER_TEMP/identity-executor-role.yaml"
+          import yaml
+          path = "clusters/re8ch/components/ops/github-actions-cloud-domains-executor-rbac.yaml"
+          matches = [item for item in yaml.safe_load_all(open(path)) if item and
+                     item.get("kind") == "Role" and
+                     item.get("metadata", {}).get("namespace") == "supabase-identity" and
+                     item.get("metadata", {}).get("name") == "identity-access-domain-supabase-identity"]
+          if len(matches) != 1:
+              raise SystemExit(f"expected one identity executor Role, got {len(matches)}")
+          print(yaml.safe_dump(matches[0], sort_keys=False))
+          PY
+          kubectl apply --server-side --dry-run=server --field-manager=kustomize-controller \
+            -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
+          kubectl apply --server-side --field-manager=kustomize-controller \
+            -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
           request_id="github-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          for target in \
-            gitrepository.source.toolkit.fluxcd.io/service-backend \
+          for target in gitrepository.source.toolkit.fluxcd.io/service-backend \
             kustomization.kustomize.toolkit.fluxcd.io/service-backend; do
-            "${kubectl[@]}" annotate "$target" -n flux-system \
+            kubectl annotate "$target" -n flux-system \
               "reconcile.fluxcd.io/requestedAt=$request_id" --overwrite --dry-run=server -o name
-            "${kubectl[@]}" annotate "$target" -n flux-system \
+            kubectl annotate "$target" -n flux-system \
               "reconcile.fluxcd.io/requestedAt=$request_id" --overwrite -o name
           done
-
-          {
-            echo '### Root Flux bounded recovery'
-            echo
-            echo "- restored revision: \`$SOURCE_REVISION\`"
-            echo "- applied object set: \`$manifest\`"
-            echo "- reconciliation request: \`$request_id\`"
-            echo '- prune: disabled'
-            echo '- controller restarts: none'
-          } >> "$GITHUB_STEP_SUMMARY"
+          printf '### Root Flux bounded recovery\n\n- restored revision: `%s`\n- restored object: `Role/supabase-identity/identity-access-domain-supabase-identity`\n- reconciliation request: `%s`\n- prune: disabled\n' \
+            "$SOURCE_REVISION" "$request_id" >> "$GITHUB_STEP_SUMMARY"
       - name: Observe root revision and controller availability
-        env:
-          SOURCE_REVISION: ${{ inputs.revision }}
+        env: {SOURCE_REVISION: '${{ inputs.revision }}'}
         run: |
           set -euo pipefail
-          : "${SOURCE_REVISION:?}"
-          kubectl=(k3s kubectl --kubeconfig /etc/re8ch/codex-fleet/kubeconfig)
           for controller in source-controller kustomize-controller notification-controller; do
-            available="$("${kubectl[@]}" get deployment "$controller" -n flux-system -o "jsonpath={.status.availableReplicas}")"
+            available="$(kubectl get deployment "$controller" -n flux-system -o 'jsonpath={.status.availableReplicas}')"
             printf '%s availableReplicas=%s\n' "$controller" "${available:-0}" >> "$GITHUB_STEP_SUMMARY"
           done
           for _ in $(seq 1 36); do
-            source_revision="$("${kubectl[@]}" get gitrepository service-backend -n flux-system -o "jsonpath={.status.artifact.revision}" 2>/dev/null || true)"
-            applied_revision="$("${kubectl[@]}" get kustomization service-backend -n flux-system -o "jsonpath={.status.lastAppliedRevision}" 2>/dev/null || true)"
+            source_revision="$(kubectl get gitrepository service-backend -n flux-system -o 'jsonpath={.status.artifact.revision}' 2>/dev/null || true)"
+            applied_revision="$(kubectl get kustomization service-backend -n flux-system -o 'jsonpath={.status.lastAppliedRevision}' 2>/dev/null || true)"
             if [[ "$source_revision" == *"$SOURCE_REVISION"* && "$applied_revision" == *"$SOURCE_REVISION"* ]]; then
-              printf '\nRoot source and kustomization reached %s.\n' "\`$SOURCE_REVISION\`" >> "$GITHUB_STEP_SUMMARY"
+              printf '\nRoot source and kustomization reached `%s`.\n' "$SOURCE_REVISION" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             sleep 5
           done
-          echo 'RBAC restoration succeeded, but root Flux did not report the requested revision inside the bounded observation window.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The bounded repair succeeded, but root Flux did not report the requested revision in time.' >> "$GITHUB_STEP_SUMMARY"
           exit 1

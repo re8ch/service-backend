@@ -29,6 +29,7 @@ CLOUD_JOBS = {
     ".github/workflows/release-compat-controller.yml": {"release"},
     ".github/workflows/main-domain-release.yml": {"validate", "compile-sign", "execute"},
     ".github/workflows/main-domain-reconcile.yml": {"select", "reconcile"},
+    ".github/workflows/root-flux-rbac-recovery.yml": {"recover"},
     ".github/workflows/commerce-go-release.yml": {"release"},
     ".github/workflows/auth-gateway-image-release.yml": {"release"},
     ".github/workflows/auth-gateway-release.yml": {"release"},
