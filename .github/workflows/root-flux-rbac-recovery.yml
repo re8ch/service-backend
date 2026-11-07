@@ -22,9 +22,9 @@ jobs:
     timeout-minutes: 8
     environment: release-executor-agent-runtime
     env:
-      HTTP_PROXY: ''
-      HTTPS_PROXY: ''
-      ALL_PROXY: ''
+      http_proxy: ''
+      https_proxy: ''
+      all_proxy: ''
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
