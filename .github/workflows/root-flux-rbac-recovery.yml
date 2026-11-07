@@ -94,9 +94,9 @@ jobs:
               raise SystemExit(f"expected one identity executor Role, got {len(matches)}")
           print(yaml.safe_dump(matches[0], sort_keys=False))
           PY
-          kubectl apply --server-side --dry-run=server --field-manager=kustomize-controller \
+          kubectl apply --server-side --dry-run=server --force-conflicts --field-manager=kustomize-controller \
             -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
-          kubectl apply --server-side --field-manager=kustomize-controller \
+          kubectl apply --server-side --force-conflicts --field-manager=kustomize-controller \
             -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
           request_id="github-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           for target in gitrepository.source.toolkit.fluxcd.io/service-backend \
