@@ -98,6 +98,10 @@ jobs:
             -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
           kubectl apply --server-side --force-conflicts --field-manager=kustomize-controller \
             -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
+          kubectl patch gitrepository.source.toolkit.fluxcd.io/service-backend -n flux-system \
+            --type=merge --patch='{"spec":{"suspend":false}}' --dry-run=server -o name
+          kubectl patch gitrepository.source.toolkit.fluxcd.io/service-backend -n flux-system \
+            --type=merge --patch='{"spec":{"suspend":false}}' -o name
           request_id="github-actions-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           for target in gitrepository.source.toolkit.fluxcd.io/service-backend \
             kustomization.kustomize.toolkit.fluxcd.io/service-backend; do
