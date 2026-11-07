@@ -102,12 +102,14 @@ connects to a different runtime when it needs a different identity.
 
 ## CubeSandbox route-aware egress direction
 
-Human operators use the Dex-protected public dashboard at
+Human operators use the UserHub-protected public dashboard at
 <https://cube.service.re8ch.com>. The same-origin `/cubeapi/v1` and `/sandbox/` paths
 remain behind the same oauth2-proxy boundary; CubeAPI is not published as a
 separate unauthenticated endpoint. The Gateway API resources are in
-`cube-public-gateway.yaml`, and `register-cube-dex-client.sh` creates the
-cluster-only OAuth credentials without committing them to Git.
+`cube-public-gateway.yaml`. OAuth uses the Supabase GoTrue issuer at
+`https://db-rw.re8ch.com/auth/v1`; the public PKCE client is declared by
+`operations/supabase-identity/oauth-clients-cube.yaml`. Do not restore the
+retired Dex, Stalwart-provider, or `id.re8ch.com` Cube client paths.
 
 Ordinary Sandbox detail pages include an **Open terminal** action supplied by
 the `cube-webui-terminal/` overlay. It opens an xterm.js browser terminal backed

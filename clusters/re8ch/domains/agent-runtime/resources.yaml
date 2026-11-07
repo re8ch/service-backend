@@ -10041,12 +10041,16 @@ spec:
       containers:
       - args:
         - --provider=oidc
-        - --oidc-issuer-url=https://id.re8ch.com
+        - --oidc-issuer-url=https://db-rw.re8ch.com/auth/v1
+        - --client-id=5e150902-f015-5c2d-b962-049f71900311
+        - --client-secret=
+        - --code-challenge-method=S256
+        - --oidc-extra-audience=authenticated
         - --redirect-url=https://cube.service.re8ch.com/oauth2/callback
         - --upstream=http://cube-trial-webui:12088
         - --http-address=0.0.0.0:4180
         - --email-domain=*
-        - --scope=openid profile email
+        - --scope=openid profile email offline_access
         - --cookie-secure=true
         - --cookie-samesite=lax
         - --cookie-expire=12h

@@ -119,6 +119,13 @@ and uses an empty client-secret hash for GoTrue's public-client row scanner.
 Before changing Headlamp's issuer, verify the Job completed and the authorize
 endpoint redirects to User Hub with an `authorization_id`.
 
+CubeSandbox uses the same GoTrue OAuth authority through a separate public PKCE
+client declared by `oauth-clients-cube.yaml`. Its issuer is
+`https://db-rw.re8ch.com/auth/v1` and its only callback is
+`https://cube.service.re8ch.com/oauth2/callback`. `auth.re8ch.com` is the
+UserHub login and consent UI, not Cube's OAuth issuer. The retired Cube Dex,
+Stalwart-provider, and `id.re8ch.com` registrations must not be reused.
+
 ConnecTool clients still require `groups` and exact resource audiences. A
 reviewed access-token hook and live GitHub team synchronization must restore
 these claims before their cutover. Do not infer platform administrator
