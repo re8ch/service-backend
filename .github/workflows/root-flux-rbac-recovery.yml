@@ -46,6 +46,26 @@ jobs:
           kubectl config --kubeconfig "$kubeconfig" set-context root-recovery --cluster=re8ch-main --user=root-recovery
           kubectl config --kubeconfig "$kubeconfig" use-context root-recovery
           echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+      - name: Verify bounded OIDC claims
+        run: |
+          set -euo pipefail
+          jq -r '.value | split(".")[1] | gsub("-"; "+") | gsub("_"; "/") |
+            . + ("=" * ((4 - (length % 4)) % 4)) | @base64d | fromjson |
+            {aud, repository_id, repository_owner_id, repository, repository_visibility,
+             ref, runner_environment, workflow_ref, event_name, environment} | to_entries[] |
+            "\(.key)=\(.value)"' "$RUNNER_TEMP/oidc.json"
+          payload="$(jq -r '.value | split(".")[1] | gsub("-"; "+") | gsub("_"; "/") |
+            . + ("=" * ((4 - (length % 4)) % 4)) | @base64d' "$RUNNER_TEMP/oidc.json")"
+          test "$(jq -r .aud <<<"$payload")" = "$EXECUTOR_AUDIENCE"
+          test "$(jq -r .repository_id <<<"$payload")" = 1367237854
+          test "$(jq -r .repository_owner_id <<<"$payload")" = 283958313
+          test "$(jq -r .repository <<<"$payload")" = re8ch/service-backend
+          test "$(jq -r .repository_visibility <<<"$payload")" = public
+          test "$(jq -r .ref <<<"$payload")" = refs/heads/main
+          test "$(jq -r .runner_environment <<<"$payload")" = github-hosted
+          test "$(jq -r .workflow_ref <<<"$payload")" = re8ch/service-backend/.github/workflows/root-flux-rbac-recovery.yml@refs/heads/main
+          test "$(jq -r .event_name <<<"$payload")" = workflow_dispatch
+          test "$(jq -r .environment <<<"$payload")" = root-flux-recovery
       - name: Prove bounded recovery permissions
         run: |
           set -euo pipefail
