@@ -2304,6 +2304,7 @@ rules:
   - supabase-oauth-clients-anycam-v1
   - supabase-oauth-clients-catalog-v1
   - supabase-oauth-clients-cube-v2
+  - supabase-oauth-clients-cube-v3
   - supabase-oauth-clients-grafana-v1
   - supabase-oauth-clients-headlamp-v2
   - supabase-oauth-clients-stalwart-v1
