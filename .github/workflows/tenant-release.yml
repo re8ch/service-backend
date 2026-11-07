@@ -27,7 +27,7 @@ jobs:
     outputs:
       image: ${{ steps.publish.outputs.image }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/tenant-release-docker"
           install -d -m 700 "$DOCKER_CONFIG"
@@ -56,7 +56,7 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: printf '%s\n' "$TENANT_IMAGE" > tenant-infrastructure.image
         env:
           TENANT_IMAGE: ${{ needs.release.outputs.image }}
@@ -95,7 +95,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
         with:
           install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}

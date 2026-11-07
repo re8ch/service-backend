@@ -49,7 +49,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 -m pip install 'PyYAML==6.0.2' 'jsonschema==4.23.0' 'pytest>=8.3' 'schemathesis==4.29.1'
       - run: python3 -m pytest -q tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py tests/test_anatomy_diff_operation.py tests/test_plugin_operation_progress.py tests/test_stalwart_admin.py tests/test_stalwart_bootstrap.py tests/test_stalwart_authority.py
       - name: Verify generated contracts and native schema enumeration
@@ -90,7 +90,7 @@ jobs:
     timeout-minutes: 45
     environment: production
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Prepare isolated Docker authorization
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-platform-release-docker"
@@ -149,7 +149,7 @@ jobs:
       actions: read
       id-token: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {fetch-depth: 0}
       - name: Verify source release for artifact reuse
         id: source

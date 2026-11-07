@@ -15,7 +15,7 @@ jobs:
       matrix: ${{ steps.scan.outputs.matrix }}
       available: ${{ steps.scan.outputs.available }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - id: scan
         env:
           APP_ID: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
@@ -30,7 +30,7 @@ jobs:
       matrix: ${{ fromJSON(needs.receipts.outputs.matrix) }}
     name: Observe ${{ matrix.owner }}/${{ matrix.repo }} · ${{ matrix.delivery }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - id: app
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
