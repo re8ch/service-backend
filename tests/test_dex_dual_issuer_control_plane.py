@@ -48,6 +48,7 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-reconciler-identity-access',
         'https://kube-api.re8ch.com/release-reconciler-observability-metering',
         'https://kube-api.re8ch.com/release-reconciler-delivery-products',
+        'https://kube-api.re8ch.com/root-flux-recovery',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
     public_rule, runner_rule = github['claimValidationRules'][:2]
@@ -81,6 +82,22 @@ def test_all_control_planes_share_supabase_authentication():
         assert required in route
     assert "github-actions:release-executor-api-conformance:" in github['claimMappings']['username']['expression']
     assert "re8ch:release-executor:api-conformance" in github['claimMappings']['groups']['expression']
+    assert "github-actions:root-flux-recovery:" in github['claimMappings']['username']['expression']
+    assert "re8ch:root-flux-recovery" in github['claimMappings']['groups']['expression']
+    for rule in github['claimValidationRules']:
+        expression = rule['expression']
+        for boundary in (
+            "claims.repository_id == '1367237854'",
+            "claims.repository_owner_id == '283958313'",
+            "claims.repository == 're8ch/service-backend'",
+            "claims.ref == 'refs/heads/main'",
+            "claims.runner_environment == 'github-hosted'",
+            "claims.workflow_ref == 're8ch/service-backend/.github/workflows/root-flux-rbac-recovery.yml@refs/heads/main'",
+            "claims.event_name == 'workflow_dispatch'",
+            "claims.environment == 'root-flux-recovery'",
+            "claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery'",
+        ):
+            assert boundary in expression
     external = {
         'delivery-products': ('re8ch/delivery-products-gitops', '1431915128', '283958313'),
         'agent-runtime': ('8iops/agent-gitops', '1435935941', '334604670'),

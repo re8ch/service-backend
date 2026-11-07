@@ -1,0 +1,39 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: github-actions-root-flux-recovery, namespace: supabase-identity}
+rules:
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [roles]
+  resourceNames: [identity-access-domain-supabase-identity]
+  verbs: [get, patch, update, escalate]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: github-actions-root-flux-recovery, namespace: supabase-identity}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: github-actions-root-flux-recovery}
+subjects:
+- {apiGroup: rbac.authorization.k8s.io, kind: Group, name: 're8ch:root-flux-recovery'}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: github-actions-root-flux-recovery, namespace: flux-system}
+rules:
+- apiGroups: [source.toolkit.fluxcd.io]
+  resources: [gitrepositories]
+  resourceNames: [service-backend]
+  verbs: [get, patch]
+- apiGroups: [kustomize.toolkit.fluxcd.io]
+  resources: [kustomizations]
+  resourceNames: [service-backend]
+  verbs: [get, patch]
+- apiGroups: [apps]
+  resources: [deployments]
+  resourceNames: [source-controller, kustomize-controller, notification-controller]
+  verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: github-actions-root-flux-recovery, namespace: flux-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: github-actions-root-flux-recovery}
+subjects:
+- {apiGroup: rbac.authorization.k8s.io, kind: Group, name: 're8ch:root-flux-recovery'}
