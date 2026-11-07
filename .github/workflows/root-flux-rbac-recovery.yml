@@ -72,8 +72,8 @@ jobs:
           test "$(kubectl auth can-i get role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
           test "$(kubectl auth can-i patch role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
           test "$(kubectl auth can-i escalate role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
-          test "$(kubectl auth can-i patch gitrepository/service-backend.source.toolkit.fluxcd.io -n flux-system)" = yes
-          test "$(kubectl auth can-i patch kustomization/service-backend.kustomize.toolkit.fluxcd.io -n flux-system)" = yes
+          test "$(kubectl auth can-i patch gitrepositories.source.toolkit.fluxcd.io/service-backend -n flux-system)" = yes
+          test "$(kubectl auth can-i patch kustomizations.kustomize.toolkit.fluxcd.io/service-backend -n flux-system)" = yes
           for denied in "get secrets -A" "create clusterroles.rbac.authorization.k8s.io" \
             "patch deployments -A" "impersonate users"; do
             read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no
