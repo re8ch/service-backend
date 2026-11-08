@@ -26,9 +26,9 @@
     },
     {
       "repository": "pillars-infra/network-gitops",
-      "revision": "a0141149ed166be720f67384a84e29a715defd2c",
+      "revision": "903a1085f74bcba47e5e68305df2abe5ae7805a7",
       "path": "operations/releases/native-authority.json",
-      "sha256": "8f438c475abfbda3d6b52716112534c5748721463184fb638b41cedfa11bd154"
+      "sha256": "888de297c41482d76880f58cfbb72962130bfbebd39a574e566cf41cea8b2252"
     },
     {
       "repository": "pillars-infra/network-gitops",

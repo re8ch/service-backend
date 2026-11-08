@@ -106,6 +106,17 @@ def test_networking_executor_scopes_kube_api_to_its_own_release():
                    for rule in old['rules'] for name in rule['resourceNames'])
 
 
+def test_networking_kube_system_executor_covers_outer_sni_authority():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    role = next(d for d in docs if d['kind'] == 'Role'
+                and d['metadata']['name'] == 'networking-native-kube-system')
+    names = {(resource, name) for rule in role['rules']
+             for resource in rule['resources'] for name in rule['resourceNames']}
+    assert ('daemonsets', 'regional-origin-dnat') in names
+    assert ('daemonsets', 'r640-outer-sni-dnat') in names
+    assert ('configmaps', 'r640-outer-sni-dnat') in names
+
+
 def test_litellm_adoption_has_only_five_runtime_objects_plus_state():
     docs = list(yaml.safe_load_all(PATH.read_text()))
     role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'agent-runtime-domain-llm-gateway')
