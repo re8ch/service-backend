@@ -54,7 +54,8 @@ IDENTITY_REST_URL = os.getenv("IDENTITY_REST_URL", "http://supabase-identity-res
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
 LOG = logging.getLogger("tenant-control-controller")
-RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
+CORE_RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease"}
+RESERVED_NAMESPACES = CORE_RESERVED_NAMESPACES | {"flux-system", "tenant-infrastructure", "toolhive-system"}
 TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
 PERSONAL_RUNTIME_CLASS = "personal-standard"
 PERSONAL_OWNER_RE = re.compile(r"^personal-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$")
@@ -406,7 +407,15 @@ def namespace_policy(tenant_ref):
     }
 
 
-def validate_tenant_namespace(tenant_ref, namespace, operation):
+def validate_tenant_namespace(tenant_ref, namespace, operation, management_mode="Provisioned"):
+    if management_mode == "AdoptExisting":
+        if tenant_ref != "admin" or namespace in CORE_RESERVED_NAMESPACES:
+            raise PermissionError("only admin may adopt a non-core existing namespace")
+        if operation != "EnsurePresent":
+            raise PermissionError("adopted namespaces cannot be deleted through tenant self-service")
+        return namespace_policy(tenant_ref)
+    if management_mode != "Provisioned":
+        raise PermissionError("unknown namespace management mode")
     policy = namespace_policy(tenant_ref)
     if namespace in RESERVED_NAMESPACES or not any(namespace.startswith(prefix) for prefix in policy["allowedPrefixes"]):
         raise PermissionError("namespace is outside the authenticated tenant prefix")
@@ -440,7 +449,7 @@ def tenant_groups(tenant_ref):
     return sorted(set(groups))
 
 
-def tenant_namespace_resources(tenant, namespace):
+def tenant_namespace_resources(tenant, namespace, management_mode="Provisioned"):
     tenant_ref = tenant["metadata"]["name"]
     tenant_uid = tenant["metadata"]["uid"]
     if len(tenant_ref) > 63:
@@ -451,6 +460,9 @@ def tenant_namespace_resources(tenant, namespace):
         "tenancy.re8ch.com/managed-by": "tenant-control-controller",
     }
     annotation = {"tenancy.re8ch.com/tenant-uid": tenant_uid}
+    namespace_labels = {**labels}
+    if management_mode != "AdoptExisting":
+        namespace_labels["saas.re8ch.com/tenant"] = tenant_ref
     owner_rules = [
         {"apiGroups": [""], "resources": ["pods", "pods/log", "pods/exec", "services", "endpoints", "persistentvolumeclaims", "configmaps", "secrets", "serviceaccounts", "events"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
         {"apiGroups": ["apps"], "resources": ["deployments", "deployments/scale", "statefulsets", "statefulsets/scale", "daemonsets", "replicasets"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]},
@@ -461,16 +473,20 @@ def tenant_namespace_resources(tenant, namespace):
     ]
     subjects = [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}]
     subjects += [{"apiGroup": "rbac.authorization.k8s.io", "kind": "Group", "name": group} for group in tenant_groups(tenant_ref)]
-    return [
-        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": {**labels, "saas.re8ch.com/tenant": tenant_ref}, "annotations": annotation}},
-        {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "tenant-boundary", "namespace": namespace, "labels": labels}, "spec": {"hard": {"pods": "100", "requests.cpu": "20", "requests.memory": "64Gi", "requests.storage": "1Ti"}}},
-        {"apiVersion": "v1", "kind": "LimitRange", "metadata": {"name": "tenant-defaults", "namespace": namespace, "labels": labels}, "spec": {"limits": [{"type": "Container", "defaultRequest": {"cpu": "25m", "memory": "64Mi"}, "default": {"cpu": "2", "memory": "4Gi"}}]}},
+    ownership_resources = [
+        {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": namespace, "labels": namespace_labels, "annotations": annotation}},
         {"apiVersion": "v1", "kind": "ServiceAccount", "metadata": {"name": "tenant-native-operator", "namespace": namespace, "labels": labels}, "automountServiceAccountToken": False},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "rules": owner_rules},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-native-owner", "namespace": namespace, "labels": labels}, "subjects": subjects, "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-native-owner"}},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-resource-provisioner", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-control-controller", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "ClusterRole", "name": "tenant-resource-provisioner"}},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "Role", "metadata": {"name": "tenant-publicedge-route-manager", "namespace": namespace, "labels": labels}, "rules": [{"apiGroups": ["gateway.networking.k8s.io"], "resources": ["httproutes"], "verbs": ["get", "list", "watch", "create", "update", "patch", "delete"]}]},
         {"apiVersion": "rbac.authorization.k8s.io/v1", "kind": "RoleBinding", "metadata": {"name": "tenant-publicedge-route-manager", "namespace": namespace, "labels": labels}, "subjects": [{"kind": "ServiceAccount", "name": "tenant-api", "namespace": "tenant-infrastructure"}], "roleRef": {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": "tenant-publicedge-route-manager"}},
+    ]
+    if management_mode == "AdoptExisting":
+        return ownership_resources
+    return ownership_resources + [
+        {"apiVersion": "v1", "kind": "ResourceQuota", "metadata": {"name": "tenant-boundary", "namespace": namespace, "labels": labels}, "spec": {"hard": {"pods": "100", "requests.cpu": "20", "requests.memory": "64Gi", "requests.storage": "1Ti"}}},
+        {"apiVersion": "v1", "kind": "LimitRange", "metadata": {"name": "tenant-defaults", "namespace": namespace, "labels": labels}, "spec": {"limits": [{"type": "Container", "defaultRequest": {"cpu": "25m", "memory": "64Mi"}, "default": {"cpu": "2", "memory": "4Gi"}}]}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-default-deny-cross-tenant", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"tenancy.re8ch.com/tenant": tenant_ref}}}]}]}},
         {"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "tenant-metrics-scrape", "namespace": namespace, "labels": labels}, "spec": {"podSelector": {"matchLabels": {"observability.re8ch.com/scrape": "true"}}, "policyTypes": ["Ingress"], "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "observability-system"}}, "podSelector": {"matchLabels": {"app.kubernetes.io/name": "vmagent", "app.kubernetes.io/instance": "re8ch"}}}], "ports": [{"protocol": "TCP", "port": "metrics"}]}]}},
     ]
@@ -571,7 +587,10 @@ def reconcile_tenant_namespace(resource, tenants):
         tenant = tenant_definition(tenant_ref)
     if not tenant or tenant.get("spec", {}).get("lifecycle") != "Active":
         raise PermissionError("tenant is not active")
-    validate_tenant_namespace(tenant_ref, namespace, spec["operation"])
+    management_mode = spec.get("managementMode", "Provisioned")
+    validate_tenant_namespace(tenant_ref, namespace, spec["operation"], management_mode)
+    if management_mode == "AdoptExisting" and (spec.get("settlementMode") != "Postpaid" or len(spec.get("adoptionReason", "")) < 8):
+        raise PermissionError("adopted namespaces require reviewed Postpaid settlement metadata")
     operation_id = "op_" + hashlib.sha256(meta["uid"].encode()).hexdigest()[:24]
     if namespace_expired(spec):
         if namespace == namespace_policy(tenant_ref)["defaultNamespace"]:
@@ -600,10 +619,13 @@ def reconcile_tenant_namespace(resource, tenants):
             labels = current.get("metadata", {}).get("labels", {})
             if annotations.get("tenancy.re8ch.com/tenant-uid") not in {None, tenant["metadata"]["uid"]} or labels.get("tenancy.re8ch.com/tenant") not in {None, tenant_ref}:
                 raise PermissionError("existing namespace is owned by another tenant")
-        for value in tenant_namespace_resources(tenant, namespace):
+        if management_mode == "AdoptExisting" and current is None:
+            raise PermissionError("adopted namespace must already exist")
+        for value in tenant_namespace_resources(tenant, namespace, management_mode):
             kube().apply(value)
         live = kube().get("namespaces", namespace, api="api/v1")
-        status = {"observedGeneration": meta.get("generation", 1), "operationId": operation_id, "phase": "Ready", "namespaceUID": live["metadata"]["uid"], "reason": "NamespaceReady", "conditions": [condition("Ready", True, "NamespaceReady")]}
+        status_reason = "ExistingNamespaceAdopted" if management_mode == "AdoptExisting" else "NamespaceReady"
+        status = {"observedGeneration": meta.get("generation", 1), "operationId": operation_id, "phase": "Ready", "namespaceUID": live["metadata"]["uid"], "reason": status_reason, "conditions": [condition("Ready", True, status_reason)]}
     kube().patch_status("tenantnamespaces", meta["name"], status)
     if spec["operation"] == "EnsurePresent":
         try:

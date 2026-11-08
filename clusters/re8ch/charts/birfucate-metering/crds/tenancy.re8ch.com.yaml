@@ -199,10 +199,14 @@ spec:
         type: object
         required: [spec]
         x-kubernetes-validations:
-        - rule: self.spec.namespaceName.startsWith(self.spec.tenantRef + '-')
-          message: namespaceName must use the tenant name as its prefix
-        - rule: self.spec.tenantRef == oldSelf.spec.tenantRef && self.spec.namespaceName == oldSelf.spec.namespaceName
-          message: tenantRef and namespaceName are immutable
+        - rule: "self.spec.managementMode == 'AdoptExisting' ? self.spec.tenantRef == 'admin' : self.spec.namespaceName.startsWith(self.spec.tenantRef + '-')"
+          message: only admin may adopt an existing namespace; provisioned namespaces must use the tenant prefix
+        - rule: self.spec.managementMode != 'AdoptExisting' || self.spec.operation == 'EnsurePresent'
+          message: adopted namespaces cannot be deleted through tenant self-service
+        - rule: self.spec.managementMode != 'AdoptExisting' || (has(self.spec.settlementMode) && self.spec.settlementMode == 'Postpaid' && has(self.spec.adoptionReason))
+          message: adopted namespaces require a reviewed reason and Postpaid settlement mode
+        - rule: self.spec.tenantRef == oldSelf.spec.tenantRef && self.spec.namespaceName == oldSelf.spec.namespaceName && self.spec.managementMode == oldSelf.spec.managementMode
+          message: tenantRef, namespaceName and managementMode are immutable
         properties:
           spec:
             type: object
@@ -217,6 +221,17 @@ spec:
               operation:
                 type: string
                 enum: [EnsurePresent, EnsureAbsent]
+              managementMode:
+                type: string
+                enum: [Provisioned, AdoptExisting]
+                default: Provisioned
+              settlementMode:
+                type: string
+                enum: [Prepaid, Postpaid]
+              adoptionReason:
+                type: string
+                minLength: 8
+                maxLength: 256
               expiresAt:
                 type: string
                 format: date-time
