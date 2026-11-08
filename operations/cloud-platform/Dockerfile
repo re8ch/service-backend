@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS network-planner
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26.10-alpine3.23@sha256:0525c952defebc693cdaf62cdf43afa32be5a7f377e99260642ea19c240c708e AS network-planner
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY operations/cloud-platform/network-planner/ ./
