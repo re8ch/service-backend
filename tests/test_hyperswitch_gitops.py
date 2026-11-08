@@ -12,7 +12,12 @@ def objects():
     return list(yaml.safe_load_all(RELEASE.read_text()))
 
 
-def test_hyperswitch_is_active_internal_production_with_sops_values():
+def test_hyperswitch_release_is_archived_but_not_applied():
+    kustomization = yaml.safe_load(
+        (ROOT / "platform/hyperswitch/kustomization.yaml").read_text()
+    )
+    assert "release.yaml" not in kustomization["resources"]
+
     release = next(item for item in objects() if item["kind"] == "HelmRelease")
     assert release["spec"]["suspend"] is False
     assert release["spec"]["targetNamespace"] == "payments"
@@ -37,10 +42,29 @@ def test_hyperswitch_is_active_internal_production_with_sops_values():
     assert features["test_processors"] == "false"
 
 
-def test_control_center_route_uses_service_port_not_container_port():
+def test_hyperswitch_public_routes_are_retired():
     routes = list(yaml.safe_load_all(ROUTES.read_text()))
-    route = next(item for item in routes if item.get("metadata", {}).get("name") == "hyperswitch-control-center-public")
-    assert route["spec"]["rules"][0]["backendRefs"][0]["port"] == 80
+    names = {item["metadata"]["name"] for item in routes}
+    assert not {
+        "hyperswitch-control-center-public",
+        "hyperswitch-router-public",
+        "hyperswitch-web-public",
+    } & names
+    assert names == {
+        "re8ch-payment-registry-public",
+        "re8ch-payment-registry-auth-center",
+    }
+
+
+def test_hyperswitch_retirement_preserves_data_volume_and_removes_runtime_inputs():
+    kustomization = yaml.safe_load((ROOT / "platform/hyperswitch/kustomization.yaml").read_text())
+    assert "superposition-local-key-volume.yaml" in kustomization["resources"]
+    assert not {
+        "superposition-schema-job.yaml",
+        "bootstrap-admin-job.yaml",
+        "sdk-runtime.yaml",
+    } & set(kustomization["resources"])
+    assert "configMapGenerator" not in kustomization
 
 
 def test_payment_registry_route_only_matches_payment_prefix():
@@ -244,19 +268,14 @@ def test_superposition_is_explicit_and_has_no_plaintext_secret():
     visit(release)
 
 
-def test_superposition_bootstrap_artifacts_are_vendored():
+def test_superposition_bootstrap_artifacts_are_retained_but_not_applied():
     kustomization = yaml.safe_load(
         (ROOT / "platform/hyperswitch/kustomization.yaml").read_text()
     )
-    assert kustomization["generatorOptions"]["disableNameSuffixHash"] is True
-    files = {
-        item
-        for generator in kustomization["configMapGenerator"]
-        for item in generator["files"]
-    }
-    assert any("hyperswitch-v1.126.0-superposition_seed.toml" in item for item in files)
-    assert any("superposition-v0.112.0.sql" in item for item in files)
-    assert kustomization["resources"].count("superposition-schema-job.yaml") == 1
+    assert "configMapGenerator" not in kustomization
+    assert "superposition-schema-job.yaml" not in kustomization["resources"]
+    assert (ROOT / "platform/hyperswitch/vendor/hyperswitch-v1.126.0-superposition_seed.toml").is_file()
+    assert (ROOT / "platform/hyperswitch/vendor/superposition-v0.112.0.sql").is_file()
 
 
 def test_chart_is_version_pinned_and_latest_is_forbidden():
@@ -269,7 +288,6 @@ def test_public_routes_use_dedicated_tls_listeners():
     routes = list(yaml.safe_load_all(ROUTES.read_text()))
     http_routes = [route for route in routes if route["kind"] == "HTTPRoute"]
     assert {route["spec"]["hostnames"][0] for route in http_routes} == {
-        "pay.service.re8ch.com",
         "pay-api.service.re8ch.com",
         "api.re8ch.com",
     }
@@ -277,18 +295,16 @@ def test_public_routes_use_dedicated_tls_listeners():
         assert len(route["spec"]["parentRefs"]) == 6
         assert all(ref["sectionName"].endswith("-https") for ref in route["spec"]["parentRefs"])
 
-    api_route = next(
+    payment_route = next(
         route
         for route in http_routes
         if route["spec"]["hostnames"] == ["pay-api.service.re8ch.com"]
     )
-    assert api_route["spec"]["rules"] == [
-        {
-            "backendRefs": [
-                {"name": "hyperswitch-hyperswitch-server", "port": 80}
-            ]
-        }
-    ]
+    assert payment_route["spec"]["rules"] == [{
+        "matches": [{"path": {"type": "PathPrefix", "value": "/payment"}}],
+        "backendRefs": [{"name": "nuclio-payment-registry-api", "port": 8080}],
+    }]
+    assert "hyperswitch" not in yaml.safe_dump(http_routes)
 
     auth_center_route = next(
         route for route in http_routes

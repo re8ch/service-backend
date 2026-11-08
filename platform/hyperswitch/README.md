@@ -1,7 +1,19 @@
 # RE8CH Hyperswitch payment orchestration
 
-This directory stages Hyperswitch as the payment lifecycle engine. It does not
-own RE8CH product orders, invoices, entitlements, or fulfillment.
+HyperSwitch is retired from the active RE8CH payment path. Flux no longer
+includes `release.yaml`, so removal of the HelmRelease causes helm-controller to
+uninstall Router, Superposition, Control Center, Redis and their chart-owned
+runtime objects. The public HyperSwitch routes and bootstrap workloads are also
+absent from `kustomization.yaml`.
+
+The external Pigsty database and the separately managed local-key PVC/PV remain
+intact. StatefulSet claim retention preserves Redis storage after the Helm
+uninstall. The pinned release configuration, vendored bootstrap artifacts and
+image digests stay in this directory as a reviewed reactivation record; the
+registry artifacts are not deleted.
+
+The payment registry routes remain active and are not part of the retired
+HyperSwitch runtime.
 
 ## Authority boundary
 
@@ -36,7 +48,7 @@ own RE8CH product orders, invoices, entitlements, or fulfillment.
 - The live profile uses production Router and Superposition settings. Payment
   connector credentials remain merchant managed in Control Center.
 
-## Initial deployment profile
+## Archived deployment profile
 
 - Chart: `hyperswitch-stack` 0.2.26
 - Namespace: `payments`
