@@ -5,7 +5,7 @@ on:
     - cron: '7,22,37,52 * * * *'
 permissions: {contents: read}
 concurrency:
-  group: gitops-receipt-observation
+  group: gitops-maintenance-recording
   cancel-in-progress: false
 jobs:
   receipts:
@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix: ${{ fromJSON(needs.receipts.outputs.matrix) }}
     name: Observe ${{ matrix.owner }}/${{ matrix.repo }} · ${{ matrix.delivery }}
     steps:
@@ -39,6 +40,15 @@ jobs:
           owner: ${{ matrix.owner }}
           repositories: ${{ matrix.repo }}
           permission-actions: read
+      - id: record
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
+          owner: re8ch
+          repositories: service-backend
+          permission-contents: write
+          permission-issues: write
           permission-organization-projects: write
       - id: dispatch
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
@@ -86,7 +96,8 @@ jobs:
           gh run watch "$id" --repo "$repo" --interval 10 || true
           echo "id=$id" >> "$GITHUB_OUTPUT"
       - env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_TOKEN: ${{ steps.record.outputs.token }}
+          SOURCE_GH_TOKEN: ${{ steps.app.outputs.token }}
           OWNER: ${{ matrix.owner }}
           REPO: ${{ matrix.repo }}
           RECEIPT_EXECUTOR_ID: ${{ steps.executor.outputs.id }}
@@ -95,6 +106,6 @@ jobs:
         run: |
           set -euo pipefail
           selection=$(ruby -ryaml -rjson -e 'puts JSON.generate(YAML.load_file(ARGV.first).dig("jobs","record","strategy","matrix","include"))' .github/workflows/gitops-observation.yml)
-          export BOARD=$(jq -er --arg repo "$REPO" '.[]|select(.repo==$repo)|.project' <<<"$selection")
-          export WORKFLOW=$(jq -er --arg repo "$REPO" '.[]|select(.repo==$repo)|.workflow' <<<"$selection")
+          WORKFLOW=$(jq -er --arg repo "$REPO" '.[]|select(.repo==$repo)|.workflow' <<<"$selection")
+          export WORKFLOW
           bash operations/github-maintenance/record-observation.sh

@@ -5,7 +5,7 @@ on:
     - cron: '7,22,37,52 * * * *'
 permissions: {}
 concurrency:
-  group: gitops-observation-evidence
+  group: gitops-maintenance-recording
   cancel-in-progress: false
 jobs:
   record:
@@ -14,14 +14,15 @@ jobs:
     permissions: {contents: read}
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
-          - {owner: re8ch, repo: service-backend, project: 4, workflow: main-domain-reconcile.yml}
-          - {owner: strata-silica, repo: storage-gitops, project: 1, workflow: storage-reconcile.yml}
-          - {owner: pillars-infra, repo: network-gitops, project: 1, workflow: networking-reconcile.yml}
-          - {owner: 8iops, repo: agent-gitops, project: 2, workflow: agent-runtime-reconcile.yml}
-          - {owner: siren-observer, repo: observability-gitops, project: 1, workflow: observability-metering-reconcile.yml}
-          - {owner: re8ch, repo: identity-gitops, project: 5, workflow: identity-access-reconcile.yml}
+          - {owner: re8ch, repo: service-backend, workflow: main-domain-reconcile.yml}
+          - {owner: strata-silica, repo: storage-gitops, workflow: storage-reconcile.yml}
+          - {owner: pillars-infra, repo: network-gitops, workflow: networking-reconcile.yml}
+          - {owner: 8iops, repo: agent-gitops, workflow: agent-runtime-reconcile.yml}
+          - {owner: siren-observer, repo: observability-gitops, workflow: observability-metering-reconcile.yml}
+          - {owner: re8ch, repo: identity-gitops, workflow: identity-access-reconcile.yml}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - id: app
@@ -32,53 +33,20 @@ jobs:
           owner: ${{ matrix.owner }}
           repositories: ${{ matrix.repo }}
           permission-actions: read
-          permission-organization-projects: write
-      - env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-          OWNER: ${{ matrix.owner }}
-          REPO: ${{ matrix.repo }}
-          BOARD: ${{ matrix.project }}
-          WORKFLOW: ${{ matrix.workflow }}
-        run: bash operations/github-maintenance/record-observation.sh
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: observation-summary-${{ matrix.repo }}
-          path: ${{ runner.temp }}/observation-summary.txt
-          retention-days: 7
-          overwrite: true
-          if-no-files-found: error
-  summarize:
-    needs: record
-    if: always() && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    permissions: {actions: read}
-    steps:
-      - id: app
+      - id: record
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
           app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
           private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
           owner: re8ch
           repositories: service-backend
+          permission-contents: write
+          permission-issues: write
           permission-organization-projects: write
       - env:
-          GH_TOKEN: ${{ github.token }}
-          PROJECT_TOKEN: ${{ steps.app.outputs.token }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/rows"
-          if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts[].name' | grep '^observation-summary-' >/dev/null; then
-            gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" -p 'observation-summary-*' -D "$RUNNER_TEMP/rows"
-          fi
-          count=$(find "$RUNNER_TEMP/rows" -name observation-summary.txt | wc -l)
-          body=$(printf 'Domain records: %d/6\n\n' "$count"; find "$RUNNER_TEMP/rows" -name observation-summary.txt -exec cat {} \; | sort)
-          export GH_TOKEN="$PROJECT_TOKEN"
-          title="GitOps inspection summary · $GITHUB_RUN_ID"
-          items=$(gh project item-list 1 --owner re8ch --format json --limit 1000)
-          draft=$(jq -r --arg t "$title" '.items[] | select(.title==$t) | .content.id' <<< "$items")
-          if [[ -n "$draft" ]]; then
-            gh project item-edit --id "$draft" --title "$title" --body "$body"
-          else
-            gh project item-create 1 --owner re8ch --title "$title" --body "$body"
-          fi
-          test "$count" -eq 6
+          GH_TOKEN: ${{ steps.record.outputs.token }}
+          SOURCE_GH_TOKEN: ${{ steps.app.outputs.token }}
+          OWNER: ${{ matrix.owner }}
+          REPO: ${{ matrix.repo }}
+          WORKFLOW: ${{ matrix.workflow }}
+        run: bash operations/github-maintenance/record-observation.sh

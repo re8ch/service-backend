@@ -13,11 +13,11 @@ claims = encode(JSON.generate(iss: ENV.fetch('APP_ID'), iat: now - 60, exp: now 
 payload = "#{header}.#{claims}"
 key = OpenSSL::PKey::RSA.new(ENV.delete('APP_KEY'))
 jwt = "#{payload}.#{encode(key.sign('SHA256', payload))}"
-projects = JSON.parse(File.read('operations/github-maintenance/gitops-observation-projects.json'))
+policy = JSON.parse(File.read('operations/github-maintenance/gitops-reconcile-recording.json'))
 ready = true
 File.open(ENV.fetch('GITHUB_STEP_SUMMARY'), 'a') do |report|
-  projects.fetch('projects').each do |project|
-    repo = project.fetch('repository')
+  policy.fetch('sources').each do |source|
+    repo = source.fetch('repository')
     uri = URI("https://api.github.com/repos/#{repo}/installation")
     response = Net::HTTP.get_response(uri, {'Authorization' => "Bearer #{jwt}", 'User-Agent' => 'gitops-event-preflight'})
     unless response.is_a?(Net::HTTPSuccess)

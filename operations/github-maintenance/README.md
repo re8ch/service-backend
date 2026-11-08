@@ -25,28 +25,29 @@ repository's Maintenance App ID and private-key secret to request a short-lived
 installation token with only `contents:write` and `pull_requests:write`. The
 default workflow token remains read-only.
 
-## Repository-specific GitOps observation Projects
+## GitOps reconcile records
 
-`gitops-observation-projects.json` declares one organization-level Project for
-each GitOps repository. Each Project is linked to its repository so it appears
-on that repository's Projects page. These Projects hold bounded observation
-results, reconcile actions, revisions, workflow run IDs and links to redacted
-logs. Raw telemetry and credentials remain outside GitHub.
+Routine evidence and actionable work use different GitHub objects:
 
-`RE8CH GitOps Maintenance` remains the cross-repository summary and escalation
-view. Repository-specific observations must not be added to that summary
-Project.
+| Outcome | Record |
+| --- | --- |
+| Healthy reconcile | Append a deduplicated entry to the monthly `GitOps Reconcile Journal` page in the `service-backend` Wiki repository. |
+| Failed, degraded or unknown reconcile | Create or update one source-specific Tracking Issue in `service-backend`, then add that Issue to `RE8CH GitOps Maintenance`. |
+| Recovered reconcile | Append the healthy Wiki entry and close the open source-specific Tracking Issue. |
 
-Preview and apply the reviewed declaration with:
+`gitops-reconcile-recording.json` is the reviewable routing and source inventory.
 
-```console
-python operations/github-maintenance/reconcile_observation_projects.py
-python operations/github-maintenance/reconcile_observation_projects.py --apply
-```
+The Project therefore contains Issue-backed incidents only. It does not contain
+routine observations, successful receipts, summary draft items or product ideas.
+The Issue is the work record; the Project item is only its operational portfolio
+view. Agent code fixes continue through pull requests. Product ideas begin as
+Draft Issues and become Issues only when formally accepted for development.
 
-The apply command uses GitHub's ProjectV2 GraphQL API, is idempotent for existing
-projects and fields, and reads back Projects and fields before creating missing
-state.
+The Maintenance App uses two short-lived installation tokens. A source token has
+Actions read access only. The central recording token is restricted to
+`re8ch/service-backend` with Contents and Issues write plus organization Projects
+write. Wiki Git authentication uses a credential helper so the token is not put
+in a remote URL or command argument.
 
 ## Runtime health evidence
 
