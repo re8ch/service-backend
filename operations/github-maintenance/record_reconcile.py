@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Route healthy reconcile evidence to Wiki and incidents to Issue-backed Projects."""
+"""Journal every reconcile in Wiki and route incidents to Issue-backed Projects."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def record_wiki(repository: str, source: str, dedupe: str, body: str) -> None:
         timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
         target.write_text(current + f"## {timestamp} · {source}\n\n{marker}\n\n{body.rstrip()}\n\n")
         git(["add", page], checkout)
-        git(["-c", "user.name=re8ch-gitops-maintenance[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "commit", "--quiet", "-m", f"journal: record healthy reconcile for {source}"], checkout)
+        git(["-c", "user.name=re8ch-gitops-maintenance[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "commit", "--quiet", "-m", f"journal: record reconcile for {source}"], checkout)
         for attempt in range(3):
             try:
                 git(["push", "--quiet", "origin", "HEAD"], checkout)
@@ -106,6 +106,25 @@ def close_incident(repository: str, source: str) -> None:
         run(["gh", "issue", "close", number, "--repo", repository, "--comment", "A subsequent reconcile produced healthy runtime evidence. The success receipt is recorded in the Wiki journal."])
 
 
+def record_observation(
+    *,
+    state: str,
+    source_repository: str,
+    dedupe_key: str,
+    body: str,
+    wiki_repository: str,
+    incident_repository: str,
+    project_owner: str,
+    project_number: int,
+) -> None:
+    destination = route(state)
+    record_wiki(wiki_repository, source_repository, dedupe_key, body)
+    if destination == "wiki":
+        close_incident(incident_repository, source_repository)
+    else:
+        upsert_incident(incident_repository, project_owner, project_number, source_repository, state, body)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--state", required=True)
@@ -117,12 +136,16 @@ def main() -> None:
     parser.add_argument("--project-owner", required=True)
     parser.add_argument("--project-number", required=True, type=int)
     args = parser.parse_args()
-    body = args.body_file.read_text()
-    if route(args.state) == "wiki":
-        record_wiki(args.wiki_repository, args.source_repository, args.dedupe_key, body)
-        close_incident(args.incident_repository, args.source_repository)
-    else:
-        upsert_incident(args.incident_repository, args.project_owner, args.project_number, args.source_repository, args.state, body)
+    record_observation(
+        state=args.state,
+        source_repository=args.source_repository,
+        dedupe_key=args.dedupe_key,
+        body=args.body_file.read_text(),
+        wiki_repository=args.wiki_repository,
+        incident_repository=args.incident_repository,
+        project_owner=args.project_owner,
+        project_number=args.project_number,
+    )
 
 
 if __name__ == "__main__":

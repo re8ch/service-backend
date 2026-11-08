@@ -1,9 +1,10 @@
 {
   "apiVersion": "github.re8ch.com/v1alpha1",
   "kind": "GitOpsReconcileRecordingPolicy",
-  "healthy": {
+  "journal": {
     "repositoryScope": "source",
-    "destination": "wiki-monthly-journal"
+    "destination": "wiki-monthly-journal",
+    "states": ["Healthy", "Failed", "Degraded", "Unknown"]
   },
   "incident": {
     "repository": "re8ch/service-backend",
