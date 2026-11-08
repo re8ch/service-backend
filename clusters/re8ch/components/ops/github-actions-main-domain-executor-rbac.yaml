@@ -135,14 +135,6 @@ rules:
 - apiGroups:
   - ''
   resources:
-  - persistentvolumeclaims
-  resourceNames:
-  - hyperswitch-superposition-local-key
-  verbs:
-  - get
-- apiGroups:
-  - ''
-  resources:
   - services
   resourceNames:
   - commerce-api

@@ -24,7 +24,6 @@ spec:
     fieldManager: re8ch-release/main-commerce-billing-payments
     resources:
     - apps/Deployment
-    - core/PersistentVolumeClaim
     - core/Service
     - gateway.networking.k8s.io/HTTPRoute
     objectNames:
@@ -35,7 +34,6 @@ spec:
     - commerce-postgrest-rw
     - commerce-public-api
     - commerce-user-data-ro
-    - hyperswitch-superposition-local-key
     - nuclio-payment-registry-api
     - payment-postgrest
     - payment-postgrest-ro
@@ -47,7 +45,7 @@ spec:
     - re8ch-payment-registry-public
     allowClusterScoped: false
   inventory:
-    digest: sha256:280b3d5419847871a959dc09fef1629f8285d3ca2f2ce6c7c924b88fcb667bb5
+    digest: sha256:339aafd1d9293593e956c6ecd1ad92d43d348f0ab0ba7402fa2b97ff138a723a
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300

@@ -6,11 +6,12 @@ uninstall Router, Superposition, Control Center, Redis and their chart-owned
 runtime objects. The public HyperSwitch routes and bootstrap workloads are also
 absent from `kustomization.yaml`.
 
-The external Pigsty database and the separately managed local-key PVC/PV remain
-intact. StatefulSet claim retention preserves Redis storage after the Helm
-uninstall. The pinned release configuration, vendored bootstrap artifacts and
-image digests stay in this directory as a reviewed reactivation record; the
-registry artifacts are not deleted.
+The external Pigsty database remains intact. The local-key PVC is retired, while
+its `Retain` PV and the R640 host-path data remain as the reactivation record.
+StatefulSet claim retention preserves Redis storage after the Helm uninstall.
+The pinned release configuration, vendored bootstrap artifacts and image
+digests stay in this directory as a reviewed reactivation record; the registry
+artifacts are not deleted.
 
 The payment registry routes remain active and are not part of the retired
 HyperSwitch runtime.
