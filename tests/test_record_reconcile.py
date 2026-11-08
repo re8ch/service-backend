@@ -28,6 +28,7 @@ def test_unrecognized_state_fails_closed():
 def test_incident_label_is_stable_and_source_specific():
     assert MODULE.incident_label("re8ch/service-backend") == MODULE.incident_label("re8ch/service-backend")
     assert MODULE.incident_label("re8ch/service-backend") != MODULE.incident_label("re8ch/identity-gitops")
+    assert len(MODULE.incident_label("siren-observer/observability-gitops")) <= 50
 
 
 def test_wiki_git_uses_separate_source_token(monkeypatch):
