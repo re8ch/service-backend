@@ -17,7 +17,8 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"runtime_image_catalog",
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
-		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read":
+		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read",
+		"platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability":
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
@@ -37,7 +38,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
-	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubectl_exec", "harbor_build_start", "runtime_image_build":
+	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubectl_exec", "platform_node_ssh_exec", "harbor_build_start", "runtime_image_build":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":

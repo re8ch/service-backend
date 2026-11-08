@@ -571,13 +571,13 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
+	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy)-hiddenAliases+7 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+7)
+	if len(names) != len(legacy)-hiddenAliases+12 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+12)
 	}
 }
 

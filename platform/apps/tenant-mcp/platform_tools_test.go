@@ -71,6 +71,23 @@ func TestPlatformBackendMCPProxyPreservesAuthAndResult(t *testing.T) {
 	}
 }
 
+func TestPlatformResourceArgvIsBoundedAndSecretSafe(t *testing.T) {
+	discover, err := platformResourceArgv(platformResourceReadInput{Action: "discover"})
+	if err != nil || strings.Join(discover, " ") != "api-resources -o wide" {
+		t.Fatalf("unexpected discovery argv: %v %v", discover, err)
+	}
+	listed, err := platformResourceArgv(platformResourceReadInput{Action: "list", Resource: "deployments.apps", AllNamespaces: true, LabelSelector: "app=web"})
+	if err != nil || strings.Join(listed, " ") != "get deployments.apps --all-namespaces --selector=app=web --show-managed-fields=false -o json" {
+		t.Fatalf("unexpected list argv: %v %v", listed, err)
+	}
+	if _, err := platformResourceArgv(platformResourceReadInput{Action: "get", Resource: "secrets", Name: "database"}); err == nil || !strings.Contains(err.Error(), "Secret values") {
+		t.Fatalf("Secret read was accepted: %v", err)
+	}
+	if _, err := platformResourceArgv(platformResourceReadInput{Action: "list", Resource: "pods", Namespace: "default", AllNamespaces: true}); err == nil {
+		t.Fatal("conflicting namespace selectors were accepted")
+	}
+}
+
 func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +125,9 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
+	})
+	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		return nil, map[string]any{"nodes": []string{"r640"}}, nil
 	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "reconcile_control_plane_authentication_config"}, func(_ context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
 		authenticationInput = input
@@ -154,7 +174,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		return false
 	}
 	adminTools := call("admin-user", "session-1", "tools/list", map[string]any{})
-	if contains(adminTools, "platform_tool_catalog") || contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
+	if contains(adminTools, "platform_tool_catalog") || contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubernetes_resource_read") || !contains(adminTools, "platform_nodes_list") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("admin tool absent")
 	}
 	pluginTools := callPath("/plugin/mcp", "admin-user", "session-1", "tools/list", map[string]any{})
@@ -168,6 +188,14 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	pluginKubectl := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "--raw=/version"}}})
 	if pluginKubectl["error"] != nil || pluginKubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/version" {
 		t.Fatalf("plugin kubectl argv was not routed: %#v; argv=%v", pluginKubectl, kubectlArgv)
+	}
+	pluginResources := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover"}})
+	if pluginResources["error"] != nil || pluginResources["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "api-resources -o wide" || kubectlTimeout != 120 {
+		t.Fatalf("platform resource discovery was not routed: %#v; argv=%v timeout=%d", pluginResources, kubectlArgv, kubectlTimeout)
+	}
+	pluginNodes := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_nodes_list", "arguments": map[string]any{}})
+	if pluginNodes["error"] != nil || pluginNodes["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("platform node inventory was not routed: %#v", pluginNodes)
 	}
 	for _, listed := range adminTools["result"].(map[string]any)["tools"].([]any) {
 		tool := listed.(map[string]any)

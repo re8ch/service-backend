@@ -121,8 +121,14 @@ entry point does not grant access to any backend tool.
 with an `argv` array and bounded timeout, while preserving the same platform
 administrator gate, backend authorization, and audit result. Its action definition
 is explicit so a plugin reviewer can assess it independently of the generic
-backend operation. Publishing one explicit operation does not publish the
-remaining backend tools. Plugin clients must use only operations
+backend operation. `platform_kubernetes_resource_read` discovers all API
+resource types and reads bounded non-Secret objects. `platform_nodes_list`,
+`platform_nodes_get`, `platform_nodes_reachability`, and
+`platform_node_ssh_exec` preserve the existing node operations through the
+same directly connected native backend. These tools are for RE8CH-owned
+platform clusters; tenant BYOC remains the AmongCluster path for external
+clusters. Publishing these explicit operations does not publish the remaining
+backend tools. Plugin clients must use only operations
 in their current tool list; an authorization flag cannot attest publication.
 It reads the Supabase membership projection once per verified login session and
 caches that decision in the tenant process.

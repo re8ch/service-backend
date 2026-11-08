@@ -17,6 +17,29 @@ type authenticatedMCPTransport struct {
 	base  http.RoundTripper
 }
 
+func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
+	state := selfServiceCapabilitiesFromState(identity{Tenant: "admin", Role: "admin", PlatformAdmin: true}, map[string]any{}, nil)
+	found := false
+	for _, capability := range state["capabilities"].([]map[string]any) {
+		if capability["id"] != "platform-cluster" {
+			continue
+		}
+		found = true
+		if capability["connection"] != "direct" || capability["ownership"] != "re8ch-admin" || capability["canRead"] != true || capability["secretValuesReadable"] != false {
+			t.Fatalf("wrong platform capability: %v", capability)
+		}
+	}
+	if !found {
+		t.Fatal("direct platform cluster capability was not published to Re8ch Admin")
+	}
+	ordinary := selfServiceCapabilitiesFromState(identity{Tenant: "re8ch", Role: "admin"}, map[string]any{}, nil)
+	for _, capability := range ordinary["capabilities"].([]map[string]any) {
+		if capability["id"] == "platform-cluster" {
+			t.Fatal("direct platform cluster capability leaked to an ordinary tenant admin")
+		}
+	}
+}
+
 func (t authenticatedMCPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	clone := request.Clone(request.Context())
 	clone.Header = request.Header.Clone()
