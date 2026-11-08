@@ -28,3 +28,15 @@ def test_unrecognized_state_fails_closed():
 def test_incident_label_is_stable_and_source_specific():
     assert MODULE.incident_label("re8ch/service-backend") == MODULE.incident_label("re8ch/service-backend")
     assert MODULE.incident_label("re8ch/service-backend") != MODULE.incident_label("re8ch/identity-gitops")
+
+
+def test_wiki_git_uses_separate_source_token(monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "central-token")
+    monkeypatch.setenv("WIKI_GH_TOKEN", "source-token")
+    assert MODULE.git_env()["GH_TOKEN"] == "source-token"
+
+
+def test_wiki_git_fails_closed_without_source_token(monkeypatch):
+    monkeypatch.delenv("WIKI_GH_TOKEN", raising=False)
+    with pytest.raises(RuntimeError, match="WIKI_GH_TOKEN"):
+        MODULE.git_env()

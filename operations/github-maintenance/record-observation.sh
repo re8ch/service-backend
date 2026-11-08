@@ -70,7 +70,7 @@ body_file=$(mktemp "$RUNNER_TEMP/reconcile-record.XXXXXX")
 
 python operations/github-maintenance/record_reconcile.py \
   --state "$state" --source-repository "$source_repo" --dedupe-key "$dedupe" --body-file "$body_file" \
-  --wiki-repository "${JOURNAL_REPOSITORY:-re8ch/service-backend}" \
+  --wiki-repository "${JOURNAL_REPOSITORY:-$source_repo}" \
   --incident-repository "${INCIDENT_REPOSITORY:-re8ch/service-backend}" \
   --project-owner "${MAINTENANCE_PROJECT_OWNER:-re8ch}" \
   --project-number "${MAINTENANCE_PROJECT_NUMBER:-1}"

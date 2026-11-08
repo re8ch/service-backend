@@ -33,6 +33,7 @@ jobs:
           owner: ${{ matrix.owner }}
           repositories: ${{ matrix.repo }}
           permission-actions: read
+          permission-contents: write
       - id: record
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
@@ -45,6 +46,7 @@ jobs:
           permission-organization-projects: write
       - env:
           GH_TOKEN: ${{ steps.record.outputs.token }}
+          WIKI_GH_TOKEN: ${{ steps.app.outputs.token }}
           SOURCE_GH_TOKEN: ${{ steps.app.outputs.token }}
           OWNER: ${{ matrix.owner }}
           REPO: ${{ matrix.repo }}

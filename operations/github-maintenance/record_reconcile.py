@@ -31,6 +31,9 @@ def run(args: list[str], *, cwd: Path | None = None, capture: bool = False) -> s
 
 def git_env() -> dict[str, str]:
     env = os.environ.copy()
+    if not env.get("WIKI_GH_TOKEN"):
+        raise RuntimeError("WIKI_GH_TOKEN is required for Wiki Git access")
+    env["GH_TOKEN"] = env["WIKI_GH_TOKEN"]
     env["GIT_CONFIG_COUNT"] = "1"
     env["GIT_CONFIG_KEY_0"] = "credential.helper"
     env["GIT_CONFIG_VALUE_0"] = "!f() { echo username=x-access-token; echo password=$GH_TOKEN; }; f"

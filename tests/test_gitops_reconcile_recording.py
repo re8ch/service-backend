@@ -12,6 +12,7 @@ def test_recording_policy_uses_wiki_for_success_and_issue_for_incidents():
     policy = json.loads(POLICY.read_text())
     assert policy["kind"] == "GitOpsReconcileRecordingPolicy"
     assert policy["healthy"]["destination"] == "wiki-monthly-journal"
+    assert policy["healthy"]["repositoryScope"] == "source"
     assert policy["incident"]["contentType"] == "Issue"
     assert set(policy["incident"]["states"]) == {"Failed", "Degraded", "Unknown"}
 
