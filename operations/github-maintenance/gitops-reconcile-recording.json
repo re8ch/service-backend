@@ -1,0 +1,23 @@
+{
+  "apiVersion": "github.re8ch.com/v1alpha1",
+  "kind": "GitOpsReconcileRecordingPolicy",
+  "healthy": {
+    "repository": "re8ch/service-backend",
+    "destination": "wiki-monthly-journal"
+  },
+  "incident": {
+    "repository": "re8ch/service-backend",
+    "projectOwner": "re8ch",
+    "projectNumber": 1,
+    "states": ["Failed", "Degraded", "Unknown"],
+    "contentType": "Issue"
+  },
+  "sources": [
+    {"repository": "re8ch/service-backend", "workflow": "main-domain-reconcile.yml"},
+    {"repository": "strata-silica/storage-gitops", "workflow": "storage-reconcile.yml"},
+    {"repository": "pillars-infra/network-gitops", "workflow": "networking-reconcile.yml"},
+    {"repository": "8iops/agent-gitops", "workflow": "agent-runtime-reconcile.yml"},
+    {"repository": "siren-observer/observability-gitops", "workflow": "observability-metering-reconcile.yml"},
+    {"repository": "re8ch/identity-gitops", "workflow": "identity-access-reconcile.yml"}
+  ]
+}
