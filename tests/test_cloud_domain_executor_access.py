@@ -16,7 +16,19 @@ def test_cloud_domain_adoption_is_named_and_non_destructive():
         if d['kind'] in {'Role', 'ClusterRole'}:
             for rule in d['rules']:
                 assert rule['resourceNames'] and '*' not in rule['resourceNames']
-                assert set(rule['verbs']) <= {'get', 'patch', 'update'}
+                if 'delete' in rule['verbs']:
+                    assert d['metadata']['name'] == 'identity-access-domain-payments'
+                    assert rule['verbs'] == ['delete']
+                    assert set(rule['resourceNames']) <= {
+                        'hyperswitch-web',
+                        'hyperswitch-superposition-schema',
+                        'hyperswitch-superposition-seed',
+                        'hyperswitch-control-center-public',
+                        'hyperswitch-router-public',
+                        'hyperswitch-web-public',
+                    }
+                else:
+                    assert set(rule['verbs']) <= {'get', 'patch', 'update'}
                 assert not set(rule['resources']) & {'secrets', 'roles', 'rolebindings', 'clusterroles', 'clusterrolebindings', 'jobs'}
         if d['kind'] == 'RoleBinding':
             assert d['roleRef']['kind'] == 'Role'
@@ -84,6 +96,27 @@ def test_new_identity_adoption_targets_are_exact_and_group_bound():
     for name in ('identity-access-domain-payments', 'identity-access-domain-supabase-pg-re8ch'):
         binding = by_name['RoleBinding', name]
         assert binding['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group', 'name': 're8ch:release-executor:identity-access'}]
+
+
+def test_hyperswitch_retirement_delete_access_is_exact_and_temporary():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'identity-access-domain-payments')
+    deletes = {
+        (group, resource, name)
+        for rule in role['rules'] if rule['verbs'] == ['delete']
+        for group in rule['apiGroups']
+        for resource in rule['resources']
+        for name in rule['resourceNames']
+    }
+    assert deletes == {
+        ('apps', 'deployments', 'hyperswitch-web'),
+        ('', 'configmaps', 'hyperswitch-superposition-schema'),
+        ('', 'configmaps', 'hyperswitch-superposition-seed'),
+        ('', 'services', 'hyperswitch-web'),
+        ('gateway.networking.k8s.io', 'httproutes', 'hyperswitch-control-center-public'),
+        ('gateway.networking.k8s.io', 'httproutes', 'hyperswitch-router-public'),
+        ('gateway.networking.k8s.io', 'httproutes', 'hyperswitch-web-public'),
+    }
 
 
 def test_networking_executor_scopes_kube_api_to_its_own_release():
