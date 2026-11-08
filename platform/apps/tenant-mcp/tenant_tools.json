@@ -1354,7 +1354,7 @@
     "name": "tenant_namespace_delete"
   },
   {
-    "description": "Read an allowlisted non-secret Kubernetes object from an authenticated tenant namespace. Use kind=databasecredential to list only metadata and key names of operator-provisioned Pigsty credential bindings; this does not prove the database exists or reveal Secret values.",
+    "description": "Read a non-secret Kubernetes object. Ordinary tenants are limited to allowlisted kinds in their Ready namespaces; the verified Admin Meta tenant uses this same interface for any API resource across the directly connected cluster. Secret values are never returned.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1376,7 +1376,7 @@
     "name": "tenant_kubernetes_get"
   },
   {
-    "description": "Preview or server-side apply one allowlisted object in an authenticated tenant namespace. Operator or admin role and apply=true are required.",
+    "description": "Preview or server-side apply one Kubernetes object. Ordinary tenants remain limited to allowlisted objects in Ready namespaces; the verified Admin Meta tenant uses this same interface for namespaced or cluster-scoped resources. Explicit apply=true is required to persist.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1398,7 +1398,7 @@
     "name": "tenant_kubernetes_apply"
   },
   {
-    "description": "Preview or delete one allowlisted object from an authenticated tenant namespace. Operator or admin role and apply=true are required.",
+    "description": "Preview or delete one Kubernetes object. Ordinary tenants remain limited to allowlisted objects in Ready namespaces; the verified Admin Meta tenant uses this same interface for namespaced or cluster-scoped resources. Explicit apply=true is required to delete.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
