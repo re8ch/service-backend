@@ -96,7 +96,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	}))
 	defer goTrue.Close()
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, 200, map[string]string{"tenantRef": "re8ch", "role": "admin", "defaultNamespace": "re8ch-default"})
+		writeJSON(w, 200, map[string]string{"tenantRef": "admin", "role": "admin", "defaultNamespace": "admin-default"})
 	}))
 	defer control.Close()
 	active := true
@@ -122,6 +122,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	var authenticationInput controlPlaneAuthenticationInput
 	var kubectlArgv []string
 	var kubectlTimeout int
+	var nativeOperation string
 	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
@@ -132,6 +133,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	for _, name := range []string{"kube.resource.apply", "kube.resource.delete"} {
 		name := name
 		mcp.AddTool(backend, &mcp.Tool{Name: name}, func(_ context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
+			nativeOperation = name
 			return nil, map[string]any{"operation": name, "arguments": input, "auditRef": "audit://kube/test"}, nil
 		})
 	}
@@ -203,6 +205,18 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	preview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest}})
 	if preview["error"] != nil || preview["result"].(map[string]any)["isError"] == true || !strings.Contains(strings.Join(kubectlArgv, " "), "--dry-run=server") {
 		t.Fatalf("platform resource apply preview was not server validated: %#v; argv=%v", preview, kubectlArgv)
+	}
+	legacyRead := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_get", "arguments": map[string]any{"kind": "gateways.gateway.networking.k8s.io"}})
+	if legacyRead["error"] != nil || legacyRead["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get gateways.gateway.networking.k8s.io --all-namespaces --show-managed-fields=false -o json" {
+		t.Fatalf("existing Kubernetes read interface did not receive Meta scope: %#v; argv=%v", legacyRead, kubectlArgv)
+	}
+	legacyApply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_apply", "arguments": map[string]any{"object": manifest, "apply": true}})
+	if legacyApply["error"] != nil || legacyApply["result"].(map[string]any)["isError"] == true || nativeOperation != "kube.resource.apply" {
+		t.Fatalf("existing Kubernetes apply interface did not use the native Meta backend: %#v; operation=%s", legacyApply, nativeOperation)
+	}
+	legacyDelete := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_delete", "arguments": map[string]any{"kind": "configmaps", "name": "meta-probe", "namespace": "ops", "apply": true}})
+	if legacyDelete["error"] != nil || legacyDelete["result"].(map[string]any)["isError"] == true || nativeOperation != "kube.resource.delete" {
+		t.Fatalf("existing Kubernetes delete interface did not use the native Meta backend: %#v; operation=%s", legacyDelete, nativeOperation)
 	}
 	pluginNodes := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_nodes_list", "arguments": map[string]any{}})
 	if pluginNodes["error"] != nil || pluginNodes["result"].(map[string]any)["isError"] == true {

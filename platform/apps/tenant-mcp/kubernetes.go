@@ -52,10 +52,95 @@ func (s *server) registerKubernetesTools(ms *mcp.Server) {
 			if err != nil {
 				return nil, nil, err
 			}
+			if id.PlatformAdmin && id.Tenant == "admin" {
+				return s.callMetaKubernetes(ctx, name, args)
+			}
 			value, err := s.callKubernetes(ctx, id, name, args)
 			return nil, value, err
 		})
 	}
+}
+
+// callMetaKubernetes preserves the existing tenant_kubernetes_* interface while
+// selecting the direct platform backend for the verified Admin Meta tenant.
+// Ordinary tenants continue through callKubernetes and its Ready-namespace,
+// grant, kind and workload-policy boundaries.
+func (s *server) callMetaKubernetes(ctx context.Context, name string, args map[string]any) (*mcp.CallToolResult, any, error) {
+	callNative := func(tool string, arguments map[string]any) (*mcp.CallToolResult, any, error) {
+		result, err := callNativePlatformTool(ctx, s, tool, arguments)
+		return result, nil, err
+	}
+	namespace := strings.TrimSpace(asString(args, "namespace"))
+	if namespace != "" && !validKubernetesName(namespace) {
+		return nil, nil, errors.New("invalid Kubernetes namespace")
+	}
+	if name == "tenant_kubernetes_get" {
+		resource := strings.ToLower(strings.TrimSpace(asString(args, "kind")))
+		if !platformResourceName.MatchString(resource) {
+			return nil, nil, errors.New("kind must be a Kubernetes API resource name")
+		}
+		base := strings.Split(resource, ".")[0]
+		if base == "secret" || base == "secrets" {
+			return nil, nil, errors.New("Secret values are not readable; use tenant_secret_metadata_list")
+		}
+		argv := []string{"get", resource}
+		if target := strings.TrimSpace(asString(args, "name")); target != "" {
+			if !validKubernetesName(target) {
+				return nil, nil, errors.New("invalid Kubernetes resource name")
+			}
+			argv = append(argv, target)
+		} else if namespace == "" {
+			argv = append(argv, "--all-namespaces")
+		}
+		if namespace != "" {
+			argv = append(argv, "--namespace", namespace)
+		}
+		argv = append(argv, "--show-managed-fields=false", "-o", "json")
+		return callNative("kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
+	}
+	if name == "tenant_kubernetes_apply" {
+		manifest := object(args["object"])
+		metadata := object(manifest["metadata"])
+		if asString(manifest, "apiVersion") == "" || asString(manifest, "kind") == "" || !validKubernetesName(asString(metadata, "name")) {
+			return nil, nil, errors.New("object apiVersion, kind and metadata.name are required")
+		}
+		if selected := asString(metadata, "namespace"); selected != "" {
+			if namespace != "" && namespace != selected {
+				return nil, nil, errors.New("namespace and object metadata.namespace differ")
+			}
+			if !validKubernetesName(selected) {
+				return nil, nil, errors.New("invalid object namespace")
+			}
+			namespace = selected
+		} else if namespace != "" {
+			metadata["namespace"] = namespace
+			manifest["metadata"] = metadata
+		}
+		if !flag(args, "apply", false) {
+			serialized, _ := json.Marshal(manifest)
+			return callNative("kubectl.exec", map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=re8ch-admin-meta", "-f", "-", "-o", "json"}, "stdin": string(serialized), "timeout": 180})
+		}
+		arguments := map[string]any{"resource": strings.ToLower(asString(manifest, "kind")), "name": asString(metadata, "name"), "manifest": manifest}
+		if namespace != "" {
+			arguments["namespace"] = namespace
+		}
+		return callNative("kube.resource.apply", arguments)
+	}
+	resource := strings.ToLower(strings.TrimSpace(asString(args, "kind")))
+	target := strings.TrimSpace(asString(args, "name"))
+	if !platformResourceName.MatchString(resource) || !validKubernetesName(target) {
+		return nil, nil, errors.New("valid kind and name are required")
+	}
+	arguments := map[string]any{"resource": resource, "name": target}
+	argv := []string{"delete", resource, target, "--dry-run=server", "-o", "name"}
+	if namespace != "" {
+		arguments["namespace"] = namespace
+		argv = append(argv, "--namespace", namespace)
+	}
+	if !flag(args, "apply", false) {
+		return callNative("kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
+	}
+	return callNative("kube.resource.delete", arguments)
 }
 
 func readyNamespace(ctx context.Context, tenant, namespace string) error {
