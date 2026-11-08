@@ -38,7 +38,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
-	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubectl_exec", "platform_node_ssh_exec", "harbor_build_start", "runtime_image_build":
+	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubernetes_resource_apply", "platform_kubectl_exec", "platform_node_ssh_exec", "harbor_build_start", "runtime_image_build":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":
@@ -47,7 +47,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
 		"harbor_tag_delete", "harbor_build_cancel", "runtime_image_manage", "grafana_exploration_save", "grafana_exploration_delete",
-		"grafana_render", "monitoring_dashboard", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "tenant_organization_context_select", "platform_organization", "platform_user":
+		"grafana_render", "monitoring_dashboard", "tenant_kubernetes_delete", "tenant_secret_delete", "tenant_exposure_delete", "tenant_organization_context_select", "platform_kubernetes_resource_delete", "platform_organization", "platform_user":
 		// Includes updates/revocations and render's temporary dashboard cleanup.
 		destructive = true
 	default:
