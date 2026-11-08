@@ -16,18 +16,26 @@ state. Runtime credentials remain server-side and are never returned by the
 plugin. External BYOC registration must resolve to its owning organization and
 a Ready AmongCluster connection before its operations are advertised.
 
+The `admin` organization is the Meta tenant. A verified human Admin session is
+not constrained by ordinary TenantGrant or Ready-namespace discovery when it
+uses the explicit `platform_*` tools: those tools address every namespaced and
+cluster-scoped resource through the direct native backend. Secret values remain
+write-only or redacted. Ordinary `tenant_*` tools retain tenant isolation and
+must not be relabeled as cluster-wide merely to make discovery appear healthy.
+
 ## Capability placement
 
 | Existing capability | New tool surface | Scope |
 | --- | --- | --- |
 | Platform Kubernetes discovery/read | `platform_kubernetes_resource_read` | Directly connected RE8CH platform cluster; all API resource types discoverable; Secret values excluded |
+| Platform Kubernetes apply/delete | `platform_kubernetes_resource_apply`, `platform_kubernetes_resource_delete` | Direct cluster; any namespaced or cluster-scoped resource; server dry-run and exact plan hash before write |
 | Namespaced tenant Kubernetes read/apply/delete | `tenant_kubernetes_get`, `tenant_kubernetes_apply`, `tenant_kubernetes_delete` | Tenant-owned Ready namespaces, including external clusters selected through AmongCluster |
 | Secrets | `tenant_secret_upsert`, `tenant_secret_metadata_list`, `tenant_secret_delete` | Write-only/metadata-only in Admin-owned Ready namespaces |
 | Workloads, storage claims and HTTPS exposure | Existing tenant claim, Kubernetes and exposure tools | Admin-owned Ready namespaces |
 | Metrics, logs and dashboards | Existing observability tools | Direct platform connection for Admin; selected AmongCluster connection and authorized namespaces for external tenants |
-| Node inventory and reachability | Explicit `admin_cluster_node_list`, `admin_cluster_node_get`, `admin_cluster_node_reachability` | Cluster-scoped, read-only |
-| Controlled node command | Explicit `admin_cluster_node_exec` | Cluster-scoped, exact argv, audited |
-| Cluster-scoped Kubernetes objects and CRDs | Explicit `admin_cluster_resource_get`, `admin_cluster_resource_apply`, `admin_cluster_resource_delete` | Allowlisted GVR/GVK; plan-before-write; audited |
+| Node inventory and reachability | `platform_nodes_list`, `platform_nodes_get`, `platform_nodes_reachability` | Cluster-scoped, read-only |
+| Controlled node command | `platform_node_ssh_exec` | Cluster-scoped, exact argv, audited |
+| Arbitrary Kubernetes commands | `platform_kubectl_exec` | Direct cluster, exact argv, bounded timeout, audited |
 | Kube-apiserver authentication reconciliation | `reconcile_control_plane_authentication_config` | Reviewed Git commit and plan hash |
 | Identity organization and user administration | `platform_organization`, `platform_user` | Re8ch Admin identity authority, not Kubernetes |
 | Workspace indexing/sync | GitHub Actions and workspace controller | Not a runtime plugin tool |

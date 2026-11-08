@@ -19,13 +19,16 @@ type authenticatedMCPTransport struct {
 
 func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 	state := selfServiceCapabilitiesFromState(identity{Tenant: "admin", Role: "admin", PlatformAdmin: true}, map[string]any{}, nil)
+	if state["metaTenant"] != true {
+		t.Fatal("platform Admin must be identified as the Meta tenant")
+	}
 	found := false
 	for _, capability := range state["capabilities"].([]map[string]any) {
 		if capability["id"] != "platform-cluster" {
 			continue
 		}
 		found = true
-		if capability["connection"] != "direct" || capability["ownership"] != "re8ch-admin" || capability["canRead"] != true || capability["secretValuesReadable"] != false {
+		if capability["connection"] != "direct" || capability["ownership"] != "re8ch-admin" || capability["scope"] != "cluster" || capability["namespaceSelector"] != "*" || capability["grantIndependent"] != true || capability["canRead"] != true || capability["canWrite"] != true || capability["secretValuesReadable"] != false {
 			t.Fatalf("wrong platform capability: %v", capability)
 		}
 	}

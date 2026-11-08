@@ -89,9 +89,10 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 		})
 	}
 	if id.PlatformAdmin && id.Tenant == "admin" {
+		result["metaTenant"] = true
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
-			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "direct",
-			"tools":   []string{"platform_kubernetes_resource_read", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "reconcile_control_plane_authentication_config"},
+			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "direct", "scope": "cluster", "namespaceSelector": "*", "grantIndependent": true,
+			"tools":   []string{"platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "reconcile_control_plane_authentication_config"},
 			"canRead": true, "canWrite": true, "secretValuesReadable": false,
 		})
 	}

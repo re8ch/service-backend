@@ -59,6 +59,7 @@ func currentPlatformAdmin(ctx context.Context, bearer string) (bool, error) {
 
 type platformKubectlInput struct {
 	Argv    []string `json:"argv" jsonschema:"kubectl arguments as an array of strings, for example [get,--raw=/version]"`
+	Stdin   string   `json:"stdin,omitempty"`
 	Timeout int      `json:"timeout,omitempty" jsonschema:"Execution timeout in seconds, from 1 to 3600; defaults to 30"`
 }
 
@@ -70,6 +71,20 @@ type platformResourceReadInput struct {
 	AllNamespaces bool   `json:"allNamespaces,omitempty"`
 	LabelSelector string `json:"labelSelector,omitempty"`
 	FieldSelector string `json:"fieldSelector,omitempty"`
+}
+
+type platformResourceApplyInput struct {
+	Manifest map[string]any `json:"manifest"`
+	Apply    bool           `json:"apply,omitempty"`
+	PlanHash string         `json:"planHash,omitempty"`
+}
+
+type platformResourceDeleteInput struct {
+	Resource  string `json:"resource"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+	Apply     bool   `json:"apply,omitempty"`
+	PlanHash  string `json:"planHash,omitempty"`
 }
 
 type platformNodeInput struct {
@@ -145,6 +160,14 @@ func platformResourceArgv(input platformResourceReadInput) ([]string, error) {
 		argv = append(argv, "--field-selector="+input.FieldSelector)
 	}
 	return append(argv, "--show-managed-fields=false", "-o", "json"), nil
+}
+
+func platformMutationPlan(action string, arguments any) (string, error) {
+	value, err := json.Marshal(map[string]any{"action": action, "arguments": arguments})
+	if err != nil {
+		return "", err
+	}
+	return sha256Hex(string(value)), nil
 }
 
 type controlPlaneAuthenticationInput struct {
@@ -269,6 +292,64 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
 			return result, nil, err
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_apply"), Name: "platform_kubernetes_resource_apply", Description: "Server-side dry-run or apply one complete Kubernetes object in any namespace or at cluster scope through the direct RE8CH platform backend. Re8ch Admin membership and an exact preview planHash are required for apply. Secret values remain write-only.", InputSchema: json.RawMessage(`{"type":"object","properties":{"manifest":{"type":"object","description":"Complete Kubernetes object including apiVersion, kind and metadata.name"},"apply":{"type":"boolean"},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["manifest"],"additionalProperties":false}`)},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceApplyInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			metadata := object(input.Manifest["metadata"])
+			if asString(input.Manifest, "apiVersion") == "" || asString(input.Manifest, "kind") == "" || !validKubernetesName(asString(metadata, "name")) {
+				return nil, nil, errors.New("manifest apiVersion, kind and metadata.name are required")
+			}
+			planHash, err := platformMutationPlan("apply", input.Manifest)
+			if err != nil {
+				return nil, nil, err
+			}
+			if input.Apply && input.PlanHash != planHash {
+				return nil, nil, errors.New("apply requires the exact planHash returned by preview")
+			}
+			arguments := map[string]any{"resource": strings.ToLower(asString(input.Manifest, "kind")), "name": asString(metadata, "name"), "manifest": input.Manifest}
+			if namespace := asString(metadata, "namespace"); namespace != "" {
+				if !validKubernetesName(namespace) {
+					return nil, nil, errors.New("invalid manifest namespace")
+				}
+				arguments["namespace"] = namespace
+			}
+			if !input.Apply {
+				manifest, _ := json.Marshal(input.Manifest)
+				result, callErr := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=re8ch-admin-meta", "-f", "-", "-o", "name"}, "stdin": string(manifest), "timeout": 120})
+				return result, map[string]any{"planHash": planHash, "applied": false}, callErr
+			}
+			result, callErr := callNativePlatformTool(ctx, s, "kube.resource.apply", arguments)
+			return result, map[string]any{"planHash": planHash, "applied": callErr == nil}, callErr
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_delete"), Name: "platform_kubernetes_resource_delete", Description: "Preview or delete one Kubernetes object in any namespace or at cluster scope through the direct RE8CH platform backend. Re8ch Admin membership and the exact preview planHash are required for deletion.", InputSchema: json.RawMessage(`{"type":"object","properties":{"resource":{"type":"string"},"name":{"type":"string"},"namespace":{"type":"string"},"apply":{"type":"boolean"},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["resource","name"],"additionalProperties":false}`)},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceDeleteInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			input.Resource = strings.ToLower(strings.TrimSpace(input.Resource))
+			if !platformResourceName.MatchString(input.Resource) || !validKubernetesName(input.Name) || input.Namespace != "" && !validKubernetesName(input.Namespace) {
+				return nil, nil, errors.New("valid resource, name and optional namespace are required")
+			}
+			planArguments := map[string]any{"resource": input.Resource, "name": input.Name, "namespace": input.Namespace}
+			planHash, _ := platformMutationPlan("delete", planArguments)
+			if input.Apply && input.PlanHash != planHash {
+				return nil, nil, errors.New("delete requires the exact planHash returned by preview")
+			}
+			arguments := map[string]any{"resource": input.Resource, "name": input.Name}
+			argv := []string{"delete", input.Resource, input.Name, "--dry-run=server", "-o", "name"}
+			if input.Namespace != "" {
+				arguments["namespace"] = input.Namespace
+				argv = append(argv, "--namespace", input.Namespace)
+			}
+			if !input.Apply {
+				result, callErr := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
+				return result, map[string]any{"planHash": planHash, "deleted": false}, callErr
+			}
+			result, callErr := callNativePlatformTool(ctx, s, "kube.resource.delete", arguments)
+			return result, map[string]any{"planHash": planHash, "deleted": callErr == nil}, callErr
 		})
 	for _, definition := range []struct {
 		name, backend, description string

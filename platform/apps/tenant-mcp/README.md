@@ -122,7 +122,11 @@ with an `argv` array and bounded timeout, while preserving the same platform
 administrator gate, backend authorization, and audit result. Its action definition
 is explicit so a plugin reviewer can assess it independently of the generic
 backend operation. `platform_kubernetes_resource_read` discovers all API
-resource types and reads bounded non-Secret objects. `platform_nodes_list`,
+resource types and reads bounded non-Secret objects.
+`platform_kubernetes_resource_apply` and
+`platform_kubernetes_resource_delete` provide server-validated previews and
+require the exact preview plan hash before mutating any namespaced or
+cluster-scoped object. `platform_nodes_list`,
 `platform_nodes_get`, `platform_nodes_reachability`, and
 `platform_node_ssh_exec` preserve the existing node operations through the
 same directly connected native backend. These tools are for RE8CH-owned

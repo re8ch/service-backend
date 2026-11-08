@@ -129,6 +129,12 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 		return nil, map[string]any{"nodes": []string{"r640"}}, nil
 	})
+	for _, name := range []string{"kube.resource.apply", "kube.resource.delete"} {
+		name := name
+		mcp.AddTool(backend, &mcp.Tool{Name: name}, func(_ context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
+			return nil, map[string]any{"operation": name, "arguments": input, "auditRef": "audit://kube/test"}, nil
+		})
+	}
 	mcp.AddTool(backend, &mcp.Tool{Name: "reconcile_control_plane_authentication_config"}, func(_ context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
 		authenticationInput = input
 		return nil, map[string]any{"applied": input.Apply, "commitSha": input.CommitSHA, "planHash": input.PlanHash}, nil
@@ -174,7 +180,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		return false
 	}
 	adminTools := call("admin-user", "session-1", "tools/list", map[string]any{})
-	if contains(adminTools, "platform_tool_catalog") || contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubernetes_resource_read") || !contains(adminTools, "platform_nodes_list") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
+	if contains(adminTools, "platform_tool_catalog") || contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubernetes_resource_read") || !contains(adminTools, "platform_kubernetes_resource_apply") || !contains(adminTools, "platform_kubernetes_resource_delete") || !contains(adminTools, "platform_nodes_list") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("admin tool absent")
 	}
 	pluginTools := callPath("/plugin/mcp", "admin-user", "session-1", "tools/list", map[string]any{})
@@ -192,6 +198,11 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	pluginResources := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover"}})
 	if pluginResources["error"] != nil || pluginResources["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "api-resources -o wide" || kubectlTimeout != 120 {
 		t.Fatalf("platform resource discovery was not routed: %#v; argv=%v timeout=%d", pluginResources, kubectlArgv, kubectlTimeout)
+	}
+	manifest := map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "metadata": map[string]any{"name": "meta-probe", "namespace": "ops"}, "data": map[string]any{"status": "ready"}}
+	preview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest}})
+	if preview["error"] != nil || preview["result"].(map[string]any)["isError"] == true || !strings.Contains(strings.Join(kubectlArgv, " "), "--dry-run=server") {
+		t.Fatalf("platform resource apply preview was not server validated: %#v; argv=%v", preview, kubectlArgv)
 	}
 	pluginNodes := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_nodes_list", "arguments": map[string]any{}})
 	if pluginNodes["error"] != nil || pluginNodes["result"].(map[string]any)["isError"] == true {
