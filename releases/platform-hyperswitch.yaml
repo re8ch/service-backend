@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/hyperswitch
-codename: anchor-indigo
+codename: beacon-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-hyperswitch
-  digest: sha256:ae9946bf0b7e945284d3a1d39f67fb809ca4916f72c9162497ff5e994dcfaea2
+  digest: sha256:4ecd588ade8e95d1ea2bc4d232aef6d427923bae1f63ea0a448c31be5414f0c7
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
