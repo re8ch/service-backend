@@ -31,7 +31,7 @@ Routine evidence and actionable work use different GitHub objects:
 
 | Outcome | Record |
 | --- | --- |
-| Healthy reconcile | Append a deduplicated entry to the monthly `GitOps Reconcile Journal` page in the `service-backend` Wiki repository. |
+| Healthy reconcile | Append a deduplicated entry to the monthly `GitOps Reconcile Journal` page in that GitOps source repository's Wiki. |
 | Failed, degraded or unknown reconcile | Create or update one source-specific Tracking Issue in `service-backend`, then add that Issue to `RE8CH GitOps Maintenance`. |
 | Recovered reconcile | Append the healthy Wiki entry and close the open source-specific Tracking Issue. |
 
@@ -44,7 +44,7 @@ view. Agent code fixes continue through pull requests. Product ideas begin as
 Draft Issues and become Issues only when formally accepted for development.
 
 The Maintenance App uses two short-lived installation tokens. A source token has
-Actions read access only. The central recording token is restricted to
+Actions read and Contents write access for that repository's Wiki. The central recording token is restricted to
 `re8ch/service-backend` with Contents and Issues write plus organization Projects
 write. Wiki Git authentication uses a credential helper so the token is not put
 in a remote URL or command argument.
