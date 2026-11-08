@@ -19,6 +19,12 @@ spec:
     maxNamespaces: {{ $tenant.namespacePolicy.maxNamespaces }}
     allowCreate: {{ $tenant.namespacePolicy.allowCreate }}
     allowDelete: {{ $tenant.namespacePolicy.allowDelete }}
+{{- with $tenant.namespacePolicy.adoptedNamespaces }}
+    adoptedNamespaces:
+{{- range $namespace := . }}
+      - {{ $namespace | quote }}
+{{- end }}
+{{- end }}
 {{- if $tenant.runtimeNamespaceRef }}
   # Deprecated read-only compatibility for claims created before namespace autonomy.
   runtimeNamespaceRef: {{ $tenant.runtimeNamespaceRef }}
@@ -40,21 +46,6 @@ spec:
   tenantRef: {{ $tenant.name }}
   namespaceName: {{ $namespace }}
   operation: EnsurePresent
-{{- end }}
-{{- range $namespace := $tenant.namespacePolicy.adoptedNamespaces }}
----
-apiVersion: tenancy.re8ch.com/v1alpha1
-kind: TenantNamespace
-metadata:
-  name: {{ printf "%s-%s" $tenant.name (sha256sum $namespace | trunc 16) }}
-  labels: {app.kubernetes.io/part-of: birfucate-metering, tenancy.re8ch.com/tenant: {{ $tenant.name }} }
-spec:
-  tenantRef: {{ $tenant.name }}
-  namespaceName: {{ $namespace }}
-  operation: EnsurePresent
-  managementMode: AdoptExisting
-  settlementMode: Postpaid
-  adoptionReason: reviewed-existing-platform-service
 {{- end }}
 {{- if and $tenant.runtimeNamespaceRef (not (has $tenant.runtimeNamespaceRef $tenant.namespacePolicy.bootstrapNamespaces)) }}
 ---
