@@ -146,5 +146,5 @@ jobs:
             echo '#### Kustomization conditions'
             kubectl get kustomization service-backend -n flux-system \
               -o 'jsonpath={range .status.conditions[*]}- {.type}: {.status} ({.reason}) {.message}{"\n"}{end}' || true
-          } >> "$GITHUB_STEP_SUMMARY"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
           exit 1
