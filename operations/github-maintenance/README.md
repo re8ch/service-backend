@@ -31,14 +31,14 @@ Routine evidence and actionable work use different GitHub objects:
 
 | Outcome | Record |
 | --- | --- |
-| Healthy reconcile | Append a deduplicated entry to the monthly `GitOps Reconcile Journal` page in that GitOps source repository's Wiki. |
-| Failed, degraded or unknown reconcile | Create or update one source-specific Tracking Issue in `service-backend`, then add that Issue to `RE8CH GitOps Maintenance`. |
-| Recovered reconcile | Append the healthy Wiki entry and close the open source-specific Tracking Issue. |
+| Every reconcile | Append a deduplicated entry to the monthly `GitOps Reconcile Journal` page in that GitOps source repository's Wiki. |
+| Failed, degraded or unknown reconcile | In addition to the Wiki entry, create or update one source-specific Tracking Issue in `service-backend`, then add that Issue to `RE8CH GitOps Maintenance`. |
+| Recovered reconcile | Append the Wiki entry and close the open source-specific Tracking Issue. |
 
 `gitops-reconcile-recording.json` is the reviewable routing and source inventory.
 
 The Project therefore contains Issue-backed incidents only. It does not contain
-routine observations, successful receipts, summary draft items or product ideas.
+routine observations, reconcile receipts, summary draft items or product ideas.
 The Issue is the work record; the Project item is only its operational portfolio
 view. Agent code fixes continue through pull requests. Product ideas begin as
 Draft Issues and become Issues only when formally accepted for development.
