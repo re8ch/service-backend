@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import argparse
-import base64
+import hashlib
 import json
 import os
 import subprocess
@@ -74,8 +74,9 @@ def gh_json(args: list[str]) -> str:
 
 
 def incident_label(source: str) -> str:
-    encoded = base64.urlsafe_b64encode(source.encode()).decode().rstrip("=")
-    return f"gitops-reconcile-{encoded}"
+    slug = "".join(character if character.isalnum() else "-" for character in source.lower()).strip("-")
+    digest = hashlib.sha256(source.encode()).hexdigest()[:8]
+    return f"gitops-reconcile-{slug[:20]}-{digest}"
 
 
 def upsert_incident(repository: str, project_owner: str, project_number: int, source: str, state: str, body: str) -> None:
