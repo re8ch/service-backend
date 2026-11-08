@@ -367,20 +367,6 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: manual-r640
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: hyperswitch-superposition-local-key
-  namespace: payments
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Mi
-  storageClassName: manual-r640
-  volumeName: hyperswitch-superposition-local-key-r640
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -59,6 +59,11 @@ def test_hyperswitch_public_routes_are_retired():
 def test_hyperswitch_retirement_preserves_data_volume_and_removes_runtime_inputs():
     kustomization = yaml.safe_load((ROOT / "platform/hyperswitch/kustomization.yaml").read_text())
     assert "superposition-local-key-volume.yaml" in kustomization["resources"]
+    volume_documents = list(yaml.safe_load_all(
+        (ROOT / "platform/hyperswitch/superposition-local-key-volume.yaml").read_text()
+    ))
+    assert [document["kind"] for document in volume_documents] == ["PersistentVolume"]
+    assert volume_documents[0]["spec"]["persistentVolumeReclaimPolicy"] == "Retain"
     assert not {
         "superposition-schema-job.yaml",
         "bootstrap-admin-job.yaml",
