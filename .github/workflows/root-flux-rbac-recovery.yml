@@ -133,5 +133,18 @@ jobs:
             fi
             sleep 5
           done
-          echo 'The bounded repair succeeded, but root Flux did not report the requested revision in time.' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo
+            echo 'The bounded repair succeeded, but root Flux did not report the requested revision in time.'
+            printf '\n- observed source revision: `%s`\n' "${source_revision:-<none>}"
+            printf -- '- observed applied revision: `%s`\n' "${applied_revision:-<none>}"
+            echo
+            echo '#### GitRepository conditions'
+            kubectl get gitrepository service-backend -n flux-system \
+              -o 'jsonpath={range .status.conditions[*]}- {.type}: {.status} ({.reason}) {.message}{"\n"}{end}' || true
+            echo
+            echo '#### Kustomization conditions'
+            kubectl get kustomization service-backend -n flux-system \
+              -o 'jsonpath={range .status.conditions[*]}- {.type}: {.status} ({.reason}) {.message}{"\n"}{end}' || true
+          } >> "$GITHUB_STEP_SUMMARY"
           exit 1
