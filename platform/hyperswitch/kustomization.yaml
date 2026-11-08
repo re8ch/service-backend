@@ -1,25 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Keep Helm resources in flux-system beside their values Secret.
-# Workload resources and generated ConfigMaps explicitly use payments.
+# HyperSwitch is retired. Keep the release manifest in Git as a reactivation
+# record, but do not include it here: Flux must uninstall the Helm release.
 resources:
   - namespace.yaml
-  - release.yaml
-  - superposition-schema-job.yaml
-  - bootstrap-admin-job.yaml
   - public-route.yaml
-  - sdk-runtime.yaml
   - superposition-local-key-volume.yaml
-
-configMapGenerator:
-  - name: hyperswitch-superposition-seed
-    namespace: payments
-    files:
-      - superposition_seed.toml=vendor/hyperswitch-v1.126.0-superposition_seed.toml
-  - name: hyperswitch-superposition-schema
-    namespace: payments
-    files:
-      - superposition.sql=vendor/superposition-v0.112.0.sql
-
-generatorOptions:
-  disableNameSuffixHash: true

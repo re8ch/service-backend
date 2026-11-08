@@ -118,7 +118,6 @@ rules:
   - commerce-api
   - commerce-postgrest-ro
   - commerce-postgrest-rw
-  - hyperswitch-web
   - nuclio-payment-registry-api
   - payment-postgrest
   - payment-postgrest-ro
@@ -130,8 +129,6 @@ rules:
   resources:
   - configmaps
   resourceNames:
-  - hyperswitch-superposition-schema
-  - hyperswitch-superposition-seed
   - ssa-state-main-commerce-billing-payments
   verbs:
   - get
@@ -151,7 +148,6 @@ rules:
   - commerce-api
   - commerce-postgrest-ro
   - commerce-postgrest-rw
-  - hyperswitch-web
   - nuclio-payment-registry-api
   - payment-postgrest
   - payment-postgrest-ro
@@ -167,9 +163,6 @@ rules:
   - commerce-db-rw
   - commerce-public-api
   - commerce-user-data-ro
-  - hyperswitch-control-center-public
-  - hyperswitch-router-public
-  - hyperswitch-web-public
   - payment-postgrest-ro
   - payment-postgrest-rw
   - re8ch-catalog-db-ro

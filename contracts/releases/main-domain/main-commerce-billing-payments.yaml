@@ -24,7 +24,6 @@ spec:
     fieldManager: re8ch-release/main-commerce-billing-payments
     resources:
     - apps/Deployment
-    - core/ConfigMap
     - core/PersistentVolumeClaim
     - core/Service
     - gateway.networking.k8s.io/HTTPRoute
@@ -36,13 +35,7 @@ spec:
     - commerce-postgrest-rw
     - commerce-public-api
     - commerce-user-data-ro
-    - hyperswitch-control-center-public
-    - hyperswitch-router-public
     - hyperswitch-superposition-local-key
-    - hyperswitch-superposition-schema
-    - hyperswitch-superposition-seed
-    - hyperswitch-web
-    - hyperswitch-web-public
     - nuclio-payment-registry-api
     - payment-postgrest
     - payment-postgrest-ro
@@ -54,7 +47,7 @@ spec:
     - re8ch-payment-registry-public
     allowClusterScoped: false
   inventory:
-    digest: sha256:4cb554aa59ea1430ad53642e30626c5e9aa7b8e6a4a79a4f29a14dd71824a73b
+    digest: sha256:280b3d5419847871a959dc09fef1629f8285d3ca2f2ce6c7c924b88fcb667bb5
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -68,17 +61,13 @@ spec:
     - apps/Deployment/payments/commerce-api
     - apps/Deployment/payments/commerce-postgrest-ro
     - apps/Deployment/payments/commerce-postgrest-rw
-    - apps/Deployment/payments/hyperswitch-web
     - apps/Deployment/payments/nuclio-payment-registry-api
     - apps/Deployment/payments/payment-postgrest
     - apps/Deployment/payments/payment-postgrest-ro
     - apps/Deployment/payments/re8ch-catalog
-    - core/ConfigMap/payments/hyperswitch-superposition-schema
-    - core/ConfigMap/payments/hyperswitch-superposition-seed
     - core/Service/payments/commerce-api
     - core/Service/payments/commerce-postgrest-ro
     - core/Service/payments/commerce-postgrest-rw
-    - core/Service/payments/hyperswitch-web
     - core/Service/payments/nuclio-payment-registry-api
     - core/Service/payments/payment-postgrest
     - core/Service/payments/payment-postgrest-ro
@@ -87,9 +76,6 @@ spec:
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-public-api
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-user-data-ro
-    - gateway.networking.k8s.io/HTTPRoute/payments/hyperswitch-control-center-public
-    - gateway.networking.k8s.io/HTTPRoute/payments/hyperswitch-router-public
-    - gateway.networking.k8s.io/HTTPRoute/payments/hyperswitch-web-public
     - gateway.networking.k8s.io/HTTPRoute/payments/payment-postgrest-ro
     - gateway.networking.k8s.io/HTTPRoute/payments/payment-postgrest-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/re8ch-catalog-db-ro

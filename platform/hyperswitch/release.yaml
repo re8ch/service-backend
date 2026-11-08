@@ -174,6 +174,8 @@ spec:
     hyperswitch-ucs:
       enabled: false
     hyperswitch-app:
+      # This file is retained as the reviewed reactivation record, but is not
+      # included by kustomization.yaml while HyperSwitch is retired.
       # Required by router releases >= v1.124. The stack chart also installs
       # the schema migration/alias that its otherwise-empty database needs.
       superpositionFallback:
