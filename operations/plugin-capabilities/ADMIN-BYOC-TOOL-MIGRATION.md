@@ -18,10 +18,13 @@ a Ready AmongCluster connection before its operations are advertised.
 
 The `admin` organization is the Meta tenant. A verified human Admin session is
 not constrained by ordinary TenantGrant or Ready-namespace discovery when it
-uses the explicit `platform_*` tools: those tools address every namespaced and
-cluster-scoped resource through the direct native backend. Secret values remain
-write-only or redacted. Ordinary `tenant_*` tools retain tenant isolation and
-must not be relabeled as cluster-wide merely to make discovery appear healthy.
+uses the existing `tenant_kubernetes_get`, `tenant_kubernetes_apply`, and
+`tenant_kubernetes_delete` interfaces: the backend routes those same calls to
+the direct native cluster connection and permits namespaced and cluster-scoped
+resources. The explicit `platform_*` tools remain compatible aliases for
+specialized administration; clients do not need a new interface to gain Meta
+scope. Secret values remain write-only or redacted. Ordinary tenants retain
+their existing Ready-namespace, grant, and kind isolation.
 
 ## Capability placement
 
@@ -29,7 +32,7 @@ must not be relabeled as cluster-wide merely to make discovery appear healthy.
 | --- | --- | --- |
 | Platform Kubernetes discovery/read | `platform_kubernetes_resource_read` | Directly connected RE8CH platform cluster; all API resource types discoverable; Secret values excluded |
 | Platform Kubernetes apply/delete | `platform_kubernetes_resource_apply`, `platform_kubernetes_resource_delete` | Direct cluster; any namespaced or cluster-scoped resource; server dry-run and exact plan hash before write |
-| Namespaced tenant Kubernetes read/apply/delete | `tenant_kubernetes_get`, `tenant_kubernetes_apply`, `tenant_kubernetes_delete` | Tenant-owned Ready namespaces, including external clusters selected through AmongCluster |
+| Existing Kubernetes read/apply/delete | `tenant_kubernetes_get`, `tenant_kubernetes_apply`, `tenant_kubernetes_delete` | Admin Meta tenant: every namespaced and cluster-scoped resource on the direct cluster; ordinary tenants: owned Ready namespaces, including external clusters selected through AmongCluster |
 | Secrets | `tenant_secret_upsert`, `tenant_secret_metadata_list`, `tenant_secret_delete` | Write-only/metadata-only in Admin-owned Ready namespaces |
 | Workloads, storage claims and HTTPS exposure | Existing tenant claim, Kubernetes and exposure tools | Admin-owned Ready namespaces |
 | Metrics, logs and dashboards | Existing observability tools | Direct platform connection for Admin; selected AmongCluster connection and authorized namespaces for external tenants |
