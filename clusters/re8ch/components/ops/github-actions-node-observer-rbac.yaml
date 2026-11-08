@@ -989,6 +989,8 @@ rules:
   - host-network-controller
   - podcidr-fabric-reconciler
   - public-mesh-podcidr-reconciler
+  - r640-outer-sni-dnat
+  - regional-origin-dnat
   verbs:
   - get
 - apiGroups:

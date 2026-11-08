@@ -4782,6 +4782,8 @@ rules:
   - host-network-controller
   - podcidr-fabric-reconciler
   - public-mesh-podcidr-reconciler
+  - r640-outer-sni-dnat
+  - regional-origin-dnat
   verbs:
   - get
   - patch
@@ -4848,6 +4850,7 @@ rules:
   - podcidr-fabric-inventory
   - podcidr-fabric-reconciler
   - public-mesh-podcidr
+  - r640-outer-sni-dnat
   verbs:
   - get
   - patch

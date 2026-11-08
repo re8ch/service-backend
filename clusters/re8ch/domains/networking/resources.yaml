@@ -761,6 +761,8 @@ rules:
   - host-network-controller-gkfhhhf9ch
   - podcidr-fabric-reconciler
   - public-mesh-podcidr-reconciler
+  - r640-outer-sni-dnat
+  - regional-origin-dnat
   resources:
   - daemonsets
   verbs:
