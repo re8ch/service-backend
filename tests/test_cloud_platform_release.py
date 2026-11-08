@@ -61,6 +61,6 @@ def test_native_upload_attempts_fit_the_release_budget():
 
 def test_network_planner_builds_on_runner_architecture_for_amd64_release():
     dockerfile = (ROOT / 'operations/cloud-platform/Dockerfile').read_text()
-    assert 'FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS network-planner' in dockerfile
+    assert 'FROM --platform=$BUILDPLATFORM registry.re8ch.com/proxy-dockerhub/library/golang:1.26.10-alpine AS network-planner' in dockerfile
     assert 'ARG TARGETOS TARGETARCH' in dockerfile
     assert 'CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build' in dockerfile

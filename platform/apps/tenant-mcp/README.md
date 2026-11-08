@@ -111,27 +111,30 @@ bearer to the read-only identity PostgREST endpoint; the RPC applies wallet
 authorization using `auth.uid()`. Results are Credits units, not currency or
 unpriced usage totals.
 
-The internal `/mcp` endpoint lists the legacy `platform_tool_catalog` and
-`platform_tool_call` bridge for authenticated users with an active tenant.
-The Re8ch plugin's public `/tenant-native/mcp` route maps to `/plugin/mcp`,
-which omits that generic bridge from model-callable discovery. This keeps
-existing internal consumers intact without advertising an opaque operation
-through the reviewed plugin. Calls require a verified user with a current
+The Re8ch plugin's public `/tenant-native/mcp` route maps to `/plugin/mcp`.
+Platform operations are published as explicit tools with reviewable input
+schemas; the tenant MCP does not publish a generic catalog-and-dispatch bridge.
+Calls require a verified user with a current
 `owner` or `admin` membership in the hidden `admin` organization. Listing an
 entry point does not grant access to any backend tool.
 `platform_kubectl_exec` exposes the native `kubectl.exec` operation directly
 with an `argv` array and bounded timeout, while preserving the same platform
 administrator gate, backend authorization, and audit result. Its action definition
 is explicit so a plugin reviewer can assess it independently of the generic
-backend dispatch action. Publishing one explicit operation does not publish
-the remaining dynamic backend tools. Plugin clients must use only operations
+backend operation. `platform_kubernetes_resource_read` discovers all API
+resource types and reads bounded non-Secret objects. `platform_nodes_list`,
+`platform_nodes_get`, `platform_nodes_reachability`, and
+`platform_node_ssh_exec` preserve the existing node operations through the
+same directly connected native backend. These tools are for RE8CH-owned
+platform clusters; tenant BYOC remains the AmongCluster path for external
+clusters. Publishing these explicit operations does not publish the remaining
+backend tools. Plugin clients must use only operations
 in their current tool list; an authorization flag cannot attest publication.
 It reads the Supabase membership projection once per verified login session and
 caches that decision in the tenant process.
 A new login session receives a fresh decision; a process restart clears the
-cache. The service bearer cannot use it. The call tool uses the operations
-currently registered by the configured backends. Each backend enforces its
-own authorization; the gateway does not duplicate its tool registry.
+cache. The service bearer cannot use it. Each backend enforces its own
+authorization; the gateway does not duplicate that authorization.
 Backend credentials are read by the tenant runtime's Kubernetes
 service account from three named Secrets via tightly scoped `get` RBAC and are
 never returned to the caller.
@@ -243,11 +246,11 @@ empty; this change alone does not verify a domain or publish a plugin.
 
 ### Registration completeness
 
-`platform_tool_catalog` returns each backend's currently registered tools with
-their descriptions, input schemas and annotations, plus `unavailableBackends`.
-Unavailable backends remain unknown, not proof of missing operations. The
-catalog measures backend publication only; it does not prove native API or
-semantic workflow coverage.
+Every public administrator operation is registered as an explicit MCP tool
+with its own description, input schema and annotations. The internal backend
+registry routes those reviewed tools but is not itself a public discovery or
+dispatch interface. Missing tools remain unavailable; backend reachability is
+not proof of publication, native API coverage or semantic workflow coverage.
 
 ### Collaboration credential isolation
 

@@ -180,12 +180,12 @@ func TestMCPIdentityAndDynamicSkill(t *testing.T) {
 		for _, item := range body["result"].(map[string]any)["tools"].([]any) {
 			found[item.(map[string]any)["name"].(string)] = true
 		}
-		if !found["platform_tool_catalog"] || !found["platform_tool_call"] {
-			t.Fatalf("ToolHive service discovery omitted platform entry points: %v", found)
+		if !found["platform_kubectl_exec"] || !found["reconcile_control_plane_authentication_config"] {
+			t.Fatalf("ToolHive service discovery omitted explicit platform tools: %v", found)
 		}
 	}
-	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "platform_tool_catalog", "arguments": map[string]any{}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
-		t.Fatalf("ToolHive service credential called platform catalog: %d %v", status, body)
+	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "pods"}}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
+		t.Fatalf("ToolHive service credential called explicit platform tool: %d %v", status, body)
 	}
 	if status, body := call("backend-secret", "", "tools/call", map[string]any{"name": "tenant_access_status", "arguments": map[string]any{}}); status != 200 || body["result"].(map[string]any)["isError"] != true {
 		t.Fatalf("ToolHive service credential called user status: %d %v", status, body)
@@ -571,13 +571,13 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_tool_catalog", "platform_tool_call", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
+	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
 	}
-	if len(names) != len(legacy)-hiddenAliases+9 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+9)
+	if len(names) != len(legacy)-hiddenAliases+12 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+12)
 	}
 }
 

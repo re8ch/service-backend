@@ -10,6 +10,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -55,15 +57,94 @@ func currentPlatformAdmin(ctx context.Context, bearer string) (bool, error) {
 	return false, nil
 }
 
-type platformToolInput struct {
-	Backend   string         `json:"backend" jsonschema:"Backend from platform_tool_catalog: cloud, infra, admin, native, or tenant_admin"`
-	ToolName  string         `json:"toolName" jsonschema:"Tool name from platform_tool_catalog"`
-	Arguments map[string]any `json:"arguments,omitempty" jsonschema:"Arguments matching the selected tool's inputSchema"`
-}
-
 type platformKubectlInput struct {
 	Argv    []string `json:"argv" jsonschema:"kubectl arguments as an array of strings, for example [get,--raw=/version]"`
 	Timeout int      `json:"timeout,omitempty" jsonschema:"Execution timeout in seconds, from 1 to 3600; defaults to 30"`
+}
+
+type platformResourceReadInput struct {
+	Action        string `json:"action"`
+	Resource      string `json:"resource,omitempty"`
+	Name          string `json:"name,omitempty"`
+	Namespace     string `json:"namespace,omitempty"`
+	AllNamespaces bool   `json:"allNamespaces,omitempty"`
+	LabelSelector string `json:"labelSelector,omitempty"`
+	FieldSelector string `json:"fieldSelector,omitempty"`
+}
+
+type platformNodeInput struct {
+	Name string `json:"name,omitempty"`
+}
+
+type platformNodeExecInput struct {
+	Name    string   `json:"name"`
+	Argv    []string `json:"argv"`
+	Timeout int      `json:"timeout,omitempty"`
+}
+
+var platformResourceName = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,252}$`)
+
+func callNativePlatformTool(ctx context.Context, s *server, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession) (any, error) {
+		return session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
+	})
+	if err != nil {
+		return nil, err
+	}
+	result, ok := value.(*mcp.CallToolResult)
+	if !ok {
+		return nil, errors.New("native platform backend returned an invalid result")
+	}
+	return result, nil
+}
+
+func platformResourceArgv(input platformResourceReadInput) ([]string, error) {
+	switch input.Action {
+	case "discover":
+		if input.Resource != "" || input.Name != "" || input.Namespace != "" || input.AllNamespaces || input.LabelSelector != "" || input.FieldSelector != "" {
+			return nil, errors.New("discover does not accept resource filters")
+		}
+		return []string{"api-resources", "-o", "wide"}, nil
+	case "list", "get":
+	default:
+		return nil, errors.New("action must be discover, list, or get")
+	}
+	resource := strings.ToLower(strings.TrimSpace(input.Resource))
+	if !platformResourceName.MatchString(resource) {
+		return nil, errors.New("resource must be a Kubernetes API resource name")
+	}
+	base := strings.Split(resource, ".")[0]
+	if base == "secret" || base == "secrets" {
+		return nil, errors.New("Secret values are not readable; use tenant_secret_metadata_list for metadata")
+	}
+	if input.Namespace != "" && !validKubernetesName(input.Namespace) {
+		return nil, errors.New("invalid Kubernetes namespace")
+	}
+	if input.AllNamespaces && input.Namespace != "" {
+		return nil, errors.New("namespace and allNamespaces are mutually exclusive")
+	}
+	if input.Action == "get" && !validKubernetesName(input.Name) {
+		return nil, errors.New("get requires a valid resource name")
+	}
+	if input.Action == "list" && input.Name != "" {
+		return nil, errors.New("list does not accept a resource name")
+	}
+	argv := []string{"get", resource}
+	if input.Name != "" {
+		argv = append(argv, input.Name)
+	}
+	if input.AllNamespaces {
+		argv = append(argv, "--all-namespaces")
+	} else if input.Namespace != "" {
+		argv = append(argv, "--namespace", input.Namespace)
+	}
+	if input.LabelSelector != "" {
+		argv = append(argv, "--selector="+input.LabelSelector)
+	}
+	if input.FieldSelector != "" {
+		argv = append(argv, "--field-selector="+input.FieldSelector)
+	}
+	return append(argv, "--show-managed-fields=false", "-o", "json"), nil
 }
 
 type controlPlaneAuthenticationInput struct {
@@ -176,7 +257,60 @@ func platformIdentity(ctx context.Context) (identity, error) {
 	return id, nil
 }
 
-func (s *server) registerPlatformTools(ms *mcp.Server, includeLegacyBridge bool) {
+func (s *server) registerPlatformTools(ms *mcp.Server) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_read"), Name: "platform_kubernetes_resource_read", Description: "Discover every Kubernetes API resource type or read a named/listed non-Secret resource from the directly connected RE8CH platform cluster. Re8ch Admin membership is required. Secret values are never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["discover","list","get"]},"resource":{"type":"string","description":"API resource name such as deployments.apps or ciliumnetworkpolicies.cilium.io"},"name":{"type":"string"},"namespace":{"type":"string"},"allNamespaces":{"type":"boolean"},"labelSelector":{"type":"string"},"fieldSelector":{"type":"string"}},"required":["action"],"additionalProperties":false}`)},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceReadInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			argv, err := platformResourceArgv(input)
+			if err != nil {
+				return nil, nil, err
+			}
+			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
+			return result, nil, err
+		})
+	for _, definition := range []struct {
+		name, backend, description string
+	}{
+		{"platform_nodes_list", "nodes.list", "List nodes in the directly connected RE8CH platform cluster."},
+		{"platform_nodes_get", "nodes.get", "Read one node from the directly connected RE8CH platform cluster."},
+		{"platform_nodes_reachability", "nodes.reachability", "Check one platform node's bounded reachability signals."},
+	} {
+		definition := definition
+		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations(definition.name), Name: definition.name, Description: definition.description},
+			func(ctx context.Context, _ *mcp.CallToolRequest, input platformNodeInput) (*mcp.CallToolResult, any, error) {
+				if _, err := platformIdentity(ctx); err != nil {
+					return nil, nil, err
+				}
+				arguments := map[string]any{}
+				if definition.backend != "nodes.list" {
+					if !validKubernetesName(input.Name) {
+						return nil, nil, errors.New("valid node name required")
+					}
+					arguments["name"] = input.Name
+				}
+				result, err := callNativePlatformTool(ctx, s, definition.backend, arguments)
+				return result, nil, err
+			})
+	}
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_node_ssh_exec"), Name: "platform_node_ssh_exec", Description: "Execute one argv command on a platform node through the existing audited native backend. Re8ch Admin membership is required."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input platformNodeExecInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			if !validKubernetesName(input.Name) || len(input.Argv) == 0 {
+				return nil, nil, errors.New("valid node name and argv are required")
+			}
+			if input.Timeout == 0 {
+				input.Timeout = 30
+			}
+			if input.Timeout < 1 || input.Timeout > 3600 {
+				return nil, nil, errors.New("node command timeout must be between 1 and 3600 seconds")
+			}
+			result, err := callNativePlatformTool(ctx, s, "node.ssh.exec", map[string]any{"name": input.Name, "argv": input.Argv, "timeout": input.Timeout})
+			return result, nil, err
+		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("reconcile_control_plane_authentication_config"), Name: "reconcile_control_plane_authentication_config", Description: "Plan or apply the reviewed kube-apiserver authentication configuration and its node-local reconciler. Offline control-plane nodes converge when they return; this never restarts K3s."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
@@ -196,15 +330,6 @@ func (s *server) registerPlatformTools(ms *mcp.Server, includeLegacyBridge bool)
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	if includeLegacyBridge {
-		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "Read metadata for tools currently registered by the platform backends, including their descriptions and input schemas. This inventory action does not execute any listed operation."},
-			func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
-				if _, err := platformIdentity(ctx); err != nil {
-					return nil, nil, err
-				}
-				return nil, s.moduleRegistry().catalog(ctx), nil
-			})
-	}
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command in the RE8CH platform cluster with an argv string array. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments, for example [\"get\",\"--raw=/version\"]"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"}},"required":["argv"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
@@ -219,27 +344,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server, includeLegacyBridge bool)
 			if input.Timeout < 1 || input.Timeout > 3600 {
 				return nil, nil, errors.New("kubectl timeout must be between 1 and 3600 seconds")
 			}
-			value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession) (any, error) {
-				return session.CallTool(ctx, &mcp.CallToolParams{Name: "kubectl.exec", Arguments: map[string]any{"argv": input.Argv, "timeout": input.Timeout}})
-			})
-			if err != nil {
-				return nil, nil, err
-			}
-			return value.(*mcp.CallToolResult), nil, nil
+			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": input.Argv, "timeout": input.Timeout})
+			return result, nil, err
 		})
-	if includeLegacyBridge {
-		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_call"), Name: "platform_tool_call", Description: "Call one tool registered by a Cloud Platform, Cluster Infra, or platform admin backend. Copy backend, name, and arguments from platform_tool_catalog."},
-			func(ctx context.Context, _ *mcp.CallToolRequest, input platformToolInput) (*mcp.CallToolResult, any, error) {
-				if _, err := platformIdentity(ctx); err != nil {
-					return nil, nil, err
-				}
-				value, err := s.moduleRegistry().call(ctx, input.Backend, func(session *mcp.ClientSession) (any, error) {
-					return session.CallTool(ctx, &mcp.CallToolParams{Name: input.ToolName, Arguments: input.Arguments})
-				})
-				if err != nil {
-					return nil, nil, err
-				}
-				return value.(*mcp.CallToolResult), nil, nil
-			})
-	}
 }

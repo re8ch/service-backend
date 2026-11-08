@@ -11,13 +11,14 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "mail_query", "mail_read", "calendar_query", "contacts_query", "files_list", "files_read", "tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
-		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",
+		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load",
 		"harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_vulnerability_report_get",
 		"harbor_sbom_get", "harbor_accessory_list", "harbor_audit_log_list", "harbor_build_get", "harbor_build_list",
 		"runtime_image_catalog",
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
-		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read":
+		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read",
+		"platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability":
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
@@ -37,7 +38,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
-	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_tool_call", "platform_kubectl_exec", "harbor_build_start", "runtime_image_build":
+	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubectl_exec", "platform_node_ssh_exec", "harbor_build_start", "runtime_image_build":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":
