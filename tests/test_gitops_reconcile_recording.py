@@ -8,11 +8,12 @@ ROOT = Path(__file__).parents[1]
 POLICY = ROOT / "operations/github-maintenance/gitops-reconcile-recording.json"
 
 
-def test_recording_policy_uses_wiki_for_success_and_issue_for_incidents():
+def test_recording_policy_journals_all_states_and_uses_issues_for_incidents():
     policy = json.loads(POLICY.read_text())
     assert policy["kind"] == "GitOpsReconcileRecordingPolicy"
-    assert policy["healthy"]["destination"] == "wiki-monthly-journal"
-    assert policy["healthy"]["repositoryScope"] == "source"
+    assert policy["journal"]["destination"] == "wiki-monthly-journal"
+    assert policy["journal"]["repositoryScope"] == "source"
+    assert set(policy["journal"]["states"]) == {"Healthy", "Failed", "Degraded", "Unknown"}
     assert policy["incident"]["contentType"] == "Issue"
     assert set(policy["incident"]["states"]) == {"Failed", "Degraded", "Unknown"}
 
