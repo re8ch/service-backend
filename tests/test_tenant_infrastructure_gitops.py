@@ -375,6 +375,17 @@ def test_tenancy_crds_are_structural_and_status_enabled():
     assert "has(self.spec.subjectHash) != has(self.spec.group)" in rules
 
 
+def test_admin_adopts_existing_platform_namespaces_for_postpaid_management():
+    docs = tenant_chart_documents()
+    admin = next(item for item in docs if item.get("kind") == "Tenant" and item["metadata"]["name"] == "admin")
+    names = set(admin["spec"]["namespacePolicy"]["adoptedNamespaces"])
+    assert {"tenant-infrastructure", "toolhive-system", "observability-system", "rook-ceph", "flux-system"} <= names
+    assert not {"default", "kube-system", "kube-public", "kube-node-lease"} & names
+    adoption = documents(ROOT / "platform/tenant-infrastructure/admin-tenant-adoption.yaml")[0]
+    assert set(adoption["spec"]["namespacePolicy"]["adoptedNamespaces"]) == names
+
+
+
 def test_artchais_github_team_bindings_have_explicit_roles():
     docs = tenant_chart_documents()
     tenant = next(item for item in docs if item["kind"] == "Tenant" and item["apiVersion"].startswith("tenancy.re8ch.com/") and item["metadata"]["name"] == "artchais")

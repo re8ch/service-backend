@@ -44,6 +44,31 @@ scope. Server-generated owner fields must be immutable and included in every
 list, get, update, delete and idempotency lookup. Aggregate class quota and
 per-owner quota are different decisions.
 
+## Existing namespace adoption
+
+`TenantNamespace.spec.managementMode: AdoptExisting` is the reviewed exception
+for an existing platform or application namespace that must be operated and
+metered through the `admin` organization without renaming its namespace or
+workloads. It is not a general tenant prefix bypass.
+
+An adopted declaration is valid only when all of the following are true:
+
+- the tenant is exactly `admin` and the namespace already exists;
+- the namespace is explicitly named in reviewed Git desired state;
+- `settlementMode` is `Postpaid` and `adoptionReason` records why the exception
+  exists;
+- no other TenantNamespace already owns the namespace;
+- the namespace is not `default`, `kube-system`, `kube-public`, or
+  `kube-node-lease`;
+- tenant self-service cannot delete the namespace.
+
+Adoption adds owner attribution and the bounded RBAC used by Backend workload
+tools. It deliberately does not add tenant ResourceQuota, LimitRange, or
+default-deny NetworkPolicy to an existing namespace. The existing GitOps
+controller remains authoritative for its declared fields; Backend mutations
+remain subject to the tenant Kubernetes object validator, audit, and usage
+metering.
+
 ## Rollout gates
 
 1. Keep login and MCP initialization independent of runtime authorization.

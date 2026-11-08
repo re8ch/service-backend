@@ -48,6 +48,7 @@ spec:
     - PlacementClass
     - SchedulerProfile
     - StorageClass
+    - Tenant
     - TenantNamespace
     - ValidatingAdmissionPolicy
     - ValidatingAdmissionPolicyBinding

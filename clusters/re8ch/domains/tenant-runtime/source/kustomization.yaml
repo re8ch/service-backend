@@ -1,6 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- ../../../charts/birfucate-metering/crds/tenancy.re8ch.com.yaml
+- ../../../../../platform/tenant-infrastructure/admin-tenant-adoption.yaml
 - ../../../../../platform/cloud-platform
 - ../../../../../platform/runtime-anatomy
 - ../../../../../platform/scheduling-fabric

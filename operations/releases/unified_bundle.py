@@ -27,7 +27,7 @@ CLUSTER_SCOPED = {
     "Namespace", "Node", "PersistentVolume", "StorageClass", "ValidatingWebhookConfiguration",
     "MutatingWebhookConfiguration", "CSIDriver", "PriorityClass", "RuntimeClass",
     "VolumeSnapshotClass", "ValidatingAdmissionPolicy", "ValidatingAdmissionPolicyBinding",
-    "ClusterPolicy", "NodeProfile", "PlacementClass", "SchedulerProfile", "TenantNamespace",
+    "ClusterPolicy", "NodeProfile", "PlacementClass", "SchedulerProfile", "Tenant", "TenantNamespace",
 }
 MAX_RENDERED_BYTES = 10 * 1024 * 1024
 MAX_OBJECTS = 500

@@ -36,7 +36,7 @@ CLUSTER_KINDS = {
     "APIService", "ClusterRole", "ClusterRoleBinding", "CustomResourceDefinition", "Namespace",
     "Node", "PersistentVolume", "StorageClass", "ValidatingWebhookConfiguration", "MutatingWebhookConfiguration",
     "ValidatingAdmissionPolicy", "ValidatingAdmissionPolicyBinding", "ClusterPolicy",
-    "NodeProfile", "PlacementClass", "SchedulerProfile", "TenantNamespace",
+    "NodeProfile", "PlacementClass", "SchedulerProfile", "Tenant", "TenantNamespace",
 }
 RBAC_KINDS = {"Role", "RoleBinding", "ClusterRole", "ClusterRoleBinding"}
 CLUSTER_EXECUTABLE = CLUSTER_KINDS - RBAC_KINDS
@@ -54,6 +54,7 @@ PLURALS = {
     "PersistentVolume": "persistentvolumes", "StorageClass": "storageclasses",
     "CustomResourceDefinition": "customresourcedefinitions", "ClusterPolicy": "clusterpolicies",
     "NodeProfile": "nodeprofiles", "PlacementClass": "placementclasses", "SchedulerProfile": "schedulerprofiles",
+    "Tenant": "tenants", "TenantNamespace": "tenantnamespaces",
     "ValidatingAdmissionPolicy": "validatingadmissionpolicies", "ValidatingAdmissionPolicyBinding": "validatingadmissionpolicybindings",
 }
 def execution_profiles() -> dict[str, dict]:

@@ -19,6 +19,12 @@ spec:
     maxNamespaces: {{ $tenant.namespacePolicy.maxNamespaces }}
     allowCreate: {{ $tenant.namespacePolicy.allowCreate }}
     allowDelete: {{ $tenant.namespacePolicy.allowDelete }}
+{{- with $tenant.namespacePolicy.adoptedNamespaces }}
+    adoptedNamespaces:
+{{- range $namespace := . }}
+      - {{ $namespace | quote }}
+{{- end }}
+{{- end }}
 {{- if $tenant.runtimeNamespaceRef }}
   # Deprecated read-only compatibility for claims created before namespace autonomy.
   runtimeNamespaceRef: {{ $tenant.runtimeNamespaceRef }}

@@ -615,6 +615,676 @@ spec:
     subresources:
       status: {}
 ---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenantidentitybindings.tenancy.re8ch.com
+spec:
+  group: tenancy.re8ch.com
+  names:
+    kind: TenantIdentityBinding
+    plural: tenantidentitybindings
+    shortNames:
+    - tib
+    singular: tenantidentitybinding
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tenantRef
+      name: Tenant
+      type: string
+    - jsonPath: .spec.issuer
+      name: Issuer
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              group:
+                maxLength: 256
+                minLength: 1
+                type: string
+              issuer:
+                format: uri
+                pattern: ^https://
+                type: string
+              revoked:
+                default: false
+                type: boolean
+              role:
+                default: viewer
+                enum:
+                - viewer
+                - operator
+                - admin
+                type: string
+              subjectHash:
+                pattern: ^sha256:[a-f0-9]{64}$
+                type: string
+              tenantRef:
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                type: string
+            required:
+            - tenantRef
+            - issuer
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: exactly one of subjectHash or group is required
+          rule: has(self.spec.subjectHash) != has(self.spec.group)
+        - message: identity is immutable; revoke and replace the binding
+          rule: self.spec.issuer == oldSelf.spec.issuer && (!has(oldSelf.spec.subjectHash)
+            || self.spec.subjectHash == oldSelf.spec.subjectHash) && (!has(oldSelf.spec.group)
+            || self.spec.group == oldSelf.spec.group) && (!has(oldSelf.spec.role)
+            || self.spec.role == oldSelf.spec.role)
+    selectableFields:
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.issuer
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenantnamespaces.tenancy.re8ch.com
+spec:
+  group: tenancy.re8ch.com
+  names:
+    kind: TenantNamespace
+    plural: tenantnamespaces
+    shortNames:
+    - tns
+    singular: tenantnamespace
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tenantRef
+      name: Tenant
+      type: string
+    - jsonPath: .spec.namespaceName
+      name: Namespace
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              adoptionReason:
+                maxLength: 256
+                minLength: 8
+                type: string
+              expiresAt:
+                format: date-time
+                type: string
+              managementMode:
+                default: Provisioned
+                enum:
+                - Provisioned
+                - AdoptExisting
+                type: string
+              namespaceName:
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                type: string
+              operation:
+                enum:
+                - EnsurePresent
+                - EnsureAbsent
+                type: string
+              settlementMode:
+                enum:
+                - Prepaid
+                - Postpaid
+                type: string
+              tenantRef:
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                type: string
+            required:
+            - tenantRef
+            - namespaceName
+            - operation
+            type: object
+          status:
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      maxLength: 1024
+                      type: string
+                    reason:
+                      maxLength: 128
+                      minLength: 1
+                      type: string
+                    status:
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - type
+                  - status
+                  - reason
+                  - lastTransitionTime
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              namespaceUID:
+                type: string
+              observedGeneration:
+                minimum: 0
+                type: integer
+              operationId:
+                pattern: ^op_[a-f0-9]+$
+                type: string
+              phase:
+                enum:
+                - Pending
+                - Provisioning
+                - Ready
+                - Deleting
+                - Failed
+                - Terminating
+                type: string
+              reason:
+                maxLength: 1024
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: only admin may adopt an existing namespace; provisioned namespaces
+            must use the tenant prefix
+          rule: 'self.spec.managementMode == ''AdoptExisting'' ? self.spec.tenantRef
+            == ''admin'' : self.spec.namespaceName.startsWith(self.spec.tenantRef
+            + ''-'')'
+        - message: adopted namespaces cannot be deleted through tenant self-service
+          rule: self.spec.managementMode != 'AdoptExisting' || self.spec.operation
+            == 'EnsurePresent'
+        - message: adopted namespaces require a reviewed reason and Postpaid settlement
+            mode
+          rule: self.spec.managementMode != 'AdoptExisting' || (has(self.spec.settlementMode)
+            && self.spec.settlementMode == 'Postpaid' && has(self.spec.adoptionReason))
+        - message: tenantRef, namespaceName and managementMode are immutable
+          rule: self.spec.tenantRef == oldSelf.spec.tenantRef && self.spec.namespaceName
+            == oldSelf.spec.namespaceName && self.spec.managementMode == oldSelf.spec.managementMode
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenantresourceclaims.tenancy.re8ch.com
+spec:
+  group: tenancy.re8ch.com
+  names:
+    kind: TenantResourceClaim
+    plural: tenantresourceclaims
+    shortNames:
+    - trc
+    singular: tenantresourceclaim
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.tenantRef
+      name: Tenant
+      type: string
+    - jsonPath: .spec.capability
+      name: Capability
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.expiresAt
+      name: Expires
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              capability:
+                enum:
+                - compute.workload.v1
+                - storage.volume.v1
+                type: string
+              desiredState:
+                default: Active
+                enum:
+                - Active
+                - Released
+                type: string
+              idempotencyKey:
+                maxLength: 128
+                minLength: 8
+                type: string
+              parameters:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              tenantRef:
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                type: string
+              ttlSeconds:
+                maximum: 2592000
+                minimum: 300
+                type: integer
+            required:
+            - tenantRef
+            - idempotencyKey
+            - capability
+            - ttlSeconds
+            - parameters
+            type: object
+          status:
+            properties:
+              claimHash:
+                pattern: ^sha256:[a-f0-9]{64}$
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      maxLength: 1024
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - type
+                  - status
+                  - reason
+                  - lastTransitionTime
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              endpoint:
+                properties:
+                  anonymous:
+                    type: boolean
+                  url:
+                    format: uri
+                    type: string
+                type: object
+              expiresAt:
+                format: date-time
+                type: string
+              imagePolicy:
+                properties:
+                  digestVerified:
+                    type: boolean
+                  provenancePresent:
+                    type: boolean
+                  sbomPresent:
+                    type: boolean
+                  scanPassed:
+                    type: boolean
+                  signatureVerified:
+                    type: boolean
+                  verifiedImageDigest:
+                    type: string
+                type: object
+              observedGeneration:
+                minimum: 0
+                type: integer
+              phase:
+                enum:
+                - Pending
+                - Provisioning
+                - Ready
+                - Updating
+                - Expiring
+                - Released
+                - Failed
+                type: string
+              runtimeNamespaceRef:
+                type: string
+              volumeAllocation:
+                properties:
+                  capacity:
+                    nullable: true
+                    type: string
+                  persistentVolume:
+                    nullable: true
+                    type: string
+                  state:
+                    enum:
+                    - Pending
+                    - Bound
+                    - Retained
+                    - Unknown
+                    type: string
+                type: object
+              volumeRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              workloadRef:
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: tenantRef, idempotencyKey and capability are immutable
+          rule: self.spec.tenantRef == oldSelf.spec.tenantRef && self.spec.idempotencyKey
+            == oldSelf.spec.idempotencyKey && self.spec.capability == oldSelf.spec.capability
+    selectableFields:
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.capability
+    - jsonPath: .status.phase
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenants.tenancy.re8ch.com
+spec:
+  group: tenancy.re8ch.com
+  names:
+    kind: Tenant
+    plural: tenants
+    shortNames:
+    - rtenant
+    singular: tenant
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.lifecycle
+      name: Lifecycle
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              businessNamespaces:
+                description: Deprecated compatibility field. Namespace inventory is
+                  reported in status.managedNamespaces.
+                items:
+                  pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                  type: string
+                type: array
+              byocAllowed:
+                type: boolean
+              deletionPolicy:
+                enum:
+                - Retain
+                - RevokeThenDelete
+                type: string
+              displayName:
+                maxLength: 128
+                minLength: 1
+                type: string
+              grants:
+                items:
+                  properties:
+                    consumableRef:
+                      pattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+                      type: string
+                    lifecycle:
+                      enum:
+                      - Active
+                      - Suspended
+                      type: string
+                    name:
+                      pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    roleRef:
+                      enum:
+                      - viewer
+                      - operator
+                      - admin
+                      type: string
+                  required:
+                  - name
+                  - consumableRef
+                  - roleRef
+                  - lifecycle
+                  type: object
+                maxItems: 100
+                type: array
+              harborProjectRef:
+                pattern: ^[a-z0-9](?:[._-]?[a-z0-9]+)*$
+                type: string
+              hostingMode:
+                enum:
+                - platform-managed
+                - byoc
+                type: string
+              imagePullSecretRef:
+                pattern: ^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$
+                type: string
+              lifecycle:
+                enum:
+                - Active
+                - Suspended
+                - Deleting
+                type: string
+              namespacePolicy:
+                properties:
+                  adoptedNamespaces:
+                    description: Reviewed existing namespaces managed and metered
+                      by the admin tenant.
+                    items:
+                      pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    maxItems: 100
+                    type: array
+                    uniqueItems: true
+                  allowCreate:
+                    type: boolean
+                  allowDelete:
+                    type: boolean
+                  allowedPrefixes:
+                    items:
+                      pattern: ^[a-z0-9](?:[-a-z0-9]*-)$
+                      type: string
+                    maxItems: 4
+                    minItems: 1
+                    type: array
+                  defaultNamespace:
+                    pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                    type: string
+                  maxNamespaces:
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                required:
+                - defaultNamespace
+                - allowedPrefixes
+                - maxNamespaces
+                - allowCreate
+                - allowDelete
+                type: object
+              runtimeNamespaceRef:
+                description: Deprecated compatibility field. New writes use namespacePolicy.defaultNamespace.
+                pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                type: string
+              visibility:
+                enum:
+                - Private
+                - Public
+                type: string
+            required:
+            - displayName
+            - lifecycle
+            - deletionPolicy
+            - namespacePolicy
+            type: object
+          status:
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      maxLength: 1024
+                      type: string
+                    reason:
+                      maxLength: 128
+                      minLength: 1
+                      type: string
+                    status:
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      enum:
+                      - Ready
+                      - Reconciling
+                      - RevocationPending
+                      - Degraded
+                      type: string
+                  required:
+                  - type
+                  - status
+                  - reason
+                  - lastTransitionTime
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              managedNamespaces:
+                items:
+                  pattern: ^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$
+                  type: string
+                type: array
+              observedGeneration:
+                minimum: 0
+                type: integer
+              operationId:
+                pattern: ^op_[a-f0-9]+$
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    selectableFields:
+    - jsonPath: .spec.lifecycle
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tenantserviceinstances.tenancy.re8ch.com
+spec:
+  group: tenancy.re8ch.com
+  names:
+    kind: TenantServiceInstance
+    plural: tenantserviceinstances
+    shortNames:
+    - tsi
+    singular: tenantserviceinstance
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              lifecycle:
+                enum:
+                - Requested
+                - Active
+                - Suspended
+                - Deleting
+                type: string
+              parameters:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              plan:
+                minLength: 1
+                type: string
+              serviceClass:
+                minLength: 1
+                type: string
+              tenantRef:
+                minLength: 1
+                type: string
+            required:
+            - tenantRef
+            - serviceClass
+            - plan
+            - lifecycle
+            type: object
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        required:
+        - spec
+        type: object
+    selectableFields:
+    - jsonPath: .spec.tenantRef
+    - jsonPath: .spec.serviceClass
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
 apiVersion: v1
 automountServiceAccountToken: false
 kind: ServiceAccount
@@ -3143,3 +3813,108 @@ metadata:
 spec:
   interval: 144m
   url: https://kyverno.github.io/kyverno/
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: Tenant
+metadata:
+  name: admin
+spec:
+  namespacePolicy:
+    adoptedNamespaces:
+    - adapter
+    - admin
+    - advfab-system
+    - aesthete
+    - agent-collab
+    - ai-gateway
+    - ai-operations
+    - among-clusters
+    - anycam
+    - anysite
+    - api-conformance-runners
+    - api-conformance-system
+    - artchais
+    - auth
+    - bench
+    - byoc-pilot
+    - cardcat
+    - catalog
+    - ceph-storage-smoke
+    - cephfs-smoke
+    - cert-manager
+    - cilium-secrets
+    - cloud-disk
+    - codex-app-server
+    - codex-archive
+    - codex-platform
+    - comfy-agent
+    - compocv
+    - connectool
+    - coroot
+    - cosyvoice
+    - credential-broker
+    - cube-trial
+    - dataspace
+    - dex
+    - edge-devices
+    - egress-fabric
+    - farseer
+    - flux-agent-system
+    - flux-identity-system
+    - flux-network-system
+    - flux-observability-system
+    - flux-system
+    - function-routing
+    - git-workspaces
+    - gitops-events
+    - globalping-system
+    - harbor
+    - headlamp
+    - image
+    - incidentrelay
+    - kueue-system
+    - kyverno
+    - ledger
+    - llm-gateway
+    - mail-system
+    - mcp-registry
+    - mitos-trial
+    - neo4j
+    - netbird-access
+    - nuclio
+    - observability-ai
+    - observability-system
+    - observable
+    - opencost
+    - opensandbox-system
+    - opentelemetry-operator
+    - ops
+    - payments
+    - phonaid
+    - pigsty-external
+    - platform
+    - qianwen-ops
+    - regional-routing
+    - registry-authority
+    - registry-image
+    - rook-ceph
+    - runtime-adapter
+    - runtime-anatomy
+    - runtime-anatomy-canary
+    - runtime-poc
+    - runtime-provider-canary
+    - scheduler-system
+    - scheduling-system
+    - serverless-lab
+    - stalwart-credentials
+    - storage-fabric
+    - studio-toolkit
+    - supabase-billing
+    - supabase-identity
+    - supabase-pg-re8ch
+    - symphony-trial
+    - synthetic-monitoring
+    - tenant-infrastructure
+    - tenant-qwen-runtime
+    - toolhive-system
+    - voice-observability
