@@ -1624,6 +1624,11 @@ rules:
   - placementclasses.scheduling.re8ch.com
   - schedulerprofiles.scheduling.re8ch.com
   - serviceoutcomepolicies.scheduling.re8ch.com
+  - tenantidentitybindings.tenancy.re8ch.com
+  - tenantnamespaces.tenancy.re8ch.com
+  - tenantresourceclaims.tenancy.re8ch.com
+  - tenants.tenancy.re8ch.com
+  - tenantserviceinstances.tenancy.re8ch.com
   verbs:
   - get
   - patch
@@ -1705,6 +1710,16 @@ rules:
   resourceNames:
   - re8ch-dynamic
   - upstream-default
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - tenancy.re8ch.com
+  resources:
+  - tenants
+  resourceNames:
+  - admin
   verbs:
   - get
   - patch

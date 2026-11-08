@@ -734,7 +734,7 @@ releases:
   declarationSha256: sha256:996649046f6bd55163f56d4dce965d2f41eb04b6942a7550cd18365a12571a9d
   occurrences:
   - file: clusters/re8ch/domains/tenant-runtime/resources.yaml
-    document: 31
+    document: 36
   - file: platform/runtime-anatomy/release.yaml
     document: 1
   classification:

@@ -29,8 +29,10 @@ spec:
     - scheduling.re8ch.com/NodeProfile
     - scheduling.re8ch.com/PlacementClass
     - scheduling.re8ch.com/SchedulerProfile
+    - tenancy.re8ch.com/Tenant
     objectNames:
     - a1-wsl-zt
+    - admin
     - amdwsl-zt
     - b1-wsl-zt
     - batch-opportunistic
@@ -69,13 +71,18 @@ spec:
     - serviceoutcomepolicies.scheduling.re8ch.com
     - stateful-ceph
     - suxunji
+    - tenantidentitybindings.tenancy.re8ch.com
+    - tenantnamespaces.tenancy.re8ch.com
+    - tenantresourceclaims.tenancy.re8ch.com
+    - tenants.tenancy.re8ch.com
+    - tenantserviceinstances.tenancy.re8ch.com
     - upstream-default
     - vm-20-12-ubuntu
     - zan
     allowClusterScoped: true
     requireExisting: true
   inventory:
-    digest: sha256:b43e5e160cbd3b4aa7f8922cf89ae6009398379ead08b49984fc19ebd3b3bc8c
+    digest: sha256:1edd67ad7305ff5e168823561ba05afc20b70578e74e66e50291d02a150aab8d
   lifecycle:
     prune: false
     healthTimeoutSeconds: 300
@@ -92,6 +99,7 @@ spec:
     - PlacementClass
     - SchedulerProfile
     - StorageClass
+    - Tenant
     - TenantNamespace
     - ValidatingAdmissionPolicy
     - ValidatingAdmissionPolicyBinding

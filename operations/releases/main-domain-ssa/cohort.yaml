@@ -12,7 +12,7 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 174
+objectCount: 180
 legacyObjectCount: 56
 deferredSSAObjects: []
 remainingCapabilities:
@@ -331,7 +331,7 @@ releases:
   domain: tenant-runtime
   namespace: ops
   scope: cluster-bootstrap
-  objects: 42
+  objects: 48
 - name: main-tenant-runtime-scheduler-system
   domain: tenant-runtime
   namespace: scheduler-system

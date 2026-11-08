@@ -430,6 +430,31 @@ def tenant_namespace_name(tenant_ref, namespace):
     return f"{tenant_ref}-{hashlib.sha256(namespace.encode()).hexdigest()[:16]}"
 
 
+def ensure_adopted_namespace_declarations(tenants):
+    for tenant_ref, tenant in tenants.items():
+        adopted = tenant.get("spec", {}).get("namespacePolicy", {}).get("adoptedNamespaces", [])
+        if adopted and tenant_ref != "admin":
+            raise PermissionError("only admin may declare adopted namespaces")
+        for namespace in adopted:
+            validate_tenant_namespace(tenant_ref, namespace, "EnsurePresent", "AdoptExisting")
+            name = tenant_namespace_name(tenant_ref, namespace)
+            desired = {
+                "apiVersion": f"{GROUP}/{VERSION}", "kind": "TenantNamespace",
+                "metadata": {"name": name, "labels": {"tenancy.re8ch.com/tenant": tenant_ref}},
+                "spec": {"tenantRef": tenant_ref, "namespaceName": namespace, "operation": "EnsurePresent",
+                         "managementMode": "AdoptExisting", "settlementMode": "Postpaid",
+                         "adoptionReason": "reviewed-existing-platform-service"},
+            }
+            try:
+                kube().create("tenantnamespaces", desired)
+            except urllib.error.HTTPError as exc:
+                if exc.code != 409:
+                    raise
+                existing = kube().get("tenantnamespaces", name)
+                if existing.get("spec", {}) != desired["spec"]:
+                    raise PermissionError("adopted namespace declaration differs from reviewed policy") from None
+
+
 def namespace_expired(spec, current_time=None):
     expires_at = spec.get("expiresAt")
     if not expires_at or spec.get("operation") != "EnsurePresent":
@@ -989,6 +1014,7 @@ def reconcile_loop():
                     if item.get("status", {}).get("observedGeneration") != status["observedGeneration"]:
                         kube().patch_status(plural, meta["name"], status)
             tenants = {item["metadata"]["name"]: item for item in kube().list("tenants") if item.get("spec", {}).get("lifecycle") == "Active"}
+            ensure_adopted_namespace_declarations(tenants)
             for item in kube().list("tenantnamespaces"):
                 try:
                     reconcile_tenant_namespace(item, tenants)

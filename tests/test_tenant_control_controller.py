@@ -481,6 +481,37 @@ def test_admin_adoption_is_postpaid_existing_only_and_skips_tenant_defaults(monk
         controller.validate_tenant_namespace("admin", "kube-system", "EnsurePresent", "AdoptExisting")
 
 
+def test_admin_policy_materializes_reviewed_adoption_declarations(monkeypatch):
+    class AdoptionKube:
+        def __init__(self):
+            self.created = []
+
+        def list(self, plural):
+            assert plural == "tenants"
+            return [{"metadata": {"name": "admin"}, "spec": {"lifecycle": "Active", "namespacePolicy": {
+                "defaultNamespace": "tenant-infrastructure", "allowedPrefixes": ["admin-"],
+                "allowCreate": False, "allowDelete": False,
+                "adoptedNamespaces": ["observability-system"],
+            }}}]
+
+        def create(self, plural, value):
+            assert plural == "tenantnamespaces"
+            self.created.append(value)
+
+    fake = AdoptionKube()
+    monkeypatch.setattr(controller, "KUBE", fake)
+    tenants = {"admin": fake.list("tenants")[0]}
+    controller.ensure_adopted_namespace_declarations(tenants)
+    assert fake.created == [{
+        "apiVersion": "tenancy.re8ch.com/v1alpha1", "kind": "TenantNamespace",
+        "metadata": {"name": controller.tenant_namespace_name("admin", "observability-system"),
+                     "labels": {"tenancy.re8ch.com/tenant": "admin"}},
+        "spec": {"tenantRef": "admin", "namespaceName": "observability-system", "operation": "EnsurePresent",
+                 "managementMode": "AdoptExisting", "settlementMode": "Postpaid",
+                 "adoptionReason": "reviewed-existing-platform-service"},
+    }]
+
+
 def test_groups_spanning_tenants_are_denied(monkeypatch):
     bindings = [group_binding("artchais", "Artchais:tenant-admins", "admin"), group_binding("other", "Other:tenant-admins", "admin")]
     monkeypatch.setattr(controller, "KUBE", FakeKube(bindings, [tenant("artchais"), tenant("other")]))
