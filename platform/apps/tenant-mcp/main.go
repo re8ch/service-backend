@@ -52,10 +52,6 @@ type submitInput struct {
 }
 
 func (s *server) skillMCP(id identity) *mcp.Server {
-	return s.skillMCPFor(id, true)
-}
-
-func (s *server) skillMCPFor(id identity, includeLegacyPlatformBridge bool) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
 	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
@@ -126,7 +122,7 @@ func (s *server) skillMCPFor(id identity, includeLegacyPlatformBridge bool) *mcp
 	// ToolHive discovers tools with its service credential. Publish these stable
 	// entry points to that discovery session too; each call still requires an
 	// authenticated platform administrator and the backend's own authorization.
-	s.registerPlatformTools(ms, includeLegacyPlatformBridge)
+	s.registerPlatformTools(ms)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
@@ -327,7 +323,7 @@ func (s *server) handler() http.Handler {
 			return s.publicSelfServiceMCP(id)
 		}
 		if pluginPublication(req.Context()) {
-			return s.skillMCPFor(id, false)
+			return s.skillMCP(id)
 		}
 		return s.skillMCP(id)
 	}

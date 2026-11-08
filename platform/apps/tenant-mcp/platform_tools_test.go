@@ -71,7 +71,7 @@ func TestPlatformBackendMCPProxyPreservesAuthAndResult(t *testing.T) {
 	}
 }
 
-func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
+func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, _ := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
@@ -154,7 +154,7 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		return false
 	}
 	adminTools := call("admin-user", "session-1", "tools/list", map[string]any{})
-	if !contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
+	if contains(adminTools, "platform_tool_catalog") || contains(adminTools, "platform_tool_call") || !contains(adminTools, "platform_kubectl_exec") || !contains(adminTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("admin tool absent")
 	}
 	pluginTools := callPath("/plugin/mcp", "admin-user", "session-1", "tools/list", map[string]any{})
@@ -194,10 +194,6 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		}
 	}
 	assertPlatformStatus("admin-user", "session-1", true)
-	privileged := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
-	if privileged["error"] != nil || privileged["result"].(map[string]any)["isError"] == true {
-		t.Fatalf("admin call without AAL2 failed: %#v", privileged)
-	}
 	kubectl := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "--raw=/readyz"}}})
 	if kubectl["error"] != nil || kubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/readyz" || kubectlTimeout != 30 {
 		t.Fatalf("explicit kubectl argv was not routed unchanged: %#v; argv=%v timeout=%d", kubectl, kubectlArgv, kubectlTimeout)
@@ -213,21 +209,13 @@ func TestPlatformToolDiscoveryAndGuessedCallAreIdentityScoped(t *testing.T) {
 		t.Fatalf("same-session call repeated membership lookup: %d", rpcCalls)
 	}
 	ordinaryTools := call("ordinary-user", "session-2", "tools/list", map[string]any{})
-	if !contains(ordinaryTools, "platform_tool_call") || !contains(ordinaryTools, "platform_kubectl_exec") || !contains(ordinaryTools, "reconcile_control_plane_authentication_config") {
+	if contains(ordinaryTools, "platform_tool_catalog") || contains(ordinaryTools, "platform_tool_call") || !contains(ordinaryTools, "platform_kubectl_exec") || !contains(ordinaryTools, "reconcile_control_plane_authentication_config") {
 		t.Fatal("platform entry point missing from stable tool list")
 	}
 	assertPlatformStatus("ordinary-user", "session-2", false)
-	guessed := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_call", "arguments": map[string]any{"backend": "tenant_admin", "toolName": "tenant_list"}})
-	if guessed["error"] == nil && guessed["result"].(map[string]any)["isError"] != true {
-		t.Fatal("ordinary user's privileged call was accepted")
-	}
 	deniedKubectl := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "pods"}}})
 	if deniedKubectl["error"] == nil && deniedKubectl["result"].(map[string]any)["isError"] != true {
 		t.Fatal("ordinary user called explicit kubectl tool")
-	}
-	deniedCatalog := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_tool_catalog", "arguments": map[string]any{}})
-	if deniedCatalog["error"] == nil && deniedCatalog["result"].(map[string]any)["isError"] != true {
-		t.Fatal("ordinary user read platform catalog")
 	}
 	deniedDirect := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "reconcile_control_plane_authentication_config", "arguments": map[string]any{"commitSha": strings.Repeat("a", 40)}})
 	if deniedDirect["error"] == nil && deniedDirect["result"].(map[string]any)["isError"] != true {

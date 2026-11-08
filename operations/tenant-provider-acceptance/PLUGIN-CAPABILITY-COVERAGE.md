@@ -15,8 +15,10 @@ operations and UI workflows are complete.
 
 - Workspace doctor: healthy, 58 catalog modules.
 - GitHub base: `30c3b46ee`; dedicated branch `feat/self-service-plugin-capabilities`.
-- Authenticated `platform_tool_catalog`: cloud, infra, admin, native and
-  tenant_admin backends available. No backend reported unavailable.
+- Historical authenticated generic catalog snapshot: cloud, infra, admin,
+  native and tenant_admin backends were available. That bridge is retired and
+  is not the target tool surface; current acceptance must exercise each
+  explicitly published tool and its concrete schema.
 - Live `get_platform_service_catalog`: 95 namespaces, 365 workloads, 356
   Services; 50 namespaces have unclassified configuration authority. This is
   one platform inventory, not proof of coverage of every connected cluster.

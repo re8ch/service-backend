@@ -11,7 +11,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "mail_query", "mail_read", "calendar_query", "contacts_query", "files_list", "files_read", "tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
-		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load", "platform_tool_catalog",
+		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load",
 		"harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_vulnerability_report_get",
 		"harbor_sbom_get", "harbor_accessory_list", "harbor_audit_log_list", "harbor_build_get", "harbor_build_list",
 		"runtime_image_catalog",
@@ -37,7 +37,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
-	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_tool_call", "platform_kubectl_exec", "harbor_build_start", "runtime_image_build":
+	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubectl_exec", "harbor_build_start", "runtime_image_build":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":

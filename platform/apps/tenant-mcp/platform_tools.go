@@ -55,12 +55,6 @@ func currentPlatformAdmin(ctx context.Context, bearer string) (bool, error) {
 	return false, nil
 }
 
-type platformToolInput struct {
-	Backend   string         `json:"backend" jsonschema:"Backend from platform_tool_catalog: cloud, infra, admin, native, or tenant_admin"`
-	ToolName  string         `json:"toolName" jsonschema:"Tool name from platform_tool_catalog"`
-	Arguments map[string]any `json:"arguments,omitempty" jsonschema:"Arguments matching the selected tool's inputSchema"`
-}
-
 type platformKubectlInput struct {
 	Argv    []string `json:"argv" jsonschema:"kubectl arguments as an array of strings, for example [get,--raw=/version]"`
 	Timeout int      `json:"timeout,omitempty" jsonschema:"Execution timeout in seconds, from 1 to 3600; defaults to 30"`
@@ -176,7 +170,7 @@ func platformIdentity(ctx context.Context) (identity, error) {
 	return id, nil
 }
 
-func (s *server) registerPlatformTools(ms *mcp.Server, includeLegacyBridge bool) {
+func (s *server) registerPlatformTools(ms *mcp.Server) {
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("reconcile_control_plane_authentication_config"), Name: "reconcile_control_plane_authentication_config", Description: "Plan or apply the reviewed kube-apiserver authentication configuration and its node-local reconciler. Offline control-plane nodes converge when they return; this never restarts K3s."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input controlPlaneAuthenticationInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
@@ -196,15 +190,6 @@ func (s *server) registerPlatformTools(ms *mcp.Server, includeLegacyBridge bool)
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	if includeLegacyBridge {
-		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_catalog"), Name: "platform_tool_catalog", Description: "Read metadata for tools currently registered by the platform backends, including their descriptions and input schemas. This inventory action does not execute any listed operation."},
-			func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
-				if _, err := platformIdentity(ctx); err != nil {
-					return nil, nil, err
-				}
-				return nil, s.moduleRegistry().catalog(ctx), nil
-			})
-	}
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command in the RE8CH platform cluster with an argv string array. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments, for example [\"get\",\"--raw=/version\"]"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"}},"required":["argv"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
@@ -227,19 +212,4 @@ func (s *server) registerPlatformTools(ms *mcp.Server, includeLegacyBridge bool)
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	if includeLegacyBridge {
-		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_tool_call"), Name: "platform_tool_call", Description: "Call one tool registered by a Cloud Platform, Cluster Infra, or platform admin backend. Copy backend, name, and arguments from platform_tool_catalog."},
-			func(ctx context.Context, _ *mcp.CallToolRequest, input platformToolInput) (*mcp.CallToolResult, any, error) {
-				if _, err := platformIdentity(ctx); err != nil {
-					return nil, nil, err
-				}
-				value, err := s.moduleRegistry().call(ctx, input.Backend, func(session *mcp.ClientSession) (any, error) {
-					return session.CallTool(ctx, &mcp.CallToolParams{Name: input.ToolName, Arguments: input.Arguments})
-				})
-				if err != nil {
-					return nil, nil, err
-				}
-				return value.(*mcp.CallToolResult), nil, nil
-			})
-	}
 }
