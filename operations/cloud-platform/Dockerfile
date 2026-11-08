@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS network-planner
+FROM --platform=$BUILDPLATFORM registry.re8ch.com/proxy-dockerhub/library/golang:1.26.10-alpine AS network-planner
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY operations/cloud-platform/network-planner/ ./
