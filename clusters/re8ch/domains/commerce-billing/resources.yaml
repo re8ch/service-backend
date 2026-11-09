@@ -716,7 +716,7 @@ spec:
         envFrom:
         - secretRef:
             name: payment-registry-secrets
-        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:c8303092ad7c87d16d2cb5d291da94fbf601af399215e231ad6482c5d7208508
+        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:f0ad980d4d4408cc321b7f921cd91a726832b627a5cd2b141d7b1e6bdc98458c
         livenessProbe:
           httpGet:
             path: /v1/healthz

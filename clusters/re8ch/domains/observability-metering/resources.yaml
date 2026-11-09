@@ -3351,7 +3351,7 @@ spec:
       enabled: false
     tenantPlatform:
       enabled: true
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f751479965f23bbb102e6637cfefd2791004c962c15acb928dcd6d42949967d8
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:72167f400dee63c8c293967be35d4df023773f18888190ca7a85d4b4b6f33168
       placement:
         nodeNames:
         - r640
@@ -3368,7 +3368,7 @@ spec:
           secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c
           tenantRef: re8ch
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:f751479965f23bbb102e6637cfefd2791004c962c15acb928dcd6d42949967d8
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:72167f400dee63c8c293967be35d4df023773f18888190ca7a85d4b4b6f33168
       state:
         size: 1Gi
         storageClassName: rbd-r640

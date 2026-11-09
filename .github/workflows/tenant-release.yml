@@ -99,6 +99,7 @@ jobs:
           if-no-files-found: error
   canary:
     needs: finalize
+    if: always() && needs.finalize.result == 'success'
     runs-on: ubuntu-24.04
     environment: production
     permissions:
