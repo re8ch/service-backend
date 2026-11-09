@@ -1,0 +1,118 @@
+apiVersion: coordination.re8ch.com/github-app-suite/v1alpha1
+kind: GitHubAppSuite
+metadata:
+  name: re8ch-enterprise-apps
+spec:
+  owner: {type: enterprise, slug: re8ch}
+  goal: all-current-service-to-service-github-native-capabilities
+  installationPolicy:
+    organizations: explicit-allowlist
+    repositories: selected
+    allRepositories: false
+  apps:
+  - name: re8ch-enterprise-governance
+    displayName: Re8ch Enterprise Governance
+    appId: 5684168
+    clientId: Iv23lisQqGhMdC2A9WS3
+    registrationState: registered-permissions-configured
+    responsibilities:
+    - enterprise-rulesets
+    - enterprise-and-organization-policies
+    - custom-properties
+    - repository-and-organization-administration
+    - app-installations
+    - webhooks
+    - enterprise-settings
+    - teams-and-custom-roles
+  - name: re8ch-enterprise-delivery
+    displayName: Re8ch Enterprise Delivery
+    appId: 5684175
+    clientId: Iv23lix94cleZd6YJknF
+    registrationState: registered-permissions-pending
+    responsibilities:
+    - actions
+    - checks-and-statuses
+    - contents-and-workflows
+    - deployments-and-environments
+    - packages-and-attestations
+    - pages
+    - runners-and-runner-images
+    - variables
+  - name: re8ch-enterprise-security
+    displayName: Re8ch Enterprise Security
+    appId: 5684183
+    clientId: Iv23liPC1xcSV31hLtYs
+    registrationState: registered-permissions-pending
+    responsibilities:
+    - advanced-security-products
+    - code-scanning
+    - secret-scanning
+    - dependabot
+    - security-advisories
+    - campaigns
+    - dismissal-and-bypass-requests
+    - innersource-vulnerabilities
+    - license-policy
+  - name: re8ch-enterprise-collaboration
+    displayName: Re8ch Enterprise Collaboration
+    appId: 5684186
+    clientId: Iv23liUVHW1mE86ZnJwI
+    registrationState: registered-permissions-pending
+    responsibilities:
+    - issues-and-pull-requests
+    - discussions
+    - projects
+    - issue-fields-and-types
+    - merge-queues
+    - organization-events
+    - announcement-banners
+    - members-read
+  - name: re8ch-enterprise-developer-ai
+    displayName: Re8ch Enterprise Developer AI
+    appId: 5684190
+    clientId: Iv23ctck17G3cAiX2iAY
+    registrationState: registered-permissions-pending
+    responsibilities:
+    - agent-tasks-secrets-and-variables
+    - copilot-settings-spaces-requests-and-content-exclusion
+    - models
+    - codespaces-lifecycle-settings-and-secrets
+    - hosted-compute-network-configurations
+    - artifact-metadata
+  - name: re8ch-enterprise-identity
+    displayName: Re8ch Enterprise Identity
+    appId: 5684192
+    clientId: Iv23liIqRiBNNNfU7iVy
+    registrationState: registered-permissions-pending
+    responsibilities:
+    - enterprise-people
+    - enterprise-scim
+    - enterprise-sso-and-two-factor-policy
+    - enterprise-and-organization-credentials
+    - access-restrictions-and-ip-allow-lists
+    - personal-access-token-governance
+    - verifiable-domains
+  - name: re8ch-enterprise-billing
+    displayName: Re8ch Enterprise Billing
+    appId: 5684196
+    clientId: Iv23li8FXgAW4pmIm6Nk
+    registrationState: registered-permissions-pending
+    responsibilities:
+    - enterprise-billing
+    - organization-plan
+    - copilot-business-seats
+    - copilot-usage-and-metrics
+  exclusions:
+  - user-account-permissions-without-an-implemented-oauth-callback
+  - plaintext-secret-or-private-key-return
+  - ruleset-bypass
+  coverageContract:
+    discoverySource: live-github-app-registration-form
+    coverageUnit: permission-name-and-access-level
+    requiredEvidence:
+    - app-registration-url
+    - requested-permissions-read-back
+    - installation-scope
+    - installation-id
+    - denied-capability-probes
+
