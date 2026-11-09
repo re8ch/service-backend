@@ -49,13 +49,29 @@ spec:
     githubApps:
       scope: enterprise-owned-installation-scoped
       desiredState: centralized-registration-and-key-custody
+      registrations:
+      - name: re8ch-enterprise-apps
+        declaration: github-app-registrations/re8ch-enterprise-app-suite.yaml
+        responsibility: all-current-service-to-service-github-native-capabilities
+        permissionShape: seven-durable-responsibility-boundaries
+        enterpriseInstallation: planned
+        organizationInstallations: planned-explicit-allowlist
+      - name: re8ch-enterprise-governance
+        declaration: github-app-registrations/re8ch-enterprise-governance.yaml
+        responsibility: shared-github-native-governance
+        permissionShape: broad-within-governance-boundary
+        enterpriseInstallation: planned
+        organizationInstallations: planned-explicit-allowlist
       rules:
       - register shared control-plane apps under the enterprise owner when GitHub supports it
       - install each app only into explicitly approved organizations and repositories
-      - keep dispatcher observer promoter and executor permissions separated
+      - prefer a small number of durable responsibility apps over one app per endpoint
+      - cover every current service-to-service permission through the declared app suite
+      - keep governance dispatcher observer promoter and executor authority separated
       - never grant Administration or organization-wide Contents write by default
       - issue one-hour installation tokens with repository and permission narrowing
-      implementationState: migration-required
+      - require plan apply status and effective-state read-back for governance mutations
+      implementationState: governance-registration-in-progress
     robotIdentities:
       scope: enterprise-cataloged-domain-authorized
       desiredState: no-shared-standing-personal-access-token

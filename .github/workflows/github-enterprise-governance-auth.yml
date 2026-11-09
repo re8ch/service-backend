@@ -1,0 +1,59 @@
+name: GitHub enterprise governance auth
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-enterprise-governance-auth
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    timeout-minutes: 5
+    steps:
+      - name: Mint and verify the enterprise installation token
+        env:
+          APP_ID: ${{ vars.RE8CH_ENTERPRISE_GOVERNANCE_APP_ID }}
+          INSTALLATION_ID: "180243962"
+          PRIVATE_KEY: ${{ secrets.RE8CH_ENTERPRISE_GOVERNANCE_APP_PRIVATE_KEY }}
+          GH_API_VERSION: "2026-03-10"
+        shell: bash
+        run: |
+          set -euo pipefail
+          key_file="${RUNNER_TEMP}/governance-app-key.pem"
+          token_file="${RUNNER_TEMP}/governance-installation-token.json"
+          cleanup() {
+            shred -u "${key_file}" "${token_file}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          printf "%s" "${PRIVATE_KEY}" > "${key_file}"
+
+          base64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now="$(date +%s)"
+          header="$(printf "%s" '{"alg":"RS256","typ":"JWT"}' | base64url)"
+          payload="$(printf '{"iat":%s,"exp":%s,"iss":"%s"}' "$((now - 60))" "$((now + 540))" "${APP_ID}" | base64url)"
+          unsigned="${header}.${payload}"
+          signature="$(printf "%s" "${unsigned}" | openssl dgst -sha256 -sign "${key_file}" | base64url)"
+          jwt="${unsigned}.${signature}"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${jwt}" \
+            --header "X-GitHub-Api-Version: ${GH_API_VERSION}" \
+            --header 'Content-Type: application/json' \
+            --data '{}' \
+            "https://api.github.com/app/installations/${INSTALLATION_ID}/access_tokens" \
+            > "${token_file}"
+
+          token="$(jq -er '.token' "${token_file}")"
+          expires_at="$(jq -er '.expires_at' "${token_file}")"
+          permission_count="$(jq -er '.permissions | length' "${token_file}")"
+          GH_TOKEN="${token}" gh api --header "X-GitHub-Api-Version: ${GH_API_VERSION}" /installation \
+            --jq '{id, target_type, repository_selection}'
+          printf '### Governance App authentication\n\n- installation: `%s`\n- token expiry: `%s`\n- effective permission count: `%s`\n' \
+            "${INSTALLATION_ID}" "${expires_at}" "${permission_count}" >> "${GITHUB_STEP_SUMMARY}"

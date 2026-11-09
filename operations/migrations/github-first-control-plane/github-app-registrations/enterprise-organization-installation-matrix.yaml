@@ -1,0 +1,92 @@
+apiVersion: coordination.re8ch.com/github-app-installation-matrix/v1alpha1
+kind: GitHubAppInstallationMatrix
+metadata:
+  name: re8ch-enterprise-apps
+  observedAt: "2026-11-10T03:12:00+08:00"
+spec:
+  enterprise: re8ch
+  apps:
+  - re8ch-enterprise-governance
+  - re8ch-enterprise-delivery
+  - re8ch-enterprise-security
+  - re8ch-enterprise-collaboration
+  - re8ch-enterprise-developer-ai
+  - re8ch-enterprise-identity
+  - re8ch-enterprise-billing
+  organizations:
+  - 8iops
+  - advanced-fabrics
+  - aesthete-robotics
+  - among-clusters
+  - anycam-app
+  - anysiteonearth
+  - baozou-ppt-studio
+  - bifurcate-systems
+  - compocv
+  - farseer-video
+  - garageband-mcp
+  - helio-logistics
+  - jjk-live-app
+  - jjklive
+  - lizhang-ledger
+  - motor-muscle-sim
+  - phonaid
+  - pillars-infra
+  - public-edge
+  - re8ch
+  - re8ch-business
+  - rover-apps
+  - siren-observer
+  - strata-silica
+  - thinking-machine-labs
+  rollout:
+    registration: complete
+    permissions: configured-and-read-back-for-all-seven-apps
+    privateKeys: governance-key-in-github-secret
+    enterpriseInstallations: governance-installed
+    organizationInstallations: ready-for-reviewed-rollout
+    repositorySelection: explicit-per-app
+    effectivePermissionReadback: complete
+  governanceInstallation:
+    installationId: 180243962
+    targetType: Enterprise
+    privateKeySecret: RE8CH_ENTERPRISE_GOVERNANCE_APP_PRIVATE_KEY
+    appIdVariable: RE8CH_ENTERPRISE_GOVERNANCE_APP_ID
+    secretScope: re8ch/service-backend
+    tokenProbe:
+      endpoint: /app/installations/180243962/access_tokens
+      apiVersion: "2026-03-10"
+      result: http-201
+      impact: >-
+        GitHub minted a one-hour installation token with 18 effective
+        enterprise permissions. Reviewed organization-installation requests
+        can now use the documented enterprise API.
+  permissionReadback:
+    source: GET /apps/{app_slug}
+    configuredPermissionCounts:
+      re8ch-enterprise-governance: 64
+      re8ch-enterprise-delivery: 16
+      re8ch-enterprise-security: 7
+      re8ch-enterprise-collaboration: 6
+      re8ch-enterprise-developer-ai: 12
+      re8ch-enterprise-identity: 11
+      re8ch-enterprise-billing: 4
+  githubConnector:
+    connector: openai-curated-remote/github
+    verifiedOrganizationInstallation:
+      organization: re8ch
+      installationId: 167331919
+      repositorySelection: all
+    boundary: >-
+      The connector uses its own GitHub App installation and does not inherit
+      tokens or permissions from Re8ch-owned Apps. Direct connector use remains
+      limited to tools published by the connector. For enterprise operations,
+      the connector can dispatch a protected repository workflow; that workflow
+      mints a short-lived Governance App token without returning it to either
+      connector or adding a Re8ch plugin entry point.
+    workflowBridge:
+      workflow: .github/workflows/github-enterprise-governance-auth.yml
+      trigger: workflow_dispatch
+      currentCapability: authenticate-and-read-back-installation
+      mutationPolicy: dedicated-reviewed-workflow-per-operation
+

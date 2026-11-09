@@ -1,0 +1,108 @@
+apiVersion: coordination.re8ch.com/github-app-registration/v1alpha1
+kind: GitHubAppRegistration
+metadata:
+  name: re8ch-enterprise-governance
+spec:
+  registration:
+    appId: 5684168
+    clientId: Iv23lisQqGhMdC2A9WS3
+    publicLink: https://github.com/apps/re8ch-enterprise-governance
+    state: registered
+  liveInstallation:
+    target: {type: enterprise, slug: re8ch}
+    installationId: 180243962
+    state: installed
+    privateKeySecret: RE8CH_ENTERPRISE_GOVERNANCE_APP_PRIVATE_KEY
+    appIdVariable: RE8CH_ENTERPRISE_GOVERNANCE_APP_ID
+    credentialRepository: re8ch/service-backend
+  owner:
+    type: enterprise
+    slug: re8ch
+  displayName: Re8ch Enterprise Governance
+  description: >-
+    Shared GitHub-native governance for Re8ch organizations and selected
+    repositories. The App plans, applies, and reads back reviewed governance
+    changes; it is not a release executor or a secret-value broker.
+  homepageUrl: https://github.com/re8ch/service-backend
+  installationPolicy:
+    enterprise: true
+    organizations: explicit-allowlist
+    repositories: selected
+    allRepositories: false
+  credentials:
+    privateKeyStorage: approved-credential-system
+    installationTokenTtl: one-hour
+    tokenDelivery: environment-only
+    committedMaterial: [app-id, client-id, installation-ids, permission-contract]
+    forbiddenMaterial: [private-key, client-secret, installation-token, webhook-secret]
+  permissions:
+    enterprise:
+      enterpriseOrganizationInstallations: write
+      enterpriseRulesets: write
+    organization:
+      administration: write
+      customProperties: write
+      members: read
+      organizationHooks: write
+      organizationProjects: write
+      secrets: read
+      variables: write
+    repository:
+      actions: write
+      administration: write
+      checks: write
+      contents: read
+      deployments: write
+      environments: write
+      issues: write
+      metadata: read
+      packages: read
+      pullRequests: write
+      repositoryCustomProperties: write
+      repositoryHooks: write
+      secrets: read
+      variables: write
+      workflows: read
+  webhook:
+    active: false
+    rationale: >-
+      Enterprise installations do not currently deliver webhooks. Reuse an
+      organization installation or the existing event consumer if events are
+      required; do not create a duplicate repository hook by default.
+  capabilities:
+    observe:
+    - repositories
+    - actions
+    - checks
+    - deployments
+    - packages
+    - app-installations
+    - rulesets
+    - environments
+    - custom-properties
+    - variables
+    - webhooks
+    mutate:
+    - rulesets
+    - environments
+    - custom-properties
+    - variables
+    - webhooks
+    - projects-v2
+    - repository-settings
+    - workflow-dispatch
+    denied:
+    - repository-content-write
+    - workflow-file-write
+    - secret-value-read
+    - secret-value-return
+    - ruleset-bypass
+    - enterprise-member-write
+    - scim-write
+    - billing-write
+    - app-private-key-management
+  changeContract:
+    phases: [plan, apply, status]
+    applyRequires: [reviewed-declaration, installation-scope, idempotency-key]
+    verification: [read-back-effective-state, audit-receipt]
+
