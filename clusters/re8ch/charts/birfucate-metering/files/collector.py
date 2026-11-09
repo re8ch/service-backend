@@ -21,6 +21,7 @@ from typing import Any
 CONFIG_PATH = Path(os.getenv("BIRFUCATE_CONFIG", "/etc/birfucate/config.json"))
 OUTBOX_PATH = Path(os.getenv("BIRFUCATE_OUTBOX", "/var/lib/birfucate/outbox.db"))
 USAGE_TOKEN_PATH = Path(os.getenv("BIRFUCATE_USAGE_TOKEN_PATH", "/var/run/secrets/re8ch-usage/token"))
+KUBE_TOKEN_PATH = Path(os.getenv("BIRFUCATE_KUBE_TOKEN_PATH", "/var/run/secrets/re8ch-usage/kube-token"))
 LOCK = threading.Lock()
 METRICS: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
 READY = False
@@ -44,14 +45,14 @@ def ready_service_instances(config: dict[str, Any]) -> list[dict[str, Any]]:
     runtime = config.get("serviceInstanceRuntime") or {}
     if not runtime.get("enabled"):
         return []
-    token = USAGE_TOKEN_PATH.read_text().strip()
+    token = KUBE_TOKEN_PATH.read_text().strip()
     host = os.environ["KUBERNETES_SERVICE_HOST"]
     port = os.getenv("KUBERNETES_SERVICE_PORT_HTTPS", "443")
     request = urllib.request.Request(
         f"https://{host}:{port}/apis/tenancy.re8ch.com/v1alpha1/tenantserviceinstances",
         headers={"Authorization": "Bearer " + token, "Accept": "application/json"},
     )
-    context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+    context = ssl.create_default_context(cafile="/var/run/secrets/re8ch-usage/ca.crt")
     with urllib.request.urlopen(request, context=context, timeout=10) as response:
         items = json.load(response).get("items", [])
     published = set(runtime.get("serviceClasses") or [])
@@ -209,7 +210,7 @@ def price(config: dict[str, Any], meter: dict[str, Any], quantity: float) -> tup
     pricing = config.get("pricing") or {}
     rate = meter.get("pricePerBillingUnit")
     unit_size = float(meter.get("billingUnitSize", 1))
-    applied = bool(pricing.get("enabled")) and bool(meter.get("billingEligible", True)) and rate is not None and unit_size > 0
+    applied = bool(pricing.get("enabled")) and bool(meter.get("billingEligible", False)) and rate is not None and unit_size > 0
     return (quantity / unit_size * float(rate) if applied else 0.0, applied, str(pricing.get("currency", "CNY")))
 
 
@@ -312,6 +313,13 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             outbox.put(event)
     prom = config["prometheus"]
     query_base_url = prom.get("queryBaseURL") or prom["baseURL"]
+    def meter_query(expression: str) -> list[dict[str, Any]]:
+        try:
+            return prometheus_query(query_base_url, expression, int(prom["timeoutSeconds"]))
+        except (OSError, RuntimeError, urllib.error.URLError):
+            add_metric("birfucate_meter_query_failures_total", {}, 1)
+            set_metric("birfucate_dependency_up", {"dependency": "prometheus"}, 0)
+            return []
     tenant_label = config["tenantLabels"]["tenant"]
     resource_label = config["tenantLabels"]["resource"]
     tenant_resources: set[tuple[str, str, str]] = set()
@@ -351,7 +359,7 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         # while its upstream metrics are rolling out or temporarily unavailable.
         set_metric("birfucate_dependency_up", {"dependency": "node-cost-allocation"}, 0)
     for meter in config["meters"].get("occupancy", []):
-        values = attributed_vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label), meter["name"], meter.get("dimensionLabels"))
+        values = attributed_vector(meter_query(meter["query"]), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label), meter["name"], meter.get("dimensionLabels"))
         for (tenant, resource, retained_dimensions), gauge in values.items():
             quantity = gauge * interval
             resource_type = str(meter.get("resourceType", meter["domain"]))
@@ -363,10 +371,10 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
             tenant_resources.add((tenant, resource, resource_type))
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
-            dimensions = {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose, "billingEligible": bool(meter.get("billingEligible", True)), **dict(retained_dimensions)}
+            dimensions = {"gauge": gauge, "durationSeconds": interval, "resourceType": resource_type, "purpose": purpose, "billingEligible": bool(meter.get("billingEligible", False)), **dict(retained_dimensions)}
             queue(usage_event(tenant, resource, meter["domain"], "occupancy." + meter["name"], quantity, meter["unit"], start, end, dimensions, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("usage", []):
-        values = attributed_vector(prometheus_query(query_base_url, meter["query"], int(prom["timeoutSeconds"])), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label), meter["name"], meter.get("dimensionLabels"))
+        values = attributed_vector(meter_query(meter["query"]), meter.get("tenantLabel", tenant_label), meter.get("resourceLabel", resource_label), meter["name"], meter.get("dimensionLabels"))
         for (tenant, resource, retained_dimensions), observed in values.items():
             quantity = observed * interval if meter.get("valueKind") == "rate" else observed
             resource_type = str(meter.get("resourceType", meter["domain"]))
@@ -381,11 +389,11 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
             add_metric("birfucate_metered_cost_total", {**labels, "currency": currency, "priced": str(priced).lower()}, cost)
             tenant_resources.add((tenant, resource, resource_type))
             tenant_costs[(tenant, currency)] = tenant_costs.get((tenant, currency), 0) + cost
-            queue(usage_event(tenant, resource, meter["domain"], "usage." + meter["name"], quantity, meter["unit"], start, end, {"resourceType": resource_type, "purpose": purpose, "billingEligible": bool(meter.get("billingEligible", True)), **dict(retained_dimensions)}, cost, priced, currency, meter.get("serviceClass")))
+            queue(usage_event(tenant, resource, meter["domain"], "usage." + meter["name"], quantity, meter["unit"], start, end, {"resourceType": resource_type, "purpose": purpose, "billingEligible": bool(meter.get("billingEligible", False)), **dict(retained_dimensions)}, cost, priced, currency, meter.get("serviceClass")))
     for meter in config["meters"].get("bifurcation", []):
-        counts = vector(prometheus_query(query_base_url, meter["countQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
-        intensities = vector(prometheus_query(query_base_url, meter["intensityQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
-        fanouts = vector(prometheus_query(query_base_url, meter["fanoutQuery"], int(prom["timeoutSeconds"])), tenant_label, resource_label)
+        counts = vector(meter_query(meter["countQuery"]), tenant_label, resource_label)
+        intensities = vector(meter_query(meter["intensityQuery"]), tenant_label, resource_label)
+        fanouts = vector(meter_query(meter["fanoutQuery"]), tenant_label, resource_label)
         for (tenant, resource), rate in counts.items():
             occurrences = rate * interval
             intensity = intensities.get((tenant, resource), 0.0)
@@ -433,7 +441,8 @@ def deliver(config: dict[str, Any], outbox: Outbox) -> None:
                 if not 200 <= response.status < 300:
                     break
             billing = config.get("billingSink") or {}
-            if billing.get("enabled"):
+            billing_eligible = bool((event.get("dimensions") or {}).get("billingEligible", False))
+            if billing.get("enabled") and billing_eligible:
                 mapping = next((item for item in billing.get("mappings", [])
                     if item["serviceClass"] == event["serviceClass"] and item["meter"] == event["meter"]), None)
                 if mapping is None:

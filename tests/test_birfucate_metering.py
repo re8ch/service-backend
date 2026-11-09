@@ -58,7 +58,13 @@ def test_usage_sink_renders_projected_identity_and_private_receiver():
     docs = [item for item in yaml.safe_load_all(rendered) if item]
     collector = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "birfucate-metering")
     projected = next(item for item in collector["spec"]["template"]["spec"]["volumes"] if item["name"] == "usage-token")
-    assert projected["projected"]["sources"][0]["serviceAccountToken"]["audience"] == "re8ch-usage"
+    sources = projected["projected"]["sources"]
+    assert sources[0]["serviceAccountToken"]["audience"] == "re8ch-usage"
+    assert sources[1]["serviceAccountToken"]["path"] == "kube-token"
+    assert "audience" not in sources[1]["serviceAccountToken"]
+    assert sources[2]["configMap"] == {"name": "kube-root-ca.crt", "items": [{"key": "ca.crt", "path": "ca.crt"}]}
+    discovery_binding = next(item for item in docs if item["kind"] == "ClusterRoleBinding" and item["metadata"]["name"] == "birfucate-metering-discovery")
+    assert {item["name"] for item in discovery_binding["subjects"]} == {"birfucate-metering", "birfucate-metering-discovery"}
     tenant_api = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-api")
     env = {item["name"]: item["value"] for item in tenant_api["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
     assert env["TENANT_USAGE_CLIENT"] == "system:serviceaccount:observability-ai:birfucate-metering"
@@ -255,7 +261,7 @@ def test_showback_pricing_is_explicit_and_never_posts_accounting(tmp_path, monke
         "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
         "opencost": {"enabled": False}, "pricing": {"enabled": True, "currency": "CNY"},
         "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"},
-        "meters": {"occupancy": [{"name": "cpu", "domain": "compute", "resourceType": "cpu", "purpose": "runtime", "unit": "core-second", "valueKind": "gauge", "pricePerBillingUnit": 0.2, "billingUnitSize": 3600, "query": "cpu"}], "bifurcation": []},
+        "meters": {"occupancy": [{"name": "cpu", "domain": "compute", "resourceType": "cpu", "purpose": "runtime", "billingEligible": True, "unit": "core-second", "valueKind": "gauge", "pricePerBillingUnit": 0.2, "billingUnitSize": 3600, "query": "cpu"}], "bifurcation": []},
     }
     monkeypatch.setattr(collector, "prometheus_query", lambda *_: [{"metric": {"tenant": "acme", "resource_ref": "pod/a"}, "value": [0, "2"]}])
     collector.METRICS.clear()
@@ -341,6 +347,42 @@ def test_outbox_delivery_is_idempotent(tmp_path):
     event = {"eventId": "ue_" + "a" * 32}
     outbox.put(event); outbox.put(event)
     assert len(outbox.pending()) == 1
+
+
+def test_delivery_skips_billing_for_non_billable_usage(monkeypatch, tmp_path):
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    event = {
+        "eventId": "ue_" + "b" * 32,
+        "pricingApplied": False,
+        "dimensions": {"billingEligible": False},
+        "serviceClass": "compute.workload.v1",
+        "meter": "occupancy.cpu",
+    }
+    outbox.put(event)
+    monkeypatch.setattr(collector, "USAGE_TOKEN_PATH", type("TokenPath", (), {"read_text": lambda self: "token"})())
+    requests = []
+
+    class Response:
+        status = 201
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    def urlopen(request, timeout):
+        requests.append((request.full_url, timeout))
+        return Response()
+
+    monkeypatch.setattr(collector.urllib.request, "urlopen", urlopen)
+    collector.deliver({
+        "usageSink": {"enabled": True, "url": "http://usage", "timeoutSeconds": 3},
+        "billingSink": {"enabled": True, "url": "http://billing", "timeoutSeconds": 3, "mappings": []},
+    }, outbox)
+
+    assert requests == [("http://usage", 3)]
+    assert outbox.pending() == []
 
 
 def test_remote_write_render_includes_explicit_millisecond_timestamp():

@@ -330,6 +330,7 @@ spec:
   - name: http
     port: 8080
     targetPort: http
+  publishNotReadyAddresses: true
   selector:
     app: payment-registry-api
 ---
@@ -754,6 +755,7 @@ spec:
         runAsUser: 10001
         seccompProfile:
           type: RuntimeDefault
+      serviceAccountName: payment-registry-api
 ---
 apiVersion: apps/v1
 kind: Deployment

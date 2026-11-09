@@ -844,6 +844,8 @@ BEGIN
 END $repair$;
 GRANT re8ch_billing_owner TO re8ch_billing_migrator;
 GRANT re8ch_billing_migrator TO supabase_admin;
+GRANT USAGE, CREATE ON SCHEMA billing,payment_api,commerce,commerce_api
+  TO re8ch_billing_owner, re8ch_billing_migrator;
 ALTER DATABASE re8ch_billing OWNER TO re8ch_billing_owner;
 DO $repair$
 DECLARE item record;
@@ -852,12 +854,13 @@ BEGIN
     SELECT n.nspname, c.relname, c.relkind
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname IN ('billing','payment_api','commerce','commerce_api')
-      AND c.relkind IN ('r','p','S','v','m','f')
-      AND pg_get_userbyid(c.relowner) IN ('postgres','supabase_admin')
+      AND c.relkind IN ('r','p','v','m','f')
+      AND NOT c.relispartition
+      AND pg_get_userbyid(c.relowner) = current_user
   LOOP
     EXECUTE format('ALTER %s %I.%I OWNER TO re8ch_billing_owner',
-      CASE item.relkind WHEN 'S' THEN 'SEQUENCE' WHEN 'v' THEN 'VIEW'
-        WHEN 'm' THEN 'MATERIALIZED VIEW' WHEN 'f' THEN 'FOREIGN TABLE' ELSE 'TABLE' END,
+      CASE item.relkind WHEN 'v' THEN 'VIEW' WHEN 'm' THEN 'MATERIALIZED VIEW'
+        WHEN 'f' THEN 'FOREIGN TABLE' ELSE 'TABLE' END,
       item.nspname,item.relname);
   END LOOP;
   FOR item IN
@@ -865,19 +868,18 @@ BEGIN
     FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname IN ('billing','payment_api','commerce','commerce_api')
       AND p.prokind IN ('f','w')
-      AND pg_get_userbyid(p.proowner) IN ('postgres','supabase_admin')
+      AND pg_get_userbyid(p.proowner) = current_user
   LOOP
     EXECUTE format('ALTER FUNCTION %s OWNER TO re8ch_billing_owner',item.signature);
   END LOOP;
   FOR item IN
     SELECT nspname FROM pg_namespace
     WHERE nspname IN ('billing','payment_api','commerce','commerce_api')
-      AND pg_get_userbyid(nspowner) IN ('postgres','supabase_admin')
+      AND pg_get_userbyid(nspowner) = current_user
   LOOP
     EXECUTE format('ALTER SCHEMA %I OWNER TO re8ch_billing_owner',item.nspname);
   END LOOP;
 END $repair$;
-GRANT USAGE, CREATE ON SCHEMA billing,payment_api,commerce,commerce_api TO re8ch_billing_migrator;
 ALTER ROLE re8ch_billing_migrator IN DATABASE re8ch_billing
   SET search_path=billing,payment_api,commerce,commerce_api,public;
 """
@@ -897,7 +899,7 @@ ALTER ROLE re8ch_billing_migrator IN DATABASE re8ch_billing
     try:
         sock = pg_connect(PG_SERVICE_ROUTES["writeService"]["host"],
                           PG_SERVICE_ROUTES["writeService"]["port"],
-                          "re8ch_billing", "postgres", password, timeout=120)
+                          "re8ch_billing", "supabase_admin", password, timeout=120)
         pg_execute_simple(sock, "SET statement_timeout = '120s'", max_rows=1)
         pg_execute_simple(sock, "BEGIN;\n%s\nCOMMIT;" % sql, max_rows=0)
         return {"status": "executed", "database": "re8ch_billing", "planHash": plan_hash,

@@ -59,5 +59,6 @@ metadata:
   labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
 subjects:
   - {kind: ServiceAccount, name: {{ include "birfucate-metering.fullname" . }}-discovery, namespace: {{ .Release.Namespace }}}
+  - {kind: ServiceAccount, name: {{ include "birfucate-metering.fullname" . }}, namespace: {{ .Release.Namespace }}}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: {{ include "birfucate-metering.fullname" . }}-discovery}
 {{- end }}
