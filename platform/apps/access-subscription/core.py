@@ -15,7 +15,7 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20261020-edge-discovery-2"
+SHADOWROCKET_PROFILE_REVISION = "20261110-four-public-edges-1"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
 # still recovering. Keep the two independently reachable LA listeners and the
@@ -24,7 +24,13 @@ SHADOWROCKET_PROFILE_REVISION = "20261020-edge-discovery-2"
 # node-local smart fabric: CN destinations stay direct and international
 # destinations use a healthy Global provider. Re-enable other candidates only
 # after their host and protocol pass qualification.
-ACTIVE_PUBLICATION_IDS = frozenset({"direct-la-anytls", "direct-la-hysteria2", "direct-cn-anytls"})
+ACTIVE_PUBLICATION_IDS = frozenset({
+    "direct-la-anytls",
+    "direct-la-hysteria2",
+    "direct-la2-anytls",
+    "direct-de-anytls",
+    "direct-cn-anytls",
+})
 
 # Keep critical mainland cloud consoles deterministic even when an upstream
 # community ruleset is incomplete or temporarily unavailable.
@@ -100,8 +106,10 @@ DEFAULT_NODES = (
     Node("route-la-hysteria2", "🇺🇸 RouteOS · 洛杉矶 · Hysteria2", Publication("hysteria2", "route-la.access.re8ch.com", 4443, "route-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la", 100, healthy=False)),
     Node("route-kl-anytls", "🇲🇾 RouteOS · 吉隆坡 · AnyTLS", Publication("anytls", "my-kul.access.re8ch.com", 443, "my-kul.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul", 100, healthy=False)),
     Node("route-kl-hysteria2", "🇲🇾 RouteOS · 吉隆坡 · Hysteria2", Publication("hysteria2", "route-kl.access.re8ch.com", 4444, "route-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul", 100, healthy=False)),
-    Node("direct-la-anytls", "🇺🇸 Edge Direct · 洛杉矶 · AnyTLS", Publication("anytls", "direct-la.access.re8ch.com", 24443, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-anytls", "us-la-direct", 100)),
-    Node("direct-la-hysteria2", "🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", Publication("hysteria2", "direct-la.access.re8ch.com", 24444, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la-direct", 100)),
+    Node("direct-la-anytls", "🇺🇸 Edge Direct · 洛杉矶 1 · AnyTLS", Publication("anytls", "direct-la.access.re8ch.com", 24443, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-anytls", "us-la-direct", 100)),
+    Node("direct-la-hysteria2", "🇺🇸 Edge Direct · 洛杉矶 1 · Hysteria2", Publication("hysteria2", "direct-la.access.re8ch.com", 24444, "direct-la.access.re8ch.com"), RuntimeTarget("personal-access-us-la", "access-hysteria2", "us-la-direct", 100)),
+    Node("direct-la2-anytls", "🇺🇸 Edge Direct · 洛杉矶 2 · AnyTLS", Publication("anytls", "179.253.231.159", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "us-ca", 1000)),
+    Node("direct-de-anytls", "🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS", Publication("anytls", "2.28.106.230", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
     Node("direct-ca-hysteria2", "🇺🇸 Edge Direct · 洛杉矶 2 · Hysteria2", Publication("hysteria2", "direct-ca.access.re8ch.com", 24444, "direct-ca.access.re8ch.com"), RuntimeTarget("personal-access-us-ca", "access-hysteria2", "us-ca-direct", 100)),
     Node("direct-kl-anytls", "🇲🇾 Edge Direct · 吉隆坡 · AnyTLS", Publication("anytls", "direct-kl.access.re8ch.com", 24443, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls", "my-kul-direct", 100)),
     Node("direct-kl-hysteria2", "🇲🇾 Edge Direct · 吉隆坡 · Hysteria2", Publication("hysteria2", "direct-kl.access.re8ch.com", 24444, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul-direct", 100)),
@@ -122,12 +130,16 @@ def publication_enabled(node: Node) -> bool:
 
 
 def published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]:
-    return tuple(
-        node for node in nodes
-        if publication_enabled(node)
-        and node.runtime.healthy
-        and node.runtime.qualified_mbps >= 100
-    )
+    published, endpoints = [], set()
+    for node in nodes:
+        if not (publication_enabled(node) and node.runtime.healthy and node.runtime.qualified_mbps >= 100):
+            continue
+        endpoint = (node.protocol, node.server, node.port)
+        if endpoint in endpoints:
+            continue
+        endpoints.add(endpoint)
+        published.append(node)
+    return tuple(published)
 
 
 def priority_nodes(active: tuple[Node, ...]) -> tuple[tuple[Node, ...], tuple[Node, ...]]:
@@ -136,9 +148,10 @@ def priority_nodes(active: tuple[Node, ...]) -> tuple[tuple[Node, ...], tuple[No
     # direct-la is the qualified overseas-la host until its new EdgeAccess
     # listener is enabled. Do not drop it when overseas-la-2 is discovered.
     la_one = by_id.get("edge-access-overseas-la") or by_id.get("direct-la-anytls")
+    la_two = by_id.get("direct-la2-anytls") or by_id.get("edge-access-overseas-la-2")
     preferred = tuple(node for node in (
-        la_one, by_id.get("edge-access-overseas-la-2"), by_id.get("direct-la-hysteria2")) if node)
-    backup = tuple(node for node in active if node.node_id == "edge-access-overseas-flk")
+        la_one, la_two, by_id.get("direct-la-hysteria2")) if node)
+    backup = tuple(node for node in active if node.node_id in {"direct-de-anytls", "edge-access-overseas-flk"})
     return preferred, backup
 
 
