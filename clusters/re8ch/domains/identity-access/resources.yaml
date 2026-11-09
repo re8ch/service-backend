@@ -729,10 +729,11 @@ data:
     0;border-radius:14px}.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.choice{background:#17191e;border:1px
     solid #353a44;border-radius:12px;padding:18px}.recommended{border-color:#72d993}.badge{display:inline-block;background:#244a31;color:#a8f0bd;padding:3px
     8px;border-radius:99px;font-size:13px;font-weight:700}.muted{color:#aaa}.warning{color:#ffd28a}.row{display:flex;gap:8px;flex-wrap:wrap}.steps{padding-left:22px;line-height:1.65}code.url{display:block;margin-top:10px;padding:10px;background:#0f1114;border-radius:8px;overflow-wrap:anywhere;color:#9ee6a8}@media(max-width:700px){.choice-grid{grid-template-columns:1fr}main{padding:20px
-    12px}}</style>\n<main><h1>access re8ch com</h1><p>Mihomo/Shadowrocket 完整配置：洛杉矶双节点优先、德国节点可用时备用、节点全不可用时直连
-    · 每月 300 GB 软提醒</p><p id=a></p><form id=f><input id=n maxlength=64 placeholder='设备名称，例如
-    iPhone'><button>创建设备</button></form><div id=new></div><div id=o></div><p class=muted>设备地址只显示一次；支持
-    V2Box 节点订阅以及 Shadowrocket 完整配置。</p></main>\n<script>const o=document.querySelector('#o'),a=document.querySelector('#a'),nn=document.querySelector('#new');function
+    12px}}</style>\n<main><h1>access re8ch com</h1><p>Mihomo/Shadowrocket 完整配置：洛杉矶
+    1、洛杉矶 2、德国 Falkenstein、娄底四个真实公网节点；洛杉矶双节点优先、德国备用、娄底可手动选择 · 每月 300 GB 软提醒</p><p
+    id=a></p><form id=f><input id=n maxlength=64 placeholder='设备名称，例如 iPhone'><button>创建设备</button></form><div
+    id=new></div><div id=o></div><p class=muted>设备地址只显示一次；支持 V2Box 节点订阅以及 Shadowrocket
+    完整配置。</p></main>\n<script>const o=document.querySelector('#o'),a=document.querySelector('#a'),nn=document.querySelector('#new');function
     esc(s){let d=document.createElement('div');d.textContent=s;return d.innerHTML}function
     size(n){return (n/1073741824).toFixed(2)+' GB'}function when(n){return n?new Date(n*1000).toLocaleString():'尚无'}async
     function load(){let r=await fetch('/api/me'),j=await r.json();if(!r.ok){a.textContent=j.error||'未授权';return}a.textContent='账号：'+j.account+(j.admin?'
@@ -1287,20 +1288,20 @@ data:
     json\nimport secrets\nimport time\nfrom dataclasses import asdict, dataclass\nfrom
     datetime import datetime, timezone\nfrom urllib.parse import quote, urlencode\n\nMONTHLY_SOFT_LIMIT
     = 300 * 1024**3\nAUTH_MAX_STALE_SECONDS = 24 * 60 * 60\nPROFILE_TITLE = \"access
-    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261020-edge-discovery-2\"\n\n#
+    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261110-four-public-edges-1\"\n\n#
     Emergency publication gate: overseas-edge-50 is retired and overseas-kl is\n#
     still recovering. Keep the two independently reachable LA listeners and the\n#
     verified R640 AnyTLS listener published. The R640 listener terminates the\n# mainland
     connection locally, then delegates destination-aware egress to the\n# node-local
     smart fabric: CN destinations stay direct and international\n# destinations use
     a healthy Global provider. Re-enable other candidates only\n# after their host
-    and protocol pass qualification.\nACTIVE_PUBLICATION_IDS = frozenset({\"direct-la-anytls\",
-    \"direct-la-hysteria2\", \"direct-cn-anytls\"})\n\n# Keep critical mainland cloud
-    consoles deterministic even when an upstream\n# community ruleset is incomplete
-    or temporarily unavailable.\nCN_CLOUD_DIRECT_DOMAINS = (\n    \"cloud.tencent.com\",\n
-    \   \"tencentcloud.com\",\n    \"tencentcloudapi.com\",\n    \"qcloud.com\",\n
-    \   \"myqcloud.com\",\n    \"qcloudcdn.com\",\n    \"aliyun.com\",\n    \"aliyuncs.com\",\n
-    \   \"alicdn.com\",\n    \"huaweicloud.com\",\n    \"huaweicloudapis.com\",\n
+    and protocol pass qualification.\nACTIVE_PUBLICATION_IDS = frozenset({\n    \"direct-la-anytls\",\n
+    \   \"direct-la-hysteria2\",\n    \"direct-la2-anytls\",\n    \"direct-de-anytls\",\n
+    \   \"direct-cn-anytls\",\n})\n\n# Keep critical mainland cloud consoles deterministic
+    even when an upstream\n# community ruleset is incomplete or temporarily unavailable.\nCN_CLOUD_DIRECT_DOMAINS
+    = (\n    \"cloud.tencent.com\",\n    \"tencentcloud.com\",\n    \"tencentcloudapi.com\",\n
+    \   \"qcloud.com\",\n    \"myqcloud.com\",\n    \"qcloudcdn.com\",\n    \"aliyun.com\",\n
+    \   \"aliyuncs.com\",\n    \"alicdn.com\",\n    \"huaweicloud.com\",\n    \"huaweicloudapis.com\",\n
     \   \"myhuaweicloud.com\",\n)\n\n# Remote-control traffic must never inherit the
     cross-border exit. Process\n# rules cover ToDesk's P2P sessions and dynamic UDP
     destinations; the domain\n# rule also protects clients that only honor system-proxy
@@ -1342,14 +1343,20 @@ data:
     RouteOS · 吉隆坡 · Hysteria2\", Publication(\"hysteria2\", \"route-kl.access.re8ch.com\",
     4444, \"route-kl.access.re8ch.com\"), RuntimeTarget(\"personal-access-my-kul\",
     \"access-hysteria2\", \"my-kul\", 100, healthy=False)),\n    Node(\"direct-la-anytls\",
-    \"\U0001F1FA\U0001F1F8 Edge Direct · 洛杉矶 · AnyTLS\", Publication(\"anytls\", \"direct-la.access.re8ch.com\",
-    24443, \"direct-la.access.re8ch.com\"), RuntimeTarget(\"personal-access-us-la\",
+    \"\U0001F1FA\U0001F1F8 Edge Direct · 洛杉矶 1 · AnyTLS\", Publication(\"anytls\",
+    \"direct-la.access.re8ch.com\", 24443, \"direct-la.access.re8ch.com\"), RuntimeTarget(\"personal-access-us-la\",
     \"access-anytls\", \"us-la-direct\", 100)),\n    Node(\"direct-la-hysteria2\",
-    \"\U0001F1FA\U0001F1F8 Edge Direct · 洛杉矶 · Hysteria2\", Publication(\"hysteria2\",
+    \"\U0001F1FA\U0001F1F8 Edge Direct · 洛杉矶 1 · Hysteria2\", Publication(\"hysteria2\",
     \"direct-la.access.re8ch.com\", 24444, \"direct-la.access.re8ch.com\"), RuntimeTarget(\"personal-access-us-la\",
-    \"access-hysteria2\", \"us-la-direct\", 100)),\n    Node(\"direct-ca-hysteria2\",
-    \"\U0001F1FA\U0001F1F8 Edge Direct · 洛杉矶 2 · Hysteria2\", Publication(\"hysteria2\",
-    \"direct-ca.access.re8ch.com\", 24444, \"direct-ca.access.re8ch.com\"), RuntimeTarget(\"personal-access-us-ca\",
+    \"access-hysteria2\", \"us-la-direct\", 100)),\n    Node(\"direct-la2-anytls\",
+    \"\U0001F1FA\U0001F1F8 Edge Direct · 洛杉矶 2 · AnyTLS\", Publication(\"anytls\",
+    \"179.253.231.159\", 24443, \"access.re8ch.com\"), RuntimeTarget(\"edge-access-anytls\",
+    \"edge-access-anytls\", \"us-ca\", 1000)),\n    Node(\"direct-de-anytls\", \"\U0001F1E9\U0001F1EA
+    Edge Direct · 德国 Falkenstein · AnyTLS\", Publication(\"anytls\", \"2.28.106.230\",
+    24443, \"access.re8ch.com\"), RuntimeTarget(\"edge-access-anytls\", \"edge-access-anytls\",
+    \"de-fsn\", 400)),\n    Node(\"direct-ca-hysteria2\", \"\U0001F1FA\U0001F1F8 Edge
+    Direct · 洛杉矶 2 · Hysteria2\", Publication(\"hysteria2\", \"direct-ca.access.re8ch.com\",
+    24444, \"direct-ca.access.re8ch.com\"), RuntimeTarget(\"personal-access-us-ca\",
     \"access-hysteria2\", \"us-ca-direct\", 100)),\n    Node(\"direct-kl-anytls\",
     \"\U0001F1F2\U0001F1FE Edge Direct · 吉隆坡 · AnyTLS\", Publication(\"anytls\", \"direct-kl.access.re8ch.com\",
     24443, \"direct-kl.access.re8ch.com\"), RuntimeTarget(\"personal-access-my-kul\",
@@ -1371,21 +1378,24 @@ data:
     (\"games\", \"\U0001F3AE Games\"),\n)\n\n\ndef publication_enabled(node: Node)
     -> bool:\n    return node.node_id in ACTIVE_PUBLICATION_IDS or node.node_id.startswith(\"edge-access-\")\n\n\ndef
     published_nodes(nodes: tuple[Node, ...] = DEFAULT_NODES) -> tuple[Node, ...]:\n
-    \   return tuple(\n        node for node in nodes\n        if publication_enabled(node)\n
-    \       and node.runtime.healthy\n        and node.runtime.qualified_mbps >= 100\n
-    \   )\n\n\ndef priority_nodes(active: tuple[Node, ...]) -> tuple[tuple[Node, ...],
-    tuple[Node, ...]]:\n    \"\"\"Prefer both LA hosts, retaining Hysteria2 on the
-    first host as a spare.\"\"\"\n    by_id = {node.node_id: node for node in active}\n
-    \   # direct-la is the qualified overseas-la host until its new EdgeAccess\n    #
-    listener is enabled. Do not drop it when overseas-la-2 is discovered.\n    la_one
-    = by_id.get(\"edge-access-overseas-la\") or by_id.get(\"direct-la-anytls\")\n
-    \   preferred = tuple(node for node in (\n        la_one, by_id.get(\"edge-access-overseas-la-2\"),
-    by_id.get(\"direct-la-hysteria2\")) if node)\n    backup = tuple(node for node
-    in active if node.node_id == \"edge-access-overseas-flk\")\n    return preferred,
-    backup\n\n\ndef public_node(node: Node) -> dict:\n    # Runtime Service/listener
-    names are control-plane details.  Status clients\n    # receive only publication
-    data plus non-sensitive qualification signals.\n    enabled = publication_enabled(node)\n
-    \   return {\n        \"id\": node.node_id,\n        \"name\": node.name,\n        **asdict(node.publication),\n
+    \   published, endpoints = [], set()\n    for node in nodes:\n        if not (publication_enabled(node)
+    and node.runtime.healthy and node.runtime.qualified_mbps >= 100):\n            continue\n
+    \       endpoint = (node.protocol, node.server, node.port)\n        if endpoint
+    in endpoints:\n            continue\n        endpoints.add(endpoint)\n        published.append(node)\n
+    \   return tuple(published)\n\n\ndef priority_nodes(active: tuple[Node, ...])
+    -> tuple[tuple[Node, ...], tuple[Node, ...]]:\n    \"\"\"Prefer both LA hosts,
+    retaining Hysteria2 on the first host as a spare.\"\"\"\n    by_id = {node.node_id:
+    node for node in active}\n    # direct-la is the qualified overseas-la host until
+    its new EdgeAccess\n    # listener is enabled. Do not drop it when overseas-la-2
+    is discovered.\n    la_one = by_id.get(\"edge-access-overseas-la\") or by_id.get(\"direct-la-anytls\")\n
+    \   la_two = by_id.get(\"direct-la2-anytls\") or by_id.get(\"edge-access-overseas-la-2\")\n
+    \   preferred = tuple(node for node in (\n        la_one, la_two, by_id.get(\"direct-la-hysteria2\"))
+    if node)\n    backup = tuple(node for node in active if node.node_id in {\"direct-de-anytls\",
+    \"edge-access-overseas-flk\"})\n    return preferred, backup\n\n\ndef public_node(node:
+    Node) -> dict:\n    # Runtime Service/listener names are control-plane details.
+    \ Status clients\n    # receive only publication data plus non-sensitive qualification
+    signals.\n    enabled = publication_enabled(node)\n    return {\n        \"id\":
+    node.node_id,\n        \"name\": node.name,\n        **asdict(node.publication),\n
     \       \"region\": node.runtime.region,\n        \"healthy\": enabled and node.runtime.healthy,\n
     \       \"qualifiedMbps\": node.runtime.qualified_mbps,\n        \"qualified\":
     enabled and node.runtime.healthy and node.runtime.qualified_mbps >= 100,\n    }\n\n\ndef
@@ -1891,7 +1901,7 @@ data:
             time.sleep(5)
 kind: ConfigMap
 metadata:
-  name: access-subscription-code-8c2hkd44c2
+  name: access-subscription-code-4dc7cb45h8
   namespace: egress-fabric
 ---
 apiVersion: v1
@@ -6639,7 +6649,7 @@ spec:
       serviceAccountName: access-controller
       volumes:
       - configMap:
-          name: access-subscription-code-8c2hkd44c2
+          name: access-subscription-code-4dc7cb45h8
         name: code
       - name: hmac
         secret:
@@ -6706,7 +6716,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: access-subscription-code-8c2hkd44c2
+          name: access-subscription-code-4dc7cb45h8
         name: code
       - name: rules
         persistentVolumeClaim:
@@ -6804,7 +6814,7 @@ spec:
       serviceAccountName: access-subscription
       volumes:
       - configMap:
-          name: access-subscription-code-8c2hkd44c2
+          name: access-subscription-code-4dc7cb45h8
         name: code
       - name: hmac
         secret:
@@ -7268,7 +7278,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-8c2hkd44c2
+          name: access-subscription-code-4dc7cb45h8
         name: app-code
       - name: controller
         secret:
@@ -7441,7 +7451,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-8c2hkd44c2
+          name: access-subscription-code-4dc7cb45h8
         name: app-code
       - name: controller
         secret:
