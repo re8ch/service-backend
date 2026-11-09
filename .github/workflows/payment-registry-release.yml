@@ -33,6 +33,10 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$SOURCE_REVISION"
           git merge-base --is-ancestor "$SOURCE_REVISION" origin/master
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: false
       - run: go test ./functions/payment-registry-api
       - name: Prepare isolated registry authentication
         run: |
@@ -78,5 +82,7 @@ jobs:
       - name: Remove temporary registry authorization
         if: always()
         run: |
-          rm -f "$DOCKER_CONFIG/config.json"
-          rmdir "$DOCKER_CONFIG" || true
+          if [[ -n "${DOCKER_CONFIG:-}" ]]; then
+            rm -f "$DOCKER_CONFIG/config.json"
+            rmdir "$DOCKER_CONFIG" || true
+          fi
