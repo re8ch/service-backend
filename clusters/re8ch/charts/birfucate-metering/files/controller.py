@@ -207,6 +207,14 @@ def derived_service_binding(instance, shard_names, namespace, config):
             "datasourceRefs": parameters.get("datasourceRefs") or [],
         }}
         quota = {}
+    elif service_class == "application.ledger.v1":
+        consumable = "application-ledger"
+        provider_ref = str((status.get("access") or {}).get("runtimeRef") or "")
+        access = {"type": "Endpoint", "endpoint": {
+            "endpointRef": (status.get("access") or {}).get("endpointRef"),
+            "authentication": "oauth",
+        }}
+        quota = {}
     else:
         raise ValueError("unsupported provider service class")
     return {
@@ -356,6 +364,7 @@ def reconcile(kube, config):
     provider_targets = {
         "registry.harbor.v1": ("harbor", "registry-harbor"),
         "observability.grafana.v1": ("observability-system", "observability-managed"),
+        "application.ledger.v1": ("re8ch-ledger", "application-ledger"),
     }
     active_service_bindings = set()
     shards = kube.list(f"{GROUP}/{VERSION}", "serviceshards")

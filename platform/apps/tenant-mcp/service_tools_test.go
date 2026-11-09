@@ -23,7 +23,7 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 		if seen["network.among-clusters.v1"] != (tenant == "artchais") {
 			t.Fatalf("tenant-specific service leaked or disappeared for %s: %v", tenant, seen)
 		}
-		if !seen["registry.harbor.v1"] || !seen["observability.grafana.v1"] {
+		if !seen["registry.harbor.v1"] || !seen["observability.grafana.v1"] || !seen["application.ledger.v1"] {
 			t.Fatalf("live provider services missing for %s: %v", tenant, seen)
 		}
 	}
@@ -64,6 +64,17 @@ func TestProviderBindingsOnlyExposeCurrentOwnedOpaqueAccess(t *testing.T) {
 	}
 	if len(providerBindings(items, "acme", "service://acme/unrelated")) != 0 {
 		t.Fatal("resource filter was ignored")
+	}
+	ledger := map[string]any{
+		"metadata": map[string]any{"name": "ledger", "uid": "uid-ledger", "generation": float64(1)},
+		"spec":     map[string]any{"tenantRef": "admin", "serviceClass": "application.ledger.v1"},
+		"status": map[string]any{"phase": "Ready", "observedGeneration": float64(1),
+			"access": map[string]any{"endpointRef": "https://cn.ledger.re8ch.com"}},
+	}
+	ledgerBindings := providerBindings([]any{ledger}, "admin", "service://admin/ledger")
+	if len(ledgerBindings) != 1 || ledgerBindings[0]["bindingType"] != "endpoint:oauth" ||
+		ledgerBindings[0]["endpointRef"] != "https://cn.ledger.re8ch.com" {
+		t.Fatalf("Ledger endpoint binding was not projected: %v", ledgerBindings)
 	}
 
 	machine := map[string]any{

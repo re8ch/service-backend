@@ -9,7 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-var providerBacked = map[string]bool{"network.among-clusters.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true}
+var providerBacked = map[string]bool{"network.among-clusters.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true, "application.ledger.v1": true}
 
 func liveServiceOnly(services []map[string]any, tenant string) []map[string]any {
 	filtered := []map[string]any{}
@@ -65,6 +65,20 @@ func providerBindings(instances []any, tenant, ref string) []map[string]any {
 		name, uid := asString(meta, "name"), asString(meta, "uid")
 		serviceClass := asString(spec, "serviceClass")
 		resourceRef := "service://" + tenant + "/" + name
+		if serviceClass == "application.ledger.v1" {
+			access := object(status["access"])
+			endpointRef := asString(access, "endpointRef")
+			if asString(spec, "tenantRef") == tenant && name != "" && uid != "" && status["phase"] == "Ready" &&
+				(ref == "" || ref == resourceRef) && strings.HasPrefix(endpointRef, "https://") {
+				bindings = append(bindings, map[string]any{
+					"bindingRef": "binding://" + tenant + "/provider/" + uid, "resourceRef": resourceRef,
+					"bindingType": "endpoint:oauth", "endpointRef": endpointRef, "serviceClass": serviceClass,
+					"source": "provider-status", "state": "Ready", "revocable": false,
+					"revokeWith": "service_instance_suspend", "credentialMaterialReturned": false,
+				})
+			}
+			continue
+		}
 		credentialRef := asString(status, "humanCredentialRef")
 		// Machine Harbor plans publish their broker reference under status.access,
 		// not status.humanCredentialRef. Prefer that reference so callers do not

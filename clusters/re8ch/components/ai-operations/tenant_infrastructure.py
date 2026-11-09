@@ -63,6 +63,13 @@ CATALOG: dict[str, dict[str, Any]] = {
         "meters": {"active_series": "series-hour", "samples": "sample", "logs": "byte", "retained_data": "GiB-hour", "queries": "query"},
         "adapter": "grafana-access", "accessUnit": "OrganizationFolderDatasourceGrant", "bindings": ["identity:user", "grafana:organization-member", "grafana:datasource-scope"],
     },
+    "application.ledger.v1": {
+        "plans": ["managed-access"], "regions": ["loudi"],
+        "parameters": set(),
+        "meters": {"instance_runtime": "second", "requests": "request"},
+        "adapter": "existing-ledger-access", "accessUnit": "ExistingServiceEndpointGrant",
+        "bindings": ["endpoint:oauth"],
+    },
     "ai.model-gateway.v1": {
         "plans": ["standard", "budgeted"], "regions": ["global", "cn"],
         "parameters": {"models", "tokenBudget", "concurrency", "expiresAt"},

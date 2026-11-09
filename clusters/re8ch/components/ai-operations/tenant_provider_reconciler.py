@@ -642,6 +642,28 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
     if (lifecycle == "Deleting" and (instance.get("status") or {}).get("phase") == "Deleted"
             and (instance.get("status") or {}).get("observedGeneration") == meta.get("generation", 1)):
         return
+    if service_class == "application.ledger.v1":
+        if lifecycle in {"Suspended", "Deleting"}:
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            kube.patch_status("tenantserviceinstances", meta["name"], {
+                "observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None,
+                "access": (instance.get("status") or {}).get("access"),
+                "conditions": [control.condition("Ready", False, "TenantAccessRevoked")],
+            }, namespace)
+            return
+        request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
+        if control.provider_service_spec(tenant, meta["name"], request) != spec.get("parameters"):
+            raise PermissionError("Ledger service parameters differ from the controller contract")
+        service = kube.get("services", "ledger-api-gateway-local", "re8ch-ledger", "api/v1")
+        if not (service.get("spec") or {}).get("clusterIP"):
+            raise RuntimeError("Ledger service endpoint is not ready")
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
+            "access": {"endpointRef": "https://cn.ledger.re8ch.com", "authentication": "oauth", "runtimeRef": "service://re8ch-ledger/ledger-api-gateway-local"},
+            "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", True, "ExistingServiceEndpointReady")],
+        }, namespace)
+        return
     identity = identity_factory() if spec.get("parameters", {}).get("identityUserRef") else None
     if lifecycle in {"Suspended", "Deleting"}:
         prior = instance.get("status") or {}
