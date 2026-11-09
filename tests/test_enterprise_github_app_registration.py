@@ -105,7 +105,7 @@ def test_installation_matrix_covers_every_observed_enterprise_organization():
     assert spec["rollout"]["privateKeys"] == "governance-key-in-github-secret"
     assert spec["rollout"]["effectivePermissionReadback"] == "complete"
     assert spec["governanceInstallation"]["installationId"] == 180243962
-    assert spec["governanceInstallation"]["tokenProbe"]["result"] == "http-404"
+    assert spec["governanceInstallation"]["tokenProbe"]["result"] == "http-201"
     assert set(spec["permissionReadback"]["configuredPermissionCounts"]) == set(
         spec["apps"]
     )
