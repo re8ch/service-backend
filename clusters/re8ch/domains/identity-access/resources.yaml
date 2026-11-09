@@ -3418,6 +3418,8 @@ data:
     $$;
     revoke all on function commerce_api.service_catalog_list() from public;
     grant execute on function commerce_api.service_catalog_list() to billing_commerce_runtime;
+    grant execute on function billing.ensure_omni_account(uuid), billing.omni_balance(uuid)
+      to re8ch_billing_owner;
     notify pgrst, 'reload schema';
     commit;
 kind: ConfigMap
@@ -13025,67 +13027,6 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
----
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: supabase-billing-ledger-service-v1
-  namespace: supabase-billing
-spec:
-  backoffLimit: 2
-  template:
-    spec:
-      automountServiceAccountToken: false
-      containers:
-      - args:
-        - psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" -f /sql/migration.sql
-        command:
-        - /bin/sh
-        - -ceu
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              key: PGRST_DB_URI_RW
-              name: supabase-billing-secrets
-        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
-        name: migrate
-        resources:
-          limits:
-            cpu: 250m
-            memory: 128Mi
-          requests:
-            cpu: 10m
-            memory: 32Mi
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-          readOnlyRootFilesystem: true
-        volumeMounts:
-        - mountPath: /sql
-          name: sql
-          readOnly: true
-      nodeSelector:
-        kubernetes.io/hostname: r640
-      restartPolicy: Never
-      securityContext:
-        runAsGroup: 65532
-        runAsNonRoot: true
-        runAsUser: 65532
-        seccompProfile:
-          type: RuntimeDefault
-      tolerations:
-      - effect: NoSchedule
-        key: dedicated
-        operator: Equal
-        value: pg-re8ch
-      volumes:
-      - configMap:
-          name: supabase-billing-ledger-service-v1
-        name: sql
-  ttlSecondsAfterFinished: 604800
 ---
 apiVersion: batch/v1
 kind: Job

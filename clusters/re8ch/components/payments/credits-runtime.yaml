@@ -168,6 +168,7 @@ spec:
   template:
     metadata: {labels: {app: payment-registry-api}}
     spec:
+      serviceAccountName: payment-registry-api
       nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
@@ -206,5 +207,6 @@ metadata:
   name: nuclio-payment-registry-api
   namespace: payments
 spec:
+  publishNotReadyAddresses: true
   selector: {app: payment-registry-api}
   ports: [{name: http, port: 8080, targetPort: http}]
