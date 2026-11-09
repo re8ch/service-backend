@@ -22,7 +22,7 @@ def volume_spec(size=10):
 
 def test_catalog_has_service_specific_consumables():
     names = {item["serviceClass"] for item in tenant_infrastructure.catalog()}
-    assert {"database.postgresql.shared.v1", "storage.volume.v1", "storage.bucket.v1", "network.tenant.v1", "network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1", "ai.model-gateway.v1", "sandbox.runtime.v1"} == names
+    assert {"database.postgresql.shared.v1", "storage.volume.v1", "storage.bucket.v1", "network.tenant.v1", "network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1", "ai.model-gateway.v1", "sandbox.runtime.v1", "application.ledger.v1"} == names
     network = next(item for item in tenant_infrastructure.catalog() if item["serviceClass"] == "network.tenant.v1")
     assert {"public", "full"} <= set(network["plans"])
     grafana = next(item for item in tenant_infrastructure.catalog() if item["serviceClass"] == "observability.grafana.v1")

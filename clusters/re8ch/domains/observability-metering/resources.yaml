@@ -3454,7 +3454,11 @@ spec:
         visibility: Private
       - deletionPolicy: Retain
         displayName: RE8CH Platform Administration
-        grants: []
+        grants:
+        - consumableRef: application.ledger.v1
+          lifecycle: Active
+          name: admin-ledger
+          roleRef: operator
         harborProjectRef: re8ch
         identityBindings:
         - group: re8ch:k8s-admins
