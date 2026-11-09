@@ -3368,6 +3368,8 @@ spec:
           secretUID: e31d554c-5cf8-4663-adcd-811849a31b3c
           tenantRef: re8ch
         enabled: true
+        githubEnterpriseGovernance:
+          enabled: true
         image: registry.re8ch.com/image/re8ch-ai-operations@sha256:72167f400dee63c8c293967be35d4df023773f18888190ca7a85d4b4b6f33168
       state:
         size: 1Gi
@@ -3472,6 +3474,10 @@ spec:
           lifecycle: Active
           name: admin-ledger
           roleRef: operator
+        - consumableRef: integration.github.enterprise-governance.v1
+          lifecycle: Active
+          name: admin-github-enterprise-governance
+          roleRef: admin
         harborProjectRef: re8ch
         identityBindings:
         - group: re8ch:k8s-admins
