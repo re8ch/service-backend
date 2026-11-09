@@ -107,7 +107,9 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: tenant-mcp
           TENANT_IMAGE_INLINE_AUTH: "1"
           TENANT_IMAGE_SKIP_FINALIZE: "1"
-          TENANT_IMAGE_DOCKER_PUSH: "0"
+          # The hosted finalize job generates the SBOM and attestations for the
+          # immutable digest, so avoid the redundant BuildKit SBOM generator.
+          TENANT_IMAGE_DOCKER_PUSH: "1"
           GODEBUG: http2client=0
           # Bound cold pulls and uploads on the disposable cloud builder.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "900"
