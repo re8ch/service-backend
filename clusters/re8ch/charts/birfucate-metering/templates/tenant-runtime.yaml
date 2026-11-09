@@ -187,6 +187,11 @@ spec:
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: TENANT_USAGE_CLIENT, value: 'system:serviceaccount:{{ .Release.Namespace }}:{{ include "birfucate-metering.fullname" . }}'}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
+            {{- if .Values.tenantPlatform.provider.githubEnterpriseGovernance.enabled }}
+            - {name: GITHUB_GOVERNANCE_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: app-id}}}
+            - {name: GITHUB_GOVERNANCE_INSTALLATION_ID, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: installation-id}}}
+            - {name: GITHUB_GOVERNANCE_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: private-key}}}
+            {{- end }}
             {{- if .Values.tenantPlatform.tenantAPI.enabled }}
             {{- if .Values.tenantPlatform.tenantAPI.platformSessionURL }}
             - {name: PLATFORM_SESSION_URL, value: {{ .Values.tenantPlatform.tenantAPI.platformSessionURL | quote }}}
