@@ -62,7 +62,7 @@ tenantPlatform:
         - {name: admin-vmcp-service, issuer: https://dex.service.re8ch.com, group: "re8ch:tenant-admins", role: admin, revoked: true}
         - {name: admin-github-k8s-admins-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
         - {name: admin-vmcp-service-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
-      nativeAccess: false
+      nativeAccess: true
     - name: artchais
       displayName: Artchais
       lifecycle: Active

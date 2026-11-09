@@ -327,10 +327,10 @@ def test_review_login_keeps_ordinary_personal_tenant_capabilities():
     assert namespace.startswith(personal["namespacePolicy"]["allowedPrefixes"][0])
     assert namespace in personal["namespacePolicy"]["bootstrapNamespaces"]
     assert personal["namespacePolicy"]["allowCreate"] is True
-    assert personal["nativeAccess"] is True
-    assert personal["byocAllowed"] is True
+    assert personal["nativeAccess"] is False
+    assert personal["byocAllowed"] is False
     assert {grant["consumableRef"] for grant in personal["grants"]} >= {
-        "compute.workload.v1", "storage.volume.v1",
+        "compute.workload.v1", "storage.volume.v1", "network.tenant.v1",
         "registry.harbor.v1", "observability.grafana.v1",
     }
     assert personal["identityBindings"] == []  # GoTrue owns ordinary membership.
@@ -663,9 +663,9 @@ def test_shared_personal_runtime_class_has_owner_resource_policy():
     shared = next(item for item in tenants if item["name"] == "personal-standard")
     assert shared["identityBindings"] == []
     assert {grant["consumableRef"] for grant in shared["grants"]} == {
-        "compute.workload.v1", "storage.volume.v1", "registry.harbor.v1", "observability.grafana.v1"
+        "compute.workload.v1", "storage.volume.v1", "network.tenant.v1", "registry.harbor.v1", "observability.grafana.v1"
     }
-    assert shared["nativeAccess"] is True
-    assert shared["byocAllowed"] is True
+    assert shared["nativeAccess"] is False
+    assert shared["byocAllowed"] is False
     assert shared["namespacePolicy"]["allowCreate"] is True
     assert shared["namespacePolicy"]["bootstrapNamespaces"] == ["personal-standard-default"]

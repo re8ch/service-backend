@@ -63,19 +63,25 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 	canWrite := id.Role == "operator" || id.Role == "admin"
 	canExpose := canWrite && len(ready) > 0 && hasRequestableGrant(grants, "network.tenant.v1")
 	canReadDatabaseBindings := len(ready) > 0 && hasRequestableGrant(grants, "database.postgresql.shared.v1")
-	kubernetesTools := []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
-	namespacedWrite := canWrite && len(ready) > 0
+	kubernetesTools := []string{}
+	observationTools := []string{}
+	if id.NativeAccess {
+		kubernetesTools = []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete"}
+		observationTools = []string{"tenant_kubernetes_get"}
+	}
+	namespacedWrite := canWrite && len(ready) > 0 && id.NativeAccess
 	result := map[string]any{
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready, "grantedConsumables": grants,
+		"hostingMode": id.HostingMode, "byocAllowed": id.BYOCAllowed, "nativeAccess": id.NativeAccess,
 		"capabilities": []map[string]any{
-			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite},
+			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite && id.NativeAccess},
 			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "service", "kinds": []string{"Service"}, "serviceTypes": []string{"ClusterIP"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "storage", "kinds": []string{"PersistentVolumeClaim"}, "tools": kubernetesTools, "requiredConsumable": "storage.volume.v1", "canWrite": namespacedWrite && hasRequestableGrant(grants, "storage.volume.v1")},
 			{"id": "service-identity", "kinds": []string{"ServiceAccount", "Role", "RoleBinding"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "workload-policy", "kinds": []string{"HorizontalPodAutoscaler", "PodDisruptionBudget"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
-			{"id": "runtime-observation", "kinds": []string{"Pod", "Event", "Endpoints", "ReplicaSet"}, "tools": []string{"tenant_kubernetes_get"}, "canWrite": false},
+			{"id": "runtime-observation", "kinds": []string{"Pod", "Event", "Endpoints", "ReplicaSet"}, "tools": observationTools, "canWrite": false},
 			{"id": "secret", "kinds": []string{"Secret"}, "writeOnly": true, "tools": []string{"tenant_secret_upsert", "tenant_secret_metadata_list", "tenant_secret_delete"}, "canWrite": canWrite && len(ready) > 0},
 			{"id": "database-credential", "kinds": []string{"databasecredential"}, "tools": []string{"tenant_kubernetes_get"}, "queryKind": "databasecredential", "metadataOnly": true, "databaseState": "unverified", "requiredConsumable": "database.postgresql.shared.v1", "canRead": canReadDatabaseBindings, "canWrite": false},
 			{"id": "exposure", "kinds": []string{"Managed HTTPRoute"}, "gatewayOwnership": "platform", "hostnameSuffix": ".apps.re8ch.com", "maxPublicEndpoints": maxTenantPublicEndpoints, "requiredConsumable": "network.tenant.v1", "tools": []string{"tenant_exposure_create", "tenant_exposure_list", "tenant_exposure_get", "tenant_exposure_delete"}, "canWrite": canExpose},
@@ -92,9 +98,9 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 		result["metaTenant"] = true
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
 			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "direct", "scope": "cluster", "namespaceSelector": "*", "grantIndependent": true,
-			"tools":   []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "reconcile_control_plane_authentication_config"},
+			"tools":                 []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "reconcile_control_plane_authentication_config"},
 			"existingToolInterface": true,
-			"canRead": true, "canWrite": true, "secretValuesReadable": false,
+			"canRead":               true, "canWrite": true, "secretValuesReadable": false,
 		})
 	}
 	return result

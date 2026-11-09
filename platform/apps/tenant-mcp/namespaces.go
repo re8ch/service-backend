@@ -32,6 +32,9 @@ func (s *server) registerNamespaceTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
+				if !id.NativeAccess {
+					return nil, nil, errors.New("native namespace access is not enabled for this managed tenant plan; resources are allocated through claims and service instances")
+				}
 				value, err := s.callNamespace(ctx, id, name, args)
 				return nil, value, err
 			})

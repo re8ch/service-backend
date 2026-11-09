@@ -3370,7 +3370,7 @@ spec:
         usersURL: https://api.re8ch.com/auth/v2/users
       tenantReadinessPath: /readyz
       tenants:
-      - byocAllowed: true
+      - byocAllowed: false
         deletionPolicy: Retain
         displayName: Personal Standard Runtime
         grants:
@@ -3381,6 +3381,10 @@ spec:
         - consumableRef: storage.volume.v1
           lifecycle: Active
           name: personal-standard-storage
+          roleRef: operator
+        - consumableRef: network.tenant.v1
+          lifecycle: Active
+          name: personal-standard-network
           roleRef: operator
         - consumableRef: registry.harbor.v1
           lifecycle: Active
@@ -3405,9 +3409,9 @@ spec:
           - personal-standard-default
           defaultNamespace: personal-standard-default
           maxNamespaces: 10
-        nativeAccess: true
+        nativeAccess: false
         visibility: Private
-      - byocAllowed: true
+      - byocAllowed: false
         deletionPolicy: Retain
         displayName: Personal
         grants:
@@ -3418,6 +3422,10 @@ spec:
         - consumableRef: storage.volume.v1
           lifecycle: Active
           name: personal-review-storage
+          roleRef: operator
+        - consumableRef: network.tenant.v1
+          lifecycle: Active
+          name: personal-review-network
           roleRef: operator
         - consumableRef: registry.harbor.v1
           lifecycle: Active
@@ -3442,7 +3450,7 @@ spec:
           - personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38-default
           defaultNamespace: personal-6a68c4a3-96e6-44ef-a0fd-c39fadd4ee38-default
           maxNamespaces: 10
-        nativeAccess: true
+        nativeAccess: false
         visibility: Private
       - deletionPolicy: Retain
         displayName: RE8CH Platform Administration
@@ -3478,7 +3486,7 @@ spec:
           bootstrapNamespaces: []
           defaultNamespace: tenant-infrastructure
           maxNamespaces: 1
-        nativeAccess: false
+        nativeAccess: true
         runtimeNamespaceRef: tenant-infrastructure
       - deletionPolicy: Retain
         displayName: Artchais

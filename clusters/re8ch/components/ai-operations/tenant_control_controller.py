@@ -317,8 +317,12 @@ def resolve_supabase_membership(access_token, requested_tenant):
     tenant = tenant_definition(requested_tenant)
     policy = tenant.get("spec", {}).get("namespacePolicy", {})
     namespace = policy.get("defaultNamespace") or tenant.get("spec", {}).get("runtimeNamespaceRef") or runtime_ref
+    spec = tenant.get("spec", {})
     return {"tenantRef": requested_tenant, "runtimeTenantRef": runtime_ref,
-            "role": selected["tenant_role"], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace}
+            "role": selected["tenant_role"], "defaultNamespace": namespace, "runtimeNamespaceRef": namespace,
+            "hostingMode": spec.get("hostingMode", "platform-managed"),
+            "byocAllowed": bool(spec.get("byocAllowed", False)),
+            "nativeAccess": bool(spec.get("nativeAccess", True))}
 
 
 def utcnow():

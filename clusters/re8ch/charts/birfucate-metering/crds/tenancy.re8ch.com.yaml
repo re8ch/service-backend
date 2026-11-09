@@ -97,6 +97,9 @@ spec:
                 - byoc
               byocAllowed:
                 type: boolean
+              nativeAccess:
+                type: boolean
+                description: Whether members may use tenant Kubernetes and namespace tools directly; managed claims and service instances do not require it.
               grants:
                 type: array
                 maxItems: 100

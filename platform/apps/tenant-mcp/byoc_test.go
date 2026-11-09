@@ -13,7 +13,7 @@ func TestBYOCRegistrationTenantIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { s.ledger.Close() })
-	registered, err := s.callBYOC(identity{Tenant: "acme"}, "byoc_cluster_register", map[string]any{"cluster_uid": "cluster-one", "region_ref": "loudi", "issuer": "https://cluster.example.com", "public_key": "test-key"})
+	registered, err := s.callBYOC(identity{Tenant: "acme", BYOCAllowed: true}, "byoc_cluster_register", map[string]any{"cluster_uid": "cluster-one", "region_ref": "loudi", "issuer": "https://cluster.example.com", "public_key": "test-key"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,5 +27,21 @@ func TestBYOCRegistrationTenantIsolation(t *testing.T) {
 	list, err := s.callBYOC(identity{Tenant: "acme"}, "byoc_registration_list", nil)
 	if err != nil || len(list.(map[string]any)["registrations"].([]map[string]any)) != 1 {
 		t.Fatalf("own registration hidden: %v %v", list, err)
+	}
+}
+
+func TestBYOCRegistrationRequiresClusterPlan(t *testing.T) {
+	s := testServer(t)
+	var err error
+	s.ledger, err = openLedger(filepath.Join(t.TempDir(), "services.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.ledger.Close() })
+	_, err = s.callBYOC(identity{Tenant: "managed"}, "byoc_cluster_register", map[string]any{
+		"cluster_uid": "cluster-one", "region_ref": "loudi", "issuer": "https://cluster.example.com", "public_key": "test-key",
+	})
+	if err == nil {
+		t.Fatal("managed tenant registered a BYOC cluster")
 	}
 }

@@ -25,6 +25,9 @@ type identity struct {
 	RuntimeTenantRef string
 	Role             string
 	DefaultNamespace string
+	HostingMode      string
+	BYOCAllowed      bool
+	NativeAccess     bool
 	Service          bool
 	PlatformAdmin    bool
 	AccessStatus     string
@@ -217,6 +220,9 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 		RuntimeTenantRef string `json:"runtimeTenantRef"`
 		Role             string `json:"role"`
 		DefaultNamespace string `json:"defaultNamespace"`
+		HostingMode      string `json:"hostingMode"`
+		BYOCAllowed      *bool  `json:"byocAllowed"`
+		NativeAccess     *bool  `json:"nativeAccess"`
 	}
 	if err = json.NewDecoder(io.LimitReader(response2.Body, 65536)).Decode(&membership); err != nil {
 		return identity{}, err
@@ -231,6 +237,20 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 		return identity{}, errors.New("tenant authorizer returned an invalid runtime class")
 	}
 	id.OrganizationRef, id.RuntimeTenantRef = membership.Tenant, membership.RuntimeTenantRef
+	id.HostingMode = membership.HostingMode
+	if id.HostingMode == "" {
+		id.HostingMode = "platform-managed"
+	}
+	// Older tenant-control versions did not return these policy fields. Keep
+	// their historical behavior during a rolling rollout; reviewed Tenant CRs
+	// become authoritative as soon as the new controller is serving traffic.
+	id.BYOCAllowed, id.NativeAccess = true, true
+	if membership.BYOCAllowed != nil {
+		id.BYOCAllowed = *membership.BYOCAllowed
+	}
+	if membership.NativeAccess != nil {
+		id.NativeAccess = *membership.NativeAccess
+	}
 	if membership.RuntimeTenantRef != membership.Tenant {
 		if membership.RuntimeTenantRef != "personal-standard" || !strings.HasPrefix(membership.Tenant, "personal-") {
 			return identity{}, errors.New("tenant authorizer returned an unsupported shared class")

@@ -28,6 +28,7 @@ spec:
   visibility: {{ default "Private" $tenant.visibility }}
   hostingMode: {{ default "platform-managed" $tenant.hostingMode }}
   byocAllowed: {{ default false $tenant.byocAllowed }}
+  nativeAccess: {{ default false $tenant.nativeAccess }}
   grants: {{ $tenant.grants | default (list) | toJson }}
 {{- range $namespace := $tenant.namespacePolicy.bootstrapNamespaces }}
 ---
