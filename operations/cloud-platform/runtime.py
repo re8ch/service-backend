@@ -259,7 +259,10 @@ class CloudPlatform:
                 raise OperationError("RESOURCE_VERSION_CONFLICT", "manifest and argument resourceVersion differ")
             manifest = {**manifest, "metadata": {**metadata, "resourceVersion": resource_version}}
         if manifest is not None:
-            if any(key in manifest for key in SECRET_KEYS):
+            manifest_kind = str(manifest.get("kind", "")).lower()
+            secret_resource = resource.lower().rstrip("s") == "secret" or manifest_kind == "secret"
+            secret_payload = secret_resource and any(key in manifest for key in {"data", "stringData"})
+            if secret_payload or any(key in manifest for key in SECRET_KEYS - {"data", "stringData"}):
                 raise OperationError("SECRET_VALUE_FORBIDDEN", "use a Credential Broker content reference")
             stdin = json.dumps(manifest)
             if verb == "apply":

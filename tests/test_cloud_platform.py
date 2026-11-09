@@ -67,6 +67,21 @@ def test_apply_rejects_inline_secret_material():
     assert caught.value.code == "SECRET_VALUE_FORBIDDEN"
 
 
+def test_apply_allows_configmap_data():
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return completed("applied")
+
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    service.kube_resource("apply", "configmaps", namespace="default", manifest={
+        "apiVersion": "v1", "kind": "ConfigMap", "metadata": {"name": "migration"},
+        "data": {"migration.sql": "select 1;"},
+    })
+    assert json.loads(calls[0][1]["input"])["data"] == {"migration.sql": "select 1;"}
+
+
 def test_apply_uses_manifest_without_positional_resource():
     calls = []
 
