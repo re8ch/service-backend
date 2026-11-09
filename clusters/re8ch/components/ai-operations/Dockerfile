@@ -1,4 +1,4 @@
-FROM docker.1ms.run/library/alpine:3.22
+FROM alpine:3.22
 
 RUN apk add --no-cache python3 kubectl helm cosign openssh-client ca-certificates curl github-cli
 COPY clusters/re8ch/components/ai-operations/ai_operations_mcp.py /app/ai_operations_mcp.py
