@@ -52,6 +52,9 @@ func (s *server) callBYOC(id identity, name string, args map[string]any) (any, e
 	tenant := id.Tenant
 	switch name {
 	case "byoc_cluster_register":
+		if !id.BYOCAllowed {
+			return nil, errors.New("BYOC registration is not enabled for this managed tenant plan")
+		}
 		cluster, region, issuer, key := asString(args, "cluster_uid"), asString(args, "region_ref"), asString(args, "issuer"), asString(args, "public_key")
 		if strings.TrimSpace(cluster) == "" || strings.TrimSpace(region) == "" || !strings.HasPrefix(issuer, "https://") || strings.TrimSpace(key) == "" {
 			return nil, errors.New("clusterUid, regionRef, HTTPS issuer and publicKey are required")
@@ -116,6 +119,9 @@ func (s *server) callBYOC(id identity, name string, args map[string]any) (any, e
 		}
 		return map[string]any{"tenantRef": tenant, "connections": items}, rows.Err()
 	case "byoc_connection_revoke":
+		if !id.BYOCAllowed {
+			return nil, errors.New("BYOC connections are not enabled for this managed tenant plan")
+		}
 		state := "Revoked"
 		if args["offline"] == true {
 			state = "RevocationPending"

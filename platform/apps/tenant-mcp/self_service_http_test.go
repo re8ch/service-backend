@@ -43,6 +43,30 @@ func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 	}
 }
 
+func TestManagedTenantDiscoversHostedToolsWithoutNativeKubernetes(t *testing.T) {
+	grants := []map[string]any{{"consumableRef": "network.tenant.v1", "lifecycle": "Active", "canRequest": true}}
+	namespaces := map[string]any{"items": []any{map[string]any{
+		"spec":   map[string]any{"tenantRef": "personal-one", "operation": "EnsurePresent", "namespaceName": "personal-one-default"},
+		"status": map[string]any{"phase": "Ready"},
+	}}}
+	state := selfServiceCapabilitiesFromState(identity{Tenant: "personal-one", Role: "operator", HostingMode: "platform-managed", NativeAccess: false, BYOCAllowed: false}, namespaces, grants)
+	if state["nativeAccess"] != false || state["byocAllowed"] != false {
+		t.Fatalf("managed policy was not reported: %v", state)
+	}
+	for _, capability := range state["capabilities"].([]map[string]any) {
+		switch capability["id"] {
+		case "workload", "configmap", "service", "storage", "service-identity", "workload-policy":
+			if capability["canWrite"] != false || len(capability["tools"].([]string)) != 0 {
+				t.Fatalf("native Kubernetes leaked through %s: %v", capability["id"], capability)
+			}
+		case "exposure":
+			if capability["canWrite"] != true {
+				t.Fatalf("managed exposure was not enabled: %v", capability)
+			}
+		}
+	}
+}
+
 func (t authenticatedMCPTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	clone := request.Clone(request.Context())
 	clone.Header = request.Header.Clone()

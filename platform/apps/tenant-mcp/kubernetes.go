@@ -55,6 +55,9 @@ func (s *server) registerKubernetesTools(ms *mcp.Server) {
 			if id.PlatformAdmin && id.Tenant == "admin" {
 				return s.callMetaKubernetes(ctx, name, args)
 			}
+			if !id.NativeAccess {
+				return nil, nil, errors.New("native Kubernetes access is not enabled for this managed tenant plan; use tenant_claim, tenant_exposure, and service_instance tools")
+			}
 			value, err := s.callKubernetes(ctx, id, name, args)
 			return nil, value, err
 		})

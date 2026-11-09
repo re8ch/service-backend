@@ -33,6 +33,14 @@ the shared class supplies policy and capacity. The complete tenant tool surface
 is available to these users, subject to their Supabase role and resource state.
 The mapping is documented in [SHARED-TENANT-MODEL.md](SHARED-TENANT-MODEL.md).
 
+Tenant plans have two explicit resource paths. Cluster plans set
+`nativeAccess` and, where appropriate, `byocAllowed`; their members may use the
+tenant Kubernetes or BYOC tools. Platform-managed plans keep both flags false
+and consume infrastructure through `tenant_claim_*`, `tenant_exposure_*`,
+`service_instance_*`, and opaque `service_binding_*` references. Managed plans
+still receive an internal owner namespace, but its existence does not grant the
+member a general Kubernetes management surface.
+
 Tenant owners and operators can manage allowlisted ConfigMaps, workloads and
 ClusterIP Services through the native Kubernetes tools. Secret values use the
 separate `tenant_secret_*` broker: values are write-only, while reads expose

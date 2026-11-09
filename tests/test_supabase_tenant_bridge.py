@@ -82,6 +82,7 @@ def test_supabase_membership_controls_tenant_role_and_revocation(monkeypatch):
     assert controller.resolve_supabase_membership("valid-token", "tenant-ci") == {
         "tenantRef": "tenant-ci", "runtimeTenantRef": "tenant-ci", "role": "operator",
         "defaultNamespace": "tenant-ci-default", "runtimeNamespaceRef": "tenant-ci-default",
+        "hostingMode": "platform-managed", "byocAllowed": False, "nativeAccess": True,
     }
     rows.append({"tenant_ref": "personal-example", "tenant_role": "admin", "tenant_kind": "personal", "is_active": False})
     assert controller.resolve_supabase_membership("valid-token", "")["tenantRef"] == "tenant-ci"
