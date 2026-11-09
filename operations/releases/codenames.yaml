@@ -805,6 +805,8 @@ modules:
       digest: sha256:ad66afd423b5bebee1c20e8fd5bb765d71457350c5b613bf396a9341d642b37c
     - codename: shield-amber
       digest: sha256:42a198150cb04ce3f2993e068347975c5686521ec7e16efe6006b027a9d9683e
+    - codename: ward-amber
+      digest: sha256:980fee54d7bd47ead3c0d006f9db552b2a504da2c31f4ad2bc0f18ddd7234154
   platform/connectool:
     releases:
     - codename: anchor

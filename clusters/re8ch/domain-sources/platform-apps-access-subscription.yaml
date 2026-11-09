@@ -5,17 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: shield-amber
+    delivery.re8ch.com/codename: ward-amber
+    delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
   ref:
-    digest: sha256:42a198150cb04ce3f2993e068347975c5686521ec7e16efe6006b027a9d9683e
-  verify:
-    provider: cosign
-    matchOIDCIdentity:
-    - issuer: ^https://token\.actions\.githubusercontent\.com$
-      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+    digest: sha256:980fee54d7bd47ead3c0d006f9db552b2a504da2c31f4ad2bc0f18ddd7234154
   secretRef:
     name: gitops-oci-reader
 ---
@@ -26,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: shield-amber
+    delivery.re8ch.com/codename: ward-amber
 spec:
   interval: 1m
   retryInterval: 1m

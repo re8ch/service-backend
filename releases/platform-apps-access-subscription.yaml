@@ -1,11 +1,11 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/apps/access-subscription
-codename: shield-amber
+codename: ward-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
-  digest: sha256:42a198150cb04ce3f2993e068347975c5686521ec7e16efe6006b027a9d9683e
-  signature: cosign-keyless
+  digest: sha256:980fee54d7bd47ead3c0d006f9db552b2a504da2c31f4ad2bc0f18ddd7234154
+  signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
 images: []
