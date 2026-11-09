@@ -193,6 +193,19 @@ def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypat
         controller.provider_service_spec("acme", "registry", {"serviceClass": "registry.harbor.v1", "planRef": "pull", "parameters": {"quotaGiB": 1025, "identityUserRef": "11111111-1111-4111-8111-111111111111"}})
 
 
+def test_github_enterprise_governance_is_admin_only_parameterless_singleton():
+    request = {"serviceClass": "integration.github.enterprise-governance.v1",
+               "planRef": "managed-governance", "parameters": {}}
+    assert controller.provider_service_spec("admin", "github-enterprise-governance", request) == {}
+    with pytest.raises(PermissionError, match="Admin-only singleton"):
+        controller.provider_service_spec("re8ch", "github-enterprise-governance", request)
+    with pytest.raises(PermissionError, match="Admin-only singleton"):
+        controller.provider_service_spec("admin", "another-name", request)
+    request["parameters"] = {"installationId": 180243962}
+    with pytest.raises(PermissionError, match="parameterless"):
+        controller.provider_service_spec("admin", "github-enterprise-governance", request)
+
+
 def test_harbor_build_plan_can_be_tenant_owned_without_human_identity(monkeypatch):
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     request = {"serviceClass": "registry.harbor.v1", "planRef": "build-push",

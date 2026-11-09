@@ -11,6 +11,7 @@
   (dict "name" "ai-model-gateway" "class" "ai.model-gateway.v1" "owner" "platform-ai" "boundary" "Tenant-scoped inference routing; provider credentials and gateway administration excluded." "kinds" (list "Deployment" "NuclioFunction") "meters" (list (dict "name" "request" "unit" "request" "source" "LiteLLM") (dict "name" "input_token" "unit" "token" "source" "LiteLLM") (dict "name" "output_token" "unit" "token" "source" "LiteLLM") (dict "name" "gpu_second" "unit" "GPU-second" "source" "runtime-telemetry")))
   (dict "name" "sandbox-runtime" "class" "sandbox.runtime.v1" "owner" "platform-sandbox" "boundary" "Tenant sandbox sessions and artifacts; node and controller administration excluded." "kinds" (list "Deployment" "Job") "meters" (list (dict "name" "execution_second" "unit" "second" "source" "OpenSandbox") (dict "name" "cpu_core_second" "unit" "core-second" "source" "OpenCost") (dict "name" "network_egress_byte" "unit" "byte" "source" "Hubble")))
   (dict "name" "application-ledger" "class" "application.ledger.v1" "owner" "platform-applications" "boundary" "Access to the retained Ledger application runtime; workload, database, image and PVC administration excluded." "kinds" (list "Deployment" "Service" "NuclioFunction") "meters" (list (dict "name" "instance_runtime" "unit" "second" "source" "kube-state-metrics") (dict "name" "request" "unit" "request" "source" "Ledger")))
+  (dict "name" "github-enterprise-governance" "class" "integration.github.enterprise-governance.v1" "owner" "platform-governance" "boundary" "Admin-only access to reviewed GitHub Enterprise governance workflows; private keys, installation tokens and arbitrary API execution are excluded." "kinds" (list "TenantServiceInstance") "meters" (list (dict "name" "operation" "unit" "operation" "source" "GitHub-Actions")))
 }}
 {{- range $index, $item := $offerings }}
 {{ if $index }}---
@@ -23,12 +24,22 @@ metadata:
 spec:
   serviceClass: {{ $item.class }}
   owner: {{ $item.owner }}
-  lifecycle: {{ if or (eq $item.name "compute-workload") (eq $item.name "storage-volume") (eq $item.name "registry-harbor") (eq $item.name "observability-managed") (eq $item.name "application-ledger") }}Approved{{ else }}Draft{{ end }}
+  lifecycle: {{ if or (eq $item.name "compute-workload") (eq $item.name "storage-volume") (eq $item.name "registry-harbor") (eq $item.name "observability-managed") (eq $item.name "application-ledger") (eq $item.name "github-enterprise-governance") }}Approved{{ else }}Draft{{ end }}
   endpointClass: TenantSafe
   authenticationProxyRef: tenant
   supportBoundary: {{ $item.boundary | quote }}
   accessContract:
-    {{- if eq $item.name "application-ledger" }}
+    {{- if eq $item.name "github-enterprise-governance" }}
+    type: GovernanceWorkflow
+    isolationUnit: GitHubEnterpriseGovernanceCapability
+    isolationBoundary: Re8ch Admin singleton with reviewed workflow references; connector credentials, App private keys and installation tokens remain outside the binding.
+    isolationMechanism: Admin TenantGrant, singleton TenantServiceInstance and protected GitHub Actions workflow
+    provisioner: tenant-infrastructure/github-enterprise-governance-workflow
+    credentialDelivery: BrokerReference
+    requestFields: []
+    grantedResources: [GitHubEnterpriseGovernanceCapability]
+    revocation: Suspend the opaque workflow binding without deleting the GitHub App or its enterprise installation.
+    {{- else if eq $item.name "application-ledger" }}
     type: Endpoint
     isolationUnit: ExistingServiceEndpointGrant
     isolationBoundary: OAuth-authorized access to the existing Ledger endpoint; runtime, database, PVC and image ownership remain with the platform.

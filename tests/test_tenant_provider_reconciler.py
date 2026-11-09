@@ -67,6 +67,29 @@ def test_identity_store_resolves_membership_and_records_only_opaque_config():
     assert all(header == "Bearer service-key" for _, _, header in requests)
 
 
+def test_github_governance_reconcile_publishes_only_opaque_admin_binding():
+    class AdminKube(FakeKube):
+        def patch_status(self, plural, name, status, namespace):
+            assert plural == "tenantserviceinstances" and namespace == "tenant-infrastructure"
+            self.status = status
+
+    kube = AdminKube("integration.github.enterprise-governance.v1")
+    value = {
+        "metadata": {"name": "github-enterprise-governance", "namespace": "tenant-infrastructure",
+                     "uid": "github-governance-uid", "generation": 1,
+                     "labels": {"tenancy.re8ch.com/tenant": "admin"}},
+        "spec": {"tenantRef": "admin", "serviceClass": "integration.github.enterprise-governance.v1",
+                 "plan": "managed-governance", "lifecycle": "Requested", "parameters": {}},
+        "status": {},
+    }
+    provider.reconcile_instance(kube, value)
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"]["accessRef"] == "capability://github-enterprise-governance/admin/default"
+    assert kube.status["access"]["credentialMaterialReturned"] is False
+    serialized = json.dumps(kube.status).lower()
+    assert "privatekey" not in serialized and "token" not in serialized and "secret" not in serialized
+
+
 class FakeKube:
     def __init__(self, service_class):
         self.service_class = service_class

@@ -9,13 +9,14 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-var providerBacked = map[string]bool{"network.among-clusters.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true, "application.ledger.v1": true}
+var providerBacked = map[string]bool{"network.among-clusters.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true, "application.ledger.v1": true, "integration.github.enterprise-governance.v1": true}
 
 func liveServiceOnly(services []map[string]any, tenant string) []map[string]any {
 	filtered := []map[string]any{}
 	for _, service := range services {
 		serviceClass := asString(service, "serviceClass")
-		if providerBacked[serviceClass] && (serviceClass != "network.among-clusters.v1" || tenant == "artchais") {
+		if providerBacked[serviceClass] && (serviceClass != "network.among-clusters.v1" || tenant == "artchais") &&
+			(serviceClass != "integration.github.enterprise-governance.v1" || tenant == "admin") {
 			filtered = append(filtered, service)
 		}
 	}
@@ -65,6 +66,19 @@ func providerBindings(instances []any, tenant, ref string) []map[string]any {
 		name, uid := asString(meta, "name"), asString(meta, "uid")
 		serviceClass := asString(spec, "serviceClass")
 		resourceRef := "service://" + tenant + "/" + name
+		if serviceClass == "integration.github.enterprise-governance.v1" {
+			accessRef := asString(object(status["access"]), "accessRef")
+			if tenant == "admin" && asString(spec, "tenantRef") == tenant && name == "github-enterprise-governance" && uid != "" &&
+				status["phase"] == "Ready" && (ref == "" || ref == resourceRef) && accessRef == "capability://github-enterprise-governance/admin/default" {
+				bindings = append(bindings, map[string]any{
+					"bindingRef": "binding://" + tenant + "/provider/" + uid, "resourceRef": resourceRef,
+					"bindingType": "access:broker-reference", "accessRef": accessRef, "serviceClass": serviceClass,
+					"source": "provider-status", "state": "Ready", "revocable": false,
+					"revokeWith": "service_instance_suspend", "credentialMaterialReturned": false,
+				})
+			}
+			continue
+		}
 		if serviceClass == "application.ledger.v1" {
 			access := object(status["access"])
 			endpointRef := asString(access, "endpointRef")
