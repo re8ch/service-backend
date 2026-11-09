@@ -7,16 +7,23 @@ on:
         description: Reviewed Cloud Functions master commit to build
         required: true
         type: string
+      reuse_image:
+        description: Existing immutable image from a successful build that only needs finalization
+        required: false
+        type: string
+        default: ''
 
 permissions: {contents: read, id-token: write}
 concurrency: {group: payment-registry-release, cancel-in-progress: false}
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.reuse_image == ''
     runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     timeout-minutes: 30
+    outputs:
+      image: ${{ steps.image.outputs.image }}
     steps:
       - name: Validate revision
         env: {SOURCE_REVISION: "${{ inputs.revision }}"}
@@ -63,12 +70,39 @@ jobs:
           immutable="registry.re8ch.com/hyperswitch/processor-payment-registry-api@${digest}"
           printf '%s\n' "$immutable" | tee payment-registry.image
           echo "image=$immutable" >> "$GITHUB_OUTPUT"
+      - name: Remove temporary registry authorization
+        if: always()
+        run: |
+          if [[ -n "${DOCKER_CONFIG:-}" ]]; then
+            rm -f "$DOCKER_CONFIG/config.json"
+            rmdir "$DOCKER_CONFIG" || true
+          fi
+  finalize:
+    needs: release
+    if: >-
+      always() && github.ref == 'refs/heads/main' &&
+      (needs.release.result == 'success' || inputs.reuse_image != '')
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions: {contents: read, id-token: write}
+    steps:
+      - name: Validate immutable image selection
+        env:
+          IMAGE: ${{ inputs.reuse_image != '' && inputs.reuse_image || needs.release.outputs.image }}
+        run: |
+          [[ "$IMAGE" =~ ^registry\.re8ch\.com/hyperswitch/processor-payment-registry-api@sha256:[0-9a-f]{64}$ ]]
+          printf '%s\n' "$IMAGE" > payment-registry.image
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HYPERSWITCH_REGISTRY_USERNAME }}
+          password: ${{ secrets.HYPERSWITCH_REGISTRY_PASSWORD }}
       - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
         with:
           install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
       - name: Sign and verify immutable digest
         env:
-          IMAGE: ${{ steps.image.outputs.image }}
+          IMAGE: ${{ inputs.reuse_image != '' && inputs.reuse_image || needs.release.outputs.image }}
           IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/payment-registry-release.yml@refs/heads/main
         run: |
           cosign sign --yes "$IMAGE"
@@ -79,10 +113,3 @@ jobs:
           name: payment-registry-${{ inputs.revision }}
           path: payment-registry.image
           if-no-files-found: error
-      - name: Remove temporary registry authorization
-        if: always()
-        run: |
-          if [[ -n "${DOCKER_CONFIG:-}" ]]; then
-            rm -f "$DOCKER_CONFIG/config.json"
-            rmdir "$DOCKER_CONFIG" || true
-          fi
