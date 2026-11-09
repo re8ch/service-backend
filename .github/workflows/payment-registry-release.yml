@@ -1,0 +1,82 @@
+name: Release payment registry image
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Reviewed Cloud Functions master commit to build
+        required: true
+        type: string
+
+permissions: {contents: read, id-token: write}
+concurrency: {group: payment-registry-release, cancel-in-progress: false}
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Validate revision
+        env: {SOURCE_REVISION: "${{ inputs.revision }}"}
+        run: '[[ "$SOURCE_REVISION" =~ ^[a-f0-9]{40}$ ]]'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: re8ch/cloud-functions
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          ssh-key: ${{ secrets.CLOUD_FUNCTIONS_RELEASE_DEPLOY_KEY }}
+          persist-credentials: false
+      - name: Require merged source
+        env: {SOURCE_REVISION: "${{ inputs.revision }}"}
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_REVISION"
+          git merge-base --is-ancestor "$SOURCE_REVISION" origin/master
+      - run: go test ./functions/payment-registry-api
+      - name: Prepare isolated registry authentication
+        run: |
+          export DOCKER_CONFIG="${RUNNER_TEMP}/payment-registry-release-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          umask 077
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry.re8ch.com
+          username: ${{ secrets.HYPERSWITCH_REGISTRY_USERNAME }}
+          password: ${{ secrets.HYPERSWITCH_REGISTRY_PASSWORD }}
+      - name: Build and publish immutable Linux image
+        id: image
+        env: {SOURCE_REVISION: "${{ inputs.revision }}"}
+        run: |
+          export BUILDX_CONFIG="$HOME/.docker/buildx"
+          image="registry.re8ch.com/hyperswitch/processor-payment-registry-api:${SOURCE_REVISION}"
+          docker buildx inspect r640-mihomos >/dev/null
+          docker buildx build --builder r640-mihomos --platform linux/amd64 --provenance=mode=max \
+            --sbom=true --push -f functions/payment-registry-api/Dockerfile -t "$image" .
+          digest="$(docker buildx imagetools inspect "$image" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          immutable="registry.re8ch.com/hyperswitch/processor-payment-registry-api@${digest}"
+          printf '%s\n' "$immutable" | tee payment-registry.image
+          echo "image=$immutable" >> "$GITHUB_OUTPUT"
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+        with:
+          install-dir: ${{ runner.temp }}/cosign-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+      - name: Sign and verify immutable digest
+        env:
+          IMAGE: ${{ steps.image.outputs.image }}
+          IDENTITY: https://github.com/re8ch/service-backend/.github/workflows/payment-registry-release.yml@refs/heads/main
+        run: |
+          cosign sign --yes "$IMAGE"
+          cosign verify --certificate-identity "$IDENTITY" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com "$IMAGE" >/dev/null
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: payment-registry-${{ inputs.revision }}
+          path: payment-registry.image
+          if-no-files-found: error
+      - name: Remove temporary registry authorization
+        if: always()
+        run: |
+          rm -f "$DOCKER_CONFIG/config.json"
+          rmdir "$DOCKER_CONFIG" || true

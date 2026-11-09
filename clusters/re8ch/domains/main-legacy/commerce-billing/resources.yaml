@@ -303,3 +303,28 @@ stringData:
   email: ENC[AES256_GCM,data:gYnSfCIfbEmtWt/JQhmQXCIC7Jg=,iv:7uIZ4js5917h9Y2cd0g7KdZ8bfn/z8+BEg3E7Ja6k0k=,tag:NkbTYVoVU9wYB/hidWUoTg==,type:str]
   password: ENC[AES256_GCM,data:O3/0gwYfIAK5mLwUF+SKDbVlHFKvFMPA92kQGEWe+ZSoU5akskactA==,iv:DWhGUldjOKqGBlpUnf1W/aIvAKc8d/rVDhwFjlgqiws=,tag:x+LgYKUsxyx9OaGZrqLBdQ==,type:str]
 type: Opaque
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: payment-registry-token-reviewer
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: payment-registry-token-reviewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: payment-registry-token-reviewer
+subjects:
+- kind: ServiceAccount
+  name: payment-registry-api
+  namespace: payments

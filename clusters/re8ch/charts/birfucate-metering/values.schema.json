@@ -68,6 +68,10 @@
             "serviceRef": {"type": "string", "minLength": 1}, "meterCode": {"type": "string", "pattern": "^[a-z][a-z0-9._-]{1,63}$"}}}}
       }
     },
+    "serviceInstanceRuntime": {
+      "type": "object", "additionalProperties": false, "required": ["enabled", "serviceClasses"],
+      "properties": {"enabled": {"type": "boolean"}, "serviceClasses": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+    },
     "pricing": {
       "type": "object", "additionalProperties": false, "required": ["enabled", "currency", "rateCardRef"],
       "properties": {"enabled": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "rateCardRef": {"type": "string", "minLength": 1}}

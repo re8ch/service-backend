@@ -21,3 +21,4 @@ resources:
 - realtime-stack.yaml
 - identity-data-routes.yaml
 - identity-rest-ro.yaml
+- ledger-service-catalog.yaml

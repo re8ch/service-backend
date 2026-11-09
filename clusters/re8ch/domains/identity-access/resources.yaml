@@ -3366,6 +3366,68 @@ metadata:
 apiVersion: v1
 data:
   migration.sql: |
+    -- Source: re8ch/cloud-functions@fe166fdec07665eb88a1a2fe2ae474946ff9e7fe
+    begin transaction isolation level serializable;
+    set local role re8ch_billing_migrator;
+    insert into billing.services(service_ref,owner_tenant_ref,service_kind,name,description,
+      endpoint_ref,pricing_mode,lifecycle,provider_healthy,created_by)
+    values('platform/application.ledger.v1','admin','platform','Ledger',
+      'Managed access to the retained RE8CH Ledger application.',
+      'https://cn.ledger.re8ch.com','metered','published',true,null)
+    on conflict(service_ref) do update set
+      name=excluded.name,description=excluded.description,endpoint_ref=excluded.endpoint_ref,
+      pricing_mode=excluded.pricing_mode,lifecycle=excluded.lifecycle,
+      provider_healthy=excluded.provider_healthy,updated_at=now();
+    insert into billing.service_resources(service_ref,provider_kind,provider_ref,resource_class,healthy,verified_at)
+    values('platform/application.ledger.v1','bifurcate',
+      'bifurcate://re8ch/application-ledger','application.ledger.v1',true,now())
+    on conflict(provider_kind,provider_ref) do update set
+      service_ref=excluded.service_ref,resource_class=excluded.resource_class,
+      healthy=excluded.healthy,verified_at=excluded.verified_at;
+    do $$
+    declare v_price uuid;
+    begin
+      select id into v_price from billing.price_versions
+      where service_ref='platform/application.ledger.v1' and source_ref='catalog:ledger:v1';
+      if v_price is null then
+        insert into billing.price_versions(service_ref,currency,fixed_amount_minor,source_ref)
+        values('platform/application.ledger.v1','CNY',null,'catalog:ledger:v1') returning id into v_price;
+        insert into billing.price_components(price_version_id,meter_code,display_unit,bundle_quantity,amount_minor)
+        values(v_price,'instance_runtime','instance-hour',3600,1);
+      end if;
+    end $$;
+    create or replace function commerce_api.service_catalog_list() returns jsonb
+    language sql stable security definer set search_path=billing,pg_catalog,pg_temp as $$
+      with current_prices as (
+        select distinct on (service_ref) * from billing.price_versions
+        where effective_at<=now() order by service_ref,effective_at desc
+      )
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'service_ref',s.service_ref,'owner_tenant_ref',s.owner_tenant_ref,'name',s.name,
+        'description',s.description,'endpoint_ref',s.endpoint_ref,'pricing_mode',s.pricing_mode,
+        'price_version_id',p.id,'currency',p.currency,'amount_minor',p.fixed_amount_minor,
+        'meters',coalesce((select jsonb_agg(jsonb_build_object(
+          'meter_code',c.meter_code,'display_unit',c.display_unit,
+          'bundle_quantity',c.bundle_quantity,'amount_minor',c.amount_minor)
+          order by c.meter_code) from billing.price_components c where c.price_version_id=p.id),'[]'::jsonb),
+        'effective_at',p.effective_at) order by s.service_ref),'[]'::jsonb)
+      from billing.services s join current_prices p on p.service_ref=s.service_ref
+      where s.lifecycle='published' and s.provider_healthy
+        and (p.fixed_amount_minor is not null or exists(
+          select 1 from billing.price_components c where c.price_version_id=p.id))
+    $$;
+    revoke all on function commerce_api.service_catalog_list() from public;
+    grant execute on function commerce_api.service_catalog_list() to billing_commerce_runtime;
+    notify pgrst, 'reload schema';
+    commit;
+kind: ConfigMap
+metadata:
+  name: supabase-billing-ledger-service-v1
+  namespace: supabase-billing
+---
+apiVersion: v1
+data:
+  migration.sql: |
     begin;
 
     -- The public OAuth broker still uses legacy session IDs. Resolve those IDs
@@ -3623,6 +3685,60 @@ data:
 kind: ConfigMap
 metadata:
   name: supabase-identity-kong-config
+  namespace: supabase-identity
+---
+apiVersion: v1
+data:
+  migration.sql: |
+    -- Source: re8ch/cloud-functions@fe166fdec07665eb88a1a2fe2ae474946ff9e7fe
+    begin;
+    create table if not exists core.service_classes (
+      service_class text primary key check (service_class ~ '^[a-z][a-z0-9.-]{2,127}$'),
+      display_name text not null check (length(btrim(display_name)) between 1 and 120),
+      description text not null default '' check (length(description) <= 2000),
+      adapter text not null check (adapter ~ '^[a-z][a-z0-9-]{2,127}$'),
+      plans jsonb not null check (jsonb_typeof(plans) = 'array'),
+      binding_types jsonb not null check (jsonb_typeof(binding_types) = 'array'),
+      lifecycle text not null check (lifecycle in ('published','paused','retired')),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    );
+    alter table core.service_classes owner to supabase_admin;
+    alter table core.service_classes enable row level security;
+    revoke all on core.service_classes from public, anon, authenticated;
+    do $$ begin
+      if exists(select 1 from pg_roles where rolname='service_role') then
+        execute 'revoke all on core.service_classes from service_role';
+      end if;
+    end $$;
+    insert into core.service_classes(service_class,display_name,description,adapter,plans,binding_types,lifecycle)
+    values('application.ledger.v1','Ledger',
+      'Access to the retained RE8CH Ledger runtime without transferring runtime or data ownership.',
+      'existing-ledger-access','["managed-access"]','["endpoint:oauth"]','published')
+    on conflict(service_class) do update set
+      display_name=excluded.display_name,description=excluded.description,adapter=excluded.adapter,
+      plans=excluded.plans,binding_types=excluded.binding_types,lifecycle=excluded.lifecycle,updated_at=now();
+    create or replace function public.tenant_service_catalog()
+    returns jsonb language sql stable security definer set search_path=pg_catalog,pg_temp as $$
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'serviceClass',service_class,'displayName',display_name,'description',description,
+        'adapter',adapter,'plans',plans,'bindingTypes',binding_types)
+        order by service_class),'[]'::jsonb)
+      from core.service_classes where lifecycle='published'
+    $$;
+    alter function public.tenant_service_catalog() owner to supabase_admin;
+    revoke all on function public.tenant_service_catalog() from public, anon;
+    grant execute on function public.tenant_service_catalog() to authenticated;
+    do $$ begin
+      if exists(select 1 from pg_roles where rolname='service_role') then
+        execute 'grant execute on function public.tenant_service_catalog() to service_role';
+      end if;
+    end $$;
+    notify pgrst, 'reload schema';
+    commit;
+kind: ConfigMap
+metadata:
+  name: supabase-identity-ledger-service-v1
   namespace: supabase-identity
 ---
 apiVersion: v1
@@ -12913,6 +13029,55 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
+  name: supabase-billing-ledger-service-v1
+  namespace: supabase-billing
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - psql -X -v ON_ERROR_STOP=1 "$DATABASE_URL" -f /sql/migration.sql
+        command:
+        - /bin/sh
+        - -ceu
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: PGRST_DB_URI_RW
+              name: supabase-billing-secrets
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        name: migrate
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /sql
+          name: sql
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      restartPolicy: Never
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: pg-re8ch
+      volumes:
+      - configMap:
+          name: supabase-billing-ledger-service-v1
+        name: sql
+  ttlSecondsAfterFinished: 604800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
   name: supabase-identity-broker-groups-v2
   namespace: supabase-identity
 spec:
@@ -12965,6 +13130,64 @@ spec:
       volumes:
       - configMap:
           name: supabase-identity-broker-groups-v2
+        name: sql
+  ttlSecondsAfterFinished: 604800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-identity-ledger-service-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql
+        command:
+        - /bin/sh
+        - -ceu
+        env:
+        - name: PGHOST
+          value: pg-re8ch-primary.pigsty-external.svc.cluster.local
+        - name: PGDATABASE
+          value: re8ch_identity
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER_READ_WRITE
+              name: supabase-identity-secrets
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: supabase-identity-secrets
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        name: migrate
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /sql
+          name: sql
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      restartPolicy: Never
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: pg-re8ch
+      volumes:
+      - configMap:
+          name: supabase-identity-ledger-service-v1
         name: sql
   ttlSecondsAfterFinished: 604800
 ---

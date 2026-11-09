@@ -25,6 +25,7 @@ spec:
     resources:
     - apps/Deployment
     - core/Service
+    - core/ServiceAccount
     - gateway.networking.k8s.io/HTTPRoute
     objectNames:
     - commerce-api
@@ -38,6 +39,7 @@ spec:
     - payment-postgrest
     - payment-postgrest-ro
     - payment-postgrest-rw
+    - payment-registry-api
     - re8ch-catalog
     - re8ch-catalog-db-ro
     - re8ch-catalog-db-rw
@@ -45,7 +47,7 @@ spec:
     - re8ch-payment-registry-public
     allowClusterScoped: false
   inventory:
-    digest: sha256:339aafd1d9293593e956c6ecd1ad92d43d348f0ab0ba7402fa2b97ff138a723a
+    digest: sha256:06b7481245e1e84f29f88cb4c8fb73a7509a7fb6fdc12f6936a97f5570ef0efa
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -70,6 +72,7 @@ spec:
     - core/Service/payments/payment-postgrest
     - core/Service/payments/payment-postgrest-ro
     - core/Service/payments/re8ch-catalog
+    - core/ServiceAccount/payments/payment-registry-api
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-db-ro
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-db-rw
     - gateway.networking.k8s.io/HTTPRoute/payments/commerce-public-api

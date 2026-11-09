@@ -135,6 +135,14 @@ rules:
 - apiGroups:
   - ''
   resources:
+  - serviceaccounts
+  resourceNames:
+  - payment-registry-api
+  verbs:
+  - get
+- apiGroups:
+  - ''
+  resources:
   - services
   resourceNames:
   - commerce-api

@@ -629,7 +629,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-PROVIDER_SERVICE_CLASSES = {"registry.harbor.v1", "observability.grafana.v1"}
+PROVIDER_SERVICE_CLASSES = {"registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -643,6 +643,10 @@ def provider_service_spec(tenant_ref, name, request):
     parameters = request.get("parameters") or {}
     if not isinstance(parameters, dict):
         raise PermissionError("service parameters must be an object")
+    if service_class == "application.ledger.v1":
+        if request.get("planRef") != "managed-access" or parameters:
+            raise PermissionError("Ledger publishes only the parameterless managed-access plan")
+        return {}
     if service_class == "registry.harbor.v1":
         if request.get("planRef") not in {"pull", "build-push", "project-admin"}:
             raise PermissionError("Harbor plan is not published")
@@ -1253,7 +1257,11 @@ class Handler(BaseHTTPRequestHandler):
                 require_tenant_grant(tenant, service_class)
                 if service_class in PROVIDER_SERVICE_CLASSES:
                     parameters = provider_service_spec(tenant, name, request)
-                    adapter, access_unit = ("harbor-project-rbac", "ProjectMembershipRobot") if service_class == "registry.harbor.v1" else ("grafana-access", "OrganizationFolderDatasourceGrant")
+                    adapter, access_unit = {
+                        "registry.harbor.v1": ("harbor-project-rbac", "ProjectMembershipRobot"),
+                        "observability.grafana.v1": ("grafana-access", "OrganizationFolderDatasourceGrant"),
+                        "application.ledger.v1": ("existing-ledger-access", "ExistingServiceEndpointGrant"),
+                    }[service_class]
                     intent = {"adapter": adapter, "accessUnit": access_unit, "resourceRef": f"service://{tenant}/{name}", "tenantRef": tenant, "credentialMaterialReturned": False}
                 else:
                     parameters = among_clusters_spec(tenant, name, request)

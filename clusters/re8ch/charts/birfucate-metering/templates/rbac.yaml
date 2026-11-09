@@ -18,6 +18,9 @@ metadata:
   name: {{ include "birfucate-metering.fullname" . }}-discovery
   labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
 rules:
+  - apiGroups: [tenancy.re8ch.com]
+    resources: [tenantserviceinstances]
+    verbs: [get, list]
   - apiGroups: [""]
     resources: [pods, services, persistentvolumeclaims, nodes]
     verbs: [get, list, watch]

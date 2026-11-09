@@ -151,6 +151,10 @@ billingSink:
   #   serviceRef: platform/ai-model-gateway
   #   meterCode: tool_call
 
+serviceInstanceRuntime:
+  enabled: false
+  serviceClasses: []
+
 outbox:
   enabled: true
   storageClassName: rbd-r640

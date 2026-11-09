@@ -29,6 +29,25 @@
     "serviceClass": "ai.model-gateway.v1"
   },
   {
+    "accessUnit": "ExistingServiceEndpointGrant",
+    "adapter": "existing-ledger-access",
+    "bindings": [
+      "endpoint:oauth"
+    ],
+    "meters": {
+      "instance_runtime": "second",
+      "requests": "request"
+    },
+    "parameters": [],
+    "plans": [
+      "managed-access"
+    ],
+    "regions": [
+      "loudi"
+    ],
+    "serviceClass": "application.ledger.v1"
+  },
+  {
     "accessUnit": "DatabaseRoleSchema",
     "adapter": "pigsty-postgresql",
     "bindings": [

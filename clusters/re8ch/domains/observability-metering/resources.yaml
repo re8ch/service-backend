@@ -3320,6 +3320,15 @@ spec:
       retries: 3
       strategy: rollback
   values:
+    billingSink:
+      enabled: true
+      mappings:
+      - meter: usage.instance_runtime
+        meterCode: instance_runtime
+        serviceClass: application.ledger.v1
+        serviceRef: platform/application.ledger.v1
+      timeoutSeconds: 10
+      url: http://nuclio-payment-registry-api.payments.svc.cluster.local:8080/v1/internal/credits/usage-events
     image:
       pullPolicy: IfNotPresent
       repository: python
@@ -3329,11 +3338,15 @@ spec:
     nodeSelector:
       kubernetes.io/hostname: r640
     outbox:
-      enabled: false
+      enabled: true
     pricing:
       currency: CNY
       enabled: false
       rateCardRef: re8ch-showback-2026-09
+    serviceInstanceRuntime:
+      enabled: true
+      serviceClasses:
+      - application.ledger.v1
     serviceMonitor:
       enabled: false
     tenantPlatform:
@@ -3454,7 +3467,11 @@ spec:
         visibility: Private
       - deletionPolicy: Retain
         displayName: RE8CH Platform Administration
-        grants: []
+        grants:
+        - consumableRef: application.ledger.v1
+          lifecycle: Active
+          name: admin-ledger
+          roleRef: operator
         harborProjectRef: re8ch
         identityBindings:
         - group: re8ch:k8s-admins
@@ -3690,6 +3707,7 @@ spec:
     usageSink:
       allowedTenants:
       - re8ch
+      - admin
       enabled: true
     vmServiceScrape:
       enabled: false

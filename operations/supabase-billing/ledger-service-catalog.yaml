@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-billing-ledger-service-v1
+  namespace: supabase-billing
+data:
+  migration.sql: |
+    -- Source: re8ch/cloud-functions@fe166fdec07665eb88a1a2fe2ae474946ff9e7fe
+    begin transaction isolation level serializable;
+    set local role re8ch_billing_migrator;
+    insert into billing.services(service_ref,owner_tenant_ref,service_kind,name,description,
+      endpoint_ref,pricing_mode,lifecycle,provider_healthy,created_by)
+    values('platform/application.ledger.v1','admin','platform','Ledger',
+      'Managed access to the retained RE8CH Ledger application.',
+      'https://cn.ledger.re8ch.com','metered','published',true,null)
+    on conflict(service_ref) do update set
+      name=excluded.name,description=excluded.description,endpoint_ref=excluded.endpoint_ref,
+      pricing_mode=excluded.pricing_mode,lifecycle=excluded.lifecycle,
+      provider_healthy=excluded.provider_healthy,updated_at=now();
+    insert into billing.service_resources(service_ref,provider_kind,provider_ref,resource_class,healthy,verified_at)
+    values('platform/application.ledger.v1','bifurcate',
+      'bifurcate://re8ch/application-ledger','application.ledger.v1',true,now())
+    on conflict(provider_kind,provider_ref) do update set
+      service_ref=excluded.service_ref,resource_class=excluded.resource_class,
+      healthy=excluded.healthy,verified_at=excluded.verified_at;
+    do $$
+    declare v_price uuid;
+    begin
+      select id into v_price from billing.price_versions
+      where service_ref='platform/application.ledger.v1' and source_ref='catalog:ledger:v1';
+      if v_price is null then
+        insert into billing.price_versions(service_ref,currency,fixed_amount_minor,source_ref)
+        values('platform/application.ledger.v1','CNY',null,'catalog:ledger:v1') returning id into v_price;
+        insert into billing.price_components(price_version_id,meter_code,display_unit,bundle_quantity,amount_minor)
+        values(v_price,'instance_runtime','instance-hour',3600,1);
+      end if;
+    end $$;
+    create or replace function commerce_api.service_catalog_list() returns jsonb
+    language sql stable security definer set search_path=billing,pg_catalog,pg_temp as $$
+      with current_prices as (
+        select distinct on (service_ref) * from billing.price_versions
+        where effective_at<=now() order by service_ref,effective_at desc
+      )
+      select coalesce(jsonb_agg(jsonb_build_object(
+        'service_ref',s.service_ref,'owner_tenant_ref',s.owner_tenant_ref,'name',s.name,
+        'description',s.description,'endpoint_ref',s.endpoint_ref,'pricing_mode',s.pricing_mode,
+        'price_version_id',p.id,'currency',p.currency,'amount_minor',p.fixed_amount_minor,
+        'meters',coalesce((select jsonb_agg(jsonb_build_object(
+          'meter_code',c.meter_code,'display_unit',c.display_unit,
+          'bundle_quantity',c.bundle_quantity,'amount_minor',c.amount_minor)
+          order by c.meter_code) from billing.price_components c where c.price_version_id=p.id),'[]'::jsonb),
+        'effective_at',p.effective_at) order by s.service_ref),'[]'::jsonb)
+      from billing.services s join current_prices p on p.service_ref=s.service_ref
+      where s.lifecycle='published' and s.provider_healthy
+        and (p.fixed_amount_minor is not null or exists(
+          select 1 from billing.price_components c where c.price_version_id=p.id))
+    $$;
+    revoke all on function commerce_api.service_catalog_list() from public;
+    grant execute on function commerce_api.service_catalog_list() to billing_commerce_runtime;
+    notify pgrst, 'reload schema';
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-billing-ledger-service-v1
+  namespace: supabase-billing
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: r640}
+      tolerations:
+      - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
+      containers:
+      - name: migrate
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        command: [/bin/sh, -ceu]
+        args: ["psql -X -v ON_ERROR_STOP=1 \"$DATABASE_URL\" -f /sql/migration.sql"]
+        env:
+        - name: DATABASE_URL
+          valueFrom: {secretKeyRef: {name: supabase-billing-secrets, key: PGRST_DB_URI_RW}}
+        volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+        resources:
+          requests: {cpu: 10m, memory: 32Mi}
+          limits: {cpu: 250m, memory: 128Mi}
+      volumes:
+      - name: sql
+        configMap: {name: supabase-billing-ledger-service-v1}

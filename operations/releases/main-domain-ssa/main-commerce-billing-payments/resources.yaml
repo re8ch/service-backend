@@ -259,6 +259,8 @@ spec:
       - env:
         - name: BILLING_CREDITS_ENABLED
           value: 'true'
+        - name: BILLING_USAGE_SERVICE_ACCOUNT
+          value: system:serviceaccount:observability-ai:birfucate-metering
         - name: CREDITS_DISPATCH_ENABLED
           value: 'false'
         - name: RE8CH_AUTH_BASE_URL
@@ -416,6 +418,7 @@ spec:
         runAsUser: 10001
         seccompProfile:
           type: RuntimeDefault
+      serviceAccountName: payment-registry-api
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -648,6 +651,12 @@ spec:
     targetPort: http
   selector:
     app.kubernetes.io/name: re8ch-catalog
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payment-registry-api
+  namespace: payments
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute

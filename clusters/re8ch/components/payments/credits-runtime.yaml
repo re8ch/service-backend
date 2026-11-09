@@ -23,6 +23,21 @@ data:
             serviceType: ClusterIP
             maxRequestBodySize: 1048576
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: payment-registry-api, namespace: payments}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: payment-registry-token-reviewer}
+rules: [{apiGroups: [authentication.k8s.io], resources: [tokenreviews], verbs: [create]}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: payment-registry-token-reviewer}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: payment-registry-token-reviewer}
+subjects: [{kind: ServiceAccount, name: payment-registry-api, namespace: payments}]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,6 +51,7 @@ spec:
     metadata:
       labels: {app: payment-postgrest}
     spec:
+      serviceAccountName: payment-registry-api
       nodeSelector: {kubernetes.io/hostname: r640}
       securityContext: {runAsNonRoot: true, runAsUser: 10001, seccompProfile: {type: RuntimeDefault}}
       containers:
@@ -164,6 +180,7 @@ spec:
             - secretRef: {name: payment-registry-secrets}
           env:
             - {name: BILLING_CREDITS_ENABLED, value: "true"}
+            - {name: BILLING_USAGE_SERVICE_ACCOUNT, value: "system:serviceaccount:observability-ai:birfucate-metering"}
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
             - {name: RE8CH_AUTH_BASE_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}

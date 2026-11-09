@@ -10,6 +10,37 @@ metadata:
   name: payments
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payment-registry-api
+  namespace: payments
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: payment-registry-token-reviewer
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: payment-registry-token-reviewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: payment-registry-token-reviewer
+subjects:
+- kind: ServiceAccount
+  name: payment-registry-api
+  namespace: payments
+---
+apiVersion: v1
 kind: Secret
 metadata:
   name: hyperswitch-runtime-values
@@ -626,6 +657,8 @@ spec:
       - env:
         - name: BILLING_CREDITS_ENABLED
           value: "true"
+        - name: BILLING_USAGE_SERVICE_ACCOUNT
+          value: system:serviceaccount:observability-ai:birfucate-metering
         - name: CREDITS_DISPATCH_ENABLED
           value: "false"
         - name: RE8CH_AUTH_BASE_URL
@@ -783,6 +816,7 @@ spec:
         runAsUser: 10001
         seccompProfile:
           type: RuntimeDefault
+      serviceAccountName: payment-registry-api
 ---
 apiVersion: apps/v1
 kind: Deployment
