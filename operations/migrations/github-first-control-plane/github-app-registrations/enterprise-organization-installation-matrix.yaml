@@ -2,7 +2,7 @@ apiVersion: coordination.re8ch.com/github-app-installation-matrix/v1alpha1
 kind: GitHubAppInstallationMatrix
 metadata:
   name: re8ch-enterprise-apps
-  observedAt: "2026-11-10T02:05:00+08:00"
+  observedAt: "2026-11-10T02:42:00+08:00"
 spec:
   enterprise: re8ch
   apps:
@@ -41,11 +41,37 @@ spec:
   - thinking-machine-labs
   rollout:
     registration: complete
-    privateKeys: pending-approved-credential-intake
-    enterpriseInstallations: pending
-    organizationInstallations: pending
+    permissions: configured-and-read-back-for-all-seven-apps
+    privateKeys: governance-key-in-github-secret
+    enterpriseInstallations: governance-installed
+    organizationInstallations: blocked-enterprise-iat-token-endpoint-404
     repositorySelection: explicit-per-app
-    effectivePermissionReadback: pending
+    effectivePermissionReadback: complete
+  governanceInstallation:
+    installationId: 180243962
+    targetType: Enterprise
+    privateKeySecret: RE8CH_ENTERPRISE_GOVERNANCE_APP_PRIVATE_KEY
+    appIdVariable: RE8CH_ENTERPRISE_GOVERNANCE_APP_ID
+    secretScope: re8ch/service-backend
+    tokenProbe:
+      endpoint: /app/installations/180243962/access_tokens
+      apiVersion: "2026-03-10"
+      result: http-404
+      impact: >-
+        The enterprise installation is visible to the authenticated App JWT,
+        but GitHub did not mint its installation token. The documented
+        organization-installation API therefore cannot yet be used to roll the
+        repository Apps out across all organizations.
+  permissionReadback:
+    source: GET /apps/{app_slug}
+    configuredPermissionCounts:
+      re8ch-enterprise-governance: 64
+      re8ch-enterprise-delivery: 16
+      re8ch-enterprise-security: 7
+      re8ch-enterprise-collaboration: 6
+      re8ch-enterprise-developer-ai: 12
+      re8ch-enterprise-identity: 11
+      re8ch-enterprise-billing: 4
   githubConnector:
     connector: openai-curated-remote/github
     verifiedOrganizationInstallation:

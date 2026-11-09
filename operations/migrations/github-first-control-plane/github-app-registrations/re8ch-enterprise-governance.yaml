@@ -8,6 +8,13 @@ spec:
     clientId: Iv23lisQqGhMdC2A9WS3
     publicLink: https://github.com/apps/re8ch-enterprise-governance
     state: registered
+  liveInstallation:
+    target: {type: enterprise, slug: re8ch}
+    installationId: 180243962
+    state: installed
+    privateKeySecret: RE8CH_ENTERPRISE_GOVERNANCE_APP_PRIVATE_KEY
+    appIdVariable: RE8CH_ENTERPRISE_GOVERNANCE_APP_ID
+    credentialRepository: re8ch/service-backend
   owner:
     type: enterprise
     slug: re8ch

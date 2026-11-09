@@ -102,8 +102,13 @@ def test_installation_matrix_covers_every_observed_enterprise_organization():
     spec = yaml.safe_load(MATRIX.read_text())["spec"]
     assert len(spec["organizations"]) == 25
     assert len(spec["apps"]) == 7
-    assert spec["rollout"]["privateKeys"] == "pending-approved-credential-intake"
-    assert spec["rollout"]["effectivePermissionReadback"] == "pending"
+    assert spec["rollout"]["privateKeys"] == "governance-key-in-github-secret"
+    assert spec["rollout"]["effectivePermissionReadback"] == "complete"
+    assert spec["governanceInstallation"]["installationId"] == 180243962
+    assert spec["governanceInstallation"]["tokenProbe"]["result"] == "http-404"
+    assert set(spec["permissionReadback"]["configuredPermissionCounts"]) == set(
+        spec["apps"]
+    )
     connector = spec["githubConnector"]
     assert connector["verifiedOrganizationInstallation"]["organization"] == "re8ch"
     assert connector["verifiedOrganizationInstallation"]["installationId"] == 167331919

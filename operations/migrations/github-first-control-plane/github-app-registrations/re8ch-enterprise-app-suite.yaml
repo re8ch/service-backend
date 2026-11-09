@@ -28,7 +28,7 @@ spec:
     displayName: Re8ch Enterprise Delivery
     appId: 5684175
     clientId: Iv23lix94cleZd6YJknF
-    registrationState: registered-permissions-pending
+    registrationState: registered-permissions-configured
     responsibilities:
     - actions
     - checks-and-statuses
@@ -42,7 +42,7 @@ spec:
     displayName: Re8ch Enterprise Security
     appId: 5684183
     clientId: Iv23liPC1xcSV31hLtYs
-    registrationState: registered-permissions-pending
+    registrationState: registered-permissions-configured
     responsibilities:
     - advanced-security-products
     - code-scanning
@@ -57,7 +57,7 @@ spec:
     displayName: Re8ch Enterprise Collaboration
     appId: 5684186
     clientId: Iv23liUVHW1mE86ZnJwI
-    registrationState: registered-permissions-pending
+    registrationState: registered-permissions-configured
     responsibilities:
     - issues-and-pull-requests
     - discussions
@@ -71,7 +71,7 @@ spec:
     displayName: Re8ch Enterprise Developer AI
     appId: 5684190
     clientId: Iv23ctck17G3cAiX2iAY
-    registrationState: registered-permissions-pending
+    registrationState: registered-permissions-configured
     responsibilities:
     - agent-tasks-secrets-and-variables
     - copilot-settings-spaces-requests-and-content-exclusion
@@ -83,7 +83,7 @@ spec:
     displayName: Re8ch Enterprise Identity
     appId: 5684192
     clientId: Iv23liIqRiBNNNfU7iVy
-    registrationState: registered-permissions-pending
+    registrationState: registered-permissions-configured
     responsibilities:
     - enterprise-people
     - enterprise-scim
@@ -96,7 +96,7 @@ spec:
     displayName: Re8ch Enterprise Billing
     appId: 5684196
     clientId: Iv23li8FXgAW4pmIm6Nk
-    registrationState: registered-permissions-pending
+    registrationState: registered-permissions-configured
     responsibilities:
     - enterprise-billing
     - organization-plan
