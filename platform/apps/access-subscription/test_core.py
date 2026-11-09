@@ -25,13 +25,15 @@ class SubscriptionTests(unittest.TestCase):
 
     def test_subscription_uses_publication_not_runtime_target(self):
         raw = base64.b64decode(subscription_body("credential")).decode()
-        self.assertEqual(len(raw.strip().splitlines()), 3)
+        self.assertEqual(len(raw.strip().splitlines()), 5)
         self.assertNotIn("anytls://credential@us-ca.access.re8ch.com:443", raw)
         self.assertIn("anytls://credential@direct-la.access.re8ch.com:24443", raw)
         self.assertNotIn("personal-access-us-ca", raw)
         self.assertNotIn("route-la.access.re8ch.com:4443", raw)
         self.assertIn("direct-la.access.re8ch.com:24443", raw)
         self.assertIn("anytls://credential@direct-cn.access.re8ch.com:24443", raw)
+        self.assertIn("anytls://credential@179.253.231.159:24443", raw)
+        self.assertIn("anytls://credential@2.28.106.230:24443", raw)
         self.assertNotIn("direct-cn.access.re8ch.com:24444", raw)
         status = public_node(DEFAULT_NODES[1])
         self.assertEqual(status["server"], "us-ca.access.re8ch.com")
@@ -81,7 +83,7 @@ class SubscriptionTests(unittest.TestCase):
         self.assertLess(config.index("DOMAIN-SUFFIX,cloud.tencent.com,DIRECT"), config.index("MATCH,PROXY"))
         self.assertIn("name: CODEX-STABLE", config)
         self.assertIn("  - name: AUTO\n    type: fallback", config)
-        self.assertIn("      - LA-PREFERRED\n      - DIRECT", config)
+        self.assertIn('      - LA-PREFERRED\n      - "🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS"\n      - DIRECT', config)
 
     def test_preferred_la_hosts_fail_over_to_germany_then_direct(self):
         dynamic = (
@@ -90,11 +92,11 @@ class SubscriptionTests(unittest.TestCase):
             Node("edge-access-overseas-flk", "DE", Publication("anytls", "2.28.106.230", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
         )
         mihomo = mihomo_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
-        self.assertIn("  - name: AUTO\n    type: fallback\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    proxies:\n      - LA-PREFERRED\n      - \"DE\"\n      - DIRECT", mihomo)
-        self.assertIn("  - name: LA-PREFERRED\n    type: url-test\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    tolerance: 80\n    proxies:\n      - \"LA 1\"\n      - \"LA 2\"", mihomo)
+        self.assertIn('  - name: AUTO\n    type: fallback\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    proxies:\n      - LA-PREFERRED\n      - "🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS"\n      - DIRECT', mihomo)
+        self.assertIn('  - name: LA-PREFERRED\n    type: url-test\n    url: https://www.gstatic.com/generate_204\n    interval: 600\n    tolerance: 80\n    proxies:\n      - "LA 1"\n      - "🇺🇸 Edge Direct · 洛杉矶 2 · AnyTLS"', mihomo)
         shadowrocket = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
-        self.assertIn("AUTO = fallback, LA-PREFERRED, DE, DIRECT", shadowrocket)
-        self.assertIn("LA-PREFERRED = url-test, LA 1, LA 2", shadowrocket)
+        self.assertIn("AUTO = fallback, LA-PREFERRED, 🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS, DIRECT", shadowrocket)
+        self.assertIn("LA-PREFERRED = url-test, LA 1, 🇺🇸 Edge Direct · 洛杉矶 2 · AnyTLS", shadowrocket)
 
     def test_second_la_discovery_keeps_first_la_publication_preferred(self):
         dynamic = (
@@ -102,10 +104,10 @@ class SubscriptionTests(unittest.TestCase):
             Node("edge-access-overseas-flk", "DE", Publication("anytls", "2.28.106.230", 24443, "access.re8ch.com"), RuntimeTarget("edge-access-anytls", "edge-access-anytls", "de-fsn", 400)),
         )
         shadowrocket = shadowrocket_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
-        self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 · AnyTLS, LA 2, 🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", shadowrocket)
-        self.assertIn("AUTO = fallback, LA-PREFERRED, DE, DIRECT", shadowrocket)
+        self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 1 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 2 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 1 · Hysteria2", shadowrocket)
+        self.assertIn("AUTO = fallback, LA-PREFERRED, 🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS, DIRECT", shadowrocket)
         mihomo = mihomo_config("credential", "token", "https://sub.access.re8ch.com", DEFAULT_NODES + dynamic).decode()
-        self.assertIn('      - "🇺🇸 Edge Direct · 洛杉矶 · AnyTLS"\n      - "LA 2"\n      - "🇺🇸 Edge Direct · 洛杉矶 · Hysteria2"', mihomo)
+        self.assertIn('      - "🇺🇸 Edge Direct · 洛杉矶 1 · AnyTLS"\n      - "🇺🇸 Edge Direct · 洛杉矶 2 · AnyTLS"\n      - "🇺🇸 Edge Direct · 洛杉矶 1 · Hysteria2"', mihomo)
 
     def test_mihomo_forces_todesk_process_and_domains_direct(self):
         config = mihomo_config("credential", "token", "https://sub.access.re8ch.com").decode()
@@ -124,16 +126,18 @@ class SubscriptionTests(unittest.TestCase):
         self.assertNotIn("♻️ RouteOS · Auto 决策 · AnyTLS", config)
         self.assertNotIn("🇺🇸 RouteOS · 洛杉矶 · Hysteria2", config)
         self.assertNotIn("🇲🇾 Edge Direct · 吉隆坡 · AnyTLS", config)
-        self.assertIn("🇺🇸 Edge Direct · 洛杉矶 · AnyTLS = anytls, direct-la.access.re8ch.com, 24443", config)
-        self.assertIn("🇺🇸 Edge Direct · 洛杉矶 · Hysteria2 = hysteria2, direct-la.access.re8ch.com, 24444", config)
+        self.assertIn("🇺🇸 Edge Direct · 洛杉矶 1 · AnyTLS = anytls, direct-la.access.re8ch.com, 24443", config)
+        self.assertIn("🇺🇸 Edge Direct · 洛杉矶 1 · Hysteria2 = hysteria2, direct-la.access.re8ch.com, 24444", config)
         self.assertIn("🇨🇳 Edge Direct · 娄底 · AnyTLS = anytls, direct-cn.access.re8ch.com, 24443", config)
         self.assertIn("[Proxy Group]", config)
         self.assertIn("PROXY = select, AUTO, CODEX-STABLE", config)
         self.assertIn("CODEX-STABLE = select, AUTO", config)
-        self.assertIn("AUTO = fallback, LA-PREFERRED, DIRECT", config)
-        self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 · Hysteria2", config)
+        self.assertIn("AUTO = fallback, LA-PREFERRED, 🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS, DIRECT", config)
+        self.assertIn("LA-PREFERRED = url-test, 🇺🇸 Edge Direct · 洛杉矶 1 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 2 · AnyTLS, 🇺🇸 Edge Direct · 洛杉矶 1 · Hysteria2", config)
+        self.assertIn("🇩🇪 Edge Direct · 德国 Falkenstein · AnyTLS = anytls, 2.28.106.230, 24443", config)
+        self.assertIn("🇨🇳 Edge Direct · 娄底 · AnyTLS = anytls, direct-cn.access.re8ch.com, 24443", config)
         self.assertIn("🤖 AI = select, CODEX-STABLE, PROXY, AUTO, DIRECT", config)
-        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20261020-edge-discovery-2", config)
+        self.assertIn("update-url = https://sub.access.re8ch.com/s/token/shadowrocket.conf?v=20261110-four-public-edges-1", config)
         self.assertIn("skip-proxy = 192.168.0.0/16", config)
         self.assertIn("dns-server = https://1.1.1.1/dns-query, https://dns.google/dns-query", config)
         self.assertIn("fallback-dns-server = https://dns.alidns.com/dns-query, https://doh.pub/dns-query", config)
