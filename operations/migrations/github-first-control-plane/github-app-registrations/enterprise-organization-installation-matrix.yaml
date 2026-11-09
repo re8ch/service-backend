@@ -83,25 +83,4 @@ spec:
       tokens or permissions from Re8ch-owned Apps. Direct connector use is
       limited to tools published by the connector. Enterprise capabilities
       require a separately published Re8ch MCP/plugin tool surface.
-  translator:
-    tool: platform_github_enterprise_apps
-    publication: re8ch-tenant-mcp
-    implementationState: implemented-pending-release-and-credential-provisioning
-    identity: re8ch-enterprise-governance
-    credentialSecret:
-      namespace: tenant-infrastructure
-      name: re8ch-enterprise-governance-github-app
-      requiredKeys: [app-id, installation-id, private-key.pem]
-    operations:
-    - list-enterprise-organizations
-    - list-organization-installations
-    - preview-organization-installation
-    - apply-organization-installation
-    controls:
-    - platform-admin-membership-required
-    - fixed-enterprise-re8ch
-    - fixed-github-rest-route-family
-    - exact-plan-hash-before-write
-    - short-lived-installation-token-only
-    - credential-and-token-values-never-returned
 

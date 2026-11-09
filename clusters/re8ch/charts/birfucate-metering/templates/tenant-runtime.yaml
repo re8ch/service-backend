@@ -29,21 +29,6 @@ automountServiceAccountToken: false
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-metadata: {name: tenant-github-enterprise-app-read, namespace: tenant-infrastructure}
-rules:
-  - apiGroups: [""]
-    resources: [secrets]
-    resourceNames: [re8ch-enterprise-governance-github-app]
-    verbs: [get]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata: {name: tenant-github-enterprise-app-read, namespace: tenant-infrastructure}
-roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-github-enterprise-app-read}
-subjects: [{kind: ServiceAccount, name: tenant-api, namespace: tenant-infrastructure}]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
 metadata: {name: tenant-platform-tool-upstream-read, namespace: toolhive-system}
 rules:
   - apiGroups: [""]
