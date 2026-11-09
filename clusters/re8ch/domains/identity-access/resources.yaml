@@ -13057,6 +13057,12 @@ spec:
           requests:
             cpu: 10m
             memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         volumeMounts:
         - mountPath: /sql
           name: sql
@@ -13064,6 +13070,12 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: r640
       restartPolicy: Never
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -13173,6 +13185,12 @@ spec:
           requests:
             cpu: 10m
             memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
         volumeMounts:
         - mountPath: /sql
           name: sql
@@ -13180,6 +13198,12 @@ spec:
       nodeSelector:
         kubernetes.io/hostname: r640
       restartPolicy: Never
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
       tolerations:
       - effect: NoSchedule
         key: dedicated

@@ -64,12 +64,21 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
       nodeSelector: {kubernetes.io/hostname: r640}
       tolerations:
       - {key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}
       containers:
       - name: migrate
         image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: [ALL]}
         command: [/bin/sh, -ceu]
         args: ["psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql"]
         env:
