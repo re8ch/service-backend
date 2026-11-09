@@ -2,7 +2,7 @@ apiVersion: coordination.re8ch.com/github-app-installation-matrix/v1alpha1
 kind: GitHubAppInstallationMatrix
 metadata:
   name: re8ch-enterprise-apps
-  observedAt: "2026-11-10T02:42:00+08:00"
+  observedAt: "2026-11-10T03:12:00+08:00"
 spec:
   enterprise: re8ch
   apps:
@@ -44,7 +44,7 @@ spec:
     permissions: configured-and-read-back-for-all-seven-apps
     privateKeys: governance-key-in-github-secret
     enterpriseInstallations: governance-installed
-    organizationInstallations: blocked-enterprise-iat-token-endpoint-404
+    organizationInstallations: ready-for-reviewed-rollout
     repositorySelection: explicit-per-app
     effectivePermissionReadback: complete
   governanceInstallation:
@@ -56,12 +56,11 @@ spec:
     tokenProbe:
       endpoint: /app/installations/180243962/access_tokens
       apiVersion: "2026-03-10"
-      result: http-404
+      result: http-201
       impact: >-
-        The enterprise installation is visible to the authenticated App JWT,
-        but GitHub did not mint its installation token. The documented
-        organization-installation API therefore cannot yet be used to roll the
-        repository Apps out across all organizations.
+        GitHub minted a one-hour installation token with 18 effective
+        enterprise permissions. Reviewed organization-installation requests
+        can now use the documented enterprise API.
   permissionReadback:
     source: GET /apps/{app_slug}
     configuredPermissionCounts:
@@ -80,7 +79,14 @@ spec:
       repositorySelection: all
     boundary: >-
       The connector uses its own GitHub App installation and does not inherit
-      tokens or permissions from Re8ch-owned Apps. Direct connector use is
-      limited to tools published by the connector. Enterprise capabilities
-      require a separately published Re8ch MCP/plugin tool surface.
+      tokens or permissions from Re8ch-owned Apps. Direct connector use remains
+      limited to tools published by the connector. For enterprise operations,
+      the connector can dispatch a protected repository workflow; that workflow
+      mints a short-lived Governance App token without returning it to either
+      connector or adding a Re8ch plugin entry point.
+    workflowBridge:
+      workflow: .github/workflows/github-enterprise-governance-auth.yml
+      trigger: workflow_dispatch
+      currentCapability: authenticate-and-read-back-installation
+      mutationPolicy: dedicated-reviewed-workflow-per-operation
 
