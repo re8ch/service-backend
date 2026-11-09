@@ -5,3 +5,4 @@ resources:
   - postgrest-runtime.yaml
   - network-policy.yaml
   - public-routes.yaml
+  - ledger-service-catalog.yaml
