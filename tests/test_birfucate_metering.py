@@ -141,6 +141,42 @@ def test_usage_outbox_can_limit_events_to_managed_tenant(tmp_path, monkeypatch):
     assert [event["tenantRef"] for _, event in outbox.pending()] == ["re8ch"]
 
 
+def test_ready_ledger_instance_emits_billable_runtime(tmp_path, monkeypatch):
+    values = yaml.safe_load((CHART / "values.yaml").read_text())
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "opencost": {"enabled": False}, "usageSink": {"allowedTenants": ["admin"]},
+        "serviceInstanceRuntime": {"enabled": True, "serviceClasses": ["application.ledger.v1"]},
+        "tenantLabels": values["tenantLabels"], "meters": {},
+    }
+    monkeypatch.setattr(collector, "ready_service_instances", lambda _config: [{
+        "metadata": {"name": "ledger", "generation": 2},
+        "spec": {"tenantRef": "admin", "serviceClass": "application.ledger.v1", "lifecycle": "Requested"},
+        "status": {"phase": "Ready", "observedGeneration": 2},
+    }])
+    monkeypatch.setattr(collector, "collect_node_cost_allocation", lambda *_args: None)
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 100, 160)
+    event = outbox.pending()[0][1]
+    assert (event["tenantRef"], event["resourceRef"], event["serviceClass"]) == (
+        "admin", "service://admin/ledger", "application.ledger.v1")
+    assert (event["meter"], event["quantity"], event["unit"]) == ("usage.instance_runtime", 60, "second")
+
+
+def test_release_enables_ledger_billing_path():
+    release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
+    values = release["spec"]["values"]
+    assert values["outbox"]["enabled"] is True
+    assert values["usageSink"]["allowedTenants"] == ["re8ch", "admin"]
+    assert values["billingSink"] == {
+        "enabled": True,
+        "url": "http://nuclio-payment-registry-api.payments.svc.cluster.local:8080/v1/internal/credits/usage-events",
+        "timeoutSeconds": 10,
+        "mappings": [{"serviceClass": "application.ledger.v1", "meter": "usage.instance_runtime",
+                      "serviceRef": "platform/application.ledger.v1", "meterCode": "instance_runtime"}],
+    }
+
+
 def test_crds_use_status_subresources_cel_and_selectable_fields():
     rendered = subprocess.run(["helm", "template", "birfucate", str(CHART), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds"], check=True, capture_output=True, text=True).stdout
     crds = {item["spec"]["names"]["kind"]: item for item in yaml.safe_load_all(rendered) if item and item["kind"] == "CustomResourceDefinition" and item["spec"]["group"] == "finops.re8ch.com"}

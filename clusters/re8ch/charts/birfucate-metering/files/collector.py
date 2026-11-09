@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import ssl
 import sqlite3
 import threading
 import time
@@ -37,6 +38,31 @@ BROWSER_METRICS = frozenset({
     "birfucate_unallocated_cost_total",
     "birfucate_tenant_resource_count",
 })
+
+
+def ready_service_instances(config: dict[str, Any]) -> list[dict[str, Any]]:
+    runtime = config.get("serviceInstanceRuntime") or {}
+    if not runtime.get("enabled"):
+        return []
+    token = USAGE_TOKEN_PATH.read_text().strip()
+    host = os.environ["KUBERNETES_SERVICE_HOST"]
+    port = os.getenv("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    request = urllib.request.Request(
+        f"https://{host}:{port}/apis/tenancy.re8ch.com/v1alpha1/tenantserviceinstances",
+        headers={"Authorization": "Bearer " + token, "Accept": "application/json"},
+    )
+    context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+    with urllib.request.urlopen(request, context=context, timeout=10) as response:
+        items = json.load(response).get("items", [])
+    published = set(runtime.get("serviceClasses") or [])
+    ready = []
+    for item in items:
+        meta, spec, status = item.get("metadata", {}), item.get("spec", {}), item.get("status", {})
+        if (spec.get("serviceClass") in published and spec.get("lifecycle") == "Requested"
+                and status.get("phase") == "Ready"
+                and status.get("observedGeneration") == meta.get("generation", 1)):
+            ready.append(item)
+    return ready
 
 
 def load_config() -> dict[str, Any]:
@@ -291,6 +317,24 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
     tenant_resources: set[tuple[str, str, str]] = set()
     tenant_costs: dict[tuple[str, str], float] = {}
     set_metric("birfucate_dependency_up", {"dependency": "prometheus"}, 1)
+    try:
+        for item in ready_service_instances(config):
+            meta, spec = item["metadata"], item["spec"]
+            tenant = spec["tenantRef"]
+            resource = f"service://{tenant}/{meta['name']}"
+            quantity = float(interval)
+            labels = {"tenant": tenant, "resource_ref": resource, "domain": "application",
+                      "resource_type": "service-instance", "purpose": "instance-runtime",
+                      "meter": "instance_runtime", "unit": "second"}
+            add_metric("birfucate_usage_total", labels, quantity)
+            tenant_resources.add((tenant, resource, "service-instance"))
+            queue(usage_event(tenant, resource, "application", "usage.instance_runtime", quantity,
+                              "second", start, end,
+                              {"resourceType": "service-instance", "purpose": "instance-runtime",
+                               "billingEligible": True}, service_class=spec["serviceClass"]))
+        set_metric("birfucate_dependency_up", {"dependency": "service-instances"}, 1)
+    except (KeyError, OSError, RuntimeError, urllib.error.URLError):
+        set_metric("birfucate_dependency_up", {"dependency": "service-instances"}, 0)
     opencost = config.get("opencost") or {}
     if opencost.get("enabled"):
         request = urllib.request.Request(opencost["baseURL"].rstrip("/") + opencost["allocationPath"], headers={"Accept": "application/json"})
