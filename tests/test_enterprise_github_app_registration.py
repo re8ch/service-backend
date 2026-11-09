@@ -10,6 +10,7 @@ REGISTRATION = (
     / "re8ch-enterprise-governance.yaml"
 )
 SUITE = REGISTRATION.with_name("re8ch-enterprise-app-suite.yaml")
+MATRIX = REGISTRATION.with_name("enterprise-organization-installation-matrix.yaml")
 
 
 def registration():
@@ -95,3 +96,15 @@ def test_enterprise_suite_uses_durable_responsibility_boundaries():
         "enterprise-billing",
     } <= responsibilities
     assert "ruleset-bypass" in spec["exclusions"]
+
+
+def test_installation_matrix_covers_every_observed_enterprise_organization():
+    spec = yaml.safe_load(MATRIX.read_text())["spec"]
+    assert len(spec["organizations"]) == 25
+    assert len(spec["apps"]) == 7
+    assert spec["rollout"]["privateKeys"] == "pending-approved-credential-intake"
+    assert spec["rollout"]["effectivePermissionReadback"] == "pending"
+    connector = spec["githubConnector"]
+    assert connector["verifiedOrganizationInstallation"]["organization"] == "re8ch"
+    assert connector["verifiedOrganizationInstallation"]["installationId"] == 167331919
+    assert "does not inherit" in connector["boundary"]

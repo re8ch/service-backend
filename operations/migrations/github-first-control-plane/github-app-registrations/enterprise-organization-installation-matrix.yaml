@@ -1,0 +1,60 @@
+apiVersion: coordination.re8ch.com/github-app-installation-matrix/v1alpha1
+kind: GitHubAppInstallationMatrix
+metadata:
+  name: re8ch-enterprise-apps
+  observedAt: "2026-11-10T02:05:00+08:00"
+spec:
+  enterprise: re8ch
+  apps:
+  - re8ch-enterprise-governance
+  - re8ch-enterprise-delivery
+  - re8ch-enterprise-security
+  - re8ch-enterprise-collaboration
+  - re8ch-enterprise-developer-ai
+  - re8ch-enterprise-identity
+  - re8ch-enterprise-billing
+  organizations:
+  - 8iops
+  - advanced-fabrics
+  - aesthete-robotics
+  - among-clusters
+  - anycam-app
+  - anysiteonearth
+  - baozou-ppt-studio
+  - bifurcate-systems
+  - compocv
+  - farseer-video
+  - garageband-mcp
+  - helio-logistics
+  - jjk-live-app
+  - jjklive
+  - lizhang-ledger
+  - motor-muscle-sim
+  - phonaid
+  - pillars-infra
+  - public-edge
+  - re8ch
+  - re8ch-business
+  - rover-apps
+  - siren-observer
+  - strata-silica
+  - thinking-machine-labs
+  rollout:
+    registration: complete
+    privateKeys: pending-approved-credential-intake
+    enterpriseInstallations: pending
+    organizationInstallations: pending
+    repositorySelection: explicit-per-app
+    effectivePermissionReadback: pending
+  githubConnector:
+    connector: openai-curated-remote/github
+    verifiedOrganizationInstallation:
+      organization: re8ch
+      installationId: 167331919
+      repositorySelection: all
+    boundary: >-
+      The connector uses its own GitHub App installation and does not inherit
+      tokens or permissions from Re8ch-owned Apps. Direct connector use is
+      limited to tools published by the connector. Enterprise capabilities
+      require a separately published Re8ch MCP/plugin tool surface.
+
