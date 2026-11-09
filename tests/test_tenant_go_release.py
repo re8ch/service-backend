@@ -92,7 +92,7 @@ def test_tenant_go_release_defaults_to_hosted_ghcr_push_with_r640_fallback():
     assert "docker buildx inspect r640-mihomos" in fallback["run"]
     publisher = next(s for s in release["steps"] if "IMAGE_REGISTRY_PASSWORD" in s.get("env", {}))
     assert "TENANT_IMAGE_BUILDER" not in publisher["env"]
-    assert publisher["env"]["TENANT_IMAGE_DOCKER_PUSH"] == "0"
+    assert publisher["env"]["TENANT_IMAGE_DOCKER_PUSH"] == "1"
     assert "BUILDX_CONFIG" not in prepare
     assert 'DOCKER_CONFIG="${RUNNER_TEMP}/tenant-go-release-docker"' in prepare
     assert "macmini" not in prepare.lower()
