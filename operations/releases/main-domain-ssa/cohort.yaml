@@ -12,15 +12,15 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 166
-legacyObjectCount: 52
+objectCount: 167
+legacyObjectCount: 54
 deferredSSAObjects: []
 remainingCapabilities:
   approved-secret-injection-required: 20
   bootstrap-namespace-executor-profile-required: 2
   cloud-helm-rendering-required: 2
   external-authority-cluster-bootstrap-required: 2
-  platform-owned-rbac-bootstrap: 11
+  platform-owned-rbac-bootstrap: 13
   replace-flux-lifecycle-reference: 8
   retained-data-no-automatic-mutation: 7
 remainingObjects:
@@ -51,6 +51,12 @@ remainingObjects:
 - domain: commerce-billing
   identity: core/Secret/payments/hyperswitch-bootstrap-admin
   reason: approved-secret-injection-required
+- domain: commerce-billing
+  identity: rbac.authorization.k8s.io/ClusterRole/_/payment-registry-token-reviewer
+  reason: platform-owned-rbac-bootstrap
+- domain: commerce-billing
+  identity: rbac.authorization.k8s.io/ClusterRoleBinding/_/payment-registry-token-reviewer
+  reason: platform-owned-rbac-bootstrap
 - domain: data-storage
   identity: core/Namespace/_/observable
   reason: retained-data-no-automatic-mutation
@@ -214,7 +220,7 @@ executionProfiles:
   kubernetesGroup: re8ch:release-executor:tenant-runtime
 legacyShards:
 - domain: commerce-billing
-  objects: 9
+  objects: 11
 - domain: data-storage
   objects: 6
 - domain: delivery-products
@@ -233,7 +239,7 @@ releases:
   domain: commerce-billing
   namespace: payments
   scope: namespaced
-  objects: 24
+  objects: 25
 - name: main-data-storage-cloud-disk
   domain: data-storage
   namespace: cloud-disk
