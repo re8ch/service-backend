@@ -48,7 +48,7 @@ spec:
         nodeNames: [r640]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:72167f400dee63c8c293967be35d4df023773f18888190ca7a85d4b4b6f33168
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:4fc65f269db3ca31114d0b5b547bc2eeb6e138c17dfb5433f2f19e81550b615e
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
@@ -62,7 +62,7 @@ spec:
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:72167f400dee63c8c293967be35d4df023773f18888190ca7a85d4b4b6f33168
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:4fc65f269db3ca31114d0b5b547bc2eeb6e138c17dfb5433f2f19e81550b615e
         githubEnterpriseGovernance:
           enabled: true
         databaseBindings:
