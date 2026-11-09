@@ -664,6 +664,29 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
             "conditions": [control.condition("Ready", True, "ExistingServiceEndpointReady")],
         }, namespace)
         return
+    if service_class == "integration.github.enterprise-governance.v1":
+        if tenant != "admin" or meta["name"] != "github-enterprise-governance":
+            raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")
+        request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
+        if control.provider_service_spec(tenant, meta["name"], request) != spec.get("parameters"):
+            raise PermissionError("GitHub Enterprise Governance parameters differ from the controller contract")
+        phase = "Ready"
+        reason = "GovernanceWorkflowBindingReady"
+        if lifecycle in {"Suspended", "Deleting"}:
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            reason = "GovernanceWorkflowBindingRevoked"
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None,
+            "access": {
+                "accessRef": "capability://github-enterprise-governance/admin/default",
+                "appId": 5684168, "installationId": 180243962,
+                "workflowRef": "re8ch/service-backend/.github/workflows/github-enterprise-governance-auth.yml@main",
+                "credentialMaterialReturned": False,
+            },
+            "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", phase == "Ready", reason)],
+        }, namespace)
+        return
     identity = identity_factory() if spec.get("parameters", {}).get("identityUserRef") else None
     if lifecycle in {"Suspended", "Deleting"}:
         prior = instance.get("status") or {}

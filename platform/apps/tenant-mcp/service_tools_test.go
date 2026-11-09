@@ -10,7 +10,7 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, tenant := range []string{"re8ch", "artchais"} {
+	for _, tenant := range []string{"admin", "re8ch", "artchais"} {
 		services := liveServiceOnly(catalog, tenant)
 		seen := map[string]bool{}
 		for _, service := range services {
@@ -25,6 +25,9 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 		}
 		if !seen["registry.harbor.v1"] || !seen["observability.grafana.v1"] || !seen["application.ledger.v1"] {
 			t.Fatalf("live provider services missing for %s: %v", tenant, seen)
+		}
+		if seen["integration.github.enterprise-governance.v1"] != (tenant == "admin") {
+			t.Fatalf("Admin-only GitHub governance service leaked or disappeared for %s: %v", tenant, seen)
 		}
 	}
 	if err := noLiveServiceProvisioner("storage.volume.v1"); err == nil || !strings.Contains(err.Error(), "tenant_claim_plan") {
@@ -88,5 +91,20 @@ func TestProviderBindingsOnlyExposeCurrentOwnedOpaqueAccess(t *testing.T) {
 	machineBindings := providerBindings([]any{machine}, "acme", "service://acme/build-registry")
 	if len(machineBindings) != 1 || machineBindings[0]["accessRef"] != "credential://harbor/acme/machine" {
 		t.Fatalf("machine Harbor credential was not projected: %v", machineBindings)
+	}
+
+	github := map[string]any{
+		"metadata": map[string]any{"name": "github-enterprise-governance", "uid": "uid-github", "generation": float64(1)},
+		"spec": map[string]any{"tenantRef": "admin", "serviceClass": "integration.github.enterprise-governance.v1"},
+		"status": map[string]any{"phase": "Ready", "observedGeneration": float64(1), "access": map[string]any{
+			"accessRef": "capability://github-enterprise-governance/admin/default",
+		}},
+	}
+	githubBindings := providerBindings([]any{github}, "admin", "service://admin/github-enterprise-governance")
+	if len(githubBindings) != 1 || githubBindings[0]["accessRef"] != "capability://github-enterprise-governance/admin/default" || githubBindings[0]["credentialMaterialReturned"] != false {
+		t.Fatalf("GitHub governance binding exposed an unsafe contract: %v", githubBindings)
+	}
+	if len(providerBindings([]any{github}, "re8ch", "")) != 0 {
+		t.Fatal("admin GitHub governance binding leaked to a tenant")
 	}
 }

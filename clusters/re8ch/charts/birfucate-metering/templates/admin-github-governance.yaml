@@ -1,0 +1,18 @@
+{{- if and .Values.tenantPlatform.enabled .Values.tenantPlatform.provider.enabled .Values.tenantPlatform.provider.githubEnterpriseGovernance.enabled }}
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantServiceInstance
+metadata:
+  name: github-enterprise-governance
+  namespace: tenant-infrastructure
+  labels:
+    app.kubernetes.io/part-of: birfucate-metering
+    tenancy.re8ch.com/tenant: admin
+  annotations:
+    tenancy.re8ch.com/idempotency-key: github-enterprise-governance-singleton-v1
+spec:
+  tenantRef: admin
+  serviceClass: integration.github.enterprise-governance.v1
+  plan: managed-governance
+  lifecycle: Requested
+  parameters: {}
+{{- end }}

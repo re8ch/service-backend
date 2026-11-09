@@ -33,6 +33,8 @@ tenantPlatform:
     enabled: false
     image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
     databaseBindings: []
+    githubEnterpriseGovernance:
+      enabled: false
   tenantReadinessPath: /readyz
   placement:
     nodeNames: [a1-wsl-zt, b1-wsl-zt]

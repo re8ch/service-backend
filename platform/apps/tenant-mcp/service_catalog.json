@@ -48,6 +48,24 @@
     "serviceClass": "application.ledger.v1"
   },
   {
+    "accessUnit": "GitHubEnterpriseGovernanceCapability",
+    "adapter": "github-enterprise-governance-workflow",
+    "bindings": [
+      "access:broker-reference"
+    ],
+    "meters": {
+      "operations": "operation"
+    },
+    "parameters": [],
+    "plans": [
+      "managed-governance"
+    ],
+    "regions": [
+      "global"
+    ],
+    "serviceClass": "integration.github.enterprise-governance.v1"
+  },
+  {
     "accessUnit": "DatabaseRoleSchema",
     "adapter": "pigsty-postgresql",
     "bindings": [
