@@ -100,6 +100,9 @@ def test_flux_release_keeps_provisioning_and_gc_destructive_actions_disabled():
     assert reconciliation["spec"]["sourceRef"] == {"kind": "OCIRepository", "name": source["metadata"]["name"]}
     assert release["spec"]["driftDetection"]["mode"] == "enabled"
     assert release["spec"]["values"]["canary"]["enabled"] is True
+    assert release["spec"]["values"]["observer"]["nodeSelector"] == {
+        "anatomy.re8ch.com/observer-allowed": "true"
+    }
 
 
 def test_chart_installs_runtime_anatomy_crds_and_canary_boundary():
