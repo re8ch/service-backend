@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"strings"
@@ -264,6 +265,20 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if candidate, err := resourceName(tenant, ref); err == nil {
 			current, err := controlRequest(ctx, tenant, "/v1/services/"+url.PathEscape(candidate))
 			if err == nil && providerBacked[asString(object(current["spec"]), "serviceClass")] {
+				if name == "service_instance_update" && asString(object(current["spec"]), "serviceClass") == githubGovernanceClass {
+					if tenant != "admin" || candidate != "github-enterprise-governance" || asString(object(current["status"]), "phase") != "Ready" {
+						return nil, errors.New("Admin GitHub governance service instance is not Ready")
+					}
+					raw, marshalErr := json.Marshal(args["spec"])
+					if marshalErr != nil {
+						return nil, marshalErr
+					}
+					var input githubGovernanceInput
+					if unmarshalErr := json.Unmarshal(raw, &input); unmarshalErr != nil {
+						return nil, unmarshalErr
+					}
+					return executeGitHubGovernance(ctx, id, input)
+				}
 				if name == "service_instance_update" {
 					return nil, errors.New("provider-backed tenant service parameters are immutable")
 				}

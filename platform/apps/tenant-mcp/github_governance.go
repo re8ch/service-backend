@@ -13,7 +13,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"io"
 	"net/http"
 	"net/url"
@@ -201,54 +200,48 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 	}
 	return method, path, body, nil
 }
-func (s *server) registerGitHubGovernanceTool(ms *mcp.Server) {
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("github_governance"), Name: "github_governance", Description: "Plan, apply, and read allowlisted GitHub repository or organization rulesets, Actions variables, and organization settings through the Re8ch Enterprise Governance App. Re8ch Admin membership and the active governance service grant are required. Tokens and private keys are never returned."}, func(ctx context.Context, _ *mcp.CallToolRequest, in githubGovernanceInput) (*mcp.CallToolResult, any, error) {
-		id, e := platformIdentity(ctx)
-		if e != nil {
-			return nil, nil, e
-		}
-		if id.Tenant != "admin" {
-			return nil, nil, errors.New("Re8ch Admin organization context required")
-		}
-		if e = requireGrantedConsumable(ctx, id, githubGovernanceClass); e != nil {
-			return nil, nil, e
-		}
-		method, path, body, e := githubGovernanceRequest(in)
-		if e != nil {
-			return nil, nil, e
-		}
-		mutation := method != http.MethodGet
-		plan, _ := platformMutationPlan("github-governance", map[string]any{"method": method, "path": path, "body": in.Body})
-		if mutation && !in.Apply {
-			return nil, map[string]any{"applied": false, "method": method, "path": path, "planHash": plan}, nil
-		}
-		if mutation && in.PlanHash != plan {
-			return nil, nil, errors.New("apply requires the exact planHash returned by preview")
-		}
-		token, expires, e := githubGovernanceToken(ctx, in.Owner)
-		if e != nil {
-			return nil, nil, e
-		}
-		req, _ := http.NewRequestWithContext(ctx, method, "https://api.github.com"+path, bytes.NewReader(body))
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("Accept", "application/vnd.github+json")
-		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-		if body != nil {
-			req.Header.Set("Content-Type", "application/json")
-		}
-		resp, e := (&http.Client{Timeout: 30 * time.Second}).Do(req)
-		if e != nil {
-			return nil, nil, e
-		}
-		defer resp.Body.Close()
-		data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
-		if resp.StatusCode/100 != 2 {
-			return nil, nil, fmt.Errorf("GitHub governance API returned HTTP %d", resp.StatusCode)
-		}
-		var result any = map[string]any{}
-		if len(data) > 0 {
-			_ = json.Unmarshal(data, &result)
-		}
-		return nil, map[string]any{"applied": mutation, "result": result, "installationTokenExpiresAt": expires.UTC().Format(time.RFC3339), "credentialMaterialReturned": false, "auditRef": "github-governance://" + id.Subject + path}, nil
-	})
+func executeGitHubGovernance(ctx context.Context, id identity, in githubGovernanceInput) (any, error) {
+	if id.Tenant != "admin" || id.Role != "admin" {
+		return nil, errors.New("Re8ch Admin organization context required")
+	}
+	if e := requireGrantedConsumable(ctx, id, githubGovernanceClass); e != nil {
+		return nil, e
+	}
+	method, path, body, e := githubGovernanceRequest(in)
+	if e != nil {
+		return nil, e
+	}
+	mutation := method != http.MethodGet
+	plan, _ := platformMutationPlan("github-governance", map[string]any{"method": method, "path": path, "body": in.Body})
+	if mutation && !in.Apply {
+		return map[string]any{"applied": false, "method": method, "path": path, "planHash": plan, "credentialMaterialReturned": false}, nil
+	}
+	if mutation && in.PlanHash != plan {
+		return nil, errors.New("apply requires the exact planHash returned by preview")
+	}
+	token, expires, e := githubGovernanceToken(ctx, in.Owner)
+	if e != nil {
+		return nil, e
+	}
+	req, _ := http.NewRequestWithContext(ctx, method, "https://api.github.com"+path, bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, e := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	if e != nil {
+		return nil, e
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	if resp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("GitHub governance API returned HTTP %d", resp.StatusCode)
+	}
+	var result any = map[string]any{}
+	if len(data) > 0 {
+		_ = json.Unmarshal(data, &result)
+	}
+	return map[string]any{"applied": mutation, "result": result, "installationTokenExpiresAt": expires.UTC().Format(time.RFC3339), "credentialMaterialReturned": false, "auditRef": "github-governance://" + id.Subject + path}, nil
 }

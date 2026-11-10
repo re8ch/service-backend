@@ -56,6 +56,18 @@
     "meters": {
       "operations": "operation"
     },
+    "operationContract": {
+      "entrypoint": "service_instance_update",
+      "requestField": "spec",
+      "planApply": true,
+      "resources": [
+        "repository_ruleset",
+        "organization_ruleset",
+        "repository_variable",
+        "organization_variable",
+        "organization"
+      ]
+    },
     "parameters": [],
     "plans": [
       "managed-governance"
