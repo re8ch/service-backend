@@ -83,9 +83,9 @@ jobs:
       env: {EXECUTE: '${{ inputs.execute }}'}
       run: |
         set -euo pipefail
-        kubectl apply --server-side --dry-run=server --field-manager=re8ch-platform-bootstrap \
+        kubectl apply --server-side --force-conflicts --dry-run=server --field-manager=re8ch-platform-bootstrap \
           -f "$RUNNER_TEMP/bootstrap.yaml" -o name
         if [[ "$EXECUTE" == true ]]; then
-          kubectl apply --server-side --field-manager=re8ch-platform-bootstrap \
+          kubectl apply --server-side --force-conflicts --field-manager=re8ch-platform-bootstrap \
             -f "$RUNNER_TEMP/bootstrap.yaml" -o name
         fi
