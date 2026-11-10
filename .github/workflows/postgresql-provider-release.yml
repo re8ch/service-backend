@@ -1,0 +1,94 @@
+name: postgresql-provider-release
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/postgresql-provider-release.yml
+      - platform/apps/postgresql-provider/**
+      - platform/apps/tenant-mcp/service_state.go
+      - platform/apps/tenant-mcp/service_tools.go
+      - clusters/re8ch/charts/birfucate-metering/**
+      - clusters/re8ch/components/ai-operations/tenant_control_controller.py
+      - clusters/re8ch/components/ai-operations/tenant_provider_reconciler.py
+      - tests/test_postgresql_provider.py
+      - tests/test_tenant_control_controller.py
+      - tests/test_tenant_provider_reconciler.py
+      - tests/test_tenant_infrastructure_gitops.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/postgresql-provider-release.yml
+      - platform/apps/postgresql-provider/**
+      - platform/apps/tenant-mcp/service_state.go
+      - platform/apps/tenant-mcp/service_tools.go
+      - clusters/re8ch/charts/birfucate-metering/**
+      - clusters/re8ch/components/ai-operations/tenant_control_controller.py
+      - clusters/re8ch/components/ai-operations/tenant_provider_reconciler.py
+      - tests/test_postgresql_provider.py
+      - tests/test_tenant_control_controller.py
+      - tests/test_tenant_provider_reconciler.py
+      - tests/test_tenant_infrastructure_gitops.py
+
+permissions: {contents: read}
+concurrency:
+  group: postgresql-provider-release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with: {go-version-file: platform/apps/tenant-mcp/go.mod, cache: false}
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with: {version: v4.2.3}
+      - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
+      - run: python3 -m pytest -q tests/test_postgresql_provider.py tests/test_tenant_control_controller.py tests/test_tenant_provider_reconciler.py tests/test_tenant_infrastructure_gitops.py
+      - run: go test ./...
+        working-directory: platform/apps/tenant-mcp
+      - run: docker build -f platform/apps/postgresql-provider/Dockerfile -t postgresql-provider:pr .
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions: {contents: read, packages: write, id-token: write}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish once
+        id: image
+        env:
+          IMAGE: ghcr.io/re8ch/service-backend-postgresql-provider
+        run: |
+          docker buildx build --platform linux/amd64 --provenance=mode=max --sbom=true --push \
+            -f platform/apps/postgresql-provider/Dockerfile -t "$IMAGE:${GITHUB_SHA}" .
+          digest="$(docker buildx imagetools inspect "$IMAGE:${GITHUB_SHA}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf '%s@%s\n' "$IMAGE" "$digest" | tee postgresql-provider.image
+          echo "name=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Publish package for anonymous runtime pulls
+        env: {GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}
+        run: gh api --method PATCH /orgs/re8ch/packages/container/service-backend-postgresql-provider -f visibility=public
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+      - name: Verify anonymous immutable pull
+        run: |
+          docker logout ghcr.io
+          docker manifest inspect "$(cat postgresql-provider.image)" >/dev/null
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: postgresql-provider-${{ github.sha }}
+          path: postgresql-provider.image
+          if-no-files-found: error

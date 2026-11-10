@@ -665,25 +665,7 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
         }, namespace)
         return
     if service_class == "database.postgresql.shared.v1":
-        if tenant != "admin" or meta["name"] != "postgresql-shared":
-            raise PermissionError("PostgreSQL shared administration is an Admin-only singleton")
-        request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
-        if control.provider_service_spec(tenant, meta["name"], request) != spec.get("parameters"):
-            raise PermissionError("PostgreSQL service parameters differ from the controller contract")
-        phase, reason = "Ready", "ExistingPostgreSQLAuthorityReady"
-        if lifecycle in {"Suspended", "Deleting"}:
-            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
-            reason = "PostgreSQLAdministrationRevoked"
-        else:
-            service = kube.get("services", "pg-re8ch-primary", "pigsty-external", "api/v1")
-            if not (service.get("spec") or {}).get("clusterIP"):
-                raise RuntimeError("PostgreSQL primary service authority is not ready")
-        kube.patch_status("tenantserviceinstances", meta["name"], {
-            "observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None,
-            "access": {"accessRef": "capability://postgres-admin/admin/pg-re8ch", "tool": "platform_postgres_admin_sql", "credentialMaterialReturned": False},
-            "humanCredentialRef": None,
-            "conditions": [control.condition("Ready", phase == "Ready", reason)],
-        }, namespace)
+        # PostgreSQL is reconciled by the independently released provider.
         return
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant != "admin" or meta["name"] != "github-enterprise-governance":

@@ -209,9 +209,17 @@ def test_github_enterprise_governance_is_admin_only_parameterless_singleton():
 def test_postgresql_adoption_is_admin_only_parameterless_singleton():
     request = {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "parameters": {}}
     assert controller.provider_service_spec("admin", "postgresql-shared", request) == {}
-    with pytest.raises(PermissionError, match="Admin-only singleton"):
+    with pytest.raises(PermissionError, match="storageGiB"):
         controller.provider_service_spec("re8ch", "postgresql-shared", request)
-    with pytest.raises(PermissionError, match="Admin-only singleton"):
+    tenant_request = {**request, "parameters": {"storageGiB": 20, "extensions": ["pgcrypto"]}}
+    assert controller.provider_service_spec("re8ch", "orders", tenant_request) == {
+        "storageGiB": 20,
+        "connectionClass": "standard",
+        "backupClass": "pigsty-pitr",
+        "retentionClass": "standard",
+        "extensions": ["pgcrypto"],
+    }
+    with pytest.raises(PermissionError, match="storageGiB"):
         controller.provider_service_spec("admin", "another-name", request)
     request["parameters"] = {"storageGiB": 10}
     with pytest.raises(PermissionError, match="parameterless"):

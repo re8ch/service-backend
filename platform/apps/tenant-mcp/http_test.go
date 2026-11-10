@@ -371,7 +371,8 @@ func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
 	t.Cleanup(func() { s.ledger.Close() })
 	first := "personal-11111111-1111-4111-8111-111111111111"
 	second := "personal-22222222-2222-4222-8222-222222222222"
-	spec := map[string]any{"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}
+	spec := map[string]any{"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi",
+		"parameters": map[string]any{"storageGiB": 20}}
 	firstOperation, firstBinding := "", ""
 	for _, item := range []struct{ owner, name string }{{first, "first-db"}, {second, "second-db"}} {
 		operation, err := s.instanceMutate(item.owner, item.name, spec, "create-"+item.name, "create")

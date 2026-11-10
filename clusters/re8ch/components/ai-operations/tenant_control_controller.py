@@ -648,11 +648,31 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("Ledger publishes only the parameterless managed-access plan")
         return {}
     if service_class == "database.postgresql.shared.v1":
-        if tenant_ref != "admin" or name != "postgresql-shared":
-            raise PermissionError("PostgreSQL shared administration is an Admin-only singleton")
-        if request.get("planRef") != "standard" or parameters:
-            raise PermissionError("Admin PostgreSQL adoption publishes only the parameterless standard plan")
-        return {}
+        if request.get("planRef") != "standard":
+            raise PermissionError("PostgreSQL publishes only the standard plan")
+        if tenant_ref == "admin" and name == "postgresql-shared":
+            if parameters:
+                raise PermissionError("Admin PostgreSQL authority adoption is parameterless")
+            return {}
+        allowed = {"storageGiB", "connectionClass", "backupClass", "retentionClass", "extensions"}
+        if set(parameters) - allowed:
+            raise PermissionError("PostgreSQL parameters are not published")
+        storage = parameters.get("storageGiB")
+        if type(storage) is not int or not 1 <= storage <= 1024:
+            raise PermissionError("storageGiB must be between 1 and 1024")
+        connection = parameters.get("connectionClass", "standard")
+        backup = parameters.get("backupClass", "pigsty-pitr")
+        retention = parameters.get("retentionClass", "standard")
+        extensions = parameters.get("extensions", [])
+        if connection not in {"small", "standard", "large"}:
+            raise PermissionError("PostgreSQL connectionClass is not published")
+        if backup != "pigsty-pitr" or retention not in {"standard", "extended"}:
+            raise PermissionError("PostgreSQL backup or retention class is not published")
+        allowed_extensions = {"citext", "pg_trgm", "pgcrypto", "uuid-ossp", "vector"}
+        if not isinstance(extensions, list) or len(extensions) > 16 or any(value not in allowed_extensions for value in extensions):
+            raise PermissionError("one or more PostgreSQL extensions are not published")
+        return {"storageGiB": storage, "connectionClass": connection, "backupClass": backup,
+                "retentionClass": retention, "extensions": sorted(set(extensions))}
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant_ref != "admin" or name != "github-enterprise-governance":
             raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")

@@ -15,7 +15,7 @@ def documents(path):
     return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if item]
 
 
-def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
+def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False, postgresql_provider_enabled=False):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
     command = ["helm", "template", "birfucate", str(chart), "--namespace", "observability-ai", "--kube-version", "1.35.0", "--include-crds", "--set", "tenantPlatform.enabled=true", "--set-string", f"tenantPlatform.image={image}"]
@@ -23,6 +23,8 @@ def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False):
         command.extend(["--set", "tenantPlatform.provider.enabled=true", "--set-string", "tenantPlatform.provider.image=registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64])
     if tenant_go_enabled:
         command.extend(["--set", "tenantPlatform.tenantAPI.enabled=true", "--set-string", "tenantPlatform.tenantAPI.image=registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64])
+    if postgresql_provider_enabled:
+        command.extend(["--set", "tenantPlatform.postgresqlProvider.enabled=true", "--set-string", "tenantPlatform.postgresqlProvider.image=ghcr.io/re8ch/service-backend-postgresql-provider@sha256:" + "5" * 64])
     rendered = subprocess.run(
         command,
         check=True, capture_output=True, text=True,
@@ -63,6 +65,24 @@ def test_provider_worker_requires_explicit_signed_image_rollout():
     assert container["env"][1]["valueFrom"]["secretKeyRef"] == {"name": "tenant-provider-identity", "key": "service-role-key"}
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.provider.enabled=true"], capture_output=True, text=True)
+    assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
+
+
+def test_postgresql_provider_has_independent_image_and_narrow_credentials():
+    docs = tenant_chart_documents(postgresql_provider_enabled=True)
+    deployment = next(item for item in docs if item.get("kind") == "Deployment" and item["metadata"]["name"] == "postgresql-provider")
+    container = deployment["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == "ghcr.io/re8ch/service-backend-postgresql-provider@sha256:" + "5" * 64
+    admin_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-admin-credential")
+    assert admin_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "resourceNames": ["supabase-pg-re8ch-secrets"], "verbs": ["get"]}]
+    broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-credential-broker")
+    assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create"]}]
+    policy = next(item for item in docs if item.get("kind") == "NetworkPolicy" and item["metadata"]["name"] == "postgresql-provider")
+    assert policy["spec"]["ingress"] == [{"from": [{"podSelector": {"matchLabels": {"app": "tenant-api"}}}],
+                                            "ports": [{"protocol": "TCP", "port": 8080}]}]
+    chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
+    invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true",
+                              "--set", "tenantPlatform.postgresqlProvider.enabled=true"], capture_output=True, text=True)
     assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
 
 

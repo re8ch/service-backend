@@ -34,6 +34,14 @@
               "properties": {"enabled": {"type": "boolean"}}}
           }
         },
+        "postgresqlProvider": {
+          "type": "object", "additionalProperties": false, "required": ["enabled", "image", "primaryHost"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
+            "primaryHost": {"type": "string", "pattern": "^[a-z0-9]([-.a-z0-9]*[a-z0-9])?$"}
+          }
+        },
         "tenantReadinessPath": {"enum": ["/readyz", "/livez"]},
         "placement": {
           "type": "object", "additionalProperties": false, "required": ["nodeNames"],
