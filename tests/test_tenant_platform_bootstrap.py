@@ -8,7 +8,9 @@ def test_bootstrap_workflow_is_exact_and_does_not_use_flux_or_secret_reads():
     text=(ROOT/'.github/workflows/tenant-platform-bootstrap.yml').read_text()
     assert 'platform-bootstrap-tenant-infrastructure' in text
     assert 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure' in text
-    assert 'cosign verify' in text and 'oras pull' in text
+    assert 'cosign verify' in text and 'oras blob fetch' in text
+    assert "test \"$(jq '.layers | length' \"$manifest\")\" = 1" in text
+    assert 'application/vnd.cncf.flux.content.v1.tar+gzip' in text
     assert 'flux ' not in text and 'kubectl exec' not in text
     assert 'get secrets' in text and '= no' in text
     assert 'create clusterroles' in text and 'impersonate users' in text

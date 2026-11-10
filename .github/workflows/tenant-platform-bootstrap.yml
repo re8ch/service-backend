@@ -32,10 +32,15 @@ jobs:
         immutable="$BUNDLE_REFERENCE@$BUNDLE_DIGEST"
         cosign verify --key operations/releases/keys/agent-runtime-static-release.pub \
           --insecure-ignore-tlog "$immutable" >/dev/null
-        install -d "$RUNNER_TEMP/bundle"
-        oras pull "$immutable" -o "$RUNNER_TEMP/bundle"
+        manifest="$RUNNER_TEMP/bundle-manifest.json"
+        oras manifest fetch "$immutable" --output "$manifest"
+        test "$(jq '.layers | length' "$manifest")" = 1
+        test "$(jq -r '.layers[0].mediaType' "$manifest")" = application/vnd.cncf.flux.content.v1.tar+gzip
+        layer_digest="$(jq -r '.layers[0].digest' "$manifest")"
+        [[ "$layer_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+        oras blob fetch --output "$RUNNER_TEMP/release.bundle" "$BUNDLE_REFERENCE@$layer_digest"
         python operations/releases/tenant_platform_bootstrap.py \
-          --bundle "$RUNNER_TEMP/bundle/release.bundle" --output "$RUNNER_TEMP/bootstrap.yaml"
+          --bundle "$RUNNER_TEMP/release.bundle" --output "$RUNNER_TEMP/bootstrap.yaml"
     - name: Acquire exact GitHub OIDC identity
       env: {KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'}
       run: |
