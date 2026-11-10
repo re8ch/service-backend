@@ -23,7 +23,7 @@ def test_root_frequency_and_local_sync():
         (ROOT / 'clusters/re8ch/flux-system/service-backend-github-socks.yaml').read_text(), Loader=YAML_SAFE_LOADER
     )
     assert proxy['stringData']['address'] == (
-        'http://identity-egress-gitops.egress-fabric.svc.cluster.local:17893'
+        'socks5://identity-egress-gitops.egress-fabric.svc.cluster.local:17893'
     )
     assert docs[0]['spec']['verify']['mode'] == 'HEAD'
     secret = yaml.load((ROOT / 'clusters/re8ch/flux-system/service-backend-github-ssh.sops.yaml').read_text(), Loader=YAML_SAFE_LOADER)

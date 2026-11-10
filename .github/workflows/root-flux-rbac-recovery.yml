@@ -113,7 +113,7 @@ jobs:
           secret = yaml.safe_load(open(path))
           metadata = secret.get("metadata", {}) if isinstance(secret, dict) else {}
           string_data = secret.get("stringData", {}) if isinstance(secret, dict) else {}
-          expected_address = "http://identity-egress-gitops.egress-fabric.svc.cluster.local:17893"
+          expected_address = "socks5://identity-egress-gitops.egress-fabric.svc.cluster.local:17893"
           if (
               not isinstance(secret, dict)
               or secret.get("apiVersion") != "v1"

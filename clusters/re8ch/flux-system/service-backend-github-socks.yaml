@@ -8,4 +8,4 @@ stringData:
   # Use the dedicated GitOps egress Service. Its Ready endpoints prove external
   # HTTPS reachability and avoid coupling signed source fetches to a node-local
   # Mihomo process whose local health check does not cover GitHub SSH handshakes.
-  address: http://identity-egress-gitops.egress-fabric.svc.cluster.local:17893
+  address: socks5://identity-egress-gitops.egress-fabric.svc.cluster.local:17893
