@@ -1,0 +1,69 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: github-tenant-platform-bootstrap
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups: ["", apps, policy, networking.k8s.io, gateway.networking.k8s.io, cilium.io]
+      apiVersions: ["*"]
+      operations: [CREATE, UPDATE]
+      resources: [configmaps, persistentvolumeclaims, serviceaccounts, services, deployments, daemonsets, poddisruptionbudgets, networkpolicies, httproutes, ciliumnetworkpolicies]
+  matchConditions:
+  - name: bootstrap-group
+    expression: "'re8ch:platform-bootstrap:tenant-infrastructure' in request.userInfo.groups"
+  validations:
+  - expression: >-
+      object.metadata.namespace == 'tenant-infrastructure' && object.metadata.name in [
+      'tenant-runtime-image-cache','admin-api','tenant-api','tenant-control-controller','tenant-provider-reconciler',
+      'tenant-api-gateway','tenant-platform-modules','tenant-platform-state','tenant-infrastructure',
+      'tenant-billing-auth-center','tenant-billing-read','tenant-credential-redemption','tenant-native-mcp',
+      'tenant-self-service-capabilities']
+    message: platform bootstrap may write only the reviewed tenant-infrastructure inventory
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: github-tenant-platform-bootstrap
+spec:
+  policyName: github-tenant-platform-bootstrap
+  validationActions: [Deny]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-tenant-platform-bootstrap
+  namespace: tenant-infrastructure
+rules:
+- apiGroups: [apps]
+  resources: [deployments, daemonsets]
+  verbs: [get, create, patch, update]
+- apiGroups: [""]
+  resources: [configmaps, persistentvolumeclaims, services, serviceaccounts]
+  verbs: [get, create, patch, update]
+- apiGroups: [policy]
+  resources: [poddisruptionbudgets]
+  verbs: [get, create, patch, update]
+- apiGroups: [networking.k8s.io]
+  resources: [networkpolicies]
+  verbs: [get, create, patch, update]
+- apiGroups: [gateway.networking.k8s.io]
+  resources: [httproutes]
+  verbs: [get, create, patch, update]
+- apiGroups: [cilium.io]
+  resources: [ciliumnetworkpolicies]
+  verbs: [get, create, patch, update]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [roles, rolebindings]
+  resourceNames: [agent-runtime-domain-tenant-infrastructure]
+  verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-tenant-platform-bootstrap
+  namespace: tenant-infrastructure
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: github-tenant-platform-bootstrap}
+subjects:
+- {apiGroup: rbac.authorization.k8s.io, kind: Group, name: 're8ch:platform-bootstrap:tenant-infrastructure'}
