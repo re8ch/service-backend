@@ -48,6 +48,7 @@ documents. They are designed to proceed together and converge on one executor:
 - [Static release executor handoff and domain migration playbook](static-release-domain-handoff.md)
 - [Machine-readable autonomous/main-domain dispatch matrix](static-release-domain-dispatch.yaml)
 - [Parameterized Flux-to-static-GitHub-Ops standard](static-domain-standard.md)
+- [GitHub-native agent and provider publisher runbook](github-native-agent-publisher-runbook.md)
 
 ```text
 GitHub Enterprise
