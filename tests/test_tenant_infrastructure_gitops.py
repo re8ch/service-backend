@@ -24,7 +24,7 @@ def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False, post
     if tenant_go_enabled:
         command.extend(["--set", "tenantPlatform.tenantAPI.enabled=true", "--set-string", "tenantPlatform.tenantAPI.image=registry.re8ch.com/image/re8ch-tenant-mcp@sha256:" + "4" * 64])
     if postgresql_provider_enabled:
-        command.extend(["--set", "tenantPlatform.postgresqlProvider.enabled=true", "--set-string", "tenantPlatform.postgresqlProvider.image=ghcr.io/re8ch/service-backend-postgresql-provider@sha256:" + "5" * 64])
+        command.extend(["--set", "tenantPlatform.postgresqlProvider.enabled=true", "--set-string", "tenantPlatform.postgresqlProvider.image=registry.re8ch.com/functions-shared/re8ch-postgresql-provider@sha256:" + "5" * 64])
     rendered = subprocess.run(
         command,
         check=True, capture_output=True, text=True,
@@ -72,7 +72,7 @@ def test_postgresql_provider_has_independent_image_and_narrow_credentials():
     docs = tenant_chart_documents(postgresql_provider_enabled=True)
     deployment = next(item for item in docs if item.get("kind") == "Deployment" and item["metadata"]["name"] == "postgresql-provider")
     container = deployment["spec"]["template"]["spec"]["containers"][0]
-    assert container["image"] == "ghcr.io/re8ch/service-backend-postgresql-provider@sha256:" + "5" * 64
+    assert container["image"] == "registry.re8ch.com/functions-shared/re8ch-postgresql-provider@sha256:" + "5" * 64
     admin_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-admin-credential")
     assert admin_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "resourceNames": ["supabase-pg-re8ch-secrets"], "verbs": ["get"]}]
     broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-credential-broker")

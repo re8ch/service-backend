@@ -37,7 +37,7 @@ tenantPlatform:
       enabled: false
   postgresqlProvider:
     enabled: false
-    image: ghcr.io/re8ch/service-backend-postgresql-provider@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
+    image: registry.re8ch.com/functions-shared/re8ch-postgresql-provider@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
     primaryHost: pg-re8ch-primary.pigsty-external.svc.cluster.local
   tenantReadinessPath: /readyz
   placement:
