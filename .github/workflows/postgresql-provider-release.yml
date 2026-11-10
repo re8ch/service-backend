@@ -28,6 +28,7 @@ on:
       - tests/test_tenant_control_controller.py
       - tests/test_tenant_provider_reconciler.py
       - tests/test_tenant_infrastructure_gitops.py
+  workflow_dispatch:
 
 permissions: {contents: read}
 concurrency:
@@ -36,63 +37,23 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     steps:
-      - name: Download exact GitHub source archive
-        env: {GH_TOKEN: "${{ github.token }}"}
-        run: |
-          unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
-          umask 077
-          printf 'header = "Authorization: Bearer %s"\n' "$GH_TOKEN" > "$RUNNER_TEMP/github-source.conf"
-          trap 'rm -f "$RUNNER_TEMP/github-source.conf"' EXIT
-          for attempt in 1 2 3 4 5; do
-            if curl --config "$RUNNER_TEMP/github-source.conf" --fail --silent --show-error --location \
-              --connect-timeout 20 --max-time 300 --output "$RUNNER_TEMP/source.tgz" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}"; then
-              tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
-              break
-            fi
-            rm -f "$RUNNER_TEMP/source.tgz"
-            [[ "$attempt" == 5 ]] && exit 1
-            sleep $((attempt * 5))
-          done
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with: {version: v4.2.3}
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
       - run: python3 -m pytest -q tests/test_postgresql_provider.py tests/test_tenant_control_controller.py tests/test_tenant_provider_reconciler.py tests/test_tenant_infrastructure_gitops.py
-      - name: Build OCI image with the governed R640 builder
-        run: |
-          export BUILDX_CONFIG="$HOME/.docker/buildx"
-          docker buildx inspect r640-mihomos >/dev/null
-          docker buildx build --builder r640-mihomos --platform linux/amd64 --provenance=mode=max --sbom=true \
-            --output "type=oci,dest=$RUNNER_TEMP/postgresql-provider.oci.tar" \
-            -f platform/apps/postgresql-provider/Dockerfile .
 
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     environment: production
     permissions: {contents: read, packages: write, id-token: write}
     steps:
-      - name: Download exact GitHub source archive
-        env: {GH_TOKEN: "${{ github.token }}"}
-        run: |
-          unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
-          umask 077
-          printf 'header = "Authorization: Bearer %s"\n' "$GH_TOKEN" > "$RUNNER_TEMP/github-source.conf"
-          trap 'rm -f "$RUNNER_TEMP/github-source.conf"' EXIT
-          for attempt in 1 2 3 4 5; do
-            if curl --config "$RUNNER_TEMP/github-source.conf" --fail --silent --show-error --location \
-              --connect-timeout 20 --max-time 300 --output "$RUNNER_TEMP/source.tgz" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}"; then
-              tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
-              break
-            fi
-            rm -f "$RUNNER_TEMP/source.tgz"
-            [[ "$attempt" == 5 ]] && exit 1
-            sleep $((attempt * 5))
-          done
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
@@ -103,9 +64,7 @@ jobs:
         env:
           IMAGE: ghcr.io/re8ch/service-backend-postgresql-provider
         run: |
-          export BUILDX_CONFIG="$HOME/.docker/buildx"
-          docker buildx inspect r640-mihomos >/dev/null
-          docker buildx build --builder r640-mihomos --platform linux/amd64 --provenance=mode=max --sbom=true --push \
+          docker buildx build --platform linux/amd64 --provenance=mode=max --sbom=true --push \
             -f platform/apps/postgresql-provider/Dockerfile -t "$IMAGE:${GITHUB_SHA}" .
           digest="$(docker buildx imagetools inspect "$IMAGE:${GITHUB_SHA}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
