@@ -40,6 +40,15 @@ jobs:
           if [[ -f "$RUNNER_TEMP/k6/summary.json" ]]; then
             python operations/k6/summarize.py "$RUNNER_TEMP/k6/summary.json" \
               --cadence "$PROBE_CADENCE" >> "$GITHUB_STEP_SUMMARY"
+      - name: Record failed contracts in Secretary
+        if: always()
+        env:
+          SECRETARY_OBSERVATION_URL: https://tools.re8ch.com/v1/observations
+          SECRETARY_WEBHOOK_SECRET: ${{ secrets.SECRETARY_EXTERNAL_PROBE_WEBHOOK_SECRET }}
+        run: |
+          if [[ -f "$RUNNER_TEMP/k6/summary.json" ]]; then
+            python operations/monitoring/secretary_observation.py "$RUNNER_TEMP/k6/summary.json"
+          fi
           fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()

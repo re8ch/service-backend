@@ -1,0 +1,31 @@
+name: Public edge external probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install catalog parser
+        run: python -m pip install 'PyYAML==6.0.2'
+      - name: Probe every declared public edge service
+        env:
+          SECRETARY_OBSERVATION_URL: https://tools.re8ch.com/v1/observations
+          SECRETARY_WEBHOOK_SECRET: ${{ secrets.SECRETARY_EXTERNAL_PROBE_WEBHOOK_SECRET }}
+        run: python operations/monitoring/public_edge_probe.py
+      - name: Preserve probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-edge-probe-results
+          path: public-edge-probe-results.json
+          if-no-files-found: ignore
