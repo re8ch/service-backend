@@ -1,0 +1,75 @@
+name: tenant-platform-bootstrap
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_digest: {description: Signed agent-runtime tenant-infrastructure bundle digest, required: true, type: string}
+      execute: {description: Create or update the reviewed bootstrap inventory, default: false, type: boolean}
+permissions: {contents: read}
+concurrency: {group: tenant-platform-bootstrap, cancel-in-progress: false}
+jobs:
+  bootstrap:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: platform-bootstrap-tenant-infrastructure
+    permissions: {contents: read, id-token: write, packages: read}
+    env:
+      EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure
+      BUNDLE_REFERENCE: ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure
+      BUNDLE_DIGEST: '${{ inputs.bundle_digest }}'
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with: {persist-credentials: false}
+    - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
+      with: {version: v1.33.1}
+    - uses: oras-project/setup-oras@8d34698a59f5ffe24821f0b48ab62a3de8b64b20 # v1.2.3
+    - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62
+    - run: python -m pip install --disable-pip-version-check 'PyYAML>=6.0.2'
+    - name: Verify and materialize the immutable bundle
+      run: |
+        set -euo pipefail
+        [[ "$BUNDLE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+        immutable="$BUNDLE_REFERENCE@$BUNDLE_DIGEST"
+        cosign verify --key operations/releases/keys/agent-runtime-static-release.pub \
+          --insecure-ignore-tlog "$immutable" >/dev/null
+        install -d "$RUNNER_TEMP/bundle"
+        oras pull "$immutable" -o "$RUNNER_TEMP/bundle"
+        python operations/releases/tenant_platform_bootstrap.py \
+          --bundle "$RUNNER_TEMP/bundle/release.bundle" --output "$RUNNER_TEMP/bootstrap.yaml"
+    - name: Acquire exact GitHub OIDC identity
+      env: {KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'}
+      run: |
+        set -euo pipefail
+        printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
+        curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
+        token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        kubeconfig="$RUNNER_TEMP/bootstrap.kubeconfig"
+        kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.service.re8ch.com \
+          --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
+        kubectl config --kubeconfig "$kubeconfig" set-credentials bootstrap --token="$token"
+        kubectl config --kubeconfig "$kubeconfig" set-context bootstrap --cluster=re8ch --user=bootstrap
+        kubectl config --kubeconfig "$kubeconfig" use-context bootstrap
+        echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
+    - name: Prove bootstrap boundaries
+      run: |
+        set -euo pipefail
+        ns=tenant-infrastructure
+        test "$(kubectl auth can-i create deployments -n "$ns")" = yes
+        test "$(kubectl auth can-i get role/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+        test "$(kubectl auth can-i get rolebinding/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+        test "$(kubectl auth can-i get configmap/ssa-state-agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+        for denied in "get secrets -n $ns" "create secrets -n $ns" "create deployments -n default" \
+          "create roles -n $ns" "create rolebindings -n $ns" "create clusterroles" "impersonate users"; do
+          read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no
+        done
+    - name: Server-side preflight and optional bootstrap
+      env: {EXECUTE: '${{ inputs.execute }}'}
+      run: |
+        set -euo pipefail
+        kubectl apply --server-side --dry-run=server --field-manager=re8ch-platform-bootstrap \
+          -f "$RUNNER_TEMP/bootstrap.yaml" -o name
+        if [[ "$EXECUTE" == true ]]; then
+          kubectl apply --server-side --field-manager=re8ch-platform-bootstrap \
+            -f "$RUNNER_TEMP/bootstrap.yaml" -o name
+        fi
