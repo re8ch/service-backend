@@ -11,11 +11,14 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(os.getenv("RE8CH_SERVICE_BACKEND_ANCHOR", Path(__file__).resolve().parents[2]))
-CLASSIFICATION = ROOT / "clusters/re8ch/components/toolhive/namespace-access-classification.yaml"
+CLASSIFICATION = Path(os.getenv("RE8CH_NAMESPACE_CLASSIFICATION", ROOT / "clusters/re8ch/components/toolhive/namespace-access-classification.yaml"))
 
 
 def run_json(*argv):
-    return json.loads(subprocess.run(argv, check=True, text=True, capture_output=True).stdout)
+    command = list(argv)
+    if command and command[0] == "kubectl":
+        command.insert(1, "--request-timeout=20s")
+    return json.loads(subprocess.run(command, check=True, text=True, capture_output=True, timeout=30).stdout)
 
 
 def gitops_namespaces():
@@ -45,6 +48,11 @@ def main():
     declared = gitops_namespaces()
     namespaces = run_json("kubectl", "get", "namespaces", "-o", "json")["items"]
     flux = run_json("kubectl", "get", "kustomizations.kustomize.toolkit.fluxcd.io", "-A", "-o", "json")["items"]
+    boundaries = run_json("kubectl", "get", "resourcequotas,limitranges,networkpolicies,rolebindings", "-A", "-o", "json")["items"]
+    boundary_index = {
+        (item.get("metadata", {}).get("namespace"), item.get("kind", "").lower(), item.get("metadata", {}).get("name"))
+        for item in boundaries
+    }
     counts = {key: 0 for key in ("gitops", "tenant-controller", "runtime-controller", "unclassified")}
     findings = []
     for item in namespaces:
@@ -62,8 +70,7 @@ def main():
         elif owner == "tenant-controller":
             tenant = labels.get("tenancy.re8ch.com/tenant")
             for kind, resource in (("resourcequota", "tenant-boundary"), ("limitrange", "tenant-defaults"), ("networkpolicy", "tenant-default-deny-cross-tenant"), ("rolebinding", "tenant-resource-provisioner")):
-                result = subprocess.run(("kubectl", "-n", name, "get", kind, resource, "-o", "name"), text=True, capture_output=True)
-                if result.returncode:
+                if (name, kind, resource) not in boundary_index:
                     findings.append({"scope": "tenant-boundary", "namespace": name, "tenant": tenant, "reason": "missing-boundary", "resource": f"{kind}/{resource}"})
         else:
             findings.append({"scope": owner, "namespace": name, "reason": "ownership-review"})
