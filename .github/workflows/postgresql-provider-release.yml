@@ -41,6 +41,7 @@ jobs:
       - name: Download exact GitHub source archive
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
+          unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
           for attempt in 1 2 3 4 5; do
             if gh api --allow-escape-sequences "repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" > "$RUNNER_TEMP/source.tgz"; then
               tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
@@ -66,6 +67,7 @@ jobs:
       - name: Download exact GitHub source archive
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
+          unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
           for attempt in 1 2 3 4 5; do
             if gh api --allow-escape-sequences "repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" > "$RUNNER_TEMP/source.tgz"; then
               tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
