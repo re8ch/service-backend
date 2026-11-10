@@ -214,7 +214,7 @@ def register() -> None:
         "tools": [{"name": "postgresql_provider_status", "description": "Read the shared Pigsty PostgreSQL provider health and authority boundary.",
                    "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}}],
     }}
-    request = urllib.request.Request(os.getenv("MCP_CATALOG_ADMIN_URL", "http://tenant-api.tenant-infrastructure.svc:19448/internal/mcp/catalog"),
+    request = urllib.request.Request(os.getenv("MCP_CATALOG_ADMIN_URL", "http://tenant-api.tenant-infrastructure.svc:19450/internal/mcp/catalog"),
         data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
         headers={"Authorization": f"Bearer {token}", "X-RE8CH-Admin-Subject": "system:postgresql-provider", "Content-Type": "application/json"})
     with urllib.request.urlopen(request, timeout=20) as response:

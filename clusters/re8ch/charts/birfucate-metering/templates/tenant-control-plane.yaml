@@ -211,6 +211,8 @@ spec:
           env:
             - {name: LISTEN_PORT, value: "8080"}
             - {name: PIGSTY_PRIMARY_HOST, value: {{ .Values.tenantPlatform.postgresqlProvider.primaryHost | quote }}}
+            - {name: MCP_CATALOG_ADMIN_TOKEN, valueFrom: {secretKeyRef: {name: tenant-claim-internal-auth, key: TENANT_CLAIM_SERVICE_TOKEN}}}
+            - {name: MCP_CATALOG_ADMIN_URL, value: "http://tenant-api.tenant-infrastructure.svc:19450/internal/mcp/catalog"}
           ports: [{name: mcp, containerPort: 8080}]
           readinessProbe: {httpGet: {path: /readyz, port: mcp}, periodSeconds: 5, timeoutSeconds: 3}
           livenessProbe: {httpGet: {path: /livez, port: mcp}, periodSeconds: 15, timeoutSeconds: 3}

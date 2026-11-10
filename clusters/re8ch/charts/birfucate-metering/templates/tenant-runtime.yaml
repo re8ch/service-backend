@@ -171,6 +171,7 @@ spec:
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant}
+            - {name: MCP_CATALOG_INTERNAL_TOKEN, valueFrom: {secretKeyRef: {name: tenant-claim-internal-auth, key: TENANT_CLAIM_SERVICE_TOKEN}}}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
@@ -370,6 +371,9 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Release.Namespace }}}}
           podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
       ports: [{protocol: TCP, port: 19448}]
+    - from:
+        - podSelector: {matchLabels: {app: postgresql-provider}}
+      ports: [{protocol: TCP, port: 19450}]
     {{- if .Values.tenantPlatform.tenantAPI.enabled }}
     - from:
         - podSelector: {matchLabels: {app: admin-api}}
