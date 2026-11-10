@@ -42,8 +42,13 @@ jobs:
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
           unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
+          umask 077
+          printf 'header = "Authorization: Bearer %s"\n' "$GH_TOKEN" > "$RUNNER_TEMP/github-source.conf"
+          trap 'rm -f "$RUNNER_TEMP/github-source.conf"' EXIT
           for attempt in 1 2 3 4 5; do
-            if gh api --allow-escape-sequences "repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" > "$RUNNER_TEMP/source.tgz"; then
+            if curl --config "$RUNNER_TEMP/github-source.conf" --fail --silent --show-error --location \
+              --connect-timeout 20 --max-time 300 --output "$RUNNER_TEMP/source.tgz" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}"; then
               tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
               break
             fi
@@ -68,8 +73,13 @@ jobs:
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
           unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
+          umask 077
+          printf 'header = "Authorization: Bearer %s"\n' "$GH_TOKEN" > "$RUNNER_TEMP/github-source.conf"
+          trap 'rm -f "$RUNNER_TEMP/github-source.conf"' EXIT
           for attempt in 1 2 3 4 5; do
-            if gh api --allow-escape-sequences "repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" > "$RUNNER_TEMP/source.tgz"; then
+            if curl --config "$RUNNER_TEMP/github-source.conf" --fail --silent --show-error --location \
+              --connect-timeout 20 --max-time 300 --output "$RUNNER_TEMP/source.tgz" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}"; then
               tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
               break
             fi
