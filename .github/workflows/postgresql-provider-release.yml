@@ -38,7 +38,18 @@ jobs:
   validate:
     runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Download exact GitHub source archive
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if gh api --allow-escape-sequences "repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" > "$RUNNER_TEMP/source.tgz"; then
+              tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
+              break
+            fi
+            rm -f "$RUNNER_TEMP/source.tgz"
+            [[ "$attempt" == 5 ]] && exit 1
+            sleep $((attempt * 5))
+          done
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with: {version: v4.2.3}
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
@@ -52,7 +63,18 @@ jobs:
     environment: production
     permissions: {contents: read, packages: write, id-token: write}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Download exact GitHub source archive
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if gh api --allow-escape-sequences "repos/${GITHUB_REPOSITORY}/tarball/${GITHUB_SHA}" > "$RUNNER_TEMP/source.tgz"; then
+              tar -xzf "$RUNNER_TEMP/source.tgz" --strip-components=1
+              break
+            fi
+            rm -f "$RUNNER_TEMP/source.tgz"
+            [[ "$attempt" == 5 ]] && exit 1
+            sleep $((attempt * 5))
+          done
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
