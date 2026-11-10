@@ -39,6 +39,10 @@ def test_reconcile_workflow_has_no_publish_or_caller_artifact_input():
     assert 'state-patch' in raw and 'cosign verify' in raw
     assert '--observe-only' in raw
     assert '--force-conflicts' not in raw
+    assert "KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'" in raw
+    assert 'printf \'%s\' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"' in raw
+    assert '--certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true' in raw
+    assert '--insecure-skip-tls-verify' not in raw
 
 
 def test_cloud_reconcilers_use_public_edge_https_port():
