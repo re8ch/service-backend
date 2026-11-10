@@ -1147,7 +1147,7 @@ def require_tenant_service_class(service_class: str) -> None:
         raise PermissionError("service class is not published")
 
 
-LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1"}
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1"}
 
 
 def no_live_service_provisioner(service_class: str) -> None:
@@ -1167,8 +1167,20 @@ def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref
         meta, spec, status = (instance.get(key) or {} for key in ("metadata", "spec", "status"))
         name, uid = meta.get("name"), meta.get("uid")
         service_class = spec.get("serviceClass")
-        provider = providers.get(service_class)
         ref = f"service://{tenant}/{name}"
+        if (service_class == "database.postgresql.shared.v1" and tenant == "admin"
+                and spec.get("tenantRef") == tenant and name == "postgresql-shared" and uid
+                and status.get("phase") == "Ready"
+                and (not resource_ref or resource_ref == ref)
+                and (status.get("access") or {}).get("accessRef") == "capability://postgres-admin/admin/pg-re8ch"):
+            bindings.append({"bindingRef": f"binding://{tenant}/provider/{uid}", "resourceRef": ref,
+                             "bindingType": "access:broker-reference",
+                             "accessRef": "capability://postgres-admin/admin/pg-re8ch",
+                             "serviceClass": service_class, "source": "provider-status", "state": "Ready",
+                             "revocable": False, "revokeWith": "service_instance_suspend",
+                             "credentialMaterialReturned": False})
+            continue
+        provider = providers.get(service_class)
         credential_ref = (status.get("access") or {}).get("robotCredentialRef") if service_class == "registry.harbor.v1" else None
         credential_ref = credential_ref or status.get("humanCredentialRef")
         if (spec.get("tenantRef") != tenant or not provider or not name or not uid
@@ -1196,7 +1208,8 @@ def tenant_catalog_for_profile(tenant: str, grants: list[dict[str, Any]]) -> lis
     return [item for item in service_catalog()
             if item["serviceClass"] in LIVE_SERVICE_CLASSES
             and item["serviceClass"] in active
-            and (item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais")]
+            and (item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais")
+            and (item["serviceClass"] != "database.postgresql.shared.v1" or tenant == "admin")]
 
 
 def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:

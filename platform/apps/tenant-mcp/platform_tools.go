@@ -281,6 +281,14 @@ func platformIdentity(ctx context.Context) (identity, error) {
 }
 
 func (s *server) registerPlatformTools(ms *mcp.Server) {
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_postgres_admin_sql"), Name: "platform_postgres_admin_sql", Description: "Run bounded SQL against the adopted pg-re8ch PostgreSQL authority. Re8ch Admin membership is required. Reads execute directly; writes require approvalId, preview, and the exact planHash. Credential material is never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"database":{"type":"string"},"sql":{"type":"string"},"readOnly":{"type":"boolean","default":true},"transactional":{"type":"boolean","default":true},"approvalId":{"type":"string"},"apply":{"type":"boolean","default":false},"planHash":{"type":"string"},"maxRows":{"type":"integer","minimum":1,"maximum":1000,"default":100},"timeoutSeconds":{"type":"integer","minimum":1,"maximum":120,"default":30}},"required":["database","sql"],"additionalProperties":false}`)},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			result, err := callNativePlatformTool(ctx, s, "postgres_admin_sql", input)
+			return result, nil, err
+		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_read"), Name: "platform_kubernetes_resource_read", Description: "Discover every Kubernetes API resource type or read a named/listed non-Secret resource from the directly connected RE8CH platform cluster. Re8ch Admin membership is required. Secret values are never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["discover","list","get"]},"resource":{"type":"string","description":"API resource name such as deployments.apps or ciliumnetworkpolicies.cilium.io"},"name":{"type":"string"},"namespace":{"type":"string"},"allNamespaces":{"type":"boolean"},"labelSelector":{"type":"string"},"fieldSelector":{"type":"string"}},"required":["action"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceReadInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {

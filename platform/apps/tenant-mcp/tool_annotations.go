@@ -38,7 +38,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "tenant_claim_create", "service_instance_create":
 		// Workloads/builds may fetch tenant-selected images or source repositories.
 		openWorld = true
-	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubernetes_resource_apply", "platform_kubectl_exec", "platform_node_ssh_exec", "harbor_build_start", "runtime_image_build", "github_governance":
+	case "tenant_claim_update", "service_instance_update", "tenant_kubernetes_apply", "artc_kubernetes_apply", "artc_kubernetes_admin", "platform_kubernetes_resource_apply", "platform_postgres_admin_sql", "platform_kubectl_exec", "platform_node_ssh_exec", "harbor_build_start", "runtime_image_build", "github_governance":
 		// Can replace existing state and execute tenant-selected workloads/commands.
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":

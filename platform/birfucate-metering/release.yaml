@@ -148,6 +148,12 @@ spec:
             - {name: admin-github-k8s-admins-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
             - {name: admin-vmcp-service-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
           grants:
+            # Admin consumes the same provider-backed service contracts as an
+            # ordinary tenant. Provider credentials remain brokered and usage
+            # is attributed to service://admin/<instance> by Bifurcate.
+            - {name: admin-database, consumableRef: database.postgresql.shared.v1, roleRef: operator, lifecycle: Active}
+            - {name: admin-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
+            - {name: admin-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
             - {name: admin-ledger, consumableRef: application.ledger.v1, roleRef: operator, lifecycle: Active}
             - {name: admin-github-enterprise-governance, consumableRef: integration.github.enterprise-governance.v1, roleRef: admin, lifecycle: Active}
           nativeAccess: true
@@ -269,7 +275,14 @@ spec:
         - {serviceClass: application.ledger.v1, meter: usage.instance_runtime, serviceRef: platform/application.ledger.v1, meterCode: instance_runtime}
     serviceInstanceRuntime:
       enabled: true
-      serviceClasses: [application.ledger.v1]
+      # Runtime is a common meter for every Ready Admin standard service. The
+      # provider-specific meters below remain the authority for storage,
+      # transfers, scans, queries, samples, logs and PostgreSQL activity.
+      serviceClasses:
+        - application.ledger.v1
+        - database.postgresql.shared.v1
+        - registry.harbor.v1
+        - observability.grafana.v1
     pricing:
       enabled: false
       currency: CNY
