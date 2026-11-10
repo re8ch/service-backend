@@ -84,6 +84,11 @@ entry point documented in [`runbooks/external-project-deployment.md`](runbooks/e
 It renders isolated Kubernetes resources for review without distributing
 cluster credentials.
 
+Independently released MCP gateways, providers and platform agents use the
+[`GitHub-native agent and provider publisher runbook`](operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md).
+It keeps builds on GitHub-hosted runners, promotes signed immutable digests, and
+requires runtime plus public-plugin evidence before declaring delivery complete.
+
 Pure static frontends bypass Harbor and Kubernetes: they publish either their
 source directory or compiled output directly to Firebase/shared object storage,
 Tencent COS, Aliyun OSS, or Cloudflare with the provider-native CLI/API. The
