@@ -123,7 +123,6 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	// entry points to that discovery session too; each call still requires an
 	// authenticated platform administrator and the backend's own authorization.
 	s.registerPlatformTools(ms)
-	s.registerGitHubGovernanceTool(ms)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
