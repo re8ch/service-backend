@@ -629,7 +629,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1"}
+PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "ai.model-gateway.v1"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -673,6 +673,34 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("one or more PostgreSQL extensions are not published")
         return {"storageGiB": storage, "connectionClass": connection, "backupClass": backup,
                 "retentionClass": retention, "extensions": sorted(set(extensions))}
+    if service_class == "ai.model-gateway.v1":
+        if request.get("planRef") not in {"standard", "budgeted"}:
+            raise PermissionError("Model gateway plan is not published")
+        if set(parameters) - {"models", "tokenBudget", "concurrency", "expiresAt"}:
+            raise PermissionError("Model gateway parameters are not published")
+        models = parameters.get("models")
+        allowed_models = {"deepseek-v4-flash", "kimi-k2-5"}
+        if (not isinstance(models, list) or not 1 <= len(models) <= len(allowed_models)
+                or any(model not in allowed_models for model in models)):
+            raise PermissionError("Model gateway models must be a non-empty published allowlist")
+        budget = parameters.get("tokenBudget")
+        concurrency = parameters.get("concurrency", 2)
+        if type(budget) is not int or not 1_000 <= budget <= 100_000_000:
+            raise PermissionError("tokenBudget must be between 1000 and 100000000")
+        if type(concurrency) is not int or not 1 <= concurrency <= 32:
+            raise PermissionError("concurrency must be between 1 and 32")
+        expires_at = parameters.get("expiresAt")
+        if not isinstance(expires_at, str):
+            raise PermissionError("expiresAt is required")
+        try:
+            expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        except ValueError:
+            raise PermissionError("expiresAt must be an RFC3339 timestamp") from None
+        now = utcnow()
+        if expiry.tzinfo is None or not now < expiry <= now + timedelta(days=90):
+            raise PermissionError("expiresAt must be within the next 90 days")
+        return {"models": sorted(set(models)), "tokenBudget": budget,
+                "concurrency": concurrency, "expiresAt": expiry.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")}
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant_ref != "admin" or name != "github-enterprise-governance":
             raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")
@@ -1293,6 +1321,7 @@ class Handler(BaseHTTPRequestHandler):
                         "registry.harbor.v1": ("harbor-project-rbac", "ProjectMembershipRobot"),
                         "observability.grafana.v1": ("grafana-access", "OrganizationFolderDatasourceGrant"),
                         "database.postgresql.shared.v1": ("pigsty-postgresql-adoption", "DatabaseAdministrationCapability"),
+                        "ai.model-gateway.v1": ("litellm-team-policy", "VirtualKeyTeamModelPolicy"),
                         "application.ledger.v1": ("existing-ledger-access", "ExistingServiceEndpointGrant"),
                         "integration.github.enterprise-governance.v1": ("github-enterprise-governance-workflow", "GitHubEnterpriseGovernanceCapability"),
                     }[service_class]

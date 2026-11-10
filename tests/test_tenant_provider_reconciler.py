@@ -104,6 +104,43 @@ def test_postgresql_is_left_to_the_independent_provider():
     assert kube.status is None
 
 
+def test_litellm_reconcile_stores_key_and_publishes_only_opaque_reference(monkeypatch):
+    class FakeLiteLLM:
+        def __init__(self):
+            self.teams = []
+            self.generated = []
+            self.blocked = []
+        def ensure_team(self, team_id, tenant, models, tpm_limit):
+            self.teams.append((team_id, tenant, models, tpm_limit))
+        def generate_key(self, team_id, tenant, models, token_budget, concurrency, expires_at):
+            self.generated.append((team_id, tenant, models, token_budget, concurrency, expires_at))
+            return "sk-opaque-provider-material"
+        def block_key(self, key): self.blocked.append(key)
+
+    now = provider.datetime.now(provider.timezone.utc)
+    value = instance("ai.model-gateway.v1", {
+        "models": ["deepseek-v4-flash"], "tokenBudget": 50000, "concurrency": 2,
+        "expiresAt": now.replace(year=now.year + 1).isoformat().replace("+00:00", "Z"),
+    }, "budgeted")
+    kube = FakeKube("ai.model-gateway.v1")
+    client = FakeLiteLLM()
+    monkeypatch.setattr(provider.control, "provider_service_spec", lambda *_args: value["spec"]["parameters"])
+    provider.reconcile_instance(kube, value, litellm_factory=lambda _kube: client)
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"]["accessRef"].startswith("credential://litellm/acme/")
+    serialized = json.dumps(kube.status)
+    assert "sk-opaque-provider-material" not in serialized
+    assert kube.status["access"]["credentialMaterialReturned"] is False
+    stored = next(secret for (namespace, _), secret in kube.secrets.items() if namespace == "credential-broker")
+    assert base64.b64decode(stored["data"]["key"]).decode() == "sk-opaque-provider-material"
+
+    value["status"] = kube.status
+    value["spec"]["lifecycle"] = "Suspended"
+    provider.reconcile_instance(kube, value, litellm_factory=lambda _kube: client)
+    assert client.blocked == ["sk-opaque-provider-material"]
+    assert kube.status["phase"] == "Suspended"
+
+
 class FakeKube:
     def __init__(self, service_class):
         self.service_class = service_class

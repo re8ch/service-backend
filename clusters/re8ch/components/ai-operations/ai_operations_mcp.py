@@ -1147,7 +1147,7 @@ def require_tenant_service_class(service_class: str) -> None:
         raise PermissionError("service class is not published")
 
 
-LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1"}
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1", "ai.model-gateway.v1"}
 
 
 def no_live_service_provisioner(service_class: str) -> None:
@@ -1162,7 +1162,7 @@ def legacy_intent_only(item: dict[str, Any]) -> dict[str, Any]:
 
 def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref: str | None = None) -> list[dict[str, Any]]:
     bindings = []
-    providers = {"registry.harbor.v1": "harbor", "observability.grafana.v1": "grafana"}
+    providers = {"registry.harbor.v1": "harbor", "observability.grafana.v1": "grafana", "ai.model-gateway.v1": "litellm"}
     for instance in instances:
         meta, spec, status = (instance.get(key) or {} for key in ("metadata", "spec", "status"))
         name, uid = meta.get("name"), meta.get("uid")
@@ -1182,6 +1182,7 @@ def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref
             continue
         provider = providers.get(service_class)
         credential_ref = (status.get("access") or {}).get("robotCredentialRef") if service_class == "registry.harbor.v1" else None
+        credential_ref = credential_ref or ((status.get("access") or {}).get("accessRef") if service_class == "ai.model-gateway.v1" else None)
         credential_ref = credential_ref or status.get("humanCredentialRef")
         if (spec.get("tenantRef") != tenant or not provider or not name or not uid
                 or status.get("phase") != "Ready" or resource_ref and resource_ref != ref

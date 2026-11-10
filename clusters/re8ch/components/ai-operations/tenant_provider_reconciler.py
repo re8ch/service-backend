@@ -15,6 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import tenant_control_controller as control
@@ -94,6 +95,132 @@ def secret_value(kube, namespace: str, name: str, key: str) -> str:
     if not encoded:
         raise RuntimeError("provider credential is unavailable")
     return base64.b64decode(encoded).decode()
+
+
+class LiteLLMAdmin:
+    """Small bounded client for LiteLLM's native team and virtual-key APIs."""
+
+    def __init__(self, base_url: str, master_key: str, opener=urllib.request.urlopen):
+        if not master_key:
+            raise RuntimeError("LiteLLM master credential is unavailable")
+        self.base_url = base_url.rstrip("/")
+        self.master_key = master_key
+        self.opener = opener
+
+    def request(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        request = urllib.request.Request(
+            self.base_url + path, data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
+            headers={"Authorization": "Bearer " + self.master_key, "Content-Type": "application/json", "Accept": "application/json"},
+        )
+        try:
+            with self.opener(request, timeout=20) as response:
+                raw = response.read()
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"LiteLLM API returned HTTP {exc.code}") from None
+        except urllib.error.URLError as exc:
+            raise RuntimeError("LiteLLM API is unreachable") from exc
+        value = json.loads(raw) if raw else {}
+        if not isinstance(value, dict):
+            raise RuntimeError("LiteLLM API returned an invalid response")
+        return value
+
+    def get(self, path: str, query: dict[str, str]) -> dict[str, Any] | None:
+        request = urllib.request.Request(
+            self.base_url + path + "?" + urllib.parse.urlencode(query), method="GET",
+            headers={"Authorization": "Bearer " + self.master_key, "Accept": "application/json"},
+        )
+        try:
+            with self.opener(request, timeout=20) as response:
+                raw = response.read()
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return None
+            raise RuntimeError(f"LiteLLM API returned HTTP {exc.code}") from None
+        except urllib.error.URLError as exc:
+            raise RuntimeError("LiteLLM API is unreachable") from exc
+        value = json.loads(raw) if raw else {}
+        if not isinstance(value, dict):
+            raise RuntimeError("LiteLLM API returned an invalid response")
+        return value
+
+    def ensure_team(self, team_id: str, tenant: str, models: list[str], tpm_limit: int) -> None:
+        if self.get("/team/info", {"team_id": team_id}) is None:
+            self.request("/team/new", {"team_id": team_id, "team_alias": "RE8CH " + tenant,
+                                        "models": models, "tpm_limit": tpm_limit,
+                                        "metadata": {"tenant_ref": tenant, "managed_by": "re8ch-tenant-provider"}})
+        else:
+            self.request("/team/update", {"team_id": team_id, "team_alias": "RE8CH " + tenant,
+                                           "models": models, "tpm_limit": tpm_limit,
+                                           "metadata": {"tenant_ref": tenant, "managed_by": "re8ch-tenant-provider"}})
+
+    def generate_key(self, team_id: str, tenant: str, models: list[str], token_budget: int,
+                     concurrency: int, expires_at: str) -> str:
+        expiry = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+        seconds = max(1, int((expiry - datetime.now(timezone.utc)).total_seconds()))
+        value = self.request("/key/generate", {
+            "team_id": team_id, "key_alias": "re8ch-" + tenant, "models": models,
+            "tpm_limit": token_budget, "max_parallel_requests": concurrency,
+            "duration": str(seconds) + "s",
+            "metadata": {"tenant_ref": tenant, "managed_by": "re8ch-tenant-provider"},
+        })
+        key = value.get("key")
+        if not isinstance(key, str) or not key.startswith("sk-") or len(key) < 16:
+            raise RuntimeError("LiteLLM did not return a usable virtual key")
+        return key
+
+    def block_key(self, key: str) -> None:
+        self.request("/key/block", {"key": key})
+
+
+def litellm_client(kube) -> LiteLLMAdmin:
+    return LiteLLMAdmin(os.getenv("LITELLM_BASE_URL", "http://litellm.llm-gateway.svc.cluster.local:4000"),
+                        secret_value(kube, "llm-gateway", "litellm-runtime", "LITELLM_MASTER_KEY"))
+
+
+def reconcile_litellm(kube, instance: dict[str, Any], client: LiteLLMAdmin) -> dict[str, Any]:
+    tenant = instance["spec"]["tenantRef"]
+    parameters = instance["spec"]["parameters"]
+    credential_id = uuid.uuid5(uuid.NAMESPACE_URL, f"litellm:{tenant}:{instance['metadata']['uid']}:virtual-key").hex
+    name = "litellm-" + credential_id
+    reference = f"credential://litellm/{tenant}/{credential_id}"
+    team_id = "re8ch-" + tenant
+    client.ensure_team(team_id, tenant, parameters["models"], parameters["tokenBudget"])
+    try:
+        secret = kube.get("secrets", name, "credential-broker", "api/v1")
+        labels = secret.get("metadata", {}).get("labels", {})
+        if labels.get("credentials.re8ch.com/tenant") != tenant or labels.get("credentials.re8ch.com/provider") != "litellm":
+            raise PermissionError("managed LiteLLM credential ownership does not match")
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        key = client.generate_key(team_id, tenant, parameters["models"], parameters["tokenBudget"],
+                                  parameters["concurrency"], parameters["expiresAt"])
+        value = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": name, "namespace": "credential-broker",
+                 "labels": {"credentials.re8ch.com/provider": "litellm", "credentials.re8ch.com/tenant": tenant,
+                            "credentials.re8ch.com/type": "virtual-key"}}, "type": "Opaque",
+                 "stringData": {"key": key, "team_id": team_id}}
+        try:
+            kube.create("secrets", value, "credential-broker", "api/v1")
+        except urllib.error.HTTPError as create_exc:
+            # Never leave an untracked native key active after a racing create.
+            client.block_key(key)
+            if create_exc.code != 409:
+                raise
+            return reconcile_litellm(kube, instance, client)
+    return {"accessRef": reference, "teamRef": "team://litellm/" + team_id,
+            "models": parameters["models"], "tokenBudget": parameters["tokenBudget"],
+            "concurrency": parameters["concurrency"], "expiresAt": parameters["expiresAt"],
+            "credentialMaterialReturned": False}
+
+
+def revoke_litellm(kube, instance: dict[str, Any], client: LiteLLMAdmin) -> None:
+    access = ((instance.get("status") or {}).get("access") or {}).get("accessRef", "")
+    match = re.fullmatch(r"credential://litellm/([a-z0-9][-a-z0-9]*)/([a-f0-9]{32})", access)
+    if not match or match.group(1) != instance["spec"]["tenantRef"]:
+        return
+    secret = kube.get("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
+    key = base64.b64decode((secret.get("data") or {})["key"]).decode()
+    client.block_key(key)
 
 
 def managed_credential(kube, instance: dict[str, Any], provider: str, project: str, username: str, *, create_if_missing: bool = True) -> tuple[str | None, str | None]:
@@ -629,7 +756,8 @@ def revoke_grafana(instance: dict[str, Any], client: GrafanaAdmin) -> None:
         raise RuntimeError("Grafana tenant organization membership could not be revoked")
 
 
-def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_client, grafana_factory=grafana_client, identity_factory=identity_store) -> None:
+def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_client, grafana_factory=grafana_client,
+                       identity_factory=identity_store, litellm_factory=litellm_client) -> None:
     spec, meta = instance["spec"], instance["metadata"]
     service_class = spec.get("serviceClass")
     if service_class not in control.PROVIDER_SERVICE_CLASSES:
@@ -666,6 +794,30 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
         return
     if service_class == "database.postgresql.shared.v1":
         # PostgreSQL is reconciled by the independently released provider.
+        return
+    if service_class == "ai.model-gateway.v1":
+        request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
+        if control.provider_service_spec(tenant, meta["name"], request) != spec.get("parameters"):
+            raise PermissionError("Model gateway parameters differ from the controller contract")
+        client = litellm_factory(kube)
+        prior = instance.get("status") or {}
+        if lifecycle in {"Suspended", "Deleting"}:
+            revoke_litellm(kube, instance, client)
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            kube.patch_status("tenantserviceinstances", meta["name"], {
+                "observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None,
+                "access": prior.get("access"), "humanCredentialRef": None,
+                "conditions": [control.condition("Ready", False, "ProviderAccessRevoked")],
+            }, namespace)
+            return
+        if lifecycle != "Requested":
+            raise PermissionError("unsupported provider lifecycle")
+        access = reconcile_litellm(kube, instance, client)
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
+            "access": access, "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", True, "ProviderAccessReady")],
+        }, namespace)
         return
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant != "admin" or meta["name"] != "github-enterprise-governance":
