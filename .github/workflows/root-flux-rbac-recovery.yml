@@ -74,11 +74,15 @@ jobs:
           test "$(kubectl auth can-i escalate role/identity-access-domain-supabase-identity -n supabase-identity)" = yes
           test "$(kubectl auth can-i patch gitrepositories.source.toolkit.fluxcd.io/service-backend -n flux-system)" = yes
           test "$(kubectl auth can-i patch kustomizations.kustomize.toolkit.fluxcd.io/service-backend -n flux-system)" = yes
-          for denied in "get secrets -A" "create clusterroles.rbac.authorization.k8s.io" \
+          test "$(kubectl auth can-i create secrets -n flux-system)" = yes
+          test "$(kubectl auth can-i get secret/service-backend-github-socks -n flux-system)" = yes
+          test "$(kubectl auth can-i patch secret/service-backend-github-socks -n flux-system)" = yes
+          for denied in "get secrets -A" "get secret/service-backend-github-ssh -n flux-system" \
+            "delete secret/service-backend-github-socks -n flux-system" "create clusterroles.rbac.authorization.k8s.io" \
             "patch deployments -A" "impersonate users"; do
             read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no
           done
-      - name: Restore exact identity executor role and request root reconciliation
+      - name: Restore exact root source dependencies and request reconciliation
         env: {SOURCE_REVISION: '${{ inputs.revision }}'}
         run: |
           # shellcheck disable=SC2016,SC2153
@@ -98,6 +102,30 @@ jobs:
             -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
           kubectl apply --server-side --force-conflicts --field-manager=kustomize-controller \
             -f "$RUNNER_TEMP/identity-executor-role.yaml" -o name
+          python - <<'PY' > "$RUNNER_TEMP/service-backend-github-socks.yaml"
+          import yaml
+
+          path = "clusters/re8ch/flux-system/service-backend-github-socks.yaml"
+          secret = yaml.safe_load(open(path))
+          metadata = secret.get("metadata", {}) if isinstance(secret, dict) else {}
+          string_data = secret.get("stringData", {}) if isinstance(secret, dict) else {}
+          expected_address = "http://identity-egress-gitops.egress-fabric.svc.cluster.local:17893"
+          if (
+              not isinstance(secret, dict)
+              or secret.get("apiVersion") != "v1"
+              or secret.get("kind") != "Secret"
+              or metadata.get("name") != "service-backend-github-socks"
+              or metadata.get("namespace") != "flux-system"
+              or secret.get("type") != "Opaque"
+              or string_data != {"address": expected_address}
+          ):
+              raise SystemExit("reviewed root proxy Secret differs from the bounded recovery contract")
+          print(yaml.safe_dump(secret, sort_keys=False))
+          PY
+          kubectl apply --server-side --dry-run=server --force-conflicts --field-manager=kustomize-controller \
+            -f "$RUNNER_TEMP/service-backend-github-socks.yaml" -o name
+          kubectl apply --server-side --force-conflicts --field-manager=kustomize-controller \
+            -f "$RUNNER_TEMP/service-backend-github-socks.yaml" -o name
           kubectl patch gitrepository.source.toolkit.fluxcd.io/service-backend -n flux-system \
             --type=merge --patch='{"spec":{"suspend":false}}' --dry-run=server -o name
           kubectl patch gitrepository.source.toolkit.fluxcd.io/service-backend -n flux-system \
@@ -114,7 +142,7 @@ jobs:
             kubectl annotate "$target" -n flux-system \
               "reconcile.fluxcd.io/requestedAt=$request_id" --overwrite -o name
           done
-          printf '### Root Flux bounded recovery\n\n- restored revision: `%s`\n- restored object: `Role/supabase-identity/identity-access-domain-supabase-identity`\n- reconciliation request: `%s`\n- prune: disabled\n' \
+          printf '### Root Flux bounded recovery\n\n- restored revision: `%s`\n- restored objects: `Role/supabase-identity/identity-access-domain-supabase-identity`, `Secret/flux-system/service-backend-github-socks`\n- reconciliation request: `%s`\n- prune: disabled\n' \
             "$SOURCE_REVISION" "$request_id" >> "$GITHUB_STEP_SUMMARY"
       - name: Observe root revision and controller availability
         env: {SOURCE_REVISION: '${{ inputs.revision }}'}
