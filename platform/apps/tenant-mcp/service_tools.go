@@ -226,6 +226,9 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		if err := requireGrantedConsumable(ctx, id, serviceClass); err != nil {
 			return nil, err
 		}
+		if serviceClass == "database.postgresql.shared.v1" && tenant != "admin" {
+			return nil, noLiveServiceProvisioner(serviceClass)
+		}
 		if providerBacked[serviceClass] {
 			if err := requireOperator(id); err != nil {
 				return nil, err

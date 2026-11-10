@@ -2606,6 +2606,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
             require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
+            if args["spec"].get("serviceClass") == "database.postgresql.shared.v1" and tenant != "admin":
+                no_live_service_provisioner(args["spec"]["serviceClass"])
             if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
@@ -2614,6 +2616,8 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             no_live_service_provisioner(args["spec"]["serviceClass"])
         if name == "service_instance_create":
             require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
+            if args["spec"].get("serviceClass") == "database.postgresql.shared.v1" and tenant != "admin":
+                no_live_service_provisioner(args["spec"]["serviceClass"])
             if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
