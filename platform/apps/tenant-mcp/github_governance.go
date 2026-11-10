@@ -19,7 +19,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -39,7 +38,6 @@ type githubGovernanceInput struct {
 }
 
 var githubGovernanceName = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}$`)
-var githubGovernanceOwners = map[string]bool{"re8ch": true, "siren-observer": true, "pillars-infra": true, "re8ch-ai": true, "re8ch-business": true, "compocv": true}
 
 func githubGovernanceJWT() (string, error) {
 	appID := strings.TrimSpace(os.Getenv("GITHUB_GOVERNANCE_APP_ID"))
@@ -68,16 +66,16 @@ func githubGovernanceJWT() (string, error) {
 	}
 	return unsigned + "." + enc(sig), nil
 }
-func githubGovernanceToken(ctx context.Context) (string, time.Time, error) {
+func githubGovernanceToken(ctx context.Context, owner string) (string, time.Time, error) {
 	jwt, e := githubGovernanceJWT()
 	if e != nil {
 		return "", time.Time{}, e
 	}
-	installation := strings.TrimSpace(os.Getenv("GITHUB_GOVERNANCE_INSTALLATION_ID"))
-	if _, e = strconv.ParseInt(installation, 10, 64); e != nil {
-		return "", time.Time{}, errors.New("invalid GitHub governance installation id")
+	owner = strings.ToLower(strings.TrimSpace(owner))
+	if !githubGovernanceName.MatchString(owner) {
+		return "", time.Time{}, errors.New("invalid GitHub organization name")
 	}
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.github.com/app/installations/"+installation+"/access_tokens", bytes.NewReader([]byte(`{}`)))
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/orgs/"+url.PathEscape(owner)+"/installation", nil)
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
@@ -87,6 +85,25 @@ func githubGovernanceToken(ctx context.Context) (string, time.Time, error) {
 	}
 	defer resp.Body.Close()
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode/100 != 2 {
+		return "", time.Time{}, fmt.Errorf("GitHub governance App is not installed for organization %q (HTTP %d)", owner, resp.StatusCode)
+	}
+	var installation struct {
+		ID int64 `json:"id"`
+	}
+	if json.Unmarshal(data, &installation) != nil || installation.ID <= 0 {
+		return "", time.Time{}, errors.New("invalid GitHub organization installation response")
+	}
+	req, _ = http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://api.github.com/app/installations/%d/access_tokens", installation.ID), bytes.NewReader([]byte(`{}`)))
+	req.Header.Set("Authorization", "Bearer "+jwt)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	resp, e = (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	if e != nil {
+		return "", time.Time{}, e
+	}
+	defer resp.Body.Close()
+	data, _ = io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode/100 != 2 {
 		return "", time.Time{}, fmt.Errorf("GitHub installation token request returned HTTP %d", resp.StatusCode)
 	}
@@ -102,8 +119,8 @@ func githubGovernanceToken(ctx context.Context) (string, time.Time, error) {
 }
 func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, error) {
 	owner := strings.ToLower(strings.TrimSpace(in.Owner))
-	if !githubGovernanceOwners[owner] {
-		return "", "", nil, errors.New("owner is outside the reviewed governance allowlist")
+	if !githubGovernanceName.MatchString(owner) {
+		return "", "", nil, errors.New("invalid GitHub organization name")
 	}
 	if in.Repo != "" && !githubGovernanceName.MatchString(in.Repo) {
 		return "", "", nil, errors.New("invalid repository name")
@@ -208,7 +225,7 @@ func (s *server) registerGitHubGovernanceTool(ms *mcp.Server) {
 		if mutation && in.PlanHash != plan {
 			return nil, nil, errors.New("apply requires the exact planHash returned by preview")
 		}
-		token, expires, e := githubGovernanceToken(ctx)
+		token, expires, e := githubGovernanceToken(ctx, in.Owner)
 		if e != nil {
 			return nil, nil, e
 		}

@@ -16,7 +16,7 @@ func TestGitHubGovernanceRequestAllowlist(t *testing.T) {
 		t.Fatalf("unexpected variable request: %s %s %v", method, path, err)
 	}
 	for _, input := range []githubGovernanceInput{
-		{Resource: "repository_ruleset", Operation: "list", Owner: "outside", Repo: "repo"},
+		{Resource: "repository_ruleset", Operation: "list", Owner: "../outside", Repo: "repo"},
 		{Resource: "repository_ruleset", Operation: "delete", Owner: "re8ch", Repo: "service-backend"},
 		{Resource: "repository_variable", Operation: "get", Owner: "re8ch", Repo: "service-backend", Name: "../secret"},
 		{Resource: "raw_api", Operation: "call", Owner: "re8ch"},
@@ -25,6 +25,10 @@ func TestGitHubGovernanceRequestAllowlist(t *testing.T) {
 		if _, _, _, err := githubGovernanceRequest(input); err == nil {
 			t.Fatalf("unsafe governance input accepted: %#v", input)
 		}
+	}
+	method, path, _, err = githubGovernanceRequest(githubGovernanceInput{Resource: "organization", Operation: "get", Owner: "thinking-machine-labs"})
+	if err != nil || method != http.MethodGet || path != "/orgs/thinking-machine-labs" {
+		t.Fatalf("enterprise organization request was rejected: %s %s %v", method, path, err)
 	}
 }
 
