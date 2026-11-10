@@ -60,7 +60,13 @@ jobs:
         with: {version: v4.2.3}
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
       - run: python3 -m pytest -q tests/test_postgresql_provider.py tests/test_tenant_control_controller.py tests/test_tenant_provider_reconciler.py tests/test_tenant_infrastructure_gitops.py
-      - run: docker build -f platform/apps/postgresql-provider/Dockerfile -t postgresql-provider:pr .
+      - name: Build OCI image with the governed R640 builder
+        run: |
+          export BUILDX_CONFIG="$HOME/.docker/buildx"
+          docker buildx inspect r640-mihomos >/dev/null
+          docker buildx build --builder r640-mihomos --platform linux/amd64 --provenance=mode=max --sbom=true \
+            --output "type=oci,dest=$RUNNER_TEMP/postgresql-provider.oci.tar" \
+            -f platform/apps/postgresql-provider/Dockerfile .
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -87,7 +93,6 @@ jobs:
             [[ "$attempt" == 5 ]] && exit 1
             sleep $((attempt * 5))
           done
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
@@ -98,7 +103,9 @@ jobs:
         env:
           IMAGE: ghcr.io/re8ch/service-backend-postgresql-provider
         run: |
-          docker buildx build --platform linux/amd64 --provenance=mode=max --sbom=true --push \
+          export BUILDX_CONFIG="$HOME/.docker/buildx"
+          docker buildx inspect r640-mihomos >/dev/null
+          docker buildx build --builder r640-mihomos --platform linux/amd64 --provenance=mode=max --sbom=true --push \
             -f platform/apps/postgresql-provider/Dockerfile -t "$IMAGE:${GITHUB_SHA}" .
           digest="$(docker buildx imagetools inspect "$IMAGE:${GITHUB_SHA}" --format '{{json .Manifest.Digest}}' | tr -d '"')"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
@@ -107,7 +114,9 @@ jobs:
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
       - name: Publish package for anonymous runtime pulls
         env: {GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"}
-        run: gh api --method PATCH /orgs/re8ch/packages/container/service-backend-postgresql-provider -f visibility=public
+        run: |
+          unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
+          gh api --method PATCH /orgs/re8ch/packages/container/service-backend-postgresql-provider -f visibility=public
       - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-name: ${{ steps.image.outputs.name }}
