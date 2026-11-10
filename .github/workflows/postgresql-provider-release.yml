@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
@@ -52,7 +52,7 @@ jobs:
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
     environment: production
     permissions: {contents: read, packages: write, id-token: write}
     steps:
