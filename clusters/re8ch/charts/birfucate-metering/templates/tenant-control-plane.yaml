@@ -138,6 +138,101 @@ kind: Service
 metadata: {name: tenant-control-controller, namespace: tenant-infrastructure}
 spec: {trafficDistribution: PreferSameNode, selector: {app: tenant-control-controller}, ports: [{name: http, port: 80, targetPort: http}]}
 ---
+{{- if .Values.tenantPlatform.postgresqlProvider.enabled }}
+{{- if not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" .Values.tenantPlatform.postgresqlProvider.image) }}
+{{- fail "tenantPlatform.postgresqlProvider.image must be pinned to a verified sha256 digest" }}
+{{- end }}
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: postgresql-provider, namespace: tenant-infrastructure}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: postgresql-provider}
+rules:
+  - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances], verbs: [get, list, watch]}
+  - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances/status], verbs: [get, patch]}
+  - {apiGroups: [""], resources: [services], resourceNames: [pg-re8ch-primary], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: postgresql-provider}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: postgresql-provider}
+subjects: [{kind: ServiceAccount, name: postgresql-provider, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: postgresql-provider-admin-credential, namespace: supabase-pg-re8ch}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [supabase-pg-re8ch-secrets], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: postgresql-provider-admin-credential, namespace: supabase-pg-re8ch}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: postgresql-provider-admin-credential}
+subjects: [{kind: ServiceAccount, name: postgresql-provider, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: postgresql-provider-credential-broker, namespace: credential-broker}
+rules:
+  - {apiGroups: [""], resources: [secrets], verbs: [get, create]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: postgresql-provider-credential-broker, namespace: credential-broker}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: postgresql-provider-credential-broker}
+subjects: [{kind: ServiceAccount, name: postgresql-provider, namespace: tenant-infrastructure}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: postgresql-provider, namespace: tenant-infrastructure}
+spec:
+  replicas: 1
+  strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
+  selector: {matchLabels: {app: postgresql-provider}}
+  template:
+    metadata: {labels: {app: postgresql-provider, saas.re8ch.com/tenant: platform}}
+    spec:
+      serviceAccountName: postgresql-provider
+      imagePullSecrets: [{name: harbor-registry-pull}]
+      tolerations: {{- toYaml .Values.tenantPlatform.tolerations | nindent 8 }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - {key: kubernetes.io/hostname, operator: In, values: {{ .Values.tenantPlatform.placement.nodeNames | toJson }}}
+      containers:
+        - name: provider
+          image: {{ .Values.tenantPlatform.postgresqlProvider.image | quote }}
+          envFrom:
+            - {secretRef: {name: tenant-claim-internal-auth, optional: false}}
+          env:
+            - {name: LISTEN_PORT, value: "8080"}
+            - {name: PIGSTY_PRIMARY_HOST, value: {{ .Values.tenantPlatform.postgresqlProvider.primaryHost | quote }}}
+          ports: [{name: mcp, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /readyz, port: mcp}, periodSeconds: 5, timeoutSeconds: 3}
+          livenessProbe: {httpGet: {path: /livez, port: mcp}, periodSeconds: 15, timeoutSeconds: 3}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: postgresql-provider, namespace: tenant-infrastructure}
+spec: {selector: {app: postgresql-provider}, ports: [{name: mcp, port: 8080, targetPort: mcp}]}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: postgresql-provider, namespace: tenant-infrastructure}
+spec:
+  podSelector: {matchLabels: {app: postgresql-provider}}
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{podSelector: {matchLabels: {app: tenant-api}}}]
+      ports: [{protocol: TCP, port: 8080}]
+{{- end }}
+---
 {{- if .Values.tenantPlatform.provider.enabled }}
 {{- if not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" .Values.tenantPlatform.provider.image) }}
 {{- fail "tenantPlatform.provider.image must be pinned to a verified sha256 digest" }}

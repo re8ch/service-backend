@@ -59,7 +59,7 @@ func (s *server) instanceList(tenant string) ([]map[string]any, error) {
 }
 
 func (s *server) instancePlan(tenant, name string, spec map[string]any) (map[string]any, error) {
-	checked, err := checkedSpec(spec, nil)
+	checked, err := checkedInstanceSpec(tenant, name, spec, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (s *server) instanceMutate(tenant, name string, spec map[string]any, key, a
 	if errors.Is(err, sql.ErrNoRows) {
 		previous = nil
 	}
-	checked, err := checkedSpec(spec, previous)
+	checked, err := checkedInstanceSpec(tenant, name, spec, previous)
 	if err != nil {
 		return nil, err
 	}
@@ -160,6 +160,27 @@ func (s *server) instanceMutate(tenant, name string, spec map[string]any, key, a
 		return nil, err
 	}
 	return result, nil
+}
+
+func checkedInstanceSpec(tenant, name string, spec, previous map[string]any) (map[string]any, error) {
+	checked, err := checkedSpec(spec, previous)
+	if err != nil {
+		return nil, err
+	}
+	if asString(checked, "serviceClass") != "database.postgresql.shared.v1" {
+		return checked, nil
+	}
+	parameters := object(checked["parameters"])
+	if tenant == "admin" && name == "postgresql-shared" {
+		if len(parameters) != 0 {
+			return nil, errors.New("Admin PostgreSQL authority adoption is parameterless")
+		}
+		return checked, nil
+	}
+	if intValue(parameters["storageGiB"]) < 1 {
+		return nil, errors.New("tenant PostgreSQL instances require storageGiB")
+	}
+	return checked, nil
 }
 
 func (s *server) operationGet(tenant, id string) (map[string]any, error) {

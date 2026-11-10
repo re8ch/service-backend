@@ -102,8 +102,11 @@ func providerBindings(instances []any, tenant, ref string) []map[string]any {
 		}
 		if serviceClass == "database.postgresql.shared.v1" {
 			accessRef := asString(object(status["access"]), "accessRef")
-			if tenant == "admin" && asString(spec, "tenantRef") == tenant && name == "postgresql-shared" && uid != "" &&
-				status["phase"] == "Ready" && (ref == "" || ref == resourceRef) && accessRef == "capability://postgres-admin/admin/pg-re8ch" {
+			validAccess := strings.HasPrefix(accessRef, "credential://postgresql/"+tenant+"/") ||
+				(tenant == "admin" && name == "postgresql-shared" &&
+					(accessRef == "capability://postgresql-admin/admin/pg-re8ch" || accessRef == "capability://postgres-admin/admin/pg-re8ch"))
+			if asString(spec, "tenantRef") == tenant && uid != "" && status["phase"] == "Ready" &&
+				(ref == "" || ref == resourceRef) && validAccess {
 				bindings = append(bindings, map[string]any{
 					"bindingRef": "binding://" + tenant + "/provider/" + uid, "resourceRef": resourceRef,
 					"bindingType": "access:broker-reference", "accessRef": accessRef, "serviceClass": serviceClass,

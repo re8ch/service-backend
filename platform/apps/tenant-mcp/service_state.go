@@ -153,6 +153,34 @@ func checkedSpec(spec, previous map[string]any) (map[string]any, error) {
 		}
 	}
 	switch serviceClass {
+	case "database.postgresql.shared.v1":
+		if asString(spec, "planRef") != "standard" {
+			return nil, errors.New("PostgreSQL publishes only the standard plan")
+		}
+		if len(parameters) > 0 && (intValue(parameters["storageGiB"]) < 1 || intValue(parameters["storageGiB"]) > 1024) {
+			return nil, errors.New("storageGiB must be between 1 and 1024")
+		}
+		if value := asString(parameters, "connectionClass"); value != "" && value != "small" && value != "standard" && value != "large" {
+			return nil, errors.New("connectionClass is not published")
+		}
+		if value := asString(parameters, "backupClass"); value != "" && value != "pigsty-pitr" {
+			return nil, errors.New("backupClass is not published")
+		}
+		if value := asString(parameters, "retentionClass"); value != "" && value != "standard" && value != "extended" {
+			return nil, errors.New("retentionClass is not published")
+		}
+		if raw, present := parameters["extensions"]; present {
+			values, ok := raw.([]any)
+			if !ok || len(values) > 16 {
+				return nil, errors.New("extensions must be a bounded list")
+			}
+			allowedExtensions := map[string]bool{"citext": true, "pg_trgm": true, "pgcrypto": true, "uuid-ossp": true, "vector": true}
+			for _, value := range values {
+				if extension, ok := value.(string); !ok || !allowedExtensions[extension] {
+					return nil, errors.New("one or more PostgreSQL extensions are not published")
+				}
+			}
+		}
 	case "storage.volume.v1":
 		size := intValue(parameters["sizeGiB"])
 		if size < 1 {
