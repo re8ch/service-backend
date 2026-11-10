@@ -27,6 +27,14 @@ Read the repository-root AGENTS.md first when present, then README and declared 
 
 ConnecTool ConnecTool is a provider-neutral control contract for distributing AI tools through OIDC, ToolHive MCP workloads, and Codex-compatible plugin marketplaces. It turns the full chain into reviewable, values-controlled Kubernetes resources without embedding one organization's endpoints, policies, identities, or registry. Install Start with [`charts/connectool/examples/example-values.yaml`](charts/connectool/examples/example-values.yaml). What it standardizes - public PKCE client contracts for an OIDC provider; - ToolHive Registry sources and optional registry-server release settings; - MCP groups, OIDC configuration, virtual MCP aggregation, and authorization; - Codex marketplace metadata, MCP ownership, and reusable skill-only plugins; - validation that each publication has exactly one MCP-owning plugin. ConnecTool stores no OAuth tokens or identity-provider secrets and installs no desktop plugins. See [the architecture boundary](docs/architecture.md).
 
+## Current tenant-aware gateway contract
+
+ConnecTool v0.6.9 is live behind the unchanged `tools.service.re8ch.com` OAuth surface. It resolves visibility from the OAuth-authoritative `tenantRef`, merges tenant-core lifecycle tools with only the providers registered for that tenant, and forwards Streamable HTTP content negotiation plus MCP protocol, method and session metadata. The installed Re8ch plugin has successfully called organization context, self-service capabilities and the service catalog through this path.
+
+`platform_tool_call` and raw `kubectl.exec`-style execution are outside the supported tenant gateway contract. Provider presence is runtime evidence, not a static tool-name promise. The Admin catalog currently proves GitHub Enterprise Governance only. PostgreSQL, Registry and Observability remain pending independent-provider releases under `database.postgresql.shared.v1`, `registry.oci.harbor.v1` and `observability.stack.v1`.
+
+Before marking a provider live, verify its catalog registration, health, tenant isolation, instance lifecycle, opaque bindings, absence of credential disclosure and Bifurcate `UsageEvent` output with an authenticated plugin call. A merged PR, published image or Ready Pod alone is insufficient.
+
 Existing repository AGENTS: `no`
 
 ## R640 public network authority

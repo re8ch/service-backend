@@ -837,7 +837,7 @@
     "kind": "agent-memory",
     "module": "connectool",
     "ref": "catalogs/platform/modules/connectool/MEMORY.md",
-    "sha256": "79ff6b0492a813dc59bbe29e1d36704c1c4c2058d41631fbe1c9d0e9ada0b48a"
+    "sha256": "99f8c31429a6b3c4329e223b5984b323ee8161fed25090a099a343bc202993e2"
   },
   {
     "module": "headlamp-advanced-fabric",
@@ -1053,7 +1053,7 @@
     "kind": "agent-memory",
     "module": "service-backend",
     "ref": "catalogs/platform/modules/service-backend/MEMORY.md",
-    "sha256": "3dbb73ef834b626314c940d31a649cedc98d530ac9e87f5d7401e74b39cebe8a"
+    "sha256": "e941ebd6662930ae84199e3b4bff4eafc3d5777e7e30fb1d7cc17975d5d92372"
   },
   {
     "module": "tool-distribution",

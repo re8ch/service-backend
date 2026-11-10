@@ -103,12 +103,46 @@ Confirm a real read or plan result before reporting a capability as working.
 Tenant Kubernetes tools are scoped to allowlisted kinds and Ready namespaces
 owned by the active organization; they are not unrestricted cluster `kubectl`.
 
-Older Cloud Platform connections and the optional `platform_tool_catalog` /
-`platform_tool_call` administrator bridge are not prerequisites or health
-checks for tenant self-service. A missing administrator entry point does not
-mean tenant self-service is down. For database schema work, discover the
-currently authorized operation, keep credentials inside the platform, retain
-plan and result evidence, and use a reviewed GitOps PR for desired state.
+Older Cloud Platform connections are not prerequisites or health checks for
+tenant self-service. `platform_tool_call` is not a supported or enabled user
+capability, and raw `kubectl.exec`-style execution must not be a prerequisite
+for tenant services. A legacy capability description is not authorization.
+
+### Tenant-aware AI tool gateway
+
+`tools.service.re8ch.com` retains its public URL and OAuth contract. ConnecTool
+v0.6.9 resolves the OAuth-authoritative `tenantRef`, combines tenant-core tools
+with only the providers visible to that tenant, and forwards MCP content
+negotiation, protocol, method and session metadata without exposing provider
+credentials. The installed Re8ch plugin has successfully exercised
+`tenant_organization_context_list`, `tenant_self_service_capabilities`, and
+`service_catalog_list` through this path for the active `admin` tenant.
+
+The supported tenant control-plane families are:
+
+| Family | Responsibility |
+| --- | --- |
+| `tenant_claim_*` | Managed compute and storage lifecycle, TTL and usage metering |
+| `service_instance_*` | Standard and custom service instance lifecycle |
+| `service_binding_*` | Opaque bindings; callers receive references, not credentials |
+| Secret broker | Materialize a binding into its workload without reading the Secret back |
+| Catalog and Bifurcate | Tenant-scoped discovery, status and `UsageEvent` metering |
+
+Provider presence is runtime evidence, not a static promise. The authenticated
+Admin catalog currently proves GitHub Enterprise Governance only. These
+independent providers are the next rollout stage and are not yet live:
+
+| Provider | Stable service class | Current state |
+| --- | --- | --- |
+| PostgreSQL | `database.postgresql.shared.v1` | Pending; database capability reports `unverified` |
+| Registry | `registry.oci.harbor.v1` | Pending independent-provider rollout |
+| Observability | `observability.stack.v1` | Pending independent-provider rollout |
+
+Each provider must ship as one immutable signed artifact through the bounded
+GitHub Actions publisher, then pass catalog registration, provider health,
+tenant isolation, instance lifecycle, opaque binding and UsageEvent acceptance.
+A merged PR, published image or Ready Pod alone is not proof that an AI tool is
+usable; acceptance requires an authenticated plugin call.
 
 ### Re8ch Admin GitHub Enterprise governance
 
