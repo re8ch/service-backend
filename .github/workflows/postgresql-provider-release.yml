@@ -44,6 +44,7 @@ jobs:
         with: {version: v4.2.3}
       - run: python3 -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
       - run: python3 -m pytest -q tests/test_postgresql_provider.py tests/test_tenant_control_controller.py tests/test_tenant_provider_reconciler.py tests/test_tenant_infrastructure_gitops.py
+      - run: docker build -f platform/apps/postgresql-provider/Dockerfile -t postgresql-provider:pr .
 
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
