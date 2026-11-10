@@ -90,6 +90,35 @@ def test_github_governance_reconcile_publishes_only_opaque_admin_binding():
     assert "privatekey" not in serialized and "token" not in serialized and "secret" not in serialized
 
 
+def test_postgresql_adoption_checks_authority_and_publishes_opaque_binding():
+    class AdminKube(FakeKube):
+        def get(self, plural, name, namespace=None, api=None):
+            assert (plural, name, namespace, api) == ("services", "pg-re8ch-primary", "pigsty-external", "api/v1")
+            return {"spec": {"clusterIP": "10.0.0.10"}}
+
+        def patch_status(self, plural, name, status, namespace):
+            assert plural == "tenantserviceinstances" and namespace == "tenant-infrastructure"
+            self.status = status
+
+    kube = AdminKube("database.postgresql.shared.v1")
+    value = {
+        "metadata": {"name": "postgresql-shared", "namespace": "tenant-infrastructure",
+                     "uid": "postgresql-shared-uid", "generation": 1,
+                     "labels": {"tenancy.re8ch.com/tenant": "admin"}},
+        "spec": {"tenantRef": "admin", "serviceClass": "database.postgresql.shared.v1",
+                 "plan": "standard", "lifecycle": "Requested", "parameters": {}},
+        "status": {},
+    }
+    provider.reconcile_instance(kube, value)
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"] == {
+        "accessRef": "capability://postgres-admin/admin/pg-re8ch",
+        "tool": "platform_postgres_admin_sql",
+        "credentialMaterialReturned": False,
+    }
+    assert "password" not in json.dumps(kube.status).lower()
+
+
 class FakeKube:
     def __init__(self, service_class):
         self.service_class = service_class

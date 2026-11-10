@@ -27,6 +27,16 @@ def test_production_collector_uses_stable_cached_runtime():
     grants = {item["consumableRef"] for item in re8ch["grants"]}
     assert {"ai.model-gateway.v1", "sandbox.runtime.v1"} <= grants
 
+    admin = next(item for item in values["tenantPlatform"]["tenants"] if item["name"] == "admin")
+    admin_grants = {item["consumableRef"] for item in admin["grants"]}
+    managed_services = {
+        "database.postgresql.shared.v1",
+        "registry.harbor.v1",
+        "observability.grafana.v1",
+    }
+    assert managed_services <= admin_grants
+    assert managed_services <= set(values["serviceInstanceRuntime"]["serviceClasses"])
+
 
 def test_chart_lints_and_renders_restricted_workload():
     subprocess.run(["helm", "lint", str(CHART)], check=True, capture_output=True, text=True)

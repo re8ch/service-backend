@@ -629,7 +629,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-PROVIDER_SERVICE_CLASSES = {"registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1"}
+PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -646,6 +646,12 @@ def provider_service_spec(tenant_ref, name, request):
     if service_class == "application.ledger.v1":
         if request.get("planRef") != "managed-access" or parameters:
             raise PermissionError("Ledger publishes only the parameterless managed-access plan")
+        return {}
+    if service_class == "database.postgresql.shared.v1":
+        if tenant_ref != "admin" or name != "postgresql-shared":
+            raise PermissionError("PostgreSQL shared administration is an Admin-only singleton")
+        if request.get("planRef") != "standard" or parameters:
+            raise PermissionError("Admin PostgreSQL adoption publishes only the parameterless standard plan")
         return {}
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant_ref != "admin" or name != "github-enterprise-governance":
@@ -1266,6 +1272,7 @@ class Handler(BaseHTTPRequestHandler):
                     adapter, access_unit = {
                         "registry.harbor.v1": ("harbor-project-rbac", "ProjectMembershipRobot"),
                         "observability.grafana.v1": ("grafana-access", "OrganizationFolderDatasourceGrant"),
+                        "database.postgresql.shared.v1": ("pigsty-postgresql-adoption", "DatabaseAdministrationCapability"),
                         "application.ledger.v1": ("existing-ledger-access", "ExistingServiceEndpointGrant"),
                         "integration.github.enterprise-governance.v1": ("github-enterprise-governance-workflow", "GitHubEnterpriseGovernanceCapability"),
                     }[service_class]

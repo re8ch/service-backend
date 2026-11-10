@@ -206,6 +206,18 @@ def test_github_enterprise_governance_is_admin_only_parameterless_singleton():
         controller.provider_service_spec("admin", "github-enterprise-governance", request)
 
 
+def test_postgresql_adoption_is_admin_only_parameterless_singleton():
+    request = {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "parameters": {}}
+    assert controller.provider_service_spec("admin", "postgresql-shared", request) == {}
+    with pytest.raises(PermissionError, match="Admin-only singleton"):
+        controller.provider_service_spec("re8ch", "postgresql-shared", request)
+    with pytest.raises(PermissionError, match="Admin-only singleton"):
+        controller.provider_service_spec("admin", "another-name", request)
+    request["parameters"] = {"storageGiB": 10}
+    with pytest.raises(PermissionError, match="parameterless"):
+        controller.provider_service_spec("admin", "postgresql-shared", request)
+
+
 def test_harbor_build_plan_can_be_tenant_owned_without_human_identity(monkeypatch):
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     request = {"serviceClass": "registry.harbor.v1", "planRef": "build-push",
