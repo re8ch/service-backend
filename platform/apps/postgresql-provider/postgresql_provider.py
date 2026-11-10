@@ -75,14 +75,14 @@ class Pigsty:
         self.port = os.getenv("PIGSTY_PRIMARY_PORT", "5432")
 
     def connect(self, database: str):
-        import psycopg2
-        connection = psycopg2.connect(host=self.host, port=self.port, user=self.user, password=self.password,
-                                      dbname=database, connect_timeout=10, application_name=PROVIDER_NAME)
+        import psycopg
+        connection = psycopg.connect(host=self.host, port=self.port, user=self.user, password=self.password,
+                                     dbname=database, connect_timeout=10, application_name=PROVIDER_NAME)
         connection.autocommit = True
         return connection
 
     def ensure(self, database: str, role: str, password: str, extensions: list[str]) -> None:
-        from psycopg2 import sql
+        from psycopg import sql
         with self.connect("postgres") as connection, connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (role,))
             if cursor.fetchone() is None:
@@ -98,12 +98,12 @@ class Pigsty:
                 cursor.execute(sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(sql.Identifier(extension)))
 
     def login(self, role: str, enabled: bool) -> None:
-        from psycopg2 import sql
+        from psycopg import sql
         with self.connect("postgres") as connection, connection.cursor() as cursor:
             cursor.execute(sql.SQL("ALTER ROLE {} " + ("LOGIN" if enabled else "NOLOGIN")).format(sql.Identifier(role)))
 
     def drop(self, database: str, role: str) -> None:
-        from psycopg2 import sql
+        from psycopg import sql
         with self.connect("postgres") as connection, connection.cursor() as cursor:
             cursor.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s AND pid <> pg_backend_pid()",
                            (database,))
