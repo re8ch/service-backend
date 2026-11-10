@@ -397,6 +397,8 @@ func (s *server) handler() http.Handler {
 	})
 	mux.HandleFunc("GET /self-service/capabilities", s.selfServiceCapabilitiesHTTP)
 	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
+	mux.HandleFunc("GET /internal/mcp/catalog", s.mcpCatalogHTTP)
+	mux.HandleFunc("GET /internal/mcp/catalog/events", s.mcpCatalogEventsHTTP)
 	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
 	mux.HandleFunc("POST /credentials/redeem", s.redeemHTTP)
@@ -469,6 +471,7 @@ func (s *server) handler() http.Handler {
 func (s *server) adminHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /internal/dynamic-skills", s.skillAdminHTTP)
+	mux.HandleFunc("POST /internal/mcp/catalog", s.mcpCatalogAdminHTTP)
 	return mux
 }
 

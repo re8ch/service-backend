@@ -57,7 +57,11 @@ class FixtureAPI(BaseHTTPRequestHandler):
             self.reply(404, {"error": "not_found"})
 
     def do_POST(self):
-        if self.path == "/v1/resolve-supabase":
+        if self.path == "/v1/services/plan":
+            self.reply(200, {"operation": "plan", "accepted": True})
+        elif self.path == "/v1/services":
+            self.reply(201, {"metadata": {"name": "proposed"}, "status": {"phase": "Pending"}})
+        elif self.path == "/v1/resolve-supabase":
             body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
             if body.get("tenantRef") == "acme" and body.get("accessToken") == TOKEN:
                 self.reply(200, {"tenantRef": "acme", "role": "operator", "defaultNamespace": "acme"})
@@ -193,7 +197,7 @@ def main():
                 g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))
                 equivalent(name, p, g)
                 if name == "service_catalog_list":
-                    equivalent("service catalog only granted provider-backed classes", {item["serviceClass"] for item in p["services"]}, {"registry.harbor.v1"})
+                    equivalent("service catalog only granted provider-backed classes", {item["serviceClass"] for item in p["services"]}, {"database.postgresql.shared.v1", "registry.harbor.v1"})
                 if name == "service_binding_list":
                     assert any(item.get("accessRef") == "credential://harbor/acme/opaque" and item.get("revocable") is False
                                for item in p["bindings"]), "live provider binding was not discovered"
@@ -223,17 +227,11 @@ def main():
             if abs(exchanged[0]["expires_in"] - exchanged[1]["expires_in"]) > 1:
                 raise AssertionError("OAuth token lifetime differs")
             print("PASS OAuth token lifetime")
-            unsupported = {"name": "proposed", "spec": {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}}
-            for name, args in [("service_instance_plan", unsupported), ("service_instance_create", {**unsupported, "idempotency_key": "fixture-create-1"})]:
-                for base in (python_url, go_url):
-                    status, result = request(base + "/mcp", "POST", {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": name, "arguments": args}})
-                    error_text = result.get("error", {}).get("message", "")
-                    tool_result = result.get("result", {})
-                    if tool_result.get("isError"):
-                        error_text = " ".join(item.get("text", "") for item in tool_result.get("content", []))
-                    if status != 200 or "no live provisioner" not in error_text:
-                        raise AssertionError(f"{base} falsely accepted an intent-only service: {status} {result}")
-                    print("PASS intent-only service rejected", base, name)
+            postgres = {"name": "proposed", "spec": {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}}
+            for name, args in [("service_instance_plan", postgres), ("service_instance_create", {**postgres, "idempotency_key": "fixture-create-1"})]:
+                p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))
+                g = content(mcp(go_url, "tools/call", {"name": name, "arguments": args}))
+                equivalent("tenant PostgreSQL provider " + name, p, g)
             invalid_headers = {"Authorization": "Bearer invalid"}
             for base in (python_url, go_url):
                 status, _ = request(base + "/billing/usage", headers=invalid_headers)
