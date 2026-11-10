@@ -187,6 +187,11 @@ contract:
 }
 ```
 
+Execution is cloud-to-cloud from the provider to the allowlisted GitHub REST
+endpoint. Flux, GitRepository artifacts, local checkouts, SSH proxies, and
+Kubernetes write operations are outside this operation contract and must not
+be used as fallback transports.
+
 The caller must be an `admin` member in the hidden `admin` organization, the
 `integration.github.enterprise-governance.v1` grant must be Active, and the
 singleton must be Ready. The runtime resolves the GitHub App installation for

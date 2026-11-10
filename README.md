@@ -128,6 +128,12 @@ singleton instance. Discover both `tenant_self_service_capabilities` and
 `service_catalog_list` before use; the catalog must advertise an
 `operationContract` whose entry point is `service_instance_update`.
 
+Invocation is cloud-to-cloud: the provider mints the short-lived installation
+token and calls the allowlisted `https://api.github.com` endpoint directly. It
+does not dispatch through Flux, a Kubernetes operator, a Git checkout, SSH, or
+a cluster Secret write path. Those systems are not recovery or fallback paths
+for this service capability.
+
 The current contract supports repository and organization Rulesets, repository
 and organization Actions Variables, and allowlisted organization settings.
 Reads execute immediately. Every create, update, or delete first returns a

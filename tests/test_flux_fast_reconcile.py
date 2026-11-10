@@ -33,33 +33,16 @@ def test_root_frequency_and_local_sync():
     assert config['StartInterval'] == 30
 
 
-def test_root_recovery_restores_only_the_reviewed_proxy_secret():
+def test_root_recovery_cannot_manage_flux_secrets():
     rbac = list(yaml.load_all(
         (ROOT / 'clusters/re8ch/components/ops/github-actions-root-flux-recovery-rbac.yaml').read_text(),
         Loader=YAML_SAFE_LOADER,
     ))
-    role = next(item for item in rbac if item['kind'] == 'Role' and
-                item['metadata']['name'] == 'github-actions-root-flux-secret-recovery')
-    create = next(rule for rule in role['rules'] if rule['resources'] == ['secrets'] and rule['verbs'] == ['create'])
-    assert 'resourceNames' not in create
-    named = next(rule for rule in role['rules'] if rule['resources'] == ['secrets'] and 'resourceNames' in rule)
-    assert named['resourceNames'] == ['service-backend-github-socks']
-    assert named['verbs'] == ['get', 'patch', 'update']
-    binding = next(item for item in rbac if item['kind'] == 'RoleBinding' and
-                   item['metadata']['name'] == 'github-actions-root-flux-secret-recovery')
-    assert binding['roleRef']['name'] == 'github-actions-root-flux-secret-recovery'
-    assert binding['subjects'] == [{
-        'apiGroup': 'rbac.authorization.k8s.io',
-        'kind': 'Group',
-        'name': 're8ch:root-flux-recovery',
-    }]
+    rules = [rule for item in rbac if item and item['kind'] == 'Role' for rule in item.get('rules', [])]
+    assert all('secrets' not in rule.get('resources', []) for rule in rules)
     workflow = (ROOT / '.github/workflows/root-flux-rbac-recovery.yml').read_text()
-    assert "KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'" in workflow
-    assert '--certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true' in workflow
-    assert 'clusters/re8ch/flux-system/service-backend-github-socks.yaml' in workflow
-    assert 'reviewed root proxy Secret differs from the bounded recovery contract' in workflow
-    assert 'get secret/service-backend-github-ssh -n flux-system' in workflow
-    assert 'delete secret/service-backend-github-socks -n flux-system' in workflow
+    assert 'service-backend-github-socks' not in workflow
+    assert 'kubectl auth can-i create secrets' not in workflow
 
 
 def test_retired_controllers_do_not_return_and_unrelated_egress_is_preserved(kustomize_documents):
