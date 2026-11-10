@@ -63,7 +63,7 @@ jobs:
       - name: Build and publish once
         id: image
         env:
-          IMAGE: registry.re8ch.com/functions-shared/re8ch-postgresql-provider
+          IMAGE: registry.re8ch.com/image/re8ch-postgresql-provider
         run: |
           docker buildx build --platform linux/amd64 --provenance=mode=max --sbom=true --push \
             -f platform/apps/postgresql-provider/Dockerfile -t "$IMAGE:${GITHUB_SHA}" .
