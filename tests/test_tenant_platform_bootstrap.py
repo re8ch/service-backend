@@ -18,6 +18,7 @@ def test_bootstrap_workflow_is_exact_and_does_not_use_flux_or_secret_reads():
     assert 'flux ' not in text and 'kubectl exec' not in text
     assert 'get secrets' in text and '= no' in text
     assert 'create clusterroles' in text and 'impersonate users' in text
+    assert text.count('--force-conflicts') == 2
 
 def test_bootstrap_access_has_admission_name_guard_and_no_escalation():
     items=docs('operations/releases/tenant-platform-bootstrap-access.yaml')
