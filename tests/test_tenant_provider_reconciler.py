@@ -141,6 +141,30 @@ def test_litellm_reconcile_stores_key_and_publishes_only_opaque_reference(monkey
     assert kube.status["phase"] == "Suspended"
 
 
+def test_stalwart_reconcile_creates_oidc_account_then_requires_user_authorization(monkeypatch):
+    class FakeStalwart:
+        def __init__(self): self.calls = []
+        def ensure_oidc_user(self, email, description, quota_bytes):
+            self.calls.append((email, description, quota_bytes))
+            return "native-account-42"
+
+    value = instance("collaboration.stalwart.v1", {
+        "identityUserRef": IDENTITY_USER, "storageGiB": 5, "retentionClass": "standard",
+    }, "member")
+    kube = FakeKube("collaboration.stalwart.v1")
+    client = FakeStalwart()
+    local_identity = FakeIdentity()
+    monkeypatch.setattr(provider.control, "provider_service_spec", lambda *_args: value["spec"]["parameters"])
+    provider.reconcile_instance(kube, value, identity_factory=lambda: local_identity,
+                                stalwart_factory=lambda _kube: client)
+    assert kube.status["phase"] == "AuthorizationRequired"
+    assert kube.status["access"]["accessRef"].startswith("account://stalwart/acme/")
+    assert kube.status["access"]["authorizationState"] == "Required"
+    assert kube.status["access"]["credentialMaterialReturned"] is False
+    assert client.calls == [("admin@acme.example", "RE8CH acme organization member", 5 * 1024 ** 3)]
+    assert local_identity.records[0][1] == "AuthorizationRequired"
+
+
 class FakeKube:
     def __init__(self, service_class):
         self.service_class = service_class

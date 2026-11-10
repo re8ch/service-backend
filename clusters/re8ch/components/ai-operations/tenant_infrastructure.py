@@ -76,6 +76,13 @@ CATALOG: dict[str, dict[str, Any]] = {
         "meters": {"input_tokens": "token", "output_tokens": "token", "requests": "request", "gpu_time": "GPU-second"},
         "adapter": "litellm-team-policy", "accessUnit": "VirtualKeyTeamModelPolicy", "bindings": ["access:broker-reference", "policy:model-allowlist"],
     },
+    "collaboration.stalwart.v1": {
+        "plans": ["member"], "regions": ["global"],
+        "parameters": {"identityUserRef", "storageGiB", "retentionClass"},
+        "meters": {"stored_data": "GiB-hour", "messages": "message", "calendar_events": "event", "file_bytes": "byte"},
+        "adapter": "stalwart-account", "accessUnit": "OrganizationUserMailbox",
+        "bindings": ["identity:user", "account:stalwart", "authorization:user-consent"],
+    },
     "sandbox.runtime.v1": {
         "plans": ["ephemeral", "artifact-retained"], "regions": ["loudi"],
         "parameters": {"imageDigest", "cpu", "memory", "storageGiB", "ttlSeconds", "networkClass", "retentionClass"},

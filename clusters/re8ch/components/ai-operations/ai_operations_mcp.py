@@ -1147,7 +1147,7 @@ def require_tenant_service_class(service_class: str) -> None:
         raise PermissionError("service class is not published")
 
 
-LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1", "ai.model-gateway.v1"}
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1"}
 
 
 def no_live_service_provisioner(service_class: str) -> None:

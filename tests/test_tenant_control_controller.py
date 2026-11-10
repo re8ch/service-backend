@@ -207,6 +207,20 @@ def test_model_gateway_provider_contract_is_bounded(monkeypatch):
             controller.provider_service_spec("re8ch", "agent-models", invalid)
 
 
+def test_stalwart_provider_contract_requires_bounded_member_identity():
+    request = {"serviceClass": "collaboration.stalwart.v1", "planRef": "member", "parameters": {
+        "identityUserRef": "11111111-1111-4111-8111-111111111111", "storageGiB": 5,
+        "retentionClass": "standard",
+    }}
+    assert controller.provider_service_spec("re8ch", "member-mail", request) == request["parameters"]
+    invalid = json.loads(json.dumps(request)); invalid["parameters"]["storageGiB"] = 21
+    with pytest.raises(PermissionError, match="storageGiB"):
+        controller.provider_service_spec("re8ch", "member-mail", invalid)
+    invalid = json.loads(json.dumps(request)); invalid["parameters"]["identityUserRef"] = "admin@re8ch.com"
+    with pytest.raises(PermissionError, match="identityUserRef"):
+        controller.provider_service_spec("re8ch", "member-mail", invalid)
+
+
 def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     with pytest.raises(PermissionError, match="outside the authenticated tenant"):

@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import secrets
+import subprocess
 import time
 import urllib.error
 import urllib.parse
@@ -175,6 +176,65 @@ class LiteLLMAdmin:
 def litellm_client(kube) -> LiteLLMAdmin:
     return LiteLLMAdmin(os.getenv("LITELLM_BASE_URL", "http://litellm.llm-gateway.svc.cluster.local:4000"),
                         secret_value(kube, "llm-gateway", "litellm-runtime", "LITELLM_MASTER_KEY"))
+
+
+class StalwartAdmin:
+    def __init__(self, username: str, password: str, cli: str = "/cli/usr/local/bin/stalwart-cli"):
+        if not username or not password:
+            raise RuntimeError("Stalwart recovery credential is unavailable")
+        self.cli = cli
+        self.env = {**os.environ, "STALWART_USER": username, "STALWART_PASSWORD": password,
+                    "STALWART_URL": os.getenv("STALWART_URL", "http://stalwart.mail-system.svc.cluster.local:8080")}
+
+    def run(self, *args: str, stdin: str | None = None) -> str:
+        result = subprocess.run([self.cli, *args], input=stdin, text=True, capture_output=True,
+                                env=self.env, timeout=90, check=False)
+        if result.returncode:
+            raise RuntimeError("Stalwart account operation failed")
+        return result.stdout
+
+    def rows(self, object_type: str, fields: str) -> list[dict[str, Any]]:
+        return [json.loads(line) for line in self.run("query", object_type, "--fields", fields, "--json").splitlines() if line.strip()]
+
+    def ensure_oidc_user(self, email: str, description: str, quota_bytes: int) -> str:
+        local, _, domain_name = email.partition("@")
+        domains = self.rows("Domain", "id,name")
+        domain = next((item for item in domains if item.get("name") == domain_name), None)
+        if not domain:
+            raise PermissionError("verified organization email domain is not platform-managed by Stalwart")
+        matches = [item for item in self.rows("Account", "id,name,domainId,roles")
+                   if item.get("name") == local and item.get("domainId") == domain["id"]]
+        if len(matches) > 1:
+            raise PermissionError("Stalwart account identity is ambiguous")
+        plan = {"@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
+                "value": {"tenant-user": {"@type": "User", "name": local, "domainId": domain["id"],
+                "description": description, "roles": {"@type": "User"}, "permissions": {"@type": "Inherit"},
+                "quotas": {"disk": quota_bytes}, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
+        self.run("apply", "--stdin", "--json", stdin=json.dumps(plan) + "\n")
+        matches = [item for item in self.rows("Account", "id,name,domainId,roles")
+                   if item.get("name") == local and item.get("domainId") == domain["id"]]
+        if len(matches) != 1 or matches[0].get("roles") != {"@type": "User"}:
+            raise RuntimeError("Stalwart account verification failed")
+        return str(matches[0]["id"])
+
+
+def stalwart_client(kube) -> StalwartAdmin:
+    raw = secret_value(kube, "mail-system", "stalwart-recovery-admin", "STALWART_RECOVERY_ADMIN")
+    username, separator, password = raw.partition(":")
+    if separator != ":":
+        raise RuntimeError("Stalwart recovery credential is invalid")
+    return StalwartAdmin(username, password)
+
+
+def reconcile_stalwart(instance: dict[str, Any], client: StalwartAdmin, identity: IdentityStore) -> dict[str, Any]:
+    tenant = instance["spec"]["tenantRef"]
+    parameters = instance["spec"]["parameters"]
+    email = identity.human_email(tenant, parameters["identityUserRef"])
+    account_id = client.ensure_oidc_user(email, "RE8CH " + tenant + " organization member", parameters["storageGiB"] * 1024 ** 3)
+    digest = hashlib.sha256((tenant + "\n" + account_id).encode()).hexdigest()[:32]
+    return {"accessRef": f"account://stalwart/{tenant}/{digest}", "providerAccountRef": "stalwart-account://" + account_id,
+            "email": email, "storageGiB": parameters["storageGiB"], "retentionClass": parameters["retentionClass"],
+            "authorizationState": "Required", "credentialMaterialReturned": False}
 
 
 def reconcile_litellm(kube, instance: dict[str, Any], client: LiteLLMAdmin) -> dict[str, Any]:
@@ -757,7 +817,8 @@ def revoke_grafana(instance: dict[str, Any], client: GrafanaAdmin) -> None:
 
 
 def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_client, grafana_factory=grafana_client,
-                       identity_factory=identity_store, litellm_factory=litellm_client) -> None:
+                       identity_factory=identity_store, litellm_factory=litellm_client,
+                       stalwart_factory=stalwart_client) -> None:
     spec, meta = instance["spec"], instance["metadata"]
     service_class = spec.get("serviceClass")
     if service_class not in control.PROVIDER_SERVICE_CLASSES:
@@ -817,6 +878,30 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
             "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
             "access": access, "humanCredentialRef": None,
             "conditions": [control.condition("Ready", True, "ProviderAccessReady")],
+        }, namespace)
+        return
+    if service_class == "collaboration.stalwart.v1":
+        request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
+        if control.provider_service_spec(tenant, meta["name"], request) != spec.get("parameters"):
+            raise PermissionError("Stalwart parameters differ from the controller contract")
+        prior = instance.get("status") or {}
+        if lifecycle in {"Suspended", "Deleting"}:
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            kube.patch_status("tenantserviceinstances", meta["name"], {
+                "observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None,
+                "access": prior.get("access"), "humanCredentialRef": None,
+                "conditions": [control.condition("Ready", False, "TenantBindingRevokedMailboxRetained")],
+            }, namespace)
+            return
+        if lifecycle != "Requested":
+            raise PermissionError("unsupported provider lifecycle")
+        identity = identity_factory()
+        access = reconcile_stalwart(instance, stalwart_factory(kube), identity)
+        identity.record(instance, access, "AuthorizationRequired")
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "AuthorizationRequired", "reason": None,
+            "access": access, "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", False, "UserAuthorizationRequired")],
         }, namespace)
         return
     if service_class == "integration.github.enterprise-governance.v1":

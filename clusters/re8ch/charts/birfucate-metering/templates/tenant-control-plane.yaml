@@ -313,6 +313,18 @@ subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: t
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
+metadata: {name: tenant-provider-stalwart-read, namespace: mail-system}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [stalwart-recovery-admin], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-stalwart-read, namespace: mail-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-stalwart-read}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata: {name: tenant-provider-credential-write, namespace: credential-broker}
 rules:
   - {apiGroups: [""], resources: [secrets], verbs: [get, create, patch]}
@@ -353,6 +365,13 @@ spec:
             - {name: GRAFANA_DATABASE_BINDINGS_JSON, value: {{ .Values.tenantPlatform.provider.databaseBindings | toJson | quote }}}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: stalwart-cli, mountPath: /cli, readOnly: true}
+      volumes:
+        - name: stalwart-cli
+          image:
+            reference: ghcr.io/stalwartlabs/cli@sha256:5b70732cb69cdab3ff0894c501544cf0bfa180fa75bcd0eeba4eebe04c1064e1
+            pullPolicy: IfNotPresent
 {{- end }}
 ---
 apiVersion: policy/v1
