@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import re
 import urllib.error
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -183,6 +183,28 @@ def test_provider_service_request_creates_tenant_scoped_pending_instance(monkeyp
     assert fake.created[2] == "acme"
     assert fake.created[1]["spec"] == {"tenantRef": "acme", "serviceClass": "registry.harbor.v1", "plan": "build-push", "lifecycle": "Requested", "parameters": {"project": "acme", "quotaGiB": 10, "robotDurationDays": 90, "identityUserRef": "11111111-1111-4111-8111-111111111111"}}
     assert fake.status["phase"] == "Pending"
+
+
+def test_model_gateway_provider_contract_is_bounded(monkeypatch):
+    now = datetime(2026, 11, 11, tzinfo=timezone.utc)
+    monkeypatch.setattr(controller, "utcnow", lambda: now)
+    request = {"serviceClass": "ai.model-gateway.v1", "planRef": "budgeted", "parameters": {
+        "models": ["kimi-k2-5", "deepseek-v4-flash"], "tokenBudget": 50_000,
+        "concurrency": 4, "expiresAt": (now + timedelta(days=30)).isoformat().replace("+00:00", "Z"),
+    }}
+    value = controller.provider_service_spec("re8ch", "agent-models", request)
+    assert value["models"] == ["deepseek-v4-flash", "kimi-k2-5"]
+    assert value["tokenBudget"] == 50_000
+    for change, message in [
+        ({"models": ["unpublished"]}, "allowlist"),
+        ({"tokenBudget": 999}, "tokenBudget"),
+        ({"concurrency": 33}, "concurrency"),
+        ({"expiresAt": (now + timedelta(days=91)).isoformat().replace("+00:00", "Z")}, "90 days"),
+    ]:
+        invalid = json.loads(json.dumps(request))
+        invalid["parameters"].update(change)
+        with pytest.raises(PermissionError, match=message):
+            controller.provider_service_spec("re8ch", "agent-models", invalid)
 
 
 def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):

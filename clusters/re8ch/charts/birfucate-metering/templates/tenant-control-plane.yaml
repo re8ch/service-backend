@@ -301,6 +301,18 @@ subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: t
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
+metadata: {name: tenant-provider-litellm-read, namespace: llm-gateway}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [litellm-runtime], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-litellm-read, namespace: llm-gateway}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-litellm-read}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
 metadata: {name: tenant-provider-credential-write, namespace: credential-broker}
 rules:
   - {apiGroups: [""], resources: [secrets], verbs: [get, create, patch]}
