@@ -12,6 +12,8 @@ def test_bootstrap_workflow_is_exact_and_does_not_use_flux_or_secret_reads():
     assert "test \"$(jq '.layers | length' \"$manifest\")\" = 1" in text
     assert 'application/vnd.cncf.flux.content.v1.tar+gzip' in text
     assert 'tar -xzf "$layer" -C "$RUNNER_TEMP/bundle" release.bundle' in text
+    assert 'OIDC authorization claims:' in text
+    assert '"OIDC_TOKEN"' in text and 'print(token)' not in text
     assert 'flux ' not in text and 'kubectl exec' not in text
     assert 'get secrets' in text and '= no' in text
     assert 'create clusterroles' in text and 'impersonate users' in text
