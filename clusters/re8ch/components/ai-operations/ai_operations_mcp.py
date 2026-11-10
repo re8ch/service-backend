@@ -1147,7 +1147,7 @@ def require_tenant_service_class(service_class: str) -> None:
         raise PermissionError("service class is not published")
 
 
-LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1"}
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1"}
 
 
 def no_live_service_provisioner(service_class: str) -> None:
@@ -1208,8 +1208,7 @@ def tenant_catalog_for_profile(tenant: str, grants: list[dict[str, Any]]) -> lis
     return [item for item in service_catalog()
             if item["serviceClass"] in LIVE_SERVICE_CLASSES
             and item["serviceClass"] in active
-            and (item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais")
-            and (item["serviceClass"] != "database.postgresql.shared.v1" or tenant == "admin")]
+            and (item["serviceClass"] != "network.among-clusters.v1" or tenant == "artchais")]
 
 
 def mcp_resource_definitions(identity: dict[str, Any]) -> list[dict[str, Any]]:
@@ -2606,8 +2605,6 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             return {"tenantRef": tenant, "services": services, "pricingIncluded": False}
         if name == "service_instance_plan":
             require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
-            if args["spec"].get("serviceClass") == "database.postgresql.shared.v1" and tenant != "admin":
-                no_live_service_provisioner(args["spec"]["serviceClass"])
             if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
@@ -2616,8 +2613,6 @@ def call_tool(name: str, args: dict[str, Any], identity: dict[str, Any]) -> Any:
             no_live_service_provisioner(args["spec"]["serviceClass"])
         if name == "service_instance_create":
             require_published_tenant_grant(identity, args["spec"].get("serviceClass", ""))
-            if args["spec"].get("serviceClass") == "database.postgresql.shared.v1" and tenant != "admin":
-                no_live_service_provisioner(args["spec"]["serviceClass"])
             if args["spec"].get("serviceClass") in LIVE_SERVICE_CLASSES:
                 if authenticated_tenant_operator(identity) != tenant:
                     raise PermissionError("tenant context changed during authorization")
