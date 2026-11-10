@@ -110,6 +110,62 @@ mean tenant self-service is down. For database schema work, discover the
 currently authorized operation, keep credentials inside the platform, retain
 plan and result evidence, and use a reviewed GitOps PR for desired state.
 
+### Re8ch Admin GitHub Enterprise governance
+
+The `admin` organization has one platform-owned singleton service instance for
+bounded GitHub Enterprise governance:
+
+- service class: `integration.github.enterprise-governance.v1`
+- resource reference: `service://admin/github-enterprise-governance`
+- model-callable entry point: the existing `service_instance_update` tool
+- credential model: a GitHub App installation token minted inside the provider;
+  the App private key and token are never returned to the caller
+
+This is a Re8ch Admin service capability, not a new top-level plugin tool or a
+generic GitHub API proxy. It requires the authenticated session to use the
+`admin` tenant with the `admin` role, an Active governance grant, and a Ready
+singleton instance. Discover both `tenant_self_service_capabilities` and
+`service_catalog_list` before use; the catalog must advertise an
+`operationContract` whose entry point is `service_instance_update`.
+
+The current contract supports repository and organization Rulesets, repository
+and organization Actions Variables, and allowlisted organization settings.
+Reads execute immediately. Every create, update, or delete first returns a
+preview containing `method`, `path`, and `planHash`; apply only the unchanged
+request with `apply: true` and that exact hash, then read back the effective
+GitHub state. For example, a repository Ruleset read uses:
+
+```json
+{
+  "resource_ref": "service://admin/github-enterprise-governance",
+  "idempotency_key": "read-service-backend-rulesets-v1",
+  "spec": {
+    "resource": "repository_ruleset",
+    "operation": "list",
+    "owner": "re8ch",
+    "repo": "service-backend"
+  }
+}
+```
+
+Supported resource and operation pairs are:
+
+| Resource | Operations |
+| --- | --- |
+| `repository_ruleset` | `list`, `get`, `create`, `update`, `delete` |
+| `organization_ruleset` | `list`, `get`, `create`, `update`, `delete` |
+| `repository_variable` | `list`, `get`, `create`, `update`, `delete` |
+| `organization_variable` | `list`, `get`, `create`, `update`, `delete` |
+| `organization` | `get`, `update` for provider-allowlisted fields |
+
+Live acceptance on 2026-11-10 read the effective Rulesets for
+`re8ch/service-backend`, read the `re8ch` organization settings, and completed
+a repository Variable create/read/delete cycle. That evidence proves these
+specific operations and installation permissions; it does not authorize
+Secrets, arbitrary REST/GraphQL calls, ruleset bypass, or organizations where
+the governance App is not installed. The implementation and rollout contract
+are documented in [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md#re8ch-admin-github-enterprise-governance-service).
+
 ## Federated workspace
 
 `catalogs/` groups independent Git repositories into product catalogs. Every

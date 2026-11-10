@@ -122,6 +122,19 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
             "For Pigsty schema changes, discover the current "
             "authorized plan/apply operation, keep credentials inside the cluster, follow GitOps "
             "review, and retain migration evidence."
+            "\n\nRe8ch Admin GitHub governance is an Admin-only singleton service capability, "
+            "not a separate plugin tool. For GitHub Rulesets, Actions Variables, and allowlisted "
+            "organization settings, use `service://admin/github-enterprise-governance` through "
+            "`service_instance_update` only after confirming the authenticated `admin` tenant and "
+            "role, Active `integration.github.enterprise-governance.v1` grant, Ready instance, and "
+            "the current catalog `operationContract`. Supported resources are `repository_ruleset`, "
+            "`organization_ruleset`, `repository_variable`, `organization_variable`, and "
+            "`organization`. Reads execute directly; create, update, and delete require preview, "
+            "the exact returned `planHash`, `apply: true`, and an effective-state readback. The "
+            "provider keeps its GitHub App private key and short-lived installation tokens opaque. "
+            "Never infer Secrets, arbitrary API, bypass, or cross-organization authority from this "
+            "capability. See the root README and `platform/apps/tenant-mcp/README.md` for the exact "
+            "contract and acceptance baseline."
         )
     return "\n".join([
         f"# {module.name} Agent MEMORY",
