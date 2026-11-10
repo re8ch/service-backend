@@ -41,7 +41,7 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 		{"consumableRef": "observability.grafana.v1", "lifecycle": "Suspended"},
 		{"consumableRef": "database.postgresql.shared.v1", "lifecycle": "Active"},
 	})
-	if len(granted) != 1 || asString(granted[0], "serviceClass") != "registry.harbor.v1" {
+	if len(granted) != 2 || asString(granted[0], "serviceClass") != "database.postgresql.shared.v1" || asString(granted[1], "serviceClass") != "registry.harbor.v1" {
 		t.Fatalf("catalog ignored tenant grants or provider backing: %v", granted)
 	}
 }
@@ -95,7 +95,7 @@ func TestProviderBindingsOnlyExposeCurrentOwnedOpaqueAccess(t *testing.T) {
 
 	github := map[string]any{
 		"metadata": map[string]any{"name": "github-enterprise-governance", "uid": "uid-github", "generation": float64(1)},
-		"spec": map[string]any{"tenantRef": "admin", "serviceClass": "integration.github.enterprise-governance.v1"},
+		"spec":     map[string]any{"tenantRef": "admin", "serviceClass": "integration.github.enterprise-governance.v1"},
 		"status": map[string]any{"phase": "Ready", "observedGeneration": float64(1), "access": map[string]any{
 			"accessRef": "capability://github-enterprise-governance/admin/default",
 		}},

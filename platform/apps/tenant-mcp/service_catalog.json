@@ -324,5 +324,45 @@
       "loudi"
     ],
     "serviceClass": "storage.volume.v1"
+  },
+  {
+    "accessUnit": "HarborTenantProject",
+    "adapter": "mcp-provider-registry",
+    "bindings": ["registry:opaque-reference"],
+    "meters": {"artifact_storage": "GiB-hour", "pull_bytes": "byte", "push_bytes": "byte", "scans": "scan"},
+    "parameters": ["quotaGiB", "retentionClass", "scannerPolicy"],
+    "plans": ["shared"],
+    "regions": ["loudi"],
+    "serviceClass": "registry.oci.harbor.v1"
+  },
+  {
+    "accessUnit": "TenantObservabilityScope",
+    "adapter": "mcp-provider-observability",
+    "bindings": ["observability:opaque-reference"],
+    "meters": {"active_series": "series-hour", "logs": "byte", "queries": "query", "retained_data": "GiB-hour"},
+    "parameters": ["retentionClass", "signalTypes"],
+    "plans": ["shared"],
+    "regions": ["global", "loudi"],
+    "serviceClass": "observability.stack.v1"
+  },
+  {
+    "accessUnit": "ManagedMCPWorkload",
+    "adapter": "mcp-managed-registration",
+    "bindings": ["mcp:gateway", "access:broker-reference"],
+    "meters": {"requests": "request", "runtime": "second"},
+    "parameters": ["claimRef", "imageDigest", "serviceName"],
+    "plans": ["signed-image"],
+    "regions": ["global", "loudi"],
+    "serviceClass": "integration.mcp.managed.v1"
+  },
+  {
+    "accessUnit": "OutboundMCPConnection",
+    "adapter": "mcp-byoc-registration",
+    "bindings": ["mcp:gateway", "access:broker-reference"],
+    "meters": {"requests": "request"},
+    "parameters": ["endpoint", "serviceName", "tlsPolicy"],
+    "plans": ["outbound-only"],
+    "regions": ["global"],
+    "serviceClass": "integration.mcp.byoc.v1"
   }
 ]

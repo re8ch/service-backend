@@ -10,14 +10,19 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-var providerBacked = map[string]bool{"network.among-clusters.v1": true, "database.postgresql.shared.v1": true, "registry.harbor.v1": true, "observability.grafana.v1": true, "application.ledger.v1": true, "integration.github.enterprise-governance.v1": true}
+var providerBacked = map[string]bool{
+	"network.among-clusters.v1": true, "database.postgresql.shared.v1": true,
+	"registry.harbor.v1": true, "registry.oci.harbor.v1": true,
+	"observability.grafana.v1": true, "observability.stack.v1": true,
+	"integration.mcp.managed.v1": true, "integration.mcp.byoc.v1": true,
+	"application.ledger.v1": true, "integration.github.enterprise-governance.v1": true,
+}
 
 func liveServiceOnly(services []map[string]any, tenant string) []map[string]any {
 	filtered := []map[string]any{}
 	for _, service := range services {
 		serviceClass := asString(service, "serviceClass")
 		if providerBacked[serviceClass] && (serviceClass != "network.among-clusters.v1" || tenant == "artchais") &&
-			(serviceClass != "database.postgresql.shared.v1" || tenant == "admin") &&
 			(serviceClass != "integration.github.enterprise-governance.v1" || tenant == "admin") {
 			filtered = append(filtered, service)
 		}
@@ -225,9 +230,6 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		serviceClass := asString(spec, "serviceClass")
 		if err := requireGrantedConsumable(ctx, id, serviceClass); err != nil {
 			return nil, err
-		}
-		if serviceClass == "database.postgresql.shared.v1" && tenant != "admin" {
-			return nil, noLiveServiceProvisioner(serviceClass)
 		}
 		if providerBacked[serviceClass] {
 			if err := requireOperator(id); err != nil {

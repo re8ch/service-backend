@@ -38,6 +38,18 @@ func openLedger(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS mcp_catalog_revisions (
+		revision TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, service_name TEXT NOT NULL,
+		definition_json TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','paused')),
+		previous_revision TEXT, operation_key TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL,
+		UNIQUE(tenant_ref, operation_key));
+		CREATE INDEX IF NOT EXISTS mcp_catalog_current ON mcp_catalog_revisions(tenant_ref,service_name,created_at);
+		CREATE TABLE IF NOT EXISTS mcp_catalog_heads (
+			tenant_ref TEXT NOT NULL, service_name TEXT NOT NULL, revision TEXT NOT NULL,
+			PRIMARY KEY(tenant_ref,service_name), FOREIGN KEY(revision) REFERENCES mcp_catalog_revisions(revision));`); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return db, nil
 }
 
