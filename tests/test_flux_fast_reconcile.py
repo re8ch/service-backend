@@ -54,6 +54,8 @@ def test_root_recovery_restores_only_the_reviewed_proxy_secret():
         'name': 're8ch:root-flux-recovery',
     }]
     workflow = (ROOT / '.github/workflows/root-flux-rbac-recovery.yml').read_text()
+    assert "KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'" in workflow
+    assert '--certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true' in workflow
     assert 'clusters/re8ch/flux-system/service-backend-github-socks.yaml' in workflow
     assert 'reviewed root proxy Secret differs from the bounded recovery contract' in workflow
     assert 'get secret/service-backend-github-ssh -n flux-system' in workflow

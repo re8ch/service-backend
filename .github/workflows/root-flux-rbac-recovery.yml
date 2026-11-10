@@ -35,13 +35,17 @@ jobs:
           test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE_REVISION" --jq '.commit.verification.verified')" = true
           git checkout --detach "$SOURCE_REVISION"
       - name: Acquire bounded root recovery identity
+        env:
+          KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'
         run: |
           set -euo pipefail
+          printf '%s' "$KUBE_API_CA" > "$RUNNER_TEMP/re8ch-ca.crt"
           curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
           token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
           kubeconfig="$RUNNER_TEMP/root-recovery.kubeconfig"
-          kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main --server=https://kube-api.service.re8ch.com
+          kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main --server=https://kube-api.service.re8ch.com \
+            --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
           kubectl config --kubeconfig "$kubeconfig" set-credentials root-recovery --token="$token"
           kubectl config --kubeconfig "$kubeconfig" set-context root-recovery --cluster=re8ch-main --user=root-recovery
           kubectl config --kubeconfig "$kubeconfig" use-context root-recovery
