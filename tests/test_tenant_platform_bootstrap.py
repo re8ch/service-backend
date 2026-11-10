@@ -7,6 +7,7 @@ def docs(path): return [d for d in yaml.safe_load_all((ROOT/path).read_text()) i
 def test_bootstrap_workflow_is_exact_and_does_not_use_flux_or_secret_reads():
     text=(ROOT/'.github/workflows/tenant-platform-bootstrap.yml').read_text()
     assert 'platform-bootstrap-tenant-infrastructure' in text
+    assert 'EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-executor-tenant-runtime' in text
     assert 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure' in text
     assert 'cosign verify' in text and 'oras blob fetch' in text
     assert "test \"$(jq '.layers | length' \"$manifest\")\" = 1" in text
@@ -34,7 +35,7 @@ def test_bootstrap_access_has_admission_name_guard_and_no_escalation():
 
 def test_authentication_configuration_binds_only_exact_workflow():
     text=(ROOT/'clusters/re8ch/components/ops/dex-dual-issuer-authentication.yaml').read_text()
-    assert 'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure' in text
+    assert 'https://kube-api.re8ch.com/release-executor-tenant-runtime' in text
     assert "claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main'" in text
     assert "claims.environment == 'platform-bootstrap-tenant-infrastructure'" in text
     assert "['re8ch:platform-bootstrap:tenant-infrastructure']" in text

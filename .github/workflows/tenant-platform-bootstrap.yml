@@ -14,7 +14,7 @@ jobs:
     environment: platform-bootstrap-tenant-infrastructure
     permissions: {contents: read, id-token: write, packages: read}
     env:
-      EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure
+      EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-executor-tenant-runtime
       BUNDLE_REFERENCE: ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure
       BUNDLE_DIGEST: '${{ inputs.bundle_digest }}'
     steps:

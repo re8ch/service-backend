@@ -40,7 +40,6 @@ jwt:
         - https://kube-api.re8ch.com/release-reconciler-observability-metering
         - https://kube-api.re8ch.com/release-reconciler-delivery-products
         - https://kube-api.re8ch.com/root-flux-recovery
-        - https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - expression: >-
@@ -117,7 +116,7 @@ jwt:
            claims.ref == 'refs/heads/main' && claims.runner_environment == 'github-hosted' &&
            claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main' &&
            claims.event_name == 'workflow_dispatch' && claims.environment == 'platform-bootstrap-tenant-infrastructure' &&
-           claims.aud == 'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure')
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime')
         message: public tokens require the observer or exact protected cloud release route
       - expression: >-
           claims.runner_environment == 'self-hosted' ||
@@ -226,7 +225,7 @@ jwt:
            claims.repository == 're8ch/service-backend' && claims.ref == 'refs/heads/main' &&
            claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main' &&
            claims.event_name == 'workflow_dispatch' && claims.environment == 'platform-bootstrap-tenant-infrastructure' &&
-           claims.aud == 'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure')
+           claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime')
         message: hosted execution is limited to protected cloud release workflows
       - expression: >-
           (claims.repository_id == '1367237854' &&
@@ -268,7 +267,7 @@ jwt:
              claims.workflow_ref == 're8ch/service-backend/.github/workflows/root-flux-rbac-recovery.yml@refs/heads/main' &&
              claims.environment == 'root-flux-recovery' &&
              claims.event_name == 'workflow_dispatch') ||
-            (claims.aud == 'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure' &&
+            (claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime' &&
              claims.ref == 'refs/heads/main' && claims.runner_environment == 'github-hosted' &&
              claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main' &&
              claims.environment == 'platform-bootstrap-tenant-infrastructure' &&
@@ -380,6 +379,9 @@ jwt:
     claimMappings:
       username:
         expression: >-
+          claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main' &&
+          claims.environment == 'platform-bootstrap-tenant-infrastructure'
+          ? 'github-actions:platform-bootstrap-tenant-infrastructure:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? 'github-actions:release-reconciler-delivery-products:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? 'github-actions:release-reconciler-networking:' + claims.run_id :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime' ? 'github-actions:release-reconciler-agent-runtime:' + claims.run_id :
@@ -415,13 +417,14 @@ jwt:
                                 ? 'github-actions:release-executor-ceph-infra:' + claims.run_id
                                 : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
                                   ? 'github-actions:release-executor-ceph-runtime:' + claims.run_id
-                                : claims.aud == 'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure'
-                                  ? 'github-actions:platform-bootstrap-tenant-infrastructure:' + claims.run_id
                                 : claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery'
                                   ? 'github-actions:root-flux-recovery:' + claims.run_id
                                   : 'github-actions:release-artifact-publisher:' + claims.run_id
       groups:
         expression: >-
+          claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main' &&
+          claims.environment == 'platform-bootstrap-tenant-infrastructure'
+          ? ['re8ch:platform-bootstrap:tenant-infrastructure'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-delivery-products' ? ['re8ch:release-executor:delivery-products'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-networking' ? ['re8ch:release-executor:networking'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime' ? ['re8ch:release-executor:agent-runtime'] :
@@ -457,8 +460,6 @@ jwt:
                                 ? ['re8ch:release-executor:ceph-infra']
                                 : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
                                   ? ['re8ch:release-executor:ceph-runtime']
-                                : claims.aud == 'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure'
-                                  ? ['re8ch:platform-bootstrap:tenant-infrastructure']
                                 : claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery'
                                   ? ['re8ch:root-flux-recovery']
                                   : ['re8ch:release-artifact-publisher']

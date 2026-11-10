@@ -49,7 +49,6 @@ def test_all_control_planes_share_supabase_authentication():
         'https://kube-api.re8ch.com/release-reconciler-observability-metering',
         'https://kube-api.re8ch.com/release-reconciler-delivery-products',
         'https://kube-api.re8ch.com/root-flux-recovery',
-        'https://kube-api.re8ch.com/platform-bootstrap-tenant-infrastructure',
     ]
     expressions = {' '.join(item['expression'].split()) for item in github['claimValidationRules']}
     public_rule, runner_rule = github['claimValidationRules'][:2]
