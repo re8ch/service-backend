@@ -13,6 +13,7 @@ ROOTS = (
 )
 
 CLOUD_JOBS = {
+    ".github/workflows/main-unit-baseline.yml": {"unit"},
     ".github/workflows/gitops-maintenance-summary.yml": {"summarize"},
     ".github/workflows/gitops-observation.yml": {"record", "summarize"},
     ".github/workflows/gitops-event-preflight.yml": {"inspect"},

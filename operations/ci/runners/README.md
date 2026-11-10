@@ -46,7 +46,7 @@ Both pool installers prewarm the shared tool cache from the existing base runner
 with `rsync --ignore-existing`, avoiding a simultaneous cold download from all
 new slots.
 
-Control-plane CI, dependency review, all tenant Go release jobs, the
+Control-plane CI, the main-unit GitOps evidence gate, dependency review, all tenant Go release jobs, the
 release-compat-controller image publisher and main-domain SSA publication/reconcile
 run on GitHub-hosted Ubuntu 24.04. The tenant Go publisher creates a disposable
 Buildx builder on that worker; it does not load the R640 builder index or a
