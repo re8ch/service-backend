@@ -3347,6 +3347,9 @@ spec:
       enabled: true
       serviceClasses:
       - application.ledger.v1
+      - database.postgresql.shared.v1
+      - registry.harbor.v1
+      - observability.grafana.v1
     serviceMonitor:
       enabled: false
     tenantPlatform:
@@ -3470,6 +3473,18 @@ spec:
       - deletionPolicy: Retain
         displayName: RE8CH Platform Administration
         grants:
+        - consumableRef: database.postgresql.shared.v1
+          lifecycle: Active
+          name: admin-database
+          roleRef: operator
+        - consumableRef: registry.harbor.v1
+          lifecycle: Active
+          name: admin-registry
+          roleRef: operator
+        - consumableRef: observability.grafana.v1
+          lifecycle: Active
+          name: admin-observability
+          roleRef: operator
         - consumableRef: application.ledger.v1
           lifecycle: Active
           name: admin-ledger
