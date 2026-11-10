@@ -52,6 +52,14 @@ jobs:
         curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
           --data-urlencode "audience=$EXECUTOR_AUDIENCE" "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
         token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+        OIDC_TOKEN="$token" python - <<'PY'
+        import base64, json, os
+        encoded = os.environ["OIDC_TOKEN"].split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        allowed = ["aud", "environment", "event_name", "ref", "repository", "repository_id",
+                   "repository_owner_id", "repository_visibility", "runner_environment", "workflow_ref"]
+        print("OIDC authorization claims: " + json.dumps({key: claims.get(key) for key in allowed}, sort_keys=True))
+        PY
         kubeconfig="$RUNNER_TEMP/bootstrap.kubeconfig"
         kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch --server=https://kube-api.service.re8ch.com \
           --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
