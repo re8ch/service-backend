@@ -87,6 +87,51 @@ type platformResourceDeleteInput struct {
 	PlanHash  string `json:"planHash,omitempty"`
 }
 
+type platformStalwartAdminInput struct {
+	Action   string         `json:"action"`
+	Object   string         `json:"object,omitempty"`
+	ID       string         `json:"id,omitempty"`
+	Position int            `json:"position,omitempty"`
+	Limit    int            `json:"limit,omitempty"`
+	Patch    map[string]any `json:"patch,omitempty"`
+	PlanHash string         `json:"planHash,omitempty"`
+}
+
+func platformStalwartArguments(input platformStalwartAdminInput) (string, map[string]any, error) {
+	arguments := map[string]any{}
+	switch input.Action {
+	case "read":
+		if input.Object == "" {
+			return "", nil, errors.New("read requires object")
+		}
+		arguments["object"] = input.Object
+		if input.ID != "" {
+			arguments["id"] = input.ID
+		}
+		if input.Position != 0 {
+			arguments["position"] = input.Position
+		}
+		if input.Limit != 0 {
+			arguments["limit"] = input.Limit
+		}
+		return "stalwart.admin.read", arguments, nil
+	case "plan":
+		if input.Object == "" || input.ID == "" || len(input.Patch) == 0 {
+			return "", nil, errors.New("plan requires object, id, and patch")
+		}
+		arguments["object"], arguments["id"], arguments["patch"] = input.Object, input.ID, input.Patch
+		return "stalwart.admin.plan", arguments, nil
+	case "apply":
+		if input.PlanHash == "" {
+			return "", nil, errors.New("apply requires planHash")
+		}
+		arguments["planHash"] = input.PlanHash
+		return "stalwart.admin.apply", arguments, nil
+	default:
+		return "", nil, errors.New("action must be read, plan, or apply")
+	}
+}
+
 type platformNodeInput struct {
 	Name string `json:"name,omitempty"`
 }
@@ -329,6 +374,18 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 				return nil, nil, err
 			}
 			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": []string{"get", "deployments,statefulsets", "--namespace", "mail-system", "--selector=app.kubernetes.io/name in (stalwart,stalwart-mailbox-provisioner)", "--show-managed-fields=false", "-o", "json"}, "timeout": 120})
+			return result, nil, err
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_stalwart_admin"), Name: "platform_stalwart_admin", Description: "Read bounded Stalwart account/domain metadata or plan/apply reviewed description and quota changes. Re8CH Admin membership is required; endpoints, credentials, mail content, arbitrary patches, and recovery credentials are never accepted or returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["read","plan","apply"]},"object":{"type":"string","enum":["Account","Domain"]},"id":{"type":"string","pattern":"^[A-Za-z0-9_-]{1,128}$"},"position":{"type":"integer","minimum":0,"maximum":1000000},"limit":{"type":"integer","minimum":1,"maximum":50,"default":25},"patch":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"description":{"type":["string","null"],"maxLength":512},"quotas":{"type":"object","minProperties":1,"additionalProperties":false,"properties":{"maxDiskQuota":{"type":"integer","minimum":1,"maximum":1099511627776},"maxEmails":{"type":"integer","minimum":1,"maximum":1000000000},"maxMailboxes":{"type":"integer","minimum":1,"maximum":1000000000},"maxCalendars":{"type":"integer","minimum":1,"maximum":1000000000},"maxCalendarEvents":{"type":"integer","minimum":1,"maximum":1000000000},"maxFiles":{"type":"integer","minimum":1,"maximum":1000000000},"maxFolders":{"type":"integer","minimum":1,"maximum":1000000000}}}}},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["action"],"additionalProperties":false}`)},
+		func(ctx context.Context, _ *mcp.CallToolRequest, input platformStalwartAdminInput) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			name, arguments, err := platformStalwartArguments(input)
+			if err != nil {
+				return nil, nil, err
+			}
+			result, err := callNativePlatformTool(ctx, s, name, arguments)
 			return result, nil, err
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_read"), Name: "platform_kubernetes_resource_read", Description: "Discover every Kubernetes API resource type or read a named/listed non-Secret resource from the directly connected RE8CH platform cluster. Re8ch Admin membership is required. Secret values are never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["discover","list","get"]},"resource":{"type":"string","description":"API resource name such as deployments.apps or ciliumnetworkpolicies.cilium.io"},"name":{"type":"string"},"namespace":{"type":"string"},"allNamespaces":{"type":"boolean"},"labelSelector":{"type":"string"},"fieldSelector":{"type":"string"}},"required":["action"],"additionalProperties":false}`)},

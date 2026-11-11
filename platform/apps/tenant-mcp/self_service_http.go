@@ -136,8 +136,8 @@ func tenantSystemAccess(ctx context.Context, tenant string) ([]map[string]any, e
 func appendAdminSystemCapabilities(result map[string]any, access []map[string]any) {
 	tools := map[string][]string{
 		"system-postgresql":    {"platform_postgres_admin_sql"},
-		"system-observability": {"platform_observability_status", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete"},
-		"system-mail":          {"platform_stalwart_status", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete"},
+		"system-observability": {"platform_observability_status"},
+		"system-mail":          {"platform_stalwart_status", "platform_stalwart_admin"},
 	}
 	for _, entry := range access {
 		id := asString(entry, "id")
