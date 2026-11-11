@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -33,6 +34,13 @@ func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 			wantSystem[capability["id"].(string)] = true
 			if capability["grantIndependent"] != true || capability["scope"] != "system" || capability["secretValuesReadable"] != false {
 				t.Fatalf("unsafe system capability: %#v", capability)
+			}
+			tools := capability["tools"].([]string)
+			if capability["id"] == "system-mail" && !slices.Contains(tools, "platform_stalwart_admin") {
+				t.Fatalf("Stalwart admin adapter was not published: %#v", capability)
+			}
+			if slices.Contains(tools, "platform_kubernetes_resource_apply") || slices.Contains(tools, "platform_kubernetes_resource_delete") {
+				t.Fatalf("generic Kubernetes mutation leaked as a system provider interface: %#v", capability)
 			}
 		}
 	}

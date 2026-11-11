@@ -102,6 +102,35 @@ func TestPlatformPostgresSystemAllowlist(t *testing.T) {
 	}
 }
 
+func TestPlatformStalwartAdminRoutesOnlyBoundedOperations(t *testing.T) {
+	name, arguments, err := platformStalwartArguments(platformStalwartAdminInput{
+		Action: "read", Object: "Account", ID: "agent-one", Limit: 10,
+	})
+	if err != nil || name != "stalwart.admin.read" || arguments["object"] != "Account" || arguments["id"] != "agent-one" || arguments["limit"] != 10 {
+		t.Fatalf("unexpected read routing: %s %#v %v", name, arguments, err)
+	}
+	name, arguments, err = platformStalwartArguments(platformStalwartAdminInput{
+		Action: "plan", Object: "Account", ID: "agent-one", Patch: map[string]any{"description": "Planning agent"},
+	})
+	if err != nil || name != "stalwart.admin.plan" || arguments["patch"] == nil {
+		t.Fatalf("unexpected plan routing: %s %#v %v", name, arguments, err)
+	}
+	name, arguments, err = platformStalwartArguments(platformStalwartAdminInput{Action: "apply", PlanHash: strings.Repeat("a", 64)})
+	if err != nil || name != "stalwart.admin.apply" || arguments["planHash"] != strings.Repeat("a", 64) {
+		t.Fatalf("unexpected apply routing: %s %#v %v", name, arguments, err)
+	}
+	for _, input := range []platformStalwartAdminInput{
+		{Action: "read"},
+		{Action: "plan", Object: "Account", ID: "agent-one"},
+		{Action: "apply"},
+		{Action: "delete", Object: "Account", ID: "agent-one"},
+	} {
+		if _, _, err := platformStalwartArguments(input); err == nil {
+			t.Fatalf("unsafe or incomplete Stalwart operation accepted: %#v", input)
+		}
+	}
+}
+
 func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
