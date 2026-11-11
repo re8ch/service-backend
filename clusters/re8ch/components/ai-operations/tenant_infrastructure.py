@@ -87,7 +87,7 @@ CATALOG: dict[str, dict[str, Any]] = {
         "plans": ["ephemeral", "artifact-retained"], "regions": ["loudi"],
         "parameters": {"imageDigest", "cpu", "memory", "storageGiB", "ttlSeconds", "networkClass", "retentionClass"},
         "meters": {"runtime": "second", "cpu": "core-second", "memory": "GiB-second", "artifacts": "GiB-hour", "egress": "byte"},
-        "adapter": "opensandbox-session", "accessUnit": "SandboxSession", "bindings": ["sandbox:session", "artifact:scoped"],
+        "adapter": "cubesandbox-runtime", "accessUnit": "SandboxRuntimePool", "bindings": ["runtime:cubesandbox", "sandbox:session", "artifact:scoped"],
     },
 }
 
