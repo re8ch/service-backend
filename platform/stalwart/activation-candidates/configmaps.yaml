@@ -1,0 +1,28 @@
+# CANDIDATE ONLY. Not imported by any kustomization or release contract.
+# Replace the revision after review; retain an empty domainId for discover only.
+# Confirm the migrated v1 provider owns this origin before delivery.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-bootstrap-config
+  namespace: ai-operations
+data:
+  config.json: |
+    {"origin":"https://id.re8ch.com","domainId":"","revision":"REVIEWED_CONFIGURATION_COMMIT","tokenFile":"/etc/stalwart-bootstrap/credential/token"}
+---
+# Deliver only after dedicated management credential provisioning is verified.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-admin-runtime
+  namespace: ai-operations
+data:
+  origin: https://id.re8ch.com
+---
+# No management writes are approved by this empty plan directory.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stalwart-admin-approved-plans
+  namespace: ai-operations
+data: {}
