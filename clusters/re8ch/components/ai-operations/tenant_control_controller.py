@@ -629,7 +629,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "ai.model-gateway.v1"}
+PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -701,6 +701,22 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("expiresAt must be within the next 90 days")
         return {"models": sorted(set(models)), "tokenBudget": budget,
                 "concurrency": concurrency, "expiresAt": expiry.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")}
+    if service_class == "collaboration.stalwart.v1":
+        if request.get("planRef") != "member":
+            raise PermissionError("Stalwart publishes only the member plan")
+        if set(parameters) - {"identityUserRef", "storageGiB", "retentionClass"}:
+            raise PermissionError("Stalwart parameters are not published")
+        try:
+            identity_user = str(uuid.UUID(str(parameters["identityUserRef"])))
+        except (KeyError, ValueError, TypeError, AttributeError):
+            raise PermissionError("identityUserRef must identify an active organization user") from None
+        storage = parameters.get("storageGiB", 5)
+        if type(storage) is not int or not 1 <= storage <= 20:
+            raise PermissionError("storageGiB must be between 1 and 20")
+        retention = parameters.get("retentionClass", "standard")
+        if retention not in {"standard", "extended"}:
+            raise PermissionError("retentionClass is not published")
+        return {"identityUserRef": identity_user, "storageGiB": storage, "retentionClass": retention}
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant_ref != "admin" or name != "github-enterprise-governance":
             raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")
@@ -1322,6 +1338,7 @@ class Handler(BaseHTTPRequestHandler):
                         "observability.grafana.v1": ("grafana-access", "OrganizationFolderDatasourceGrant"),
                         "database.postgresql.shared.v1": ("pigsty-postgresql-adoption", "DatabaseAdministrationCapability"),
                         "ai.model-gateway.v1": ("litellm-team-policy", "VirtualKeyTeamModelPolicy"),
+                        "collaboration.stalwart.v1": ("stalwart-account", "OrganizationUserMailbox"),
                         "application.ledger.v1": ("existing-ledger-access", "ExistingServiceEndpointGrant"),
                         "integration.github.enterprise-governance.v1": ("github-enterprise-governance-workflow", "GitHubEnterpriseGovernanceCapability"),
                     }[service_class]
