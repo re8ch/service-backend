@@ -2637,6 +2637,135 @@ metadata:
 ---
 apiVersion: v1
 data:
+  config.yaml: |
+    mixed-port: 1080
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: direct
+    log-level: warning
+    ipv6: false
+    external-controller: 127.0.0.1:9090
+    rules:
+      - MATCH,DIRECT
+kind: ConfigMap
+metadata:
+  name: mihomo-la-config
+  namespace: egress-fabric
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    mixed-port: 17891
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:19090
+    external-controller-cors:
+      allow-private-network: false
+    secret: ""
+    unified-delay: true
+    tcp-concurrent: true
+    find-process-mode: "off"
+    proxies:
+      # Keep exits as distinct members so Mihomo, rather than DNS selection,
+      # owns health tracking and failover. Order is the required preference.
+      - {name: OVERSEAS-LA, type: socks5, server: mihomo-egress-overseas-la.egress-fabric.svc.cluster.local, port: 1080, udp: true}
+      - {name: OVERSEAS-LA-2, type: socks5, server: mihomo-egress-overseas-la-2.egress-fabric.svc.cluster.local, port: 1080, udp: true}
+      - {name: OVERSEAS-FLK, type: socks5, server: mihomo-egress-overseas-flk.egress-fabric.svc.cluster.local, port: 1080, udp: true}
+    proxy-providers:
+      external-paths:
+        type: file
+        path: /etc/mihomo/paths.yaml
+        health-check:
+          enable: true
+          url: https://www.gstatic.com/generate_204
+          interval: 30
+          timeout: 5000
+          lazy: false
+    proxy-groups:
+      - name: stable-egress
+        type: fallback
+        proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
+        url: https://www.gstatic.com/generate_204
+        interval: 30
+        timeout: 5000
+        lazy: false
+      - name: github-egress
+        type: fallback
+        proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
+        url: https://github.com/login/oauth/access_token
+        interval: 30
+        timeout: 5000
+        lazy: false
+      - name: ghcr-egress
+        type: fallback
+        proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
+        url: https://ghcr.io/v2/
+        interval: 30
+        timeout: 5000
+        lazy: false
+    rule-providers:
+      cn-ip:
+        type: file
+        behavior: classical
+        path: /etc/mihomo/rules/cn-ip-rules.yaml
+    rules:
+      - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+      - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+      - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+      - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+      # Probe/control destinations must reveal the physical direct path.
+      - DOMAIN,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ghcr.io,ghcr-egress
+      - DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,ghcr-egress
+      - DOMAIN-SUFFIX,github.com,github-egress
+      - DOMAIN-SUFFIX,githubusercontent.com,github-egress
+      - DOMAIN-SUFFIX,cn,DIRECT
+      - RULE-SET,cn-ip,DIRECT
+      - MATCH,stable-egress
+kind: ConfigMap
+metadata:
+  name: mihomo-node-config
+  namespace: egress-fabric
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    mixed-port: 17891
+    allow-lan: true
+    bind-address: "0.0.0.0"
+    mode: rule
+    log-level: warning
+    ipv6: false
+    external-controller: 0.0.0.0:19090
+    unified-delay: true
+    tcp-concurrent: true
+    proxies:
+      - {name: CN-FABRIC, type: socks5, server: mihomo-egress-cn-headless.egress-fabric.svc.cluster.local, port: 1080, udp: true}
+    proxy-groups:
+      - {name: stable-cn-egress, type: fallback, proxies: [CN-FABRIC], url: "https://connectivitycheck.gstatic.com/generate_204", interval: 30, timeout: 5000, lazy: false}
+    rule-providers:
+      cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
+    rules:
+      - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+      - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+      - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+      - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+      - DOMAIN,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,ipinfo.io,DIRECT
+      - DOMAIN-SUFFIX,cn,stable-cn-egress
+      - RULE-SET,cn-ip,stable-cn-egress
+      - MATCH,DIRECT
+kind: ConfigMap
+metadata:
+  name: mihomo-node-global-config
+  namespace: egress-fabric
+---
+apiVersion: v1
+data:
   mihomo_node_labels.py: |
     #!/usr/bin/env python3
     """Enable Mihomos consumers on Ready Kubernetes nodes and public global exits."""
@@ -18314,6 +18443,132 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: mihomo-egress
+  namespace: egress-fabric
+spec:
+  ports:
+  - name: socks
+    port: 1080
+    protocol: TCP
+    targetPort: socks
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: mihomo-egress
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-egress-headless
+  namespace: egress-fabric
+spec:
+  clusterIP: None
+  ports:
+  - name: socks
+    port: 1080
+    protocol: TCP
+    targetPort: socks
+  publishNotReadyAddresses: false
+  selector:
+    app.kubernetes.io/name: mihomo-egress
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-egress-la
+  namespace: egress-fabric
+spec:
+  ports:
+  - name: socks
+    port: 1080
+    protocol: TCP
+    targetPort: socks
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: mihomo-egress
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-egress-overseas-flk
+  namespace: egress-fabric
+spec:
+  clusterIP: None
+  ports:
+  - name: socks
+    port: 1080
+    protocol: TCP
+    targetPort: socks
+  publishNotReadyAddresses: false
+  selector:
+    app.kubernetes.io/name: mihomo-egress
+    kubernetes.io/hostname: overseas-flk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-egress-overseas-la
+  namespace: egress-fabric
+spec:
+  clusterIP: None
+  ports:
+  - name: socks
+    port: 1080
+    protocol: TCP
+    targetPort: socks
+  publishNotReadyAddresses: false
+  selector:
+    app.kubernetes.io/name: mihomo-egress
+    kubernetes.io/hostname: overseas-la
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-egress-overseas-la-2
+  namespace: egress-fabric
+spec:
+  clusterIP: None
+  ports:
+  - name: socks
+    port: 1080
+    protocol: TCP
+    targetPort: socks
+  publishNotReadyAddresses: false
+  selector:
+    app.kubernetes.io/name: mihomo-egress
+    kubernetes.io/hostname: overseas-la-2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-gateway
+  namespace: egress-fabric
+spec:
+  ports:
+  - name: mixed
+    port: 17891
+    protocol: TCP
+    targetPort: mixed
+  selector:
+    networking.re8ch.com/mihomo-local-proxy: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mihomo-node
+  namespace: egress-fabric
+spec:
+  internalTrafficPolicy: Local
+  ports:
+  - name: mixed
+    port: 17891
+    protocol: TCP
+    targetPort: mixed
+  selector:
+    networking.re8ch.com/mihomo-local-proxy: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
   annotations:
     peering.re8ch.com/policy-ref: re8ch-mihomos-egress
     peering.re8ch.com/port-name: mixed
@@ -19001,6 +19256,220 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: identity-egress
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mihomo-egress
+  namespace: egress-fabric
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mihomo-egress
+  template:
+    metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: node-serving-agent
+      labels:
+        app.kubernetes.io/name: mihomo-egress
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - -d
+        - /etc/mihomo
+        image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+        livenessProbe:
+          periodSeconds: 15
+          tcpSocket:
+            port: socks
+        name: mihomo
+        ports:
+        - containerPort: 1080
+          name: socks
+          protocol: TCP
+        readinessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            port: socks
+        resources:
+          limits:
+            cpu: 800m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /etc/mihomo
+          name: work
+      dnsConfig:
+        nameservers:
+        - 1.1.1.1
+        - 8.8.8.8
+        options:
+        - name: ndots
+          value: "1"
+      dnsPolicy: None
+      hostNetwork: true
+      initContainers:
+      - args:
+        - |
+          sed "s/bind-address: \"0.0.0.0\"/bind-address: \"${HOST_IP}\"/" /base/config.yaml > /work/config.yaml
+        command:
+        - /bin/sh
+        - -ec
+        env:
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
+        image: docker.io/library/alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f
+        imagePullPolicy: IfNotPresent
+        name: bind-private-node-address
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /base
+          name: config
+          readOnly: true
+        - mountPath: /work
+          name: work
+      nodeSelector:
+        networking.re8ch.com/mihomo-exit: enabled
+        scheduling.re8ch.com/workload-eligible: "true"
+      priorityClassName: system-node-critical
+      securityContext:
+        fsGroup: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+      - operator: Exists
+      volumes:
+      - configMap:
+          name: mihomo-la-config
+        name: config
+      - emptyDir: {}
+        name: work
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mihomo-node
+  namespace: egress-fabric
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mihomo-node
+  template:
+    metadata:
+      annotations:
+        scheduling.re8ch.com/placement-class: node-serving-agent
+      labels:
+        app.kubernetes.io/name: mihomo-node
+        networking.re8ch.com/mihomo-local-proxy: "true"
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - -d
+        - /etc/mihomo
+        image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /version
+            port: controller
+          periodSeconds: 15
+        name: mihomo
+        ports:
+        - containerPort: 17891
+          name: mixed
+          protocol: TCP
+        - containerPort: 19090
+          name: controller
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /version
+            port: controller
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 384Mi
+          requests:
+            cpu: 25m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /version
+            port: controller
+          periodSeconds: 5
+        volumeMounts:
+        - mountPath: /etc/mihomo
+          name: work
+        - mountPath: /etc/mihomo/config.yaml
+          name: config
+          readOnly: true
+          subPath: config.yaml
+        - mountPath: /etc/mihomo/paths.yaml
+          name: paths
+          readOnly: true
+          subPath: paths.yaml
+        - mountPath: /etc/mihomo/rules
+          name: cn-rules
+          readOnly: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      nodeSelector:
+        networking.re8ch.com/geo: cn
+        scheduling.re8ch.com/workload-eligible: "true"
+      priorityClassName: system-node-critical
+      securityContext:
+        fsGroup: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - configMap:
+          name: mihomo-node-config
+        name: config
+      - name: paths
+        secret:
+          secretName: egress-fabric-paths
+      - emptyDir: {}
+        name: work
+      - configMap:
+          name: mihomo-cn-ip-rules
+        name: cn-rules
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
 ---
 apiVersion: apps/v1
 kind: DaemonSet

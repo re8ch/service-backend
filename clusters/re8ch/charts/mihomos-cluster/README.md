@@ -34,8 +34,12 @@ Mihomo so telemetry observes the node's real upstream route.
 - `mihomos-cn-exit` and `mihomos-global-exit`: provider candidates whose
   readiness probes validate regional egress through their own DIRECT path;
   listening sockets alone never make a failed exit discoverable.
+- `GLOBAL`, `GITHUB` and `GHCR`: independent fallback groups backed by explicit
+  `overseas-la`, `overseas-la-2` and `overseas-flk` members in that priority
+  order. Each member has its own Ready-only Service; no group relies on DNS
+  selection across a shared headless Service.
 - `mihomos-status-agent`: per-node public identity and reachability telemetry.
-- Headless Services: Candidate Selection inputs; NotReady providers are removed.
+- Headless Services: per-node candidate inputs; NotReady providers are removed.
 
 The optional Headlamp plugin is published separately and reads only labelled
 status ConfigMaps. See the repository Runbook before changing node labels,

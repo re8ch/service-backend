@@ -17,11 +17,13 @@ exits:
   cnLabel: networking.re8ch.com/mihomo-exit-cn
   port: 1080
   controllerPort: 19091
-  # Release-critical GitHub downloads use the measured high-throughput exit
-  # instead of being randomly assigned across every healthy global exit.
-  githubRegion: us-ca
-  # Ready exit Pods are discovered through the headless Services. The node
-  # proxy configuration no longer pins a historical list of node addresses.
+  # Keep every overseas exit as an independently health-checked Mihomo member.
+  # Ordering is failover priority: prefer Los Angeles and retain Falkenstein as
+  # the third candidate instead of excluding it with a region selector.
+  globalCandidates:
+    - {name: OVERSEAS-LA, node: overseas-la}
+    - {name: OVERSEAS-LA-2, node: overseas-la-2}
+    - {name: OVERSEAS-FLK, node: overseas-flk}
 
 telemetry:
   enabled: true
