@@ -363,6 +363,16 @@ def tenant_grant_projection(tenant_ref):
             for grant in grants if isinstance(grant, dict) and grant.get("consumableRef")]
 
 
+def tenant_system_access_projection(tenant_ref):
+    """Expose credential-free Meta-tenant system access declarations."""
+    if tenant_ref != "admin":
+        return []
+    entries = tenant_definition(tenant_ref).get("spec", {}).get("systemAccess", [])
+    return [{"id": entry.get("id"), "role": entry.get("role"),
+             "resourceRefs": entry.get("resourceRefs", []), "operations": entry.get("operations", [])}
+            for entry in entries if isinstance(entry, dict) and entry.get("id")]
+
+
 def require_tenant_grant(tenant_ref, consumable_ref):
     if not any(grant["consumableRef"] == consumable_ref and grant["lifecycle"] == "Active"
                for grant in tenant_grant_projection(tenant_ref)):
@@ -1233,7 +1243,10 @@ class Handler(BaseHTTPRequestHandler):
         if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             tenant = self.headers.get("X-Tenant-Ref", "")
             try:
-                self.send_json(200, {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}); return
+                response = {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}
+                if tenant == "admin":
+                    response["systemAccess"] = tenant_system_access_projection(tenant)
+                self.send_json(200, response); return
             except PermissionError as exc:
                 self.send_json(403, {"error": str(exc)}); return
         if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):

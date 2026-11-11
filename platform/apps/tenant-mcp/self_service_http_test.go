@@ -19,8 +19,27 @@ type authenticatedMCPTransport struct {
 
 func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 	state := selfServiceCapabilitiesFromState(identity{Tenant: "admin", Role: "admin", PlatformAdmin: true}, map[string]any{}, nil)
+	appendAdminSystemCapabilities(state, []map[string]any{
+		{"id": "system-postgresql", "role": "admin", "resourceRefs": []any{"re8ch_identity", "re8ch_billing"}, "operations": []any{"read", "plan", "apply"}},
+		{"id": "system-observability", "role": "admin", "resourceRefs": []any{"grafana"}, "operations": []any{"status", "plan", "apply"}},
+		{"id": "system-mail", "role": "admin", "resourceRefs": []any{"stalwart"}, "operations": []any{"status", "plan", "apply"}},
+	})
 	if state["metaTenant"] != true {
 		t.Fatal("platform Admin must be identified as the Meta tenant")
+	}
+	wantSystem := map[string]bool{"system-postgresql": false, "system-observability": false, "system-mail": false}
+	for _, capability := range state["capabilities"].([]map[string]any) {
+		if _, ok := wantSystem[capability["id"].(string)]; ok {
+			wantSystem[capability["id"].(string)] = true
+			if capability["grantIndependent"] != true || capability["scope"] != "system" || capability["secretValuesReadable"] != false {
+				t.Fatalf("unsafe system capability: %#v", capability)
+			}
+		}
+	}
+	for name, found := range wantSystem {
+		if !found {
+			t.Fatalf("missing Admin system capability %s", name)
+		}
 	}
 	found := false
 	for _, capability := range state["capabilities"].([]map[string]any) {

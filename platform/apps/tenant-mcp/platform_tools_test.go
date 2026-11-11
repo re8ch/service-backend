@@ -88,6 +88,20 @@ func TestPlatformResourceArgvIsBoundedAndSecretSafe(t *testing.T) {
 	}
 }
 
+func TestPlatformPostgresSystemAllowlist(t *testing.T) {
+	for _, database := range []string{"re8ch_identity", "re8ch_billing"} {
+		if err := validatePlatformPostgresInput(map[string]any{"database": database, "sql": "select 1"}); err != nil {
+			t.Fatalf("allowed system database %s rejected: %v", database, err)
+		}
+	}
+	if err := validatePlatformPostgresInput(map[string]any{"database": "postgres", "sql": "select 1"}); err == nil {
+		t.Fatal("non-system database accepted")
+	}
+	if err := validatePlatformPostgresInput(map[string]any{"database": "re8ch_identity", "sql": "select 1", "password": "no"}); err == nil {
+		t.Fatal("credential input accepted")
+	}
+}
+
 func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	s := testServer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

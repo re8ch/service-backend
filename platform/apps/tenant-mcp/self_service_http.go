@@ -54,7 +54,15 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	if err != nil {
 		return nil, err
 	}
-	return selfServiceCapabilitiesFromState(id, namespaces, grants), nil
+	result := selfServiceCapabilitiesFromState(id, namespaces, grants)
+	if id.PlatformAdmin && id.Tenant == "admin" {
+		systemAccess, accessErr := tenantSystemAccess(ctx, id.Tenant)
+		if accessErr != nil {
+			return nil, accessErr
+		}
+		appendAdminSystemCapabilities(result, systemAccess)
+	}
+	return result, nil
 }
 
 func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, grants []map[string]any) map[string]any {
@@ -105,6 +113,44 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 		})
 	}
 	return result
+}
+
+func tenantSystemAccess(ctx context.Context, tenant string) ([]map[string]any, error) {
+	response, err := controlRequest(ctx, tenant, "/v1/capabilities")
+	if err != nil {
+		return nil, err
+	}
+	if asString(response, "tenantRef") != tenant {
+		return nil, errors.New("system access discovery returned an invalid scope")
+	}
+	items, _ := response["systemAccess"].([]any)
+	result := make([]map[string]any, 0, len(items))
+	for _, raw := range items {
+		if item := object(raw); asString(item, "id") != "" {
+			result = append(result, item)
+		}
+	}
+	return result, nil
+}
+
+func appendAdminSystemCapabilities(result map[string]any, access []map[string]any) {
+	tools := map[string][]string{
+		"system-postgresql":    {"platform_postgres_admin_sql"},
+		"system-observability": {"platform_observability_status", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete"},
+		"system-mail":          {"platform_stalwart_status", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete"},
+	}
+	for _, entry := range access {
+		id := asString(entry, "id")
+		published, ok := tools[id]
+		if !ok || asString(entry, "role") != "admin" {
+			continue
+		}
+		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
+			"id": id, "ownership": "platform", "scope": "system", "grantIndependent": true, "role": "admin",
+			"resources": entry["resourceRefs"], "operations": entry["operations"], "tools": published,
+			"canRead": true, "canWrite": true, "secretValuesReadable": false,
+		})
+	}
 }
 
 func tenantGrantedConsumables(ctx context.Context, tenant, role string) ([]map[string]any, error) {

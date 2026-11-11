@@ -76,6 +76,12 @@ tenantPlatform:
         - {name: admin-github-k8s-admins-auth, issuer: https://auth.re8ch.com, group: "re8ch:k8s-admins", role: admin}
         - {name: admin-vmcp-service-auth, issuer: https://auth.re8ch.com, group: "re8ch:tenant-admins", role: admin}
       nativeAccess: true
+      # Admin is a Meta tenant: these entries authorize access to existing
+      # system authorities and never create admin-prefixed resource copies.
+      systemAccess:
+        - {id: system-postgresql, role: admin, resourceRefs: [re8ch_identity, re8ch_billing], operations: [read, plan, apply]}
+        - {id: system-observability, role: admin, resourceRefs: [grafana, metrics, logs, traces, alerts], operations: [status, plan, apply]}
+        - {id: system-mail, role: admin, resourceRefs: [stalwart, mailbox-provisioner], operations: [status, plan, apply]}
     - name: artchais
       displayName: Artchais
       lifecycle: Active
