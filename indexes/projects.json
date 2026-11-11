@@ -406,7 +406,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "59eb7bf217e769facb0db6868d13031e518642a1",
+    "commit": "a9f2e4b016fcff32bb885acf5cc6511e7365971d",
     "id": "mihomos-cluster",
     "ownership": "owned",
     "projectType": "kubernetes-network-controller",

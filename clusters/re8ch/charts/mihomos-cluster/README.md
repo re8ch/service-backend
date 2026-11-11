@@ -31,7 +31,9 @@ Mihomo so telemetry observes the node's real upstream route.
 ## Components
 
 - `mihomos-node-cn` and `mihomos-node-global`: node-local consumers on port 17891.
-- `mihomos-cn-exit` and `mihomos-global-exit`: Ready-only provider candidates.
+- `mihomos-cn-exit` and `mihomos-global-exit`: provider candidates whose
+  readiness probes validate regional egress through their own DIRECT path;
+  listening sockets alone never make a failed exit discoverable.
 - `mihomos-status-agent`: per-node public identity and reachability telemetry.
 - Headless Services: Candidate Selection inputs; NotReady providers are removed.
 

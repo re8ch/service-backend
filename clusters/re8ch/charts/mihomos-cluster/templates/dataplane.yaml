@@ -58,6 +58,7 @@ data:
     rules: ["IP-CIDR,10.0.0.0/8,DIRECT,no-resolve", "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve", "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve", "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,CN", "RULE-SET,cn-ip,CN", "MATCH,DIRECT"]
   exit.yaml: |
     mixed-port: {{ .Values.exits.port }}
+    external-controller: 127.0.0.1:{{ .Values.exits.controllerPort }}
     allow-lan: true
     bind-address: "0.0.0.0"
     mode: direct
@@ -140,8 +141,18 @@ spec:
           image: {{ include "mihomos-cluster.image" $ }}
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           args: [-d, /etc/mihomo]
-          ports: [{name: socks, containerPort: {{ $.Values.exits.port }}}]
-          readinessProbe: {tcpSocket: {port: socks}, periodSeconds: 5}
+          ports: [{name: socks, containerPort: {{ $.Values.exits.port }}}, {name: controller, containerPort: {{ $.Values.exits.controllerPort }}}]
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - >-
+                  wget -q -T 7 -O /dev/null
+                  'http://127.0.0.1:{{ $.Values.exits.controllerPort }}/proxies/DIRECT/delay?url={{ if eq $geo "global" }}https%3A%2F%2Fapi.github.com%2Frate_limit{{ else }}https%3A%2F%2Fconnectivitycheck.gstatic.com%2Fgenerate_204{{ end }}&timeout=5000'
+            periodSeconds: 10
+            timeoutSeconds: 8
+            failureThreshold: 2
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 250m, memory: 256Mi}}
           volumeMounts: [{name: work, mountPath: /etc/mihomo}]
