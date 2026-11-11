@@ -1243,8 +1243,10 @@ class Handler(BaseHTTPRequestHandler):
         if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
             tenant = self.headers.get("X-Tenant-Ref", "")
             try:
-                self.send_json(200, {"tenantRef": tenant, "grants": tenant_grant_projection(tenant),
-                                     "systemAccess": tenant_system_access_projection(tenant)}); return
+                response = {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}
+                if tenant == "admin":
+                    response["systemAccess"] = tenant_system_access_projection(tenant)
+                self.send_json(200, response); return
             except PermissionError as exc:
                 self.send_json(403, {"error": str(exc)}); return
         if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
