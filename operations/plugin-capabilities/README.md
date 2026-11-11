@@ -31,6 +31,15 @@ kind, native action, and explicit registration and test states. Each source
 points to its original OpenAPI file and Cloud Platform audit reference. Schema
 snapshots describe APIs; they contain no live resource objects or telemetry.
 
+`verified_capabilities.py` is the catalog promotion gate. A tool is an
+`inventory_only` capability until evidence is bound to its exact input contract,
+native schema and immutable runtime image. It becomes `verified` only after live
+deployment, invocation, HTTP, authorization, business-semantic and management-UI
+evidence all pass. Mutations additionally require uncertain-result recovery and
+cleanup evidence. Directory navigation alone does not satisfy the UI gate, and
+offline tests cannot satisfy any live gate. Evidence drift fails closed; the
+deterministic `verified-capability-report.json` is checked by CI.
+
 ## Implemented registration (pending release)
 
 The native backend implements four discovery/read entry points:

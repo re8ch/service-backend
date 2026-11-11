@@ -1,0 +1,5016 @@
+{
+  "version": 1,
+  "cluster": "re8ch-k3s",
+  "meaning": "verified requires bound deployment, invocation, HTTP, authorization, semantic and UI evidence; mutations also require failure recovery and cleanup",
+  "summary": {
+    "catalogTools": 373,
+    "readTools": 297,
+    "mutationTools": 76,
+    "verified": 0,
+    "evidenceIncomplete": 0,
+    "inventoryOnly": 373
+  },
+  "capabilities": [
+    {
+      "toolName": "advfab-legacy.advancedfabric.delete.61a88efea3fe",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.advancedfabric.get.98c75b6bc14f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.advancedfabric.get.caad28e28f90",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.advancedfabric.list.0b76245edb89",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.advancedfabric.patch.01a438a66db8",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.advancedfabric.post.5b09ae1f8f1a",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.advancedfabric.put.bd134ca6e525",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.delete.f41c1a3adac8",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.get.e71532affab2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.get.f1e551c1176e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.list.86bd2131221a",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.patch.7f380710e538",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.post.6b24961b5d3a",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkintervention.put.8dedeeda154d",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.delete.6757cd743ada",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.get.40e65210a244",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.get.9951246bfdf0",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.list.7b471347fb7e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.patch.acc536745ea5",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.post.d63d83f91dd1",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkobservationepisode.put.6cd27c41966b",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.delete.4983757e35f3",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.delete.ba1140040448",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.get.0923e5d2622d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.get.7bd96e1a92bc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.get.ccd2c0d1a0d4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.get.da59c7301752",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.list.238c4db7c198",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.list.531441095c59",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.patch.56a1ebdc4593",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.patch.78cdc91bcb3a",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.post.4e61891c1ebd",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.post.9471fc00be67",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.put.617c0df701aa",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networkpathassessment.put.eeb99644dde1",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networktradeoffestimate.delete.9fb6c9b2a3af",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networktradeoffestimate.get.718cc827cef1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networktradeoffestimate.list.2cd12b2f2cda",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networktradeoffestimate.patch.75077ae29281",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networktradeoffestimate.post.e10a04f2d88e",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.networktradeoffestimate.put.16300027eba4",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.routerosnode.get.3b2c2f113b83",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.routerosnode.get.a985e29f3805",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.routerosnode.get.b8c2b07d6755",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.routerosnode.get.e3b727c720db",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.routerosnode.list.43618d0be251",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.routerosnode.list.b172062613c5",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.delete.7b5502223676",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.get.5a5fd55e6355",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.get.af756987e107",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.list.9a34583ebe42",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.patch.54c8df1ae271",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.post.c64766ccd1c1",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.tradeofftriangle.put.fbc8fdac6ba9",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.delete.34c3b6929b67",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.get.0b8e1bf1958d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.get.69dbd4f22487",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.list.a59cb4a70175",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.list.ce8bad46d3d2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.patch.0d3890796d6c",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.post.c52cc2ef3bd6",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab-legacy.trafficpolicy.put.64a170ac5c63",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.delete.bf7cc8eb9395",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.get.d09bee342ee5",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.get.fef91f7ea9f2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.list.ac8c4fcdc5d0",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.patch.62de7e6473ab",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.post.15e1ec96e0fa",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.advancedfabric.put.f378820e80c3",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.delete.4d5c82868a9c",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.get.8915088b46f8",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.get.9b7b9cf31644",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.list.683c91a26456",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.patch.81cf1fc59558",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.post.c56d940daf83",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkintervention.put.81bb1c4fb459",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.delete.a4e0ab7526fa",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.get.4ad786fce9bd",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.get.e3e4140ace69",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.list.534292221df9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.patch.c715f0886d81",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.post.11e41420175c",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkobservationepisode.put.1c00ce57d6de",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.delete.6c68329892ba",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.delete.a48abb6bbd59",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.get.191a07a2ff7f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.get.1bcc8a218597",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.get.1d1c2f550ef7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.get.c3b45ad4f3fa",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.list.93dd96fa051c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.list.dd6d744781cf",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.patch.208dce28c63f",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.patch.f79538d8915b",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.post.27f09e50798d",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.post.d212f59867ab",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.put.25383ae95196",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networkpathassessment.put.51a615e1f3f0",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networktradeoffestimate.delete.90cad95f2068",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networktradeoffestimate.get.e2122198faf5",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networktradeoffestimate.list.32639e3ac1e4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.networktradeoffestimate.patch.433a5bcf82cf",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networktradeoffestimate.post.0f1fa9d9446b",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.networktradeoffestimate.put.5e3da23ab61d",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.routerosnode.get.395cc5b79508",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.routerosnode.get.3c0188aa8754",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.routerosnode.get.a765ac6ce6c9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.routerosnode.get.af6ef3eb4b4c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.routerosnode.list.47422a25686f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.routerosnode.list.4ed474d75622",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.delete.c74f3227691e",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.get.9a6e8b31bf82",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.get.db480dd694ec",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.list.f725a4ac03b1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.patch.aac1ccbf1e24",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.post.f07c66c5d525",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.tradeofftriangle.put.615e6a9b28b3",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.delete.52f7b14a754f",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.get.2ca3cfdb0fd7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.get.82152f127468",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.list.4eae1d6681e2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.list.afd1a2d3d556",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.patch.ad15dfc5372a",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.post.1941de605fc9",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "advfab.trafficpolicy.put.cd92b2feff5f",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtime.get.1a33c3ef06b7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtime.get.7e9890ef54e7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtime.list.4cb4a3ffd8a1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtime.list.e9f51c1e8781",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimeanalysis.get.0f0f7997c270",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimeanalysis.get.e7d689a70ac5",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimeanalysis.list.52934117d081",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimeanalysis.list.ee0dd5ef66ba",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimebranch.get.b7b4486e3978",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimebranch.get.bcd70d825e1c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimebranch.list.713c75382b27",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimebranch.list.e3d1010342b9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecheckout.get.556e6b23eddc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecheckout.get.970e76fa207e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecheckout.list.1788abf1bde4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecheckout.list.d6bbbb9bf32d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecommit.get.a8a125c9821c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecommit.get.caf0d1e5c9af",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecommit.list.70a17685b38c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimecommit.list.dbbe868d26c9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimediff.create",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimediff.delete",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimediff.get.57a46f9022ae",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimediff.get.ad1bb1f25065",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimediff.list.16f95e88720d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimediff.list.20bcbfc19d5b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimegarbagecollection.get.2390c4a596d2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimegarbagecollection.get.84e0d01ccc6b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimegarbagecollection.list.550bfb8a1e1f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "anatomy.runtimegarbagecollection.list.e464849e47e9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.cidrgroup.create",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "cilium.cidrgroup.delete",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpadvertisement.get.0f66f44058ee",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpadvertisement.get.6050ff99f93d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpadvertisement.list.8ce4de5d7c3f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpadvertisement.list.d829993dea2f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpclusterconfig.get.4134d9f9609b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpclusterconfig.get.598bb080df43",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpclusterconfig.get.873d7eb7aa8a",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpclusterconfig.get.d01cdf6e326e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpclusterconfig.list.7f864027628f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpclusterconfig.list.87db6a1d50b3",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfig.get.03b1dbbdf36b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfig.get.211c6ac4411f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfig.get.96a9ee5012eb",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfig.get.df59a3a94155",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfig.list.8f2829242771",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfig.list.d64f5557c209",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfigoverride.get.79b49268d1c6",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfigoverride.get.e832a0fb6bc4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfigoverride.list.0719f79cc205",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgpnodeconfigoverride.list.60b2edcd2b77",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgppeerconfig.get.04b4b78218d1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgppeerconfig.get.4e1d7f8b6f5a",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgppeerconfig.get.87e0f371a6dd",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgppeerconfig.get.9adc58cdb536",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgppeerconfig.list.0c40b9f1941b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumbgppeerconfig.list.6eb4f1d5f773",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumcidrgroup.get.8aa4fa516c65",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumcidrgroup.get.cbd633f75ad0",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumcidrgroup.list.c336a1596982",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumcidrgroup.list.eed06e652791",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumclusterwideenvoyconfig.get.bf92f1dd85e5",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumclusterwideenvoyconfig.list.a2bc5d373b89",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumclusterwidenetworkpolicy.get.94cdf1bb87d8",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumclusterwidenetworkpolicy.get.9c82e682b284",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumclusterwidenetworkpolicy.list.e07159805124",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumdatapathplugin.get.99b93e35fa1f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumdatapathplugin.list.7458759b734c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumegressgatewaypolicy.get.b7b9494ebd74",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumegressgatewaypolicy.list.0471602c34e1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumendpoint.get.f33630adacdd",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumendpoint.list.09d0b00c01fb",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumendpoint.list.80f7e442dcbd",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumendpointslice.get.da3822f12e80",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumendpointslice.list.2c422a9500dc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumenvoyconfig.get.6de323051d6c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumenvoyconfig.list.51eb73b43443",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumenvoyconfig.list.6ce832791f13",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumgatewayclassconfig.get.8873d9ed0f85",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumgatewayclassconfig.get.f744c0dbb9d7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumgatewayclassconfig.list.a981932e3abc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumgatewayclassconfig.list.ea3fb181b4ec",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumidentity.get.29e8adf82d70",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumidentity.get.75a0cbf0333d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumidentity.list.51a4a850ec5b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliuml2announcementpolicy.get.330abda0af58",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliuml2announcementpolicy.get.eabcdb75a3a3",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliuml2announcementpolicy.list.a50b1ef31f1c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumloadbalancerippool.get.52162b823f05",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumloadbalancerippool.get.9b0694dddffb",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumloadbalancerippool.get.f76a1601e76b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumloadbalancerippool.get.f7b820be2e93",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumloadbalancerippool.list.4f8b5288fce9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumloadbalancerippool.list.7fae5c685303",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumlocalredirectpolicy.get.148e9c015379",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumlocalredirectpolicy.list.0d3a9bb04d4e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumlocalredirectpolicy.list.857be2f2a3b3",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkdriverclusterconfig.get.41e430864804",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkdriverclusterconfig.get.4f7ceb883b23",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkdriverclusterconfig.list.b2fe2c384a28",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkdrivernodeconfig.get.7fa3a46201d4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkdrivernodeconfig.list.5a4fd66c4665",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkpolicy.get.319209ef562a",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkpolicy.get.5460ce5a52e6",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkpolicy.list.3d99bab9fdbf",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnetworkpolicy.list.a81ba013c822",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnode.get.d12cb0d70089",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnode.get.ed15dedd3b4c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnode.list.6f8a91cdcdd8",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnodeconfig.get.5daa79e1bfe7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnodeconfig.list.7ddff6288047",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumnodeconfig.list.c3fda608220d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumpodippool.get.ab54966d4656",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumpodippool.list.54fa976c82c0",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumresourceippool.get.ee82d5641f1d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "cilium.ciliumresourceippool.list.d4395c419132",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.configs.get",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.connections.snapshot",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.controller.hello",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.controller.version",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.controllers.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.groups.get",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.groups.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.provider-proxies.get",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.proxies.get",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.proxies.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.proxy-providers.get",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.proxy-providers.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.rule-providers.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.rules.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mihomos.workloads.list",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.delete.75bfa5f6daac",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.get.98aafa994029",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.get.c1422d3f888a",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.list.16c30591d35d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.patch.b8b95ff07998",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.post.462d4b4effbe",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "mobile-egress.mobileegress.put.152109cbc59a",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucket.get.ab61dd63f479",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucket.get.f999eaf2ebcc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucket.list.1e3095710fc3",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucketclaim.get.32b36d26385a",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucketclaim.get.70a6ada6e2e2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucketclaim.list.291a31f4602b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "object-bucket.objectbucketclaim.list.a6fac329642d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.delete.c967aef6a0c7",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.get.1f5a3a3e14aa",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.get.e1e3c5e99b21",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.list.093405d0d4e4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.patch.843ed2ca541e",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.post.5c7b156c0412",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "public-edge.publicedge.put.4598f1918b1a",
+      "kind": "mutation",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui",
+        "failureRecovery",
+        "cleanup"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.cephconnection.get.719dccd75071",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.cephconnection.get.8ab6e1868bd1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.cephconnection.list.7f1bccacac95",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.cephconnection.list.c6d7b9cbf45c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofile.get.4f8eca54fbd2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofile.get.715833bb10ca",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofile.list.8a70806e1deb",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofile.list.9c2ac87b3f38",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofilemapping.get.6cb31b843e62",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofilemapping.get.743d009ac301",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofilemapping.list.256b44db6b13",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.clientprofilemapping.list.2e7c934c7657",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.driver.get.6bc836ed6006",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.driver.get.9938dba1e56b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.driver.list.bf6ec3659a34",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.driver.list.efdd172c8279",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.operatorconfig.get.34a233291bd7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.operatorconfig.get.847183898d8d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.operatorconfig.list.147ccbd32ef6",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph-csi.operatorconfig.list.560a49887c7f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpool.get.4c0c2dfc0695",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpool.get.a42d9a17c1b8",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpool.list.169ff0c225b5",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpool.list.2272695d335e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpoolradosnamespace.get.8cdf89a2b3bf",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpoolradosnamespace.get.adbca6164c0b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpoolradosnamespace.list.c41888aac924",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephblockpoolradosnamespace.list.d1659d85d98c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbucketnotification.get.157b386a4c16",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbucketnotification.get.b18847268381",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbucketnotification.list.819b240fb35e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbucketnotification.list.e6e08d9f2860",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbuckettopic.get.9dd379162c33",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbuckettopic.get.d57cc0757465",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbuckettopic.list.5a5b22ee93b4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephbuckettopic.list.f675290e2792",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephclient.get.7f78399ca526",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephclient.get.bb56fec7bfa4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephclient.list.17abaa1022c4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephclient.list.ffc2fa77dcc9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcluster.get.97e1bddd2d52",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcluster.get.d6430ee31dea",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcluster.list.8d70ce3dfedb",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcluster.list.e127bd64065b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcosidriver.get.1739453da0d9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcosidriver.list.77666d7d069d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephcosidriver.list.a93cbf9a6ea2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystem.get.98bd5ced547c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystem.get.a4cad16b2bf9",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystem.list.4ffaf9e1b805",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystem.list.fd2eb7dce20e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemmirror.get.7b90b77e4637",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemmirror.get.aaef2d9e88f2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemmirror.list.7637e021c1b1",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemmirror.list.a975171f358d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemsubvolumegroup.get.a3c5642e0094",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemsubvolumegroup.get.e344ed40c202",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemsubvolumegroup.list.3cb1fc108ac0",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephfilesystemsubvolumegroup.list.8702a9f9faca",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnfs.get.ce661bd869c4",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnfs.get.e50e2aa9308f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnfs.list.170161f6339c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnfs.list.75d87229904b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnvmeofgateway.get.82c31e3bc3fe",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnvmeofgateway.get.e3fd4b4752df",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnvmeofgateway.list.61c92e413592",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephnvmeofgateway.list.f4fd9b4ad5a2",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectrealm.get.0c2cd7a8bb44",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectrealm.get.7359750ad39d",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectrealm.list.c1eda1086d91",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectrealm.list.db0d570fe3df",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstore.get.88475dfb7baa",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstore.get.9446b81730b7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstore.get.b9d02c502698",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstore.list.6940899a5087",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstore.list.ddeb7a545fd3",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreaccount.get.01fab2132403",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreaccount.get.870be4a75a0e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreaccount.list.6c5d579cb897",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreaccount.list.fb3d87f35235",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreuser.get.64484e504faa",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreuser.get.c6015dd6cbdc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreuser.list.2a2e2400653f",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectstoreuser.list.f76b063d8f26",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzone.get.c2ea14f121d6",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzone.get.d867107594c7",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzone.list.5855e038143b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzone.list.923a72b8724e",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzonegroup.get.57254d6b9fae",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzonegroup.get.f6cbdf04ea7b",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzonegroup.list.ae00ec03b79c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephobjectzonegroup.list.e7b894d9e39c",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephrbdmirror.get.6247af142ccc",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephrbdmirror.get.87c4bd54d297",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephrbdmirror.list.6b7a6d2623ba",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    },
+    {
+      "toolName": "rook-ceph.cephrbdmirror.list.dbf3b397d667",
+      "kind": "read",
+      "state": "inventory_only",
+      "blockingGates": [
+        "deployment",
+        "invocation",
+        "http",
+        "authorization",
+        "semantic",
+        "ui"
+      ]
+    }
+  ]
+}
