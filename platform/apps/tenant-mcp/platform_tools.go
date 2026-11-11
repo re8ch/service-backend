@@ -99,6 +99,24 @@ type platformNodeExecInput struct {
 
 var platformResourceName = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,252}$`)
 
+var platformPostgresDatabases = map[string]struct{}{
+	"re8ch_identity": {},
+	"re8ch_billing":  {},
+}
+
+func validatePlatformPostgresInput(input map[string]any) error {
+	database, _ := input["database"].(string)
+	if _, allowed := platformPostgresDatabases[database]; !allowed {
+		return errors.New("database is not in the Re8CH Admin system allowlist")
+	}
+	for _, forbidden := range []string{"host", "hostname", "user", "username", "password", "secret", "token", "credential"} {
+		if _, present := input[forbidden]; present {
+			return errors.New("connection and credential inputs are not accepted")
+		}
+	}
+	return nil
+}
+
 func callNativePlatformTool(ctx context.Context, s *server, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
 	value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession) (any, error) {
 		return session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
@@ -286,7 +304,31 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
+			if err := validatePlatformPostgresInput(input); err != nil {
+				return nil, nil, err
+			}
 			result, err := callNativePlatformTool(ctx, s, "postgres_admin_sql", input)
+			return result, nil, err
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_observability_status"), Name: "platform_observability_status", Description: "Return fixed system Grafana, metrics, logs, traces, alerts and cost health for Re8CH Admin without arbitrary queries, tenant data, or credentials."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			value, err := s.moduleRegistry().call(ctx, "infra", func(session *mcp.ClientSession) (any, error) {
+				return session.CallTool(ctx, &mcp.CallToolParams{Name: "get_observability_platform_status", Arguments: map[string]any{}})
+			})
+			if err != nil {
+				return nil, nil, err
+			}
+			return value.(*mcp.CallToolResult), nil, nil
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_stalwart_status"), Name: "platform_stalwart_status", Description: "Return fixed, credential-free Stalwart and mailbox provisioner workload status from mail-system for Re8CH Admin."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": []string{"get", "deployments,statefulsets", "--namespace", "mail-system", "--selector=app.kubernetes.io/name in (stalwart,stalwart-mailbox-provisioner)", "--show-managed-fields=false", "-o", "json"}, "timeout": 120})
 			return result, nil, err
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_read"), Name: "platform_kubernetes_resource_read", Description: "Discover every Kubernetes API resource type or read a named/listed non-Secret resource from the directly connected RE8CH platform cluster. Re8ch Admin membership is required. Secret values are never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["discover","list","get"]},"resource":{"type":"string","description":"API resource name such as deployments.apps or ciliumnetworkpolicies.cilium.io"},"name":{"type":"string"},"namespace":{"type":"string"},"allNamespaces":{"type":"boolean"},"labelSelector":{"type":"string"},"fieldSelector":{"type":"string"}},"required":["action"],"additionalProperties":false}`)},
