@@ -76,6 +76,60 @@ Do not route a hosted build through the cluster, add an ad-hoc host route, or
 move it to a privileged self-hosted runner merely because an outbound request
 failed.
 
+#### R640 runner and Mihomo egress
+
+An explicitly declared R640 job uses the reviewed node-local Mihomo consumer;
+it does not inherit authority to change host routing. The runner service uses
+`http://127.0.0.1:17891` for GitHub, codeload, release assets and public registry
+traffic. Keep GitHub asset domains on this path: direct connectivity is
+intermittent, while Mihomo's `GITHUB` policy selects the region-pinned, measured
+global exit. Private, cluster and management CIDRs remain direct through the
+checked-in runner `NO_PROXY`; never repair a job by adding a host route or by
+changing RouterOS, Cilium, Gateway API or the R640 public authority.
+
+Proxy configuration is part of the locked runner installation, not a workflow
+credential. Each runner directory receives the reviewed non-secret `.env`; the
+locked `github-runner` account has no sudo, kubeconfig, cluster token or rootful
+Docker access. Node-based Actions that must honor the inherited proxy set
+`NODE_USE_ENV_PROXY=1`, including post-job cleanup such as GitHub App token
+revocation. A workflow must not print, replace or persist the runner proxy
+environment.
+
+Container builds use the shared named builder `r640-mihomos`. Its BuildKit
+daemon uses host networking plus explicit upper- and lower-case HTTP(S) proxy
+variables, so its `127.0.0.1:17891` resolves to the host listener. Dockerfile
+`RUN` sandboxes cannot use host loopback; the installed Docker proxy contract
+provides the R640 node service identity `10.250.0.128:17891` instead. Workflows
+must select or inspect `r640-mihomos` explicitly; an implicit `default` bridge
+builder can silently bypass the governed path.
+
+Release authentication remains job-scoped even though the builder is shared.
+Create `DOCKER_CONFIG` under `RUNNER_TEMP`, write only the short-lived registry
+authorization required by that job, and remove it in an `always()` cleanup.
+Keep the shared Buildx index separate from this disposable auth directory. For
+Harbor builds, `BUILDKIT_NO_CLIENT_TOKEN=1` keeps OAuth token exchange inside
+the region-pinned builder rather than moving it to an unreliable client-side
+path.
+
+Before blaming GitHub or increasing a timeout, verify all three layers:
+
+```bash
+curl --fail --proxy http://127.0.0.1:17891 https://api.github.com/rate_limit
+sudo -u github-runner docker run --rm docker.io/library/alpine:3.22 /bin/true
+sudo -u github-runner env \
+  XDG_RUNTIME_DIR=/run/user/1002 \
+  DOCKER_HOST=unix:///run/user/1002/podman/podman.sock \
+  BUILDX_BUILDER=r640-mihomos \
+  docker buildx inspect r640-mihomos
+```
+
+The first proves Mihomo's public path, the second proves the rootless container
+transport, and the third proves the governed BuildKit daemon. Recreating the
+builder discards its cache and is allowed only while every R640 runner slot is
+idle. The authoritative installation and repair procedure remains
+[`operations/ci/runners/README.md`](../../ci/runners/README.md); this runbook
+records only the publisher-facing contract.
+
 ### 3. Promote the immutable artifact
 
 After the source PR is merged and its release workflow succeeds:
