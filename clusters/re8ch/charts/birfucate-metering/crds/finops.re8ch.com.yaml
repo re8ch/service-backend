@@ -929,9 +929,41 @@ spec:
                 type: array
                 items:
                   type: string
+              systemAccess:
+                description: Protected Admin Meta-tenant access to existing system authorities; it never provisions tenant-named resource copies.
+                type: array
+                maxItems: 3
+                items:
+                  type: object
+                  required: [id, role, resourceRefs, operations]
+                  additionalProperties: false
+                  properties:
+                    id:
+                      type: string
+                      enum: [system-postgresql, system-observability, system-mail]
+                    role:
+                      type: string
+                      enum: [admin]
+                    resourceRefs:
+                      type: array
+                      minItems: 1
+                      maxItems: 8
+                      uniqueItems: true
+                      items:
+                        type: string
+                        pattern: ^[a-z0-9](?:[-_a-z0-9]*[a-z0-9])?$
+                    operations:
+                      type: array
+                      minItems: 1
+                      uniqueItems: true
+                      items:
+                        type: string
+                        enum: [read, status, plan, apply]
             x-kubernetes-validations:
             - rule: self.role != 'Admin' || self.identityRef == 'tenant-admin'
               message: The Admin tenant must use the protected tenant-admin identity
+            - rule: '!has(self.systemAccess) || self.role == ''Admin'''
+              message: System access is restricted to the protected Admin tenant
           status:
             type: object
             x-kubernetes-preserve-unknown-fields: true

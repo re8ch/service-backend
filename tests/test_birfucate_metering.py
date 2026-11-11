@@ -204,6 +204,13 @@ def test_crds_use_status_subresources_cel_and_selectable_fields():
         assert version["additionalPrinterColumns"]
     consumable_spec = crds["Consumable"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
     assert consumable_spec["x-kubernetes-validations"]
+    tenant_spec = crds["Tenant"]["spec"]["versions"][0]["schema"]["openAPIV3Schema"]["properties"]["spec"]
+    system_access = tenant_spec["properties"]["systemAccess"]
+    assert system_access["maxItems"] == 3
+    assert system_access["items"]["properties"]["id"]["enum"] == [
+        "system-postgresql", "system-observability", "system-mail",
+    ]
+    assert any("self.role == 'Admin'" in item["rule"] for item in tenant_spec["x-kubernetes-validations"])
     assert not any(path.name.endswith("crds.yaml") for path in (CHART / "templates").iterdir())
     assert {path.name for path in (CHART / "crds").iterdir()} == {"finops.re8ch.com.yaml", "tenancy.re8ch.com.yaml"}
 
