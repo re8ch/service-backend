@@ -172,7 +172,7 @@ spec:
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
+          image: registry.re8ch.com/image/re8ch-ai-operations:9c820a37aab2af75b65d49812979deae73c155c1@sha256:78c0b19246eec490e1e53db25091ef5aee05e7fee4e5216955390c69f7335957
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: all}
@@ -248,7 +248,7 @@ spec:
       securityContext: {fsGroup: 100, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: mcp
-          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
+          image: registry.re8ch.com/image/re8ch-ai-operations:9c820a37aab2af75b65d49812979deae73c155c1@sha256:78c0b19246eec490e1e53db25091ef5aee05e7fee4e5216955390c69f7335957
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: infra}
@@ -314,7 +314,7 @@ spec:
       securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101, fsGroup: 101, fsGroupChangePolicy: OnRootMismatch, seccompProfile: {type: RuntimeDefault}}
       containers:
         - name: broker
-          image: registry.re8ch.com/image/re8ch-ai-operations:0.1.19@sha256:70f310d32c30209c0bef0598707bbcbd4bd7000b4136302ff15d17120eeb330f
+          image: registry.re8ch.com/image/re8ch-ai-operations:9c820a37aab2af75b65d49812979deae73c155c1@sha256:78c0b19246eec490e1e53db25091ef5aee05e7fee4e5216955390c69f7335957
           imagePullPolicy: IfNotPresent
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant}
