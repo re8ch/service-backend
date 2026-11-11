@@ -39,3 +39,16 @@ def test_retired_promoter_has_no_side_effect_path():
         module.main()
     workflow = yaml.safe_load((ROOT / '.github/workflows/release-compat-controller.yml').read_text())
     assert workflow['jobs']['release']['if'] == '${{ false }}'
+
+
+def test_governance_forbids_every_local_flux_writer():
+    required = ('permanently', 'forbidden', 'bounded cloud SSA executor')
+    for path in ('README.md', 'AGENTS.md', 'catalogs/platform/modules/service-backend/MEMORY.md'):
+        text = (ROOT / path).read_text()
+        for phrase in required:
+            assert phrase.lower() in text.lower(), f'{path} is missing {phrase!r}'
+
+    forbidden = ('flux-bootstrap', 'root-flux-recovery')
+    workflow_text = '\n'.join(path.read_text() for path in (ROOT / '.github/workflows').glob('*.yml'))
+    for token in forbidden:
+        assert token not in workflow_text
