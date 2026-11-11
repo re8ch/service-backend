@@ -165,6 +165,30 @@ def test_stalwart_reconcile_creates_oidc_account_then_requires_user_authorizatio
     assert local_identity.records[0][1] == "AuthorizationRequired"
 
 
+def test_cubesandbox_reconcile_requires_live_endpoints_and_returns_capability(monkeypatch):
+    class CubeKube(FakeKube):
+        def get(self, plural, name, namespace=None, api=None):
+            if plural == "services":
+                assert namespace == "cube-trial" and name in {"cube-trial-api", "cube-trial-ops", "cube-trial-proxy"}
+                return {"spec": {"clusterIP": "10.43.0.10"}}
+            if plural == "endpoints":
+                return {"subsets": [{"addresses": [{"ip": "10.42.0.10"}]}]}
+            return super().get(plural, name, namespace, api)
+
+    parameters = {"imageDigest": "ghcr.io/re8ch/codex@sha256:" + "a" * 64,
+                  "cpu": 4, "memory": 8192, "storageGiB": 20, "ttlSeconds": 3600,
+                  "networkClass": "restricted", "retentionClass": "checkpoint"}
+    value = instance("sandbox.runtime.v1", parameters, "artifact-retained")
+    kube = CubeKube("sandbox.runtime.v1")
+    monkeypatch.setattr(provider.control, "provider_service_spec", lambda *_args: parameters)
+    provider.reconcile_instance(kube, value)
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"]["accessRef"].startswith("capability://cubesandbox/acme/")
+    assert kube.status["access"]["runtimeRef"] == "runtime://cubesandbox/cube-trial/v0.6.0"
+    assert kube.status["access"]["publicIngress"] is False
+    assert kube.status["access"]["credentialMaterialReturned"] is False
+
+
 class FakeKube:
     def __init__(self, service_class):
         self.service_class = service_class

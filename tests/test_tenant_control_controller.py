@@ -221,6 +221,20 @@ def test_stalwart_provider_contract_requires_bounded_member_identity():
         controller.provider_service_spec("re8ch", "member-mail", invalid)
 
 
+def test_cubesandbox_provider_contract_requires_immutable_bounded_runtime():
+    request = {"serviceClass": "sandbox.runtime.v1", "planRef": "artifact-retained", "parameters": {
+        "imageDigest": "ghcr.io/re8ch/codex@sha256:" + "a" * 64, "cpu": 4, "memory": 8192,
+        "storageGiB": 20, "ttlSeconds": 3600, "networkClass": "restricted", "retentionClass": "checkpoint",
+    }}
+    assert controller.provider_service_spec("re8ch", "agent-sandbox", request) == request["parameters"]
+    invalid = json.loads(json.dumps(request)); invalid["parameters"]["imageDigest"] = "ghcr.io/re8ch/codex:latest"
+    with pytest.raises(PermissionError, match="immutable"):
+        controller.provider_service_spec("re8ch", "agent-sandbox", invalid)
+    invalid = json.loads(json.dumps(request)); invalid["parameters"]["networkClass"] = "host"
+    with pytest.raises(PermissionError, match="network"):
+        controller.provider_service_spec("re8ch", "agent-sandbox", invalid)
+
+
 def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     with pytest.raises(PermissionError, match="outside the authenticated tenant"):

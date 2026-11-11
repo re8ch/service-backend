@@ -904,6 +904,43 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
             "conditions": [control.condition("Ready", False, "UserAuthorizationRequired")],
         }, namespace)
         return
+    if service_class == "sandbox.runtime.v1":
+        request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
+        if control.provider_service_spec(tenant, meta["name"], request) != spec.get("parameters"):
+            raise PermissionError("CubeSandbox parameters differ from the controller contract")
+        prior = instance.get("status") or {}
+        if lifecycle in {"Suspended", "Deleting"}:
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            kube.patch_status("tenantserviceinstances", meta["name"], {
+                "observedGeneration": meta.get("generation", 1), "phase": phase, "reason": None,
+                "access": prior.get("access"), "humanCredentialRef": None,
+                "conditions": [control.condition("Ready", False, "RuntimeLeaseRevokedArtifactsRetained")],
+            }, namespace)
+            return
+        if lifecycle != "Requested":
+            raise PermissionError("unsupported provider lifecycle")
+        for service_name in ("cube-trial-api", "cube-trial-ops", "cube-trial-proxy"):
+            service = kube.get("services", service_name, "cube-trial", "api/v1")
+            endpoints = kube.get("endpoints", service_name, "cube-trial", "api/v1")
+            if not (service.get("spec") or {}).get("clusterIP") or not any(
+                    subset.get("addresses") for subset in endpoints.get("subsets") or []):
+                raise RuntimeError("CubeSandbox runtime endpoint is not ready")
+        digest = hashlib.sha256((tenant + "\n" + meta["uid"]).encode()).hexdigest()[:32]
+        access = {"accessRef": f"capability://cubesandbox/{tenant}/{digest}",
+                  "runtimeRef": "runtime://cubesandbox/cube-trial/v0.6.0",
+                  "templateRef": "template://cubesandbox/tpl-0a3c5cfb6f2847b881b24668",
+                  "placement": "r640", "publicIngress": False,
+                  "imageDigest": spec["parameters"]["imageDigest"],
+                  "ttlSeconds": spec["parameters"]["ttlSeconds"],
+                  "networkClass": spec["parameters"]["networkClass"],
+                  "retentionClass": spec["parameters"]["retentionClass"],
+                  "credentialMaterialReturned": False}
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
+            "access": access, "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", True, "CubeSandboxRuntimeReady")],
+        }, namespace)
+        return
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant != "admin" or meta["name"] != "github-enterprise-governance":
             raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")

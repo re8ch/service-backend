@@ -629,7 +629,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1"}
+PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -717,6 +717,28 @@ def provider_service_spec(tenant_ref, name, request):
         if retention not in {"standard", "extended"}:
             raise PermissionError("retentionClass is not published")
         return {"identityUserRef": identity_user, "storageGiB": storage, "retentionClass": retention}
+    if service_class == "sandbox.runtime.v1":
+        if request.get("planRef") not in {"ephemeral", "artifact-retained"}:
+            raise PermissionError("Sandbox runtime plan is not published")
+        allowed = {"imageDigest", "cpu", "memory", "storageGiB", "ttlSeconds", "networkClass", "retentionClass"}
+        if set(parameters) - allowed:
+            raise PermissionError("Sandbox runtime parameters are not published")
+        image = parameters.get("imageDigest")
+        if not isinstance(image, str) or not re.fullmatch(r"[^\s@]+@sha256:[a-f0-9]{64}", image):
+            raise PermissionError("imageDigest must be an immutable sha256 image reference")
+        cpu, memory, storage, ttl = parameters.get("cpu"), parameters.get("memory"), parameters.get("storageGiB"), parameters.get("ttlSeconds")
+        if type(cpu) is not int or not 1 <= cpu <= 8 or type(memory) is not int or not 512 <= memory <= 32768:
+            raise PermissionError("sandbox cpu or memory is outside published limits")
+        if type(storage) is not int or not 1 <= storage <= 100 or type(ttl) is not int or not 300 <= ttl <= 86400:
+            raise PermissionError("sandbox storage or ttl is outside published limits")
+        network = parameters.get("networkClass", "restricted")
+        retention = parameters.get("retentionClass", "delete")
+        if network not in {"none", "restricted"} or retention not in {"delete", "checkpoint"}:
+            raise PermissionError("sandbox network or retention class is not published")
+        if request.get("planRef") == "ephemeral" and retention != "delete":
+            raise PermissionError("ephemeral sandboxes require delete retention")
+        return {"imageDigest": image, "cpu": cpu, "memory": memory, "storageGiB": storage,
+                "ttlSeconds": ttl, "networkClass": network, "retentionClass": retention}
     if service_class == "integration.github.enterprise-governance.v1":
         if tenant_ref != "admin" or name != "github-enterprise-governance":
             raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")
@@ -1339,6 +1361,7 @@ class Handler(BaseHTTPRequestHandler):
                         "database.postgresql.shared.v1": ("pigsty-postgresql-adoption", "DatabaseAdministrationCapability"),
                         "ai.model-gateway.v1": ("litellm-team-policy", "VirtualKeyTeamModelPolicy"),
                         "collaboration.stalwart.v1": ("stalwart-account", "OrganizationUserMailbox"),
+                        "sandbox.runtime.v1": ("cubesandbox-runtime", "SandboxRuntimePool"),
                         "application.ledger.v1": ("existing-ledger-access", "ExistingServiceEndpointGrant"),
                         "integration.github.enterprise-governance.v1": ("github-enterprise-governance-workflow", "GitHubEnterpriseGovernanceCapability"),
                     }[service_class]

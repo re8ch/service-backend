@@ -249,7 +249,7 @@ metadata: {name: tenant-provider-reconciler}
 rules:
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances, tenants], verbs: [get, list]}
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances/status], verbs: [get, patch]}
-  - {apiGroups: [""], resources: [services], resourceNames: [ledger-api-gateway-local, pg-re8ch-primary], verbs: [get]}
+  - {apiGroups: [""], resources: [services, endpoints], resourceNames: [ledger-api-gateway-local, pg-re8ch-primary, cube-trial-api, cube-trial-ops, cube-trial-proxy], verbs: [get]}
 {{- if .Values.tenantPlatform.provider.databaseBindings }}
   - {apiGroups: [""], resources: [namespaces], resourceNames: [{{- range $i, $binding := .Values.tenantPlatform.provider.databaseBindings }}{{ if $i }}, {{ end }}{{ $binding.namespace }}{{- end }}], verbs: [get]}
 {{- end }}
