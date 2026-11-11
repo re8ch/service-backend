@@ -16,6 +16,8 @@ resources:
 - ../../../components/cilium/native-routing-rollout.yaml
 - ../../../components/cilium/r640-policy-update-budget.yaml
 - ../../../components/egress-fabric/identity-egress.yaml
+- ../../../components/egress-fabric/config.yaml
+- ../../../components/egress-fabric/workloads.yaml
 - ../../../components/egress-fabric/live-node-egress-labels.yaml
 - ../../../components/egress-fabric/mihomo-node-labeler
 - ../../../components/egress-fabric/rbac.yaml

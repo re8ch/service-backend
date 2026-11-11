@@ -121,6 +121,7 @@ domains:
     theme: winds
     paths:
       - operations/network/**
+      - clusters/re8ch/charts/mihomos-cluster/**
       - platform/advanced-fabric/**
       - platform/among-clusters/**
       - platform/public-edge-manager/**
