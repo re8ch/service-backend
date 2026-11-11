@@ -33,16 +33,11 @@ def test_root_frequency_and_local_sync():
     assert config['StartInterval'] == 30
 
 
-def test_root_recovery_cannot_manage_flux_secrets():
-    rbac = list(yaml.load_all(
-        (ROOT / 'clusters/re8ch/components/ops/github-actions-root-flux-recovery-rbac.yaml').read_text(),
-        Loader=YAML_SAFE_LOADER,
-    ))
-    rules = [rule for item in rbac if item and item['kind'] == 'Role' for rule in item.get('rules', [])]
-    assert all('secrets' not in rule.get('resources', []) for rule in rules)
-    workflow = (ROOT / '.github/workflows/root-flux-rbac-recovery.yml').read_text()
-    assert 'service-backend-github-socks' not in workflow
-    assert 'kubectl auth can-i create secrets' not in workflow
+def test_root_flux_recovery_is_retired():
+    assert not (ROOT / '.github/workflows/root-flux-rbac-recovery.yml').exists()
+    assert not (ROOT / 'clusters/re8ch/components/ops/github-actions-root-flux-recovery-rbac.yaml').exists()
+    root = yaml.load((ROOT / 'clusters/re8ch/kustomization.yaml').read_text(), Loader=YAML_SAFE_LOADER)
+    assert 'components/ops/github-actions-root-flux-recovery-rbac.yaml' not in root['resources']
 
 
 def test_retired_controllers_do_not_return_and_unrelated_egress_is_preserved(kustomize_documents):

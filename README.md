@@ -19,8 +19,8 @@ Private workflow badges require repository access.
 GitHub-first collaboration and desired state for the RE8CH platform. GitHub
 Issues are work/events, pull requests are proposals, signed commits are state
 transitions, and Actions/webhooks are reactions. Kubernetes remains the runtime,
-Flux the convergence engine, Headlamp the inspection GUI, and raw telemetry
-stays in the observability backends.
+the bounded cloud SSA executor is the only GitOps writer, Headlamp is the
+inspection GUI, and raw telemetry stays in the observability backends.
 
 GitLab is retained only as a read-only historical archive. GitHub is the sole
 collaboration and GitOps authority; dual-write collaboration is forbidden.
@@ -43,25 +43,29 @@ for the authenticated runtime API and protected member/App diagnostic workflow.
 The public inventory path is an immutable reference, not executable node data.
 Do not infer endpoint, route, failover or storage behavior from an old MEMORY.
 
-## Federated Flux control plane
+## GitHub-native GitOps control plane
 
-The main `flux-system` is the bootstrap and policy authority, not the universal
-workload owner. Four domains run independent Source, Kustomize, Helm and
-Notification controller stacks and continue reconciling when the main
-`service-backend` Kustomization is paused or broken:
+Local Flux Source, Kustomize, Helm, Notification, image automation and
+compatibility controllers are permanently retired and forbidden. They must not be restored,
+scaled above zero, bootstrapped, repaired, proxied or used as an emergency
+fallback. GitHub webhooks and Actions select reviewed immutable artifacts; the
+bounded cloud SSA executors are the only runtime writers. Retained Flux CRDs,
+custom resources and manifests are migration/history inputs, not authorization
+to run a controller or create a second writer.
 
-| Domain | Controller namespace | Desired-state repository |
+Four domains retain independent repositories and cloud SSA identities:
+
+| Domain | Historical namespace | Desired-state repository |
 | --- | --- | --- |
 | Agent | `flux-agent-system` | `re8ch-ai/agent-gitops` |
 | Identity | `flux-identity-system` | `re8ch/identity-gitops` |
 | Observability | `flux-observability-system` | `siren-observer/observability-gitops` |
 | Network | `flux-network-system` | `pillars-infra/network-gitops` |
 
-The main Flux owns Flux CRDs, autonomous controller lifecycle, namespaces,
-global RBAC, shared Gateway authority, and Secret/policy boundaries. Each
-autonomous Flux owns only its repository source and domain inventory. Product
-runtimes with external users and a high release cadence remain outside Flux;
-their slow-moving platform guardrails stay in the appropriate domain.
+The platform repository owns shared CRDs, namespaces, global RBAC, Gateway
+authority and Secret/policy boundaries. Each domain repository owns its
+reviewed release contracts and accepted immutable artifact state. No repository,
+workflow, bootstrap process or operator may recreate a local Flux writer.
 
 The machine-readable authority ledger is
 [`operations/flux-federation/authority.yaml`](operations/flux-federation/authority.yaml),

@@ -39,7 +39,6 @@ jwt:
         - https://kube-api.re8ch.com/release-reconciler-identity-access
         - https://kube-api.re8ch.com/release-reconciler-observability-metering
         - https://kube-api.re8ch.com/release-reconciler-delivery-products
-        - https://kube-api.re8ch.com/root-flux-recovery
       audienceMatchPolicy: MatchAny
     claimValidationRules:
       - expression: >-
@@ -104,13 +103,6 @@ jwt:
            claims.event_name in ['workflow_dispatch', 'schedule', 'push'] &&
            claims.environment in ['release-reconciler-data-storage', 'release-reconciler-commerce-billing', 'release-reconciler-operations-ui', 'release-reconciler-tenant-runtime'] &&
            claims.aud == 'https://kube-api.re8ch.com/' + claims.environment))
-          || (claims.repository_visibility == 'public' &&
-           claims.repository_id == '1367237854' && claims.repository_owner_id == '283958313' &&
-           claims.repository == 're8ch/service-backend' && claims.ref == 'refs/heads/main' &&
-           claims.runner_environment == 'github-hosted' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/root-flux-rbac-recovery.yml@refs/heads/main' &&
-           claims.event_name == 'workflow_dispatch' && claims.environment == 'root-flux-recovery' &&
-           claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery')
           || (claims.repository_visibility == 'public' && claims.repository_id == '1367237854' &&
            claims.repository_owner_id == '283958313' && claims.repository == 're8ch/service-backend' &&
            claims.ref == 'refs/heads/main' && claims.runner_environment == 'github-hosted' &&
@@ -213,13 +205,6 @@ jwt:
            claims.event_name in ['schedule', 'workflow_dispatch'] &&
            claims.environment == 'cluster-observation' &&
            claims.aud == 'https://kube-api.re8ch.com/observer')
-          || (claims.runner_environment == 'github-hosted' &&
-           claims.repository_visibility == 'public' &&
-           claims.repository_id == '1367237854' && claims.repository_owner_id == '283958313' &&
-           claims.repository == 're8ch/service-backend' && claims.ref == 'refs/heads/main' &&
-           claims.workflow_ref == 're8ch/service-backend/.github/workflows/root-flux-rbac-recovery.yml@refs/heads/main' &&
-           claims.event_name == 'workflow_dispatch' && claims.environment == 'root-flux-recovery' &&
-           claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery')
           || (claims.runner_environment == 'github-hosted' && claims.repository_visibility == 'public' &&
            claims.repository_id == '1367237854' && claims.repository_owner_id == '283958313' &&
            claims.repository == 're8ch/service-backend' && claims.ref == 'refs/heads/main' &&
@@ -260,12 +245,6 @@ jwt:
              claims.ref == 'refs/heads/main' &&
              claims.workflow_ref == 're8ch/service-backend/.github/workflows/main-domain-release.yml@refs/heads/main' &&
              claims.environment == 'release-executor-tenant-runtime' &&
-             claims.event_name == 'workflow_dispatch') ||
-            (claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery' &&
-             claims.ref == 'refs/heads/main' &&
-             claims.runner_environment == 'github-hosted' &&
-             claims.workflow_ref == 're8ch/service-backend/.github/workflows/root-flux-rbac-recovery.yml@refs/heads/main' &&
-             claims.environment == 'root-flux-recovery' &&
              claims.event_name == 'workflow_dispatch') ||
             (claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime' &&
              claims.ref == 'refs/heads/main' && claims.runner_environment == 'github-hosted' &&
@@ -417,8 +396,6 @@ jwt:
                                 ? 'github-actions:release-executor-ceph-infra:' + claims.run_id
                                 : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
                                   ? 'github-actions:release-executor-ceph-runtime:' + claims.run_id
-                                : claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery'
-                                  ? 'github-actions:root-flux-recovery:' + claims.run_id
                                   : 'github-actions:release-artifact-publisher:' + claims.run_id
       groups:
         expression: >-
@@ -460,8 +437,6 @@ jwt:
                                 ? ['re8ch:release-executor:ceph-infra']
                                 : claims.aud == 'https://kube-api.re8ch.com/release-executor-ceph-runtime'
                                   ? ['re8ch:release-executor:ceph-runtime']
-                                : claims.aud == 'https://kube-api.re8ch.com/root-flux-recovery'
-                                  ? ['re8ch:root-flux-recovery']
                                   : ['re8ch:release-artifact-publisher']
       uid:
         expression: "claims.run_id + ':' + claims.run_attempt"

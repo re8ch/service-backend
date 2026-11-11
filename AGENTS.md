@@ -14,6 +14,15 @@ Before work:
 
 GitHub-hosted Enterprise runners are the preferred CI/build workers. Macmini with `/Volumes/A1` mounted handles host-bound audits; R640 remains the cluster mirror/worktree and controlled operations fallback. Discover the current authenticated `Re8ch` plugin self-service capability and use its exact tool schema for tenant operations. For authorized platform work outside that published scope, use the controlled operations fallback; do not treat an old Cloud Platform connection as the tenant entry point. All GitOps changes require signed commits, successful GitHub Actions and a pull request; Cloud delivery verifies reviewed revisions and immutable artifact signatures before applying them. GitLab is a read-only historical archive and must not become a second collaboration authority.
 
+Local Flux writers are permanently forbidden. Do not create, restore, scale,
+restart, repair, proxy or grant RBAC to Source, Kustomize, Helm, Notification,
+image automation, compatibility or domain Flux controllers. Do not reconcile a
+GitRepository, Kustomization or HelmRelease as a delivery mechanism. Retained
+Flux APIs and manifests are historical/migration inputs only. GitHub
+webhooks/Actions plus the bounded cloud SSA executor are the sole GitOps
+delivery path; emergency recovery must replay an accepted immutable artifact
+through that same path, never introduce a second writer.
+
 Generated module MEMORY is reviewable desired context. Repository-root AGENTS.md remains authoritative when a product supplies one; generated context never replaces or injects repository instructions.
 
 ## GitHub-native governance and delivery

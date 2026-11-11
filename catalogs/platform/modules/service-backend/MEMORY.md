@@ -17,6 +17,14 @@
 
 Read the repository-root AGENTS.md first when present, then README and declared knowledge. For every `github-pr` module, start changes in a task-specific Git worktree based on the authoritative GitHub default branch; never develop in the default checkout. Preserve dirty checkouts before cleanup and remove clean task worktrees after merge or intentional closure. The `/Volumes/A1/service-backend` checkout is a physically read-only `github/main` anchor; only a clean fast-forward sync may temporarily unlock it. Use the module write policy; collaboration/read-only modules must not be pushed as owned code. Never copy credentials into patches, logs, MEMORY, or Git.
 
+Local Flux writers are permanently retired and forbidden across the platform
+and all federated GitOps repositories. Never create, restore, scale, restart,
+repair, proxy or authorize Flux Source, Kustomize, Helm, Notification, image
+automation, compatibility or domain controllers. Never use Flux reconciliation
+as a fallback. Retained Flux CRDs, custom resources and manifests are historical
+or migration inputs only. GitHub webhooks/Actions select reviewed immutable
+artifacts and the bounded cloud SSA executor is the sole runtime writer.
+
 The current `Re8ch` plugin is the single tenant self-service entry. Discover `tenant_self_service_capabilities`, use the specific published operation, and verify its real result. Check the active organization before provider-backed work. Tenant Kubernetes tools are restricted to allowlisted kinds and Ready namespaces owned by that organization. Older Cloud Platform connections are not tenant self-service prerequisites or health checks. `platform_tool_call` is not supported or enabled, and raw `kubectl.exec`-style execution is not a tenant-service prerequisite. A legacy capability description is not authorization.
 
 ConnecTool v0.6.9 is live behind the unchanged public MCP URL and OAuth contract. It routes from the OAuth-authoritative `tenantRef`, merges tenant-core tools with tenant-visible independent providers, and preserves MCP content negotiation plus protocol, method and session metadata. Successful installed-plugin calls have verified organization context, self-service capabilities and the service catalog for the `admin` tenant.
