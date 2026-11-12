@@ -72,3 +72,14 @@ def test_posthog_observes_every_accessible_project(monkeypatch):
     assert [item["name"] for item in result["projects"]] == ["Artchais", "RE8CH Business"]
     assert result["projects"][0]["eventsAllTime"] == 1190
     assert result["projects"][1]["sessions30d"] == 3
+
+
+def test_empty_posthog_project_has_no_fake_epoch_timestamp(monkeypatch):
+    monkeypatch.setattr(module, "posthog_projects", lambda *_args: [{"id": 1, "name": "Empty"}])
+    monkeypatch.setattr(
+        module,
+        "posthog_request",
+        lambda *_args: {"results": [[0, 0, 0, 0, 0, "1970-01-01T00:00:00Z"]]},
+    )
+    result = module.posthog_observations("https://eu.posthog.com", "secret", 5)
+    assert result["projects"][0]["latestEventAt"] is None

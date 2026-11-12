@@ -27,6 +27,7 @@ jobs:
         env:
           POSTHOG_HOST: https://eu.posthog.com
           POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          POSTHOG_TIMEOUT: "90"
         run: |
           python operations/biziops/observe.py \
             --output "$RUNNER_TEMP/biziops-observation.json" \
