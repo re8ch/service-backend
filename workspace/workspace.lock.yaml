@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-11-12T02:13:11Z'
-  generation: 1794449591
+  generatedAt: '2026-11-12T08:49:10Z'
+  generation: 1794473350
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -90,7 +90,7 @@ modules:
     dependencies: []
     repository: https://github.com/bifurcate-systems/bifurcate.git
   brand-assets:
-    commit: d42b80e136c0d4756e80ab8992b4982ea60e63cd
+    commit: 74d7838dcc54a0732426e895c33dffbf7b72f96a
     defaultBranch: main
     dependencies: []
     repository: https://github.com/biziops/brand-assets.git
@@ -320,7 +320,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
   user-hub:
-    commit: d7944e0b81aaa5e3d9e985a50ba8aa3e9a39c9ed
+    commit: 846e82cf72fa8562227d66da20ff0d5db4edbdd1
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/user-hub.git
