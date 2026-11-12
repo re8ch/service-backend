@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-11-12T01:42:59Z'
-  generation: 1794447779
+  generatedAt: '2026-11-12T02:13:11Z'
+  generation: 1794449591
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -320,7 +320,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
   user-hub:
-    commit: fcc0313c47019cd11d66767a62ce2ca2bfcf6959
+    commit: d7944e0b81aaa5e3d9e985a50ba8aa3e9a39c9ed
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/user-hub.git
