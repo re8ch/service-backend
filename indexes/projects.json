@@ -316,7 +316,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "d42b80e136c0d4756e80ab8992b4982ea60e63cd",
+    "commit": "74d7838dcc54a0732426e895c33dffbf7b72f96a",
     "id": "brand-assets",
     "ownership": "owned",
     "projectType": "brand-assets",
@@ -469,7 +469,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "d7944e0b81aaa5e3d9e985a50ba8aa3e9a39c9ed",
+    "commit": "846e82cf72fa8562227d66da20ff0d5db4edbdd1",
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",
