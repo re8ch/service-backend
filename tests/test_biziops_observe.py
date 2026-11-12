@@ -1,5 +1,7 @@
 from pathlib import Path
 import importlib.util
+import io
+import json
 
 import yaml
 
@@ -41,3 +43,32 @@ def test_summary_preserves_unknown_instead_of_inventing_zero():
     summary = module.render_summary(payload)
     assert "unknown" in summary
     assert "declared-unconfigured" in summary
+
+
+def test_posthog_observes_every_accessible_project(monkeypatch):
+    responses = {
+        "/api/projects/?limit=100": {"results": [
+            {"id": 174040, "name": "Artchais"},
+            {"id": 347656, "name": "RE8CH Business"},
+        ]},
+        "/api/projects/174040/query/": {"results": [[0, 0, 0, 0, 1190, "2026-08-16T16:30:47Z"]]},
+        "/api/projects/347656/query/": {"results": [[3, 2, 8, 12, 12, "2026-11-13T01:00:00Z"]]},
+    }
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return None
+
+    def fake_urlopen(request, timeout):
+        del timeout
+        path = request.full_url.removeprefix("https://eu.posthog.com")
+        return Response(json.dumps(responses[path]).encode())
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+    result = module.posthog_observations("https://eu.posthog.com", "secret", 5)
+    assert [item["name"] for item in result["projects"]] == ["Artchais", "RE8CH Business"]
+    assert result["projects"][0]["eventsAllTime"] == 1190
+    assert result["projects"][1]["sessions30d"] == 3
