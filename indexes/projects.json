@@ -469,7 +469,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "fcc0313c47019cd11d66767a62ce2ca2bfcf6959",
+    "commit": "d7944e0b81aaa5e3d9e985a50ba8aa3e9a39c9ed",
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",
