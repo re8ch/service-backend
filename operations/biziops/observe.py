@@ -103,8 +103,15 @@ def posthog_request(
             "User-Agent": USER_AGENT,
         },
     )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.load(response)
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return json.load(response)
+        except (urllib.error.URLError, TimeoutError):
+            if attempt == 2:
+                raise
+            time.sleep(attempt + 1)
+    raise RuntimeError("unreachable")
 
 
 def posthog_projects(host: str, token: str, timeout: float) -> list[dict[str, Any]]:
@@ -129,6 +136,7 @@ def posthog_observations(host: str, token: str, timeout: float) -> dict[str, Any
                 {"query": {"kind": "HogQLQuery", "query": POSTHOG_QUERY}},
             )
             row = (response.get("results") or [[None] * 6])[0]
+            latest_event = None if row[4] == 0 else row[5]
             observations.append({
                 **project,
                 "state": "observed",
@@ -137,7 +145,7 @@ def posthog_observations(host: str, token: str, timeout: float) -> dict[str, Any
                 "pageviews30d": row[2],
                 "events30d": row[3],
                 "eventsAllTime": row[4],
-                "latestEventAt": row[5],
+                "latestEventAt": latest_event,
             })
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
             observations.append({**project, "state": "error", "error": type(error).__name__})
@@ -259,7 +267,7 @@ def main() -> None:
         provider_observations["posthog"] = posthog_observations(
             os.environ.get("POSTHOG_HOST", "https://eu.posthog.com"),
             posthog_token,
-            args.timeout,
+            float(os.environ.get("POSTHOG_TIMEOUT", "90")),
         )
     payload = {
         "schemaVersion": "biziops.re8ch.com/observation-v1alpha1",
