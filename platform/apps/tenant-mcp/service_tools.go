@@ -16,6 +16,8 @@ var providerBacked = map[string]bool{
 	"observability.grafana.v1": true, "observability.stack.v1": true,
 	"integration.mcp.managed.v1": true, "integration.mcp.byoc.v1": true,
 	"application.ledger.v1": true, "integration.github.enterprise-governance.v1": true,
+	"ai.model-gateway.v1": true, "collaboration.stalwart.v1": true,
+	"sandbox.runtime.v1": true,
 }
 
 func liveServiceOnly(services []map[string]any, tenant string) []map[string]any {
@@ -73,6 +75,28 @@ func providerBindings(instances []any, tenant, ref string) []map[string]any {
 		name, uid := asString(meta, "name"), asString(meta, "uid")
 		serviceClass := asString(spec, "serviceClass")
 		resourceRef := "service://" + tenant + "/" + name
+		if serviceClass == "ai.model-gateway.v1" || serviceClass == "collaboration.stalwart.v1" || serviceClass == "sandbox.runtime.v1" {
+			accessRef := asString(object(status["access"]), "accessRef")
+			validAccess := (serviceClass == "ai.model-gateway.v1" && strings.HasPrefix(accessRef, "credential://litellm/"+tenant+"/")) ||
+				(serviceClass == "collaboration.stalwart.v1" && strings.HasPrefix(accessRef, "account://stalwart/"+tenant+"/")) ||
+				(serviceClass == "sandbox.runtime.v1" && strings.HasPrefix(accessRef, "capability://cubesandbox/"+tenant+"/"))
+			validPhase := status["phase"] == "Ready" ||
+				(serviceClass == "collaboration.stalwart.v1" && status["phase"] == "AuthorizationRequired")
+			if asString(spec, "tenantRef") == tenant && name != "" && uid != "" && validPhase &&
+				(ref == "" || ref == resourceRef) && validAccess {
+				state := "Ready"
+				if status["phase"] == "AuthorizationRequired" {
+					state = "AuthorizationRequired"
+				}
+				bindings = append(bindings, map[string]any{
+					"bindingRef": "binding://" + tenant + "/provider/" + uid, "resourceRef": resourceRef,
+					"bindingType": "access:broker-reference", "accessRef": accessRef, "serviceClass": serviceClass,
+					"source": "provider-status", "state": state, "revocable": false,
+					"revokeWith": "service_instance_suspend", "credentialMaterialReturned": false,
+				})
+			}
+			continue
+		}
 		if serviceClass == "integration.github.enterprise-governance.v1" {
 			accessRef := asString(object(status["access"]), "accessRef")
 			if tenant == "admin" && asString(spec, "tenantRef") == tenant && name == "github-enterprise-governance" && uid != "" &&
