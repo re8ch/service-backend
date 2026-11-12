@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-11-12T00:48:06Z'
-  generation: 1794444486
+  generatedAt: '2026-11-12T01:42:59Z'
+  generation: 1794447779
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -42,7 +42,7 @@ modules:
     - anycam-backend
     repository: https://github.com/re8ch/AnycamIOS.git
   anycam-website:
-    commit: 37df7b97a36cf52e8afaa96cfc7699600e0d1e1d
+    commit: 072621d86908eb363abe8f420ca53c68c2d92099
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/anycam-website.git
@@ -52,7 +52,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/anysiteonearth.git
   anysiteonearth-website:
-    commit: 43532c9d1bcf77a7389bb3a12b74817b388ee939
+    commit: d703ae3e6bfd28ab7806f4ec04806e589d90ac7a
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/anysiteonearth-website.git
@@ -90,7 +90,7 @@ modules:
     dependencies: []
     repository: https://github.com/bifurcate-systems/bifurcate.git
   brand-assets:
-    commit: 8046f9620e4aff68cc0532b4272c55c4ff853901
+    commit: d42b80e136c0d4756e80ab8992b4982ea60e63cd
     defaultBranch: main
     dependencies: []
     repository: https://github.com/biziops/brand-assets.git
@@ -114,7 +114,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/cloud-functions.git
   cluster-website:
-    commit: b23a0185ca251ec7148f2b64c55301b9bee8e084
+    commit: a7d8f0501a4a2d2b25ed5c8846989cf5ab2c6841
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch-cloud/cluster-website.git
@@ -167,7 +167,7 @@ modules:
     - among-clusters
     repository: https://github.com/among-clusters/headlamp-birfucate.git
   image-website:
-    commit: 2b178d3664e6a0d63f8bf886dcad79ae8c18470a
+    commit: e25ad5ddd8c5ac299adee1c0dd10de0febcf449b
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch-image/image-website.git
@@ -188,7 +188,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/ledger-dashboard.git
   ledger-site:
-    commit: 5c76495e98c8a81c2b735846546d8ee5bf15d57a
+    commit: 507b5c7a48351a4877d8ed333f8b171e42a19b1e
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/ledger-website.git
@@ -218,7 +218,7 @@ modules:
     dependencies: []
     repository: https://github.com/Woomou/network-decomplexer-ios.git
   observable-website:
-    commit: 78ddb592dff46e62307e46ca3b0fca8d5071550d
+    commit: 1ad0d728bc89c218fbd77a42e9044e06ea8b28b8
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch-observability/observable-website.git
@@ -234,7 +234,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/phonaid-service.git
   phonaid-website:
-    commit: 7b7d3e8ff0a7e6dfebb6b6b1b49dba3be307c2fa
+    commit: 4615f32e8f65c110c409e12d1cc2ad9d0d2cefef
     defaultBranch: main
     dependencies:
     - phonaid-service
@@ -320,7 +320,7 @@ modules:
     dependencies: []
     repository: https://github.com/re8ch/tool-distribution.git
   user-hub:
-    commit: 911094d9fc2c0439ff34ff744ed3ce2ef80f617f
+    commit: fcc0313c47019cd11d66767a62ce2ca2bfcf6959
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/user-hub.git
