@@ -3617,6 +3617,10 @@ spec:
           lifecycle: Active
           name: re8ch-sandbox-runtime
           roleRef: operator
+        - consumableRef: collaboration.stalwart.v1
+          lifecycle: Active
+          name: re8ch-stalwart
+          roleRef: operator
         harborProjectRef: re8ch
         hostingMode: platform-managed
         identityBindings:

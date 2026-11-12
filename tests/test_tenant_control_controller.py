@@ -235,6 +235,13 @@ def test_cubesandbox_provider_contract_requires_immutable_bounded_runtime():
         controller.provider_service_spec("re8ch", "agent-sandbox", invalid)
 
 
+def test_agent_provider_classes_are_explicitly_multi_instance():
+    assert controller.MULTI_INSTANCE_PROVIDER_CLASSES == {
+        "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1",
+    }
+    assert controller.MULTI_INSTANCE_PROVIDER_CLASSES < controller.PROVIDER_SERVICE_CLASSES
+
+
 def test_provider_service_contract_rejects_cross_tenant_and_over_quota(monkeypatch):
     monkeypatch.setattr(controller, "harbor_project", lambda _tenant: "acme")
     with pytest.raises(PermissionError, match="outside the authenticated tenant"):

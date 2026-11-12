@@ -236,9 +236,37 @@
     "serviceClass": "registry.harbor.v1"
   },
   {
-    "accessUnit": "SandboxSession",
-    "adapter": "opensandbox-session",
+    "accessUnit": "OrganizationUserMailbox",
+    "adapter": "stalwart-account",
     "bindings": [
+      "identity:user",
+      "account:stalwart",
+      "authorization:user-consent"
+    ],
+    "meters": {
+      "calendar_events": "event",
+      "file_bytes": "byte",
+      "messages": "message",
+      "stored_data": "GiB-hour"
+    },
+    "parameters": [
+      "identityUserRef",
+      "retentionClass",
+      "storageGiB"
+    ],
+    "plans": [
+      "member"
+    ],
+    "regions": [
+      "global"
+    ],
+    "serviceClass": "collaboration.stalwart.v1"
+  },
+  {
+    "accessUnit": "SandboxSession",
+    "adapter": "cubesandbox-runtime",
+    "bindings": [
+      "runtime:cubesandbox",
       "sandbox:session",
       "artifact:scoped"
     ],

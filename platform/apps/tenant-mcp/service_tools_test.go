@@ -26,6 +26,11 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 		if !seen["registry.harbor.v1"] || !seen["observability.grafana.v1"] || !seen["application.ledger.v1"] {
 			t.Fatalf("live provider services missing for %s: %v", tenant, seen)
 		}
+		for _, serviceClass := range []string{"ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"} {
+			if !seen[serviceClass] {
+				t.Fatalf("provider control service %s missing for %s: %v", serviceClass, tenant, seen)
+			}
+		}
 		if seen["integration.github.enterprise-governance.v1"] != (tenant == "admin") {
 			t.Fatalf("Admin-only GitHub governance service leaked or disappeared for %s: %v", tenant, seen)
 		}
@@ -43,6 +48,31 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 	})
 	if len(granted) != 2 || asString(granted[0], "serviceClass") != "database.postgresql.shared.v1" || asString(granted[1], "serviceClass") != "registry.harbor.v1" {
 		t.Fatalf("catalog ignored tenant grants or provider backing: %v", granted)
+	}
+}
+
+func TestAgentProviderBindingsExposeOnlyOpaqueReferences(t *testing.T) {
+	instance := func(class, phase, access string) any {
+		return map[string]any{
+			"metadata": map[string]any{"name": strings.ReplaceAll(class, ".", "-"), "uid": "uid-" + class, "generation": float64(1)},
+			"spec":     map[string]any{"tenantRef": "re8ch", "serviceClass": class},
+			"status":   map[string]any{"phase": phase, "observedGeneration": float64(1), "access": map[string]any{"accessRef": access}},
+		}
+	}
+	items := []any{
+		instance("ai.model-gateway.v1", "Ready", "credential://litellm/re8ch/key"),
+		instance("collaboration.stalwart.v1", "AuthorizationRequired", "account://stalwart/re8ch/account"),
+		instance("sandbox.runtime.v1", "Ready", "capability://cubesandbox/re8ch/runtime"),
+		instance("ai.model-gateway.v1", "Ready", "credential://litellm/other/cross-tenant"),
+	}
+	got := providerBindings(items, "re8ch", "")
+	if len(got) != 3 {
+		t.Fatalf("agent provider bindings were not safely projected: %v", got)
+	}
+	for _, binding := range got {
+		if binding["credentialMaterialReturned"] != false || binding["accessRef"] == "" {
+			t.Fatalf("provider binding exposed credential material: %v", binding)
+		}
 	}
 }
 

@@ -233,6 +233,7 @@ spec:
             - {name: re8ch-registry, consumableRef: registry.harbor.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-ai-model-gateway, consumableRef: ai.model-gateway.v1, roleRef: operator, lifecycle: Active}
             - {name: re8ch-sandbox-runtime, consumableRef: sandbox.runtime.v1, roleRef: operator, lifecycle: Active}
+            - {name: re8ch-stalwart, consumableRef: collaboration.stalwart.v1, roleRef: operator, lifecycle: Active}
           nativeAccess: true
         - name: tenant-ci
           displayName: Tenant Conformance Canary
