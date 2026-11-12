@@ -55,7 +55,7 @@
   },
   {
     "catalog": "anycam",
-    "commit": "37df7b97a36cf52e8afaa96cfc7699600e0d1e1d",
+    "commit": "072621d86908eb363abe8f420ca53c68c2d92099",
     "id": "anycam-website",
     "ownership": "owned",
     "projectType": "web",
@@ -73,7 +73,7 @@
   },
   {
     "catalog": "anysiteonearth",
-    "commit": "43532c9d1bcf77a7389bb3a12b74817b388ee939",
+    "commit": "d703ae3e6bfd28ab7806f4ec04806e589d90ac7a",
     "id": "anysiteonearth-website",
     "ownership": "owned",
     "projectType": "web",
@@ -226,7 +226,7 @@
   },
   {
     "catalog": "ledger",
-    "commit": "5c76495e98c8a81c2b735846546d8ee5bf15d57a",
+    "commit": "507b5c7a48351a4877d8ed333f8b171e42a19b1e",
     "id": "ledger-site",
     "ownership": "owned",
     "projectType": "web",
@@ -280,7 +280,7 @@
   },
   {
     "catalog": "phonaid",
-    "commit": "7b7d3e8ff0a7e6dfebb6b6b1b49dba3be307c2fa",
+    "commit": "4615f32e8f65c110c409e12d1cc2ad9d0d2cefef",
     "id": "phonaid-website",
     "ownership": "owned",
     "projectType": "web",
@@ -316,7 +316,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "8046f9620e4aff68cc0532b4272c55c4ff853901",
+    "commit": "d42b80e136c0d4756e80ab8992b4982ea60e63cd",
     "id": "brand-assets",
     "ownership": "owned",
     "projectType": "brand-assets",
@@ -343,7 +343,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "b23a0185ca251ec7148f2b64c55301b9bee8e084",
+    "commit": "a7d8f0501a4a2d2b25ed5c8846989cf5ab2c6841",
     "id": "cluster-website",
     "ownership": "owned",
     "projectType": "web",
@@ -388,7 +388,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "2b178d3664e6a0d63f8bf886dcad79ae8c18470a",
+    "commit": "e25ad5ddd8c5ac299adee1c0dd10de0febcf449b",
     "id": "image-website",
     "ownership": "owned",
     "projectType": "web",
@@ -415,7 +415,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "78ddb592dff46e62307e46ca3b0fca8d5071550d",
+    "commit": "1ad0d728bc89c218fbd77a42e9044e06ea8b28b8",
     "id": "observable-website",
     "ownership": "owned",
     "projectType": "web",
@@ -469,7 +469,7 @@
   },
   {
     "catalog": "platform",
-    "commit": "911094d9fc2c0439ff34ff744ed3ce2ef80f617f",
+    "commit": "fcc0313c47019cd11d66767a62ce2ca2bfcf6959",
     "id": "user-hub",
     "ownership": "owned",
     "projectType": "static-web-application",
