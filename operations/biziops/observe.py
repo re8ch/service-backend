@@ -7,6 +7,7 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 import socket
 import ssl
 import time
@@ -14,7 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Mapping
 
 import yaml
 
@@ -119,6 +120,98 @@ def source_readiness(catalog: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+FetchJson = Callable[[str, float], dict[str, Any]]
+
+
+def fetch_json(url: str, timeout: float) -> dict[str, Any]:
+    """GET a JSON document. Errors never echo the URL, which may carry an API key."""
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read(1048576).decode("utf-8"))
+
+
+def as_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def collect_youtube(accounts: list[dict[str, str]], env: Mapping[str, str], get: FetchJson, timeout: float) -> list[dict[str, Any]]:
+    key = env.get("YOUTUBE_API_KEY")
+    results = []
+    for account in accounts:
+        handle = account["id"]
+        selector = {"forHandle": handle} if handle.startswith("@") else {"id": handle}
+        query = urllib.parse.urlencode({"part": "statistics", **selector, "key": key})
+        try:
+            items = get(f"https://www.googleapis.com/youtube/v3/channels?{query}", timeout).get("items") or []
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
+            results.append({"error": type(getattr(error, "reason", error)).__name__})
+            continue
+        if not items:
+            results.append({"error": "channel-not-found"})
+            continue
+        stats = items[0].get("statistics", {})
+        results.append({
+            "followers": None if stats.get("hiddenSubscriberCount") else as_int(stats.get("subscriberCount")),
+            "views": as_int(stats.get("viewCount")),
+            "videos": as_int(stats.get("videoCount")),
+        })
+    return results
+
+
+def collect_bilibili(accounts: list[dict[str, str]], env: Mapping[str, str], get: FetchJson, timeout: float) -> list[dict[str, Any]]:
+    results = []
+    for account in accounts:
+        query = urllib.parse.urlencode({"vmid": account["id"]})
+        try:
+            body = get(f"https://api.bilibili.com/x/relation/stat?{query}", timeout)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as error:
+            results.append({"error": type(getattr(error, "reason", error)).__name__})
+            continue
+        if body.get("code") != 0:
+            results.append({"error": f"bilibili-code-{body.get('code')}"})
+            continue
+        results.append({"followers": as_int((body.get("data") or {}).get("follower"))})
+    return results
+
+
+COLLECTORS = {"youtube": collect_youtube, "bilibili": collect_bilibili}
+
+
+def video_state(source: dict[str, Any], env: Mapping[str, str]) -> str:
+    if not source.get("enabled"):
+        return "declared-unconfigured"
+    if not source.get("accounts"):
+        return "no-accounts"
+    if any(not env.get(name) for name in source.get("credentialEnvironment", [])):
+        return "missing-credential"
+    if source.get("collector") not in COLLECTORS:
+        return "declared-unconfigured"
+    return "active"
+
+
+def observe_video(catalog: dict[str, Any], env: Mapping[str, str], get: FetchJson, timeout: float) -> list[dict[str, Any]]:
+    rows = []
+    for source in catalog["spec"].get("videoSources", []):
+        state = video_state(source, env)
+        accounts = source.get("accounts") or []
+        if state == "active":
+            facts = COLLECTORS[source["collector"]](accounts, env, get, timeout)
+        else:
+            facts = [{} for _ in accounts]
+        rows.append({
+            "id": source["id"],
+            "displayName": source.get("displayName", source["id"]),
+            "method": source["method"],
+            "state": state,
+            "accounts": [{**account, "facts": fact} for account, fact in zip(accounts, facts)],
+            "note": source.get("note"),
+        })
+    return rows
+
+
 def render_summary(payload: dict[str, Any]) -> str:
     observations = payload["observations"]
     healthy = sum(item["facts"]["home"].get("status") == 200 for item in observations)
@@ -146,6 +239,24 @@ def render_summary(payload: dict[str, Any]) -> str:
                 llms=fact["llms"].get("status") or "unknown",
             )
         )
+    video = payload.get("video", [])
+    if video:
+        lines.extend([
+            "",
+            "## Video platforms",
+            "",
+            "| Platform | Account | State | Followers | Views | Videos |",
+            "| --- | --- | --- | ---: | ---: | ---: |",
+        ])
+        for source in video:
+            accounts = source["accounts"] or [{"label": "—", "facts": {}}]
+            for account in accounts:
+                fact = account["facts"]
+                cell = lambda name: "unknown" if fact.get(name) is None else f"{fact[name]:,}"
+                lines.append(
+                    f"| {source['displayName']} | {account.get('label') or account.get('id')} "
+                    f"| {fact.get('error') or source['state']} | {cell('followers')} | {cell('views')} | {cell('videos')} |"
+                )
     lines.extend(["", "## Analysis source readiness", ""])
     for source in payload["sources"]:
         lines.append(f"- `{source['id']}`: **{source['state']}** via `{source['method']}`")
@@ -172,6 +283,7 @@ def main() -> None:
         "catalogRevision": hashlib.sha256(SITE_CATALOG.read_bytes()).hexdigest(),
         "sources": source_readiness(sources),
         "observations": [observe(item, args.timeout) for item in governed_deployments(sites)],
+        "video": observe_video(sources, os.environ, fetch_json, args.timeout),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.summary.parent.mkdir(parents=True, exist_ok=True)
