@@ -8,6 +8,12 @@ collector. Each source remains authoritative for the facts it already owns.
 PostHog and other systems. `observe.py` always performs public HTTP/TLS checks
 and records unconfigured provider integrations as explicit `unknown` facts.
 
+PostHog is active. The workflow uses the organization-scoped, read-only
+`POSTHOG_PERSONAL_API_KEY` GitHub Actions secret to discover every accessible
+project and query aggregate sessions, visitors, pageviews, event volume and the
+latest event timestamp. Project tokens and raw visitor events are never stored
+in Git or artifacts.
+
 Run locally:
 
 ```sh
