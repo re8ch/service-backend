@@ -1,0 +1,53 @@
+name: BiziOps Observe
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 1 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: biziops-observe
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --disable-pip-version-check PyYAML==6.0.3
+      - name: Collect public facts
+        run: |
+          python operations/biziops/observe.py \
+            --output "$RUNNER_TEMP/biziops-observation.json" \
+            --summary "$RUNNER_TEMP/biziops-summary.md"
+          cat "$RUNNER_TEMP/biziops-summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: biziops-observation-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/biziops-observation.json
+            ${{ runner.temp }}/biziops-summary.md
+          retention-days: 90
+      - name: Update rolling observation issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          issue_number="$(gh issue list --state open --label biziops-observation --json number --jq '.[0].number // empty')"
+          if [[ -z "$issue_number" ]]; then
+            gh label create biziops-observation --color 1D76DB --description "Recurring public product observation" --force
+            gh issue create \
+              --title "BiziOps recurring public product observation" \
+              --label biziops-observation \
+              --body-file "$RUNNER_TEMP/biziops-summary.md"
+          else
+            gh issue comment "$issue_number" --body-file "$RUNNER_TEMP/biziops-summary.md"
+          fi
+

@@ -1,0 +1,38 @@
+apiVersion: biziops.re8ch.com/v1alpha1
+kind: ObservationSourceCatalog
+metadata:
+  name: public-product-influence
+spec:
+  defaultCadence: daily
+  sources:
+    - id: public-web
+      method: public-probe
+      authority: inventory/public-sites.yaml
+      scope: all-public-sites
+      facts: [http, tls, robots, sitemap, llms]
+      enabled: true
+    - id: cloudflare
+      method: graphql-api
+      authority: Cloudflare Analytics
+      scope: provider-matched-sites
+      credentialEnvironment: [CLOUDFLARE_API_TOKEN]
+      facts: [requests, visits, pageviews, threats, crawlers]
+      enabled: false
+      note: Enable after the scoped read token is stored as a GitHub Actions secret.
+    - id: google-analytics
+      method: data-api
+      authority: Google Analytics 4
+      scope: explicitly-mapped-sites
+      credentialEnvironment: [GOOGLE_ANALYTICS_CREDENTIALS]
+      facts: [users, sessions, acquisition, conversions]
+      enabled: false
+      note: Keep property mappings out of website code and add them here during onboarding.
+    - id: posthog
+      method: query-api
+      authority: PostHog
+      scope: explicitly-mapped-products
+      credentialEnvironment: [POSTHOG_PERSONAL_API_KEY]
+      facts: [events, funnels, retention, experiments, surveys]
+      enabled: false
+      note: Multiple projects are expected; add one mapping per product when verified.
+
