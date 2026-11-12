@@ -673,7 +673,7 @@
       "id": "brand-assets",
       "kind": "module",
       "projectType": "brand-assets",
-      "repository": "https://github.com/re8ch/brand-assets.git"
+      "repository": "https://github.com/biziops/brand-assets.git"
     },
     {
       "catalog": "career-ops",
@@ -1241,7 +1241,7 @@
       "id": "re8ch-core",
       "kind": "module",
       "projectType": "organization-core",
-      "repository": "https://github.com/re8ch/re8ch.git"
+      "repository": "https://github.com/biziops/re8ch-corporate-site.git"
     },
     {
       "catalog": "platform",

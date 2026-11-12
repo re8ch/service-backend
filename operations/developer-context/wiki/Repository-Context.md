@@ -114,7 +114,7 @@
 | `advanced-fabric` | `network-controller` | https://github.com/advanced-fabrics/core.git | — |
 | `among-clusters` | `kubernetes-controller` | https://github.com/among-clusters/among-clusters.git | — |
 | `bifurcate` | `metering-api` | https://github.com/bifurcate-systems/bifurcate.git | — |
-| `brand-assets` | `brand-assets` | https://github.com/re8ch/brand-assets.git | — |
+| `brand-assets` | `brand-assets` | https://github.com/biziops/brand-assets.git | — |
 | `catalog` | `static-web-application` | https://github.com/re8ch-business/catalog.git | among-clusters, bifurcate, connectool, user-hub |
 | `cloud-functions` | `nuclio-functions` | https://github.com/re8ch/cloud-functions.git | — |
 | `cluster-website` | `web` | https://github.com/re8ch-cloud/cluster-website.git | — |
@@ -127,7 +127,7 @@
 | `mihomos-cluster` | `kubernetes-network-controller` | https://github.com/public-edge/mihomos-cluster.git | — |
 | `observable-website` | `web` | https://github.com/re8ch-observability/observable-website.git | — |
 | `product-public-data` | `public-data` | https://github.com/re8ch/product-public-data.git | — |
-| `re8ch-core` | `organization-core` | https://github.com/re8ch/re8ch.git | — |
+| `re8ch-core` | `organization-core` | https://github.com/biziops/re8ch-corporate-site.git | — |
 | `registry-product-site` | `web` | https://github.com/re8ch-image/registry-website.git | — |
 | `service-backend` | `gitops-control-plane` | https://github.com/re8ch/service-backend.git | — |
 | `tool-distribution` | `tool-distribution` | https://github.com/re8ch/tool-distribution.git | — |

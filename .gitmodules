@@ -128,7 +128,7 @@
 	branch = main
 [submodule "platform/brand-assets"]
 	path = catalogs/platform/modules/brand-assets/source
-	url = https://github.com/re8ch/brand-assets.git
+	url = https://github.com/biziops/brand-assets.git
 	branch = main
 [submodule "platform/cloud-functions"]
 	path = catalogs/platform/modules/cloud-functions/source
@@ -168,7 +168,7 @@
 	branch = main
 [submodule "platform/re8ch-core"]
 	path = catalogs/platform/modules/re8ch-core/source
-	url = https://github.com/re8ch/re8ch.git
+	url = https://github.com/biziops/re8ch-corporate-site.git
 	branch = main
 [submodule "platform/registry-product-site"]
 	path = catalogs/platform/modules/registry-product-site/source

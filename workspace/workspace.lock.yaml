@@ -1,8 +1,8 @@
 apiVersion: workspace.re8ch.com/v1alpha1
 kind: WorkspaceLock
 metadata:
-  generatedAt: '2026-10-11T11:40:07Z'
-  generation: 1791718807
+  generatedAt: '2026-11-12T00:48:06Z'
+  generation: 1794444486
   schemaHash: 7ec600c2547b81d27d2c9854a514724c3efec975be1caedae54b1320ef2d5826
 modules:
   2woodblog:
@@ -25,11 +25,6 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/among-clusters/among-clusters.git
-  bifurcate:
-    commit: 88380eefc7d7d561105629ba787312c4e56188b9
-    defaultBranch: main
-    dependencies: []
-    repository: https://github.com/bifurcate-systems/bifurcate.git
   anycam:
     commit: 51151cc9d7d4395d47fcdf27b32c015ac2d34e31
     defaultBranch: main
@@ -89,11 +84,21 @@ modules:
     defaultBranch: main
     dependencies: []
     repository: https://github.com/re8ch/baozou-ppt-studio.git
-  brand-assets:
-    commit: e1fd190fefd8e8535dfd1410327e901afde873c2
+  bifurcate:
+    commit: 88380eefc7d7d561105629ba787312c4e56188b9
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/brand-assets.git
+    repository: https://github.com/bifurcate-systems/bifurcate.git
+  brand-assets:
+    commit: 8046f9620e4aff68cc0532b4272c55c4ff853901
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/biziops/brand-assets.git
+  career-ops:
+    commit: 99cb01e7cc7c47061a2cdbd48097b6ecd553470b
+    defaultBranch: main
+    dependencies: []
+    repository: https://github.com/Woomou/career-ops.git
   catalog:
     commit: 0635a5c50f560abb2c4d18e58225519d93a1e096
     defaultBranch: main
@@ -103,11 +108,6 @@ modules:
     - connectool
     - among-clusters
     repository: https://github.com/re8ch-business/catalog.git
-  career-ops:
-    commit: 99cb01e7cc7c47061a2cdbd48097b6ecd553470b
-    defaultBranch: main
-    dependencies: []
-    repository: https://github.com/Woomou/career-ops.git
   cloud-functions:
     commit: 7832f51762a9959d022d51be7e5b643e5271fa97
     defaultBranch: master
@@ -198,7 +198,7 @@ modules:
     dependencies: []
     repository: https://github.com/modelcontextprotocol/registry.git
   mihomos-cluster:
-    commit: 59eb7bf217e769facb0db6868d13031e518642a1
+    commit: a9f2e4b016fcff32bb885acf5cc6511e7365971d
     defaultBranch: main
     dependencies: []
     repository: https://github.com/public-edge/mihomos-cluster.git
@@ -295,10 +295,10 @@ modules:
     - qianwen-app
     repository: https://github.com/OCGS-with-pattern/Qianwen-wechatminiprogram.git
   re8ch-core:
-    commit: 9c0dd75c583b4ea96b3ec5445c868d75419067e1
+    commit: ce9b8d54843cd02c69d70b57abe11a7729277465
     defaultBranch: main
     dependencies: []
-    repository: https://github.com/re8ch/re8ch.git
+    repository: https://github.com/biziops/re8ch-corporate-site.git
   registry-product-site:
     commit: 80cc8e0fd1f0b4d85a70e930e0d35a2505ff935b
     defaultBranch: main

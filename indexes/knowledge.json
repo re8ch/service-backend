@@ -725,7 +725,7 @@
     "kind": "agent-memory",
     "module": "brand-assets",
     "ref": "catalogs/platform/modules/brand-assets/MEMORY.md",
-    "sha256": "b658b98d6da3ee20efb61b7ae4c995f04b3c2d4404d7366b252ccc19db292594"
+    "sha256": "19d882cc0c292fce309176e54edcaacde5420450313b2c235a43d0be0f0c1d89"
   },
   {
     "module": "catalog",
@@ -997,7 +997,7 @@
     "kind": "agent-memory",
     "module": "re8ch-core",
     "ref": "catalogs/platform/modules/re8ch-core/MEMORY.md",
-    "sha256": "f22b0f66f16f6c23a1ab2d5a5b7254a99c7bf8f87c92109b453c16550bae4ccd"
+    "sha256": "7e81218e3763a89e6798c94fce3ee9e2d1d1792c80427fabd1edbae7b6038dd7"
   },
   {
     "module": "registry-product-site",
