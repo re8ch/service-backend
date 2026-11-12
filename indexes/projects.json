@@ -316,11 +316,11 @@
   },
   {
     "catalog": "platform",
-    "commit": "e1fd190fefd8e8535dfd1410327e901afde873c2",
+    "commit": "8046f9620e4aff68cc0532b4272c55c4ff853901",
     "id": "brand-assets",
     "ownership": "owned",
     "projectType": "brand-assets",
-    "repository": "https://github.com/re8ch/brand-assets.git",
+    "repository": "https://github.com/biziops/brand-assets.git",
     "source": "catalogs/platform/modules/brand-assets/source"
   },
   {
@@ -433,11 +433,11 @@
   },
   {
     "catalog": "platform",
-    "commit": "9c0dd75c583b4ea96b3ec5445c868d75419067e1",
+    "commit": "ce9b8d54843cd02c69d70b57abe11a7729277465",
     "id": "re8ch-core",
     "ownership": "owned",
     "projectType": "organization-core",
-    "repository": "https://github.com/re8ch/re8ch.git",
+    "repository": "https://github.com/biziops/re8ch-corporate-site.git",
     "source": "catalogs/platform/modules/re8ch-core/source"
   },
   {

@@ -4,7 +4,7 @@
 
 - Catalog: `platform`
 - Ownership: `owned`; write policy: `github-pr`
-- Repository: `https://github.com/re8ch/brand-assets.git` (`main`)
+- Repository: `https://github.com/biziops/brand-assets.git` (`main`)
 - Catalog source: `catalogs/platform/modules/brand-assets/source` (submodule)
 - Metadata policy: `in-repository`
 - Project type: `brand-assets`; lifecycle: `active`
@@ -25,7 +25,7 @@ Read the repository-root AGENTS.md first when present, then README and declared 
 
 ## Repository synopsis
 
-RE8CH Brand Assets Reusable logo, transparent PNG, SVG, and web motion assets for RE8CH / 锐奇. Trademark Styles Use the graphic logo mark with one of the following brand names: - `[图形Logo®]  锐奇` - `[图形Logo®]  锐奇软件开发工作室` - `[图形Logo®]  RE8CH` - `[图形Logo®]  Reachieve LLC` © 2026 RE8CH / 锐奇. All rights reserved. Folders - `SVG/` - transparent RE8CH trademark SVG logo variants. - `SVG/ledger-ui/` - ledger-specific mini program UI icons for account books, entries, documents, reconciliation, reports, profile, and empty states. - `PNG/` - transparent RE8CH trademark PNG logo variants. - `ANIME/` - reusable web animation assets built around `<re8ch-logo-motion>`. - `PRODUCTS/` - dedicated product logo directory. Product logos live here instead of beside the RE8CH trademark files. - `UI/` - reusable CDN web components for product pages and shared product UI. - `src/` - source files for the CDN navigator/footer web components and trust mark fallback assets.
+RE8CH Brand Assets Reusable logo, transparent PNG, SVG, and web motion assets for RE8CH / 锐奇. Trademark Styles Use the graphic logo mark with one of the following brand names: - `[图形Logo®]  锐奇` - `[图形Logo®]  锐奇软件开发工作室` - `[图形Logo®]  RE8CH` - `[图形Logo®]  Reachieve LLC` © 2026 RE8CH / 锐奇. All rights reserved. Folders - `SVG/` - transparent RE8CH trademark SVG logo variants. - `SVG/ledger-ui/` - ledger-specific mini program UI icons for account books, entries, documents, reconciliation, reports, profile, and empty states. - `PNG/` - transparent RE8CH trademark PNG logo variants. - `ANIME/` - reusable web animation assets built around `<re8ch-logo-motion>`. - `PRODUCTS/` - dedicated product logo directory. Product logos live here instead of beside the RE8CH trademark files. - `ORGS/` - editable SVG and 512 px PNG avatars for GitHub organizations in the RE8CH enterprise. - `UI/` - reusable CDN web components for product pages and shared product UI.
 
 Existing repository AGENTS: `no`
 

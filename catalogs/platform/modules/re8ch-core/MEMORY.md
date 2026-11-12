@@ -4,7 +4,7 @@
 
 - Catalog: `platform`
 - Ownership: `owned`; write policy: `github-pr`
-- Repository: `https://github.com/re8ch/re8ch.git` (`main`)
+- Repository: `https://github.com/biziops/re8ch-corporate-site.git` (`main`)
 - Catalog source: `catalogs/platform/modules/re8ch-core/source` (submodule)
 - Metadata policy: `in-repository`
 - Project type: `organization-core`; lifecycle: `active`
