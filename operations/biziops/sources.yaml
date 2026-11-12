@@ -48,7 +48,11 @@ spec:
       facts: [followers, views, videos]
       collector: youtube
       enabled: true
-      accounts: []
+      # role: personal (CEO channel) or company. Add the company channel once it is created.
+      accounts:
+        - id: "@harry_neo"
+          label: Harry Neo (CEO)
+          role: personal
       note: A plain API key from a Google Cloud project is enough for public channel statistics; no OAuth.
     - id: bilibili
       displayName: Bilibili
