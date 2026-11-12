@@ -36,3 +36,67 @@ spec:
       enabled: false
       note: Multiple projects are expected; add one mapping per product when verified.
 
+  # Video platforms. Each source lists the governed `accounts` it observes.
+  # A source with no accounts, or whose credential is missing at run time,
+  # is reported as unknown; it is never counted as zero.
+  videoSources:
+    - id: youtube
+      displayName: YouTube
+      method: data-api-v3
+      authority: YouTube Data API v3 channels.list (part=statistics, 1 quota unit per call)
+      credentialEnvironment: [YOUTUBE_API_KEY]
+      facts: [followers, views, videos]
+      collector: youtube
+      enabled: true
+      # role: personal (CEO channel) or company. Add the company channel once it is created.
+      accounts:
+        - id: "@harry_neo"
+          label: Harry Neo (CEO)
+          role: personal
+      note: A plain API key from a Google Cloud project is enough for public channel statistics; no OAuth.
+    - id: bilibili
+      displayName: Bilibili
+      method: public-web-api
+      authority: api.bilibili.com x/relation/stat (public, unofficial, rate limited)
+      credentialEnvironment: []
+      facts: [followers]
+      collector: bilibili
+      enabled: true
+      accounts: []
+      note: No official analytics API for creators. Data-centre IPs may receive risk-control code -352; that is recorded as unknown.
+    - id: tiktok
+      displayName: TikTok
+      method: display-api-v2
+      authority: TikTok for Developers Display API user/info (scope user.info.stats)
+      credentialEnvironment: [TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, TIKTOK_REFRESH_TOKEN]
+      facts: [followers, likes, videos]
+      enabled: false
+      accounts: []
+      note: Needs an approved developer app and the account owner's OAuth consent.
+    - id: douyin
+      displayName: 抖音 Douyin
+      method: open-platform
+      authority: 抖音开放平台 user data API (needs approved app + enterprise verification)
+      credentialEnvironment: [DOUYIN_CLIENT_KEY, DOUYIN_CLIENT_SECRET, DOUYIN_REFRESH_TOKEN]
+      facts: [followers, likes, videos]
+      enabled: false
+      accounts: []
+      note: Requires mainland company verification on open.douyin.com before any data scope is granted.
+    - id: kuaishou
+      displayName: 快手 Kuaishou
+      method: open-platform
+      authority: 快手开放平台 user API (needs approved app + OAuth)
+      credentialEnvironment: [KUAISHOU_APP_ID, KUAISHOU_APP_SECRET, KUAISHOU_REFRESH_TOKEN]
+      facts: [followers, videos]
+      enabled: false
+      accounts: []
+      note: Same approval model as Douyin.
+    - id: wechat-channels
+      displayName: 微信视频号 WeChat Channels
+      method: manual-export
+      authority: 视频号助手 data export (no public metrics API)
+      credentialEnvironment: []
+      facts: [followers, views]
+      enabled: false
+      accounts: []
+      note: No API exposes Channels metrics to third parties; record from the 视频号助手 export until one exists.
