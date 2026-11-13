@@ -21,7 +21,7 @@ jobs:
       reference: ${{ steps.publish.outputs.reference }}
       release-id: ${{ steps.publish.outputs.release-id }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: {fetch-depth: 0}
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
@@ -88,7 +88,7 @@ jobs:
     environment: release-api-conformance
     permissions: {contents: read, id-token: write, packages: read}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
         with: {version: v1.33.1}
       - uses: fluxcd/flux2/action@dede56a8fdcd1e0edca28630a979a51415bb56f8
