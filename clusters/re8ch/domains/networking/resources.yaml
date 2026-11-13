@@ -151,6 +151,7 @@ rules:
   - apps
   resourceNames:
   - re8ch-cloud-platform
+  - re8ch-ssh-broker
   - stagehand-service
   resources:
   - deployments

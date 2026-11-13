@@ -12,7 +12,7 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 167
+objectCount: 170
 legacyObjectCount: 54
 deferredSSAObjects: []
 remainingCapabilities:
@@ -319,7 +319,7 @@ releases:
   domain: tenant-runtime
   namespace: ai-operations
   scope: namespaced
-  objects: 5
+  objects: 8
 - name: main-tenant-runtime-cluster-bootstrap
   domain: tenant-runtime
   namespace: ops

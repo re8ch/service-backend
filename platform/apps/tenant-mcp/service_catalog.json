@@ -78,6 +78,24 @@
     "serviceClass": "integration.github.enterprise-governance.v1"
   },
   {
+    "accessUnit": "AuditedSSHBrokerCapability",
+    "adapter": "re8ch-ssh-broker",
+    "bindings": [
+      "access:broker-reference"
+    ],
+    "meters": {
+      "operations": "operation"
+    },
+    "parameters": [],
+    "plans": [
+      "admin-managed"
+    ],
+    "regions": [
+      "global"
+    ],
+    "serviceClass": "infrastructure.ssh-broker.v1"
+  },
+  {
     "accessUnit": "DatabaseRoleSchema",
     "adapter": "pigsty-postgresql",
     "bindings": [

@@ -31,11 +31,12 @@ spec:
     objectNames:
     - re8ch-cloud-platform
     - re8ch-cloud-platform-admin
+    - re8ch-ssh-broker
     allowClusterScoped: false
     forceConflictObjects:
     - apps/Deployment/ai-operations/re8ch-cloud-platform
   inventory:
-    digest: sha256:602415bb8a9777f19f7d0b1c96437ef15e8c06fbaf448ed4963fc3a2f0550536
+    digest: sha256:93b30f7ab675b4cdd61a03bcbad4f529d1698b9507a930db1fb78d3fecba366c
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -47,7 +48,10 @@ spec:
     - StorageClass
     deletionAllowlist:
     - apps/Deployment/ai-operations/re8ch-cloud-platform
+    - apps/Deployment/ai-operations/re8ch-ssh-broker
     - core/Service/ai-operations/re8ch-cloud-platform
+    - core/Service/ai-operations/re8ch-ssh-broker
     - core/ServiceAccount/ai-operations/re8ch-cloud-platform
     - gateway.networking.k8s.io/HTTPRoute/ai-operations/re8ch-cloud-platform-admin
     - policy/PodDisruptionBudget/ai-operations/re8ch-cloud-platform
+    - policy/PodDisruptionBudget/ai-operations/re8ch-ssh-broker

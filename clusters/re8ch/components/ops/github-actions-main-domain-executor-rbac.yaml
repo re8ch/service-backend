@@ -1475,6 +1475,7 @@ rules:
   - deployments
   resourceNames:
   - re8ch-cloud-platform
+  - re8ch-ssh-broker
   verbs:
   - get
   - patch
@@ -1508,6 +1509,7 @@ rules:
   - services
   resourceNames:
   - re8ch-cloud-platform
+  - re8ch-ssh-broker
   verbs:
   - get
   - patch
@@ -1530,6 +1532,7 @@ rules:
   - poddisruptionbudgets
   resourceNames:
   - re8ch-cloud-platform
+  - re8ch-ssh-broker
   verbs:
   - get
   - patch

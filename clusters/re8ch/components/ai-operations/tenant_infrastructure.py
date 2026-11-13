@@ -21,6 +21,12 @@ FORBIDDEN = ("password", "token", "secret", "kubeconfig", "privatekey", "private
 SAFE_CONTROL_FIELDS = {"tokenbudget"}
 
 CATALOG: dict[str, dict[str, Any]] = {
+    "infrastructure.ssh-broker.v1": {
+        "plans": ["admin-managed"], "regions": ["global"],
+        "parameters": set(), "meters": {"operations": "operation"},
+        "adapter": "re8ch-ssh-broker", "accessUnit": "AuditedSSHBrokerCapability",
+        "bindings": ["access:broker-reference"],
+    },
     "database.postgresql.shared.v1": {
         "plans": ["standard"], "regions": ["loudi"],
         "parameters": {"storageGiB", "connectionClass", "backupClass", "retentionClass", "extensions"},

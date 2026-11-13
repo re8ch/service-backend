@@ -530,6 +530,11 @@
         "kind": "Deployment",
         "namespace": "ai-operations",
         "name": "re8ch-cloud-platform"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "ai-operations",
+        "name": "re8ch-ssh-broker"
       }
     ]
   },

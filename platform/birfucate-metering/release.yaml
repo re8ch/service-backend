@@ -156,6 +156,7 @@ spec:
             - {name: admin-observability, consumableRef: observability.grafana.v1, roleRef: operator, lifecycle: Active}
             - {name: admin-ledger, consumableRef: application.ledger.v1, roleRef: operator, lifecycle: Active}
             - {name: admin-github-enterprise-governance, consumableRef: integration.github.enterprise-governance.v1, roleRef: admin, lifecycle: Active}
+            - {name: admin-ssh-broker, consumableRef: infrastructure.ssh-broker.v1, roleRef: admin, lifecycle: Active}
           nativeAccess: true
         - name: artchais
           displayName: Artchais
