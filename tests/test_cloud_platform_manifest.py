@@ -57,11 +57,14 @@ def test_http_acceptance_has_bounded_private_temporary_storage_with_readonly_roo
     assert {'name': 'http-acceptance-tmp', 'mountPath': '/tmp'} in container['volumeMounts']
 
 
-def test_shared_ssh_configuration_paths_exist_in_readonly_runtime():
-    deployment = next(item for item in resources() if item["kind"] == "Deployment")
-    pod = deployment["spec"]["template"]["spec"]
-    mounts = {m["mountPath"]: m for m in pod["containers"][0]["volumeMounts"]}
-    volumes = {v["name"]: v for v in pod["volumes"]}
+def test_ssh_credentials_are_isolated_in_the_independent_broker():
+    deployments = {item["metadata"]["name"]: item for item in resources() if item["kind"] == "Deployment"}
+    cloud = deployments["re8ch-cloud-platform"]["spec"]["template"]["spec"]
+    assert "/etc/re8ch-ai-operations" not in {m["mountPath"] for m in cloud["containers"][0]["volumeMounts"]}
+    broker = deployments["re8ch-ssh-broker"]["spec"]["template"]["spec"]
+    assert broker["automountServiceAccountToken"] is False
+    mounts = {m["mountPath"]: m for m in broker["containers"][0]["volumeMounts"]}
+    volumes = {v["name"]: v for v in broker["volumes"]}
     mount = mounts["/etc/re8ch-ai-operations"]
     assert mount["readOnly"] is True
     assert volumes[mount["name"]]["projected"]["sources"][0]["secret"] == {

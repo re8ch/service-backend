@@ -29,6 +29,13 @@
       "header": "Authorization",
       "url": "http://re8ch-cloud-platform.ai-operations.svc.cluster.local:19443/mcp"
     },
+    "ssh": {
+      "namespace": "ai-operations",
+      "secret": "cluster-infra-service-auth",
+      "secretKey": "token",
+      "header": "Authorization",
+      "url": "http://re8ch-ssh-broker.ai-operations.svc.cluster.local:19444/mcp"
+    },
     "tenant_admin": {
       "namespace": "tenant-infrastructure",
       "secret": "admin-vmcp-backend-auth",

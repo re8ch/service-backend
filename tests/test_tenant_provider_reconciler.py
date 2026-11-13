@@ -90,6 +90,32 @@ def test_github_governance_reconcile_publishes_only_opaque_admin_binding():
     assert "privatekey" not in serialized and "token" not in serialized and "secret" not in serialized
 
 
+def test_ssh_broker_reconcile_publishes_only_opaque_admin_binding():
+    class AdminKube(FakeKube):
+        def patch_status(self, plural, name, status, namespace):
+            assert plural == "tenantserviceinstances" and namespace == "tenant-infrastructure"
+            self.status = status
+
+    kube = AdminKube("infrastructure.ssh-broker.v1")
+    value = {
+        "metadata": {"name": "ssh-broker", "namespace": "tenant-infrastructure",
+                     "uid": "ssh-broker-uid", "generation": 1,
+                     "labels": {"tenancy.re8ch.com/tenant": "admin"}},
+        "spec": {"tenantRef": "admin", "serviceClass": "infrastructure.ssh-broker.v1",
+                 "plan": "admin-managed", "lifecycle": "Requested", "parameters": {}},
+        "status": {},
+    }
+    provider.reconcile_instance(kube, value)
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"] == {
+        "accessRef": "capability://ssh-broker/admin/default",
+        "runtimeRef": "service://ai-operations/re8ch-ssh-broker",
+        "credentialMaterialReturned": False,
+    }
+    serialized = json.dumps(kube.status).lower()
+    assert "privatekey" not in serialized and "token" not in serialized and "secret" not in serialized
+
+
 def test_postgresql_is_left_to_the_independent_provider():
     kube = FakeKube("database.postgresql.shared.v1")
     value = {

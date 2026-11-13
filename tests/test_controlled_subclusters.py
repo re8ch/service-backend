@@ -65,11 +65,16 @@ def test_plaintext_operations_targets_are_absent():
     assert not (ROOT / "contracts/infrastructure/targets.yaml").exists()
 
 
-def test_cloud_platform_mounts_gitops_ssh_config_and_secret_identity():
+def test_independent_broker_mounts_gitops_ssh_config_and_secret_identity():
     documents = yaml.safe_load_all(
         (ROOT / "platform/cloud-platform/runtime.yaml").read_text()
     )
-    deployment = next(item for item in documents if item and item.get("kind") == "Deployment")
+    deployment = next(
+        item for item in documents
+        if item and item.get("kind") == "Deployment"
+        and item.get("metadata", {}).get("name") == "re8ch-ssh-broker"
+    )
+    assert deployment["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
     ssh = next(volume for volume in deployment["spec"]["template"]["spec"]["volumes"] if volume["name"] == "ssh-projected")
     sources = ssh["projected"]["sources"]
     assert sources[0]["secret"] == {

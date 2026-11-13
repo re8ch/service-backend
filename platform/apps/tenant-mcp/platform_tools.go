@@ -458,6 +458,26 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			result, callErr := callNativePlatformTool(ctx, s, "kube.resource.delete", arguments)
 			return result, map[string]any{"planHash": planHash, "deleted": callErr == nil}, callErr
 		})
+	requireSSHBrokerBinding := func(ctx context.Context) error {
+		instances, err := controlRequest(ctx, "admin", "/v1/services")
+		if err != nil {
+			return errors.New("SSH broker binding discovery failed")
+		}
+		bindings := providerBindings(slice(instances["items"]), "admin", "service://admin/ssh-broker")
+		if len(bindings) != 1 || asString(bindings[0], "accessRef") != "capability://ssh-broker/admin/default" {
+			return errors.New("a Ready Admin SSH broker service binding is required")
+		}
+		return nil
+	}
+	callSSHBroker := func(ctx context.Context, tool string, arguments map[string]any) (*mcp.CallToolResult, error) {
+		value, err := s.moduleRegistry().call(ctx, "ssh", func(session *mcp.ClientSession) (any, error) {
+			return session.CallTool(ctx, &mcp.CallToolParams{Name: tool, Arguments: arguments})
+		})
+		if err != nil {
+			return nil, err
+		}
+		return value.(*mcp.CallToolResult), nil
+	}
 	for _, definition := range []struct {
 		name, backend, description string
 	}{
@@ -468,8 +488,14 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 		definition := definition
 		mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations(definition.name), Name: definition.name, Description: definition.description},
 			func(ctx context.Context, _ *mcp.CallToolRequest, input platformNodeInput) (*mcp.CallToolResult, any, error) {
-				if _, err := platformIdentity(ctx); err != nil {
+				id, err := platformIdentity(ctx)
+				if err != nil {
 					return nil, nil, err
+				}
+				if definition.backend == "nodes.reachability" {
+					if err := requireSSHBrokerBinding(ctx); err != nil {
+						return nil, nil, err
+					}
 				}
 				arguments := map[string]any{}
 				if definition.backend != "nodes.list" {
@@ -478,13 +504,22 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 					}
 					arguments["name"] = input.Name
 				}
+				if definition.backend == "nodes.reachability" {
+					arguments["actor"] = id.Subject
+					result, err := callSSHBroker(ctx, "ssh.reachability", arguments)
+					return result, nil, err
+				}
 				result, err := callNativePlatformTool(ctx, s, definition.backend, arguments)
 				return result, nil, err
 			})
 	}
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_node_ssh_exec"), Name: "platform_node_ssh_exec", Description: "Execute one argv command on a platform node through the existing audited native backend. Re8ch Admin membership is required."},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_node_ssh_exec"), Name: "platform_node_ssh_exec", Description: "Execute one argv command through the independently bound audited SSH broker. Re8ch Admin membership is required."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformNodeExecInput) (*mcp.CallToolResult, any, error) {
-			if _, err := platformIdentity(ctx); err != nil {
+			id, err := platformIdentity(ctx)
+			if err != nil {
+				return nil, nil, err
+			}
+			if err := requireSSHBrokerBinding(ctx); err != nil {
 				return nil, nil, err
 			}
 			if !validKubernetesName(input.Name) || len(input.Argv) == 0 {
@@ -496,7 +531,18 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if input.Timeout < 1 || input.Timeout > 3600 {
 				return nil, nil, errors.New("node command timeout must be between 1 and 3600 seconds")
 			}
-			result, err := callNativePlatformTool(ctx, s, "node.ssh.exec", map[string]any{"name": input.Name, "argv": input.Argv, "timeout": input.Timeout})
+			result, err := callSSHBroker(ctx, "ssh.exec", map[string]any{"name": input.Name, "argv": input.Argv, "timeout": input.Timeout, "actor": id.Subject})
+			return result, nil, err
+		})
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("ssh_broker_targets_list"), Name: "ssh_broker_targets_list", Description: "List targets published by the Ready Admin SSH broker service binding."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			if _, err := platformIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			if err := requireSSHBrokerBinding(ctx); err != nil {
+				return nil, nil, err
+			}
+			result, err := callSSHBroker(ctx, "ssh.targets.list", map[string]any{})
 			return result, nil, err
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("reconcile_control_plane_authentication_config"), Name: "reconcile_control_plane_authentication_config", Description: "Plan or apply the reviewed kube-apiserver authentication configuration and its node-local reconciler. Offline control-plane nodes converge when they return; this never restarts K3s."},

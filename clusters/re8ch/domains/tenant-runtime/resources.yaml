@@ -1601,6 +1601,19 @@ spec:
   selector:
     app: re8ch-cloud-platform
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: re8ch-ssh-broker
+  namespace: ai-operations
+spec:
+  ports:
+  - name: http
+    port: 19444
+    targetPort: http
+  selector:
+    app: re8ch-ssh-broker
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1644,8 +1657,6 @@ spec:
           value: /etc/re8ch-platform
         - name: KUBECONFIG
           value: /etc/re8ch-platform/kubeconfig
-        - name: SSH_CONFIG
-          value: /etc/re8ch-platform/ssh/ssh-config
         - name: WORKSPACE_ROOT
           value: /srv/service-backend
         - name: HYPOTHESIS_STORAGE_DIRECTORY
@@ -1671,7 +1682,7 @@ spec:
             secretKeyRef:
               key: token
               name: cluster-infra-service-auth
-        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:f5fc920b5d7b7bf79228593ead398e66193e52c2d0f54a507dc451ce525ca0db
+        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:f556c381dc97477f91107b5d9f8bbbaf9e6dce957a50d2602448ce5582f1c9d1
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1721,14 +1732,6 @@ spec:
           name: kubeconfig
           readOnly: true
           subPath: kubeconfig
-        - mountPath: /etc/re8ch-platform/ssh
-          name: ssh-projected
-          readOnly: true
-        - mountPath: /etc/re8ch-ai-operations
-          name: ssh-projected
-          readOnly: true
-        - mountPath: /var/lib/re8ch-ai-operations
-          name: ssh-known-hosts
         - mountPath: /etc/re8ch-platform/infrastructure
           name: infrastructure-contracts
           readOnly: true
@@ -1770,10 +1773,6 @@ spec:
         name: stalwart-approved-plans
       - emptyDir:
           medium: Memory
-          sizeLimit: 1Mi
-        name: ssh-known-hosts
-      - emptyDir:
-          medium: Memory
           sizeLimit: 16Mi
         name: http-acceptance-tmp
       - name: kubeconfig
@@ -1782,6 +1781,118 @@ spec:
           - key: kubeconfig-re8ch.yaml
             path: kubeconfig
           secretName: cloud-platform-runtime
+      - name: infrastructure-contracts
+        secret:
+          items:
+          - key: compat-nodes.yaml
+            path: compat-nodes.yaml
+          secretName: infrastructure-contracts
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: re8ch-ssh-broker
+  namespace: ai-operations
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: re8ch-ssh-broker
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: re8ch-ssh-broker
+        app.kubernetes.io/component: ssh-control-plane
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: scheduling.re8ch.com/service-plane
+                operator: In
+                values:
+                - core
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: re8ch-ssh-broker
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      automountServiceAccountToken: false
+      containers:
+      - command:
+        - python
+        - /app/ssh_broker_server.py
+        env:
+        - name: SSH_TARGET_REGISTRY
+          value: /etc/re8ch-platform/infrastructure/compat-nodes.yaml
+        - name: SSH_CONFIG
+          value: /etc/re8ch-ai-operations/ssh-config
+        - name: SSH_USER
+          value: re8ch-ai
+        - name: SERVICE_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: cluster-infra-service-auth
+        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:f556c381dc97477f91107b5d9f8bbbaf9e6dce957a50d2602448ce5582f1c9d1
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        name: broker
+        ports:
+        - containerPort: 19444
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 25m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /etc/re8ch-ai-operations
+          name: ssh-projected
+          readOnly: true
+        - mountPath: /var/lib/re8ch-ai-operations
+          name: ssh-known-hosts
+        - mountPath: /etc/re8ch-platform/infrastructure
+          name: infrastructure-contracts
+          readOnly: true
+      imagePullSecrets:
+      - name: harbor-registry-pull
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+      volumes:
+      - emptyDir:
+          medium: Memory
+          sizeLimit: 1Mi
+        name: ssh-known-hosts
       - name: infrastructure-contracts
         secret:
           items:
@@ -1951,6 +2062,17 @@ spec:
   selector:
     matchLabels:
       app: re8ch-cloud-platform
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: re8ch-ssh-broker
+  namespace: ai-operations
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: re8ch-ssh-broker
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
