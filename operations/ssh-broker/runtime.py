@@ -22,13 +22,14 @@ class BrokerError(RuntimeError):
 class TargetRegistry:
     """Read reviewed SSH targets without consulting the Kubernetes API."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, route_overrides: dict[str, str] | None = None):
         document = yaml.safe_load(path.read_text(encoding="utf-8"))
         self.targets = {
             item["metadata"]["name"]: item
             for item in document.get("items", [])
             if item.get("spec", {}).get("transport") == "ssh"
         }
+        self.route_overrides = route_overrides or {}
 
     def names(self) -> list[str]:
         return sorted(self.targets)
@@ -49,6 +50,8 @@ class TargetRegistry:
         # stale accelerated route cannot make an otherwise healthy node
         # unreachable.
         routes: list[tuple[str, str]] = []
+        if self.route_overrides.get(name):
+            routes.append((self.route_overrides[name], "reviewed-recovery-management"))
         private_first = "zt" in control_route.lower() or "zerotier" in control_route.lower()
         preferred = (
             (("internalIP", "private-management"), ("acceleratedIP", "accelerated-management"))

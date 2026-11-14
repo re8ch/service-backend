@@ -60,6 +60,14 @@ def test_registry_respects_declared_zerotier_control_route(tmp_path):
     ]
 
 
+def test_registry_prefers_reviewed_recovery_route(tmp_path):
+    target = zt_registry(tmp_path)
+    target.route_overrides = {"zt-node": "172.31.92.2"}
+    assert target.routes("zt-node")[0] == (
+        "172.31.92.2", "reviewed-recovery-management"
+    )
+
+
 def test_broker_uses_managed_identity_and_preserves_exact_argv(tmp_path):
     calls = []
     def execute(argv, **kwargs):
