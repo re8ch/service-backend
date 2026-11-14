@@ -25,7 +25,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:4888f215d0a405d40c5bcfe993000428096a7543f49b27a01449552113e6d726
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:6224b77fc9d59b78e3615e8944ef610f3dd78a955efcdff6f04a83039ed80acb
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
@@ -143,7 +143,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: broker
-          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:4888f215d0a405d40c5bcfe993000428096a7543f49b27a01449552113e6d726
+          image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:6224b77fc9d59b78e3615e8944ef610f3dd78a955efcdff6f04a83039ed80acb
           command: [python, /app/ssh_broker_server.py]
           ports: [{name: http, containerPort: 19444}]
           env:
