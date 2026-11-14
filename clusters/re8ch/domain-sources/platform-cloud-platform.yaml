@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: delta-indigo
+    delivery.re8ch.com/codename: grove-indigo
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:0e3770d82688f91be5573a94c2337dea142bc79e184f2fea19e72087fd888078
+    digest: sha256:b8f97d145197e1c1ede5964a576c8feff2499e3a93b1d2bb4c41da5715e44699
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: delta-indigo
+    delivery.re8ch.com/codename: grove-indigo
 spec:
   interval: 1m
   retryInterval: 1m
