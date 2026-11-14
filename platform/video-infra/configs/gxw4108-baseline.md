@@ -14,15 +14,17 @@
 - Digit Length：`ch1:15;ch2-8:10;`（第 1 口 150 ms，其余 100 ms）
 - Dial Pause：`ch1:d1p15,d2p15,d3p15,d4p15,d5p15,d6p15,d7p15,d8p15,d9p15,d10p15;ch2-8;`
 - Digit Volume：`-11 dB`
-- Round-robin：`rr:1;rr:2-8;`（Stage 2 下将 FXO 1 隔离为独立调度组）
+- Round-robin：`rr:1;rr:2;rr:3;rr:4;rr:5;rr:6;rr:7;rr:8;`。2026-11-14
+  已保存、重启并重新登录回读，八路均为独立调度组。旧值 `rr:1;rr:2-8;`
+  会导致 2–8 口轮询，不能用于固定号码生产映射。
 - Local SIP Listen Port：`ch1-8:5060++;`。GXW4108 的 `++` 表示每路加 2，
   因此 FXO 1–8 分别监听 `5060, 5062, 5064, 5066, 5068, 5070, 5072, 5074`；
   R640 的八个 FreeSWITCH gateway 必须使用这组端口。
 - Syslog Server：`192.168.88.251`
 - Syslog Level：`DEBUG`（诊断期间临时启用）
-- Unconditional Call Forward User ID：`ch1:autoanswer;ch2-8:;`
+- Unconditional Call Forward User ID：`ch1:line01;ch2:line02;ch3:line03;ch4:line04;ch5:line05;ch6:line06;ch7:line07;ch8:line08;`
 - Unconditional Call Forward SIP Server：`ch1-8:p1;`
-- Unconditional Call Forward Destination Port：`ch1:5160;ch2-8:5060;`
+- Unconditional Call Forward Destination Port：`ch1-8:5160;`
 
 来电转发修改前的回滚值为：
 
@@ -32,7 +34,8 @@ SIP Server: ch1-8:p1;
 SIP Destination Port: ch1-8:5060;
 ```
 
-只为第 1 口启用自动应答 POC；A8-C 配置未改动。
+八路入呼均定向 R640 FreeSWITCH UDP/5160。2026-11-14 已确认字段保存并在
+GXW 重启后保留；八路入呼仍需逐路业务验收。天翼网关 IMS 配置未改动。
 
 ## 端口选择
 
@@ -73,6 +76,11 @@ R640 通过每路独立 SIP 端口固定 FXO。FreeSWITCH 先以占位 Request-U
 Port 为 `ch1-8:5060++;`。重启后字段未回滚；连续三次向 UDP/5060 发起
 不带 DTMF 的 Stage-2 摘机验证，Syslog 均为 `FXO: Port: 0`，证明该分组
 可以稳定固定物理第 1 口。
+
+2026-11-14 新版天翼网关八路接线后，发现 `rr:2-8` 会让分别发往 5062、
+5064、5066 的会话仍从同一可用外线呼出。现已拆为八个独立 `rr` 组，并以
+line02 的手机来显和 line02–08 的逐路 Stage-2 会话验证。权威映射和证据见
+`../evidence/2026-11-14-eight-line-acceptance.md`。
 
 如仍失败，停止调一阶段拨号，转做二阶段实验：先让 GXW 摘机并把 A8-C
 拨号音作为 RTP 返回 R640，再由 R640 逐位发送 RFC2833 DTMF。二阶段能把

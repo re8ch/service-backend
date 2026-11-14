@@ -1,6 +1,6 @@
 # Video Infra: 机房模拟语音接入 POC
 
-本目录记录 Mac mini、MikroTik、R640、天翼 A8-C 八口语音网关和
+本目录记录 Mac mini、MikroTik、R640、天翼八口语音网关和
 Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目约定
 `video-infra`，当前内容聚焦 PSTN/IMS/SIP 音频链路。
 
@@ -12,6 +12,10 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
 - 实体话机接 A8-C 已验证可呼入、呼出，所以 IMS 注册和 A8-C FXS 基本正常。
 - R640 已通过 GXW4108 固定 FXO 1 完成 Stage-2 呼出、手机振铃、接听音频
   和挂机释放验证。
+- 2026-11-14 新版 `MSG2600E-XES-8E8V-WS3` 上线，八个 IMS 用户均注册
+  成功；八个本地号码与 GXW SIP 5060–5074 的固定映射已建立。
+- GXW 调度已从 `rr:1;rr:2-8;` 改为八个独立组并重启回读；line02 手机
+  来显确认正确，line02–08 均完成逐路 Stage-2 SIP/DTMF/BYE 测试。
 - 本地区手机使用 11 位直拨；外地手机按当前运营商提示使用
   `0 + 11 位手机号`。
 - 固号入呼已通过 GXW Ch1 转发至 R640 UDP/5160，自动应答提示音和主动
@@ -29,6 +33,8 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
 3. [inventory/hardware.md](inventory/hardware.md) — 型号、版本与能力边界。
 4. [configs/](configs/) — 各设备当前配置基线和禁止触碰项。
 5. [evidence/experiment-log.md](evidence/experiment-log.md) — 已做实验及其证据。
+   最新八路资产验收见
+   [evidence/2026-11-14-eight-line-acceptance.md](evidence/2026-11-14-eight-line-acceptance.md)。
 6. [FREESWITCH-MULTI-AGENT-ARCHITECTURE.md](FREESWITCH-MULTI-AGENT-ARCHITECTURE.md)
    — 每通最多 4 个真实 SIP Agent、共享 ASR、48 会议成员的长期架构。
 7. [VOICE-GATEWAY-RUNBOOK.md](VOICE-GATEWAY-RUNBOOK.md) — R640 安装、分阶段
@@ -45,4 +51,6 @@ Grandstream GXW4108 之间的网络与语音接入实验。目录名沿用项目
 - 仓库不保存 Web、SSH、IMS/SIP 密码。
 - 未经现场负责人明确确认，不发起真实外呼。
 - 不再修改 A8-C 的 IMS 服务器、Voice VLAN、注册账号或策略路由。
-- 测试优先只动 GXW4108 的 1 号 FXO，其他 7 路保持业务基线。
+- 真实外呼必须逐路、顺序执行；主叫号码不匹配时立即停止，不得继续批量测试。
+- 设备配置保存与暖重启回读不等于断电恢复演练；未完成冷启动前不得宣称
+  已验证断电后自动恢复。
