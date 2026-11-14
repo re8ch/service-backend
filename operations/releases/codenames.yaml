@@ -581,6 +581,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: delta-indigo
       digest: sha256:0e3770d82688f91be5573a94c2337dea142bc79e184f2fea19e72087fd888078
+    - codename: grove-indigo
+      digest: sha256:b8f97d145197e1c1ede5964a576c8feff2499e3a93b1d2bb4c41da5715e44699
   platform/advanced-fabric:
     releases:
     - codename: bora
