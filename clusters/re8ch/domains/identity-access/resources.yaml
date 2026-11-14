@@ -1288,7 +1288,7 @@ data:
     json\nimport secrets\nimport time\nfrom dataclasses import asdict, dataclass\nfrom
     datetime import datetime, timezone\nfrom urllib.parse import quote, urlencode\n\nMONTHLY_SOFT_LIMIT
     = 300 * 1024**3\nAUTH_MAX_STALE_SECONDS = 24 * 60 * 60\nPROFILE_TITLE = \"access
-    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261114-loudi-direct-egress-1\"\n\n#
+    re8ch com\"\nSHADOWROCKET_PROFILE_REVISION = \"20261115-kl-loudi-relay-1\"\n\n#
     Emergency publication gate: overseas-edge-50 is retired and overseas-kl is\n#
     still recovering. Keep the two independently reachable LA listeners and the\n#
     verified R640 AnyTLS listener published. The R640 listener terminates the\n# mainland
@@ -1296,12 +1296,12 @@ data:
     delegate international destinations to the Global fabric.\n# Re-enable other candidates
     only\n# after their host and protocol pass qualification.\nACTIVE_PUBLICATION_IDS
     = frozenset({\n    \"direct-la-anytls\",\n    \"direct-la-hysteria2\",\n    \"direct-la2-anytls\",\n
-    \   \"direct-de-anytls\",\n    \"direct-cn-anytls\",\n})\n\n# Keep critical mainland
-    cloud consoles deterministic even when an upstream\n# community ruleset is incomplete
-    or temporarily unavailable.\nCN_CLOUD_DIRECT_DOMAINS = (\n    \"cloud.tencent.com\",\n
-    \   \"tencentcloud.com\",\n    \"tencentcloudapi.com\",\n    \"qcloud.com\",\n
-    \   \"myqcloud.com\",\n    \"qcloudcdn.com\",\n    \"aliyun.com\",\n    \"aliyuncs.com\",\n
-    \   \"alicdn.com\",\n    \"huaweicloud.com\",\n    \"huaweicloudapis.com\",\n
+    \   \"direct-de-anytls\",\n    \"direct-kl-anytls\",\n    \"direct-cn-anytls\",\n
+    \   \"relay-kl-cn-anytls\",\n})\n\n# Keep critical mainland cloud consoles deterministic
+    even when an upstream\n# community ruleset is incomplete or temporarily unavailable.\nCN_CLOUD_DIRECT_DOMAINS
+    = (\n    \"cloud.tencent.com\",\n    \"tencentcloud.com\",\n    \"tencentcloudapi.com\",\n
+    \   \"qcloud.com\",\n    \"myqcloud.com\",\n    \"qcloudcdn.com\",\n    \"aliyun.com\",\n
+    \   \"aliyuncs.com\",\n    \"alicdn.com\",\n    \"huaweicloud.com\",\n    \"huaweicloudapis.com\",\n
     \   \"myhuaweicloud.com\",\n)\n\n# Remote-control traffic must never inherit the
     cross-border exit. Process\n# rules cover ToDesk's P2P sessions and dynamic UDP
     destinations; the domain\n# rule also protects clients that only honor system-proxy
@@ -1369,8 +1369,11 @@ data:
     \"access-anytls\", \"cn-loudi-direct\", 100)),\n    Node(\"direct-cn-hysteria2\",
     \"\U0001F1E8\U0001F1F3 Edge Direct · 娄底 · Hysteria2\", Publication(\"hysteria2\",
     \"direct-cn.access.re8ch.com\", 24444, \"direct-cn.access.re8ch.com\"), RuntimeTarget(\"personal-access-cn-loudi\",
-    \"access-hysteria2\", \"cn-loudi-direct\", 100)),\n)\n\nSERVICE_RULESETS = (\n
-    \   (\"ai\", \"\U0001F916 AI\"), (\"google\", \"\U0001F50E Google / YouTube\"),
+    \"access-hysteria2\", \"cn-loudi-direct\", 100)),\n    Node(\"relay-kl-cn-anytls\",
+    \"\U0001F1F2\U0001F1FE→\U0001F1E8\U0001F1F3 吉隆坡中转 · 娄底出口 · AnyTLS\", Publication(\"anytls\",
+    \"direct-kl.access.re8ch.com\", 25443, \"direct-kl.access.re8ch.com\"), RuntimeTarget(\"personal-access-my-kul\",
+    \"access-anytls-loudi-relay\", \"my-kul-cn-loudi-relay\", 100)),\n)\n\nSERVICE_RULESETS
+    = (\n    (\"ai\", \"\U0001F916 AI\"), (\"google\", \"\U0001F50E Google / YouTube\"),
     (\"telegram\", \"✈️ Telegram\"),\n    (\"streaming\", \"\U0001F3AC Streaming\"),
     (\"social\", \"\U0001F4AC Social\"), (\"developer\", \"\U0001F9D1‍\U0001F4BB Developer\"),\n
     \   (\"cloud\", \"☁️ Cloud Storage\"), (\"speedtest\", \"\U0001F4F6 Speed Test\"),\n
@@ -1903,7 +1906,7 @@ data:
             time.sleep(5)
 kind: ConfigMap
 metadata:
-  name: access-subscription-code-b72b6dfgkm
+  name: access-subscription-code-7gmkg56tft
   namespace: egress-fabric
 ---
 apiVersion: v1
@@ -2005,6 +2008,59 @@ data:
 kind: ConfigMap
 metadata:
   name: personal-access-mihomo-cn-direct
+  namespace: egress-fabric
+---
+apiVersion: v1
+data:
+  config.yaml: |
+    allow-lan: false
+    mode: rule
+    log-level: warning
+    external-controller: 127.0.0.1:9090
+    secret: $CONTROLLER_SECRET
+    proxies:
+      - {name: NODE-SMART-EGRESS, type: socks5, server: identity-egress.egress-fabric.svc.cluster.local, port: 17893, udp: true}
+      - name: LOUDI-DIRECT-EGRESS
+        type: anytls
+        server: direct-cn.access.re8ch.com
+        port: 24443
+        password: $LOUDI_PASSWORD
+        sni: direct-cn.access.re8ch.com
+        client-fingerprint: chrome
+    listeners:
+      - name: access-anytls
+        type: anytls
+        listen: 0.0.0.0
+        port: 24443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key: $TLS_PRIVATE_KEY_PATH
+        proxy: NODE-SMART-EGRESS
+      - name: access-hysteria2
+        type: hysteria2
+        listen: 0.0.0.0
+        port: 24444
+        users:
+    __HYSTERIA2_USERS__
+        up: 1000
+        down: 1000
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key: $TLS_PRIVATE_KEY_PATH
+        proxy: NODE-SMART-EGRESS
+      - name: access-anytls-loudi-relay
+        type: anytls
+        listen: 0.0.0.0
+        port: 25443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key: $TLS_PRIVATE_KEY_PATH
+        proxy: LOUDI-DIRECT-EGRESS
+    rules: ["MATCH,NODE-SMART-EGRESS"]
+kind: ConfigMap
+metadata:
+  name: personal-access-mihomo-kl-relay
   namespace: egress-fabric
 ---
 apiVersion: v1
@@ -4925,6 +4981,10 @@ spec:
     port: 24443
     protocol: TCP
     targetPort: anytls
+  - name: loudi-relay
+    port: 25443
+    protocol: TCP
+    targetPort: loudi-relay
 ---
 apiVersion: v1
 kind: Service
@@ -6688,7 +6748,7 @@ spec:
       serviceAccountName: access-controller
       volumes:
       - configMap:
-          name: access-subscription-code-b72b6dfgkm
+          name: access-subscription-code-7gmkg56tft
         name: code
       - name: hmac
         secret:
@@ -6755,7 +6815,7 @@ spec:
           type: RuntimeDefault
       volumes:
       - configMap:
-          name: access-subscription-code-b72b6dfgkm
+          name: access-subscription-code-7gmkg56tft
         name: code
       - name: rules
         persistentVolumeClaim:
@@ -6853,7 +6913,7 @@ spec:
       serviceAccountName: access-subscription
       volumes:
       - configMap:
-          name: access-subscription-code-b72b6dfgkm
+          name: access-subscription-code-7gmkg56tft
         name: code
       - name: hmac
         secret:
@@ -7201,6 +7261,9 @@ spec:
         - containerPort: 24443
           name: anytls
           protocol: TCP
+        - containerPort: 25443
+          name: loudi-relay
+          protocol: TCP
         - containerPort: 24444
           name: hysteria2
           protocol: UDP
@@ -7268,7 +7331,9 @@ spec:
       initContainers:
       - args:
         - |
-          awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml | sed "s/__CONTROLLER_SECRET__/$(cat /controller/secret)/" > /work/config.yaml
+          loudi_password="$(awk -F': ' 'NF == 2 {print $2; exit}' /credentials/users.yaml)"
+          test -n "$loudi_password"
+          awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml | sed -e "s|\$CONTROLLER_SECRET|$(cat /controller/secret)|" -e "s|\$LOUDI_PASSWORD|$loudi_password|" -e 's|$TLS_PRIVATE_KEY_PATH|/etc/mihomo/tls/tls.key|g' > /work/config.yaml
         command:
         - /bin/sh
         - -ec
@@ -7306,7 +7371,7 @@ spec:
       - operator: Exists
       volumes:
       - configMap:
-          name: personal-access-mihomo
+          name: personal-access-mihomo-kl-relay
         name: base
       - name: credentials
         secret:
@@ -7317,7 +7382,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-b72b6dfgkm
+          name: access-subscription-code-7gmkg56tft
         name: app-code
       - name: controller
         secret:
@@ -7490,7 +7555,7 @@ spec:
       - emptyDir: {}
         name: work
       - configMap:
-          name: access-subscription-code-b72b6dfgkm
+          name: access-subscription-code-7gmkg56tft
         name: app-code
       - name: controller
         secret:
