@@ -180,7 +180,7 @@ metadata:
   name: re8ch-ssh-broker
   namespace: ai-operations
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: re8ch-ssh-broker
@@ -204,6 +204,10 @@ spec:
                 operator: In
                 values:
                 - core
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - r640
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:

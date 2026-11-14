@@ -120,7 +120,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: re8ch-ssh-broker, namespace: ai-operations}
 spec:
-  replicas: 2
+  replicas: 1
   strategy: {type: RollingUpdate, rollingUpdate: {maxUnavailable: 0, maxSurge: 1}}
   selector: {matchLabels: {app: re8ch-ssh-broker}}
   template:
@@ -137,6 +137,7 @@ spec:
             nodeSelectorTerms:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
+                  - {key: kubernetes.io/hostname, operator: In, values: [r640]}
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
