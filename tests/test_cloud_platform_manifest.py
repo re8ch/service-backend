@@ -63,6 +63,10 @@ def test_ssh_credentials_are_isolated_in_the_independent_broker():
     assert "/etc/re8ch-ai-operations" not in {m["mountPath"] for m in cloud["containers"][0]["volumeMounts"]}
     broker = deployments["re8ch-ssh-broker"]["spec"]["template"]["spec"]
     assert broker["automountServiceAccountToken"] is False
+    assert broker["hostNetwork"] is True
+    assert broker["dnsPolicy"] == "ClusterFirstWithHostNet"
+    env = {item["name"]: item for item in broker["containers"][0]["env"]}
+    assert env["SSH_ROUTE_OVERRIDES"]["value"] == '{"amdwsl-zt":"172.31.92.2"}'
     mounts = {m["mountPath"]: m for m in broker["containers"][0]["volumeMounts"]}
     volumes = {v["name"]: v for v in broker["volumes"]}
     mount = mounts["/etc/re8ch-ai-operations"]

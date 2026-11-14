@@ -1827,6 +1827,8 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       automountServiceAccountToken: false
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
       containers:
       - command:
         - python
@@ -1838,6 +1840,8 @@ spec:
           value: /etc/re8ch-ai-operations/ssh-config
         - name: SSH_USER
           value: re8ch-ai
+        - name: SSH_ROUTE_OVERRIDES
+          value: '{"amdwsl-zt":"172.31.92.2"}'
         - name: SERVICE_API_TOKEN
           valueFrom:
             secretKeyRef:

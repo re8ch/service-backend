@@ -11,6 +11,7 @@ SERVICE_TOKEN = os.getenv("SERVICE_API_TOKEN", "")
 TARGETS = Path(os.getenv("SSH_TARGET_REGISTRY", "/etc/re8ch-platform/infrastructure/compat-nodes.yaml"))
 SSH_CONFIG = os.getenv("SSH_CONFIG", "/etc/re8ch-ai-operations/ssh-config")
 SSH_USER = os.getenv("SSH_USER", "re8ch-ai")
+SSH_ROUTE_OVERRIDES = json.loads(os.getenv("SSH_ROUTE_OVERRIDES", "{}"))
 TOOLS = [
     {"name": "ssh.targets.list", "description": "List reviewed SSH broker targets without consulting Kubernetes.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "ssh.reachability", "description": "Check one reviewed SSH target through the managed broker identity.", "inputSchema": {"type": "object", "properties": {"name": {"type": "string"}, "actor": {"type": "string"}}, "required": ["name", "actor"], "additionalProperties": False}},
@@ -60,5 +61,5 @@ class Handler(BaseHTTPRequestHandler):
         payload = json.dumps(body).encode(); self.send_response(status); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(payload))); self.end_headers(); self.wfile.write(payload)
 
 def main():
-    server = ThreadingHTTPServer((HOST, PORT), Handler); server.broker = SSHBroker(TargetRegistry(TARGETS), ssh_config=SSH_CONFIG, user=SSH_USER); server.serve_forever()
+    server = ThreadingHTTPServer((HOST, PORT), Handler); server.broker = SSHBroker(TargetRegistry(TARGETS, route_overrides=SSH_ROUTE_OVERRIDES), ssh_config=SSH_CONFIG, user=SSH_USER); server.serve_forever()
 if __name__ == "__main__": main()

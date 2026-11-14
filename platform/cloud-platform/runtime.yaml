@@ -127,6 +127,8 @@ spec:
     metadata: {labels: {app: re8ch-ssh-broker, app.kubernetes.io/component: ssh-control-plane}}
     spec:
       automountServiceAccountToken: false
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
       imagePullSecrets: [{name: harbor-registry-pull}]
       affinity:
@@ -150,6 +152,7 @@ spec:
             - {name: SSH_TARGET_REGISTRY, value: /etc/re8ch-platform/infrastructure/compat-nodes.yaml}
             - {name: SSH_CONFIG, value: /etc/re8ch-ai-operations/ssh-config}
             - {name: SSH_USER, value: re8ch-ai}
+            - {name: SSH_ROUTE_OVERRIDES, value: '{"amdwsl-zt":"172.31.92.2"}'}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: cluster-infra-service-auth, key: token}}}
           readinessProbe: {httpGet: {path: /readyz, port: http}, initialDelaySeconds: 2, periodSeconds: 5}
           livenessProbe: {httpGet: {path: /healthz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}
