@@ -34,19 +34,25 @@ class TargetRegistry:
         return sorted(self.targets)
 
     def route(self, name: str) -> tuple[str, str]:
+        return self.routes(name)[0]
+
+    def routes(self, name: str) -> list[tuple[str, str]]:
         try:
             spec = self.targets[name]["spec"]
         except KeyError as exc:
             raise BrokerError("TARGET_NOT_FOUND", name) from exc
         fabric = spec.get("cluster", {}).get("fabric", {})
-        # The accelerated management fabric is independent of Kubernetes API
-        # availability. The declared address remains the fallback for targets
-        # that are not members of that fabric.
+        # Route only through reviewed inventory values. Prefer the accelerated
+        # fabric, but retain the private and declared management paths so a
+        # stale accelerated route cannot make an otherwise healthy node
+        # unreachable.
+        routes: list[tuple[str, str]] = []
         if fabric.get("acceleratedIP"):
-            return str(fabric["acceleratedIP"]), "accelerated-management"
+            routes.append((str(fabric["acceleratedIP"]), "accelerated-management"))
         if fabric.get("internalIP"):
-            return str(fabric["internalIP"]), "private-management"
-        return str(spec["address"]), "declared-management"
+            routes.append((str(fabric["internalIP"]), "private-management"))
+        routes.append((str(spec["address"]), "declared-management"))
+        return list(dict.fromkeys(routes))
 
 
 class SSHBroker:
@@ -62,22 +68,42 @@ class SSHBroker:
             raise BrokerError("INVALID_ARGUMENT", "argv must not be empty")
         if timeout < 1 or timeout > 3600:
             raise BrokerError("INVALID_ARGUMENT", "timeout must be between 1 and 3600")
-        address, route = self.registry.route(name)
         command = [shlex.join(argv)]
         command_hash = hashlib.sha256(command[0].encode()).hexdigest()
         operation_id = f"ssh_{uuid.uuid4().hex}"
         started = time.time()
-        try:
-            result = self.executor(
-                ["ssh", "-F", self.ssh_config, "-l", self.user, "--", address, *command],
-                text=True, capture_output=True, timeout=timeout, check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise BrokerError("TARGET_TIMEOUT", f"{name} timed out") from exc
+        attempts: list[str] = []
+        result: subprocess.CompletedProcess[str] | None = None
+        route = ""
+        connectivity_errors = (
+            "operation timed out", "connection timed out", "no route to host",
+            "network is unreachable", "connection refused", "could not resolve hostname",
+        )
+        for address, candidate_route in self.registry.routes(name):
+            remaining = timeout - (time.time() - started)
+            if remaining <= 0:
+                break
+            attempts.append(candidate_route)
+            route = candidate_route
+            try:
+                result = self.executor(
+                    ["ssh", "-F", self.ssh_config, "-l", self.user, "--", address, *command],
+                    text=True, capture_output=True, timeout=remaining, check=False,
+                )
+            except subprocess.TimeoutExpired:
+                result = None
+                continue
+            if result.returncode == 0:
+                break
+            if result.returncode != 255 or not any(message in result.stderr.lower() for message in connectivity_errors):
+                break
+        if result is None:
+            raise BrokerError("TARGET_TIMEOUT", f"{name} timed out")
         return {
             "operationId": operation_id,
             "target": name,
             "route": route,
+            "attemptedRoutes": attempts,
             "actor": actor,
             "commandHash": command_hash,
             "exitCode": result.returncode,
