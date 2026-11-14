@@ -254,6 +254,8 @@ modules:
       digest: sha256:795146dd5d2db6dd76736d74183b6d9a73bb74bbe40294be0b2ba15fcd185921
     - codename: citadel-amber
       digest: sha256:235ed7f7194bce874dd4d9374273a747789ea55fb9de504aefdfe2d03e6d2bf2
+    - codename: sentinel-amber
+      digest: sha256:7708d31fb9feabad0c629747d32076d12a9ca5eeee31151f2f105c1d5fc0391d
   platform/headlamp:
     releases:
     - codename: aurora
@@ -824,6 +826,8 @@ modules:
       digest: sha256:980fee54d7bd47ead3c0d006f9db552b2a504da2c31f4ad2bc0f18ddd7234154
     - codename: watchtower-amber
       digest: sha256:0e6dc8a9c2788171464aa7e4b9fb9188290ebcb50cb6b5646ce30ee0361eeff3
+    - codename: aegis-copper
+      digest: sha256:d7b7d73506a91cc51dfccc0f703ff48ab3b3b5be9b45d7f0117fe74c560df926
   platform/connectool:
     releases:
     - codename: anchor
