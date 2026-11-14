@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/apps/access-subscription
-codename: watchtower-amber
+codename: aegis-copper
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
-  digest: sha256:0e6dc8a9c2788171464aa7e4b9fb9188290ebcb50cb6b5646ce30ee0361eeff3
+  digest: sha256:d7b7d73506a91cc51dfccc0f703ff48ab3b3b5be9b45d7f0117fe74c560df926
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com

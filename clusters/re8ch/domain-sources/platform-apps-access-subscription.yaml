@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: watchtower-amber
+    delivery.re8ch.com/codename: aegis-copper
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-apps-access-subscription
   ref:
-    digest: sha256:0e6dc8a9c2788171464aa7e4b9fb9188290ebcb50cb6b5646ce30ee0361eeff3
+    digest: sha256:d7b7d73506a91cc51dfccc0f703ff48ab3b3b5be9b45d7f0117fe74c560df926
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/apps/access-subscription
-    delivery.re8ch.com/codename: watchtower-amber
+    delivery.re8ch.com/codename: aegis-copper
 spec:
   interval: 1m
   retryInterval: 1m
