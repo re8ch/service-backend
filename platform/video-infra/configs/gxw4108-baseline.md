@@ -15,6 +15,9 @@
 - Dial Pause：`ch1:d1p15,d2p15,d3p15,d4p15,d5p15,d6p15,d7p15,d8p15,d9p15,d10p15;ch2-8;`
 - Digit Volume：`-11 dB`
 - Round-robin：`rr:1;rr:2-8;`（Stage 2 下将 FXO 1 隔离为独立调度组）
+- Local SIP Listen Port：`ch1-8:5060++;`。GXW4108 的 `++` 表示每路加 2，
+  因此 FXO 1–8 分别监听 `5060, 5062, 5064, 5066, 5068, 5070, 5072, 5074`；
+  R640 的八个 FreeSWITCH gateway 必须使用这组端口。
 - Syslog Server：`192.168.88.251`
 - Syslog Level：`DEBUG`（诊断期间临时启用）
 - Unconditional Call Forward User ID：`ch1:autoanswer;ch2-8:;`
