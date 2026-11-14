@@ -236,8 +236,15 @@ class App:
             dial_line = "line01" if line == "auto" else line
             fs_uuid = str(uuid.uuid4())
             destination = call.destination.lstrip("+")
-            variables = f"origination_uuid={fs_uuid},voice_call_id={call.call_id},voice_agents={','.join(agents)},origination_caller_id_name={tenant}"
-            result = self.background(f"originate {{{variables}}}sofia/gateway/{dial_line}/{destination} &conference({call.call_id}@voice)")
+            variables = (
+                f"origination_uuid={fs_uuid},voice_call_id={call.call_id},"
+                f"voice_agents={','.join(agents)},origination_caller_id_name={tenant},"
+                f"gxw_stage2_digits={destination}"
+            )
+            result = self.background(
+                f"originate {{{variables}}}sofia/gateway/{dial_line}/99 "
+                "&transfer(gxw-stage2-outbound XML from-gxw)"
+            )
             if result.startswith("-ERR"):
                 raise RuntimeError(result)
             call.fs_uuid, call.status, call.updated_at = fs_uuid, "originating", int(time.time())
