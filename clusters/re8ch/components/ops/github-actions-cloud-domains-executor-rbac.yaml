@@ -6445,6 +6445,17 @@ rules:
   - certificates
   resourceNames:
   - stalwart-mail-re8ch
+  - stalwart-phonaid-mta-sts
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  resourceNames:
+  - stalwart-phonaid-cloudflare-dns01
   verbs:
   - get
   - patch
@@ -6463,6 +6474,7 @@ rules:
   - stalwart-idp-bootstrap-plan-v6
   - stalwart-idp-config
   - stalwart-mailbox-provisioner
+  - stalwart-metrics-secret-bootstrap
   - stalwart-phonaid-domain-plan
   - stalwart-unified-identity-bootstrap-plan-v2
   - stalwart-userhub-oauth-plan-v1
@@ -6490,6 +6502,7 @@ rules:
   resourceNames:
   - stalwart-cloudflare-token-sync
   - stalwart-mailbox-provisioner
+  - stalwart-metrics-secret-bootstrap
   verbs:
   - get
   - patch
@@ -6519,8 +6532,20 @@ rules:
   - stalwart-collaboration-redirect
   - stalwart-idp-public
   - stalwart-idp-redirect
+  - stalwart-mta-sts-phonaid
+  - stalwart-mta-sts-re8ch
   - stalwart-webmail-public
   - stalwart-webmail-redirect
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - referencegrants
+  resourceNames:
+  - stalwart-phonaid-mta-sts-certificate
   verbs:
   - get
   - patch
@@ -6535,6 +6560,16 @@ rules:
   - stalwart-smtp-public-v2
   - stalwart-smtps-public-v2
   - stalwart-submission-public-v2
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.victoriametrics.com
+  resources:
+  - vmservicescrapes
+  resourceNames:
+  - stalwart-mail
   verbs:
   - get
   - patch
