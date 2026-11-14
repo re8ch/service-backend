@@ -232,7 +232,7 @@ def test_autonomous_domain_reconcilers_are_exact_github_hosted_routes():
     routes = {
         'agent-runtime': ('8iops/agent-gitops', 'agent-runtime-reconcile.yml', 'public'),
         'identity-access': ('re8ch/identity-gitops', 'identity-access-reconcile.yml', 'public'),
-        'observability-metering': ('siren-observer/observability-gitops', 'observability-metering-reconcile.yml', 'private'),
+        'observability-metering': ('siren-observer/observability-gitops', 'observability-metering-reconcile.yml', 'public'),
     }
     for domain, (repository, workflow, visibility) in routes.items():
         audience = f'https://kube-api.re8ch.com/release-reconciler-{domain}'
@@ -275,7 +275,7 @@ def test_observability_static_release_passes_hosted_runner_gate():
     runner_gate = github['claimValidationRules'][1]['expression']
     for boundary in (
         "claims.runner_environment == 'github-hosted'",
-        "claims.repository_visibility == 'private'",
+        "claims.repository_visibility == 'public'",
         "claims.repository_id == '1423312205'",
         "claims.repository_owner_id == '334604879'",
         "claims.repository == 'siren-observer/observability-gitops'",
