@@ -60,6 +60,41 @@ data:
         proxy: NODE-SMART-EGRESS
     rules: ["MATCH,NODE-SMART-EGRESS"]
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: personal-access-mihomo-cn-direct, namespace: egress-fabric}
+data:
+  config.yaml: |
+    allow-lan: false
+    mode: rule
+    log-level: warning
+    external-controller: 127.0.0.1:9090
+    secret: __CONTROLLER_SECRET__
+    listeners:
+      - name: access-anytls
+        type: anytls
+        listen: 0.0.0.0
+        port: 24443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: DIRECT
+      - name: access-hysteria2
+        type: hysteria2
+        listen: 0.0.0.0
+        port: 24444
+        users:
+    __HYSTERIA2_USERS__
+        up: 1000
+        down: 1000
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: DIRECT
+    rules: ["MATCH,DIRECT"]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: personal-access-us-ca, namespace: egress-fabric}

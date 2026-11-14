@@ -78,7 +78,7 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts: [{name: work, mountPath: /etc/mihomo/config.yaml, subPath: config.yaml, readOnly: true}, {name: tls, mountPath: /etc/mihomo/tls, readOnly: true}]
       volumes:
-        - {name: base, configMap: {name: personal-access-mihomo}}
+        - {name: base, configMap: {name: personal-access-mihomo-cn-direct}}
         - {name: credentials, secret: {secretName: personal-access-users}}
         - {name: tls, secret: {secretName: access-re8ch-com-tls}}
         - {name: work, emptyDir: {}}
