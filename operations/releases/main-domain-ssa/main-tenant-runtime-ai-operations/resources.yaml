@@ -213,8 +213,6 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       automountServiceAccountToken: false
-      dnsPolicy: ClusterFirstWithHostNet
-      hostNetwork: true
       containers:
       - command:
         - python
@@ -273,6 +271,8 @@ spec:
         - mountPath: /etc/re8ch-platform/infrastructure
           name: infrastructure-contracts
           readOnly: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
       imagePullSecrets:
       - name: harbor-registry-pull
       securityContext:
