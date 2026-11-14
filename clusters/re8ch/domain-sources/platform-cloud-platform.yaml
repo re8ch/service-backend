@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: reef-indigo
+    delivery.re8ch.com/codename: tundra-indigo
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:ed3e5fea7a30cb250914e1615194553ae832d6b27d250c32ae58bd1ad1d2c45d
+    digest: sha256:bbd697ac3ea78757e9c0defc53f927dd1be1299fa5ca24f751a4f967e3a10cbd
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: reef-indigo
+    delivery.re8ch.com/codename: tundra-indigo
 spec:
   interval: 1m
   retryInterval: 1m
