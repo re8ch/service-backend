@@ -15,14 +15,14 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20261110-four-public-edges-1"
+SHADOWROCKET_PROFILE_REVISION = "20261114-loudi-direct-egress-1"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
 # still recovering. Keep the two independently reachable LA listeners and the
 # verified R640 AnyTLS listener published. The R640 listener terminates the
-# mainland connection locally, then delegates destination-aware egress to the
-# node-local smart fabric: CN destinations stay direct and international
-# destinations use a healthy Global provider. Re-enable other candidates only
+# mainland connection locally and exits directly through the Loudi ISP path;
+# it must never delegate international destinations to the Global fabric.
+# Re-enable other candidates only
 # after their host and protocol pass qualification.
 ACTIVE_PUBLICATION_IDS = frozenset({
     "direct-la-anytls",
@@ -305,8 +305,8 @@ def mihomo_config(password: str, token: str, base_url: str, nodes: tuple[Node, .
                 *[f"  - DOMAIN-SUFFIX,{domain},DIRECT" for domain in REMOTE_CONTROL_DIRECT_DOMAINS],
                 "  - RULE-SET,private,DIRECT", "  - RULE-SET,private-ip,DIRECT,no-resolve",
                 *[f"  - DOMAIN-SUFFIX,{domain},DIRECT" for domain in CN_CLOUD_DIRECT_DOMAINS],
-                "  - RULE-SET,apple,🍎 Apple", "  - RULE-SET,microsoft,🪟 Microsoft", "  - RULE-SET,openai,🤖 AI",
-                "  - RULE-SET,anthropic,🤖 AI", "  - RULE-SET,google,🔎 Google / YouTube", "  - RULE-SET,youtube,🔎 Google / YouTube",
+                "  - RULE-SET,apple,🍎 Apple", "  - RULE-SET,microsoft,🪟 Microsoft", "  - RULE-SET,openai,PROXY",
+                "  - RULE-SET,anthropic,PROXY", "  - RULE-SET,google,🔎 Google / YouTube", "  - RULE-SET,youtube,🔎 Google / YouTube",
                 "  - RULE-SET,telegram,✈️ Telegram", "  - RULE-SET,netflix,🎬 Streaming", "  - RULE-SET,disney,🎬 Streaming",
                 "  - RULE-SET,hbo,🎬 Streaming", "  - RULE-SET,spotify,🎬 Streaming", "  - RULE-SET,tiktok,💬 Social",
                 "  - RULE-SET,twitter,💬 Social", "  - RULE-SET,github,🧑‍💻 Developer", "  - RULE-SET,gitlab,🧑‍💻 Developer",
@@ -357,7 +357,7 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     lines.append("🛡️ Ad Blocking = select, REJECT, DIRECT")
     mapping = (("private", "DIRECT", ""), ("adblock", "🛡️ Ad Blocking", ""),
                ("direct-services", "DIRECT", ""), ("apple", "🍎 Apple", ""),
-               ("microsoft", "🪟 Microsoft", ""), ("ai", "🤖 AI", ""),
+               ("microsoft", "🪟 Microsoft", ""), ("ai", "PROXY", ""),
                ("google", "🔎 Google / YouTube", ""), ("telegram", "✈️ Telegram", ""),
                ("streaming", "🎬 Streaming", ""), ("social", "💬 Social", ""),
                ("developer", "🧑‍💻 Developer", ""), ("cloud", "☁️ Cloud Storage", ""),
@@ -366,7 +366,9 @@ def shadowrocket_config(password: str, token: str, base_url: str,
     lines.extend(["", "[Rule]"])
     lines.extend(f"PROCESS-NAME,{process},DIRECT" for process in REMOTE_CONTROL_DIRECT_PROCESSES)
     lines.extend(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in REMOTE_CONTROL_DIRECT_DOMAINS)
-    lines.extend(["DOMAIN,auth.openai.com,🤖 AI", "DOMAIN-SUFFIX,openai.com,🤖 AI", "DOMAIN-SUFFIX,chatgpt.com,🤖 AI"])
+    # AI traffic follows the main PROXY selection. Selecting Loudi must not be
+    # bypassed by a separately persisted AI policy group.
+    lines.extend(["DOMAIN,auth.openai.com,PROXY", "DOMAIN-SUFFIX,openai.com,PROXY", "DOMAIN-SUFFIX,chatgpt.com,PROXY"])
     lines.extend(f"DOMAIN-SUFFIX,{domain},DIRECT" for domain in CN_CLOUD_DIRECT_DOMAINS)
     for rule_id, policy, option in mapping:
         lines.append(f"RULE-SET,{base_url}/r/{token}/current/{rule_id}.list,{policy}{option}")
