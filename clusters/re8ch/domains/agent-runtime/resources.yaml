@@ -13373,13 +13373,6 @@ spec:
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                toolhive-name: ops-admin-vmcp-internal
-            topologyKey: kubernetes.io/hostname
       containers:
       - command:
         - python
@@ -13491,13 +13484,6 @@ spec:
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                toolhive-name: ops-observe-vmcp-internal
-            topologyKey: kubernetes.io/hostname
       containers:
       - command:
         - python
@@ -13577,13 +13563,6 @@ spec:
         scheduling.re8ch.com/placement-class: service-core-r640
         scheduling.re8ch.com/placement-revision: workload-contract-v1
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                toolhive-name: ops-operate-vmcp-internal
-            topologyKey: kubernetes.io/hostname
       containers:
       - command:
         - python
