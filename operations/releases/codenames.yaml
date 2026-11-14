@@ -583,6 +583,8 @@ modules:
       digest: sha256:0e3770d82688f91be5573a94c2337dea142bc79e184f2fea19e72087fd888078
     - codename: grove-indigo
       digest: sha256:b8f97d145197e1c1ede5964a576c8feff2499e3a93b1d2bb4c41da5715e44699
+    - codename: reef-indigo
+      digest: sha256:ed3e5fea7a30cb250914e1615194553ae832d6b27d250c32ae58bd1ad1d2c45d
   platform/advanced-fabric:
     releases:
     - codename: bora
