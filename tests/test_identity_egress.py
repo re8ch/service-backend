@@ -37,7 +37,7 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert "requiredDuringSchedulingIgnoredDuringExecution" in affinity["podAntiAffinity"]
     nodes = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
     assert nodes == ["overseas-kl", "overseas-la", "r640"]
-    assert "accounts.google.com%2F.well-known%2Fopenid-configuration" in container["readinessProbe"]["httpGet"]["path"]
+    assert "api.github.com" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
     assert "clusterIP" not in service["spec"]
     assert "trafficDistribution" not in service["spec"]

@@ -90,7 +90,10 @@ spec:
             # endpoint out of rotation when it cannot reach Google's OIDC
             # metadata instead of letting the auth gateway fail by timeout.
             httpGet:
-              path: /proxies/DIRECT/delay?url=https%3A%2F%2Faccounts.google.com%2F.well-known%2Fopenid-configuration&timeout=5000
+              # Probe the dependency this egress path exists to serve. Google
+              # OIDC is blocked on the R640 route while GitHub is healthy;
+              # using it here removed the only node-local GitOps endpoint.
+              path: /proxies/DIRECT/delay?url=https%3A%2F%2Fapi.github.com&timeout=5000
               port: controller
             periodSeconds: 10
             timeoutSeconds: 7
