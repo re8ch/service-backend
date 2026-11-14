@@ -65,6 +65,10 @@ ch1:15;ch2-8:10;
 页面当前显示 `ch1-8:2;`。实测 Stage 2 会忽略仅适用于 Stage 1 的
 `99 + 端口号`选择语法，不能用 `991` 固定第 1 口。
 
+R640 通过每路独立 SIP 端口固定 FXO。FreeSWITCH 先以占位 Request-URI
+`99` 摘机，等待 1500 ms 的模拟拨号音，再把完整号码以 RFC2833、每位
+150 ms 的节奏发送；不得仅把号码放在 SIP Request-URI 中冒充已完成拨号。
+
 2026-07-30 将 round-robin 拆为 `rr:1;rr:2-8;`，保持 Local SIP Listen
 Port 为 `ch1-8:5060++;`。重启后字段未回滚；连续三次向 UDP/5060 发起
 不带 DTMF 的 Stage-2 摘机验证，Syslog 均为 `FXO: Port: 0`，证明该分组
