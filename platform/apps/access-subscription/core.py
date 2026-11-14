@@ -15,7 +15,7 @@ from urllib.parse import quote, urlencode
 MONTHLY_SOFT_LIMIT = 300 * 1024**3
 AUTH_MAX_STALE_SECONDS = 24 * 60 * 60
 PROFILE_TITLE = "access re8ch com"
-SHADOWROCKET_PROFILE_REVISION = "20261114-loudi-direct-egress-1"
+SHADOWROCKET_PROFILE_REVISION = "20261115-kl-loudi-relay-1"
 
 # Emergency publication gate: overseas-edge-50 is retired and overseas-kl is
 # still recovering. Keep the two independently reachable LA listeners and the
@@ -29,7 +29,9 @@ ACTIVE_PUBLICATION_IDS = frozenset({
     "direct-la-hysteria2",
     "direct-la2-anytls",
     "direct-de-anytls",
+    "direct-kl-anytls",
     "direct-cn-anytls",
+    "relay-kl-cn-anytls",
 })
 
 # Keep critical mainland cloud consoles deterministic even when an upstream
@@ -115,6 +117,7 @@ DEFAULT_NODES = (
     Node("direct-kl-hysteria2", "🇲🇾 Edge Direct · 吉隆坡 · Hysteria2", Publication("hysteria2", "direct-kl.access.re8ch.com", 24444, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-hysteria2", "my-kul-direct", 100)),
     Node("direct-cn-anytls", "🇨🇳 Edge Direct · 娄底 · AnyTLS", Publication("anytls", "direct-cn.access.re8ch.com", 24443, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-anytls", "cn-loudi-direct", 100)),
     Node("direct-cn-hysteria2", "🇨🇳 Edge Direct · 娄底 · Hysteria2", Publication("hysteria2", "direct-cn.access.re8ch.com", 24444, "direct-cn.access.re8ch.com"), RuntimeTarget("personal-access-cn-loudi", "access-hysteria2", "cn-loudi-direct", 100)),
+    Node("relay-kl-cn-anytls", "🇲🇾→🇨🇳 吉隆坡中转 · 娄底出口 · AnyTLS", Publication("anytls", "direct-kl.access.re8ch.com", 25443, "direct-kl.access.re8ch.com"), RuntimeTarget("personal-access-my-kul", "access-anytls-loudi-relay", "my-kul-cn-loudi-relay", 100)),
 )
 
 SERVICE_RULESETS = (
