@@ -41,16 +41,23 @@ class TargetRegistry:
             spec = self.targets[name]["spec"]
         except KeyError as exc:
             raise BrokerError("TARGET_NOT_FOUND", name) from exc
-        fabric = spec.get("cluster", {}).get("fabric", {})
+        cluster = spec.get("cluster", {})
+        fabric = cluster.get("fabric", {})
+        control_route = str(cluster.get("network", {}).get("controlRoute", ""))
         # Route only through reviewed inventory values. Prefer the accelerated
         # fabric, but retain the private and declared management paths so a
         # stale accelerated route cannot make an otherwise healthy node
         # unreachable.
         routes: list[tuple[str, str]] = []
-        if fabric.get("acceleratedIP"):
-            routes.append((str(fabric["acceleratedIP"]), "accelerated-management"))
-        if fabric.get("internalIP"):
-            routes.append((str(fabric["internalIP"]), "private-management"))
+        private_first = "zt" in control_route.lower() or "zerotier" in control_route.lower()
+        preferred = (
+            (("internalIP", "private-management"), ("acceleratedIP", "accelerated-management"))
+            if private_first else
+            (("acceleratedIP", "accelerated-management"), ("internalIP", "private-management"))
+        )
+        for key, route in preferred:
+            if fabric.get(key):
+                routes.append((str(fabric[key]), route))
         routes.append((str(spec["address"]), "declared-management"))
         return list(dict.fromkeys(routes))
 

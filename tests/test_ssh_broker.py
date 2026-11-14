@@ -25,6 +25,22 @@ items:
     return runtime.TargetRegistry(path)
 
 
+def zt_registry(tmp_path):
+    path = tmp_path / "zt-targets.yaml"
+    path.write_text("""apiVersion: operations.re8ch.com/v1alpha1
+kind: InfrastructureTargetList
+items:
+  - metadata: {name: zt-node}
+    spec:
+      transport: ssh
+      address: zt-node
+      cluster:
+        network: {controlRoute: zt-primary}
+        fabric: {acceleratedIP: 10.250.0.38, internalIP: 10.181.22.38}
+""")
+    return runtime.TargetRegistry(path)
+
+
 def test_registry_uses_independent_management_fabric_without_kubernetes(tmp_path):
     target, route = registry(tmp_path).route("node-one")
     assert target == "10.250.0.9"
@@ -33,6 +49,14 @@ def test_registry_uses_independent_management_fabric_without_kubernetes(tmp_path
         ("10.250.0.9", "accelerated-management"),
         ("10.181.22.9", "private-management"),
         ("legacy-alias", "declared-management"),
+    ]
+
+
+def test_registry_respects_declared_zerotier_control_route(tmp_path):
+    assert zt_registry(tmp_path).routes("zt-node") == [
+        ("10.181.22.38", "private-management"),
+        ("10.250.0.38", "accelerated-management"),
+        ("zt-node", "declared-management"),
     ]
 
 
