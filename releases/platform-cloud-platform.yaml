@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: tundra-indigo
+codename: wetland-indigo
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:bbd697ac3ea78757e9c0defc53f927dd1be1299fa5ca24f751a4f967e3a10cbd
+  digest: sha256:ab8168636a4c1ae7b0b826c498a259b285ad57137a85b74e9d6627ca2d43659e
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
