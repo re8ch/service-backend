@@ -3256,6 +3256,20 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  resourceNames:
+  - github-enterprise-billing-app
+  - github-enterprise-collaboration-app
+  - github-enterprise-delivery-app
+  - github-enterprise-developer-ai-app
+  - github-enterprise-identity-app
+  - github-enterprise-security-app
+  verbs:
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

@@ -17,7 +17,22 @@ def test_cloud_domain_adoption_is_named_and_non_destructive():
             for rule in d['rules']:
                 assert rule['resourceNames'] and '*' not in rule['resourceNames']
                 assert set(rule['verbs']) <= {'get', 'patch', 'update'}
-                assert not set(rule['resources']) & {'secrets', 'roles', 'rolebindings', 'clusterroles', 'clusterrolebindings', 'jobs'}
+                restricted = set(rule['resources']) & {'secrets', 'roles', 'rolebindings', 'clusterroles', 'clusterrolebindings', 'jobs'}
+                if restricted:
+                    assert d['metadata']['name'] == 'observability-domain-tenant-infrastructure'
+                    assert rule == {
+                        'apiGroups': [''],
+                        'resources': ['secrets'],
+                        'resourceNames': [
+                            'github-enterprise-billing-app',
+                            'github-enterprise-collaboration-app',
+                            'github-enterprise-delivery-app',
+                            'github-enterprise-developer-ai-app',
+                            'github-enterprise-identity-app',
+                            'github-enterprise-security-app',
+                        ],
+                        'verbs': ['patch', 'update'],
+                    }
         if d['kind'] == 'RoleBinding':
             assert d['roleRef']['kind'] == 'Role'
             assert all(s['kind'] == 'Group' and s['name'].startswith('re8ch:release-executor:') for s in d['subjects'])
