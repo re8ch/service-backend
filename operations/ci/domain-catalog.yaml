@@ -43,6 +43,17 @@ always_tests:
 # deployable Kustomize root. Keeping these mappings explicit lets CI run their
 # contract tests without treating the path as an unknown, repository-wide risk.
 focused_suites:
+  catalog-webhook-mvp:
+    paths:
+    - inventory/platform/catalog/**
+    - inventory/platform/live/services.yaml
+    - operations/catalog-runtime/**
+    - operations/github-webhooks/**
+    - tests/test_catalog_runtime_projection.py
+    - tests/test_github_webhook_reconcile.py
+    tests:
+    - tests/test_catalog_runtime_projection.py
+    - tests/test_github_webhook_reconcile.py
   unit-evidence-consumers:
     paths:
     - tests/test_unit_evidence.py
