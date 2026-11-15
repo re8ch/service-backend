@@ -20,6 +20,17 @@ metadata:
     delivery.re8ch.com/state: accepted
     delivery.re8ch.com/authority-domain: agent-runtime
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssa-state-agent-runtime-tenant-crd-authority
+  namespace: tenant-infrastructure
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/state: accepted
+    delivery.re8ch.com/authority-domain: agent-runtime
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -38,7 +49,10 @@ rules:
   verbs: [get, patch, update, delete]
 - apiGroups: ['']
   resources: [configmaps]
-  resourceNames: [ssa-state-agent-runtime-domain-tenant-infrastructure, tenant-platform-modules]
+  resourceNames:
+  - ssa-state-agent-runtime-domain-tenant-infrastructure
+  - ssa-state-agent-runtime-tenant-crd-authority
+  - tenant-platform-modules
   verbs: [get, patch, update, delete]
 - apiGroups: ['']
   resources: [persistentvolumeclaims]
@@ -85,6 +99,35 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: agent-runtime-domain-tenant-infrastructure
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-runtime-tenant-crd-authority
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+rules:
+- apiGroups: [apiextensions.k8s.io]
+  resources: [customresourcedefinitions]
+  resourceNames:
+  - tenants.finops.re8ch.com
+  - tenants.tenancy.re8ch.com
+  verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-runtime-tenant-crd-authority
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-runtime-tenant-crd-authority
 subjects:
 - apiGroup: rbac.authorization.k8s.io
   kind: Group

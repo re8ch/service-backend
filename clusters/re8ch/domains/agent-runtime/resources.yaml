@@ -1545,6 +1545,7 @@ rules:
   - ""
   resourceNames:
   - ssa-state-agent-runtime-domain-tenant-infrastructure
+  - ssa-state-agent-runtime-tenant-crd-authority
   - tenant-platform-modules
   resources:
   - configmaps
@@ -1797,6 +1798,25 @@ rules:
   verbs:
   - get
   - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-tenant-crd-authority
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resourceNames:
+  - tenants.finops.re8ch.com
+  - tenants.tenancy.re8ch.com
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -2575,6 +2595,21 @@ subjects:
 - kind: ServiceAccount
   name: retire-toolhive-session-redis
   namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    delivery.re8ch.com/rbac-profile: agent-runtime
+  name: agent-runtime-tenant-crd-authority
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-runtime-tenant-crd-authority
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-executor:agent-runtime
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -4217,6 +4252,17 @@ metadata:
     delivery.re8ch.com/authority-domain: agent-runtime
     delivery.re8ch.com/state: accepted
   name: ssa-state-agent-runtime-domain-tenant-infrastructure
+  namespace: tenant-infrastructure
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  labels:
+    delivery.re8ch.com/authority-domain: agent-runtime
+    delivery.re8ch.com/state: accepted
+  name: ssa-state-agent-runtime-tenant-crd-authority
   namespace: tenant-infrastructure
 ---
 apiVersion: v1

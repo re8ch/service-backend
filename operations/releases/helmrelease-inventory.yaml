@@ -781,7 +781,7 @@ releases:
   - file: clusters/re8ch/components/toolhive/operator-release.yaml
     document: 2
   - file: clusters/re8ch/domains/agent-runtime/resources.yaml
-    document: 278
+    document: 281
   classification:
     id: helmrelease:flux-system:toolhive-operator
     disposition: retain-helm-lifecycle
