@@ -488,9 +488,41 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - daemonsets
+  resourceNames:
+  - cube-recovery-node
+  - cube-recovery-node-bootstrap
+  - cube-recovery-node-installer
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
   - deployments
   resourceNames:
+  - cube-compocv-router
+  - cube-recovery-api
+  - cube-recovery-cubemastercli
+  - cube-recovery-lifecycle-manager
+  - cube-recovery-master
+  - cube-recovery-ops
+  - cube-recovery-proxy
+  - cube-recovery-webui
+  - cube-warehouse-minio
   - oauth2-proxy-cube
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  resourceNames:
+  - cube-recovery-mysql
+  - cube-recovery-redis
   verbs:
   - get
   - patch
@@ -500,6 +532,11 @@ rules:
   resources:
   - configmaps
   resourceNames:
+  - cube-compocv-router
+  - cube-recovery-cubevs-cidr-preflight
+  - cube-recovery-proxy-entrypoint
+  - cube-recovery-redis
+  - cube-recovery-webui-config
   - cube-trial-values
   - ssa-state-agent-runtime-domain-cube-trial
   verbs:
@@ -509,8 +546,29 @@ rules:
 - apiGroups:
   - ''
   resources:
+  - persistentvolumeclaims
+  resourceNames:
+  - cube-recovery-master-storage
+  - cube-warehouse-minio
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ''
+  resources:
   - services
   resourceNames:
+  - cube-compocv-router
+  - cube-recovery-api
+  - cube-recovery-lifecycle-manager
+  - cube-recovery-master
+  - cube-recovery-mysql
+  - cube-recovery-ops
+  - cube-recovery-proxy
+  - cube-recovery-redis
+  - cube-recovery-webui
+  - cube-warehouse-minio
   - oauth2-proxy-cube
   verbs:
   - get
@@ -532,6 +590,18 @@ rules:
   - ingresses
   resourceNames:
   - cube-dns-authority
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  resourceNames:
+  - cube-compocv-router
+  - cube-recovery-internal
+  - cube-warehouse-minio
   verbs:
   - get
   - patch
