@@ -6,4 +6,4 @@ metadata:
   labels:
     reconcile.fluxcd.io/watch: Enabled
 data:
-  image: ghcr.io/re8ch/service-backend-tenant-mcp@sha256:1b2313f58a31641b6e6b0da13c9ab6a3d4bdcaf6780c7ed5ae16f1611bba3df5
+  image: ghcr.io/re8ch/service-backend-tenant-mcp@sha256:76b83c4fe55e94870f61df42acd42539d67947e91dae2f43287abccaa7564a8b
