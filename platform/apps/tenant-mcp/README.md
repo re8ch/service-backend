@@ -182,6 +182,11 @@ contract:
   "entrypoint": "service_instance_update",
   "requestField": "spec",
   "planApply": true,
+  "credentialCapabilities": [
+    "governance", "delivery", "security", "collaboration",
+    "developer-ai", "identity", "billing"
+  ],
+  "deniedOperations": ["delete"],
   "resources": [
     "repository_ruleset",
     "organization_ruleset",
@@ -199,18 +204,19 @@ be used as fallback transports.
 
 The caller must be an `admin` member in the hidden `admin` organization, the
 `integration.github.enterprise-governance.v1` grant must be Active, and the
-singleton must be Ready. The runtime resolves the GitHub App installation for
-the requested `owner`, creates a short-lived installation token, performs only
+singleton must be Ready. The runtime selects `spec.capability` (default
+`governance`), resolves that App installation for the requested `owner`, creates
+a short-lived installation token, performs only
 the operation pairs listed below, and returns an operation-specific
 `github-governance://` audit reference. It never returns the private key or
 installation token.
 
 | `spec.resource` | Required selectors | Operations |
 | --- | --- | --- |
-| `repository_ruleset` | `owner`, `repo`; `id` for get/update/delete | list/get/create/update/delete |
-| `organization_ruleset` | `owner`; `id` for get/update/delete | list/get/create/update/delete |
-| `repository_variable` | `owner`, `repo`; `name` except for list | list/get/create/update/delete |
-| `organization_variable` | `owner`; `name` except for list | list/get/create/update/delete |
+| `repository_ruleset` | `owner`, `repo`; `id` for get/update | list/get/create/update |
+| `organization_ruleset` | `owner`; `id` for get/update | list/get/create/update |
+| `repository_variable` | `owner`, `repo`; `name` except for list | list/get/create/update |
+| `organization_variable` | `owner`; `name` except for list | list/get/create/update |
 | `organization` | `owner` | get/update |
 
 Organization updates are restricted to the provider allowlist: `name`,
@@ -221,6 +227,10 @@ Organization updates are restricted to the provider allowlist: `name`,
 corresponding GitHub REST API payloads, but the adapter selects the endpoint;
 callers cannot supply a URL or HTTP method.
 
+Every operation named `delete` is rejected before credential selection. This
+is a shared service invariant for all seven Apps. Permissions that inherently
+include repository deletion are not granted write access.
+
 Reads omit `apply` and execute immediately. For a mutation, first submit the
 intended `spec` without `apply`. The response contains `applied: false`, the
 bounded method and path, `planHash`, and `credentialMaterialReturned: false`.
@@ -229,10 +239,10 @@ read the resource back from GitHub. A changed body, selector, or operation
 invalidates the hash. Use a distinct outer `idempotency_key` for every logical
 preview or apply request.
 
-The 2026-11-10 production acceptance used this path to list the effective
-Rulesets for `re8ch/service-backend`, read the `re8ch` organization settings,
-and create, read, delete, and confirm absence of a non-secret repository
-Variable. A successful read or write proves only the requested organization,
+The 2026-11-10 production acceptance used the predecessor contract to list the
+effective Rulesets for `re8ch/service-backend`, read the `re8ch` organization
+settings, and exercise a non-secret repository Variable lifecycle. The current
+contract rejects deletion for every capability. A successful read or write proves only the requested organization,
 resource, and current GitHub App permissions. It does not prove access to
 Secrets, arbitrary REST/GraphQL endpoints, ruleset bypass, or an organization
 where the App is not installed.

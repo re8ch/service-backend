@@ -60,6 +60,18 @@
       "entrypoint": "service_instance_update",
       "requestField": "spec",
       "planApply": true,
+      "credentialCapabilities": [
+        "governance",
+        "delivery",
+        "security",
+        "collaboration",
+        "developer-ai",
+        "identity",
+        "billing"
+      ],
+      "deniedOperations": [
+        "delete"
+      ],
       "resources": [
         "repository_ruleset",
         "organization_ruleset",

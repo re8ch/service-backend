@@ -58,6 +58,8 @@ def test_enterprise_governance_app_does_not_absorb_executor_or_secret_authority(
     assert "workflow-file-write" in spec["capabilities"]["denied"]
     assert "secret-value-return" in spec["capabilities"]["denied"]
     assert "ruleset-bypass" in spec["capabilities"]["denied"]
+    assert repository_permissions["administration"] == "read"
+    assert "delete-operations" in spec["capabilities"]["denied"]
 
 
 def test_governance_changes_are_reviewed_and_verified():
@@ -96,6 +98,8 @@ def test_enterprise_suite_uses_durable_responsibility_boundaries():
         "enterprise-billing",
     } <= responsibilities
     assert "ruleset-bypass" in spec["exclusions"]
+    assert "all-delete-operations" in spec["exclusions"]
+    assert spec["coverageContract"]["operationUnion"] == "all-supported-non-delete-github-api-operations"
 
 
 def test_installation_matrix_covers_every_observed_enterprise_organization():

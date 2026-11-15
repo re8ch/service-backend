@@ -103,10 +103,21 @@ spec:
     - copilot-business-seats
     - copilot-usage-and-metrics
   exclusions:
+  - all-delete-operations
+  - write-permissions-that-inherently-grant-repository-deletion
   - user-account-permissions-without-an-implemented-oauth-callback
   - plaintext-secret-or-private-key-return
   - ruleset-bypass
   coverageContract:
+    serviceInstanceCapabilities:
+    - governance
+    - delivery
+    - security
+    - collaboration
+    - developer-ai
+    - identity
+    - billing
+    operationUnion: all-supported-non-delete-github-api-operations
     discoverySource: live-github-app-registration-form
     coverageUnit: permission-name-and-access-level
     requiredEvidence:
