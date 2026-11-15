@@ -187,6 +187,14 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		method, path = http.MethodGet, "/orgs/"+owner
 	case "organization:update":
 		method, path = http.MethodPatch, "/orgs/"+owner
+	case "workflow:dispatch":
+		method, path = http.MethodPost, "/repos/"+owner+"/"+in.Repo+"/actions/workflows/"+url.PathEscape(in.Name)+"/dispatches"
+	case "workflow_run:get":
+		method, path = http.MethodGet, fmt.Sprintf("/repos/%s/%s/actions/runs/%d", owner, in.Repo, in.ID)
+	case "workflow_run:rerun":
+		method, path = http.MethodPost, fmt.Sprintf("/repos/%s/%s/actions/runs/%d/rerun", owner, in.Repo, in.ID)
+	case "workflow_run:rerun_failed":
+		method, path = http.MethodPost, fmt.Sprintf("/repos/%s/%s/actions/runs/%d/rerun-failed-jobs", owner, in.Repo, in.ID)
 	default:
 		return "", "", nil, errors.New("unsupported governance resource and operation")
 	}
@@ -200,6 +208,26 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 	}
 	if strings.Contains(in.Resource, "repository") && in.Repo == "" {
 		return "", "", nil, errors.New("repository is required")
+	}
+	if (in.Resource == "workflow" || in.Resource == "workflow_run") && in.Repo == "" {
+		return "", "", nil, errors.New("repository is required")
+	}
+	if in.Resource == "workflow" {
+		if in.Name == "" {
+			return "", "", nil, errors.New("workflow name is required")
+		}
+		ref, ok := in.Body["ref"].(string)
+		if !ok || !githubGovernanceName.MatchString(ref) {
+			return "", "", nil, errors.New("workflow dispatch requires a valid ref")
+		}
+		for field := range in.Body {
+			if field != "ref" && field != "inputs" {
+				return "", "", nil, fmt.Errorf("workflow dispatch field %q is not allowlisted", field)
+			}
+		}
+	}
+	if in.Resource == "workflow_run" && in.ID <= 0 {
+		return "", "", nil, errors.New("workflow run id is required")
 	}
 	if strings.Contains(in.Resource, "variable") && in.Operation != "list" && in.Name == "" {
 		return "", "", nil, errors.New("variable name is required")

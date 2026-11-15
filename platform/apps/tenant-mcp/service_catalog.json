@@ -77,7 +77,9 @@
         "organization_ruleset",
         "repository_variable",
         "organization_variable",
-        "organization"
+        "organization",
+        "workflow",
+        "workflow_run"
       ]
     },
     "parameters": [],
