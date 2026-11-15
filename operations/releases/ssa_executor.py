@@ -607,10 +607,6 @@ class Executor:
             by_identity.update({object_identity(item): item for item in selected_objects})
         if not selected_objects and not finalize:
             raise Rejected("stage selection contains no objects")
-        for stage in stages:
-            stage_objects = [by_identity[identity] for identity in stage["inventory"]]
-            self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force,
-                       require_existing=contract["spec"]["authorization"].get("requireExisting", False))
         if observe_only:
             lifecycle = contract["spec"]["lifecycle"]
             try:
@@ -629,6 +625,10 @@ class Executor:
             validate_schema(result, "release-operation-result.schema.json")
             store.save_result(result)
             return result
+        for stage in stages:
+            stage_objects = [by_identity[identity] for identity in stage["inventory"]]
+            self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force,
+                       require_existing=contract["spec"]["authorization"].get("requireExisting", False))
         attempted_inventory, applied_inventory = [], []
         command_timed_out = False
         try:
