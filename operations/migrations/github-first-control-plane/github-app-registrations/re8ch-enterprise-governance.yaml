@@ -91,6 +91,7 @@ spec:
     - projects-v2
     - repository-settings
     - workflow-dispatch
+    - workflow-rerun
     denied:
     - repository-content-write
     - workflow-file-write

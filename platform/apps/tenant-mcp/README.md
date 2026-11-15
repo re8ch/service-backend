@@ -192,7 +192,9 @@ contract:
     "organization_ruleset",
     "repository_variable",
     "organization_variable",
-    "organization"
+    "organization",
+    "workflow",
+    "workflow_run"
   ]
 }
 ```
@@ -218,6 +220,8 @@ installation token.
 | `repository_variable` | `owner`, `repo`; `name` except for list | list/get/create/update |
 | `organization_variable` | `owner`; `name` except for list | list/get/create/update |
 | `organization` | `owner` | get/update |
+| `workflow` | `owner`, `repo`, workflow file in `name`; `ref` and optional `inputs` in `body` | dispatch |
+| `workflow_run` | `owner`, `repo`, run `id` | get/rerun/rerun_failed |
 
 Organization updates are restricted to the provider allowlist: `name`,
 `billing_email`, `company`, `blog`, `location`, `twitter_username`,
