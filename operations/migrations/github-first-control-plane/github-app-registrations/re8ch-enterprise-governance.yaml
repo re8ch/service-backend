@@ -49,7 +49,7 @@ spec:
       variables: write
     repository:
       actions: write
-      administration: write
+      administration: read
       checks: write
       contents: read
       deployments: write
@@ -101,6 +101,8 @@ spec:
     - scim-write
     - billing-write
     - app-private-key-management
+    - delete-operations
+    - repository-deletion
   changeContract:
     phases: [plan, apply, status]
     applyRequires: [reviewed-declaration, installation-scope, idempotency-key]

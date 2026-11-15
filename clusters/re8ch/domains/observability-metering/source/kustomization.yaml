@@ -7,6 +7,12 @@ resources:
 - ../../../secrets/incidentrelay-db-bootstrap.sops.yaml
 - ../../../secrets/incidentrelay-bootstrap-admin.sops.yaml
 - ../../../secrets/incidentrelay-alertmanager-tokens.sops.yaml
+- ../../../secrets/github-enterprise-delivery-app.sops.yaml
+- ../../../secrets/github-enterprise-security-app.sops.yaml
+- ../../../secrets/github-enterprise-collaboration-app.sops.yaml
+- ../../../secrets/github-enterprise-developer-ai-app.sops.yaml
+- ../../../secrets/github-enterprise-identity-app.sops.yaml
+- ../../../secrets/github-enterprise-billing-app.sops.yaml
 - ../../../components/opencost/ui-nginx-config.yaml
 - ../../../components/observability/retire-legacy-qianwen-grafana.yaml
 - ../../../components/ops/kube-state-metrics-stable.yaml

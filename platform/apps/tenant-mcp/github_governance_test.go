@@ -53,7 +53,18 @@ func TestGitHubGovernanceOrganizationUpdateFields(t *testing.T) {
 func TestGitHubGovernanceCredentialFailsClosed(t *testing.T) {
 	t.Setenv("GITHUB_GOVERNANCE_APP_ID", "")
 	t.Setenv("GITHUB_GOVERNANCE_PRIVATE_KEY", "")
-	if _, err := githubGovernanceJWT(); err == nil || !strings.Contains(err.Error(), "not configured") {
+	if _, err := githubGovernanceJWT("governance"); err == nil || !strings.Contains(err.Error(), "not configured") {
 		t.Fatalf("missing credential accepted: %v", err)
+	}
+	if _, err := githubGovernanceJWT("unknown"); err == nil || !strings.Contains(err.Error(), "unsupported") {
+		t.Fatalf("unknown capability accepted: %v", err)
+	}
+}
+
+func TestGitHubGovernanceRejectsEveryDeleteOperation(t *testing.T) {
+	for resource := range map[string]bool{"repository_ruleset": true, "organization_ruleset": true, "repository_variable": true, "organization_variable": true, "organization": true} {
+		if _, _, _, err := githubGovernanceRequest(githubGovernanceInput{Resource: resource, Operation: "delete", Owner: "re8ch", Repo: "service-backend", Name: "X", ID: 1}); err == nil || !strings.Contains(err.Error(), "not available") {
+			t.Fatalf("delete accepted for %s: %v", resource, err)
+		}
 	}
 }
