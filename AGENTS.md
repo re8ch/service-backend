@@ -23,6 +23,18 @@ webhooks/Actions plus the bounded cloud SSA executor are the sole GitOps
 delivery path; emergency recovery must replay an accepted immutable artifact
 through that same path, never introduce a second writer.
 
+## Reconciliation incident method
+
+Before changing a workflow or RBAC during a reconcile incident, read
+`docs/GITHUB_OPS_RECONCILE_DEBUGGING.md`. Diagnose the first failing boundary
+and compare reviewed Git state, the actual Actions OIDC identity, and live
+runtime authorization. Use an exact server-side dry-run for positive write
+proof; remember that an expected `kubectl auth can-i` result of `no` normally
+exits non-zero. Never print credentials, infer success from an intermediate log
+line, restore local Flux, or use broad force-conflicts. Dispatch workflows via
+the Admin Governance service and require a terminal successful run plus runtime
+read-back before declaring recovery.
+
 Generated module MEMORY is reviewable desired context. Repository-root AGENTS.md remains authoritative when a product supplies one; generated context never replaces or injects repository instructions.
 
 ## GitHub-native governance and delivery
