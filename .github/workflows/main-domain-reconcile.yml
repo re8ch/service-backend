@@ -27,7 +27,9 @@ jobs:
     needs: select
     strategy:
       fail-fast: false
-      max-parallel: 3
+      # The public API edge is deliberately bounded. Parallel discovery bursts
+      # have caused otherwise valid identities to fail with transient EOFs.
+      max-parallel: 1
       matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
     concurrency:
       group: main-domain-release-${{ matrix.contract }}
@@ -72,12 +74,23 @@ jobs:
           kubectl config --kubeconfig "$kubeconfig" set-context release-executor --cluster=re8ch-main --user=release-executor
           kubectl config --kubeconfig "$kubeconfig" use-context release-executor
           export KUBECONFIG="$kubeconfig"
+          can_i() {
+            local attempt output
+            for attempt in 1 2 3 4 5; do
+              if output="$(kubectl auth can-i "$@")"; then
+                printf '%s\n' "$output"
+                return 0
+              fi
+              sleep $((attempt * 2))
+            done
+            return 1
+          }
           state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"
-          test "$(kubectl auth can-i patch "configmap/$state_name" -n "$TARGET_NAMESPACE")" = yes
+          test "$(can_i patch "configmap/$state_name" -n "$TARGET_NAMESPACE")" = yes
           for denied in "create configmaps -n $TARGET_NAMESPACE" "get secrets -n $TARGET_NAMESPACE" \
             'patch kustomizations.kustomize.toolkit.fluxcd.io -n flux-system' "get pods/log -n $TARGET_NAMESPACE" \
             "create serviceaccounts/token -n $TARGET_NAMESPACE" 'impersonate users'; do
-            read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no
+            read -r -a request <<<"$denied"; test "$(can_i "${request[@]}")" = no
           done
           echo "KUBECONFIG=$kubeconfig" >> "$GITHUB_ENV"
       - id: accepted
