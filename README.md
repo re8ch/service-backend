@@ -1,261 +1,70 @@
 # RE8CH Service Backend
 
-<!-- gitops-status:start -->
-[![Reconcile](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
 [![Control plane CI](https://github.com/re8ch/service-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/ci.yml?query=branch%3Amain)
+[![Reconcile](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
 [![Security checks](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml?query=branch%3Amain)
-[![Policy reviewer](https://github.com/re8ch/service-backend/actions/workflows/github-policy-reviewer.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/github-policy-reviewer.yml?query=branch%3Amain)
-[![Receipt dispatch](https://github.com/re8ch/service-backend/actions/workflows/gitops-receipt-observation.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/gitops-receipt-observation.yml?query=branch%3Amain)
-
-These live badges show the latest workflow result on `main`, including scheduled
-and manual runs. Reconcile runs can cover a single release; a passing badge is
-not proof that every release is healthy or that SSA changed an object. Open the
-run for its release scope, accepted digest, comparison, apply and health results.
-The [domain observation Project](https://github.com/orgs/re8ch/projects/4) retains release-level evidence;
-receipt dispatch and governance checks do not replace runtime health verification.
-Private workflow badges require repository access.
-<!-- gitops-status:end -->
 
 GitHub-first collaboration and desired state for the RE8CH platform. GitHub
-Issues are work/events, pull requests are proposals, signed commits are state
-transitions, and Actions/webhooks are reactions. Kubernetes remains the runtime,
-the bounded cloud SSA executor is the only GitOps writer, Headlamp is the
-inspection GUI, and raw telemetry stays in the observability backends.
+stores reviewed intent and delivery evidence; Kubernetes owns runtime state;
+GitHub Actions and the bounded cloud SSA executor apply accepted immutable
+artifacts; Headlamp and observability systems expose live state.
 
-GitLab is retained only as a read-only historical archive. GitHub is the sole
-collaboration and GitOps authority; dual-write collaboration is forbidden.
+## Collaboration model
 
-## Public contribution and release evidence
+Every change follows one connected context chain:
 
-We intend to share this control-plane code and its non-secret history freely as
-a contribution to the software community. Active credentials are excluded from
-that publication policy and must remain in the approved secret stores. Public
-visibility does not replace the repository's applicable license terms.
+```text
+Project → parent Issue → Issue → branch/worktree → signed commits → pull request
+        → checks → merge → runtime evidence → Project status
+```
 
-[Cloud release view](https://re8ch.github.io/service-backend/) reads GitHub
-Checks, Deployments and Flux commit statuses without connecting to the cluster.
-Expired or unavailable runtime evidence is shown as unknown.
+- A Project represents a product, service or governance domain.
+- Parent Issues represent outcomes or historical phases.
+- Issues define one reviewable change and provide the PR's closing context.
+- A branch and worktree belong to one Issue and one concern.
+- Commits explain the smallest coherent state transition.
+- Pull requests link the Issue and reuse each CI class once per revision.
+- Project fields record status, type, lifecycle and dates.
+- Runtime observations, Kubernetes output and investigation narratives live in
+  Issues, Discussions, Wiki or the observability backend.
 
-## Restricted infrastructure context
+Use [the Project context template](.github/PROJECT_CONTEXT_TEMPLATE.md) when
+creating or reconstructing a Project. Its standard views are `List`, `Status`
+and `Timeline`.
 
-The versioned topology is restricted. Read `contracts/network-topology/README.md`
-for the authenticated runtime API and protected member/App diagnostic workflow.
-The public inventory path is an immutable reference, not executable node data.
-Do not infer endpoint, route, failover or storage behavior from an old MEMORY.
+## Repository scope
 
-## GitHub-native GitOps control plane
+- `catalogs/`: product catalogs and locked source revisions
+- `clusters/re8ch/`: cluster desired-state composition
+- `platform/`: shared platform applications and capabilities
+- `inventory/`: non-secret infrastructure inventory
+- `operations/`: release, reconciliation and host-bound operations
+- `runbooks/`: operational procedures and historical investigations
+- `schemas/`: declarative contracts
+- `tests/`: policy and contract verification
 
-Local Flux Source, Kustomize, Helm, Notification, image automation and
-compatibility controllers are permanently retired and forbidden. They must not be restored,
-scaled above zero, bootstrapped, repaired, proxied or used as an emergency
-fallback. GitHub webhooks and Actions select reviewed immutable artifacts; the
-bounded cloud SSA executors are the only runtime writers. Retained Flux CRDs,
-custom resources and manifests are migration/history inputs, not authorization
-to run a controller or create a second writer.
-
-Four domains retain independent repositories and cloud SSA identities:
-
-| Domain | Historical namespace | Desired-state repository |
-| --- | --- | --- |
-| Agent | `flux-agent-system` | `re8ch-ai/agent-gitops` |
-| Identity | `flux-identity-system` | `re8ch/identity-gitops` |
-| Observability | `flux-observability-system` | `siren-observer/observability-gitops` |
-| Network | `flux-network-system` | `pillars-infra/network-gitops` |
-
-The platform repository owns shared CRDs, namespaces, global RBAC, Gateway
-authority and Secret/policy boundaries. Each domain repository owns its
-reviewed release contracts and accepted immutable artifact state. No repository,
-workflow, bootstrap process or operator may recreate a local Flux writer.
-
-The machine-readable authority ledger is
+Product source remains in its independent repository. The authority ledger is
 [`operations/flux-federation/authority.yaml`](operations/flux-federation/authority.yaml),
-and the operational contract is documented in
+and domain delivery is described in
 [`operations/releases/DOMAIN-RECONCILIATION.md`](operations/releases/DOMAIN-RECONCILIATION.md).
 
-## Layout
+## Working here
 
-- `clusters/re8ch`: Flux bootstrap and cluster desired-state components
-- `platform`: platform controllers, applications, clients and plugins
-- `inventory`: non-secret infrastructure targets
-- `plugins`: generated-tool source declarations and policy overlays
-- `operations`: automation, host/network operations and control-plane runtimes
-- `runbooks`: release, investigation, incident and rollback procedures
-- `schemas`: declarative API schemas
-- `tests`: policy and contract tests
+Run `python operations/workspace-controller/workspace.py doctor`, then create a
+task worktree from `github/main`. Follow
+[`operations/workspace-controller/GITOPS-WORKTREE-POLICY.md`](operations/workspace-controller/GITOPS-WORKTREE-POLICY.md)
+and the root [`AGENTS.md`](AGENTS.md).
 
-External frontend/backend repositories use the digest-pinned GitOps deployment
-entry point documented in [`runbooks/external-project-deployment.md`](runbooks/external-project-deployment.md).
-It renders isolated Kubernetes resources for review without distributing
-cluster credentials.
+Keep desired configuration declarative, code small and comments focused on
+non-obvious invariants. Link durable operational context from Issues and Wiki.
 
-Independently released MCP gateways, providers and platform agents use the
-[`GitHub-native agent and provider publisher runbook`](operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md).
-It keeps builds on GitHub-hosted runners, promotes signed immutable digests, and
-requires runtime plus public-plugin evidence before declaring delivery complete.
+Credential configuration in Git contains names, scopes and rotation requirements;
+approved secret systems contain values.
 
-Pure static frontends bypass Harbor and Kubernetes: they publish either their
-source directory or compiled output directly to Firebase/shared object storage,
-Tencent COS, Aliyun OSS, or Cloudflare with the provider-native CLI/API. The
-enforced contract is documented in
-[`operations/public-sites/README.md`](operations/public-sites/README.md).
+## Entry points
 
-No plaintext credential belongs in this repository. Runtime identities refer to
-Kubernetes Secrets or SOPS-encrypted values and never return credential material
-to MCP callers.
-
-## Re8ch self-service
-
-The current `Re8ch` plugin is the single entry for tenant self-service. Check
-`tenant_access_status` when organization scope matters, discover
-`tenant_self_service_capabilities`, and call the exact published operation.
-Confirm a real read or plan result before reporting a capability as working.
-Tenant Kubernetes tools are scoped to allowlisted kinds and Ready namespaces
-owned by the active organization; they are not unrestricted cluster `kubectl`.
-
-Older Cloud Platform connections are not prerequisites or health checks for
-tenant self-service. `platform_tool_call` is not a supported or enabled user
-capability, and raw `kubectl.exec`-style execution must not be a prerequisite
-for tenant services. A legacy capability description is not authorization.
-
-### Tenant-aware AI tool gateway
-
-`tools.service.re8ch.com` retains its public URL and OAuth contract. ConnecTool
-v0.6.9 resolves the OAuth-authoritative `tenantRef`, combines tenant-core tools
-with only the providers visible to that tenant, and forwards MCP content
-negotiation, protocol, method and session metadata without exposing provider
-credentials. The installed Re8ch plugin has successfully exercised
-`tenant_organization_context_list`, `tenant_self_service_capabilities`, and
-`service_catalog_list` through this path for the active `admin` tenant.
-
-The supported tenant control-plane families are:
-
-| Family | Responsibility |
-| --- | --- |
-| `tenant_claim_*` | Managed compute and storage lifecycle, TTL and usage metering |
-| `service_instance_*` | Standard and custom service instance lifecycle |
-| `service_binding_*` | Opaque bindings; callers receive references, not credentials |
-| Secret broker | Materialize a binding into its workload without reading the Secret back |
-| Catalog and Bifurcate | Tenant-scoped discovery, status and `UsageEvent` metering |
-
-Provider presence is runtime evidence, not a static promise. The authenticated
-Admin catalog currently proves GitHub Enterprise Governance only. These
-independent providers are the next rollout stage and are not yet live:
-
-| Provider | Stable service class | Current state |
-| --- | --- | --- |
-| PostgreSQL | `database.postgresql.shared.v1` | Pending; database capability reports `unverified` |
-| Registry | `registry.oci.harbor.v1` | Pending independent-provider rollout |
-| Observability | `observability.stack.v1` | Pending independent-provider rollout |
-
-Each provider must ship as one immutable signed artifact through the bounded
-GitHub Actions publisher, then pass catalog registration, provider health,
-tenant isolation, instance lifecycle, opaque binding and UsageEvent acceptance.
-A merged PR, published image or Ready Pod alone is not proof that an AI tool is
-usable; acceptance requires an authenticated plugin call.
-
-### Re8ch Admin GitHub Enterprise governance
-
-The `admin` organization has one platform-owned singleton service instance for
-bounded GitHub Enterprise governance:
-
-- service class: `integration.github.enterprise-governance.v1`
-- resource reference: `service://admin/github-enterprise-governance`
-- model-callable entry point: the existing `service_instance_update` tool
-- credential model: a GitHub App installation token minted inside the provider;
-  the App private key and token are never returned to the caller
-
-This is a Re8ch Admin service capability, not a new top-level plugin tool or a
-generic GitHub API proxy. It requires the authenticated session to use the
-`admin` tenant with the `admin` role, an Active governance grant, and a Ready
-singleton instance. Discover both `tenant_self_service_capabilities` and
-`service_catalog_list` before use; the catalog must advertise an
-`operationContract` whose entry point is `service_instance_update`.
-
-Invocation is cloud-to-cloud: the provider mints the short-lived installation
-token and calls the allowlisted `https://api.github.com` endpoint directly. It
-does not dispatch through Flux, a Kubernetes operator, a Git checkout, SSH, or
-a cluster Secret write path. Those systems are not recovery or fallback paths
-for this service capability.
-
-The current contract supports repository and organization Rulesets, repository
-and organization Actions Variables, and allowlisted organization settings.
-Reads execute immediately. Every create, update, or delete first returns a
-preview containing `method`, `path`, and `planHash`; apply only the unchanged
-request with `apply: true` and that exact hash, then read back the effective
-GitHub state. For example, a repository Ruleset read uses:
-
-```json
-{
-  "resource_ref": "service://admin/github-enterprise-governance",
-  "idempotency_key": "read-service-backend-rulesets-v1",
-  "spec": {
-    "resource": "repository_ruleset",
-    "operation": "list",
-    "owner": "re8ch",
-    "repo": "service-backend"
-  }
-}
-```
-
-Supported resource and operation pairs are:
-
-| Resource | Operations |
-| --- | --- |
-| `repository_ruleset` | `list`, `get`, `create`, `update`, `delete` |
-| `organization_ruleset` | `list`, `get`, `create`, `update`, `delete` |
-| `repository_variable` | `list`, `get`, `create`, `update`, `delete` |
-| `organization_variable` | `list`, `get`, `create`, `update`, `delete` |
-| `organization` | `get`, `update` for provider-allowlisted fields |
-
-Live acceptance on 2026-11-10 read the effective Rulesets for
-`re8ch/service-backend`, read the `re8ch` organization settings, and completed
-a repository Variable create/read/delete cycle. That evidence proves these
-specific operations and installation permissions; it does not authorize
-Secrets, arbitrary REST/GraphQL calls, ruleset bypass, or organizations where
-the governance App is not installed. The implementation and rollout contract
-are documented in [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md#re8ch-admin-github-enterprise-governance-service).
-
-## Federated workspace
-
-`catalogs/` groups independent Git repositories into product catalogs. Every
-non-root module is a real Git submodule at `catalogs/<catalog>/modules/<module>/source`.
-Each `module.yaml` records ownership, project identity, knowledge, tools and
-deployments. `workspace/workspace.lock.yaml` mirrors each gitlink commit for
-machine-readable indexing and drift detection.
-
-```sh
-python operations/workspace-controller/workspace.py doctor
-python operations/workspace-controller/workspace.py scan
-python operations/workspace-controller/workspace.py status
-git submodule update --init catalogs/platform/modules/cloud-functions/source
-python operations/workspace-controller/workspace.py context --module cloud-functions
-```
-
-Developers use each concrete A1 project checkout or a project-local Git
-worktree. There is no shared RE8CH checkout tree. GitHub remains product source
-authority. This repository is the catalog/GitOps authority and its signed GitHub
-`main` is the Flux source.
-
-The cross-repository development context is declared in
-[`workspace/developer-context.yaml`](workspace/developer-context.yaml) and
-rendered to [`indexes/developer-context.json`](indexes/developer-context.json).
-It connects this control plane to every catalog module and autonomous GitOps
-repository, and defines Codespaces, task worktrees, Wiki, Projects and Gists as
-bounded collaboration surfaces. See
-[`operations/developer-context/README.md`](operations/developer-context/README.md).
-
-The cluster and platform history formerly stored in
-`re8ch/cloud-functions` was imported on 2026-08-24. Its old-to-new commit maps
-are maintained under `operations/migrations/cloud-functions-history/`.
-
-## Independent SSA and Observe actions
-
-Reconcile reports SSA execution and runtime observation separately. The SSA step
-validates authorization and the signed accepted artifact, performs server-side
-dry-run and apply, then records `outcome: applied` and `acceptedDigest`. It does
-not claim a healthy runtime. The following read-only Observe step publishes a
-separate observation artifact and records healthy, degraded or unknown health.
-Runtime health does not fail SSA, lock the release or trigger rollback. Signature,
-authorization, field ownership and API write failures remain execution failures.
-Legacy `healthyDigest` is only a fallback for older accepted records; new replay
-authorization uses the explicitly accepted digest without inventing health proof.
+- External project delivery: [`runbooks/external-project-deployment.md`](runbooks/external-project-deployment.md)
+- GitHub-native publishers: [`operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md`](operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md)
+- Static public sites: [`operations/public-sites/README.md`](operations/public-sites/README.md)
+- Tenant self-service: [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md)
+- Restricted topology access: [`contracts/network-topology/README.md`](contracts/network-topology/README.md)
