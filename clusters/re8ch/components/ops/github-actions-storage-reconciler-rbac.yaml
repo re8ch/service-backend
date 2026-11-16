@@ -1,0 +1,45 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: storage-reconciler-toolhive-system
+  namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/rbac-profile: data-storage-reconciler
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - ssa-state-main-data-storage-toolhive-system
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpservers
+  resourceNames:
+  - cloud-disk-mcp
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: storage-reconciler-toolhive-system
+  namespace: toolhive-system
+  labels:
+    delivery.re8ch.com/rbac-profile: data-storage-reconciler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: storage-reconciler-toolhive-system
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: re8ch:release-reconciler:data-storage
