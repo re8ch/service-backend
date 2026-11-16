@@ -85,6 +85,7 @@ jobs:
           kubectl config --kubeconfig "$kubeconfig" set-context release-executor --cluster=re8ch-main --user=release-executor
           kubectl config --kubeconfig "$kubeconfig" use-context release-executor
           export KUBECONFIG="$kubeconfig"
+          kubectl auth whoami
           can_i() {
             local attempt output status
             for attempt in 1 2 3 4 5; do
