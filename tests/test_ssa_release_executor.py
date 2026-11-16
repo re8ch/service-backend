@@ -206,6 +206,20 @@ def test_observe_only_health_read_failure_is_degraded_without_sensitive_diagnost
     assert "fixture-secret" not in json.dumps(result)
 
 
+def test_observe_only_dry_run_conflict_is_degraded_without_sensitive_diagnostics(tmp_path):
+    value, operation, bundle_path = prepare(tmp_path)
+    base = Runner()
+    def runner(argv, **kwargs):
+        if argv[:2] == ["kubectl", "apply"]:
+            raise executor.Rejected("field conflict contains fixture-secret")
+        return base(argv, **kwargs)
+    result = executor.Executor(runner=runner, now=lambda: NOW).reconcile(
+        value, operation, bundle_path, tmp_path / "state", verify_signature=False, observe_only=True)
+    assert result["outcome"] == "degraded" and result["health"]["status"] == "degraded"
+    assert result["health"]["reason"] == "server-side dry-run unavailable; diagnostics withheld"
+    assert "fixture-secret" not in json.dumps(result)
+
+
 @pytest.mark.parametrize("fault", [None, "payload", "inventory", "empty-stages"])
 def test_signed_legacy_bundle_replays_without_repacking_or_skipping_validation(tmp_path, fault):
     from jsonschema import ValidationError
