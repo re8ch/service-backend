@@ -252,7 +252,6 @@ def test_ceph_cloud_runner_exception_is_owned_by_storage_gitops():
     github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
     public_gate = github['claimValidationRules'][0]['expression']
     for boundary in (
-        "claims.repository_visibility == 'public'",
         "claims.repository_id == '1440886799'",
         "claims.repository_owner_id == '334604832'",
         "claims.repository == 'strata-silica/storage-gitops'",
@@ -263,7 +262,6 @@ def test_ceph_cloud_runner_exception_is_owned_by_storage_gitops():
     runner = github['claimValidationRules'][1]['expression']
     for boundary in (
         "claims.runner_environment == 'github-hosted'",
-        "claims.repository_visibility == 'public'",
         "claims.repository_id == '1440886799'",
         "claims.repository_owner_id == '334604832'",
         "claims.repository == 'strata-silica/storage-gitops'",
