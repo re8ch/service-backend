@@ -108,8 +108,22 @@ jobs:
             done
             return 1
           }
+          prove_patch() {
+            local attempt output
+            for attempt in 1 2 3 4 5; do
+              if output="$(kubectl patch configmap "$1" -n "$TARGET_NAMESPACE" \
+                --type=merge --patch '{}' --dry-run=server -o name 2>&1)"; then
+                printf '%s\n' "$output"
+                return 0
+              fi
+              printf 'server-side dry-run patch attempt %s/5 failed: %s\n' \
+                "$attempt" "$output" >&2
+              sleep $((attempt * 2))
+            done
+            return 1
+          }
           state_name="$(python operations/releases/operation_materialize.py state-name --release-id "$RELEASE_ID")"
-          test "$(can_i patch "configmap/$state_name" -n "$TARGET_NAMESPACE")" = yes
+          prove_patch "$state_name"
           for denied in "create configmaps -n $TARGET_NAMESPACE" "get secrets -n $TARGET_NAMESPACE" \
             'patch kustomizations.kustomize.toolkit.fluxcd.io -n flux-system' "get pods/log -n $TARGET_NAMESPACE" \
             "create serviceaccounts/token -n $TARGET_NAMESPACE" 'impersonate users'; do
