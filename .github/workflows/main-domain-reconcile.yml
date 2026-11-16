@@ -67,6 +67,17 @@ jobs:
           curl -fsS --get -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=$EXECUTOR_AUDIENCE" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL" > "$RUNNER_TEMP/oidc.json"
           token="$(jq -r .value "$RUNNER_TEMP/oidc.json")"; echo "::add-mask::$token"
+          TOKEN="$token" python - <<'PY'
+          import base64, datetime as dt, json, os
+          payload = os.environ["TOKEN"].split(".")[1]
+          payload += "=" * (-len(payload) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(payload))
+          for name in ("iat", "nbf", "exp"):
+              if name in claims:
+                  when = dt.datetime.fromtimestamp(claims[name], tz=dt.timezone.utc)
+                  print(f"OIDC {name}={when.isoformat()}")
+          print(f"OIDC now={dt.datetime.now(dt.timezone.utc).isoformat()}")
+          PY
           kubeconfig="$RUNNER_TEMP/executor.kubeconfig"
           kubectl config --kubeconfig "$kubeconfig" set-cluster re8ch-main --server=https://kube-api.service.re8ch.com \
             --certificate-authority="$RUNNER_TEMP/re8ch-ca.crt" --embed-certs=true
@@ -75,12 +86,15 @@ jobs:
           kubectl config --kubeconfig "$kubeconfig" use-context release-executor
           export KUBECONFIG="$kubeconfig"
           can_i() {
-            local attempt output
+            local attempt output status
             for attempt in 1 2 3 4 5; do
-              if output="$(kubectl auth can-i "$@")"; then
+              if output="$(kubectl auth can-i "$@" 2>&1)"; then
                 printf '%s\n' "$output"
                 return 0
               fi
+              status=$?
+              printf 'kubectl auth can-i attempt %s/5 failed (status %s): %s\n' \
+                "$attempt" "$status" "$output" >&2
               sleep $((attempt * 2))
             done
             return 1
