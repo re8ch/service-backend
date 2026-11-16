@@ -98,10 +98,14 @@ jobs:
             local attempt output status
             for attempt in 1 2 3 4 5; do
               if output="$(kubectl auth can-i "$@" 2>&1)"; then
+                status=0
+              else
+                status=$?
+              fi
+              if [[ "$output" == yes || "$output" == no ]]; then
                 printf '%s\n' "$output"
                 return 0
               fi
-              status=$?
               printf 'kubectl auth can-i attempt %s/5 failed (status %s): %s\n' \
                 "$attempt" "$status" "$output" >&2
               sleep $((attempt * 2))
