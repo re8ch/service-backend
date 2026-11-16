@@ -9,6 +9,9 @@ stores reviewed intent and delivery evidence; Kubernetes owns runtime state;
 GitHub Actions and the bounded cloud SSA executor apply accepted immutable
 artifacts; Headlamp and observability systems expose live state.
 
+The permanently selected write path is the bounded cloud SSA executor; local
+Flux writers are forbidden.
+
 ## Collaboration model
 
 Every change follows one connected context chain:
