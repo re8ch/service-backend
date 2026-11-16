@@ -422,7 +422,8 @@ jwt:
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-agent-runtime' ? ['re8ch:release-executor:agent-runtime'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-identity-access' ? ['re8ch:release-executor:identity-access'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-observability-metering' ? ['re8ch:release-executor:observability-metering'] :
-          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? ['re8ch:release-reconciler:data-storage'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' && claims.repository == 'strata-silica/storage-gitops' ? ['re8ch:release-reconciler:data-storage'] :
+          claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage' ? ['re8ch:release-executor:data-storage'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-commerce-billing' ? ['re8ch:release-executor:commerce-billing'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-operations-ui' ? ['re8ch:release-executor:operations-ui'] :
           claims.aud == 'https://kube-api.re8ch.com/release-reconciler-tenant-runtime' ? ['re8ch:release-executor:tenant-runtime'] :
