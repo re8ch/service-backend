@@ -115,8 +115,7 @@ jwt:
            claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main' &&
            claims.event_name == 'workflow_dispatch' && claims.environment == 'platform-bootstrap-tenant-infrastructure' &&
            claims.aud == 'https://kube-api.re8ch.com/release-executor-tenant-runtime')
-          || (claims.repository_visibility == 'public' &&
-           claims.repository_id == '1440886799' && claims.repository_owner_id == '334604832' &&
+          || (claims.repository_id == '1440886799' && claims.repository_owner_id == '334604832' &&
            claims.repository == 'strata-silica/storage-gitops' && claims.ref == 'refs/heads/main' &&
            claims.runner_environment == 'github-hosted' &&
            ((claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/storage-reconcile.yml@refs/heads/main' &&
@@ -131,7 +130,6 @@ jwt:
       - expression: >-
           claims.runner_environment == 'self-hosted' ||
           (claims.runner_environment == 'github-hosted' &&
-           claims.repository_visibility == 'public' &&
            claims.repository_id == '1440886799' && claims.repository_owner_id == '334604832' &&
            claims.repository == 'strata-silica/storage-gitops' && claims.ref == 'refs/heads/main' &&
            claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/storage-reconcile.yml@refs/heads/main' &&
@@ -139,7 +137,6 @@ jwt:
            claims.environment == 'release-reconciler-data-storage' &&
            claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage') ||
           (claims.runner_environment == 'github-hosted' &&
-           claims.repository_visibility == 'public' &&
            claims.repository_id == '1440886799' &&
            claims.repository_owner_id == '334604832' &&
            claims.repository == 'strata-silica/storage-gitops' &&
