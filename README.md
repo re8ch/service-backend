@@ -72,6 +72,12 @@ The machine-readable authority ledger is
 and the operational contract is documented in
 [`operations/releases/DOMAIN-RECONCILIATION.md`](operations/releases/DOMAIN-RECONCILIATION.md).
 
+For incident diagnosis, use the
+[`GitHub Actions to Kubernetes reconciliation runbook`](docs/GITHUB_OPS_RECONCILE_DEBUGGING.md).
+It covers TLS/OIDC separation, exact RBAC proof, accepted-state selection,
+signature and artifact evidence, sanitized executor failures, Governance App
+dispatch, runtime read-back, and the bounded R640 recovery path.
+
 ## Layout
 
 - `clusters/re8ch`: Flux bootstrap and cluster desired-state components
