@@ -3,40 +3,175 @@ on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+concurrency:
+  group: public-edge-authority
+  cancel-in-progress: false
 jobs:
+  # Probe from two vantages. The r640 runner sits behind a mainland egress
+  # proxy and sees UDP and GitHub path loss that the authorities do not cause;
+  # the GitHub-hosted runner observes the same authorities from outside that
+  # path. A real authority fault shows up on both. Keep the two jobs' steps
+  # identical; tests/test_public_edge_authority_check.py enforces it.
   external-dns:
     runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
-    timeout-minutes: 5
+    timeout-minutes: 8
     permissions: {contents: read}
+    env:
+      PUBLIC_EDGE_VANTAGE: r640
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Verify runner DNS probe
+      - id: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        continue-on-error: true
+        with:
+          sparse-checkout: |
+            operations/scripts/check-public-edge-authority.py
+            platform/public-edge-manager/authority-monitor.json
+          sparse-checkout-cone-mode: false
+      - id: checkout-retry
+        if: steps.checkout.outcome == 'failure'
+        continue-on-error: true
         run: |
           set -euo pipefail
-          command -v dig
+          sleep 20
+          rm -rf ./* ./.git 2>/dev/null || true
+          git init -q .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 \
+            fetch --depth=1 --no-tags origin "${GITHUB_SHA}"
+          git checkout -q FETCH_HEAD -- \
+            operations/scripts/check-public-edge-authority.py \
+            platform/public-edge-manager/authority-monitor.json
+      - id: source
+        run: |
+          if [ -f operations/scripts/check-public-edge-authority.py ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=PublicEdge inconclusive::${PUBLIC_EDGE_VANTAGE}: could not fetch sources from GitHub (runner network or egress proxy). No authority verdict."
+          fi
+      - name: Verify runner DNS probe
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          if ! command -v dig >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils
+          fi
           dig -v
       - name: Probe delegation and public authorities
+        if: steps.source.outputs.ready == 'true'
         run: |
           set -euo pipefail
-          python operations/scripts/check-public-edge-authority.py \
+          python3 operations/scripts/check-public-edge-authority.py \
             platform/public-edge-manager/authority-monitor.json \
             | tee public-edge-authority-result.json
       - name: Publish observation
         if: always()
         run: |
           if [ -f public-edge-authority-result.json ]; then
+            verdict=$(python3 -c 'import json;print(json.load(open("public-edge-authority-result.json")).get("verdict","unknown"))')
+            if [ "$verdict" = degraded ]; then
+              echo "::warning title=PublicEdge degraded::${PUBLIC_EDGE_VANTAGE}: UDP answers lost while TCP authority is correct"
+            fi
             {
+              echo "### ${PUBLIC_EDGE_VANTAGE}: ${verdict}"
               echo '```json'
               cat public-edge-authority-result.json
               echo
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ${PUBLIC_EDGE_VANTAGE}: inconclusive" >> "$GITHUB_STEP_SUMMARY"
+            printf '{"vantage":"%s","verdict":"inconclusive","observedAt":"%s"}\n' \
+              "$PUBLIC_EDGE_VANTAGE" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > public-edge-authority-result.json
           fi
       - name: Retain observation
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: public-edge-authority-observation
+          name: public-edge-authority-observation-r640
+          path: public-edge-authority-result.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  external-dns-overseas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions: {contents: read}
+    env:
+      PUBLIC_EDGE_VANTAGE: github-hosted
+    steps:
+      - id: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        continue-on-error: true
+        with:
+          sparse-checkout: |
+            operations/scripts/check-public-edge-authority.py
+            platform/public-edge-manager/authority-monitor.json
+          sparse-checkout-cone-mode: false
+      - id: checkout-retry
+        if: steps.checkout.outcome == 'failure'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          sleep 20
+          rm -rf ./* ./.git 2>/dev/null || true
+          git init -q .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=30 \
+            fetch --depth=1 --no-tags origin "${GITHUB_SHA}"
+          git checkout -q FETCH_HEAD -- \
+            operations/scripts/check-public-edge-authority.py \
+            platform/public-edge-manager/authority-monitor.json
+      - id: source
+        run: |
+          if [ -f operations/scripts/check-public-edge-authority.py ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=PublicEdge inconclusive::${PUBLIC_EDGE_VANTAGE}: could not fetch sources from GitHub (runner network or egress proxy). No authority verdict."
+          fi
+      - name: Verify runner DNS probe
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          if ! command -v dig >/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils
+          fi
+          dig -v
+      - name: Probe delegation and public authorities
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python3 operations/scripts/check-public-edge-authority.py \
+            platform/public-edge-manager/authority-monitor.json \
+            | tee public-edge-authority-result.json
+      - name: Publish observation
+        if: always()
+        run: |
+          if [ -f public-edge-authority-result.json ]; then
+            verdict=$(python3 -c 'import json;print(json.load(open("public-edge-authority-result.json")).get("verdict","unknown"))')
+            if [ "$verdict" = degraded ]; then
+              echo "::warning title=PublicEdge degraded::${PUBLIC_EDGE_VANTAGE}: UDP answers lost while TCP authority is correct"
+            fi
+            {
+              echo "### ${PUBLIC_EDGE_VANTAGE}: ${verdict}"
+              echo '```json'
+              cat public-edge-authority-result.json
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ${PUBLIC_EDGE_VANTAGE}: inconclusive" >> "$GITHUB_STEP_SUMMARY"
+            printf '{"vantage":"%s","verdict":"inconclusive","observedAt":"%s"}\n' \
+              "$PUBLIC_EDGE_VANTAGE" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > public-edge-authority-result.json
+          fi
+      - name: Retain observation
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: public-edge-authority-observation-github-hosted
           path: public-edge-authority-result.json
           if-no-files-found: warn
           retention-days: 30
