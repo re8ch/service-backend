@@ -27,22 +27,16 @@ exits:
 
 telemetry:
   enabled: true
-  intervalSeconds: 60
+  intervalSeconds: 900
   image: docker.1ms.run/library/python:3.12-alpine
   ipLookupUrl: https://ipinfo.io/json
   probes:
     cn:
+      - {name: miui-204, url: "https://connect.rom.miui.com/generate_204", expectedStatus: 204}
       - {name: baidu, url: "https://www.baidu.com/"}
-      - {name: aliyun, url: "https://www.aliyun.com/"}
-      - {name: tencent-cloud, url: "https://cloud.tencent.com/"}
-      - {name: douyin, url: "https://www.douyin.com/"}
     global:
-      - {name: github, url: "https://github.com/"}
+      - {name: google-204, url: "https://www.gstatic.com/generate_204", expectedStatus: 204}
       - {name: ghcr, url: "https://ghcr.io/v2/", expectedStatus: 401}
-      - {name: google, url: "https://www.google.com/generate_204", expectedStatus: 204}
-      - {name: openai, url: "https://api.openai.com/v1/models", expectedStatus: 401}
-      - {name: apple, url: "https://www.apple.com/library/test/success.html"}
-      - {name: microsoft, url: "https://www.microsoft.com/favicon.ico"}
 
 statusReaders:
   - {namespace: headlamp, serviceAccount: headlamp}
