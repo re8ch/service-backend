@@ -1,7 +1,11 @@
 name: PublicEdge public DNS authority
 on:
+  # The 15-minute cadence comes from the Cloudflare Worker in
+  # platform/public-edge-manager/dispatcher-worker via workflow_dispatch.
+  # GitHub schedule drops most high-frequency runs; keep it hourly as a
+  # fallback that still works if the Worker is down.
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "41 * * * *"
   workflow_dispatch:
 concurrency:
   group: public-edge-authority
