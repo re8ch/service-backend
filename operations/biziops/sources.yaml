@@ -30,11 +30,12 @@ spec:
     - id: posthog
       method: query-api
       authority: PostHog
-      scope: explicitly-mapped-products
+      scope: all-projects-accessible-to-re8ch-biziops-observer
       credentialEnvironment: [POSTHOG_PERSONAL_API_KEY]
-      facts: [events, funnels, retention, experiments, surveys]
-      enabled: false
-      note: Multiple projects are expected; add one mapping per product when verified.
+      host: https://eu.posthog.com
+      facts: [sessions, visitors, pageviews, events, latest-event]
+      enabled: true
+      note: Projects are discovered from the organization-scoped read-only API key.
 
   # Video platforms. Each source lists the governed `accounts` it observes.
   # A source with no accounts, or whose credential is missing at run time,

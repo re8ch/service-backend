@@ -252,6 +252,10 @@ modules:
       digest: sha256:3576fed0d54f8df903138733962da2cd5c51905f6db3f4e640e1581769256ee0
     - codename: bastion-amber
       digest: sha256:795146dd5d2db6dd76736d74183b6d9a73bb74bbe40294be0b2ba15fcd185921
+    - codename: citadel-amber
+      digest: sha256:235ed7f7194bce874dd4d9374273a747789ea55fb9de504aefdfe2d03e6d2bf2
+    - codename: sentinel-amber
+      digest: sha256:7708d31fb9feabad0c629747d32076d12a9ca5eeee31151f2f105c1d5fc0391d
   platform/headlamp:
     releases:
     - codename: aurora
@@ -576,6 +580,19 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: atoll-indigo
       digest: sha256:ba9c9d72f8688ca1acf4906aed4570c7051df80e1cbbdc2665ce330b8acca295
+    - codename: canopy-indigo
+      digest: sha256:bf911bee155691919fc4736e96bb3ec59f0ae4924427137ab4da7e246d94aee0
+      quarantined: missing-or-invalid-signature
+    - codename: delta-indigo
+      digest: sha256:0e3770d82688f91be5573a94c2337dea142bc79e184f2fea19e72087fd888078
+    - codename: grove-indigo
+      digest: sha256:b8f97d145197e1c1ede5964a576c8feff2499e3a93b1d2bb4c41da5715e44699
+    - codename: reef-indigo
+      digest: sha256:ed3e5fea7a30cb250914e1615194553ae832d6b27d250c32ae58bd1ad1d2c45d
+    - codename: tundra-indigo
+      digest: sha256:bbd697ac3ea78757e9c0defc53f927dd1be1299fa5ca24f751a4f967e3a10cbd
+    - codename: wetland-indigo
+      digest: sha256:ab8168636a4c1ae7b0b826c498a259b285ad57137a85b74e9d6627ca2d43659e
   platform/advanced-fabric:
     releases:
     - codename: bora
@@ -807,6 +824,10 @@ modules:
       digest: sha256:42a198150cb04ce3f2993e068347975c5686521ec7e16efe6006b027a9d9683e
     - codename: ward-amber
       digest: sha256:980fee54d7bd47ead3c0d006f9db552b2a504da2c31f4ad2bc0f18ddd7234154
+    - codename: watchtower-amber
+      digest: sha256:0e6dc8a9c2788171464aa7e4b9fb9188290ebcb50cb6b5646ce30ee0361eeff3
+    - codename: aegis-copper
+      digest: sha256:d7b7d73506a91cc51dfccc0f703ff48ab3b3b5be9b45d7f0117fe74c560df926
   platform/connectool:
     releases:
     - codename: anchor

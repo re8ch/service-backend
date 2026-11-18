@@ -60,6 +60,92 @@ data:
         proxy: NODE-SMART-EGRESS
     rules: ["MATCH,NODE-SMART-EGRESS"]
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: personal-access-mihomo-kl-relay, namespace: egress-fabric}
+data:
+  config.yaml: |
+    allow-lan: false
+    mode: rule
+    log-level: warning
+    external-controller: 127.0.0.1:9090
+    secret: $CONTROLLER_SECRET
+    proxies:
+      - {name: NODE-SMART-EGRESS, type: socks5, server: identity-egress.egress-fabric.svc.cluster.local, port: 17893, udp: true}
+      - name: LOUDI-DIRECT-EGRESS
+        type: anytls
+        server: direct-cn.access.re8ch.com
+        port: 24443
+        password: $LOUDI_PASSWORD
+        sni: direct-cn.access.re8ch.com
+        client-fingerprint: chrome
+    listeners:
+      - name: access-anytls
+        type: anytls
+        listen: 0.0.0.0
+        port: 24443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key: $TLS_PRIVATE_KEY_PATH
+        proxy: NODE-SMART-EGRESS
+      - name: access-hysteria2
+        type: hysteria2
+        listen: 0.0.0.0
+        port: 24444
+        users:
+    __HYSTERIA2_USERS__
+        up: 1000
+        down: 1000
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key: $TLS_PRIVATE_KEY_PATH
+        proxy: NODE-SMART-EGRESS
+      - name: access-anytls-loudi-relay
+        type: anytls
+        listen: 0.0.0.0
+        port: 25443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key: $TLS_PRIVATE_KEY_PATH
+        proxy: LOUDI-DIRECT-EGRESS
+    rules: ["MATCH,NODE-SMART-EGRESS"]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: personal-access-mihomo-cn-direct, namespace: egress-fabric}
+data:
+  config.yaml: |
+    allow-lan: false
+    mode: rule
+    log-level: warning
+    external-controller: 127.0.0.1:9090
+    secret: __CONTROLLER_SECRET__
+    listeners:
+      - name: access-anytls
+        type: anytls
+        listen: 0.0.0.0
+        port: 24443
+        users:
+    __ANYTLS_USERS__
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: DIRECT
+      - name: access-hysteria2
+        type: hysteria2
+        listen: 0.0.0.0
+        port: 24444
+        users:
+    __HYSTERIA2_USERS__
+        up: 1000
+        down: 1000
+        certificate: /etc/mihomo/tls/tls.crt
+        private-key:
+          /etc/mihomo/tls/tls.key
+        proxy: DIRECT
+    rules: ["MATCH,DIRECT"]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: personal-access-us-ca, namespace: egress-fabric}
@@ -155,7 +241,9 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml | sed "s/__CONTROLLER_SECRET__/$(cat /controller/secret)/" > /work/config.yaml
+              loudi_password="$(awk -F': ' 'NF == 2 {print $2; exit}' /credentials/users.yaml)"
+              test -n "$loudi_password"
+              awk '/^__ANYTLS_USERS__$|^__HYSTERIA2_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml | sed -e "s|\$CONTROLLER_SECRET|$(cat /controller/secret)|" -e "s|\$LOUDI_PASSWORD|$loudi_password|" -e 's|$TLS_PRIVATE_KEY_PATH|/etc/mihomo/tls/tls.key|g' > /work/config.yaml
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           volumeMounts:
             - {name: base, mountPath: /base, readOnly: true}
@@ -166,7 +254,7 @@ spec:
         - name: mihomo
           image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
           args: [-d, /etc/mihomo]
-          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: hysteria2, containerPort: 24444, protocol: UDP}]
+          ports: [{name: anytls, containerPort: 24443, protocol: TCP}, {name: loudi-relay, containerPort: 25443, protocol: TCP}, {name: hysteria2, containerPort: 24444, protocol: UDP}]
           readinessProbe: {tcpSocket: {port: anytls}, periodSeconds: 5}
           livenessProbe: {tcpSocket: {port: anytls}, periodSeconds: 15}
           resources: {requests: {cpu: 50m, memory: 96Mi}, limits: {cpu: "2", memory: 1Gi}}
@@ -187,7 +275,7 @@ spec:
             - {name: controller, mountPath: /controller, readOnly: true}
             - {name: kube-api-access, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
       volumes:
-        - {name: base, configMap: {name: personal-access-mihomo}}
+        - {name: base, configMap: {name: personal-access-mihomo-kl-relay}}
         - {name: credentials, secret: {secretName: personal-access-users}}
         - {name: tls, secret: {secretName: access-re8ch-com-tls}}
         - {name: work, emptyDir: {}}
@@ -215,7 +303,7 @@ apiVersion: v1
 kind: Service
 metadata: {name: personal-access-my-kul, namespace: egress-fabric}
 spec:
-  ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}]
+  ports: [{name: anytls, port: 24443, targetPort: anytls, protocol: TCP}, {name: loudi-relay, port: 25443, targetPort: loudi-relay, protocol: TCP}]
 ---
 apiVersion: v1
 kind: Service

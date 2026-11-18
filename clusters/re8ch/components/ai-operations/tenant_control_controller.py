@@ -639,7 +639,7 @@ def harbor_project(tenant_ref):
     return tenant_definition(tenant_ref).get("spec", {}).get("harborProjectRef") or tenant_ref
 
 
-PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
+PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "infrastructure.ssh-broker.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
 MULTI_INSTANCE_PROVIDER_CLASSES = {"ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
 
 
@@ -755,6 +755,12 @@ def provider_service_spec(tenant_ref, name, request):
             raise PermissionError("GitHub Enterprise Governance is an Admin-only singleton")
         if request.get("planRef") != "managed-governance" or parameters:
             raise PermissionError("GitHub Enterprise Governance publishes only the parameterless managed-governance plan")
+        return {}
+    if service_class == "infrastructure.ssh-broker.v1":
+        if tenant_ref != "admin" or name != "ssh-broker":
+            raise PermissionError("SSH broker is an Admin-only singleton")
+        if request.get("planRef") != "admin-managed" or parameters:
+            raise PermissionError("SSH broker publishes only the parameterless admin-managed plan")
         return {}
     if service_class == "registry.harbor.v1":
         if request.get("planRef") not in {"pull", "build-push", "project-admin"}:
@@ -1378,6 +1384,7 @@ class Handler(BaseHTTPRequestHandler):
                         "sandbox.runtime.v1": ("cubesandbox-runtime", "SandboxRuntimePool"),
                         "application.ledger.v1": ("existing-ledger-access", "ExistingServiceEndpointGrant"),
                         "integration.github.enterprise-governance.v1": ("github-enterprise-governance-workflow", "GitHubEnterpriseGovernanceCapability"),
+                        "infrastructure.ssh-broker.v1": ("re8ch-ssh-broker", "AuditedSSHBrokerCapability"),
                     }[service_class]
                     intent = {"adapter": adapter, "accessUnit": access_unit, "resourceRef": f"service://{tenant}/{name}", "tenantRef": tenant, "credentialMaterialReturned": False}
                 else:

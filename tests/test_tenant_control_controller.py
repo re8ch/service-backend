@@ -263,6 +263,19 @@ def test_github_enterprise_governance_is_admin_only_parameterless_singleton():
         controller.provider_service_spec("admin", "github-enterprise-governance", request)
 
 
+def test_ssh_broker_is_admin_only_parameterless_singleton():
+    request = {"serviceClass": "infrastructure.ssh-broker.v1",
+               "planRef": "admin-managed", "parameters": {}}
+    assert controller.provider_service_spec("admin", "ssh-broker", request) == {}
+    with pytest.raises(PermissionError, match="Admin-only singleton"):
+        controller.provider_service_spec("re8ch", "ssh-broker", request)
+    with pytest.raises(PermissionError, match="Admin-only singleton"):
+        controller.provider_service_spec("admin", "another-name", request)
+    request["parameters"] = {"address": "caller-supplied.invalid"}
+    with pytest.raises(PermissionError, match="parameterless"):
+        controller.provider_service_spec("admin", "ssh-broker", request)
+
+
 def test_postgresql_adoption_is_admin_only_parameterless_singleton():
     request = {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "parameters": {}}
     assert controller.provider_service_spec("admin", "postgresql-shared", request) == {}

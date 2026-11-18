@@ -9,6 +9,8 @@ RUN addgroup -S re8ch && adduser -S -G re8ch -u 65532 re8ch && apk add --no-cach
 WORKDIR /app
 RUN pip install --no-cache-dir PyYAML==6.0.2 jsonschema==4.23.0 schemathesis==4.29.1
 COPY operations/cloud-platform/runtime.py operations/cloud-platform/server.py operations/cloud-platform/plugin_capabilities.py operations/cloud-platform/plugin_http_conformance.py operations/cloud-platform/plugin_http_transport.py operations/cloud-platform/anatomy-operation-authority.json operations/cloud-platform/storage-read-projection.json operations/cloud-platform/mihomos_capabilities.py operations/cloud-platform/mihomo-controller-openapi.json operations/cloud-platform/plugin-operation-tools.json ./
+COPY operations/ssh-broker/runtime.py ./ssh_broker_runtime.py
+COPY operations/ssh-broker/server.py ./ssh_broker_server.py
 COPY operations/cloud-platform/anatomy_diff_operation.py ./
 COPY operations/cloud-platform/cilium_cidr_operation.py ./
 COPY operations/cloud-platform/network_native_mutations.py ./

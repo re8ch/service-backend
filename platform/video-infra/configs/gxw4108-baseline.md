@@ -15,6 +15,9 @@
 - Dial Pause：`ch1:d1p15,d2p15,d3p15,d4p15,d5p15,d6p15,d7p15,d8p15,d9p15,d10p15;ch2-8;`
 - Digit Volume：`-11 dB`
 - Round-robin：`rr:1;rr:2-8;`（Stage 2 下将 FXO 1 隔离为独立调度组）
+- Local SIP Listen Port：`ch1-8:5060++;`。GXW4108 的 `++` 表示每路加 2，
+  因此 FXO 1–8 分别监听 `5060, 5062, 5064, 5066, 5068, 5070, 5072, 5074`；
+  R640 的八个 FreeSWITCH gateway 必须使用这组端口。
 - Syslog Server：`192.168.88.251`
 - Syslog Level：`DEBUG`（诊断期间临时启用）
 - Unconditional Call Forward User ID：`ch1:autoanswer;ch2-8:;`
@@ -61,6 +64,10 @@ ch1:15;ch2-8:10;
 随后为二阶段诊断把第 1 口切换为 Stage 2；由于 2–8 原本就是 Stage 2，
 页面当前显示 `ch1-8:2;`。实测 Stage 2 会忽略仅适用于 Stage 1 的
 `99 + 端口号`选择语法，不能用 `991` 固定第 1 口。
+
+R640 通过每路独立 SIP 端口固定 FXO。FreeSWITCH 先以占位 Request-URI
+`99` 摘机，等待 1500 ms 的模拟拨号音，再把完整号码以 RFC2833、每位
+150 ms 的节奏发送；不得仅把号码放在 SIP Request-URI 中冒充已完成拨号。
 
 2026-07-30 将 round-robin 拆为 `rr:1;rr:2-8;`，保持 Local SIP Listen
 Port 为 `ch1-8:5060++;`。重启后字段未回滚；连续三次向 UDP/5060 发起

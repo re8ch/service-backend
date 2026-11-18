@@ -65,9 +65,79 @@
     "name": "ssa-state-agent-runtime-domain-cube-trial",
     "workloads": [
       {
+        "kind": "DaemonSet",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-node"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-node-bootstrap"
+      },
+      {
+        "kind": "DaemonSet",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-node-installer"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-compocv-router"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-cubemastercli"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-lifecycle-manager"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-master"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-ops"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-proxy"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-webui"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "cube-trial",
+        "name": "cube-warehouse-minio"
+      },
+      {
         "kind": "Deployment",
         "namespace": "cube-trial",
         "name": "oauth2-proxy-cube"
+      },
+      {
+        "kind": "StatefulSet",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-mysql"
+      },
+      {
+        "kind": "StatefulSet",
+        "namespace": "cube-trial",
+        "name": "cube-recovery-redis"
       }
     ]
   },
@@ -144,6 +214,38 @@
     "domain": "agent-runtime",
     "namespace": "tenant-infrastructure",
     "name": "ssa-state-agent-runtime-domain-tenant-infrastructure",
+    "workloads": [
+      {
+        "kind": "DaemonSet",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-runtime-image-cache"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "admin-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-api"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-control-controller"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "tenant-infrastructure",
+        "name": "tenant-provider-reconciler"
+      }
+    ]
+  },
+  {
+    "domain": "agent-runtime",
+    "namespace": "tenant-infrastructure",
+    "name": "ssa-state-agent-runtime-tenant-crd-authority",
     "workloads": [
       {
         "kind": "DaemonSet",
@@ -530,6 +632,11 @@
         "kind": "Deployment",
         "namespace": "ai-operations",
         "name": "re8ch-cloud-platform"
+      },
+      {
+        "kind": "Deployment",
+        "namespace": "ai-operations",
+        "name": "re8ch-ssh-broker"
       }
     ]
   },

@@ -24,6 +24,12 @@ credential, or without a collector is shown as `unknown`, never `0`.
 | 抖音 Douyin / 快手 Kuaishou | declared | open-platform app + owner OAuth | Needs mainland enterprise verification. |
 | 微信视频号 | declared | — | No third-party metrics API; use the 视频号助手 export. |
 
+PostHog is active. The workflow uses the organization-scoped, read-only
+`POSTHOG_PERSONAL_API_KEY` GitHub Actions secret to discover every accessible
+project and query aggregate sessions, visitors, pageviews, event volume and the
+latest event timestamp. Project tokens and raw visitor events are never stored
+in Git or artifacts.
+
 Run locally:
 
 ```sh

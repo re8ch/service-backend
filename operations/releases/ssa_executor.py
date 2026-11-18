@@ -607,16 +607,25 @@ class Executor:
             by_identity.update({object_identity(item): item for item in selected_objects})
         if not selected_objects and not finalize:
             raise Rejected("stage selection contains no objects")
-        for stage in stages:
-            stage_objects = [by_identity[identity] for identity in stage["inventory"]]
-            self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force,
-                       require_existing=contract["spec"]["authorization"].get("requireExisting", False))
+        dry_run_available = True
+        try:
+            for stage in stages:
+                stage_objects = [by_identity[identity] for identity in stage["inventory"]]
+                self.apply(stage_objects, manager, dry_run=True, force_objects=requested_force,
+                           require_existing=contract["spec"]["authorization"].get("requireExisting", False))
+        except (subprocess.TimeoutExpired, Rejected):
+            if not observe_only:
+                raise
+            dry_run_available = False
         if observe_only:
             lifecycle = contract["spec"]["lifecycle"]
-            try:
-                healthy, reason = self.wait_healthy(selected_objects, 0, lifecycle.get("healthChecks"))
-            except (subprocess.TimeoutExpired, Rejected):
-                healthy, reason = False, "readiness observation unavailable; diagnostics withheld"
+            if not dry_run_available:
+                healthy, reason = False, "server-side dry-run unavailable; diagnostics withheld"
+            else:
+                try:
+                    healthy, reason = self.wait_healthy(selected_objects, 0, lifecycle.get("healthChecks"))
+                except (subprocess.TimeoutExpired, Rejected):
+                    healthy, reason = False, "readiness observation unavailable; diagnostics withheld"
             result = {
                 "apiVersion": "delivery.re8ch.com/release-result/v1alpha1",
                 "operationId": operation["operationId"], "releaseId": operation["releaseId"],

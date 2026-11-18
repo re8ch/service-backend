@@ -72,8 +72,10 @@ spec:
     valueSecretRef: {name: ops-mcp-admin-upstream, key: x-ops-token}
 ---
 # Keep each internal workload on the R640 service anchor. The generated proxy
-# waits for every backend replica before serving, so declaring A/B replicas
-# makes the whole tool unavailable when either WSL control-plane host is down.
+# and backend StatefulSet intentionally share the workload's `toolhive-name`
+# label and must be allowed to colocate on that single eligible node. Applying
+# same-label pod anti-affinity here deadlocks the pair and leaves the public
+# vMCP backend without endpoints.
 apiVersion: toolhive.stacklok.dev/v1beta1
 kind: MCPServer
 metadata:
@@ -120,11 +122,6 @@ spec:
       nodeSelector:
         scheduling.re8ch.com/pool-service-core-r640: "true"
         scheduling.re8ch.com/network-serving: "true"
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {toolhive-name: ops-admin-vmcp-internal}}
-              topologyKey: kubernetes.io/hostname
       containers:
         - name: mcp
           command: [python, /app/app.py]
@@ -186,11 +183,6 @@ spec:
       nodeSelector:
         scheduling.re8ch.com/pool-service-core-r640: "true"
         scheduling.re8ch.com/network-serving: "true"
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {toolhive-name: ops-observe-vmcp-internal}}
-              topologyKey: kubernetes.io/hostname
       containers:
         - name: mcp
           command: [python, /app/app.py]
@@ -236,11 +228,6 @@ spec:
       nodeSelector:
         scheduling.re8ch.com/pool-service-core-r640: "true"
         scheduling.re8ch.com/network-serving: "true"
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector: {matchLabels: {toolhive-name: ops-operate-vmcp-internal}}
-              topologyKey: kubernetes.io/hostname
       containers:
         - name: mcp
           command: [python, /app/app.py]

@@ -25,22 +25,40 @@ import (
 const githubGovernanceClass = "integration.github.enterprise-governance.v1"
 
 type githubGovernanceInput struct {
-	Resource  string         `json:"resource"`
-	Operation string         `json:"operation"`
-	Owner     string         `json:"owner"`
-	Repo      string         `json:"repo,omitempty"`
-	Name      string         `json:"name,omitempty"`
-	ID        int64          `json:"id,omitempty"`
-	Body      map[string]any `json:"body,omitempty"`
-	Apply     bool           `json:"apply,omitempty"`
-	PlanHash  string         `json:"planHash,omitempty"`
+	Capability string         `json:"capability,omitempty"`
+	Resource   string         `json:"resource"`
+	Operation  string         `json:"operation"`
+	Owner      string         `json:"owner"`
+	Repo       string         `json:"repo,omitempty"`
+	Name       string         `json:"name,omitempty"`
+	ID         int64          `json:"id,omitempty"`
+	Body       map[string]any `json:"body,omitempty"`
+	Apply      bool           `json:"apply,omitempty"`
+	PlanHash   string         `json:"planHash,omitempty"`
+}
+
+var githubGovernanceCapabilities = map[string]string{
+	"governance":    "GITHUB_GOVERNANCE",
+	"delivery":      "GITHUB_DELIVERY",
+	"security":      "GITHUB_SECURITY",
+	"collaboration": "GITHUB_COLLABORATION",
+	"developer-ai":  "GITHUB_DEVELOPER_AI",
+	"identity":      "GITHUB_IDENTITY",
+	"billing":       "GITHUB_BILLING",
 }
 
 var githubGovernanceName = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}$`)
 
-func githubGovernanceJWT() (string, error) {
-	appID := strings.TrimSpace(os.Getenv("GITHUB_GOVERNANCE_APP_ID"))
-	block, _ := pem.Decode([]byte(os.Getenv("GITHUB_GOVERNANCE_PRIVATE_KEY")))
+func githubGovernanceJWT(capability string) (string, error) {
+	if capability == "" {
+		capability = "governance"
+	}
+	prefix, ok := githubGovernanceCapabilities[capability]
+	if !ok {
+		return "", errors.New("unsupported GitHub governance capability")
+	}
+	appID := strings.TrimSpace(os.Getenv(prefix + "_APP_ID"))
+	block, _ := pem.Decode([]byte(os.Getenv(prefix + "_PRIVATE_KEY")))
 	if appID == "" || block == nil {
 		return "", errors.New("GitHub governance credential is not configured")
 	}
@@ -65,8 +83,8 @@ func githubGovernanceJWT() (string, error) {
 	}
 	return unsigned + "." + enc(sig), nil
 }
-func githubGovernanceToken(ctx context.Context, owner string) (string, time.Time, error) {
-	jwt, e := githubGovernanceJWT()
+func githubGovernanceToken(ctx context.Context, capability, owner string) (string, time.Time, error) {
+	jwt, e := githubGovernanceJWT(capability)
 	if e != nil {
 		return "", time.Time{}, e
 	}
@@ -117,6 +135,9 @@ func githubGovernanceToken(ctx context.Context, owner string) (string, time.Time
 	return out.Token, expires, nil
 }
 func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, error) {
+	if strings.EqualFold(strings.TrimSpace(in.Operation), "delete") {
+		return "", "", nil, errors.New("delete operations are not available through GitHub governance")
+	}
 	owner := strings.ToLower(strings.TrimSpace(in.Owner))
 	if !githubGovernanceName.MatchString(owner) {
 		return "", "", nil, errors.New("invalid GitHub organization name")
@@ -138,8 +159,6 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		method, path = http.MethodPost, "/repos/"+owner+"/"+in.Repo+"/rulesets"
 	case "repository_ruleset:update":
 		method, path = http.MethodPut, fmt.Sprintf("/repos/%s/%s/rulesets/%d", owner, in.Repo, in.ID)
-	case "repository_ruleset:delete":
-		method, path = http.MethodDelete, fmt.Sprintf("/repos/%s/%s/rulesets/%d", owner, in.Repo, in.ID)
 	case "organization_ruleset:list":
 		method, path = http.MethodGet, "/orgs/"+owner+"/rulesets"
 	case "organization_ruleset:get":
@@ -148,8 +167,6 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		method, path = http.MethodPost, "/orgs/"+owner+"/rulesets"
 	case "organization_ruleset:update":
 		method, path = http.MethodPut, fmt.Sprintf("/orgs/%s/rulesets/%d", owner, in.ID)
-	case "organization_ruleset:delete":
-		method, path = http.MethodDelete, fmt.Sprintf("/orgs/%s/rulesets/%d", owner, in.ID)
 	case "repository_variable:list":
 		method, path = http.MethodGet, "/repos/"+owner+"/"+in.Repo+"/actions/variables"
 	case "repository_variable:get":
@@ -158,8 +175,6 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		method, path = http.MethodPost, "/repos/"+owner+"/"+in.Repo+"/actions/variables"
 	case "repository_variable:update":
 		method, path = http.MethodPatch, "/repos/"+owner+"/"+in.Repo+"/actions/variables/"+url.PathEscape(in.Name)
-	case "repository_variable:delete":
-		method, path = http.MethodDelete, "/repos/"+owner+"/"+in.Repo+"/actions/variables/"+url.PathEscape(in.Name)
 	case "organization_variable:list":
 		method, path = http.MethodGet, "/orgs/"+owner+"/actions/variables"
 	case "organization_variable:get":
@@ -168,12 +183,18 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		method, path = http.MethodPost, "/orgs/"+owner+"/actions/variables"
 	case "organization_variable:update":
 		method, path = http.MethodPatch, "/orgs/"+owner+"/actions/variables/"+url.PathEscape(in.Name)
-	case "organization_variable:delete":
-		method, path = http.MethodDelete, "/orgs/"+owner+"/actions/variables/"+url.PathEscape(in.Name)
 	case "organization:get":
 		method, path = http.MethodGet, "/orgs/"+owner
 	case "organization:update":
 		method, path = http.MethodPatch, "/orgs/"+owner
+	case "workflow:dispatch":
+		method, path = http.MethodPost, "/repos/"+owner+"/"+in.Repo+"/actions/workflows/"+url.PathEscape(in.Name)+"/dispatches"
+	case "workflow_run:get":
+		method, path = http.MethodGet, fmt.Sprintf("/repos/%s/%s/actions/runs/%d", owner, in.Repo, in.ID)
+	case "workflow_run:rerun":
+		method, path = http.MethodPost, fmt.Sprintf("/repos/%s/%s/actions/runs/%d/rerun", owner, in.Repo, in.ID)
+	case "workflow_run:rerun_failed":
+		method, path = http.MethodPost, fmt.Sprintf("/repos/%s/%s/actions/runs/%d/rerun-failed-jobs", owner, in.Repo, in.ID)
 	default:
 		return "", "", nil, errors.New("unsupported governance resource and operation")
 	}
@@ -188,6 +209,26 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 	if strings.Contains(in.Resource, "repository") && in.Repo == "" {
 		return "", "", nil, errors.New("repository is required")
 	}
+	if (in.Resource == "workflow" || in.Resource == "workflow_run") && in.Repo == "" {
+		return "", "", nil, errors.New("repository is required")
+	}
+	if in.Resource == "workflow" {
+		if in.Name == "" {
+			return "", "", nil, errors.New("workflow name is required")
+		}
+		ref, ok := in.Body["ref"].(string)
+		if !ok || !githubGovernanceName.MatchString(ref) {
+			return "", "", nil, errors.New("workflow dispatch requires a valid ref")
+		}
+		for field := range in.Body {
+			if field != "ref" && field != "inputs" {
+				return "", "", nil, fmt.Errorf("workflow dispatch field %q is not allowlisted", field)
+			}
+		}
+	}
+	if in.Resource == "workflow_run" && in.ID <= 0 {
+		return "", "", nil, errors.New("workflow run id is required")
+	}
 	if strings.Contains(in.Resource, "variable") && in.Operation != "list" && in.Name == "" {
 		return "", "", nil, errors.New("variable name is required")
 	}
@@ -195,7 +236,7 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		return "", "", nil, errors.New("ruleset id is required")
 	}
 	body, _ := json.Marshal(in.Body)
-	if method == http.MethodGet || method == http.MethodDelete {
+	if method == http.MethodGet {
 		body = nil
 	}
 	return method, path, body, nil
@@ -219,7 +260,7 @@ func executeGitHubGovernance(ctx context.Context, id identity, in githubGovernan
 	if mutation && in.PlanHash != plan {
 		return nil, errors.New("apply requires the exact planHash returned by preview")
 	}
-	token, expires, e := githubGovernanceToken(ctx, in.Owner)
+	token, expires, e := githubGovernanceToken(ctx, in.Capability, in.Owner)
 	if e != nil {
 		return nil, e
 	}

@@ -126,6 +126,7 @@ rules:
   - deployments
   resourceNames:
   - re8ch-cloud-platform
+  - re8ch-ssh-broker
   - stagehand-service
   verbs:
   - get
@@ -604,9 +605,37 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - daemonsets
+  resourceNames:
+  - cube-recovery-node
+  - cube-recovery-node-bootstrap
+  - cube-recovery-node-installer
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
   - deployments
   resourceNames:
+  - cube-compocv-router
+  - cube-recovery-api
+  - cube-recovery-cubemastercli
+  - cube-recovery-lifecycle-manager
+  - cube-recovery-master
+  - cube-recovery-ops
+  - cube-recovery-proxy
+  - cube-recovery-webui
+  - cube-warehouse-minio
   - oauth2-proxy-cube
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  resourceNames:
+  - cube-recovery-mysql
+  - cube-recovery-redis
   verbs:
   - get
 ---
@@ -2039,6 +2068,7 @@ rules:
   - configmaps
   resourceNames:
   - ssa-state-agent-runtime-domain-tenant-infrastructure
+  - ssa-state-agent-runtime-tenant-crd-authority
   - ssa-state-identity-access-domain-tenant-infrastructure
   - ssa-state-observability-chart-birfucate-metering-ten-dff87672e0
   - ssa-state-observability-domain-tenant-infrastructure

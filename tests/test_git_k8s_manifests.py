@@ -291,7 +291,10 @@ def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
             "scheduling.re8ch.com/pool-service-core-r640": "true",
             "scheduling.re8ch.com/network-serving": "true",
         }
-        assert "nodeAffinity" not in pod_spec["affinity"]
+        # The generated proxy and backend StatefulSet share toolhive-name and
+        # have only one eligible node. Any same-label affinity rule can
+        # deadlock the pair and remove the public vMCP backend endpoints.
+        assert "affinity" not in pod_spec
 
     auth = {item["metadata"]["name"]: item for item in internal if item["kind"] == "MCPExternalAuthConfig"}
     assert auth["vmcp-observe-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {

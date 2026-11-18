@@ -232,7 +232,7 @@ def test_autonomous_domain_reconcilers_are_exact_github_hosted_routes():
     routes = {
         'agent-runtime': ('8iops/agent-gitops', 'agent-runtime-reconcile.yml', 'public'),
         'identity-access': ('re8ch/identity-gitops', 'identity-access-reconcile.yml', 'public'),
-        'observability-metering': ('siren-observer/observability-gitops', 'observability-metering-reconcile.yml', 'private'),
+        'observability-metering': ('siren-observer/observability-gitops', 'observability-metering-reconcile.yml', 'public'),
     }
     for domain, (repository, workflow, visibility) in routes.items():
         audience = f'https://kube-api.re8ch.com/release-reconciler-{domain}'
@@ -250,10 +250,18 @@ def test_autonomous_domain_reconcilers_are_exact_github_hosted_routes():
 
 def test_ceph_cloud_runner_exception_is_owned_by_storage_gitops():
     github = yaml.safe_load((ROOT / 'dex-dual-issuer-authentication.yaml').read_text())['jwt'][1]
+    public_gate = github['claimValidationRules'][0]['expression']
+    for boundary in (
+        "claims.repository_id == '1440886799'",
+        "claims.repository_owner_id == '334604832'",
+        "claims.repository == 'strata-silica/storage-gitops'",
+        "claims.workflow_ref == 'strata-silica/storage-gitops/.github/workflows/storage-reconcile.yml@refs/heads/main'",
+        "claims.aud == 'https://kube-api.re8ch.com/release-reconciler-data-storage'",
+    ):
+        assert boundary in public_gate
     runner = github['claimValidationRules'][1]['expression']
     for boundary in (
         "claims.runner_environment == 'github-hosted'",
-        "claims.repository_visibility == 'private'",
         "claims.repository_id == '1440886799'",
         "claims.repository_owner_id == '334604832'",
         "claims.repository == 'strata-silica/storage-gitops'",
@@ -275,7 +283,7 @@ def test_observability_static_release_passes_hosted_runner_gate():
     runner_gate = github['claimValidationRules'][1]['expression']
     for boundary in (
         "claims.runner_environment == 'github-hosted'",
-        "claims.repository_visibility == 'private'",
+        "claims.repository_visibility == 'public'",
         "claims.repository_id == '1423312205'",
         "claims.repository_owner_id == '334604879'",
         "claims.repository == 'siren-observer/observability-gitops'",

@@ -225,6 +225,18 @@ spec:
             {{- if .Values.tenantPlatform.provider.githubEnterpriseGovernance.enabled }}
             - {name: GITHUB_GOVERNANCE_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: app-id}}}
             - {name: GITHUB_GOVERNANCE_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: private-key}}}
+            - {name: GITHUB_DELIVERY_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-delivery-app, key: app-id, optional: true}}}
+            - {name: GITHUB_DELIVERY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-delivery-app, key: private-key, optional: true}}}
+            - {name: GITHUB_SECURITY_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-security-app, key: app-id, optional: true}}}
+            - {name: GITHUB_SECURITY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-security-app, key: private-key, optional: true}}}
+            - {name: GITHUB_COLLABORATION_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-collaboration-app, key: app-id, optional: true}}}
+            - {name: GITHUB_COLLABORATION_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-collaboration-app, key: private-key, optional: true}}}
+            - {name: GITHUB_DEVELOPER_AI_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-developer-ai-app, key: app-id, optional: true}}}
+            - {name: GITHUB_DEVELOPER_AI_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-developer-ai-app, key: private-key, optional: true}}}
+            - {name: GITHUB_IDENTITY_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-identity-app, key: app-id, optional: true}}}
+            - {name: GITHUB_IDENTITY_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-identity-app, key: private-key, optional: true}}}
+            - {name: GITHUB_BILLING_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-billing-app, key: app-id, optional: true}}}
+            - {name: GITHUB_BILLING_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-billing-app, key: private-key, optional: true}}}
             {{- end }}
             {{- if .Values.tenantPlatform.tenantAPI.enabled }}
             {{- if .Values.tenantPlatform.tenantAPI.platformSessionURL }}

@@ -11,7 +11,10 @@ vg = importlib.util.module_from_spec(SPEC); sys.modules[SPEC.name] = vg; SPEC.lo
 
 
 class FakeESL:
-    def api(self, command): return "+OK fake-uuid"
+    def __init__(self): self.commands = []
+    def api(self, command):
+        self.commands.append(command)
+        return "+OK fake-uuid"
 
 
 class VoiceGatewayTest(unittest.TestCase):
@@ -29,6 +32,14 @@ class VoiceGatewayTest(unittest.TestCase):
     def test_idempotent_create(self):
         first = self.app.create_call(self.payload()); second = self.app.create_call(self.payload())
         self.assertEqual(first.call_id, second.call_id)
+
+    def test_outbound_call_uses_gxw_stage2_dtmf_dialplan(self):
+        self.app.create_call(self.payload(destination="016763377773", agents=[]))
+        command = self.app.esl.commands[0]
+        self.assertIn("gxw_stage2_digits=016763377773", command)
+        self.assertIn("sofia/gateway/line01/99", command)
+        self.assertIn("&transfer(gxw-stage2-outbound XML from-gxw)", command)
+        self.assertNotIn("sofia/gateway/line01/016763377773", command)
 
     def test_rejects_fifth_agent(self):
         with self.assertRaises(vg.ApiError): self.app.create_call(self.payload(agents=["a", "b", "c", "d", "e"]))

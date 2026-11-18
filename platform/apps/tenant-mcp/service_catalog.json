@@ -60,12 +60,26 @@
       "entrypoint": "service_instance_update",
       "requestField": "spec",
       "planApply": true,
+      "credentialCapabilities": [
+        "governance",
+        "delivery",
+        "security",
+        "collaboration",
+        "developer-ai",
+        "identity",
+        "billing"
+      ],
+      "deniedOperations": [
+        "delete"
+      ],
       "resources": [
         "repository_ruleset",
         "organization_ruleset",
         "repository_variable",
         "organization_variable",
-        "organization"
+        "organization",
+        "workflow",
+        "workflow_run"
       ]
     },
     "parameters": [],
@@ -76,6 +90,24 @@
       "global"
     ],
     "serviceClass": "integration.github.enterprise-governance.v1"
+  },
+  {
+    "accessUnit": "AuditedSSHBrokerCapability",
+    "adapter": "re8ch-ssh-broker",
+    "bindings": [
+      "access:broker-reference"
+    ],
+    "meters": {
+      "operations": "operation"
+    },
+    "parameters": [],
+    "plans": [
+      "admin-managed"
+    ],
+    "regions": [
+      "global"
+    ],
+    "serviceClass": "infrastructure.ssh-broker.v1"
   },
   {
     "accessUnit": "DatabaseRoleSchema",

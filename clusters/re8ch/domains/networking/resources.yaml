@@ -151,6 +151,7 @@ rules:
   - apps
   resourceNames:
   - re8ch-cloud-platform
+  - re8ch-ssh-broker
   - stagehand-service
   resources:
   - deployments
@@ -451,9 +452,37 @@ rules:
 - apiGroups:
   - apps
   resourceNames:
+  - cube-recovery-node
+  - cube-recovery-node-bootstrap
+  - cube-recovery-node-installer
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - cube-compocv-router
+  - cube-recovery-api
+  - cube-recovery-cubemastercli
+  - cube-recovery-lifecycle-manager
+  - cube-recovery-master
+  - cube-recovery-ops
+  - cube-recovery-proxy
+  - cube-recovery-webui
+  - cube-warehouse-minio
   - oauth2-proxy-cube
   resources:
   - deployments
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resourceNames:
+  - cube-recovery-mysql
+  - cube-recovery-redis
+  resources:
+  - statefulsets
   verbs:
   - get
 ---
@@ -1447,6 +1476,7 @@ rules:
   - ""
   resourceNames:
   - ssa-state-agent-runtime-domain-tenant-infrastructure
+  - ssa-state-agent-runtime-tenant-crd-authority
   - ssa-state-identity-access-domain-tenant-infrastructure
   - ssa-state-observability-chart-birfucate-metering-ten-dff87672e0
   - ssa-state-observability-domain-tenant-infrastructure
@@ -18756,7 +18786,7 @@ spec:
         readinessProbe:
           failureThreshold: 2
           httpGet:
-            path: /proxies/DIRECT/delay?url=https%3A%2F%2Faccounts.google.com%2F.well-known%2Fopenid-configuration&timeout=5000
+            path: /proxies/DIRECT/delay?url=https%3A%2F%2Fapi.github.com&timeout=5000
             port: controller
           periodSeconds: 10
           timeoutSeconds: 7

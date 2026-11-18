@@ -30,6 +30,14 @@ func TestGitHubGovernanceRequestAllowlist(t *testing.T) {
 	if err != nil || method != http.MethodGet || path != "/orgs/thinking-machine-labs" {
 		t.Fatalf("enterprise organization request was rejected: %s %s %v", method, path, err)
 	}
+	method, path, body, err := githubGovernanceRequest(githubGovernanceInput{Resource: "workflow", Operation: "dispatch", Owner: "strata-silica", Repo: "storage-gitops", Name: "storage-reconcile.yml", Body: map[string]any{"ref": "main"}})
+	if err != nil || method != http.MethodPost || path != "/repos/strata-silica/storage-gitops/actions/workflows/storage-reconcile.yml/dispatches" || !strings.Contains(string(body), `"ref":"main"`) {
+		t.Fatalf("unexpected workflow dispatch request: %s %s %s %v", method, path, body, err)
+	}
+	method, path, _, err = githubGovernanceRequest(githubGovernanceInput{Resource: "workflow_run", Operation: "rerun_failed", Owner: "strata-silica", Repo: "storage-gitops", ID: 43699449394})
+	if err != nil || method != http.MethodPost || path != "/repos/strata-silica/storage-gitops/actions/runs/43699449394/rerun-failed-jobs" {
+		t.Fatalf("unexpected workflow rerun request: %s %s %v", method, path, err)
+	}
 }
 
 func TestGitHubGovernanceOrganizationUpdateFields(t *testing.T) {
@@ -53,7 +61,18 @@ func TestGitHubGovernanceOrganizationUpdateFields(t *testing.T) {
 func TestGitHubGovernanceCredentialFailsClosed(t *testing.T) {
 	t.Setenv("GITHUB_GOVERNANCE_APP_ID", "")
 	t.Setenv("GITHUB_GOVERNANCE_PRIVATE_KEY", "")
-	if _, err := githubGovernanceJWT(); err == nil || !strings.Contains(err.Error(), "not configured") {
+	if _, err := githubGovernanceJWT("governance"); err == nil || !strings.Contains(err.Error(), "not configured") {
 		t.Fatalf("missing credential accepted: %v", err)
+	}
+	if _, err := githubGovernanceJWT("unknown"); err == nil || !strings.Contains(err.Error(), "unsupported") {
+		t.Fatalf("unknown capability accepted: %v", err)
+	}
+}
+
+func TestGitHubGovernanceRejectsEveryDeleteOperation(t *testing.T) {
+	for resource := range map[string]bool{"repository_ruleset": true, "organization_ruleset": true, "repository_variable": true, "organization_variable": true, "organization": true, "workflow": true, "workflow_run": true} {
+		if _, _, _, err := githubGovernanceRequest(githubGovernanceInput{Resource: resource, Operation: "delete", Owner: "re8ch", Repo: "service-backend", Name: "X", ID: 1}); err == nil || !strings.Contains(err.Error(), "not available") {
+			t.Fatalf("delete accepted for %s: %v", resource, err)
+		}
 	}
 }

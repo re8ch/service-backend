@@ -1147,7 +1147,7 @@ def require_tenant_service_class(service_class: str) -> None:
         raise PermissionError("service class is not published")
 
 
-LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
+LIVE_SERVICE_CLASSES = {"network.among-clusters.v1", "database.postgresql.shared.v1", "registry.harbor.v1", "registry.oci.harbor.v1", "observability.grafana.v1", "observability.stack.v1", "integration.mcp.managed.v1", "integration.mcp.byoc.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "infrastructure.ssh-broker.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
 
 
 def no_live_service_provisioner(service_class: str) -> None:
@@ -1186,6 +1186,16 @@ def provider_bindings(instances: list[dict[str, Any]], tenant: str, resource_ref
             bindings.append({"bindingRef": f"binding://{tenant}/provider/{uid}", "resourceRef": ref,
                              "bindingType": "access:broker-reference",
                              "accessRef": "capability://postgres-admin/admin/pg-re8ch",
+                             "serviceClass": service_class, "source": "provider-status", "state": "Ready",
+                             "revocable": False, "revokeWith": "service_instance_suspend",
+                             "credentialMaterialReturned": False})
+            continue
+        if (service_class == "infrastructure.ssh-broker.v1" and tenant == "admin"
+                and spec.get("tenantRef") == tenant and name == "ssh-broker" and uid
+                and status.get("phase") == "Ready" and (not resource_ref or resource_ref == ref)
+                and (status.get("access") or {}).get("accessRef") == "capability://ssh-broker/admin/default"):
+            bindings.append({"bindingRef": f"binding://{tenant}/provider/{uid}", "resourceRef": ref,
+                             "bindingType": "access:broker-reference", "accessRef": "capability://ssh-broker/admin/default",
                              "serviceClass": service_class, "source": "provider-status", "state": "Ready",
                              "revocable": False, "revokeWith": "service_instance_suspend",
                              "credentialMaterialReturned": False})
