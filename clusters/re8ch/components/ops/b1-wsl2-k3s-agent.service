@@ -44,4 +44,4 @@ ExecStart=/usr/local/bin/k3s agent \
   --kubelet-arg kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024 \
   --kubelet-arg system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024 \
   --kubelet-arg enforce-node-allocatable=pods \
-  --kubelet-arg eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%
+  --kubelet-arg eviction-hard=memory.available<512Mi,nodefs.available<10%,imagefs.available<15%,pid.available<10%

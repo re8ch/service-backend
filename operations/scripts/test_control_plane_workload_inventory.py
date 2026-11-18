@@ -85,7 +85,7 @@ class ControlPlaneReservationTests(unittest.TestCase):
         )
         self.assertIn("kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024", b1["kubelet-arg"])
         self.assertIn("system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024", b1["kubelet-arg"])
-        self.assertIn("eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%", b1["kubelet-arg"])
+        self.assertIn("eviction-hard=memory.available<512Mi,nodefs.available<10%,imagefs.available<15%,pid.available<10%", b1["kubelet-arg"])
 
 
 if __name__ == "__main__":

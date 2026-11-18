@@ -31,7 +31,7 @@ kubelet-arg:
   - "kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024"
   - "system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024"
   - "enforce-node-allocatable=pods"
-  - "eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
+  - "eviction-hard=memory.available<512Mi,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
 node-label:
   - "pigsty.cc/provider=openstack-wsl"
   - "pigsty.cc/region=openstack"

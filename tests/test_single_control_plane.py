@@ -62,8 +62,8 @@ def test_b1_agent_ignores_server_config_and_has_valid_eviction_args() -> None:
     assert "--config /dev/null" in text
     assert "kube-reserved=cpu=250m,memory=384Mi" in text
     assert "system-reserved=cpu=250m,memory=384Mi" in text
-    assert "memory.available<1Gi" in text
-    assert "memory.available\\<1Gi" not in text
+    assert "memory.available<512Mi" in text
+    assert "memory.available\\<512Mi" not in text
 
 
 def test_root_context_documents_use_authenticated_topology_reference() -> None:
