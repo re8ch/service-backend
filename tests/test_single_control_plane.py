@@ -60,8 +60,10 @@ def test_b1_prefers_direct_hnsc_lan_path_without_removing_advfab_relay() -> None
 def test_b1_agent_ignores_server_config_and_has_valid_eviction_args() -> None:
     text = (ROOT / "clusters/re8ch/components/ops/b1-wsl2-k3s-agent.service").read_text()
     assert "--config /dev/null" in text
-    assert "memory.available<2Gi" in text
-    assert "memory.available\\<2Gi" not in text
+    assert "kube-reserved=cpu=250m,memory=384Mi" in text
+    assert "system-reserved=cpu=250m,memory=384Mi" in text
+    assert "memory.available<1Gi" in text
+    assert "memory.available\\<1Gi" not in text
 
 
 def test_root_context_documents_use_authenticated_topology_reference() -> None:

@@ -27,7 +27,7 @@
           "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "10.181.22.125", "destinationAddress": "192.168.254.69"},
           "legacyDirectAddresses": ["10.181.22.239"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "a1-wsl-zt", "nodeAddress": "10.181.22.147", "memory": "12GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "a1-wsl-zt", "nodeAddress": "10.181.22.147", "memory": "12GB", "swap": "3GB", "pageReporting": true, "autoMemoryReclaim": "gradual"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 10,
         "watchdog": {"role": "active-server", "serviceName": "k3s.service"}
@@ -43,7 +43,7 @@
           "preferredPath": {"mode": "peer-wsl-jump", "jumpAddress": "10.181.22.147", "destinationAddress": "192.168.254.86"},
           "legacyDirectAddresses": ["10.181.22.86"]
         },
-        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "b1-wsl-zt", "nodeAddress": "10.181.22.125", "memory": "14GB", "swap": "3GB", "autoMemoryReclaim": "gradual"},
+        "wsl": {"distribution": "Ubuntu-24.04", "nodeName": "b1-wsl-zt", "nodeAddress": "10.181.22.125", "memory": "14GB", "swap": "3GB", "pageReporting": false, "autoMemoryReclaim": "disabled"},
         "recoveryOwner": "windows-scheduled-task",
         "peerPriority": 20,
         "watchdog": {"role": "worker-standby", "serviceName": "k3s-agent.service"}

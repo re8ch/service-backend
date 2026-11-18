@@ -791,7 +791,7 @@ spec:
   reliability:
     class: variable
     disruptionRisk: 45
-  reservationProfile: control-small
+  reservationProfile: worker-small
   sources:
   - kind: InfrastructureTarget
     ref: service-backend/inventory/nodes.yaml

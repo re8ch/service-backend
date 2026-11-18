@@ -33,8 +33,12 @@ def main() -> None:
         for address in ssh["addresses"]:
             ipaddress.ip_address(address)
         if node["platform"] == "windows-server-2022":
-            if node["wsl"].get("autoMemoryReclaim") != "gradual":
-                raise SystemExit(f"{node['name']} must use gradual WSL page-cache reclamation")
+            expected_reclaim = "gradual" if node["name"] == "a1-windows" else "disabled"
+            expected_page_reporting = node["name"] == "a1-windows"
+            if node["wsl"].get("autoMemoryReclaim") != expected_reclaim:
+                raise SystemExit(f"{node['name']} must preserve its reviewed WSL reclaim policy")
+            if node["wsl"].get("pageReporting") is not expected_page_reporting:
+                raise SystemExit(f"{node['name']} must preserve its reviewed WSL page-reporting policy")
             expected_memory = "12GB" if node["name"] == "a1-windows" else "14GB"
             if node["wsl"].get("memory") != expected_memory or node["wsl"].get("swap") != "3GB":
                 raise SystemExit(f"{node['name']} must preserve the reviewed WSL memory ceiling")

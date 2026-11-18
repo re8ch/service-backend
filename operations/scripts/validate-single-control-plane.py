@@ -43,8 +43,10 @@ def main() -> None:
 
     b1_agent = agent_texts[1]
     assert "--config /dev/null" in b1_agent
-    assert "memory.available<2Gi" in b1_agent
-    assert "memory.available\\<2Gi" not in b1_agent
+    assert "kube-reserved=cpu=250m,memory=384Mi" in b1_agent
+    assert "system-reserved=cpu=250m,memory=384Mi" in b1_agent
+    assert "memory.available<1Gi" in b1_agent
+    assert "memory.available\\<1Gi" not in b1_agent
 
     a1_vip = (ROOT / "clusters/re8ch/components/ops/a1-wsl-lan-node-source-route.service.d-30-k3s-api-vip.conf").read_text()
     b1_vip = (ROOT / "clusters/re8ch/components/ops/b1-wsl-lan-node-source-route.service.d-30-k3s-api-vip.conf").read_text()

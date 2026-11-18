@@ -71,15 +71,21 @@ class ControlPlaneReservationTests(unittest.TestCase):
             "enforce-node-allocatable=pods",
             "eviction-hard=memory.available<2Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%",
         }
-        for node in ("a1", "b1"):
-            config = yaml.safe_load(
-                (root / f"clusters/re8ch/components/ops/{node}-wsl2-k3s-server-config.yaml").read_text()
-            )
-            self.assertEqual(set(config["kubelet-arg"]), expected_args)
-            self.assertEqual(
-                config["node-taint"],
-                ["node-role.kubernetes.io/control-plane=true:NoSchedule"],
-            )
+        config = yaml.safe_load(
+            (root / "clusters/re8ch/components/ops/a1-wsl2-k3s-server-config.yaml").read_text()
+        )
+        self.assertEqual(set(config["kubelet-arg"]), expected_args)
+        self.assertEqual(
+            config["node-taint"],
+            ["node-role.kubernetes.io/control-plane=true:NoSchedule"],
+        )
+
+        b1 = yaml.safe_load(
+            (root / "clusters/re8ch/components/ops/b1-wsl2-k3s-server-config.yaml").read_text()
+        )
+        self.assertIn("kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024", b1["kubelet-arg"])
+        self.assertIn("system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024", b1["kubelet-arg"])
+        self.assertIn("eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%", b1["kubelet-arg"])
 
 
 if __name__ == "__main__":

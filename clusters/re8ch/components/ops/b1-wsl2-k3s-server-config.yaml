@@ -26,12 +26,12 @@ disable:
   - coredns
 embedded-registry: false
 kubelet-arg:
-  # Keep the same reservations during a manual DR promotion.
+  # Preserve B1's high-utilization experiment during a manual DR promotion.
   - "max-pods=128"
-  - "kube-reserved=cpu=2,memory=2Gi,ephemeral-storage=2Gi,pid=2048"
-  - "system-reserved=cpu=1,memory=2Gi,ephemeral-storage=2Gi,pid=2048"
+  - "kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024"
+  - "system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024"
   - "enforce-node-allocatable=pods"
-  - "eviction-hard=memory.available<2Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
+  - "eviction-hard=memory.available<1Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%"
 node-label:
   - "pigsty.cc/provider=openstack-wsl"
   - "pigsty.cc/region=openstack"

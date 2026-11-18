@@ -71,7 +71,7 @@ kind: NodeProfile
 metadata: {name: b1-wsl-zt}
 spec:
   nodeName: b1-wsl-zt
-  reservationProfile: control-small
+  reservationProfile: worker-small
   aliases: [b1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-b1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-b1, power: b1-workstation, network: b1-local-uplink, host: b1-windows}
