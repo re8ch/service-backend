@@ -104,6 +104,25 @@ The non-secret inventory still required before automation is:
 - expected stopped, suspended and running states;
 - retry interval, maximum start attempts and notification destination.
 
+### Confirmed Tianyi Cloud pool evidence — 2026-11-18
+
+The official common-region API confirms the remembered pool mapping:
+
+- region name: `长沙42`;
+- region code: `cn-changsha-42`;
+- region ID: `200000002401`;
+- region type: `openstack`;
+- availability zones: `cn-hn-csx5-2a-public-ctcloud` and
+  `cn-hn-cs42-hncs1A-public-ctcloud`.
+
+The first supplied IAM credential authenticated successfully but returned zero
+VM and zero bare-metal resources for this pool. The ECPC desktop endpoint also
+reported `unknown region` for this numeric region ID. Therefore that identity
+does not yet provide a verifiable B1 resource mapping and must not be used to
+issue a blind start request. Before enabling recovery, obtain either the B1
+ECS instance ID visible to this IAM identity or an ECPC identity/region mapping
+whose read API returns B1 unambiguously.
+
 The automation must query current state before issuing a start, treat already
 running/starting/waking hosts as success, bound retries, and verify Windows SSH
 then WSL/k3s independently. It must never log the SecretKey or pass it in a
