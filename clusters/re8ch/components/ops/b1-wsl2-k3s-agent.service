@@ -39,9 +39,9 @@ ExecStart=/usr/local/bin/k3s agent \
   --node-label re8ch.com/network-level=4 \
   --node-label re8ch.com/public-control=none \
   --node-label re8ch.com/public-ip=none \
-  --node-label scheduling.re8ch.com/node-profile=worker-small \
+  --node-label scheduling.re8ch.com/node-profile=wsl-balanced \
   --kubelet-arg max-pods=128 \
-  --kubelet-arg kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024 \
-  --kubelet-arg system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024 \
+  --kubelet-arg kube-reserved=cpu=500m,memory=512Mi,ephemeral-storage=1Gi,pid=1024 \
+  --kubelet-arg system-reserved=cpu=500m,memory=512Mi,ephemeral-storage=1Gi,pid=1024 \
   --kubelet-arg enforce-node-allocatable=pods \
   --kubelet-arg eviction-hard=memory.available<512Mi,nodefs.available<10%,imagefs.available<15%,pid.available<10%

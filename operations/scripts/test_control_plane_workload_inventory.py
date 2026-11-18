@@ -55,7 +55,7 @@ class ClassificationTests(unittest.TestCase):
 
 
 class ControlPlaneReservationTests(unittest.TestCase):
-    def test_wsl_host_configs_match_control_small_profile(self):
+    def test_wsl_host_configs_match_balanced_profile(self):
         root = Path(__file__).resolve().parents[2]
         profile_document = next(
             yaml.safe_load_all(
@@ -63,13 +63,13 @@ class ControlPlaneReservationTests(unittest.TestCase):
             )
         )
         profiles = yaml.safe_load(profile_document["data"]["profiles.yaml"])
-        control_small = profiles["control-small"]
+        control_small = profiles["wsl-balanced"]
         expected_args = {
             f"max-pods={control_small['maxPods']}",
-            "kube-reserved=cpu=2,memory=2Gi,ephemeral-storage=2Gi,pid=2048",
-            "system-reserved=cpu=1,memory=2Gi,ephemeral-storage=2Gi,pid=2048",
+            "kube-reserved=cpu=500m,memory=512Mi,ephemeral-storage=1Gi,pid=1024",
+            "system-reserved=cpu=500m,memory=512Mi,ephemeral-storage=1Gi,pid=1024",
             "enforce-node-allocatable=pods",
-            "eviction-hard=memory.available<2Gi,nodefs.available<10%,imagefs.available<15%,pid.available<10%",
+            "eviction-hard=memory.available<512Mi,nodefs.available<10%,imagefs.available<15%,pid.available<10%",
         }
         config = yaml.safe_load(
             (root / "clusters/re8ch/components/ops/a1-wsl2-k3s-server-config.yaml").read_text()
@@ -83,8 +83,7 @@ class ControlPlaneReservationTests(unittest.TestCase):
         b1 = yaml.safe_load(
             (root / "clusters/re8ch/components/ops/b1-wsl2-k3s-server-config.yaml").read_text()
         )
-        self.assertIn("kube-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024", b1["kubelet-arg"])
-        self.assertIn("system-reserved=cpu=250m,memory=384Mi,ephemeral-storage=1Gi,pid=1024", b1["kubelet-arg"])
+        self.assertEqual(set(b1["kubelet-arg"]), expected_args)
         self.assertIn("eviction-hard=memory.available<512Mi,nodefs.available<10%,imagefs.available<15%,pid.available<10%", b1["kubelet-arg"])
 
 

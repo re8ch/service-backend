@@ -43,8 +43,8 @@ def main() -> None:
 
     b1_agent = agent_texts[1]
     assert "--config /dev/null" in b1_agent
-    assert "kube-reserved=cpu=250m,memory=384Mi" in b1_agent
-    assert "system-reserved=cpu=250m,memory=384Mi" in b1_agent
+    assert "kube-reserved=cpu=500m,memory=512Mi" in b1_agent
+    assert "system-reserved=cpu=500m,memory=512Mi" in b1_agent
     assert "memory.available<512Mi" in b1_agent
     assert "memory.available\\<512Mi" not in b1_agent
 

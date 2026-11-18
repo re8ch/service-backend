@@ -22,6 +22,12 @@ data:
       systemReserved: {cpu: 500m, memory: 768Mi, ephemeral-storage: 2Gi, pid: "1024"}
       enforceNodeAllocatable: [pods]
       evictionHard: {memory.available: 1Gi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+    wsl-balanced:
+      maxPods: 128
+      kubeReserved: {cpu: 500m, memory: 512Mi, ephemeral-storage: 1Gi, pid: "1024"}
+      systemReserved: {cpu: 500m, memory: 512Mi, ephemeral-storage: 1Gi, pid: "1024"}
+      enforceNodeAllocatable: [pods]
+      evictionHard: {memory.available: 512Mi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
     worker-large:
       maxPods: 256
       kubeReserved: {cpu: "2", memory: 4Gi, ephemeral-storage: 10Gi, pid: "4096"}
@@ -58,7 +64,7 @@ kind: NodeProfile
 metadata: {name: a1-wsl-zt}
 spec:
   nodeName: a1-wsl-zt
-  reservationProfile: control-small
+  reservationProfile: wsl-balanced
   aliases: [a1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-a1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-a1, power: a1-workstation, network: a1-local-uplink, host: a1-windows}
@@ -71,7 +77,7 @@ kind: NodeProfile
 metadata: {name: b1-wsl-zt}
 spec:
   nodeName: b1-wsl-zt
-  reservationProfile: worker-small
+  reservationProfile: wsl-balanced
   aliases: [b1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-b1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-b1, power: b1-workstation, network: b1-local-uplink, host: b1-windows}
