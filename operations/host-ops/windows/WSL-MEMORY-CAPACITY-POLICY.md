@@ -104,24 +104,28 @@ The non-secret inventory still required before automation is:
 - expected stopped, suspended and running states;
 - retry interval, maximum start attempts and notification destination.
 
-### Confirmed Tianyi Cloud pool evidence — 2026-11-18
+### Confirmed Tianyi Cloud pool evidence — 2026-11-19
 
-The official common-region API confirms the remembered pool mapping:
+The corrected B1 pool is:
 
-- region name: `长沙42`;
-- region code: `cn-changsha-42`;
-- region ID: `200000002401`;
+- region name: `长沙11`;
+- region ID: `200000003648`;
 - region type: `openstack`;
-- availability zones: `cn-hn-csx5-2a-public-ctcloud` and
-  `cn-hn-cs42-hncs1A-public-ctcloud`.
+- `openapiAvailable: false`;
+- no public region code or availability-zone list is published.
 
-The first supplied IAM credential authenticated successfully but returned zero
-VM and zero bare-metal resources for this pool. The ECPC desktop endpoint also
-reported `unknown region` for this numeric region ID. Therefore that identity
-does not yet provide a verifiable B1 resource mapping and must not be used to
-issue a blind start request. Before enabling recovery, obtain either the B1
-ECS instance ID visible to this IAM identity or an ECPC identity/region mapping
-whose read API returns B1 unambiguously.
+The earlier `长沙42` mapping was a rejected hypothesis, not B1 authority. It
+identified a different OpenStack pool and returned no resources for the
+authenticated account.
+
+The supplied IAM credential authenticates successfully, but the official CLI
+rejects `长沙11` consistently for common resource inventory, ECS, ECPC desktop
+and bare-metal operations because the pool is not a supported mainland public
+OpenAPI pool. This is a pool/API limitation rather than evidence that B1 is
+stopped or absent. Do not issue a start request against another pool. Automated
+power recovery requires a Tianyi-provided private management/desktop API for
+长沙11, or a separate datacenter out-of-band power interface whose target can be
+matched to B1 unambiguously.
 
 The automation must query current state before issuing a start, treat already
 running/starting/waking hosts as success, bound retries, and verify Windows SSH
