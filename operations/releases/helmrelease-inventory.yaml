@@ -279,7 +279,7 @@ releases:
       namespace: flux-system
   values:
     inlinePresent: true
-    inlineSha256: sha256:0d8aed31ef1fd500517d5498f35addfed545e5601e811ba1423f29cd5fab5669
+    inlineSha256: sha256:2f9e43ec54de3d3f63e43cd41442cda0862be7ce2c710aecf7ca15b5aa4e13f6
     references: []
   lifecycle:
     install:
@@ -299,7 +299,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:e6385002469d240ea75ebf567342a5fb253f89f978d08f68f5218f38762031d8
+  declarationSha256: sha256:ae8c739daf6e06b6b1c2dd6d7faebeeb20595e2b09626bd6201c935fdd79b99a
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
     document: 83

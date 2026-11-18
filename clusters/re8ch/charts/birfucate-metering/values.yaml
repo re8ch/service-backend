@@ -174,6 +174,19 @@ serviceInstanceRuntime:
   enabled: false
   serviceClasses: []
 
+# Platform-owned authorities that predate TenantServiceInstance are adopted as
+# explicit resource facts. Availability is proven from Prometheus; no provider
+# credential or synthetic tenant service instance is introduced.
+adoptedResources: []
+# - tenantRef: admin
+#   resourceRef: service://admin/pg-re8ch
+#   serviceClass: database.postgresql.shared.v1
+#   resourceType: database-authority
+#   purpose: platform-database
+#   sourceRef: service-backend
+#   dependencyRefs: []
+#   availabilityQuery: max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})
+
 outbox:
   enabled: true
   storageClassName: rbd-r640
