@@ -1840,7 +1840,7 @@ rules:
   - configmaps
   resourceNames:
   - node-reservation-profiles
-  - penrose-controller-source-5f7tbkh9db
+  - penrose-controller-source-42f74bhf6c
   - ssa-state-main-tenant-runtime-scheduling-system
   verbs:
   - get

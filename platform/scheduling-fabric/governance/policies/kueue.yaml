@@ -46,7 +46,7 @@ spec: {nodeLabels: {scheduling.re8ch.com/capability-gpu: rocm-wsl, scheduling.re
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor
 metadata: {name: placement-stateful-ceph}
-spec: {nodeLabels: {scheduling.re8ch.com/placement-general-reliable: "true", scheduling.re8ch.com/ceph-serving: "true"}}
+spec: {nodeLabels: {scheduling.re8ch.com/placement-general-reliable: "true", scheduling.re8ch.com/ceph-client-serving: "true"}}
 ---
 apiVersion: kueue.x-k8s.io/v1beta2
 kind: ResourceFlavor

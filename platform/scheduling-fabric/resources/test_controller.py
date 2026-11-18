@@ -73,6 +73,12 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(labels["scheduling.re8ch.com/capability-egress"], "true")
         self.assertEqual(labels["scheduling.re8ch.com/placement-general-reliable"], "true")
 
+    def test_profile_projects_permanent_platform_impact(self):
+        labels = controller.profile_labels(
+            {"lifecycle": {"tenure": "permanent", "reconcileImpact": "platform"}}, "r640")
+        self.assertEqual(labels["scheduling.re8ch.com/tenure"], "permanent")
+        self.assertEqual(labels["scheduling.re8ch.com/reconcile-impact"], "platform")
+
     def test_placement_excludes_control_plane_when_class_disallows_it(self):
         placement = {"spec": {"workloadMode": "PortableService", "nodeSelector": {"scheduling.re8ch.com/placement-general-reliable": "true"}, "allowControlPlane": False}}
         nodes = [
@@ -280,6 +286,16 @@ class ScoreTests(unittest.TestCase):
         event["lastTimestamp"] = "2026-10-02T12:51:00Z"
         self.assertFalse(controller.node_reliability(node, [event], policy, datetime(2026, 10, 2, 12, 52, tzinfo=timezone.utc))["eligible"])
 
+    def test_only_reviewed_long_lived_nodes_have_platform_reconcile_impact(self):
+        import yaml
+        profiles = [p for p in yaml.safe_load_all(Path(__file__).with_name("node-profiles.yaml").read_text())
+                    if p and p.get("kind") == "NodeProfile"]
+        permanent = {p["spec"]["nodeName"] for p in profiles
+                     if p["spec"]["lifecycle"] == {"tenure": "permanent", "reconcileImpact": "platform"}}
+        self.assertEqual(permanent, {"r640", "a1-wsl-zt", "b1-wsl-zt", "vm-20-12-ubuntu"})
+        self.assertTrue(all(p["spec"]["lifecycle"]["reconcileImpact"] == "consumer"
+                            for p in profiles if p["spec"]["nodeName"] not in permanent))
+
     def test_reliability_accepts_compatible_stable_node(self):
         node = {"metadata": {"name": "worker"}, "spec": {}, "status": {"conditions": [
             {"type": "Ready", "status": "True", "lastTransitionTime": "2026-09-18T20:00:00Z"},
@@ -291,12 +307,18 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(result["score"], 80)
 
     def test_serving_labels_fail_closed_with_node_reliability(self):
-        spec = {"capabilities": {"storage": ["ceph-client"], "gpu": "rocm-wsl", "egress": True,
+        spec = {"capabilities": {"storage": ["ceph-client", "ceph-osd"], "gpu": "rocm-wsl", "egress": True,
                                   "publicEdge": True, "functionExecution": True}}
         healthy = controller.serving_labels(spec, {"eligible": True})
         self.assertTrue(all(healthy[key] == "true" for key in controller.SERVING_LABELS))
         unhealthy = controller.serving_labels(spec, {"eligible": False})
         self.assertTrue(all(unhealthy[key] == "false" for key in controller.SERVING_LABELS))
+
+    def test_ceph_consumer_never_becomes_storage_provider(self):
+        labels = controller.serving_labels(
+            {"capabilities": {"storage": ["ceph-client"]}}, {"eligible": True})
+        self.assertEqual(labels["scheduling.re8ch.com/ceph-client-serving"], "true")
+        self.assertEqual(labels["scheduling.re8ch.com/ceph-serving"], "false")
 
     @patch.object(controller.urllib.request, "urlopen", side_effect=OSError("metrics unavailable"))
     def test_trimaran_outage_does_not_block_node_projection(self, _urlopen):

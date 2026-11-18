@@ -237,14 +237,6 @@ jobs:
             echo 'Authenticated node observation failed; inspect through the protected platform interface' >&2
             exit 1
           fi
-          python - "$observed" <<'PY'
-          import json, os, pathlib, sys, yaml
-          count = len(json.load(open(sys.argv[1], encoding="utf-8"))["items"])
-          contract = yaml.safe_load((pathlib.Path(os.environ["RUNNER_TEMP"]) / "infrastructure-contracts/cluster.yaml").read_text())
-          if count != contract["spec"]["expectedNodeCount"]:
-              raise SystemExit("Observed node count differs from the pinned restricted configuration")
-          PY
-
           expect_forbidden() {
             local label="$1"
             shift
@@ -281,6 +273,12 @@ jobs:
           parity_status=$?
           set -e
           echo "status=$parity_status" >> "$GITHUB_OUTPUT"
+          python - "$evidence" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          evidence = json.load(open(sys.argv[1], encoding="utf-8"))
+          print("consumer_warning=" + ("true" if any(
+              item.get("reconcileClass") == "warning" for item in evidence.get("drift", [])) else "false"))
+          PY
       - name: Encrypt evidence before crossing the public artifact boundary
         env:
           NODE_EVIDENCE_KEY: ${{ secrets.NODE_OBSERVATION_EVIDENCE_KEY }}
@@ -295,11 +293,16 @@ jobs:
           retention-days: 30
       - name: Enforce parity
         if: always()
-        env: {PARITY_STATUS: "${{ steps.parity.outputs.status }}"}
+        env:
+          PARITY_STATUS: "${{ steps.parity.outputs.status }}"
+          CONSUMER_WARNING: "${{ steps.parity.outputs.consumer_warning }}"
         run: |
           if [[ -z "$PARITY_STATUS" ]]; then
             echo "Observation failed before sanitized evidence was produced" >&2
             exit 1
+          fi
+          if [[ "$CONSUMER_WARNING" == "true" ]]; then
+            echo "::warning::Consumer node drift observed; platform providers remain reconcilable. Review encrypted evidence on normal maintenance priority."
           fi
           exit "$PARITY_STATUS"
       - name: Remove private observation inputs after any outcome

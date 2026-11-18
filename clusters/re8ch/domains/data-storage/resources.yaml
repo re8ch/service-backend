@@ -752,7 +752,7 @@ spec:
           name: datasource-config
           readOnly: true
       nodeSelector:
-        scheduling.re8ch.com/ceph-serving: "true"
+        scheduling.re8ch.com/ceph-client-serving: "true"
         scheduling.re8ch.com/placement-general-reliable: "true"
       securityContext:
         fsGroup: 8978

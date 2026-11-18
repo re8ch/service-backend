@@ -30,12 +30,12 @@ spec:
     objectNames:
     - node-reservation-profiles
     - penrose-controller
-    - penrose-controller-source-5f7tbkh9db
+    - penrose-controller-source-42f74bhf6c
     allowClusterScoped: false
     forceConflictObjects:
     - apps/Deployment/scheduling-system/penrose-controller
   inventory:
-    digest: sha256:b82c92a6ca419a5b96dad4c1852fcc0b42b54a76f58000584f204232915b5ca9
+    digest: sha256:04ab3daeae91c9eb3980f123dfbeeeb2c5a1155b6c059b25049b4e5d1de30b65
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -48,6 +48,6 @@ spec:
     deletionAllowlist:
     - apps/Deployment/scheduling-system/penrose-controller
     - core/ConfigMap/scheduling-system/node-reservation-profiles
-    - core/ConfigMap/scheduling-system/penrose-controller-source-5f7tbkh9db
+    - core/ConfigMap/scheduling-system/penrose-controller-source-42f74bhf6c
     - core/ServiceAccount/scheduling-system/penrose-controller
     - policy/PodDisruptionBudget/scheduling-system/penrose-controller
