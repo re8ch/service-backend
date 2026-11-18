@@ -57,14 +57,15 @@ def collect():
         identity = {"error": type(exc).__name__}
     proxy = urllib.request.build_opener(urllib.request.ProxyHandler({"http":os.environ["LOCAL_PROXY"], "https":os.environ["LOCAL_PROXY"]}))
     probes = {}
-    for target_geo, targets in json.loads(os.environ["PROBES_JSON"]).items():
-        probes[target_geo] = {item["name"]: request(item["url"], proxy, expected_status=item.get("expectedStatus")) for item in targets}
+    route_target = {"cn": "global", "global": "cn"}.get(geo)
+    targets = json.loads(os.environ["PROBES_JSON"]).get(route_target, [])
+    if route_target:
+        probes[route_target] = {item["name"]: request(item["url"], proxy, expected_status=item.get("expectedStatus")) for item in targets}
     controller = request(os.environ["LOCAL_CONTROLLER"])
     egress_health = {
         target_geo: any(result.get("ok") for result in results.values())
         for target_geo, results in probes.items()
     }
-    route_target = {"cn": "global", "global": "cn"}.get(geo)
     route_ok = egress_health.get(route_target, False)
     probe_results = [result for results in probes.values() for result in results.values()]
     successful = [result for result in probe_results if result.get("ok")]
