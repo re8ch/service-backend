@@ -100,6 +100,21 @@
       "type": "object", "additionalProperties": false, "required": ["enabled", "serviceClasses"],
       "properties": {"enabled": {"type": "boolean"}, "serviceClasses": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
     },
+    "adoptedResources": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "object", "additionalProperties": false,
+        "required": ["tenantRef", "resourceRef", "serviceClass", "resourceType", "purpose", "sourceRef", "dependencyRefs", "availabilityQuery"],
+        "properties": {
+          "tenantRef": {"type": "string", "minLength": 1},
+          "resourceRef": {"type": "string", "pattern": "^service://[^/]+/.+"},
+          "serviceClass": {"type": "string", "minLength": 1},
+          "resourceType": {"type": "string", "minLength": 1},
+          "purpose": {"type": "string", "minLength": 1},
+          "sourceRef": {"type": "string", "minLength": 1},
+          "dependencyRefs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "availabilityQuery": {"type": "string", "minLength": 1}
+        }}
+    },
     "pricing": {
       "type": "object", "additionalProperties": false, "required": ["enabled", "currency", "rateCardRef"],
       "properties": {"enabled": {"type": "boolean"}, "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}, "rateCardRef": {"type": "string", "minLength": 1}}

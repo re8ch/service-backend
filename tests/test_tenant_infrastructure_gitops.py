@@ -81,9 +81,11 @@ def test_postgresql_provider_has_independent_image_and_narrow_credentials():
     assert admin_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "resourceNames": ["supabase-pg-re8ch-secrets"], "verbs": ["get"]}]
     broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-credential-broker")
     assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create"]}]
-    policy = next(item for item in docs if item.get("kind") == "NetworkPolicy" and item["metadata"]["name"] == "postgresql-provider")
-    assert policy["spec"]["ingress"] == [{"from": [{"podSelector": {"matchLabels": {"app": "tenant-api"}}}],
-                                            "ports": [{"protocol": "TCP", "port": 8080}]}]
+    assert container["ports"] == [{"name": "health", "containerPort": 8080}]
+    env_names = {item["name"] for item in container["env"]}
+    assert not {"MCP_CATALOG_ADMIN_TOKEN", "MCP_CATALOG_ADMIN_URL"} & env_names
+    assert not any(item.get("kind") == "Service" and item["metadata"]["name"] == "postgresql-provider" for item in docs)
+    assert not any(item.get("kind") == "NetworkPolicy" and item["metadata"]["name"] == "postgresql-provider" for item in docs)
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true",
                               "--set", "tenantPlatform.postgresqlProvider.enabled=true"], capture_output=True, text=True)

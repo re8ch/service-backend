@@ -285,6 +285,16 @@ spec:
         - database.postgresql.shared.v1
         - registry.harbor.v1
         - observability.grafana.v1
+    adoptedResources:
+      # pg-identity and pg-billing are logical authorities backed by the same
+      # long-lived pg-re8ch Pigsty service. Keeping both layers explicit makes
+      # the dependency visible to AI queries without inventing extra clusters.
+      - {tenantRef: admin, resourceRef: "service://admin/pg-re8ch", serviceClass: database.postgresql.shared.v1, resourceType: database-authority, purpose: shared-postgresql, sourceRef: service-backend, dependencyRefs: [], availabilityQuery: 'max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/pg-identity", serviceClass: database.postgresql.shared.v1, resourceType: logical-database, purpose: identity-database, sourceRef: identity-gitops, dependencyRefs: ["service://admin/pg-re8ch"], availabilityQuery: 'max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/pg-billing", serviceClass: database.postgresql.shared.v1, resourceType: logical-database, purpose: billing-database, sourceRef: billing, dependencyRefs: ["service://admin/pg-re8ch"], availabilityQuery: 'max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/grafana", serviceClass: observability.grafana.v1, resourceType: observability-component, purpose: dashboards, sourceRef: observability-gitops, dependencyRefs: [], availabilityQuery: 'max(kube_deployment_status_replicas_available{namespace="observability-system",deployment="re8ch-grafana"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/kube-metrics", serviceClass: observability.grafana.v1, resourceType: observability-component, purpose: kubernetes-metrics, sourceRef: observability-gitops, dependencyRefs: [], availabilityQuery: 'max(kube_deployment_status_replicas_available{namespace="observability-system",deployment=~".*kube-state-metrics.*"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/harbor-registry", serviceClass: registry.harbor.v1, resourceType: registry-authority, purpose: image-registry, sourceRef: storage-gitops, dependencyRefs: [], availabilityQuery: 'max(up{job=~".*harbor.*"})'}
     pricing:
       enabled: false
       currency: CNY

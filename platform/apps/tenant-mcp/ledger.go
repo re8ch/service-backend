@@ -50,6 +50,13 @@ func openLedger(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
+	// This legacy provider advertised a health-only tool that duplicated the
+	// TenantServiceInstance surface. Keep its audit revisions, but remove the
+	// active catalog head so a rollout deterministically withdraws the tool.
+	if _, err = db.Exec(`DELETE FROM mcp_catalog_heads WHERE service_name='postgresql-provider'`); err != nil {
+		db.Close()
+		return nil, err
+	}
 	return db, nil
 }
 
