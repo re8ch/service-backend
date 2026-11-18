@@ -35,7 +35,8 @@ def main() -> None:
         if node["platform"] == "windows-server-2022":
             if node["wsl"].get("autoMemoryReclaim") != "gradual":
                 raise SystemExit(f"{node['name']} must use gradual WSL page-cache reclamation")
-            if node["wsl"].get("memory") != "12GB" or node["wsl"].get("swap") != "3GB":
+            expected_memory = "12GB" if node["name"] == "a1-windows" else "14GB"
+            if node["wsl"].get("memory") != expected_memory or node["wsl"].get("swap") != "3GB":
                 raise SystemExit(f"{node['name']} must preserve the reviewed WSL memory ceiling")
             path = ssh["preferredPath"]
             if path["mode"] != "peer-wsl-jump":
