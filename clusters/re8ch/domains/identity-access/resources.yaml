@@ -16210,6 +16210,16 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: payments
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: tenant-infrastructure
+      podSelector:
+        matchLabels:
+          app: tenant-api
+    ports:
+    - port: 3000
+      protocol: TCP
   podSelector: {}
   policyTypes:
   - Ingress

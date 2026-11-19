@@ -59,6 +59,22 @@ func fixtureBackend(endpoint string) platformBackend {
 	b.URL = endpoint
 	return b
 }
+func TestRegistryAcceptsInternalNoAuthNativeMCP(t *testing.T) {
+	doc, err := decodePlatformRegistry([]byte(`{"version":1,"backends":{"pg_re8ch":{"url":"http://studio.namespace.svc.cluster.local:3000/mcp","authMode":"none"}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := doc.Backends["pg_re8ch"].AuthMode; got != "none" {
+		t.Fatalf("authMode = %q, want none", got)
+	}
+}
+
+func TestRegistryRejectsUnknownAuthMode(t *testing.T) {
+	_, err := decodePlatformRegistry([]byte(`{"version":1,"backends":{"pg_re8ch":{"url":"http://studio.namespace.svc.cluster.local:3000/mcp","authMode":"magic"}}}`))
+	if err == nil {
+		t.Fatal("unknown auth mode accepted")
+	}
+}
 func TestModuleDiscoveryIsBoundedCachedAndIndependent(t *testing.T) {
 	t.Setenv("SERVICE_API_TOKEN", "fixture")
 	healthy, requests := registryFixture(t, func(context.Context) (any, error) { return map[string]bool{"ok": true}, nil })

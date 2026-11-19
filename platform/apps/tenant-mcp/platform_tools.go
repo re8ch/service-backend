@@ -241,6 +241,7 @@ type controlPlaneAuthenticationInput struct {
 
 type platformBackend struct {
 	URL       string `json:"url"`
+	AuthMode  string `json:"authMode,omitempty"`
 	Namespace string `json:"namespace"`
 	Secret    string `json:"secret"`
 	SecretKey string `json:"secretKey"`
@@ -264,6 +265,9 @@ func mustDefaultPlatformBackends() map[string]platformBackend {
 }
 
 func platformCredential(ctx context.Context, backend platformBackend) (string, error) {
+	if backend.AuthMode == "none" {
+		return "", nil
+	}
 	if backend.Secret == "admin-vmcp-backend-auth" && backend.Namespace == "tenant-infrastructure" {
 		value := os.Getenv("SERVICE_API_TOKEN")
 		if value == "" {

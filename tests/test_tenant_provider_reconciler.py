@@ -116,18 +116,34 @@ def test_ssh_broker_reconcile_publishes_only_opaque_admin_binding():
     assert "privatekey" not in serialized and "token" not in serialized and "secret" not in serialized
 
 
-def test_postgresql_is_left_to_the_independent_provider():
-    kube = FakeKube("database.postgresql.shared.v1")
+def test_admin_postgresql_instance_adopts_native_supabase_mcp():
+    class AdminKube(FakeKube):
+        def get(self, plural, name, namespace=None, api=None):
+            if plural == "services":
+                assert (name, namespace) == ("supabase-identity-studio", "supabase-identity")
+                return {"spec": {"clusterIP": "10.43.0.10"}}
+            return super().get(plural, name, namespace, api)
+
+        def patch_status(self, plural, name, status, namespace):
+            assert plural == "tenantserviceinstances" and namespace == "tenant-infrastructure"
+            self.status = status
+
+    kube = AdminKube("database.postgresql.shared.v1")
     value = {
-        "metadata": {"name": "postgresql-shared", "namespace": "tenant-infrastructure",
-                     "uid": "postgresql-shared-uid", "generation": 1,
+        "metadata": {"name": "pg-identity", "namespace": "tenant-infrastructure",
+                     "uid": "pg-identity-uid", "generation": 1,
                      "labels": {"tenancy.re8ch.com/tenant": "admin"}},
         "spec": {"tenantRef": "admin", "serviceClass": "database.postgresql.shared.v1",
                  "plan": "standard", "lifecycle": "Requested", "parameters": {}},
         "status": {},
     }
     provider.reconcile_instance(kube, value)
-    assert kube.status is None
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"] == {
+        "accessRef": "capability://supabase-mcp/admin/pg-identity",
+        "mcpRef": "http://supabase-identity-studio.supabase-identity.svc.cluster.local:3000/mcp",
+        "credentialMaterialReturned": False,
+    }
 
 
 def test_litellm_reconcile_stores_key_and_publishes_only_opaque_reference(monkeypatch):
