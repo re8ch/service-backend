@@ -10239,6 +10239,8 @@ spec:
             secretKeyRef:
               key: JWT_SECRET
               name: supabase-billing-secrets
+        - name: POSTGRES_USER_READ_ONLY
+          value: billing_studio_admin
         - name: POSTGRES_USER_READ_WRITE
           value: billing_studio_admin
         - name: POSTGRES_PASSWORD
@@ -11084,6 +11086,8 @@ spec:
             secretKeyRef:
               key: JWT_SECRET
               name: supabase-identity-secrets
+        - name: POSTGRES_USER_READ_ONLY
+          value: supabase_admin
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:

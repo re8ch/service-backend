@@ -368,6 +368,8 @@ spec:
             secretKeyRef:
               name: supabase-identity-secrets
               key: JWT_SECRET
+        - name: POSTGRES_USER_READ_ONLY
+          value: supabase_admin
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:

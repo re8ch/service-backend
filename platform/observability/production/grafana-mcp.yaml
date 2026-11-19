@@ -15,7 +15,7 @@ spec:
       containers:
         - name: mcp
           image: grafana/mcp-grafana:2.3.0@sha256:c27248b5919d09d64ea273ca1b128b32902c6796f6e2dfcd11849d4f1363f9ed
-          args: [-t, streamable-http, --disable-write, --usage-stats=disabled]
+          args: [-t, streamable-http, --disable-write, --usage-stats=disabled, "--allowed-hosts=grafana-mcp.observability-system.svc.cluster.local:8000,grafana-mcp.observability-system.svc:8000,grafana-mcp:8000"]
           ports: [{name: mcp, containerPort: 8000}]
           env:
             - {name: GRAFANA_URL, value: http://re8ch-grafana.observability-system.svc.cluster.local:3000}
