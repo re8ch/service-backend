@@ -349,6 +349,13 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         labels = {"tenant": resource["tenantRef"], "resource_ref": resource["resourceRef"],
                   "service_class": resource["serviceClass"], "source_ref": resource["sourceRef"]}
         set_metric("birfucate_adopted_resource_available", labels, 1 if available else 0)
+        queue(usage_event(resource["tenantRef"], resource["resourceRef"], "application",
+                          "observation.resource_availability", 1, "observation", start, end,
+                          {"resourceType": resource["resourceType"], "purpose": resource["purpose"],
+                           "sourceRef": resource["sourceRef"],
+                           "dependencyRefs": resource["dependencyRefs"], "adopted": True,
+                           "available": available, "billingEligible": False},
+                          service_class=resource["serviceClass"]))
         if not available:
             continue
         quantity = float(interval)
