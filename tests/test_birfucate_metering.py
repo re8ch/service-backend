@@ -200,6 +200,14 @@ def test_adopted_platform_resource_emits_unpriced_dependency_fact(tmp_path, monk
     assert event["dimensions"]["billingEligible"] is False
     assert event["pricingApplied"] is False and event["accountingPosted"] is False
 
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_args: [{"metric": {}, "value": [0, "0"]}])
+    unavailable = collector.Outbox(tmp_path / "unavailable.db")
+    collector.collect_once(config, unavailable, 160, 220)
+    observation = unavailable.pending()[0][1]
+    assert observation["meter"] == "observation.resource_availability"
+    assert observation["dimensions"]["available"] is False
+    assert observation["dimensions"]["billingEligible"] is False
+
 
 def test_release_enables_ledger_billing_path():
     release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())

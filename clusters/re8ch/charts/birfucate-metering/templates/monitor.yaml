@@ -3,8 +3,12 @@ apiVersion: operator.victoriametrics.com/v1beta1
 kind: VMServiceScrape
 metadata:
   name: {{ include "birfucate-metering.fullname" . }}
-  labels: {{- include "birfucate-metering.labels" . | nindent 4 }}
+  namespace: observability-system
+  labels:
+    observability.re8ch.com/managed: "true"
+    {{- include "birfucate-metering.labels" . | nindent 4 }}
 spec:
+  namespaceSelector: {matchNames: [{{ .Release.Namespace }}]}
   selector:
     matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}
   endpoints: [{port: metrics, path: /metrics, interval: {{ .Values.vmServiceScrape.interval }}}]

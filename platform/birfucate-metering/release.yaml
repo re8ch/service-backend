@@ -302,4 +302,4 @@ spec:
     serviceMonitor:
       enabled: false
     vmServiceScrape:
-      enabled: false
+      enabled: true
