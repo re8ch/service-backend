@@ -1796,3 +1796,8 @@ modules:
       digest: sha256:1aa4faa5ee9e811bb9250eb15849fc7da5f65caaf74c5b7077778a9651782134
     - codename: spectrum-pearl
       digest: sha256:0b932abfbd1998a41435997c1501a5d16f7ea007fff24274d8ce0362a49df358
+    - codename: telescope-pearl
+      digest: sha256:8d7fd82637a956644cb5a3907f9c87907c73bea001e80f211320ba415145a3ff
+      quarantined: missing-or-invalid-signature
+    - codename: viewport-pearl
+      digest: sha256:f323659351eb8451fd7f69b58d3f78d20c72ea3a1263a55b7cc75050cd8d8f91
