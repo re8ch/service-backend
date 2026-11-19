@@ -641,6 +641,7 @@ def harbor_project(tenant_ref):
 
 PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "infrastructure.ssh-broker.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
 MULTI_INSTANCE_PROVIDER_CLASSES = {"ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
+ADMIN_POSTGRESQL_INSTANCES = {"pg-re8ch", "pg-identity", "pg-billing"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -661,7 +662,7 @@ def provider_service_spec(tenant_ref, name, request):
     if service_class == "database.postgresql.shared.v1":
         if request.get("planRef") != "standard":
             raise PermissionError("PostgreSQL publishes only the standard plan")
-        if tenant_ref == "admin" and name == "postgresql-shared":
+        if tenant_ref == "admin" and name in ADMIN_POSTGRESQL_INSTANCES:
             if parameters:
                 raise PermissionError("Admin PostgreSQL authority adoption is parameterless")
             return {}
@@ -1397,7 +1398,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not 8 <= len(key) <= 128:
                     raise PermissionError("idempotencyKey must contain 8 to 128 characters")
                 namespace = runtime_namespace(tenant)
-                if service_class in PROVIDER_SERVICE_CLASSES and service_class not in MULTI_INSTANCE_PROVIDER_CLASSES:
+                admin_postgresql = tenant == "admin" and service_class == "database.postgresql.shared.v1" and name in ADMIN_POSTGRESQL_INSTANCES
+                if service_class in PROVIDER_SERVICE_CLASSES and service_class not in MULTI_INSTANCE_PROVIDER_CLASSES and not admin_postgresql:
                     existing = [item for item in kube().list("tenantserviceinstances", namespace) if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("serviceClass") == service_class and item.get("metadata", {}).get("name") != name and item.get("status", {}).get("phase") != "Deleted"]
                     if existing:
                         raise PermissionError("one active provider service instance per tenant and class is allowed")

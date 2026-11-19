@@ -854,7 +854,38 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
         }, namespace)
         return
     if service_class == "database.postgresql.shared.v1":
-        # PostgreSQL is reconciled by the independently released provider.
+        # Tenant-created databases are reconciled by the independently released
+        # provider. The three existing Admin authorities are adopted here so
+        # their native Supabase MCP endpoints remain ordinary Service Instances.
+        adopted = {
+            "pg-re8ch": ("supabase-pg-re8ch", "supabase-studio", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/mcp"),
+            "pg-identity": ("supabase-identity", "supabase-identity-studio", "http://supabase-identity-studio.supabase-identity.svc.cluster.local:3000/mcp"),
+            "pg-billing": ("supabase-billing", "supabase-billing-studio", "http://supabase-billing-studio.supabase-billing.svc.cluster.local:3000/mcp"),
+        }
+        target = adopted.get(meta["name"]) if tenant == "admin" else None
+        if not target:
+            return
+        if spec.get("parameters") or spec.get("plan") != "standard":
+            raise PermissionError("Admin PostgreSQL adoption is parameterless")
+        if lifecycle in {"Suspended", "Deleting"}:
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            kube.patch_status("tenantserviceinstances", meta["name"], {
+                "observedGeneration": meta.get("generation", 1), "phase": phase,
+                "access": (instance.get("status") or {}).get("access"),
+                "conditions": [control.condition("Ready", False, "NativeMCPAccessRevoked")],
+            }, namespace)
+            return
+        service_namespace, service_name, endpoint = target
+        service = kube.get("services", service_name, service_namespace, "api/v1")
+        if not (service.get("spec") or {}).get("clusterIP"):
+            raise RuntimeError("Supabase Studio MCP service endpoint is not ready")
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
+            "access": {"accessRef": f"capability://supabase-mcp/admin/{meta['name']}",
+                       "mcpRef": endpoint, "credentialMaterialReturned": False},
+            "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", True, "NativeSupabaseMCPReady")],
+        }, namespace)
         return
     if service_class == "ai.model-gateway.v1":
         request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}
