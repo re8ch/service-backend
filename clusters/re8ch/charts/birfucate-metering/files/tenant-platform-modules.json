@@ -45,15 +45,15 @@
     },
     "pg_re8ch": {
       "authMode": "none",
-      "url": "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/mcp"
+      "url": "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/api/mcp"
     },
     "pg_billing": {
       "authMode": "none",
-      "url": "http://supabase-billing-studio.supabase-billing.svc.cluster.local:3000/mcp"
+      "url": "http://supabase-billing-studio.supabase-billing.svc.cluster.local:3000/api/mcp"
     },
     "pg_identity": {
       "authMode": "none",
-      "url": "http://supabase-identity-studio.supabase-identity.svc.cluster.local:3000/mcp"
+      "url": "http://supabase-identity-studio.supabase-identity.svc.cluster.local:3000/api/mcp"
     },
     "grafana": {
       "authMode": "none",

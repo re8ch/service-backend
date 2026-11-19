@@ -26,7 +26,14 @@ $$;
 grant connect on database re8ch_billing to billing_studio_admin, billing_auth_admin,
   billing_storage_admin, billing_realtime_admin, billing_supabase_pgrst_rw,
   billing_supabase_pgrst_ro;
-alter role billing_studio_admin set default_transaction_read_only = on;
+alter role billing_studio_admin set default_transaction_read_only = off;
+grant usage, create on schema public to billing_studio_admin;
+grant all privileges on all tables in schema public to billing_studio_admin;
+grant all privileges on all sequences in schema public to billing_studio_admin;
+grant execute on all functions in schema public to billing_studio_admin;
+alter default privileges in schema public grant all privileges on tables to billing_studio_admin;
+alter default privileges in schema public grant all privileges on sequences to billing_studio_admin;
+alter default privileges in schema public grant execute on functions to billing_studio_admin;
 alter role billing_supabase_pgrst_rw set default_transaction_isolation = 'serializable';
 alter role billing_supabase_pgrst_ro set default_transaction_isolation = 'serializable';
 alter role billing_supabase_pgrst_ro set default_transaction_read_only = on;
