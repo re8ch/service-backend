@@ -390,6 +390,11 @@ modules:
       digest: sha256:92e25082980a16d135ca4955e05dc263cc349f426f96ac17aa57180e146a2b5c
     - codename: starfire-violet
       digest: sha256:b1c4961b0212ac67dd69fc286f0202dc382a000d26a502fb089041eeb42ccda7
+    - codename: torch-violet
+      digest: sha256:d67204314e53b49bb0eaa00cdf52bd1a3939c3dfc35a10b4a248067731c30452
+      quarantined: missing-or-invalid-signature
+    - codename: aurora-bronze
+      digest: sha256:9d420cc05f2567a7f96321379b4c9df18ca77dbee32bf01f51ec61a7589ec7ab
   platform/among-clusters:
     releases:
     - codename: bora

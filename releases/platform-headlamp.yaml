@@ -1,11 +1,11 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: starfire-violet
+codename: aurora-bronze
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:b1c4961b0212ac67dd69fc286f0202dc382a000d26a502fb089041eeb42ccda7
-  signature: cosign-keyless
+  digest: sha256:9d420cc05f2567a7f96321379b4c9df18ca77dbee32bf01f51ec61a7589ec7ab
+  signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
 images: []
