@@ -33,6 +33,15 @@ class ControlPlaneRouteHealthTest(unittest.TestCase):
             self.assertNotIn("API_", content)
             self.assertNotIn("WAIT_", content)
 
+    def test_a1_recovers_the_r640_tunnel_with_a_cooldown(self):
+        script = (MANIFESTS / "re8ch-wg-route-health").read_text()
+        environment = (MANIFESTS / "re8ch-wg-route-health-a1.env").read_text()
+
+        self.assertIn('systemctl restart "wg-quick@${WG_INTERFACE}.service"', script)
+        self.assertIn("RECOVERY_STATE=", script)
+        self.assertIn("RECOVERY_COOLDOWN=300", environment)
+        self.assertIn("RECOVERY_TARGETS=10.181.22.128", environment)
+
 
 if __name__ == "__main__":
     unittest.main()
