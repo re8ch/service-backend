@@ -255,6 +255,7 @@ def compile_outputs() -> dict[Path, str]:
         }
         reviewed_takeovers = {
             "main-data-storage-ops": "apps/Deployment/ops/cloudbeaver",
+            "main-operations-ui-headlamp": "apps/Deployment/headlamp/headlamp",
             "main-tenant-runtime-ai-operations": "apps/Deployment/ai-operations/re8ch-cloud-platform",
             "main-tenant-runtime-scheduling-system": "apps/Deployment/scheduling-system/penrose-controller",
         }

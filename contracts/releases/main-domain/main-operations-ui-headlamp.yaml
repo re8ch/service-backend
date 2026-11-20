@@ -51,6 +51,8 @@ spec:
     - headlamp-runtime-anatomy-v020-b97dthg9hb
     - headlamp-secretary-v030-d9c9k67m67
     allowClusterScoped: false
+    forceConflictObjects:
+    - apps/Deployment/headlamp/headlamp
   inventory:
     digest: sha256:5d2b04a881f55e9007c5b7b75ddc7c5c7bac93bc0b152d34ef355af9d7bc9991
   lifecycle:
