@@ -25,3 +25,17 @@ def test_among_clusters_bundle_is_checksum_pinned_and_contains_page():
         if installer["name"] in {"install-among-clusters-plugin", "install-advanced-fabric-plugin"}:
             assert "github.com/re8ch/" not in yaml.safe_dump(installer)
     assert not re.search(r"client-certificate-data|client-key-data|Bearer\\s+[A-Za-z0-9]", deployment, re.I)
+
+
+def test_headlamp_uses_managed_access_for_atlantic_cluster():
+    template = yaml.safe_load((HEADLAMP / "atlantic-kubeconfig.yaml").read_text())
+    kubeconfig = template["data"]["atlantic.kubeconfig.template"]
+    assert "server: https://among-clusters.service.re8ch.com" in kubeconfig
+    assert "token: credential://among-clusters/byoc-pilot/re8ch-atlantic-headlamp-admin" in kubeconfig
+    assert not re.search(r"client-certificate-data|client-key-data|Bearer\\s+[A-Za-z0-9]", kubeconfig, re.I)
+
+    deployment = yaml.safe_load((HEADLAMP / "deployment.yaml").read_text())
+    pod = deployment["spec"]["template"]["spec"]
+    assert any(item["name"] == "render-atlantic-kubeconfig" for item in pod["initContainers"])
+    headlamp = next(item for item in pod["containers"] if item["name"] == "headlamp")
+    assert any("/etc/headlamp/atlantic/atlantic.kubeconfig" in arg for arg in headlamp["args"])
