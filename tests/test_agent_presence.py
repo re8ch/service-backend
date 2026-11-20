@@ -103,7 +103,8 @@ class FakeGitHub(presence.GitHub):
         if path.endswith("/comments"):
             bucket = self.comments.setdefault(path, [])
             if method == "POST":
-                bucket.append({"id": len(bucket) + 1, "body": payload["body"]})
+                bucket.append({"id": len(bucket) + 1, "body": payload["body"],
+                               "created_at": "9999-01-01T00:00:00Z", "user": {"login": "bot"}})
             return bucket
         if "/labels" in path:
             self.labels[path.split("/labels")[0]] = method
@@ -130,8 +131,12 @@ def test_claim_conflict_heartbeat_release(monkeypatch, capsys):
                                                "--agent", "codex/t9"])
     assert code == presence.EXIT_CONFLICT and out["blockers"][0]["number"] == 1
 
+    code, out = run(gh, monkeypatch, capsys, ["say", "1", "please pause, I need #5",
+                                               "--agent", "codex/t9"])
+    assert code == 0
     code, out = run(gh, monkeypatch, capsys, ["heartbeat", "1"])
     assert code == 0 and out["status"] == "renewed"
+    assert [m["body"] for m in out["messages"]] == ["**codex/t9**: please pause, I need #5"]
 
     code, out = run(gh, monkeypatch, capsys, ["release", "1", "--note", "PR #9 opened"])
     assert code == 0 and gh.issues[1]["state"] == "closed"
@@ -143,7 +148,7 @@ def test_claim_conflict_heartbeat_release(monkeypatch, capsys):
 
 def test_race_loser_yields(monkeypatch, capsys):
     gh = FakeGitHub()
-    rival = claim("codex/t1", "path:o/r:apps/**")
+    rival = claim("codex/t1", "path:o/r:apps/**", now=presence.utcnow())
     original_board = gh.board
 
     gh.issues[1] = {"number": 1, "state": "open", "labels": [presence.CLAIM_LABEL],

@@ -75,6 +75,17 @@ owner and is not the agent identity.
 5. A crashed agent's claim lapses at `expires_at`. Anyone may close an expired
    claim; `presence.py` does this on every `claim` and `sweep`.
 
+### Talking to another agent (mailbox)
+
+A claim Issue is also the holder's mailbox. To reach the agent doing the work
+(ask it to pause, hand over, or share context), comment on its claim Issue
+(`presence.py say <claim> "<message>"`, or a plain Issue comment). The holder
+reads every new comment at each heartbeat and must act on or answer it before
+continuing. Latency is at most one heartbeat interval. This is deliberate:
+cloud sandboxes (Claude, Codex) cannot accept inbound connections, so every
+cross-vendor channel is pull-based. Real push (A2A over SSE) is only possible
+between server-hosted agents; see the next steps below.
+
 The pull request remains the final synchronization point. Claims prevent two
 agents from working on the same thing before a pull request exists.
 
@@ -92,7 +103,8 @@ python3 $P check -r gh:8iops/agent-gitops#230        # exit 3 if busy
 python3 $P claim -r gh:8iops/agent-gitops#230 \
   -r branch:8iops/agent-gitops@codex/runner -r path:8iops/agent-gitops:clusters/re8ch/agents/** \
   -i "Add agent-runner Job template" --ttl 30m       # exit 0 granted, 3 conflict
-python3 $P heartbeat 3001                            # exit 4 = revoked, stop now
+python3 $P heartbeat 3001                            # exit 4 = revoked; prints new "messages"
+python3 $P say 3001 "Need agent-gitops#230 for a hotfix, please yield"
 python3 $P release 3001 --note "PR 8iops/agent-gitops#231 ready for review"
 ```
 
@@ -126,7 +138,8 @@ ChatGPT connectors) follow the same protocol with Issue operations on
    `not_planned` with `Yielded to #N`.
 4. Add the `agent:working` label and a short comment linking the claim to each
    `gh:` target.
-5. Heartbeat by updating the body with new times. Release by closing as
+5. Heartbeat by updating the body with new times, and read comments added to
+   your claim since the previous heartbeat (your mailbox). Release by closing as
    `completed`, and remove `agent:working`.
 
 Runtimes that cannot write GitHub Issues at all must not edit shared resources
@@ -143,7 +156,9 @@ directly. They may only open pull requests, which remain visible.
 | Infrastructure | None | Deployment, auth, backups, and an availability target |
 | Failure mode | GitHub outage: agents cannot claim and must wait | Cluster outage: same, and the cluster is less available than GitHub today |
 
-Phase 2 (when needed): an in-cluster read model that projects board claims into
+Phase 2 (when needed): an OAuth-protected A2A gateway on
+`tools.service.re8ch.com` in front of kagent's in-cluster A2A endpoints, with
+SSE push for server-hosted agents and the same claim board behind it; an in-cluster read model that projects board claims into
 `Lease` objects for millisecond checks by in-cluster agents, and a Re8ch MCP
 tool `agent_presence_list` so the tenant tools expose the same board. GitHub
 stays the authority in both.

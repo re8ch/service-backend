@@ -370,11 +370,23 @@ def _own(gh: GitHub, number: int) -> tuple[dict[str, Any], dict[str, Any] | None
     return issue, parse_body(issue.get("body"))
 
 
+def inbox(gh: GitHub, number: int, since: str | None) -> list[dict[str, Any]]:
+    """Comments other agents or humans left on a claim since ``since``."""
+    query = f"?per_page=100&since={urllib.parse.quote(since)}" if since else "?per_page=100"
+    comments = gh.call("GET", f"/repos/{BOARD_REPO}/issues/{number}/comments{query}") or []
+    return [{"author": (c.get("user") or {}).get("login"), "at": c.get("created_at"),
+             "body": c.get("body", "")}
+            for c in comments
+            if (not since or (c.get("created_at") or "") >= since)
+            and MARKER not in (c.get("body") or "")]
+
+
 def cmd_heartbeat(gh: GitHub, args: argparse.Namespace) -> int:
     issue, claim = _own(gh, args.claim)
     now = utcnow()
+    messages = inbox(gh, args.claim, claim.get("heartbeat_at") if claim else None)
     if issue["state"] != "open" or claim is None or not is_active(claim, now):
-        emit({"status": "revoked", "claim": args.claim,
+        emit({"status": "revoked", "claim": args.claim, "messages": messages,
               "reason": "closed" if issue["state"] != "open" else "expired"})
         return EXIT_REVOKED
     ttl = parse_ttl(args.ttl) if args.ttl else claim["ttl_seconds"]
@@ -383,7 +395,16 @@ def cmd_heartbeat(gh: GitHub, args: argparse.Namespace) -> int:
     if args.intent:
         claim["intent"] = args.intent
     gh.call("PATCH", f"/repos/{BOARD_REPO}/issues/{args.claim}", {"body": render_body(claim)})
-    emit({"status": "renewed", "claim": args.claim, "expires_at": claim["expires_at"]})
+    emit({"status": "renewed", "claim": args.claim, "expires_at": claim["expires_at"],
+          "messages": messages})
+    return 0
+
+
+def cmd_say(gh: GitHub, args: argparse.Namespace) -> int:
+    agent, _ = default_agent()
+    gh.call("POST", f"/repos/{BOARD_REPO}/issues/{args.claim}/comments",
+            {"body": f"**{args.agent or agent}**: {args.message}"})
+    emit({"status": "sent", "claim": args.claim})
     return 0
 
 
@@ -450,11 +471,18 @@ def build_parser() -> argparse.ArgumentParser:
     claim.add_argument("--no-mirror", action="store_true")
     claim.set_defaults(func=cmd_claim)
 
-    beat = sub.add_parser("heartbeat", help="renew a claim; exit 4 if it was revoked")
+    beat = sub.add_parser("heartbeat",
+                          help="renew a claim and read new messages; exit 4 if revoked")
     beat.add_argument("claim", type=int)
     beat.add_argument("--ttl")
     beat.add_argument("--intent")
     beat.set_defaults(func=cmd_heartbeat)
+
+    say = sub.add_parser("say", help="message the holder of a claim (read at its next heartbeat)")
+    say.add_argument("claim", type=int)
+    say.add_argument("message")
+    say.add_argument("--agent")
+    say.set_defaults(func=cmd_say)
 
     release = sub.add_parser("release", help="close a claim when done")
     release.add_argument("claim", type=int)
