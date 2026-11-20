@@ -7232,7 +7232,7 @@ metadata:
   name: personal-access-my-kul
   namespace: egress-fabric
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       access.re8ch.com/region: my-kul
