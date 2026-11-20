@@ -7581,7 +7581,7 @@ metadata:
   name: personal-access-us-la
   namespace: egress-fabric
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       access.re8ch.com/region: us-la
