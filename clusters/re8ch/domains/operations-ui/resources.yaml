@@ -3082,7 +3082,7 @@ spec:
       hostAliases:
       - hostnames:
         - db-rw.re8ch.com
-        ip: 10.251.0.4
+        ip: 223.159.210.222
       hostNetwork: false
       initContainers:
       - args:
