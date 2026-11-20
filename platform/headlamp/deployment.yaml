@@ -276,6 +276,19 @@ spec:
               readOnly: true
             - name: artc-kubeconfig
               mountPath: /work
+        - name: render-atlantic-kubeconfig
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              umask 077
+              cp /template/atlantic.kubeconfig.template /work/atlantic.kubeconfig
+          volumeMounts:
+            - name: atlantic-kubeconfig-template
+              mountPath: /template
+              readOnly: true
+            - name: atlantic-kubeconfig
+              mountPath: /work
       containers:
         - name: headlamp
           # v0.42 panics when an OIDC refresh response omits id_token. v0.45
@@ -287,7 +300,7 @@ spec:
             - -in-cluster
             - -in-cluster-context-name=re8ch-k3s
             - -enable-dynamic-clusters
-            - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
+            - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig:/etc/headlamp/atlantic/atlantic.kubeconfig
             - -oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24
             # Headlamp v0.45 verifies whichever token it forwards. GoTrue's
             # access token audience is the authenticated API role, while the
@@ -333,6 +346,9 @@ spec:
               readOnly: true
             - name: artc-kubeconfig
               mountPath: /etc/headlamp/artc
+              readOnly: true
+            - name: atlantic-kubeconfig
+              mountPath: /etc/headlamp/atlantic
               readOnly: true
         # Headlamp v0.42 completes OIDC through a popup-local storage event.
         # Mobile Safari can suppress that event after the backend has already
@@ -392,6 +408,11 @@ spec:
           configMap:
             name: headlamp-artc-kubeconfig-template
         - name: artc-kubeconfig
+          emptyDir: {}
+        - name: atlantic-kubeconfig-template
+          configMap:
+            name: headlamp-atlantic-kubeconfig-template
+        - name: atlantic-kubeconfig
           emptyDir: {}
         - name: oidc-landing
           configMap:

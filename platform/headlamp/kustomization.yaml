@@ -10,6 +10,7 @@ resources:
   - availability-policy.yaml
   - qwen-kubeconfig.yaml
   - artc-kubeconfig.yaml
+  - atlantic-kubeconfig.yaml
   - controlled-cluster-relay.yaml
   - oidc-admin-rbac.yaml
   - oidc-landing.yaml
