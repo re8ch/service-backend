@@ -397,6 +397,8 @@ modules:
       digest: sha256:9d420cc05f2567a7f96321379b4c9df18ca77dbee32bf01f51ec61a7589ec7ab
     - codename: flare-bronze
       digest: sha256:41d8eb71e242f5c8f58aed30188eda94f868a83de7cb153283f4511554d7ad9e
+    - codename: lantern-bronze
+      digest: sha256:23a5eb1e493febefa4f2e425298cea93f002f74589a56b43574907302aaf473c
   platform/among-clusters:
     releases:
     - codename: bora
