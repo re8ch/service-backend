@@ -26,15 +26,16 @@ spec:
     spec:
       serviceAccountName: headlamp
       priorityClassName: system-cluster-critical
-      # Use the declared R640 public authority for the OAuth issuer. Resolving
-      # this name to the local 10.251.0.4 VIP hairpins Headlamp through the A1
-      # Envoy and the intermittently unhealthy A1-to-R640 Pod tunnel, which can
-      # fail the authorization-code exchange even while the public authority is
-      # healthy. RouterOS owns 223.159.210.222 and delivers it to that Gateway.
+      # Use the declared R640 public authority for control-plane dependencies.
+      # The advanced-fabric DNS service can briefly fail external lookups, and
+      # the local 10.251.0.4 VIP also hairpins Headlamp through the A1 Envoy and
+      # the intermittently unhealthy A1-to-R640 Pod tunnel. RouterOS owns
+      # 223.159.210.222 and delivers it to the authoritative Gateway.
       hostAliases:
         - ip: "223.159.210.222"
           hostnames:
             - db-rw.re8ch.com
+            - among-clusters.service.re8ch.com
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       affinity:

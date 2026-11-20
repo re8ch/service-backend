@@ -3082,6 +3082,7 @@ spec:
       hostAliases:
       - hostnames:
         - db-rw.re8ch.com
+        - among-clusters.service.re8ch.com
         ip: 223.159.210.222
       hostNetwork: false
       initContainers:
