@@ -152,6 +152,9 @@ def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
     assert aliases['db-rw.re8ch.com'] == '223.159.210.222'
     assert aliases['among-clusters.service.re8ch.com'] == '223.159.210.222'
+    bootstrap = next(item for item in pod['initContainers'] if item['name'] == 'install-flux-static-github-ops')
+    bootstrap_env = {item['name']: item['value'] for item in bootstrap['env']}
+    assert bootstrap_env['https_proxy'] == 'http://mihomos-global-exit-atlantic.egress-fabric.svc.cluster.local:1080'
 
 
 def test_mubao_k3s_start_gate_keeps_oidc_discovery_on_internal_gateway():

@@ -62,6 +62,8 @@ spec:
       initContainers:
         - name: install-flux-static-github-ops
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          env:
+            - {name: https_proxy, value: "http://mihomos-global-exit-atlantic.egress-fabric.svc.cluster.local:1080"}
           command: [/bin/sh, -ec]
           args:
             - |
