@@ -151,6 +151,7 @@ def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
     assert aliases['db-rw.re8ch.com'] == '223.159.210.222'
+    assert aliases['among-clusters.service.re8ch.com'] == '223.159.210.222'
 
 
 def test_mubao_k3s_start_gate_keeps_oidc_discovery_on_internal_gateway():
