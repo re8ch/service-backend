@@ -361,6 +361,32 @@ metadata:
   namespace: headlamp
 ---
 apiVersion: v1
+data:
+  atlantic.kubeconfig.template: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+      - name: re8ch-atlantic
+        cluster:
+          server: https://among-clusters.service.re8ch.com
+    contexts:
+      - name: re8ch-atlantic
+        context:
+          cluster: re8ch-atlantic
+          user: re8ch-atlantic-managed-access
+    current-context: re8ch-atlantic
+    users:
+      - name: re8ch-atlantic-managed-access
+        user:
+          token: credential://among-clusters/byoc-pilot/re8ch-atlantic-headlamp-admin
+kind: ConfigMap
+metadata:
+  annotations:
+    delivery.re8ch.com/reconciler: native-flux
+  name: headlamp-atlantic-kubeconfig-template
+  namespace: headlamp
+---
+apiVersion: v1
 binaryData:
   plugin.tar.gz: |
     H4sIAAAAAAAAE+19a3Mbx5WoP+dXjHu5rBmrOQCop0cZciVKlGSJEi3Slm0EEQYzDWDEwc
@@ -2975,7 +3001,7 @@ spec:
         - -in-cluster
         - -in-cluster-context-name=re8ch-k3s
         - -enable-dynamic-clusters
-        - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
+        - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig:/etc/headlamp/atlantic/atlantic.kubeconfig
         - -oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24
         - -oidc-validator-client-id=authenticated
         - -oidc-idp-issuer-url=https://db-rw.re8ch.com/auth/v1
@@ -3026,6 +3052,9 @@ spec:
           readOnly: true
         - mountPath: /etc/headlamp/artc
           name: artc-kubeconfig
+          readOnly: true
+        - mountPath: /etc/headlamp/atlantic
+          name: atlantic-kubeconfig
           readOnly: true
       - image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
         name: oidc-landing
@@ -3313,6 +3342,21 @@ spec:
           readOnly: true
         - mountPath: /work
           name: artc-kubeconfig
+      - args:
+        - |
+          umask 077
+          cp /template/atlantic.kubeconfig.template /work/atlantic.kubeconfig
+        command:
+        - /bin/sh
+        - -ec
+        image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+        name: render-atlantic-kubeconfig
+        volumeMounts:
+        - mountPath: /template
+          name: atlantic-kubeconfig-template
+          readOnly: true
+        - mountPath: /work
+          name: atlantic-kubeconfig
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       priorityClassName: system-cluster-critical
@@ -3367,6 +3411,11 @@ spec:
         name: artc-kubeconfig-template
       - emptyDir: {}
         name: artc-kubeconfig
+      - configMap:
+          name: headlamp-atlantic-kubeconfig-template
+        name: atlantic-kubeconfig-template
+      - emptyDir: {}
+        name: atlantic-kubeconfig
       - configMap:
           name: headlamp-oidc-landing
         name: oidc-landing
