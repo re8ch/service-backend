@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/headlamp
-codename: flare-bronze
+codename: lantern-bronze
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-headlamp
-  digest: sha256:41d8eb71e242f5c8f58aed30188eda94f868a83de7cb153283f4511554d7ad9e
+  digest: sha256:23a5eb1e493febefa4f2e425298cea93f002f74589a56b43574907302aaf473c
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
