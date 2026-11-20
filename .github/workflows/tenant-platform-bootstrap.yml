@@ -18,7 +18,7 @@ jobs:
       BUNDLE_REFERENCE: ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure
       BUNDLE_DIGEST: '${{ inputs.bundle_digest }}'
     steps:
-    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with: {persist-credentials: false}
     - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415
       with: {version: v1.33.1}
