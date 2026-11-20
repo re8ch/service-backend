@@ -256,6 +256,8 @@ modules:
       digest: sha256:235ed7f7194bce874dd4d9374273a747789ea55fb9de504aefdfe2d03e6d2bf2
     - codename: sentinel-amber
       digest: sha256:7708d31fb9feabad0c629747d32076d12a9ca5eeee31151f2f105c1d5fc0391d
+    - codename: shield-amber
+      digest: sha256:d0f12c77b336dcc1a6aea0f5b4dea62cc3412e6222b6abf9028dca701e8b84ba
   platform/headlamp:
     releases:
     - codename: aurora
