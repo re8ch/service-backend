@@ -15978,6 +15978,7 @@ metadata:
     external-dns.alpha.kubernetes.io/target: sub-access.service.re8ch.com
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
+    networking.re8ch.com/dns-authority: public-edge
     public.re8ch.com/external-dns: enabled
   name: access-subscription-public-edge-dns
   namespace: egress-fabric
