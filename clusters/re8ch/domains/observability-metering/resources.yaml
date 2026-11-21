@@ -1149,7 +1149,7 @@ apiVersion: v1
 data:
   contracts.json: |
     {
-      "version": 2,
+      "version": 3,
       "cadences": {
         "fast": {
           "periodSeconds": 300,
@@ -1183,6 +1183,15 @@ data:
           "status": 401,
           "header": "Www-Authenticate",
           "contains": "Bearer"
+        },
+        {
+          "id": "kube-api-ready",
+          "owner": "platform/control-plane",
+          "vantage": "external",
+          "cadence": "fast",
+          "url": "https://kube-api.service.re8ch.com/readyz",
+          "status": 200,
+          "bodyContains": "ok"
         },
         {
           "id": "id-discovery",
@@ -1289,13 +1298,16 @@ data:
         if (valid && probe.header) {
           valid = String(response.headers[probe.header] || '').includes(probe.contains);
         }
+        if (valid && probe.bodyContains) {
+          valid = String(response.body || '').includes(probe.bodyContains);
+        }
         contractFailures.add(!valid, { probe: probe.id });
         check(response, { [`${probe.id} contract`]: () => valid }, { probe: probe.id });
       }
     }
 kind: ConfigMap
 metadata:
-  name: k6-contracts-96kmtdg46c
+  name: k6-contracts-gm5f587hb2
   namespace: synthetic-monitoring
 ---
 apiVersion: v1
@@ -2878,7 +2890,7 @@ spec:
           serviceAccountName: k6-contracts
           volumes:
           - configMap:
-              name: k6-contracts-96kmtdg46c
+              name: k6-contracts-gm5f587hb2
             name: contracts
           - emptyDir:
               sizeLimit: 16Mi
@@ -2944,7 +2956,7 @@ spec:
           serviceAccountName: k6-contracts
           volumes:
           - configMap:
-              name: k6-contracts-96kmtdg46c
+              name: k6-contracts-gm5f587hb2
             name: contracts
           - emptyDir:
               sizeLimit: 16Mi
