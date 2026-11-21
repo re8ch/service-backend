@@ -4868,6 +4868,20 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: edge-access-anytls-r640
+  namespace: egress-fabric
+spec:
+  ports:
+  - name: anytls
+    port: 24443
+    protocol: TCP
+    targetPort: anytls
+  selector:
+    app.kubernetes.io/name: edge-access-anytls-r640
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: mosdns
   namespace: egress-fabric
 spec:
@@ -6921,6 +6935,111 @@ spec:
       - name: rules
         persistentVolumeClaim:
           claimName: access-rule-cache
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-access-anytls-r640
+  namespace: egress-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-access-anytls-r640
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: public-ingress
+        app.kubernetes.io/name: edge-access-anytls-r640
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - -d
+        - /etc/mihomo
+        image: docker.io/metacubex/mihomo:v1.19.29@sha256:e1d7dadaa9368a52d420d65007e0e0d87cb148d292faa67326eda3fef5757f59
+        livenessProbe:
+          periodSeconds: 15
+          tcpSocket:
+            port: anytls
+        name: mihomo
+        ports:
+        - containerPort: 24443
+          name: anytls
+          protocol: TCP
+        readinessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            port: anytls
+        resources:
+          limits:
+            cpu: 800m
+            memory: 512Mi
+          requests:
+            cpu: 25m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /etc/mihomo/config.yaml
+          name: work
+          readOnly: true
+          subPath: config.yaml
+        - mountPath: /etc/mihomo/tls
+          name: tls
+          readOnly: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      initContainers:
+      - args:
+        - |
+          awk '/^__ANYTLS_USERS__$/{while((getline line < "/credentials/users.yaml")>0) print line; close("/credentials/users.yaml"); next} {print}' /base/config.yaml > /work/config.yaml
+        command:
+        - /bin/sh
+        - -ec
+        image: python:3.12-alpine@sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31
+        name: render-users
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /base
+          name: base
+          readOnly: true
+        - mountPath: /credentials
+          name: credentials
+          readOnly: true
+        - mountPath: /work
+          name: work
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      priorityClassName: system-node-critical
+      securityContext:
+        fsGroup: 65532
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      tolerations:
+      - operator: Exists
+      volumes:
+      - configMap:
+          name: edge-access-anytls
+        name: base
+      - name: credentials
+        secret:
+          secretName: personal-access-users
+      - name: tls
+        secret:
+          secretName: access-re8ch-com-tls
+      - emptyDir: {}
+        name: work
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -15558,7 +15677,57 @@ spec:
     sectionName: access-tls
   rules:
   - backendRefs:
-    - name: personal-access-auto
+    - name: edge-access-anytls-r640
+      port: 24443
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/hostname: backup.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    networking.re8ch.com/tls-mode: passthrough
+  labels:
+    public.re8ch.com/external-dns: enabled
+  name: access-anytls-backup
+  namespace: egress-fabric
+spec:
+  hostnames:
+  - backup.access.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: access-backup-tls
+  rules:
+  - backendRefs:
+    - name: edge-access-anytls-r640
+      port: 24443
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/hostname: direct-cn.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    networking.re8ch.com/tls-mode: passthrough
+  labels:
+    public.re8ch.com/external-dns: enabled
+  name: access-anytls-direct-cn
+  namespace: egress-fabric
+spec:
+  hostnames:
+  - direct-cn.access.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: access-direct-cn-tls
+  rules:
+  - backendRefs:
+    - name: edge-access-anytls-r640
       port: 24443
 ---
 apiVersion: gateway.networking.k8s.io/v1
@@ -15576,6 +15745,31 @@ spec:
   rules:
   - backendRefs:
     - name: personal-access-my-kul
+      port: 24443
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/hostname: route-kl.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    networking.re8ch.com/tls-mode: passthrough
+  labels:
+    public.re8ch.com/external-dns: enabled
+  name: access-anytls-route-kl
+  namespace: egress-fabric
+spec:
+  hostnames:
+  - route-kl.access.re8ch.com
+  parentRefs:
+  - name: re8ch-gateway-canary
+    namespace: kube-system
+    sectionName: access-route-kl-tls
+  rules:
+  - backendRefs:
+    - name: edge-access-anytls-r640
       port: 24443
 ---
 apiVersion: gateway.networking.k8s.io/v1
