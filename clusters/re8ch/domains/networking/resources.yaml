@@ -2722,6 +2722,14 @@ data:
       - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
       - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
       - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+      # Never send an exit's own public listener back through the exit pool.
+      # PublicEdge probes and AmongCluster control traffic must observe the
+      # physical endpoint, otherwise the selected proxy forms an egress loop.
+      - IP-CIDR,179.255.126.104/32,DIRECT,no-resolve
+      - IP-CIDR,179.253.231.159/32,DIRECT,no-resolve
+      - IP-CIDR,2.28.106.230/32,DIRECT,no-resolve
+      - IP-CIDR,2.29.219.31/32,DIRECT,no-resolve
+      - IP-CIDR,198.20.153.89/32,DIRECT,no-resolve
       # Probe/control destinations must reveal the physical direct path.
       - DOMAIN,ipinfo.io,DIRECT
       - DOMAIN-SUFFIX,ipinfo.io,DIRECT
