@@ -67,16 +67,21 @@ def test_windows_installer_separates_wsl_owner_from_host_reboot_authority() -> N
     assert "-LogonType ServiceAccount" in script
     assert "OpenSSH.Server~~~~0.0.1.0" in script
     assert "autoMemoryReclaim" in script
-    assert "pageReporting=true" in script
+    assert "pageReporting={0}" in script
 
 
 def test_wsl_memory_policy_is_bounded_and_gradually_reclaims_cache() -> None:
     inventory = json.loads((ROOT / "operations/host-ops/management-ssh-mesh/inventory.json").read_text())
     windows = [node for node in inventory["spec"]["nodes"] if node["platform"].startswith("windows")]
-    for node in windows:
-        assert node["wsl"]["memory"] == "12GB"
-        assert node["wsl"]["swap"] == "3GB"
-        assert node["wsl"]["autoMemoryReclaim"] == "gradual"
+    by_name = {node["name"]: node["wsl"] for node in windows}
+    assert by_name["a1-windows"] == {
+        "distribution": "Ubuntu-24.04", "nodeName": "a1-wsl-zt", "nodeAddress": "10.181.22.147",
+        "memory": "12GB", "swap": "3GB", "pageReporting": True, "autoMemoryReclaim": "gradual",
+    }
+    assert by_name["b1-windows"] == {
+        "distribution": "Ubuntu-24.04", "nodeName": "b1-wsl-zt", "nodeAddress": "10.181.22.125",
+        "memory": "14GB", "swap": "3GB", "pageReporting": False, "autoMemoryReclaim": "disabled",
+    }
 
 
 def test_windows_management_uses_peer_wsl_jump_and_lan_destination() -> None:

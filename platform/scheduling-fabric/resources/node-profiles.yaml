@@ -22,6 +22,12 @@ data:
       systemReserved: {cpu: 500m, memory: 768Mi, ephemeral-storage: 2Gi, pid: "1024"}
       enforceNodeAllocatable: [pods]
       evictionHard: {memory.available: 1Gi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
+    wsl-balanced:
+      maxPods: 128
+      kubeReserved: {cpu: 500m, memory: 512Mi, ephemeral-storage: 1Gi, pid: "1024"}
+      systemReserved: {cpu: 500m, memory: 512Mi, ephemeral-storage: 1Gi, pid: "1024"}
+      enforceNodeAllocatable: [pods]
+      evictionHard: {memory.available: 512Mi, nodefs.available: 10%, imagefs.available: 15%, pid.available: 10%}
     worker-large:
       maxPods: 256
       kubeReserved: {cpu: "2", memory: 4Gi, ephemeral-storage: 10Gi, pid: "4096"}
@@ -46,6 +52,7 @@ metadata: {name: r640}
 spec:
   nodeName: r640
   reservationProfile: worker-large
+  lifecycle: {tenure: permanent, reconcileImpact: platform}
   background: {provider: onprem, region: cn-hunan, ownership: owned, environment: datacenter, account: r640-idc, costClass: sunk-capacity, notes: "Public transit, storage and large-memory workload anchor"}
   failureDomains: {site: cn-hunan-r640, power: r640-mains, network: r640-dedicated-line, host: r640}
   # Recover the core anchor after 30 healthy minutes, not a day-long outage.
@@ -58,7 +65,8 @@ kind: NodeProfile
 metadata: {name: a1-wsl-zt}
 spec:
   nodeName: a1-wsl-zt
-  reservationProfile: control-small
+  reservationProfile: wsl-balanced
+  lifecycle: {tenure: permanent, reconcileImpact: platform}
   aliases: [a1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-a1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-a1, power: a1-workstation, network: a1-local-uplink, host: a1-windows}
@@ -71,12 +79,13 @@ kind: NodeProfile
 metadata: {name: b1-wsl-zt}
 spec:
   nodeName: b1-wsl-zt
-  reservationProfile: control-small
+  reservationProfile: wsl-balanced
+  lifecycle: {tenure: permanent, reconcileImpact: platform}
   aliases: [b1-wsl]
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-b1, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-b1, power: b1-workstation, network: b1-local-uplink, host: b1-windows}
   reliability: {class: variable, disruptionRisk: 45}
-  capabilities: {bandwidthMbps: 200, servicePlane: core, placementPools: [service-core-local, service-core-ab], storage: [ceph-client], scheduling: [dynamic, stable-secondary]}
+  capabilities: {bandwidthMbps: 200, servicePlane: core, placementPools: [service-core-local, service-core-ab], storage: [ceph-control, ceph-client], scheduling: [dynamic, stable-secondary]}
   sources: [{kind: InfrastructureTarget, ref: service-backend/inventory/nodes.yaml}, {kind: NodeCostCatalog, ref: re8ch-node-costs}]
 ---
 apiVersion: scheduling.re8ch.com/v1alpha1
@@ -85,6 +94,7 @@ metadata: {name: mubao-wsl}
 spec:
   nodeName: mubao-wsl
   reservationProfile: control-wsl
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: wsl, region: cn-hunan, ownership: local, environment: workstation, account: local-mubao, costClass: sunk-capacity}
   failureDomains: {site: cn-hunan-mubao, power: mubao-workstation, network: mubao-local-uplink, host: mubao-windows}
   reliability: {class: variable, disruptionRisk: 45, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -97,6 +107,7 @@ metadata: {name: amdwsl-zt}
 spec:
   nodeName: amdwsl-zt
   reservationProfile: worker-standard
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   aliases: [amd-wsl]
   background: {provider: wsl, region: cn-hubei, ownership: local, environment: workstation, account: local-amd, costClass: sunk-capacity}
   failureDomains: {site: cn-hubei-amd, power: amd-workstation, network: amd-local-uplink, host: amd-windows}
@@ -110,6 +121,7 @@ metadata: {name: zan}
 spec:
   nodeName: zan
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-zan, power: tencent-zan, network: tencent-zan-uplink, host: zan}
   reliability: {class: stable, disruptionRisk: 25, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -122,6 +134,7 @@ metadata: {name: suxunji}
 spec:
   nodeName: suxunji
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-suxunji, power: tencent-suxunji, network: tencent-suxunji-uplink, host: suxunji}
   reliability: {class: stable, disruptionRisk: 25}
@@ -134,6 +147,7 @@ metadata: {name: domain-ex}
 spec:
   nodeName: domain-ex
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-domain-ex, power: tencent-domain-ex, network: tencent-domain-ex-uplink, host: domain-ex}
   reliability: {class: stable, disruptionRisk: 25, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -146,6 +160,7 @@ metadata: {name: vm-20-12-ubuntu}
 spec:
   nodeName: vm-20-12-ubuntu
   reservationProfile: worker-small
+  lifecycle: {tenure: permanent, reconcileImpact: platform}
   background: {provider: tencent, region: cn, ownership: rented, environment: cloud, account: tencent, costClass: fixed-cloud}
   failureDomains: {site: tencent-vm-20-12, power: tencent-vm-20-12, network: tencent-vm-20-12-uplink, host: vm-20-12-ubuntu}
   reliability: {class: variable, disruptionRisk: 45, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -158,6 +173,7 @@ metadata: {name: muaya-lightweight}
 spec:
   nodeName: muaya-lightweight
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   aliases: [muaya-ligweight]
   background: {provider: aliyun, region: cn, ownership: rented, environment: cloud, account: muaya, costClass: fixed-cloud}
   failureDomains: {site: aliyun-lightweight, power: aliyun-lightweight, network: aliyun-lightweight-uplink, host: muaya-lightweight}
@@ -171,6 +187,7 @@ metadata: {name: muaya-ecs}
 spec:
   nodeName: muaya-ecs
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: aliyun, region: cn, ownership: rented, environment: cloud, account: muaya, costClass: fixed-cloud}
   failureDomains: {site: aliyun-ecs, power: aliyun-ecs, network: aliyun-ecs-uplink, host: muaya-ecs}
   reliability: {class: stable, disruptionRisk: 25}
@@ -183,6 +200,7 @@ metadata: {name: overseas-la-2}
 spec:
   nodeName: overseas-la-2
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: dmit, region: us-ca, ownership: rented, environment: cross-border, account: dmit-2, costClass: metered-bandwidth}
   failureDomains: {site: us-la, power: overseas-la-2, network: overseas-la-2-uplink, host: overseas-la-2}
   reliability: {class: variable, disruptionRisk: 40, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -195,6 +213,7 @@ metadata: {name: overseas-flk}
 spec:
   nodeName: overseas-flk
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: hetzner, region: de-fsn, ownership: rented, environment: cross-border, account: hetzner, costClass: metered-bandwidth}
   failureDomains: {site: de-fsn, power: overseas-flk, network: overseas-flk-uplink, host: overseas-flk}
   reliability: {class: variable, disruptionRisk: 40, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -207,6 +226,7 @@ metadata: {name: overseas-la}
 spec:
   nodeName: overseas-la
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: us-la, power: overseas-la, network: overseas-la-uplink, host: overseas-la}
   reliability: {class: variable, disruptionRisk: 40, minimumReadySeconds: 1800, maxNotReadyEvents: 0, historyWindowSeconds: 86400}
@@ -219,6 +239,7 @@ metadata: {name: overseas-kl}
 spec:
   nodeName: overseas-kl
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: my-kl, power: overseas-kl, network: overseas-kl-uplink, host: overseas-kl}
   reliability: {class: variable, disruptionRisk: 40}
@@ -231,6 +252,7 @@ metadata: {name: overseas-edge-50}
 spec:
   nodeName: overseas-edge-50
   reservationProfile: worker-small
+  lifecycle: {tenure: term, reconcileImpact: consumer}
   aliases: [edge-50]
   background: {provider: overseas, region: global, ownership: rented, environment: cross-border, account: overseas-edge, costClass: metered-bandwidth}
   failureDomains: {site: overseas-edge-50, power: overseas-edge-50, network: overseas-edge-50-uplink, host: overseas-edge-50}
