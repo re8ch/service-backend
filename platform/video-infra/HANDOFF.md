@@ -1,5 +1,10 @@
 # A8-C + GXW4108 拨号诊断交接手册
 
+> 本文主体保留 2026-07-30 旧 A8-C 故障期的诊断路径。2026-11-14 已更换为
+> `MSG2600E-XES-8E8V-WS3`，八路当前基线和验收结果以
+> [evidence/2026-11-14-eight-line-acceptance.md](evidence/2026-11-14-eight-line-acceptance.md)
+> 为准；不要把下方“当前阻碍”误认为现役设备状态。
+
 ## 目标
 
 把中国电信托管在 A8-C 内的 8 路 IMS 号码，通过 A8-C FXS → GXW4108 FXO
