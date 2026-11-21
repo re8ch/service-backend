@@ -17,6 +17,7 @@ def test_subaccess_parent_record_delegates_candidate_selection_to_public_edge():
     }
 
     portal = ingresses["access-subscription-public-edge-dns"]
+    assert portal["metadata"]["labels"]["networking.re8ch.com/dns-authority"] == "public-edge"
     annotations = portal["metadata"]["annotations"]
     assert annotations["external-dns.alpha.kubernetes.io/hostname"] == "sub.access.re8ch.com"
     assert annotations["external-dns.alpha.kubernetes.io/target"] == "sub-access.service.re8ch.com"

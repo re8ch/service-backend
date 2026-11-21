@@ -456,7 +456,9 @@ kind: Ingress
 metadata:
   name: access-subscription-public-edge-dns
   namespace: egress-fabric
-  labels: {public.re8ch.com/external-dns: enabled}
+  labels:
+    public.re8ch.com/external-dns: enabled
+    networking.re8ch.com/dns-authority: public-edge
   annotations:
     # The parent-zone name remains owned by ExternalDNS, while candidate
     # health and regional ordering live in PublicEdge's service.re8ch.com zone.
