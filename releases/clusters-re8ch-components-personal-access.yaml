@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: clusters/re8ch/components/personal-access
-codename: ward-amber
+codename: watchtower-amber
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/clusters-re8ch-components-personal-access
-  digest: sha256:fb3e9b9929ca8bae32d0ec430f2bbf1569d343627299156fd60fc8ccd40cdb39
+  digest: sha256:0487c5dd02a7d45e836c081a2ac8b9212ebb1c99314945f80bca181f99e75720
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
