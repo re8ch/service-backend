@@ -15938,7 +15938,7 @@ kind: Ingress
 metadata:
   annotations:
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-    external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com,sub.access.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com
     external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
   labels:
@@ -15950,7 +15950,6 @@ spec:
   rules:
   - host: us-ca.access.re8ch.com
   - host: backup.access.re8ch.com
-  - host: sub.access.re8ch.com
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -15969,6 +15968,23 @@ spec:
   rules:
   - host: route-la.access.re8ch.com
   - host: route-kl.access.re8ch.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/hostname: sub.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: sub-access.service.re8ch.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+  labels:
+    public.re8ch.com/external-dns: enabled
+  name: access-subscription-public-edge-dns
+  namespace: egress-fabric
+spec:
+  ingressClassName: external-dns-only
+  rules:
+  - host: sub.access.re8ch.com
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
