@@ -11,6 +11,12 @@
       "contractSha256": "c8a76837df9224526e3c8f870f6bedd47fef346ac88a150c682c9fefc5626845",
       "previousSha256": "3c0a309fa3ff0114344ea42ffa0be54fd8d7aab2a9face071e3b90782cb8a553",
       "reason": "Classify reusable probes by owner, vantage, and cadence; add internal service health checks"
+    },
+    {
+      "number": 3,
+      "contractSha256": "1fdf85b4600a257a6b830b5e696b6fe6a4a2304e4ba52e7da36664a76d26da55",
+      "previousSha256": "c8a76837df9224526e3c8f870f6bedd47fef346ac88a150c682c9fefc5626845",
+      "reason": "Probe public Kubernetes API readiness from a GitHub-hosted runner with explicit CA trust"
     }
   ]
 }
