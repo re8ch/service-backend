@@ -101,39 +101,41 @@ spec:
       # control-plane endpoints, which makes every Kyverno controller inherit
       # a remote member's transient failure.
       extraEnvVars:
-        - {name: KUBERNETES_SERVICE_HOST, value: "10.250.0.1"}
+        - {name: KUBERNETES_SERVICE_HOST, value: "192.0.2.116"}
         - {name: KUBERNETES_SERVICE_PORT, value: "6443"}
     crds:
       # This values-only rollout keeps chart 3.9.1 and CRDs unchanged. Its
-      # post-upgrade CLI hook cannot pull from reg.kyverno.io on R640 (EOF),
+      # post-upgrade CLI hook cannot pull from reg.kyverno.io on restricted-node-6dc3f140f9 (EOF),
       # leaving Helm and dependent policies blocked. Re-enable with a pinned
       # internal CLI image before changing chart or CRD versions.
       migration: {enabled: false}
     admissionController:
-      replicas: 3
-      podDisruptionBudget: {enabled: true, minAvailable: 2}
-      # Keep admission on the stable platform host. Mubao is a remote traffic
-      # balancer, while the remaining control-plane nodes are not a reliable
-      # webhook execution pool.
-      nodeSelector: {kubernetes.io/hostname: r640}
+      replicas: 1
+      podDisruptionBudget: {enabled: true, minAvailable: 1}
+      # Keep admission on the stable platform host. The control-plane nodes
+      # cannot currently reach restricted-node-6dc3f140f9's PodCIDR reliably, so publish the webhook
+      # from restricted-node-6dc3f140f9's host network until the fabric path is repaired. A single
+      # replica and Recreate strategy avoid host-port contention on 9443.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      updateStrategy: {type: Recreate, rollingUpdate: null}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
-      topologySpreadConstraints:
-        - {maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {app.kubernetes.io/component: admission-controller}}}
     backgroundController:
       replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
-      nodeSelector: {kubernetes.io/hostname: r640}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     cleanupController:
       replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
-      nodeSelector: {kubernetes.io/hostname: r640}
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
     reportsController:
       replicas: 1
       podDisruptionBudget: {enabled: true, minAvailable: 1}
       # Reporting is not on the admission path. Keep its cache on the roomy
-      # R640 control plane instead of adding pressure to A1.
-      nodeSelector: {kubernetes.io/hostname: r640}
+      # restricted-node-6dc3f140f9 control plane instead of adding pressure to A1.
+      nodeSelector: {kubernetes.io/hostname: restricted-node-6dc3f140f9}
       tolerations:
         - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
       resources:
@@ -173,7 +175,7 @@ spec:
       # on a cross-site worker's Service/API path.
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      # Rook managers reserve 8443 and R640's host SFTPGo service reserves
+      # Rook managers reserve 8443 and restricted-node-6dc3f140f9's host SFTPGo service reserves
       # 18443. Use a dedicated free host port so both Kueue replicas can span
       # control planes without entering a bind/restart loop.
       metricsPort: 17443
