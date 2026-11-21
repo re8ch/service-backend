@@ -441,7 +441,7 @@ metadata:
   namespace: egress-fabric
   labels: {public.re8ch.com/external-dns: enabled}
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com,sub.access.re8ch.com
+    external-dns.alpha.kubernetes.io/hostname: us-ca.access.re8ch.com,backup.access.re8ch.com
     external-dns.alpha.kubernetes.io/target: 223.159.210.222
     external-dns.alpha.kubernetes.io/ttl: "60"
     external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
@@ -450,6 +450,23 @@ spec:
   rules:
     - {host: us-ca.access.re8ch.com}
     - {host: backup.access.re8ch.com}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: access-subscription-public-edge-dns
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    # The parent-zone name remains owned by ExternalDNS, while candidate
+    # health and regional ordering live in PublicEdge's service.re8ch.com zone.
+    external-dns.alpha.kubernetes.io/hostname: sub.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: sub-access.service.re8ch.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  ingressClassName: external-dns-only
+  rules:
     - {host: sub.access.re8ch.com}
 ---
 apiVersion: cilium.io/v2
