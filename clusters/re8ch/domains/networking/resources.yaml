@@ -20810,6 +20810,33 @@ spec:
   - allowedRoutes:
       namespaces:
         from: All
+    hostname: backup.access.re8ch.com
+    name: access-backup-tls
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: direct-cn.access.re8ch.com
+    name: access-direct-cn-tls
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+  - allowedRoutes:
+      namespaces:
+        from: All
+    hostname: route-kl.access.re8ch.com
+    name: access-route-kl-tls
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+  - allowedRoutes:
+      namespaces:
+        from: All
     hostname: us-ca.access.re8ch.com
     name: access-us-ca-tls
     port: 443
