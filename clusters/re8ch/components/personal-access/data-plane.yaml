@@ -365,7 +365,58 @@ metadata:
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-tls}]
   hostnames: [access.re8ch.com]
-  rules: [{backendRefs: [{name: personal-access-auto, port: 24443}]}]
+  rules: [{backendRefs: [{name: edge-access-anytls-r640, port: 24443}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: access-anytls-backup
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    external-dns.alpha.kubernetes.io/hostname: backup.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-backup-tls}]
+  hostnames: [backup.access.re8ch.com]
+  rules: [{backendRefs: [{name: edge-access-anytls-r640, port: 24443}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: access-anytls-direct-cn
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    external-dns.alpha.kubernetes.io/hostname: direct-cn.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-direct-cn-tls}]
+  hostnames: [direct-cn.access.re8ch.com]
+  rules: [{backendRefs: [{name: edge-access-anytls-r640, port: 24443}]}]
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: access-anytls-route-kl
+  namespace: egress-fabric
+  labels: {public.re8ch.com/external-dns: enabled}
+  annotations:
+    networking.re8ch.com/tls-mode: passthrough
+    external-dns.alpha.kubernetes.io/hostname: route-kl.access.re8ch.com
+    external-dns.alpha.kubernetes.io/target: 223.159.210.222
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+spec:
+  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: access-route-kl-tls}]
+  hostnames: [route-kl.access.re8ch.com]
+  rules: [{backendRefs: [{name: edge-access-anytls-r640, port: 24443}]}]
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: TLSRoute
