@@ -1,0 +1,21 @@
+name = "re8ch-public-edge-dispatcher"
+main = "index.mjs"
+compatibility_date = "2026-11-01"
+account_id = "6317b796fb47e67fadec3bc9a5ef0e8e"
+workers_dev = false
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[vars]
+GITHUB_REPOSITORY = "re8ch/service-backend"
+WORKFLOW_FILE = "public-edge-authority.yml"
+WORKFLOW_REF = "main"
+STALE_AFTER_MINUTES = "60"
+
+# Secret (not in Git): wrangler secret put GITHUB_TOKEN
+# Fine-grained token scoped to re8ch/service-backend only:
+#   Actions: read and write, Issues: read and write, Metadata: read.
+
+[observability]
+enabled = true
