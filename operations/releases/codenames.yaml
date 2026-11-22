@@ -704,6 +704,8 @@ modules:
       digest: sha256:3057ffd02d7a9ab2d1a84251e200e86989a5017d73e8fe3e50789a61a978b94a
     - codename: bora-silver
       digest: sha256:824c73b78522e343ca8e5722f78132daf2ce75e3b67aca1e79708ea8432c5ddd
+    - codename: chinook-silver
+      digest: sha256:c3a1fb3ddb843d94163d68f9ae58e31d1f1b103c0c0befbdfccf0797ef44d826
   platform/git-workspaces:
     releases:
     - codename: andromeda
