@@ -179,3 +179,28 @@ func TestCredentialGETSuccessAndDecoderEOFAreNeverRetried(t *testing.T) {
 		})
 	}
 }
+
+func TestModuleAcquireWaitRespectsCallerCancellation(t *testing.T) {
+	for _, ready := range []bool{false, true} {
+		t.Run(map[bool]string{false: "waiting", true: "ready and cancelled together"}[ready], func(t *testing.T) {
+			pending := make(chan struct{})
+			module := &platformModule{connecting: pending}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if ready {
+				// Both select branches are ready; cancellation must win on the next loop,
+				// even if an initializer just published a cached session.
+				module.session = &mcp.ClientSession{}
+				cancel()
+				close(pending)
+			} else {
+				go func() { time.Sleep(10 * time.Millisecond); cancel() }()
+			}
+			started := time.Now()
+			session, err := module.acquire(ctx, "fixture")
+			if session != nil || !errors.Is(err, context.Canceled) || module.users != 0 || time.Since(started) > 500*time.Millisecond {
+				t.Fatalf("cancelled acquisition returned or retained session: %v users=%d", err, module.users)
+			}
+		})
+	}
+}

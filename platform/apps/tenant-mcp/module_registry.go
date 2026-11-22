@@ -191,7 +191,12 @@ func (e *platformModule) release() {
 	}
 }
 func (e *platformModule) acquire(ctx context.Context, name string) (*mcp.ClientSession, error) {
+	ctx, cancel := context.WithTimeout(ctx, moduleConnectBudget)
+	defer cancel()
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		e.mu.Lock()
 		if e.retired {
 			e.mu.Unlock()
