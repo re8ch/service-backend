@@ -356,8 +356,13 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if err := validatePlatformPostgresInput(input); err != nil {
 				return nil, nil, err
 			}
-			result, err := callNativePlatformTool(ctx, s, "postgres_admin_sql", input)
-			return result, nil, err
+			value, err := s.moduleRegistry().call(ctx, "admin", func(session *mcp.ClientSession) (any, error) {
+				return session.CallTool(ctx, &mcp.CallToolParams{Name: "postgres_admin_sql", Arguments: input})
+			})
+			if err != nil {
+				return nil, nil, err
+			}
+			return value.(*mcp.CallToolResult), nil, nil
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_observability_status"), Name: "platform_observability_status", Description: "Return fixed system Grafana, metrics, logs, traces, alerts and cost health for Re8CH Admin without arbitrary queries, tenant data, or credentials."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
