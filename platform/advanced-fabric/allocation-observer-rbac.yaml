@@ -1,27 +1,126 @@
-# Platform-owned bootstrap for the optional read-only Cilium allocation adapter.
-# The networking release identity does not receive bind/escalate or RBAC writes.
+# One-time platform bootstrap projection from advanced-fabrics/core PR113.
+# Preserve the existing role and binding; only CiliumNode GET/LIST is added.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: advanced-fabric-allocation-observer
-  labels:
-    app.kubernetes.io/part-of: advanced-fabric
+  name: advanced-fabric
 rules:
-  - apiGroups: [cilium.io]
-    resources: [ciliumnodes]
-    verbs: [get, list]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: advanced-fabric-allocation-observer
-  labels:
-    app.kubernetes.io/part-of: advanced-fabric
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: advanced-fabric-allocation-observer
-subjects:
-  - kind: ServiceAccount
-    name: advanced-fabric
-    namespace: kube-system
+- apiGroups:
+  - cilium.io
+  resources:
+  - ciliumnodes
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - nodes
+  - pods
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - services/proxy
+  verbs:
+  - get
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - create
+  - patch
+  - update
+- apiGroups:
+  - networking.advfab.org
+  - networking.re8ch.com
+  resources:
+  - advancedfabrics
+  - trafficpolicies
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.advfab.org
+  - networking.re8ch.com
+  resources:
+  - networkpathassessments
+  - networkinterventions
+  - networkobservationepisodes
+  - networktradeoffestimates
+  - tradeofftriangles
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - networking.advfab.org
+  - networking.re8ch.com
+  resources:
+  - advancedfabrics/status
+  - trafficpolicies/status
+  - networkpathassessments/status
+  - networkinterventions/status
+  - networkobservationepisodes/status
+  - tradeofftriangles/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - httproutes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - patch
+  - update
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  verbs:
+  - get
+  - list
+  - watch
