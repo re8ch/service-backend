@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: atoll-jade
+    delivery.re8ch.com/codename: canopy-jade
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:ee71921fae8d98374caf5f9273d1bd03b1303de80bcaacf86d20886ff6299b78
+    digest: sha256:45a3322e131dfbe65ac4d868c66c9b5d3ba6b5001093c734a619ec8587c68023
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: atoll-jade
+    delivery.re8ch.com/codename: canopy-jade
 spec:
   interval: 1m
   retryInterval: 1m
