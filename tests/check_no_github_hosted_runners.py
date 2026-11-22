@@ -13,6 +13,7 @@ ROOTS = (
 )
 
 CLOUD_JOBS = {
+    ".github/workflows/headlamp-public-edge-check.yml": {"model-and-build"},
     ".github/workflows/main-unit-baseline.yml": {"unit"},
     ".github/workflows/gitops-maintenance-summary.yml": {"summarize"},
     ".github/workflows/gitops-observation.yml": {"record", "summarize"},
