@@ -8,11 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -275,7 +278,7 @@ func platformCredential(ctx context.Context, backend platformBackend) (string, e
 		}
 		return value, nil
 	}
-	secret, err := kubeRequest(ctx, http.MethodGet, "/api/v1/namespaces/"+backend.Namespace+"/secrets/"+backend.Secret, nil)
+	secret, err := platformCredentialSecret(ctx, "/api/v1/namespaces/"+backend.Namespace+"/secrets/"+backend.Secret, kubeRequest)
 	if err != nil {
 		return "", err
 	}
@@ -292,6 +295,51 @@ func platformCredential(ctx context.Context, backend platformBackend) (string, e
 		return "", errors.New("invalid platform credential")
 	}
 	return string(value), nil
+}
+
+// Retry only this idempotent credential GET, never an MCP tool invocation.
+func platformCredentialSecret(ctx context.Context, path string, request func(context.Context, string, string, any) (map[string]any, error)) (map[string]any, error) {
+	for attempt := 0; attempt < 2; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		deadline, cancel := context.WithTimeout(ctx, 5*time.Second)
+		secret, err := request(deadline, http.MethodGet, path, nil)
+		cancel()
+		if err == nil {
+			return secret, nil
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if attempt == 1 || !transientCredentialRead(err) {
+			return nil, err
+		}
+		timer := time.NewTimer(100 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+	panic("unreachable")
+}
+
+func transientCredentialRead(err error) bool {
+	var status kubeResponseError
+	if errors.As(err, &status) {
+		return status.Status == 429 || status.Status == 502 || status.Status == 503 || status.Status == 504
+	}
+	// A decoder EOF is malformed API data, not a transport retry signal.
+	var request *url.Error
+	if !errors.As(err, &request) {
+		return false
+	}
+	var network net.Error
+	return (errors.As(request.Err, &network) && network.Timeout()) ||
+		errors.Is(request.Err, context.DeadlineExceeded) || errors.Is(request.Err, io.EOF) ||
+		errors.Is(request.Err, io.ErrUnexpectedEOF) || errors.Is(request.Err, syscall.ECONNRESET)
 }
 
 type platformAuthTransport struct {

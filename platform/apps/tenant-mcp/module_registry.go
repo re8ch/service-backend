@@ -23,6 +23,7 @@ import (
 )
 
 const moduleDiscoveryBudget = 5 * time.Second
+const moduleConnectBudget = 15 * time.Second
 const moduleCacheLifetime = 30 * time.Second
 
 type platformRegistryDocument struct {
@@ -240,7 +241,7 @@ func (e *platformModule) acquire(ctx context.Context, name string) (*mcp.ClientS
 	}
 }
 func connectPlatformModule(ctx context.Context, name string, b platformBackend) (*mcp.ClientSession, error) {
-	ctx, cancel := context.WithTimeout(ctx, moduleDiscoveryBudget)
+	ctx, cancel := context.WithTimeout(ctx, moduleConnectBudget)
 	defer cancel()
 	token, err := platformCredential(ctx, b)
 	if err != nil {
