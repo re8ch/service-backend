@@ -364,7 +364,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
 			}
-			value, err := s.moduleRegistry().call(ctx, "infra", func(session *mcp.ClientSession) (any, error) {
+			value, err := s.moduleRegistry().call(ctx, "cloud", func(session *mcp.ClientSession) (any, error) {
 				return session.CallTool(ctx, &mcp.CallToolParams{Name: "get_observability_platform_status", Arguments: map[string]any{}})
 			})
 			if err != nil {
