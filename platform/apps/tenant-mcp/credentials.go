@@ -138,6 +138,12 @@ func kubeRequest(ctx context.Context, method, path string, payload any) (map[str
 	if err != nil {
 		return nil, err
 	}
+	return kubeRequestHTTP(ctx, client, base, token, method, path, payload)
+}
+
+// Keep one HTTP exchange separate for real-API credential-read tests without
+// service-account files; mutation request behavior remains unchanged.
+func kubeRequestHTTP(ctx context.Context, client *http.Client, base, token, method, path string, payload any) (map[string]any, error) {
 	var body io.Reader
 	if payload != nil {
 		data, _ := json.Marshal(payload)
