@@ -17,6 +17,15 @@ repository.
 - `scripts`: FRR, PodCIDR, policy-routing, RouterOS and economics tooling.
 - `docs`: historical decisions, performance checkpoints and runbooks.
 
+## PublicEdge and cross-cluster handoff
+
+Start with the dated
+[`PublicEdge and AmongCluster handoff`](docs/publicedge-amongcluster-handoff-2026-11-22.md).
+It links the federated architecture, recovery runbook, current release evidence,
+and authoritative DNS acceleration decision guide. The handoff is deliberately
+separate from runtime desired state, which remains in
+`pillars-infra/network-gitops`.
+
 ## Cilium and Gateway authority
 
 Network runtime desired state is owned by the autonomous
