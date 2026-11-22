@@ -53,7 +53,7 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
-	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			caller, ok := ctx.Value(identityKey{}).(identity)
@@ -157,7 +157,7 @@ func (s *server) registerSelfServiceCapabilitiesTool(ms *mcp.Server) {
 
 func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant-self-service", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}}})
-	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, mcpToolTelemetry.middleware)
 	if id.Service || id.Subject == "" || id.Tenant == "" {
 		return ms
 	}
@@ -463,7 +463,7 @@ func (s *server) handler() http.Handler {
 		if mcpInitialize(r.Context()) || r.Header.Get("Mcp-Session-Id") != "" || r.Method == http.MethodGet || r.Method == http.MethodDelete {
 			handler = statefulMCPHandler
 		}
-		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
+		withVerifiedMCPSession(handler).ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	}
 	mux.HandleFunc("/mcp", mcpEndpoint)
 	mux.HandleFunc("/plugin/mcp", mcpEndpoint)
