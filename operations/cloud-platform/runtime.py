@@ -120,7 +120,8 @@ class CloudPlatform:
     def kubectl_exec(self, argv: list[str], *, stdin: str | None = None, timeout: int = 30) -> dict[str, Any]:
         if not argv:
             raise OperationError("INVALID_ARGUMENT", "argv must not be empty")
-        return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", timeout=timeout, stdin=stdin)
+        from plugin_http_transport import kubectl_prefix
+        return self.runner.run([*kubectl_prefix(self.kubeconfig), *argv], target="re8ch-k3s", timeout=timeout, stdin=stdin)
 
     @staticmethod
     def _github_read(url: str, *, json_body: bool = False, limit: int = 1_048_576) -> Any:
@@ -340,7 +341,7 @@ class CloudPlatform:
         return request(self.kubeconfig, method, path, body, content_type)
 
     def _kubectl(self, argv: list[str], stdin: str | None = None) -> dict[str, Any]:
-        return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", stdin=stdin)
+        return self.kubectl_exec(argv, stdin=stdin)
 
     def _ssh_argv(self, target: str, remote_argv: list[str]) -> list[str]:
         spec = self.inventory.get(target)["spec"]

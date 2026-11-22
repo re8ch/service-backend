@@ -30,6 +30,7 @@ spec:
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
+            - {name: KUBERNETES_SERVER_OVERRIDE, value: "https://10.250.0.147:6443"}
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
             - {name: HYPOTHESIS_STORAGE_DIRECTORY, value: /tmp/hypothesis}
             - {name: OAUTH_AUDIENCE, value: re8ch-cloud-platform-tool}
