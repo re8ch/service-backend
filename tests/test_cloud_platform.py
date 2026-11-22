@@ -340,3 +340,27 @@ def test_authentication_reconcile_tool_is_admin_only_and_bounded(monkeypatch):
         server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha, "namespace": "default"}, admin)
     assert caught.value.code == "INVALID_ARGUMENT"
     assert server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha}, admin)["applied"] is False
+
+
+def test_reviewed_endpoint_override_preserves_kubeconfig_for_all_native_commands(monkeypatch):
+    from plugin_http_transport import kubectl_prefix
+    monkeypatch.setenv("KUBERNETES_SERVER_OVERRIDE", "https://192.0.2.10:6443")
+    calls = []
+    service = CloudPlatform(Inventory([NODE_FIXTURE]),
+                            OperationRunner(lambda argv, **kwargs: calls.append(argv) or completed()),
+                            kubeconfig="credential-authority", ssh_config="y")
+    service.kubectl_exec(["get", "nodes"])
+    service._kubectl(["get", "pods"])
+    expected = ["kubectl", "--kubeconfig", "credential-authority", "--server", "https://192.0.2.10:6443"]
+    assert kubectl_prefix("credential-authority") == expected
+    assert all(argv[:len(expected)] == expected for argv in calls)
+    monkeypatch.delenv("KUBERNETES_SERVER_OVERRIDE")
+    assert kubectl_prefix("credential-authority") == ["kubectl", "--kubeconfig", "credential-authority"]
+
+
+@pytest.mark.parametrize("endpoint", ["http://192.0.2.10", "https://user:password@example.test", "https://example.test/apis", "https://example.test?token=x", "https://example.test#x"])
+def test_endpoint_override_rejects_credentials_and_non_origin_urls(monkeypatch, endpoint):
+    from plugin_http_transport import kubectl_prefix
+    monkeypatch.setenv("KUBERNETES_SERVER_OVERRIDE", endpoint)
+    with pytest.raises(OperationError):
+        kubectl_prefix("credential-authority")
