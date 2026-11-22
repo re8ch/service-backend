@@ -231,7 +231,16 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	if json.Unmarshal(body, &request) != nil {
 		return nil
 	}
-	initialize := containsMCPMethod(request, "initialize") || containsMCPMethod(request, "server/discover")
+	// Discovery belongs to the stateless protocol. Marking it as initialization
+	// routes it through the legacy transport, whose supportedVersions excludes
+	// the very modern version the client is probing.
+	initialize := containsMCPMethod(request, "initialize")
+	originalName := ""
+	if rpc, ok := request.(map[string]any); ok && rpc["method"] == "tools/call" {
+		if params, ok := rpc["params"].(map[string]any); ok {
+			originalName, _ = params["name"].(string)
+		}
+	}
 	uses := []toolAliasUse{}
 	changed := rewriteToolNames(request, &uses)
 	if !changed {
@@ -239,6 +248,10 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 			*r = *r.WithContext(context.WithValue(r.Context(), mcpInitializeKey{}, true))
 		}
 		return nil
+	}
+	if originalName != "" && r.Header.Get("Mcp-Name") == originalName {
+		canonical, _ := normalizeToolName(originalName)
+		r.Header.Set("Mcp-Name", canonical)
 	}
 	normalized, err := json.Marshal(request)
 	if err != nil {
@@ -321,6 +334,9 @@ func rewriteToolNames(value any, uses *[]toolAliasUse) bool {
 
 func (s *server) handler() http.Handler {
 	serverFor := func(req *http.Request) *mcp.Server {
+		if active, ok := req.Context().Value(activeMCPServerKey{}).(*mcp.Server); ok {
+			return active
+		}
 		id, _ := req.Context().Value(identityKey{}).(identity)
 		if publicSelfService(req.Context()) {
 			return s.publicSelfServiceMCP(id)
@@ -332,6 +348,8 @@ func (s *server) handler() http.Handler {
 	}
 	mcpHandler := mcp.NewStreamableHTTPHandler(serverFor,
 		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
+	activeServers := &activeMCPServers{}
+	modernHandler := activeServers.handler(mcpHandler, serverFor)
 	// Initialized clients retain a server session and a standalone SSE or
 	// subscriptions/listen stream. That is the channel used for true dynamic
 	// tools/list_changed delivery. Calls without a session remain compatible
@@ -460,6 +478,9 @@ func (s *server) handler() http.Handler {
 		}
 		recordToolAliasUses(r.Context())
 		handler := http.Handler(mcpHandler)
+		if r.Method == http.MethodPost && r.Header.Get("Mcp-Session-Id") == "" && r.Header.Get("Mcp-Protocol-Version") >= "2026-07-28" {
+			handler = modernHandler
+		}
 		if mcpInitialize(r.Context()) || r.Header.Get("Mcp-Session-Id") != "" || r.Method == http.MethodGet || r.Method == http.MethodDelete {
 			handler = statefulMCPHandler
 		}
