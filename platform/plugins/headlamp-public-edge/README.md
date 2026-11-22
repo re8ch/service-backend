@@ -30,3 +30,20 @@ write cloud configuration or enforce GitHub branch protection.
 
 The plugin requires read access to `PublicEdge`, `Node`, `HTTPRoute`, `Ingress`, `Pod`,
 `Deployment`, `DaemonSet`, `EndpointSlice` and the PublicEdge records `ConfigMap`.
+
+## Local and federated observations
+
+Candidates discovered through AmongCluster show their declared publisher and Service
+identity, endpoint ID, observed AF source, expiry and rejection reasons. A remote
+node is never looked up in this console's local Node inventory. Typed candidates
+require current generation-bound federation, scoped AF and backend observations;
+unbound legacy candidates or missing observations remain Unknown. This read-only
+view does not replace the authority's eligibility policy or issue new probes.
+
+Service routes distinguish local Pod failures from ready EndpointSlice addresses
+whose remote Pod is not observable here; the latter remain Unknown. A GlobalPing
+0/0 or incomplete observation is not displayed as a measured failure or success.
+
+Run `node --test tests/evidenceModel.test.mjs`, `npm run tsc` and `npm run build`.
+Model tests use the actual typed publication shape, including UID replacement,
+expiry, rejected AF evidence and local/remote inventory boundaries.

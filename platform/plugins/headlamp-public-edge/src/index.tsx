@@ -3,6 +3,13 @@ import { SectionBox, StatusLabel, Table } from '@kinvolk/headlamp-plugin/lib/com
 import { makeCustomResourceClass } from '@kinvolk/headlamp-plugin/lib/lib/k8s/crd';
 import { Alert, Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
 import React from 'react';
+import {
+  backendState,
+  candidateState,
+  federationDetails,
+  isFederated,
+  qualityState,
+} from './evidenceModel';
 
 const PublicEdge = makeCustomResourceClass({
   apiInfo: [{ group: 'networking.re8ch.com', version: 'v1alpha1' }],
@@ -19,11 +26,6 @@ const Ingress = makeCustomResourceClass({
   singularName: 'ingress',
   isNamespaced: true,
 });
-
-function condition(item: any, type: string) {
-  const data = item?.jsonData || item;
-  return data?.status?.conditions?.find((x: any) => x.type === type)?.status === 'True';
-}
 
 const raw = (item: any) => item?.jsonData || item || {};
 
@@ -282,7 +284,10 @@ function Dashboard() {
   const powerDnsHealthyInUse = powerDnsRows.filter((server: any) => server.healthy).length;
   const powerDnsDesired = powerDnsDaemonSet?.status?.desiredNumberScheduled ?? powerDnsRows.length;
   const powerDnsDataAvailable =
-    !podError && !daemonSetError && !nodeError && !(powerDnsDesired > 0 && powerDnsRows.length === 0);
+    !podError &&
+    !daemonSetError &&
+    !nodeError &&
+    !(powerDnsDesired > 0 && powerDnsRows.length === 0);
   const transferDeployments = (deployments || [])
     .map(raw)
     .filter(
@@ -356,32 +361,14 @@ function Dashboard() {
         .filter((authority: any) => authority.hostname);
     })
     .sort((a: any, b: any) => a.hostname.localeCompare(b.hostname));
-  const edgeState = (edge: any) => {
-    const node = nodeByName.get(edge?.spec?.nodeName) as any;
-    if (!node) return 'Node missing';
-    if (!node.status?.conditions?.some((c: any) => c.type === 'Ready' && c.status === 'True'))
-      return 'Node NotReady';
-    if (!edge?.spec?.enabled || edge?.spec?.draining) return 'Disabled / draining';
-    const observed = Date.parse(edge?.status?.observedAt || '');
-    if (!Number.isFinite(observed) || Math.abs(Date.now() - observed) > 60000)
-      return 'Stale evidence';
-    if (
-      edge?.status?.observedGeneration &&
-      edge.status.observedGeneration !== edge?.metadata?.generation
-    )
-      return 'Old generation';
-    if (!condition(edge, 'Ready'))
-      return (
-        edge?.status?.conditions?.find((c: any) => c.type === 'Ready')?.reason || 'Unavailable'
-      );
-    if (!Object.values(edge?.status?.services || {}).some((s: any) => s.ready))
-      return 'No ready service';
-    return 'Ready';
-  };
+  const edgeState = (edge: any) =>
+    candidateState(edge, nodeByName.get(edge?.spec?.nodeName), !nodeError && Boolean(nodes));
   const stateColor = (state: string) =>
     state === 'Ready'
       ? 'success'
-      : ['No ready service', 'Old generation'].includes(state)
+      : state.startsWith('Unknown') ||
+        state === 'Pending probes' ||
+        ['No ready service', 'Old generation'].includes(state)
       ? 'warning'
       : 'error';
 
@@ -400,7 +387,7 @@ function Dashboard() {
       );
       const refs = (route.spec.rules || []).flatMap((r: any) => r.backendRefs || []);
       const backends = refs
-        .map((b: any) => `${route.metadata.namespace}/${b.name}:${b.port}`)
+        .map((b: any) => `${b.namespace || route.metadata.namespace}/${b.name}:${b.port}`)
         .join(', ');
       const backendNames = new Set(refs.map((b: any) => b.name));
       const readySlices = endpointSlices.filter(
@@ -434,25 +421,13 @@ function Dashboard() {
             (p.conditions || []).some((c: any) => c.type === type && c.status === 'True')
           )
         );
-      const hasBackends =
-        refs.length > 0 &&
-        [...backendNames].every(name =>
-          readySlices.some(
-            (s: any) =>
-              s.metadata?.labels?.['kubernetes.io/service-name'] === name &&
-              sliceEndpoints(s).some(
-                (e: any) =>
-                  e.conditions?.ready === true &&
-                  (e.addresses || []).some((ip: string) =>
-                    podByIp
-                      .get(ip)
-                      ?.status?.conditions?.some(
-                        (c: any) => c.type === 'Ready' && c.status === 'True'
-                      )
-                  )
-              )
-          )
-        );
+      const backend = backendState(
+        refs.map((ref: any) => ({ ...ref, namespace: ref.namespace || route.metadata.namespace })),
+        endpointSlices,
+        podByIp,
+        !sliceError && !podError && Boolean(slices) && Boolean(pods)
+      );
+      const hasBackends = backend === 'Ready';
       const serviceReadyEdges = (edges || [])
         .map(raw)
         .filter(
@@ -485,7 +460,7 @@ function Dashboard() {
         reason: !accepted
           ? 'Route not accepted/resolved'
           : !hasBackends
-          ? 'No ready backend Pod'
+          ? backend
           : !exitReady
           ? 'No ready public exit'
           : !selfManaged && !target
@@ -528,7 +503,11 @@ function Dashboard() {
           {
             header: 'In-cluster path',
             accessorFn: (x: any) => (
-              <StatusLabel status={x.ready ? 'success' : 'error'}>{x.reason}</StatusLabel>
+              <StatusLabel
+                status={x.ready ? 'success' : x.reason.startsWith('Unknown') ? 'warning' : 'error'}
+              >
+                {x.reason}
+              </StatusLabel>
             ),
           },
         ] as any
@@ -625,10 +604,16 @@ function Dashboard() {
                   accessorFn: (x: any) => {
                     const quality = x?.status?.externalQuality;
                     return (
-                      <StatusLabel status={quality?.ready ? 'success' : 'error'}>
-                        {quality
-                          ? `${quality.ready ? 'Ready' : 'Problem'} · ${quality.ping?.probes || 0} probes`
-                          : 'No data'}
+                      <StatusLabel
+                        status={stateColor(
+                          qualityState(
+                            quality?.ping ? { ...quality.ping, ready: quality.ready } : quality
+                          )
+                        )}
+                      >
+                        {qualityState(
+                          quality?.ping ? { ...quality.ping, ready: quality.ready } : quality
+                        )}
                       </StatusLabel>
                     );
                   },
@@ -652,11 +637,17 @@ function Dashboard() {
                 },
                 {
                   header: 'Node',
-                  accessorFn: (x: any) => x?.spec?.nodeName || '-',
+                  accessorFn: (x: any) =>
+                    isFederated(x)
+                      ? `Remote node: ${x?.spec?.nodeName || 'Unknown'}`
+                      : x?.spec?.nodeName || '-',
                 },
                 {
                   header: 'Public endpoint',
-                  accessorFn: (x: any) => x?.spec?.endpoint?.value || '-',
+                  accessorFn: (x: any) =>
+                    x?.status?.networkEvidence?.federation?.publicIngress?.address ||
+                    x?.spec?.endpoint?.value ||
+                    '-',
                 },
                 {
                   header: 'Gateway VIP',
@@ -674,6 +665,14 @@ function Dashboard() {
                   accessorFn: (x: any) => (
                     <StatusLabel status={stateColor(edgeState(x))}>{edgeState(x)}</StatusLabel>
                   ),
+                },
+                {
+                  header: 'Federation identity / observation',
+                  accessorFn: (x: any) => {
+                    if (!isFederated(x)) return 'Local';
+                    const value = federationDetails(x);
+                    return `${value.owner} · ${value.identity} · endpoint ${value.endpoint} · source ${value.source} · expires ${value.expires} · ${value.reason}`;
+                  },
                 },
                 {
                   header: 'NPA evidence',
@@ -722,29 +721,82 @@ function Dashboard() {
           <SectionBox title={`Per-edge SNI quality · ${globalpingObservedAt || 'not observed'}`}>
             <Table
               data={globalpingCandidates}
-              columns={[
-                { header: 'Candidate', accessorKey: 'name' },
-                { header: 'Address', accessorKey: 'target' },
-                { header: 'Ready', accessorFn: (x: any) => String(Boolean(x.ready)) },
-                { header: 'ICMP probes', accessorFn: (x: any) => `${x.ping?.finished ?? 0}/${x.ping?.probes ?? 0}` },
-                { header: 'Average / max', accessorFn: (x: any) => `${x.ping?.latencyAvgMs ?? '-'} / ${x.ping?.latencyMaxMs ?? '-'} ms` },
-                { header: 'Loss', accessorFn: (x: any) => x.ping?.lossMaxPercent === null || x.ping?.lossMaxPercent === undefined ? '-' : `${x.ping.lossMaxPercent}%` },
-                { header: 'SNI services', accessorFn: (x: any) => Object.entries(x.services || {}).map(([host, result]: any) => `${host}: ${result.ready ? 'ready' : 'failed'} (${result.finished ?? 0}/${result.probes ?? 0})`).join(', ') || '-' },
-              ] as any}
+              columns={
+                [
+                  { header: 'Candidate', accessorKey: 'name' },
+                  { header: 'Address', accessorKey: 'target' },
+                  {
+                    header: 'Ready',
+                    accessorFn: (x: any) =>
+                      qualityState(x.ping ? { ...x.ping, ready: x.ready } : x),
+                  },
+                  {
+                    header: 'ICMP probes',
+                    accessorFn: (x: any) => `${x.ping?.finished ?? 0}/${x.ping?.probes ?? 0}`,
+                  },
+                  {
+                    header: 'Average / max',
+                    accessorFn: (x: any) =>
+                      `${x.ping?.latencyAvgMs ?? '-'} / ${x.ping?.latencyMaxMs ?? '-'} ms`,
+                  },
+                  {
+                    header: 'Loss',
+                    accessorFn: (x: any) =>
+                      x.ping?.lossMaxPercent === null || x.ping?.lossMaxPercent === undefined
+                        ? '-'
+                        : `${x.ping.lossMaxPercent}%`,
+                  },
+                  {
+                    header: 'SNI services',
+                    accessorFn: (x: any) =>
+                      Object.entries(x.services || {})
+                        .map(
+                          ([host, result]: any) =>
+                            `${host}: ${qualityState(result)} (${result.finished ?? 0}/${
+                              result.probes ?? 0
+                            })`
+                        )
+                        .join(', ') || '-',
+                  },
+                ] as any
+              }
             />
           </SectionBox>
           <SectionBox title="Service-domain quality">
             <Table
               data={globalpingServices}
-              columns={[
-                { header: 'Hostname', accessorKey: 'name' },
-                { header: 'Candidate', accessorFn: (x: any) => x.candidate || '-' },
-                { header: 'Path', accessorKey: 'path' },
-                { header: 'Ready', accessorFn: (x: any) => String(Boolean(x.ready)) },
-                { header: 'Probes', accessorFn: (x: any) => `${x.finished ?? 0}/${x.probes ?? 0}` },
-                { header: 'Average / max', accessorFn: (x: any) => `${x.latencyAvgMs ?? '-'} / ${x.latencyMaxMs ?? '-'} ms` },
-                { header: 'Resolved addresses', accessorFn: (x: any) => [...new Set((x.samples || []).map((sample: any) => sample.resolvedAddress).filter(Boolean))].join(', ') || '-' },
-              ] as any}
+              columns={
+                [
+                  { header: 'Hostname', accessorKey: 'name' },
+                  { header: 'Candidate', accessorFn: (x: any) => x.candidate || '-' },
+                  { header: 'Path', accessorKey: 'path' },
+                  {
+                    header: 'Ready',
+                    accessorFn: (x: any) =>
+                      qualityState(x.ping ? { ...x.ping, ready: x.ready } : x),
+                  },
+                  {
+                    header: 'Probes',
+                    accessorFn: (x: any) => `${x.finished ?? 0}/${x.probes ?? 0}`,
+                  },
+                  {
+                    header: 'Average / max',
+                    accessorFn: (x: any) =>
+                      `${x.latencyAvgMs ?? '-'} / ${x.latencyMaxMs ?? '-'} ms`,
+                  },
+                  {
+                    header: 'Resolved addresses',
+                    accessorFn: (x: any) =>
+                      [
+                        ...new Set(
+                          (x.samples || [])
+                            .map((sample: any) => sample.resolvedAddress)
+                            .filter(Boolean)
+                        ),
+                      ].join(', ') || '-',
+                  },
+                ] as any
+              }
             />
           </SectionBox>
         </>
@@ -821,8 +873,8 @@ function Dashboard() {
               sx={{ mb: 2 }}
             >
               0.7.x 通过 hidden primary 与 secondary 同步 XoT zone transfer 和 signed
-              RouteSnapshot。本表反映 Kubernetes 运行态；具体 serial、snapshot revision 和
-              staleness 由各实例的 /v1/status 及外部权威监测验证。
+              RouteSnapshot。本表反映 Kubernetes 运行态；具体 serial、snapshot revision 和 staleness
+              由各实例的 /v1/status 及外部权威监测验证。
             </Alert>
             <Table
               data={transferRows}
@@ -914,7 +966,9 @@ function Dashboard() {
                 {
                   header: 'Origin',
                   accessorFn: (x: any) =>
-                    `${x.origin.provider} / ${x.origin.resource}${x.origin.region ? ` / ${x.origin.region}` : ''}`,
+                    `${x.origin.provider} / ${x.origin.resource}${
+                      x.origin.region ? ` / ${x.origin.region}` : ''
+                    }`,
                 },
                 {
                   header: 'Delivery',
