@@ -610,6 +610,8 @@ modules:
       digest: sha256:bbd697ac3ea78757e9c0defc53f927dd1be1299fa5ca24f751a4f967e3a10cbd
     - codename: wetland-indigo
       digest: sha256:ab8168636a4c1ae7b0b826c498a259b285ad57137a85b74e9d6627ca2d43659e
+    - codename: atoll-jade
+      digest: sha256:ee71921fae8d98374caf5f9273d1bd03b1303de80bcaacf86d20886ff6299b78
   platform/advanced-fabric:
     releases:
     - codename: bora
