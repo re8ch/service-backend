@@ -900,10 +900,10 @@ kind: ConfigMap
 metadata:
   annotations:
     delivery.re8ch.com/reconciler: native-flux
-    public-edge.re8ch.com/plugin-version: 0.3.4
+    public-edge.re8ch.com/plugin-build: https://github.com/re8ch/service-backend/actions/runs/45084324484
     public-edge.re8ch.com/plugin-sha256: c437a81e65814f4050bfcdfaf68a7354252b8d2a18db6518a7f22e3f5cb95a33
     public-edge.re8ch.com/plugin-source: bd08745b7
-    public-edge.re8ch.com/plugin-build: https://github.com/re8ch/service-backend/actions/runs/45084324484
+    public-edge.re8ch.com/plugin-version: 0.3.4
   name: headlamp-public-edge-v033-mb4t89f2c6
   namespace: headlamp
 ---
