@@ -2,16 +2,13 @@
 
 `10.250.0.1/32` is the K3s fixed registration VIP. It belongs to the host
 loopback/FRR accelerated domain and must never be allocated by Cilium LB IPAM.
-The current single-server state (A1 as the only K3s API/etcd member, R640 as a
-relay to A1, and B1 as manual DR) is explicitly **SLO-ineligible**. It cannot
-claim 99.9% availability because one node, one WSL lifecycle, or one backend
-route can remove the entire API.
-
-The production target is three K3s server/embedded-etcd voters on
-`a1-wsl-zt`, `b1-wsl-zt`, and `r640`. The VIP and every public relay must use
-authenticated `/readyz` health checks and automatically select any healthy API
-member. Atlantic/PublicEdge relays are stateless clients of that domestic VIP;
-they must never become etcd voters or a prerequisite for domestic recovery.
+The production topology intentionally keeps A1 as the single K3s API/etcd
+voter. R640 is its domestic relay and B1 is a fenced manual recovery target;
+neither may silently join etcd. Availability therefore comes from independent
+API relays, external health evidence, automatic host recovery and tested
+snapshot restoration, not from adding voters. Atlantic/PublicEdge relays are
+stateless clients of the domestic VIP and must never become etcd voters or a
+prerequisite for domestic recovery.
 A node may originate the prefix only while its local
 `https://127.0.0.1:6443/readyz` check is healthy.
 
@@ -62,14 +59,14 @@ declared single-peer WireGuard interfaces. Every node verifies the controller's
 canonical SHA-256 transaction before mutation. A1 requires three authenticated
 local `/readyz` successes to bind/advertise and withdraws after three failures.
 R640 applies the same local readiness gate to its relay; B1 remains ineligible.
-5. Join one follower at a time. Require a healthy three-member etcd status,
-   matching member and EndpointSlice addresses, and a completed snapshot before
-   continuing. Never restart or join two voters in the same maintenance step.
-6. Enable all three authenticated HAProxy/VIP backends. Prove automatic
-   withdrawal and recovery for each member independently before moving clients.
-7. Run `ROLLOUT_STAGE=ha ./verify.sh`, then move one worker bootstrap to
-   `https://10.250.0.1:6443`, followed by the remaining agents. Change internal
-   DNS only after the HA gate succeeds.
+5. Require exactly one ready API EndpointSlice at `10.250.0.147`, a fresh
+   encrypted snapshot copy, and a tested B1 restore procedure. B1 remains
+   fenced during normal operation.
+6. Prove the R640 domestic relay and every Atlantic/PublicEdge relay withdraw
+   when authenticated `/readyz` fails and recover without depending on the
+   Kubernetes API for their own credentials.
+7. Run `ROLLOUT_STAGE=single ./verify.sh`, then move clients to
+   `https://10.250.0.1:6443`. Change DNS only after relay and restore gates pass.
 
 ## Availability evidence
 
