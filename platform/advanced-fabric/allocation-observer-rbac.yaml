@@ -1,0 +1,27 @@
+# Platform-owned bootstrap for the optional read-only Cilium allocation adapter.
+# The networking release identity does not receive bind/escalate or RBAC writes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: advanced-fabric-allocation-observer
+  labels:
+    app.kubernetes.io/part-of: advanced-fabric
+rules:
+  - apiGroups: [cilium.io]
+    resources: [ciliumnodes]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: advanced-fabric-allocation-observer
+  labels:
+    app.kubernetes.io/part-of: advanced-fabric
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: advanced-fabric-allocation-observer
+subjects:
+  - kind: ServiceAccount
+    name: advanced-fabric
+    namespace: kube-system
