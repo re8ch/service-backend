@@ -59,14 +59,14 @@ or incomplete provenance is rejected.
 
 ## Independent primary and Harbor replica
 
-The Cloud primary is now `ghcr.io/re8ch/service-backend-cloud-platform`. A new
-package starts private, is linked by its OCI source label to this repository,
+The Cloud primary is now `ghcr.io/re8ch/service-backend-cloud-platform`. This
+public-source-only package is linked by its OCI source label to this repository,
 and is published by the existing job-scoped `GITHUB_TOKEN`/`packages: write`.
-Existing non-private packages are rejected before building; finalization checks
-actual private visibility and repository association again before signing. No
+Source-repository public visibility and the specific reviewed package visibility
+are checked before building; finalization checks actual visibility and repository
+association again before signing. No
 visibility or organization-wide permission is changed. This image contains
-source plus credential-free inventory/catalog/workspace declarations, so it is
-not made public just because the source repository is public. Runtime credentials
+source plus credential-free inventory/catalog/workspace declarations, so its public-source-only classification is specific to these audited inputs. Runtime credentials
 are injected later and are never Docker build arguments or copied image inputs.
 
 The GHCR primary is signed, verified and independently cold-read before its
@@ -107,3 +107,30 @@ Harbor-independent pull path. No K3s restart or node registry change is performe
 by this source PR. The existing tenant-control Harbor image is not rebuilt merely
 to mirror it; its already-verified signature/source must remain the transfer
 basis for any later GHCR import.
+
+### Visibility readback correction
+
+The first successful GHCR build (source
+`c472221acf8b2a132807832df680a23a3ec94224`, run `45208776164`, index
+`sha256:89241538d949fad4e6b680e26982650f3c6b8f5debf3402eb46d456c16566986`)
+read back as `public`, so the initial private-visibility gate correctly stopped
+finalization. No signed primary or replica was claimed from that failed finalize.
+The published image is retained for successful-build reuse, not rebuilt.
+
+For this specific system image, the source repository was independently read
+back as public. Its fixed Dockerfile copies only public tracked source and
+credential-free inventory/catalog/workspace/schema declarations; the Go build
+stage derives from public source. Fresh hosted checkout does not initialize
+catalog gitlinks. Registry authorization lives in runner temporary storage,
+outside those COPY inputs, and is not a Docker build argument. Runtime Secrets,
+service-account tokens, Sentry DSN and operator credentials are injected later and
+are not image inputs. This is a source/COPY-closure classification, not permission
+to make arbitrary application or tenant-data images public.
+
+The reviewed expectation for this exact source-only package is therefore public,
+with both the actual source-repository public flag and package-to-repository
+association required before publication/finalization. The workflow does not
+change package visibility. If the source becomes private or image inputs change
+to include private data, publication must be re-reviewed; this exception cannot
+be inferred for other images. The original successful build run can be finalized
+again with its certified source SHA, SLSA, SBOM and immutable index intact.
