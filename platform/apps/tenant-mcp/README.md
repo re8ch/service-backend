@@ -431,3 +431,13 @@ every 12 hours with a 36-hour expiry. The RSA key rotates after 23 days and its
 public key remains in JWKS for a seven-day overlap; retiring private keys are
 discarded. Until the rotator succeeds, issuance and JWKS fail closed while
 unrelated tenant-control routes remain available.
+
+The rotator CronJob and `supabase-billing-secrets` are both in
+`supabase-billing`, so its `secretKeyRef` is namespace-local. The Job's service
+account has no ClusterRole. A Role and RoleBinding in `tenant-infrastructure`
+grant only `get/update/patch` on the two named output Secrets. The chart owns
+only their metadata and intentionally omits `data`/`stringData`; Helm's
+three-way upgrade therefore preserves the live-only data written by the
+rotator. Do not enable force/replacement upgrades for these Secrets. A
+retiring private key is deleted at rotation, while its public key stays in
+JWKS for seven days—well beyond the five-minute maximum invocation-token life.

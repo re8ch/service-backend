@@ -27,6 +27,10 @@ ready binding decision to the authenticated tenant-control workload. The
 runtime bearer for that PostgREST role is minted in-cluster as
 `tenant-invocation-authority/BINDING_AUTHORITY_TOKEN`; absence is an explicit
 fail-closed deployment gate, not a reason to accept caller-supplied authority.
+The credential rotator runs beside the source Secret in `supabase-billing`;
+only its two resourceNames-scoped output updates cross into
+`tenant-infrastructure`. Empty Git declarations own metadata, not Secret data,
+and must never be deployed with Helm force/replacement semantics.
 
 `accept_usage_event` accepts immutable, unpriced `usage.re8ch.com/v1` events.
 The producer supplies a canonical payload SHA-256 for audit correlation, but
