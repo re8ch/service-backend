@@ -64,7 +64,8 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert release['permissions']['packages'] == 'write'
     assert jobs['finalize']['permissions']['packages'] == 'write'
     primary = next(step for step in jobs['finalize']['steps'] if step.get('id') == 'primary')
-    assert '.visibility == "private"' in primary['run']
+    assert '.visibility == "public"' in primary['run']
+    assert '.private == false' in primary['run']
     assert 'cloud-image-transfer.sh prove' in primary['run']
     mirror = next(step for step in jobs['finalize']['steps'] if step.get('id') == 'mirror')
     assert mirror['continue-on-error'] is True
