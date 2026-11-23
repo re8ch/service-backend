@@ -212,6 +212,8 @@ class ToolProfileTests(unittest.TestCase):
 
     def test_platform_status_upstream_failure_is_not_reported_as_zero_healthy(self):
         module = load_profile("observe")
+        original_urlopen = module.urllib.request.urlopen
+        self.addCleanup(setattr, module.urllib.request, "urlopen", original_urlopen)
         module.urllib.request.urlopen = lambda *_args, **_kwargs: (_ for _ in ()).throw(TimeoutError())
         result = module._platform_service_status("example", "http://example.invalid/v1/status")
         self.assertEqual(result["availability"], "unavailable")
