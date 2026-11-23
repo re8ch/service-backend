@@ -1,0 +1,87 @@
+name: tenant-mcp-harbor-promote
+on:
+  workflow_dispatch:
+    inputs:
+      source_digest:
+        description: Existing attested GHCR tenant-mcp digest
+        required: true
+        type: string
+      execute:
+        description: Copy the verified manifest to Harbor
+        required: true
+        default: false
+        type: boolean
+
+permissions: {contents: read}
+concurrency:
+  group: tenant-mcp-harbor-promote-${{ inputs.source_digest }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+      attestations: read
+    env:
+      SOURCE_REPOSITORY: ghcr.io/re8ch/service-backend-tenant-mcp
+      TARGET_REPOSITORY: registry.re8ch.com/image/re8ch-tenant-mcp
+      SOURCE_DIGEST: ${{ inputs.source_digest }}
+      EXECUTE: ${{ inputs.execute }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {persist-credentials: false}
+      - name: Validate and verify immutable source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          source="$SOURCE_REPOSITORY@$SOURCE_DIGEST"
+          gh attestation verify "oci://$source" --repo "$GITHUB_REPOSITORY"
+          docker buildx imagetools inspect "$source" >/dev/null
+      - name: Authenticate isolated registries
+        if: inputs.execute
+        run: |
+          set -euo pipefail
+          export DOCKER_CONFIG="$RUNNER_TEMP/tenant-mcp-promotion-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin >/dev/null
+          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+          HARBOR_USERNAME: ${{ secrets.TENANT_MCP_REGISTRY_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.TENANT_MCP_REGISTRY_PASSWORD }}
+      - name: Copy the existing manifest without rebuilding
+        if: inputs.execute
+        run: |
+          set -euo pipefail
+          source="$SOURCE_REPOSITORY@$SOURCE_DIGEST"
+          staging="$TARGET_REPOSITORY:promotion-${GITHUB_RUN_ID}"
+          docker buildx imagetools create --tag "$staging" "$source"
+          promoted_digest="$(docker buildx imagetools inspect "$staging" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+          test "$promoted_digest" = "$SOURCE_DIGEST"
+          immutable="$TARGET_REPOSITORY@$promoted_digest"
+          docker buildx imagetools inspect "$immutable" >/dev/null
+          jq -n --arg source "$source" --arg target "$immutable" --arg digest "$promoted_digest" \
+            '{apiVersion:"delivery.re8ch.com/image-promotion/v1alpha1",source:$source,target:$target,digest:$digest,reusedExistingArtifact:true,rebuild:false}' \
+            > tenant-mcp-harbor-promotion.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: inputs.execute
+        with:
+          name: tenant-mcp-harbor-promotion-${{ github.run_id }}
+          path: tenant-mcp-harbor-promotion.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove temporary registry authorization
+        if: always() && inputs.execute
+        run: |
+          rm -f "$DOCKER_CONFIG/config.json"
+          rmdir "$DOCKER_CONFIG" || true
