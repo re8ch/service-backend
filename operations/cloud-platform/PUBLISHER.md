@@ -56,3 +56,51 @@ is always removed. This checks the actual Docker/BuildKit JSON formats before
 production publication. The gate accepts both BuildKit SLSA v0.2 metadata and
 v1 `buildDefinition`/`runDetails.metadata.buildkit_metadata` structures; unknown
 or incomplete provenance is rejected.
+
+## Independent primary and Harbor replica
+
+The Cloud primary is now `ghcr.io/re8ch/service-backend-cloud-platform`. A new
+package starts private, is linked by its OCI source label to this repository,
+and is published by the existing job-scoped `GITHUB_TOKEN`/`packages: write`.
+Existing non-private packages are rejected before building; finalization checks
+actual private visibility and repository association again before signing. No
+visibility or organization-wide permission is changed. This image contains
+source plus credential-free inventory/catalog/workspace declarations, so it is
+not made public just because the source repository is public. Runtime credentials
+are injected later and are never Docker build arguments or copied image inputs.
+
+The GHCR primary is signed, verified and independently cold-read before its
+finalized artifact and native Sentry release metadata are published. The cold
+read uses a new OCI content store and verifies every downloaded blob's SHA256,
+size and descriptor graph. The test client's resolution of Harbor is redirected
+to a failing loopback port; the actual production Harbor is never stopped or
+changed. Raw layers and authentication files are removed, not uploaded as public
+workflow artifacts. The signed immutable primary remains usable if Harbor fails.
+
+The existing finalize job then uses native `oras cp --recursive` to copy the
+whole graph and OCI referrers into the existing Harbor project, without another
+build. Native `cosign copy` preserves v2 legacy signature/attestation/SBOM tags.
+The destination also receives a separate truthful signature naming its own
+repository; copying the source claim alone is insufficient. Both repository
+claims and the common digest are checked cryptographically. Source referrer
+digests must be preserved, and a separate empty content store cold-reads Harbor
+and checks every blob. Only then is a Harbor image handoff emitted. A failed
+replica is explicitly recorded as degraded; it does not disguise failure as full
+success or block the verified GHCR primary. The existing successful-build reuse
+path can retry transfer/finalization without recompiling the product.
+
+The native PR validation extends its same single image build to two temporary
+loopback registries. An ephemeral test-only signing key and an OCI referrer prove
+recursive copying, destination repository identity, independent cold reads and
+client-only replica outage behavior; no private production credential or public
+transparency-log upload is involved. The original API/schema smoke is retained.
+
+This producer replica is distinct from node pull routing. Existing node registry
+configuration may still rewrite GHCR through Harbor. A warm node cache, a Pod
+Ready state or an untested default-endpoint fallback is not proof of an
+independent cold pull, especially after a cache digest mismatch. Runtime promotion
+must separately demonstrate the approved opaque GHCR pull identity and a real
+Harbor-independent pull path. No K3s restart or node registry change is performed
+by this source PR. The existing tenant-control Harbor image is not rebuilt merely
+to mirror it; its already-verified signature/source must remain the transfer
+basis for any later GHCR import.

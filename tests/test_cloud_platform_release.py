@@ -45,7 +45,7 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert 'server.PRIVILEGED_TOOLS & viewer' in validation
     assert 'operations/plugin-capabilities/verify.py' in validation
     publisher = next(step for step in release['steps'] if step.get('run') == './operations/mcp-conformance/release-tenant-infrastructure.sh')
-    assert publisher['env']['TENANT_IMAGE_REPOSITORY'] == 'registry.re8ch.com/functions-shared/re8ch-cloud-platform'
+    assert publisher['env']['TENANT_IMAGE_REPOSITORY'] == 'ghcr.io/re8ch/service-backend-cloud-platform'
     assert publisher['env']['TENANT_IMAGE_DOCKERFILE'] == 'operations/cloud-platform/Dockerfile'
     assert publisher['env']['TENANT_IMAGE_INLINE_AUTH'] == '1'
     assert publisher['env']['TENANT_IMAGE_SKIP_FINALIZE'] == '1'
@@ -61,6 +61,17 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     for evidence in ('index.json', 'provenance.json', 'sbom.json'):
         assert 'cloud-platform.' + evidence in uploaded['with']['path']
     assert any('cloud-platform-release.yml@refs/heads/main' in step.get('run', '') and 'cosign verify' in step.get('run', '') for step in jobs['finalize']['steps'])
+    assert release['permissions']['packages'] == 'write'
+    assert jobs['finalize']['permissions']['packages'] == 'write'
+    primary = next(step for step in jobs['finalize']['steps'] if step.get('id') == 'primary')
+    assert '.visibility == "private"' in primary['run']
+    assert 'cloud-image-transfer.sh prove' in primary['run']
+    mirror = next(step for step in jobs['finalize']['steps'] if step.get('id') == 'mirror')
+    assert mirror['continue-on-error'] is True
+    assert mirror['env']['CERTIFIED_SOURCE_SHA'] == '${{ steps.source.outputs.sha }}'
+    assert 'cloud-image-transfer.sh mirror' in mirror['run']
+    assert jobs['finalize']['steps'].index(primary) < jobs['finalize']['steps'].index(mirror)
+    assert 'org.opencontainers.image.source' in (ROOT / 'operations/cloud-platform/Dockerfile').read_text()
 
 
 def test_native_upload_attempts_fit_the_release_budget():

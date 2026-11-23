@@ -5,6 +5,7 @@ COPY operations/cloud-platform/network-planner/ ./
 RUN go test ./... && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -o /network-planner .
 
 FROM python:3.12-alpine
+LABEL org.opencontainers.image.source="https://github.com/re8ch/service-backend"
 RUN addgroup -S re8ch && adduser -S -G re8ch -u 65532 re8ch && apk add --no-cache kubectl openssh-client
 WORKDIR /app
 RUN pip install --no-cache-dir PyYAML==6.0.2 jsonschema==4.23.0 schemathesis==4.29.1
