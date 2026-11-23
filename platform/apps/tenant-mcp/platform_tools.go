@@ -38,7 +38,7 @@ func currentPlatformAdmin(ctx context.Context, bearer string) (bool, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
-	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+	resp, err := (&http.Client{Timeout: 5 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, endpoint, "identity.membership.http")}).Do(req)
 	if err != nil {
 		return false, err
 	}

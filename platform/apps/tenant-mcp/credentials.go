@@ -251,7 +251,7 @@ func controlRequestMethod(ctx context.Context, tenant, path, method string, payl
 	req.Header.Set("X-Tenant-Caller", "tenant")
 	req.Header.Set("X-Tenant-Ref", tenant)
 	req.Header.Set("X-Tenant-Service-Token", secret)
-	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	response, err := (&http.Client{Timeout: 30 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, base, "tenant_control.http")}).Do(req)
 	if err != nil {
 		return nil, err
 	}

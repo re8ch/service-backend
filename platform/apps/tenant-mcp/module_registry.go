@@ -264,6 +264,9 @@ func connectPlatformModule(ctx context.Context, name string, b platformBackend) 
 	if b.AuthMode != "none" {
 		transport = platformAuthTransport{base: http.DefaultTransport, token: token, header: b.Header, connecting: connecting, connectDeadline: deadline}
 	}
+	if name == "native" {
+		transport = tracedInfrastructureTransport(transport, endpoint, "cloud_platform.http")
+	}
 	httpClient := platformModuleHTTPClient(transport)
 	session, err := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: endpoint, HTTPClient: httpClient, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
 	connecting.Store(false)

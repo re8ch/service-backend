@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -48,6 +50,7 @@ func (c toolTraceContext) Value(key any) any {
 }
 
 var localToolDiagnostics = &toolDiagnostics{}
+var toolDiagnosticLogger = log.New(os.Stdout, "", 0)
 var errDiagnosticCommandExit = errors.New("native command returned a nonzero exit code")
 
 func (s *server) diagnostics() *toolDiagnostics {
@@ -55,6 +58,14 @@ func (s *server) diagnostics() *toolDiagnostics {
 		return s.toolDiagnostics
 	}
 	return localToolDiagnostics
+}
+
+func (d *toolDiagnostics) writePrometheusStatus(w io.Writer) {
+	configured := 0
+	if d.client != nil {
+		configured = 1
+	}
+	_, _ = fmt.Fprintf(w, "# HELP re8ch_mcp_sentry_configured Whether the Sentry SDK has valid configuration; not ingestion proof.\n# TYPE re8ch_mcp_sentry_configured gauge\nre8ch_mcp_sentry_configured %d\n", configured)
 }
 
 func configuredToolDiagnostics() (*toolDiagnostics, error) {
@@ -195,9 +206,13 @@ func captureToolFailure(ctx context.Context, operationID, tool, category, phase 
 	return ""
 }
 
-func logToolDiagnostic(operationID, tool, category, eventID string, elapsed time.Duration) {
-	data, _ := json.Marshal(map[string]any{"event": "tool-diagnostic", "operationId": operationID, "tool": tool, "errorCategory": category, "sentryEventId": eventID, "durationMs": elapsed.Milliseconds()})
-	log.Print(string(data))
+func logToolDiagnostic(ctx context.Context, operationID, tool, category, eventID string, elapsed time.Duration) {
+	traceID := ""
+	if span := sentry.SpanFromContext(ctx); span != nil {
+		traceID = span.TraceID.String()
+	}
+	data, _ := json.Marshal(map[string]any{"timestamp": time.Now().UTC().Format(time.RFC3339Nano), "event": "tool-diagnostic", "operationId": operationID, "tool": tool, "errorCategory": category, "sentryEventId": eventID, "traceId": traceID, "release": diagnosticMetricRelease(), "environment": diagnosticMetricEnvironment(), "component": "tenant-mcp", "durationMs": elapsed.Milliseconds()})
+	toolDiagnosticLogger.Print(string(data))
 }
 
 func (d *toolDiagnostics) middleware(next mcp.MethodHandler) mcp.MethodHandler {
@@ -232,7 +247,7 @@ func (d *toolDiagnostics) middleware(next mcp.MethodHandler) mcp.MethodHandler {
 		defer func() {
 			if recovered := recover(); recovered != nil {
 				eventID := captureToolFailure(ctx, operationID, name, "panic", "tool."+name)
-				logToolDiagnostic(operationID, name, "panic", eventID, time.Since(started))
+				logToolDiagnostic(ctx, operationID, name, "panic", eventID, time.Since(started))
 				finish(errors.New("panic"))
 				// Preserve SDK/HTTP panic handling rather than replaying a tool or
 				// turning a potentially committed mutation into success.
@@ -240,10 +255,9 @@ func (d *toolDiagnostics) middleware(next mcp.MethodHandler) mcp.MethodHandler {
 			}
 		}()
 		result, err = next(ctx, method, request)
-		outcome, category := toolCallOutcome(result, err)
+		outcome, category := observedToolOutcome(ctx, result, err)
 		eventID := ""
 		if outcome == "error" {
-			category = diagnosticCategory(err)
 			eventID = captureToolFailure(ctx, operationID, name, category, "tool."+name)
 			finish(errors.New(category))
 		} else {
@@ -294,7 +308,7 @@ func (d *toolDiagnostics) middleware(next mcp.MethodHandler) mcp.MethodHandler {
 			data, _ := json.Marshal(metadata)
 			err = &jsonrpc.Error{Code: code, Message: message + " (operationId: " + operationID + ")", Data: data}
 		}
-		logToolDiagnostic(operationID, name, category, eventID, time.Since(started))
+		logToolDiagnostic(ctx, operationID, name, category, eventID, time.Since(started))
 		return result, err
 	}
 }
@@ -336,12 +350,33 @@ type diagnosticResponseWriter struct {
 
 func (w *diagnosticResponseWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
 func (w *diagnosticResponseWriter) WriteHeader(code int) {
-	w.mu.Lock()
-	if w.status == 0 {
-		w.status = code
+	if code >= 100 && code < 200 && code != http.StatusSwitchingProtocols {
+		w.ResponseWriter.WriteHeader(code)
+		return
 	}
+	w.mu.Lock()
+	if w.status != 0 {
+		w.mu.Unlock()
+		return
+	}
+	w.status = code
 	w.mu.Unlock()
 	w.ResponseWriter.WriteHeader(code)
+}
+func (w *diagnosticResponseWriter) FlushError() error {
+	w.mu.Lock()
+	unset := w.status == 0
+	w.mu.Unlock()
+	if unset {
+		w.WriteHeader(http.StatusOK)
+	}
+	err := http.NewResponseController(w.ResponseWriter).Flush()
+	if err != nil {
+		w.mu.Lock()
+		w.writeFailed = true
+		w.mu.Unlock()
+	}
+	return err
 }
 func (w *diagnosticResponseWriter) Write(data []byte) (int, error) {
 	w.mu.Lock()
@@ -384,17 +419,36 @@ func (d *toolDiagnostics) http(next http.Handler) http.Handler {
 			category := "none"
 			if recovered != nil {
 				category = "panic"
+			} else if r.Context().Err() != nil {
+				category = "canceled"
 			} else if status >= 500 {
 				category = "http_server"
+			} else if status >= 400 {
+				category = "http_client"
 			} else if failed {
 				category = "response_delivery"
 			}
+			if category == "none" {
+				if state := diagnosticState(ctx); state != nil {
+					state.failureMu.Lock()
+					if state.failureCaptured {
+						category = state.errorCategory
+					}
+					state.failureMu.Unlock()
+				}
+			}
+			phase := "mcp"
+			if r.URL.Path == "/internal/mcp/catalog" {
+				phase = "catalog"
+			}
+			mcpToolTelemetry.observeHTTP(phase, r.Method, status, category, time.Since(started))
 			if category != "none" {
 				transaction.Status = sentry.SpanStatusInternalError
 				eventID := captureToolFailure(ctx, operationID, "mcp_entrypoint", category, "mcp.response")
-				logToolDiagnostic(operationID, "mcp_entrypoint", category, eventID, time.Since(started))
+				logToolDiagnostic(ctx, operationID, "mcp_entrypoint", category, eventID, time.Since(started))
 			} else {
 				transaction.Status = sentry.SpanStatusOK
+				logToolDiagnostic(ctx, operationID, "mcp_entrypoint", category, "", time.Since(started))
 			}
 			transaction.Finish()
 			if recovered != nil {

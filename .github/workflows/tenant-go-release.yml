@@ -185,6 +185,25 @@ jobs:
           subject-name: ${{ steps.subject.outputs.name }}
           subject-digest: ${{ steps.subject.outputs.digest }}
           push-to-registry: false
+      - name: Check out attested source for Sentry commit association
+        if: vars.SENTRY_RELEASE_ENABLED == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          fetch-depth: 0
+          path: sentry-source
+      - name: Associate native Sentry release commits
+        if: vars.SENTRY_RELEASE_ENABLED == 'true'
+        uses: getsentry/action-release@2e505a70ff06dac263413242aa3617fec90134e5 # v3.9.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        with:
+          release: tenant-mcp@${{ steps.source.outputs.sha }}
+          working_directory: sentry-source
+          set_commits: auto
+          disable_telemetry: true
       - name: Create scoped promotion token
         id: promoter
         uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
