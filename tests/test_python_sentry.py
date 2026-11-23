@@ -288,10 +288,11 @@ def test_native_release_metadata_keeps_artifact_source_and_operator_token_bounda
         assert all("SENTRY_AUTH_TOKEN" not in s.get("env", {}) for s in steps if s is not metadata)
     csteps = cloud["jobs"]["finalize"]["steps"]
     metadata = next(s for s in csteps if s.get("uses") == pin)
-    assert metadata["with"]["version"] == "re8ch-cloud-platform@${{ steps.source.outputs.sha }}"
-    checkout = next(s for s in csteps if s.get("name") == "Select exact Sentry release source")
-    assert checkout["env"]["RELEASE_SOURCE"] == "${{ steps.source.outputs.sha }}"
-    assert 'git checkout --detach "$RELEASE_SOURCE"' in checkout["run"]
+    assert metadata["with"]["release"] == "re8ch-cloud-platform@${{ steps.source.outputs.sha }}"
+    checkout = next(s for s in csteps if s.get("name") == "Check out certified source for Sentry commit association")
+    assert checkout["with"]["ref"] == "${{ steps.source.outputs.sha }}"
+    assert checkout["with"]["fetch-depth"] == 0
+    assert metadata["with"]["working_directory"] == checkout["with"]["path"]
     tmeta = next(s for s in tenant["jobs"]["finalize"]["steps"] if s.get("uses") == pin)
     assert "inputs.reuse_image == ''" in tmeta["if"]  # No fabricated old-image build SHA.
     for path in ("operations/cloud-platform/re8ch_observability.py", "operations/cloud-platform/runtime.py",

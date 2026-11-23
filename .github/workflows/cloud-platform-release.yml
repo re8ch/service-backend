@@ -206,11 +206,13 @@ jobs:
         env:
           HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
-      - name: Select exact Sentry release source
+      - name: Check out certified source for Sentry commit association
         if: vars.SENTRY_RELEASE_ENABLED == 'true'
-        env:
-          RELEASE_SOURCE: ${{ steps.source.outputs.sha }}
-        run: git checkout --detach "$RELEASE_SOURCE"
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          fetch-depth: 0
+          path: sentry-source
       - name: Publish native Sentry release metadata
         if: vars.SENTRY_RELEASE_ENABLED == 'true'
         uses: getsentry/action-release@2e505a70ff06dac263413242aa3617fec90134e5 # v3.9.1
@@ -219,9 +221,10 @@ jobs:
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
         with:
-          version: re8ch-cloud-platform@${{ steps.source.outputs.sha }}
+          release: re8ch-cloud-platform@${{ steps.source.outputs.sha }}
+          working_directory: sentry-source
           set_commits: auto
-          finalize: true
+          disable_telemetry: true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cloud-platform-finalized-${{ github.sha }}

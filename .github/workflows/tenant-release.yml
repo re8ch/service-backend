@@ -104,9 +104,9 @@ jobs:
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
         with:
-          version: tenant-control@${{ github.sha }}
+          release: tenant-control@${{ github.sha }}
           set_commits: auto
-          finalize: true
+          disable_telemetry: true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-release-finalized-${{ github.sha }}
