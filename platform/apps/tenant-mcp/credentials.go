@@ -18,6 +18,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -111,20 +112,65 @@ func kubeClient() (*http.Client, string, string, error) {
 	if port == "" {
 		port = "443"
 	}
-	token, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	return kubernetesHTTPClients.fromFiles("https://"+host+":"+port,
+		"/var/run/secrets/kubernetes.io/serviceaccount/token",
+		"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+}
+
+// Transport pools outlive individual requests; credentials do not. Rotation
+// replaces the endpoint/CA pool and retires its idle connections only.
+var kubernetesHTTPClients kubeTransportCache
+var kubernetesTransportDefaults = http.DefaultTransport.(*http.Transport).Clone()
+
+type kubeTransportCache struct {
+	mu       sync.Mutex
+	endpoint string
+	caDigest [32]byte
+	client   *http.Client
+}
+
+func (c *kubeTransportCache) fromFiles(base, tokenFile, caFile string) (*http.Client, string, string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	token, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return nil, "", "", err
 	}
-	ca, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+	ca, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, "", "", err
+	}
+	client, err := c.forCALocked(base, ca)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return client, base, strings.TrimSpace(string(token)), nil
+}
+
+func (c *kubeTransportCache) forCA(base string, ca []byte) (*http.Client, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.forCALocked(base, ca)
+}
+
+func (c *kubeTransportCache) forCALocked(base string, ca []byte) (*http.Client, error) {
+	digest := sha256.Sum256(ca)
+	if c.client != nil && c.endpoint == base && c.caDigest == digest {
+		return c.client, nil
 	}
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(ca) {
-		return nil, "", "", errors.New("invalid Kubernetes CA")
+		return nil, errors.New("invalid Kubernetes CA")
 	}
-	client := &http.Client{Timeout: 30 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
-	return client, "https://" + host + ":" + port, strings.TrimSpace(string(token)), nil
+	transport := kubernetesTransportDefaults.Clone()
+	transport.Proxy = nil // Preserve the existing direct Kubernetes API path.
+	transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	client := &http.Client{Timeout: 30 * time.Second, Transport: transport}
+	if c.client != nil {
+		c.client.CloseIdleConnections()
+	}
+	c.endpoint, c.caDigest, c.client = base, digest, client
+	return client, nil
 }
 
 type kubeResponseError struct{ Status int }
