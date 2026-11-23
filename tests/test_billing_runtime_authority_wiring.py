@@ -66,7 +66,7 @@ def test_authority_sql_is_packaged_as_versioned_migrations_not_registration_gito
     assert "never create a per-registration GitOps object" in readme
 
 
-def test_migration_jobs_use_only_managed_billing_migrator_uri():
+def test_migration_jobs_reuse_managed_supabase_admin_credential_without_copying_it():
     jobs = docs("runtime-authority-migrations.yaml")
     assert {job["metadata"]["name"] for job in jobs} == {
         "supabase-billing-tool-publication-authority-v1",
@@ -76,13 +76,17 @@ def test_migration_jobs_use_only_managed_billing_migrator_uri():
         pod = job["spec"]["template"]["spec"]
         assert pod["automountServiceAccountToken"] is False
         container = pod["containers"][0]
-        assert container["env"] == [{
-            "name": "BILLING_MIGRATOR_DATABASE_URL",
-            "valueFrom": {"secretKeyRef": {
-                "name": "supabase-billing-secrets",
-                "key": "BILLING_MIGRATOR_DATABASE_URL",
-            }},
-        }]
+        assert job["metadata"]["namespace"] == "supabase-pg-re8ch"
+        env = {item["name"]: item for item in container["env"]}
+        assert env["PGHOST"]["value"] == "pg-re8ch-primary.pigsty-external.svc.cluster.local"
+        assert env["PGDATABASE"]["value"] == "re8ch_billing"
+        assert env["PGUSER"]["valueFrom"]["secretKeyRef"] == {
+            "name": "supabase-pg-re8ch-secrets", "key": "POSTGRES_USER_READ_WRITE"
+        }
+        assert env["PGPASSWORD"]["valueFrom"]["secretKeyRef"] == {
+            "name": "supabase-pg-re8ch-secrets", "key": "POSTGRES_PASSWORD"
+        }
+        assert "BILLING_MIGRATOR_DATABASE_URL" not in env
         assert "ON_ERROR_STOP=1" in container["args"][0]
         assert container["securityContext"]["readOnlyRootFilesystem"] is True
         assert pod["volumes"][0]["configMap"]["name"] == job["metadata"]["name"]

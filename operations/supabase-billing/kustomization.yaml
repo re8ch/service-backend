@@ -11,10 +11,10 @@ generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
   - name: supabase-billing-tool-publication-authority-v1
-    namespace: supabase-billing
+    namespace: supabase-pg-re8ch
     files:
       - migration.sql=tool-publication-authority.sql
   - name: supabase-billing-org-cluster-bindings-v1
-    namespace: supabase-billing
+    namespace: supabase-pg-re8ch
     files:
       - migration.sql=org-cluster-bindings.sql
