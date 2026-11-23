@@ -158,6 +158,16 @@ def sanitize_event(event, _hint=None):
         result.update(level="error", message="Control-plane operation failed",
                       fingerprint=[tags.get("service", "python"), tags.get("phase", "http.request"), category],
                       exception={"values": [{"type": category, "value": "Details intentionally omitted"}]})
+    if event.get("type") != "transaction":
+        frames = []
+        for value in event.get("exception", {}).get("values", []):
+            for frame in value.get("stacktrace", {}).get("frames", []):
+                if (frame.get("filename") in MANAGED_FILES.values() and
+                        isinstance(frame.get("function"), str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_<>]*", frame["function"]) and
+                        isinstance(frame.get("lineno"), int) and frame["lineno"] > 0):
+                    frames.append({k: frame[k] for k in ("filename", "function", "lineno")})
+        if frames:
+            result["exception"]["values"][0]["stacktrace"] = {"frames": frames}
     return result
 
 
@@ -223,7 +233,7 @@ class RequestDiagnostic:
     route_phase: str = "http.request"
     method: str = "OTHER"
     http: bool = True
-    status: int = 200
+    status: int = 0
     phase: str = "http.request"
     backend_operation_id: str = ""
 
@@ -276,6 +286,27 @@ def category(error):
     return "internal"
 
 
+MANAGED_FILES = {"server.py": "operations/cloud-platform/server.py", "runtime.py": "operations/cloud-platform/runtime.py",
+    "cluster_execution_proxy.py": "operations/cloud-platform/cluster_execution_proxy.py",
+    "tenant_control_controller.py": "clusters/re8ch/components/ai-operations/tenant_control_controller.py",
+    "re8ch_observability.py": "operations/cloud-platform/re8ch_observability.py"}
+
+
+def safe_frames(error):
+    frames = []
+    tb = getattr(error, "__traceback__", None)
+    while tb is not None:
+        code = tb.tb_frame.f_code
+        # Match the actual imported module's file, never an exception-provided path.
+        module = sys.modules.get(tb.tb_frame.f_globals.get("__name__", ""))
+        actual_file = getattr(module, "__file__", None)
+        filename = os.path.basename(code.co_filename)
+        if actual_file == code.co_filename and filename in MANAGED_FILES:
+            frames.append({"filename": MANAGED_FILES[filename], "function": code.co_name, "lineno": tb.tb_lineno})
+        tb = tb.tb_next
+    return frames
+
+
 def failure(error=None, *, error_category=None, phase_name=None):
     current = _CURRENT.get()
     if current is None:
@@ -299,7 +330,7 @@ def failure(error=None, *, error_category=None, phase_name=None):
             if current.backend_operation_id:
                 tags["backend_operation_id"] = current.backend_operation_id
             try:
-                cache.event_id = sentry_sdk.capture_event({"level": "error", "tags": tags}) or ""
+                cache.event_id = sentry_sdk.capture_event({"level": "error", "tags": tags, "exception": {"values": [{"stacktrace": {"frames": safe_frames(error)}}]}}) or ""
             except Exception:
                 pass
 
@@ -321,26 +352,34 @@ def request_scope(service, incoming=None, *, phase_name="http.request", method="
         carrier.failure_cache = parent_carrier.failure_cache
         carrier.backend_operation_id = parent_carrier.backend_operation_id
     current = RequestDiagnostic(service, operation_id, carrier, route_phase=phase_name,
-                                method=method if method in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"} else "OTHER",
+                                method=method if method in {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT", "TRACE"} else "OTHER",
                                 http=http, backend_operation_id=carrier.backend_operation_id)
     token = _CURRENT.set(current)
     started = time.monotonic()
-    with contextlib.ExitStack() as stack:
+    stack = contextlib.ExitStack()
+    transaction = None
+    trace_id = trace_header[:32] if trace_header else uuid.uuid4().hex
+    carrier.values["sentry-trace"] = trace_id + "-" + uuid.uuid4().hex[:16] + "-1"
+    try:
         if _enabled:
-            scope = stack.enter_context(sentry_sdk.isolation_scope())
-            scope.clear()
-            # Deliberately never hand arbitrary request headers/baggage to SDK.
-            transaction = sentry_sdk.continue_trace({"sentry-trace": trace_header} if trace_header else {},
-                name=service + ".request", op="http.server", source="custom")
-            transaction = stack.enter_context(sentry_sdk.start_transaction(transaction))
-            transaction.set_tag("operation_id", operation_id)
-            transaction.set_tag("service", service)
-            transaction.set_tag("component", component(service))
-            transaction.set_tag("phase", phase_name)
-            carrier.values["sentry-trace"] = transaction.to_traceparent()
-        else:
-            trace_id = trace_header[:32] if trace_header else uuid.uuid4().hex
-            carrier.values["sentry-trace"] = trace_id + "-" + uuid.uuid4().hex[:16] + "-1"
+            try:
+                scope = stack.enter_context(sentry_sdk.isolation_scope())
+                scope.clear()
+                # Deliberately never hand arbitrary request headers/baggage to SDK.
+                transaction = sentry_sdk.continue_trace({"sentry-trace": trace_header} if trace_header else {},
+                    name=service + ".request", op="http.server", source="custom")
+                transaction = stack.enter_context(sentry_sdk.start_transaction(transaction))
+                transaction.set_tag("operation_id", operation_id)
+                transaction.set_tag("service", service)
+                transaction.set_tag("component", component(service))
+                transaction.set_tag("phase", phase_name)
+                carrier.values["sentry-trace"] = transaction.to_traceparent()
+            except Exception:
+                transaction = None
+                try:
+                    stack.close()
+                except Exception:
+                    pass
         try:
             yield current
         except BaseException as error:
@@ -353,15 +392,18 @@ def request_scope(service, incoming=None, *, phase_name="http.request", method="
                         "authorization" if current.status in {401, 403} else "http_client",
                         phase_name=("tenant.auth" if service == "tenant-control" else "cloud.broker" if service == "cloud-relay" else "cloud.auth")
                         if current.status in {401, 403} else None)
-            if _enabled:
-                transaction.set_tag("http.status_code", str(current.status))
-                transaction.set_tag("error_category", "none" if not current.failures else next(iter(current.failures))[1])
-                transaction.set_status("internal_error" if current.failures else "ok")
+            try:
+                if transaction is not None:
+                    transaction.set_tag("http.status_code", str(current.status))
+                    transaction.set_tag("error_category", "none" if not current.failures else next(iter(current.failures))[1])
+                    transaction.set_status("internal_error" if current.failures else "ok")
+            except Exception:
+                pass
             elapsed = round((time.monotonic() - started) * 1000, 3)
             error_category = "none" if not current.failures else next(iter(current.failures))[1]
             outcome = "success" if not current.failures else "error"
             if REGISTRY and current.http:
-                labels = component(service), environment(), current.route_phase, current.method, str(current.status // 100) + "xx", outcome, error_category
+                labels = component(service), environment(), current.route_phase, current.method, str(current.status // 100) + "xx" if current.status else "none", outcome, error_category
                 HTTP_REQUESTS.labels(*labels).inc()
                 HTTP_DURATION.labels(*labels).observe(elapsed / 1000)
             record = {"event": "control-plane-request", "component": component(service), "phase": current.route_phase,
@@ -371,6 +413,14 @@ def request_scope(service, incoming=None, *, phase_name="http.request", method="
                       "status": current.status, "durationMs": elapsed, "outcome": outcome,
                       "errorCategory": error_category}
             log_record(record)
+
+
+    finally:
+        try:
+            stack.close()
+        except Exception:
+            pass
+        finally:
             _CURRENT.reset(token)
 
 
@@ -387,15 +437,19 @@ def phase(name, backend_operation_id=""):
         current.backend_operation_id = backend_operation_id
     started = time.monotonic()
     with contextlib.ExitStack() as stack:
-        if _enabled:
-            span = stack.enter_context(sentry_sdk.start_span(op=name, name=name))
-            span.set_tag("operation_id", current.operation_id)
-            span.set_tag("service", current.service)
-            span.set_tag("component", component(current.service))
-            span.set_tag("phase", name)
-            if current.backend_operation_id:
-                span.set_tag("backend_operation_id", current.backend_operation_id)
-            current.carrier.replace({**previous[2], "sentry-trace": span.to_traceparent()}, current.backend_operation_id)
+        span = None
+        try:
+            if _enabled:
+                span = stack.enter_context(sentry_sdk.start_span(op=name, name=name))
+                span.set_tag("operation_id", current.operation_id)
+                span.set_tag("service", current.service)
+                span.set_tag("component", component(current.service))
+                span.set_tag("phase", name)
+                if current.backend_operation_id:
+                    span.set_tag("backend_operation_id", current.backend_operation_id)
+                current.carrier.replace({**previous[2], "sentry-trace": span.to_traceparent()}, current.backend_operation_id)
+        except Exception:
+            span = None
         try:
             yield
         except BaseException as error:
@@ -406,8 +460,11 @@ def phase(name, backend_operation_id=""):
             duration = time.monotonic() - started
             if REGISTRY:
                 PHASE_DURATION.labels(component(current.service), environment(), name).observe(duration)
-            if _enabled:
-                span.set_data("duration_ms", round(duration * 1000, 3))
+            try:
+                if span is not None:
+                    span.set_data("duration_ms", round(duration * 1000, 3))
+            except Exception:
+                pass
             current.phase, current.backend_operation_id = previous[:2]
             current.carrier.replace(previous[2], previous[1])
 

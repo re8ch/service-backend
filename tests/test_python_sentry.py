@@ -299,3 +299,50 @@ def test_native_release_metadata_keeps_artifact_source_and_operator_token_bounda
                  "operations/cloud-platform/server.py", "operations/cloud-platform/cluster_execution_proxy.py",
                  "clusters/re8ch/components/ai-operations/tenant_control_controller.py"):
         assert "SENTRY_AUTH_TOKEN" not in (root / path).read_text()
+
+
+def test_unwritten_response_is_not_success_status_and_all_methods(captured, monkeypatch):
+    records = []
+    monkeypatch.setattr(observation, 'log_record', records.append)
+    for method in ('OPTIONS', 'CONNECT', 'TRACE'):
+        with pytest.raises(asyncio.CancelledError):
+            with observation.request_scope('cloud-platform', incoming(), method=method):
+                raise asyncio.CancelledError()
+        assert records[-1]['method'] == method
+        assert records[-1]['status'] == 0
+        assert records[-1]['outcome'] == 'error'
+    assert 'status_class="none"' in observation.metrics()[0].decode()
+
+
+def test_sdk_setup_failure_preserves_business_and_restores_request_scope(captured, monkeypatch):
+    original = sentry_sdk.start_transaction
+    def fail(*args, **kwargs):
+        raise RuntimeError(CANARY)
+    monkeypatch.setattr(sentry_sdk, 'start_transaction', fail)
+    with observation.request_scope('cloud-platform', incoming('1' * 32)) as first:
+        assert first.operation_id
+        assert observation._CURRENT.get() is first
+    assert observation._CURRENT.get() is None
+    monkeypatch.setattr(sentry_sdk, 'start_transaction', original)
+    with observation.request_scope('cloud-platform', incoming('2' * 32)):
+        assert observation.headers()['sentry-trace'].startswith('2' * 32)
+    assert observation._CURRENT.get() is None
+    assert CANARY not in json.dumps(captured)
+
+
+def test_managed_stack_metadata_retains_location_without_sensitive_values(captured):
+    try:
+        observation.status(CANARY)  # real managed-module failing frame
+    except ValueError:
+        pass  # no current request means no conversion
+    with observation.request_scope('cloud-platform', incoming()):
+        try:
+            observation.status(CANARY)
+        except ValueError as error:
+            observation.failure(error)
+    event = next(e for e in captured if e.get('type') != 'transaction')
+    frames = event['exception']['values'][0]['stacktrace']['frames']
+    assert any(f['filename'] == 'operations/cloud-platform/re8ch_observability.py' and f['function'] == 'status' for f in frames)
+    assert all(set(f) == {'filename', 'function', 'lineno'} for f in frames)
+    assert CANARY not in json.dumps(captured)
+    assert '/Volumes/' not in json.dumps(captured)
