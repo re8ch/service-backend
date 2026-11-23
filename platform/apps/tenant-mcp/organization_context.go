@@ -54,7 +54,7 @@ func identityRPC(ctx context.Context, id identity, endpoint string, body any) (r
 	req.Header.Set("Authorization", "Bearer "+id.Token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	resp, err := (&http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(req)
+	resp, err := (&http.Client{Transport: tracedInfrastructureTransport(http.DefaultTransport, endpoint, "identity.rpc.http"), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}).Do(req)
 	if err != nil {
 		return nil, errors.New("identity authority unavailable")
 	}

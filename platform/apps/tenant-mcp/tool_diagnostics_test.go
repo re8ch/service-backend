@@ -169,7 +169,7 @@ func TestToolSentryCorrelatesConcurrentFailuresWithoutPayloadsOrReplay(t *testin
 				}
 			} else if len(event.Exception) > 0 {
 				errorsSeen++
-				if !ops[event.Tags["operation_id"]] || event.Tags["phase"] != "identity.rpc.my_tenant_runtime_contexts" || event.Tags["tool_name"] != "tenant_organization_context_list" {
+				if !ops[event.Tags["operation_id"]] || event.Tags["phase"] != "identity.rpc.http" || event.Tags["tool_name"] != "tenant_organization_context_list" {
 					t.Fatal("wrong event correlation or failure phase")
 				}
 				if event.Release != "fixture-source-sha" || len(event.Exception[0].Stacktrace.Frames) == 0 {
