@@ -14,6 +14,7 @@ def test_tenant_mcp_promotion_reuses_one_verified_artifact():
     assert "expected exactly one linux/amd64 child manifest" in workflow
     assert "config:.config.digest,layers:[.layers[].digest]" in workflow
     assert "diff -u source-content.json target-content.json" in workflow
+    assert "expected exactly one target linux/amd64 child manifest" in workflow
     assert "docker build " not in workflow
     assert "docker buildx build" not in workflow
     assert "environment: production" in workflow
