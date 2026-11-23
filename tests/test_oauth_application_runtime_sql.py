@@ -97,6 +97,18 @@ def test_confidential_secret_is_hashed_and_returned_only_once(oauth_db):
     replay = call(sql, ALICE, "api.create_oauth_application('Server','[\"https://server.example/cb\"]','req-secret',null,'confidential')")
     assert '"idempotentReplay": true' in replay
     assert "clientSecret\"" not in replay
+    mismatch = call(sql, ALICE, "api.create_oauth_application('Different','[\"https://server.example/cb\"]','req-secret',null,'confidential')", expect_failure=True)
+    assert "already bound to a different" in mismatch
+
+    app_id = sql("select id from core.oauth_applications")
+    rotated = call(sql, ALICE, f"api.rotate_oauth_application_secret('{app_id}','rotate-1')")
+    assert '"clientSecretIssued": true' in rotated
+    rotated_hash = sql(f"select client_secret_hash from auth.oauth_clients where id='{app_id}'")
+    replay_rotation = call(sql, ALICE, f"api.rotate_oauth_application_secret('{app_id}','rotate-1')")
+    assert '"idempotentReplay": true' in replay_rotation and '"clientSecretIssued": false' in replay_rotation
+    assert "clientSecret\"" not in replay_rotation
+    assert sql(f"select client_secret_hash from auth.oauth_clients where id='{app_id}'") == rotated_hash
+    assert sql(f"select count(*) from core.oauth_application_secret_rotations where application_id='{app_id}'") == "1"
 
 
 def test_active_org_personal_org_and_management_boundaries(oauth_db):
@@ -107,6 +119,9 @@ def test_active_org_personal_org_and_management_boundaries(oauth_db):
     sql(f"update core.organization_members set role='admin' where tenant_ref='acme' and user_id='{BOB}'")
     assert '"lifecycle": "suspended"' in call(sql, BOB, f"api.set_oauth_application_lifecycle('{app_id}','suspended')")
     assert sql(f"select deleted_at is not null from auth.oauth_clients where id='{app_id}'") == "t"
+    call(sql, BOB, f"api.set_oauth_application_lifecycle('{app_id}','deleted')")
+    terminal = call(sql, BOB, f"api.set_oauth_application_lifecycle('{app_id}','active')", expect_failure=True)
+    assert "deleted OAuth application is terminal" in terminal
     sql(f"update core.user_active_organizations set tenant_ref='personal-{ALICE}' where user_id='{ALICE}'")
     assert call(sql, ALICE, "api.create_oauth_application('Personal','[\"https://me.example/cb\"]','personal')->>'ownerOrgRef'") == f"personal-{ALICE}"
     assert call(sql, ALICE, "count(*) from api.my_oauth_applications()") == "1"

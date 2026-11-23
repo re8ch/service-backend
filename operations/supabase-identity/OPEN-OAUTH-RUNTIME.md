@@ -23,13 +23,18 @@ than being duplicated in pg-identity.
 - Confidential clients receive a random secret only in the successful initial
   response. Only its bcrypt hash is persisted. Replaying the same organization
   operation key returns the existing client without returning the secret again.
+  Reusing that key with different normalized input is rejected.
 - `api.my_oauth_applications()` lists only the selected active organization.
 - `api.set_oauth_application_lifecycle(...)` and
   `api.rotate_oauth_application_secret(...)` are available to active organization
   owners/admins and to the member who created the application. Rotation is limited
-  to active confidential clients and returns the new secret once.
+  to active confidential clients and requires an operation key. A durable rotation
+  record prevents a same-key retry from rotating again or returning the secret
+  again. If the original response is lost, the caller must intentionally choose a
+  new operation key and accept another rotation; secrets cannot be recovered.
 - Suspended and deleted clients are disabled in `auth.oauth_clients`; activation
-  clears the disable marker.
+  clears the suspended disable marker. Deleted is terminal; restoring a deleted
+  application requires a separate reviewed contract that is not part of this API.
 
 The tables have RLS enabled and no direct authenticated DML grants. The bounded
 security-definer RPCs re-derive current identity, active organization membership,
