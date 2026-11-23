@@ -29,6 +29,12 @@ network-gitops release contract contains these objects.
   existing `ai-operations/ghcr-re8ch`, without reading its values, replacing the
   Harbor secret or changing package visibility.
 
+Package visibility must be classified from the actual publisher receipt. If an
+approved public-source package is public, its successful canary does not prove
+private-package authorization, even when imagePullSecrets are present. Retain
+that gap until a separately approved private artifact is tested; never change
+visibility or claim a public pull authenticated a private package.
+
 ## Native mechanism and narrow helper
 
 Actual R640 metadata reported containerd `v2.2.3-k3s1`, with

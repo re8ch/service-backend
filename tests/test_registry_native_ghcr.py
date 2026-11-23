@@ -26,7 +26,7 @@ configs:
   ghcr.io:
     auth: {auth: "opaque-ghcr-fixture-not-a-token"}
   registry.re8ch.com:
-    auth: {password: "opaque-harbor-fixture-not-a-token"}
+    auth: {password: REDACTED}
 '''
 HOSTS = '''server = "https://ghcr.io/v2"
 capabilities = ["pull", "resolve", "push"]
