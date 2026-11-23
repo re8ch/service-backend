@@ -3645,6 +3645,8 @@ spec:
     tenantPlatform:
       enabled: true
       image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+      invocationCredentials:
+        enabled: true
       placement:
         nodeNames:
         - r640

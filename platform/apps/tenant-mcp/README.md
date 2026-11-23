@@ -131,8 +131,7 @@ bearer to the read-only identity PostgREST endpoint; the RPC applies wallet
 authorization using `auth.uid()`. Results are Credits units, not currency or
 unpriced usage totals.
 
-The Re8ch plugin's canonical public `/tenant-plugin/mcp` route maps to
-`/plugin/mcp`; `/tenant-native/mcp` remains a compatibility alias.
+The Re8ch plugin's public `/tenant-native/mcp` route maps to `/plugin/mcp`.
 Platform operations are published as explicit tools with reviewable input
 schemas; the tenant MCP does not publish a generic catalog-and-dispatch bridge.
 Calls require a verified user with a current
@@ -421,9 +420,24 @@ the selected `binding_ref`; callers must never select or override a provider
 audience. The verified active organization is likewise derived from the login
 session and tenant-control decision, not request fields or headers.
 
-The GitOps runtime points the issuer and JWKS contracts at the tenant control
-service. Until that service exposes both reviewed endpoints, token exchange
-intentionally returns `token_issuer_unavailable`; configuration presence is not
-evidence that a signing authority is ready. Runtime acceptance must verify the
-JWKS, a real signed exchange, binding ownership, and provider audience before
-enabling provider invocation.
+Tenant-control revalidates the subject token with pg-identity and resolves the
+ready binding through Bifurcate before signing. Its mounted
+`tenant-invocation-signing/key-ring.json` supports one current and up to two
+overlap keys; JWKS publishes only their public RSA parameters. The separate
+`tenant-invocation-authority/BINDING_AUTHORITY_TOKEN` authenticates the bounded
+PostgREST RPC. Git declares only empty Secret objects and the narrow rotator;
+key and token values are generated in-cluster. The authority token is renewed
+every 12 hours with a 36-hour expiry. The RSA key rotates after 23 days and its
+public key remains in JWKS for a seven-day overlap; retiring private keys are
+discarded. Until the rotator succeeds, issuance and JWKS fail closed while
+unrelated tenant-control routes remain available.
+
+The rotator CronJob and `supabase-billing-secrets` are both in
+`supabase-billing`, so its `secretKeyRef` is namespace-local. The Job's service
+account has no ClusterRole. A Role and RoleBinding in `tenant-infrastructure`
+grant only `get/update/patch` on the two named output Secrets. The chart owns
+only their metadata and intentionally omits `data`/`stringData`; Helm's
+three-way upgrade therefore preserves the live-only data written by the
+rotator. Do not enable force/replacement upgrades for these Secrets. A
+retiring private key is deleted at rotation, while its public key stays in
+JWKS for seven days—well beyond the five-minute maximum invocation-token life.

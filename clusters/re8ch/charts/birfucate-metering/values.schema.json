@@ -13,6 +13,13 @@
       "properties": {
         "enabled": {"type": "boolean"},
         "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
+        "invocationCredentials": {
+          "type": "object", "additionalProperties": false, "required": ["enabled", "schedule"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "schedule": {"type": "string", "minLength": 9, "maxLength": 64}
+          }
+        },
         "tenantAPI": {
           "type": "object", "additionalProperties": false, "required": ["enabled", "image"],
           "properties": {

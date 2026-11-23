@@ -42,6 +42,8 @@ spec:
       kubernetes.io/hostname: r640
     tenantPlatform:
       enabled: true
+      invocationCredentials:
+        enabled: true
       # Keep the shared RWO state and both MCP backends on the R640 worker so
       # loss of either WSL control-plane host cannot strand public tool access.
       placement:
