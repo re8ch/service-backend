@@ -619,6 +619,8 @@ modules:
       quarantined: missing-or-invalid-signature
     - codename: grove-jade
       digest: sha256:684bbd62b202009b9a98b8ab780501189279866a9153a6f07fa76ec37a6dbf1a
+    - codename: reef-jade
+      digest: sha256:c62e79365404f2f08ad41b76166756475cf7f0c6020bf9652d6c312bba9be789
   platform/advanced-fabric:
     releases:
     - codename: bora
