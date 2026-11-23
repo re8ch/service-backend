@@ -148,7 +148,7 @@ jobs:
           source="$(cat cloud-ci.image)"
           cosign generate-key-pair --output-key-prefix "$CLOUD_CI_SIGNING_KEY"
           printf '%s\n' '{"acceptance":"immutable-referrer-roundtrip"}' > "$RUNNER_TEMP/cloud-ci-referrer.json"
-          oras attach --plain-http --artifact-type application/vnd.re8ch.publisher-test.referrer "$source" "$RUNNER_TEMP/cloud-ci-referrer.json:application/json"
+          (cd "$RUNNER_TEMP" && oras attach --plain-http --artifact-type application/vnd.re8ch.publisher-test.referrer "$source" cloud-ci-referrer.json:application/json)
           cosign sign --yes --key "$CLOUD_CI_SIGNING_KEY.key" --tlog-upload=false --allow-insecure-registry "$source"
           ./operations/mcp-conformance/cloud-image-transfer.sh prove "$source" 127.0.0.1:5001/re8ch-cloud-platform cloud-ci-transfer
           ./operations/mcp-conformance/cloud-image-transfer.sh mirror "$source" 127.0.0.1:5001/re8ch-cloud-platform cloud-ci-transfer
