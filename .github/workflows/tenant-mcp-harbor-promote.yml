@@ -68,13 +68,22 @@ jobs:
           set -euo pipefail
           source="$SOURCE_REPOSITORY@$SOURCE_DIGEST"
           staging="$TARGET_REPOSITORY:promotion-${GITHUB_RUN_ID}"
+          docker buildx imagetools inspect "$source" --raw > source-manifest.json
+          expected_target_digest="$(jq -r '
+            if has("manifests") then
+              [.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest]
+              | if length == 1 then .[0] else error("expected exactly one linux/amd64 child manifest") end
+            else empty end
+          ' source-manifest.json)"
+          if [[ -z "$expected_target_digest" ]]; then expected_target_digest="$SOURCE_DIGEST"; fi
+          [[ "$expected_target_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           docker buildx imagetools create --tag "$staging" "$source"
           promoted_digest="$(docker buildx imagetools inspect "$staging" --format '{{json .Manifest.Digest}}' | tr -d '"')"
-          test "$promoted_digest" = "$SOURCE_DIGEST"
+          test "$promoted_digest" = "$expected_target_digest"
           immutable="$TARGET_REPOSITORY@$promoted_digest"
           docker buildx imagetools inspect "$immutable" >/dev/null
-          jq -n --arg source "$source" --arg target "$immutable" --arg digest "$promoted_digest" \
-            '{apiVersion:"delivery.re8ch.com/image-promotion/v1alpha1",source:$source,target:$target,digest:$digest,reusedExistingArtifact:true,rebuild:false}' \
+          jq -n --arg source "$source" --arg target "$immutable" --arg sourceDigest "$SOURCE_DIGEST" --arg targetDigest "$promoted_digest" \
+            '{apiVersion:"delivery.re8ch.com/image-promotion/v1alpha1",source:$source,target:$target,sourceDigest:$sourceDigest,targetDigest:$targetDigest,identityProof:"unique-linux-amd64-child",reusedExistingArtifact:true,rebuild:false}' \
             > tenant-mcp-harbor-promotion.json
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: inputs.execute
