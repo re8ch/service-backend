@@ -1,7 +1,13 @@
-"""Request-scoped Kubernetes transport for the existing bounded SSA executor."""
+"""Request-scoped Kubernetes transports; remote credentials stay in the broker."""
 from __future__ import annotations
 
+import contextlib
+import http.server
 import json
+import tempfile
+import threading
+from pathlib import Path
+
 import os
 import ssl
 import urllib.error
@@ -41,8 +47,109 @@ def caller_identity(proof, open_url=no_redirect_open):
     return identity
 
 
-def proxy_request(service, method, target, headers, body, *, authenticate=caller_identity, open_url=no_redirect_open):
+def _relative_target(target):
     parsed = urllib.parse.urlsplit(target)
+    decoded = urllib.parse.unquote(parsed.path)
+    if (parsed.scheme or parsed.netloc or not parsed.path.startswith("/")
+            or ".." in decoded.split("/") or "\r" in decoded or "\n" in decoded):
+        raise OperationError("INVALID_ARGUMENT", "a relative Kubernetes API path is required")
+    return parsed
+
+
+def _broker_request(binding, method, target, headers, body, proof, *, open_url=no_redirect_open):
+    parsed = _relative_target(target)
+    url = binding["brokerURL"] + parsed.path + (("?" + parsed.query) if parsed.query else "")
+    forwarded = {key: headers[key] for key in ("Content-Type", "Accept", "Accept-Encoding") if headers.get(key)}
+    forwarded["Authorization"] = proof
+    request = urllib.request.Request(url, data=body, method=method, headers=forwarded)
+    try:
+        return open_url(request, timeout=120)
+    except urllib.error.HTTPError as error:
+        return error
+    except Exception:
+        raise OperationError("CLUSTER_TRANSPORT_UNAVAILABLE", "managed cluster transport failed", retryable=True) from None
+
+
+def projected_token():
+    return Path("/var/run/secrets/kubernetes.io/serviceaccount/token").read_text().strip()
+
+
+@contextlib.contextmanager
+def interactive_transport(binding, token_source=None):
+    """Native kubectl omits AuthInfo for HTTP. Inject this Pod's identity in memory.
+
+    The reviewed broker still authenticates it with TokenReview and exact grant
+    use SAR. No remote credential or local bearer enters kubectl's config/argv.
+    """
+    from http_stream import copy_response
+    token_source = token_source or projected_token
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def forward(self):
+            started = False
+            try:
+                _relative_target(self.path)
+                length = int(self.headers.get("Content-Length", "0"))
+                if length < 0:
+                    raise ValueError()
+                body = self.rfile.read(length) if length else None
+                if body is not None and len(body) != length:
+                    raise ValueError()
+                token = token_source()
+                if not token:
+                    self.send_error(401, "projected caller identity unavailable")
+                    return
+                response = _broker_request(binding, self.command, self.path, self.headers, body, "Bearer " + token)
+                with response:
+                    self.send_response(response.status)
+                    for key in ("Content-Type", "Content-Encoding", "Warning", "Audit-Id", "WWW-Authenticate"):
+                        for value in response.headers.get_all(key, []):
+                            self.send_header(key, value)
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    started = True
+                    copy_response(response, self.connection, self.wfile)
+                print(json.dumps({"event": "managed-cluster-interactive-request",
+                    "clusterRef": binding["clusterRef"], "clusterBindingDigest": binding["bindingDigest"],
+                    "method": self.command, "status": response.status}))
+            except OperationError as error:
+                if not started:
+                    self.send_error(400 if error.code == "INVALID_ARGUMENT" else 502, "managed cluster transport failed")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except (OSError, ValueError):
+                if not started:
+                    self.send_error(502, "projected caller transport unavailable")
+            finally:
+                self.close_connection = True
+
+        do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = do_HEAD = forward
+
+        def log_message(self, *_):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server.daemon_threads = True
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with tempfile.TemporaryDirectory(prefix="re8ch-interactive-target-") as directory:
+            config = Path(directory) / "kubeconfig"
+            config.write_text(json.dumps({"apiVersion": "v1", "kind": "Config",
+                "clusters": [{"name": binding["clusterRef"], "cluster": {"server": f"http://127.0.0.1:{server.server_port}"}}],
+                "users": [{"name": "request-local", "user": {}}],
+                "contexts": [{"name": binding["clusterRef"], "context": {"cluster": binding["clusterRef"], "user": "request-local"}}],
+                "current-context": binding["clusterRef"]}))
+            config.chmod(0o600)
+            yield str(config)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+
+
+def proxy_request(service, method, target, headers, body, *, authenticate=caller_identity, open_url=no_redirect_open):
+    parsed = _relative_target(target)
     parts = parsed.path.split("/", 3)
     if len(parts) != 4 or parts[1] != "k8s" or not parts[2]:
         raise OperationError("INVALID_ARGUMENT", "a reviewed cluster transport path is required")
@@ -62,16 +169,8 @@ def proxy_request(service, method, target, headers, body, *, authenticate=caller
         raise OperationError("INVALID_ARGUMENT", "self cluster uses its existing direct API transport")
     if headers.get(BINDING_HEADER) != binding["bindingDigest"]:
         raise OperationError("CLUSTER_BINDING_CHANGED", "execution binding differs from the reviewed cluster")
-    url = binding["brokerURL"] + path + (("?" + parsed.query) if parsed.query else "")
-    forwarded = {key: headers[key] for key in ("Content-Type", "Accept", "Accept-Encoding") if headers.get(key)}
-    forwarded["Authorization"] = proof
-    request = urllib.request.Request(url, data=body, method=method, headers=forwarded)
-    try:
-        response = open_url(request, timeout=120)
-    except urllib.error.HTTPError as error:
-        response = error
-    except Exception:
-        raise OperationError("CLUSTER_TRANSPORT_UNAVAILABLE", "managed cluster transport failed", retryable=True) from None
+    response = _broker_request(binding, method, path + (("?" + parsed.query) if parsed.query else ""),
+                               headers, body, proof, open_url=open_url)
     # No local or remote credential material is included in this audit envelope.
     audit = {"clusterRef": cluster_ref, "clusterBindingDigest": binding["bindingDigest"],
              "releaseId": release_id,

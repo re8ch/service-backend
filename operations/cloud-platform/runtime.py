@@ -117,17 +117,12 @@ class CloudPlatform:
                 raise OperationError("CLUSTER_BINDING_UNAVAILABLE", "native execution API differs from the reviewed self identity")
             yield self, binding
             return
-        # Only references to this process's projected identity are written here.
-        # The remote token, CA and API address remain exclusively in the broker.
-        with tempfile.TemporaryDirectory(prefix="re8ch-cluster-") as directory:
-            config = Path(directory) / "kubeconfig"
-            config.write_text(json.dumps({"apiVersion": "v1", "kind": "Config",
-                "clusters": [{"name": cluster_ref, "cluster": {"server": binding["brokerURL"]}}],
-                "users": [{"name": "cloud-platform", "user": {"tokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token"}}],
-                "contexts": [{"name": cluster_ref, "context": {"cluster": cluster_ref, "user": "cloud-platform"}}],
-                "current-context": cluster_ref}))
-            config.chmod(0o600)
-            yield CloudPlatform(self.inventory, self.runner, kubeconfig=BoundKubeconfig(str(config)),
+        # kubectl intentionally omits bearer AuthInfo for an HTTP server. The
+        # request-local relay adds this Pod's projected identity to the fixed
+        # reviewed broker, whose existing TokenReview/grant checks still apply.
+        from cluster_execution_proxy import interactive_transport
+        with interactive_transport(binding) as config:
+            yield CloudPlatform(self.inventory, self.runner, kubeconfig=BoundKubeconfig(config),
                                 ssh_config=self.ssh_config, cluster_ref=cluster_ref), binding
 
     def nodes_list(self) -> dict[str, Any]:
