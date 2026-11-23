@@ -264,10 +264,17 @@ func connectPlatformModule(ctx context.Context, name string, b platformBackend) 
 	if b.AuthMode != "none" {
 		transport = platformAuthTransport{base: http.DefaultTransport, token: token, header: b.Header, connecting: connecting, connectDeadline: deadline}
 	}
-	httpClient := &http.Client{Timeout: 60 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	httpClient := platformModuleHTTPClient(transport)
 	session, err := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: endpoint, HTTPClient: httpClient, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
 	connecting.Store(false)
 	return session, err
+}
+
+func platformModuleHTTPClient(transport http.RoundTripper) *http.Client {
+	// The caller context and backend operation budget own invocation deadlines.
+	// A client-wide cap otherwise truncates valid long commands despite their
+	// explicit timeout. Connection setup remains bounded separately above.
+	return &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 }
 func (r *platformRegistry) call(ctx context.Context, name string, fn func(*mcp.ClientSession) (any, error)) (any, error) {
 	e := r.snapshot()[name]
