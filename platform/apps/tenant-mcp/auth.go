@@ -190,7 +190,7 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 	resolve.Header.Set("Content-Type", "application/json")
 	resolve.Header.Set("X-Tenant-Caller", "tenant")
 	resolve.Header.Set("X-Tenant-Service-Token", secret)
-	client := &http.Client{Timeout: 8 * time.Second}
+	client := &http.Client{Timeout: 8 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, controlURL, "identity.tenant_authorizer.http")}
 	response2, err := client.Do(resolve)
 	if err != nil {
 		return identity{}, fmt.Errorf("%w: tenant authorizer: %v", errIdentityUnavailable, err)
@@ -297,7 +297,7 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (verified id
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, userURL, "identity.gotrue.http")}
 	var response *http.Response
 	for attempt := 0; attempt < 2; attempt++ {
 		response, err = client.Do(req.Clone(ctx))
@@ -347,7 +347,7 @@ func verifyPlatformSession(ctx context.Context, endpoint, bearer string, claims 
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
-	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, endpoint, "identity.session_authority.http"), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Do(req)
 	if err != nil {
 		return identity{}, fmt.Errorf("%w: platform session authority request: %v", errIdentityUnavailable, err)

@@ -364,6 +364,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		mcpToolTelemetry.writePrometheus(w)
+		s.diagnostics().writePrometheusStatus(w)
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ready, checks := s.readiness(r.Context())
