@@ -379,7 +379,7 @@ class Executor:
                     break
                 except Rejected as error:
                     if not require_existing or attempt == 2 or not resource_version_conflict(str(error)):
-                        raise
+                        raise Rejected(f"{object_identity(item)}: {error}") from error
 
     @staticmethod
     def pointer(value: object, pointer: str) -> object:
@@ -719,7 +719,7 @@ class Executor:
                     previous, manifest, selected_objects, contract, operation, manager, store, reason)
                 outcome, healthy = "rolled-back", True
             except Rejected as error:
-                blocked = {**previous, "blocked": True, "blockedReason": f"rollback failed: {error}", "updatedAt": self.now().isoformat()}
+                blocked = {**previous, "blocked": True, "blockedReason": f"{reason}; rollback failed: {error}", "updatedAt": self.now().isoformat()}
                 store.accept(blocked)
                 raise Rejected(blocked["blockedReason"]) from error
         elif finalize:
