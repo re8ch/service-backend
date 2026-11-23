@@ -84,8 +84,20 @@ jobs:
           promoted_digest="$(docker buildx imagetools inspect "$staging" --format '{{json .Manifest.Digest}}' | tr -d '"')"
           [[ "$promoted_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           immutable="$TARGET_REPOSITORY@$promoted_digest"
+          docker buildx imagetools inspect "$immutable" --raw > target-manifest.json
+          target_child_digest="$(jq -r '
+            if has("manifests") then
+              [.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest]
+              | if length == 1 then .[0] else error("expected exactly one target linux/amd64 child manifest") end
+            else empty end
+          ' target-manifest.json)"
+          target_content="$immutable"
+          if [[ -n "$target_child_digest" ]]; then
+            [[ "$target_child_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            target_content="$TARGET_REPOSITORY@$target_child_digest"
+          fi
           docker buildx imagetools inspect "$source_content" --raw | jq '{config:.config.digest,layers:[.layers[].digest]}' > source-content.json
-          docker buildx imagetools inspect "$immutable" --raw | jq '{config:.config.digest,layers:[.layers[].digest]}' > target-content.json
+          docker buildx imagetools inspect "$target_content" --raw | jq '{config:.config.digest,layers:[.layers[].digest]}' > target-content.json
           diff -u source-content.json target-content.json
           jq -n --arg source "$source" --arg target "$immutable" --arg sourceDigest "$SOURCE_DIGEST" --arg targetDigest "$promoted_digest" \
             '{apiVersion:"delivery.re8ch.com/image-promotion/v1alpha1",source:$source,target:$target,sourceDigest:$sourceDigest,targetDigest:$targetDigest,identityProof:"exact-config-and-layer-digests",reusedExistingArtifact:true,rebuild:false}' \
