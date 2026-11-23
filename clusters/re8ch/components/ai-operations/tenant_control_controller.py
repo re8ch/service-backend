@@ -30,13 +30,11 @@ from pathlib import Path
 import re8ch_observability as observation
 
 try:
-    from invocation_token_issuer import AuthorityUnavailable, from_environment as invocation_issuer_from_environment
     from tenant_claim_contracts import ContractError, normalize_claim, plan, validate_update
     from tenant_claims import binding_status, render_resources, resource_name
 except ModuleNotFoundError:  # repository-local unit tests; the image uses /app modules
     component_dir = Path(__file__).resolve().parent
     sys.path.insert(0, str(component_dir))
-    from invocation_token_issuer import AuthorityUnavailable, from_environment as invocation_issuer_from_environment
     from tenant_claims import binding_status, render_resources, resource_name
     contract_path = Path(__file__).resolve().parents[4] / "operations/tenant-broker/contracts.py"
     contract_spec = importlib.util.spec_from_file_location("tenant_claim_contracts", contract_path)
@@ -56,7 +54,7 @@ CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 IDENTITY_REST_URL = os.getenv("IDENTITY_REST_URL", "http://supabase-identity-rest.supabase-identity.svc:3000").rstrip("/")
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
-INVOCATION_ISSUER = invocation_issuer_from_environment()
+INVOCATION_ISSUER = None
 LOG = logging.getLogger("tenant-control-controller")
 RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
 TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
@@ -203,6 +201,15 @@ def kube():
     if KUBE is None:
         raise RuntimeError("Kubernetes client is not initialized")
     return KUBE
+
+
+def invocation_issuer():
+    """Load signer dependencies only in the tenant-control runtime image."""
+    global INVOCATION_ISSUER
+    if INVOCATION_ISSUER is None:
+        from invocation_token_issuer import from_environment
+        INVOCATION_ISSUER = from_environment()
+    return INVOCATION_ISSUER
 
 
 def condition(kind, ok, reason, message=""):
@@ -1251,8 +1258,8 @@ class Handler(BaseHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         if path == "/.well-known/invocation-jwks.json":
             try:
-                self.send_json(200, INVOCATION_ISSUER.key_ring.jwks())
-            except AuthorityUnavailable:
+                self.send_json(200, invocation_issuer().key_ring.jwks())
+            except Exception:
                 self.send_json(503, {"error": "signing_keys_unavailable"})
             return
         if path == "/livez": self.send_json(200, {"status": "ok"}); return
@@ -1389,7 +1396,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/v1/invocation-tokens":
                 try:
-                    issued = INVOCATION_ISSUER.issue(body)
+                    issued = invocation_issuer().issue(body)
                     LOG.info("invocation token issued jti=%s binding=%s active_org=%s owner_org=%s",
                              issued["claims"]["jti"], issued["claims"]["binding_ref"],
                              issued["claims"]["active_org_ref"], issued["claims"]["owner_org_ref"])
@@ -1399,7 +1406,8 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(403, {"error": "invocation_not_authorized"})
                 except ValueError:
                     self.send_json(400, {"error": "invalid_invocation_request"})
-                except AuthorityUnavailable:
+                except Exception:
+                    LOG.exception("invocation authority unavailable")
                     self.send_json(503, {"error": "invocation_authority_unavailable"})
                 return
             tenant = self.headers["X-Tenant-Ref"]
