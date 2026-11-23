@@ -677,7 +677,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command on a reviewed clusterRef (default self/re8ch) with an argv string array. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments, for example [\"get\",\"--raw=/version\"]"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"},"clusterRef":{"type":"string","description":"Reviewed callable clusterRef from platform_cluster_bindings_list; omission preserves the existing self cluster."}},"required":["argv"],"additionalProperties":false}`)},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command on a reviewed clusterRef (default self/re8ch) with an argv string array; existing clients can select a reviewed binding using --context from byoc_connection_list. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments; --context=<reviewed clusterRef> selects a binding for argv-only clients"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"},"clusterRef":{"type":"string","description":"Reviewed callable clusterRef from platform_cluster_bindings_list; omission preserves the existing self cluster."}},"required":["argv"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
@@ -691,7 +691,11 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if input.Timeout < 1 || input.Timeout > 3600 {
 				return nil, nil, errors.New("kubectl timeout must be between 1 and 3600 seconds")
 			}
-			arguments, err := platformClusterArguments(ctx, s, input.ClusterRef, map[string]any{"argv": input.Argv, "timeout": input.Timeout})
+			ref, argv, err := platformKubectlSelection(input)
+			if err != nil {
+				return nil, nil, err
+			}
+			arguments, err := platformClusterArguments(ctx, s, ref, map[string]any{"argv": argv, "timeout": input.Timeout})
 			if err != nil {
 				return nil, nil, err
 			}

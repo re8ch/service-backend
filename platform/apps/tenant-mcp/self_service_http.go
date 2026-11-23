@@ -105,11 +105,11 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 	}
 	if id.PlatformAdmin && id.Tenant == "admin" {
 		result["metaTenant"] = true
-		result["platformClusterBindings"] = map[string]any{"discoveryTool": "platform_cluster_bindings_list", "registrationPolicyIndependent": true, "defaultClusterRef": "re8ch"}
+		result["platformClusterBindings"] = map[string]any{"discoveryTool": "byoc_connection_list", "registrationPolicyIndependent": true, "defaultClusterRef": "re8ch"}
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
-			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "direct", "scope": "cluster", "namespaceSelector": "*", "grantIndependent": true,
-			"targetSelection":       map[string]any{"parameter": "clusterRef", "discoveryTool": "platform_cluster_bindings_list", "default": "re8ch", "adapters": []string{"local", "among-broker"}},
-			"tools":                 []string{"platform_cluster_bindings_list", "tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "reconcile_control_plane_authentication_config"},
+			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "managed-byoc", "scope": "cluster", "namespaceSelector": "*", "grantIndependent": true,
+			"targetSelection":       map[string]any{"parameter": "clusterRef", "discoveryTool": "byoc_connection_list", "kubectlContextFlag": "--context", "kubectlTool": "platform_kubectl_exec", "default": "re8ch", "adapters": []string{"local", "among-broker"}},
+			"tools":                 []string{"byoc_connection_list", "platform_cluster_bindings_list", "tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "reconcile_control_plane_authentication_config"},
 			"existingToolInterface": true,
 			"canRead":               true, "canWrite": true, "secretValuesReadable": false,
 		})

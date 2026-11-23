@@ -56,10 +56,10 @@ func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 		}
 		found = true
 		selection, ok := capability["targetSelection"].(map[string]any)
-		if !ok || selection["discoveryTool"] != "platform_cluster_bindings_list" || selection["default"] != "re8ch" {
+		if !ok || selection["discoveryTool"] != "byoc_connection_list" || selection["default"] != "re8ch" || selection["kubectlContextFlag"] != "--context" || selection["kubectlTool"] != "platform_kubectl_exec" {
 			t.Fatalf("missing managed target selector: %v", capability)
 		}
-		if capability["connection"] != "direct" || capability["ownership"] != "re8ch-admin" || capability["scope"] != "cluster" || capability["namespaceSelector"] != "*" || capability["grantIndependent"] != true || capability["canRead"] != true || capability["canWrite"] != true || capability["secretValuesReadable"] != false {
+		if capability["connection"] != "managed-byoc" || capability["ownership"] != "re8ch-admin" || capability["scope"] != "cluster" || capability["namespaceSelector"] != "*" || capability["grantIndependent"] != true || capability["canRead"] != true || capability["canWrite"] != true || capability["secretValuesReadable"] != false {
 			t.Fatalf("wrong platform capability: %v", capability)
 		}
 	}
