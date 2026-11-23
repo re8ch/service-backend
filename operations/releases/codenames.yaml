@@ -614,6 +614,11 @@ modules:
       digest: sha256:ee71921fae8d98374caf5f9273d1bd03b1303de80bcaacf86d20886ff6299b78
     - codename: canopy-jade
       digest: sha256:45a3322e131dfbe65ac4d868c66c9b5d3ba6b5001093c734a619ec8587c68023
+    - codename: delta-jade
+      digest: sha256:09f2b2f93d92d2a88b9325fd134b492ac38408f04c76da5161468f197833e92d
+      quarantined: missing-or-invalid-signature
+    - codename: grove-jade
+      digest: sha256:684bbd62b202009b9a98b8ab780501189279866a9153a6f07fa76ec37a6dbf1a
   platform/advanced-fabric:
     releases:
     - codename: bora
