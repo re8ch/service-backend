@@ -47,6 +47,12 @@ Self-registered tool publication and unpriced usage intake use the separate
 [`bifurcate` authority contract](TOOL-PUBLICATION-AUTHORITY.md). Those runtime
 writes are organization-owned Billing state and never require a GitOps edit.
 
+Organization-owned cluster associations use the reviewed
+[`org-cluster-bindings.sql`](org-cluster-bindings.sql) runtime authority contract.
+Its API and adoption boundaries are documented in
+[`ORG-CLUSTER-BINDINGS.md`](ORG-CLUSTER-BINDINGS.md). Binding rows are runtime
+writes in Billing/Bifurcate and are not emitted as one GitOps object per cluster.
+
 ## Required preflight
 
 Use the authenticated platform administrator catalog. Do not connect with
