@@ -3,8 +3,8 @@
 -- client, user, session, credential, or organization-membership tables.
 begin transaction isolation level serializable;
 
-create schema if not exists bifurcate authorization re8ch_billing_owner;
 set local role re8ch_billing_migrator;
+create schema if not exists bifurcate authorization re8ch_billing_owner;
 
 create table if not exists bifurcate.tool_publications (
   publication_ref text primary key check (publication_ref ~ '^toolpub_[a-z0-9][a-z0-9_-]{7,95}$'),

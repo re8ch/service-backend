@@ -150,6 +150,13 @@ metadata:
   name: secretary-cluster-observer
   namespace: re8ch-secretary
 ---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  name: supabase-billing-schema-migrator
+  namespace: supabase-pg-re8ch
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -5095,8 +5102,8 @@ data:
     -- client, user, session, credential, or organization-membership tables.
     begin transaction isolation level serializable;
 
-    create schema if not exists bifurcate authorization re8ch_billing_owner;
     set local role re8ch_billing_migrator;
+    create schema if not exists bifurcate authorization re8ch_billing_owner;
 
     create table if not exists bifurcate.tool_publications (
       publication_ref text primary key check (publication_ref ~ '^toolpub_[a-z0-9][a-z0-9_-]{7,95}$'),
@@ -14765,6 +14772,8 @@ spec:
         env:
         - name: PGHOST
           value: pg-re8ch-primary.pigsty-external.svc.cluster.local
+        - name: PGPORT
+          value: "5432"
         - name: PGDATABASE
           value: re8ch_billing
         - name: PGUSER
@@ -14805,6 +14814,7 @@ spec:
         runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
+      serviceAccountName: supabase-billing-schema-migrator
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -14838,6 +14848,8 @@ spec:
         env:
         - name: PGHOST
           value: pg-re8ch-primary.pigsty-external.svc.cluster.local
+        - name: PGPORT
+          value: "5432"
         - name: PGDATABASE
           value: re8ch_billing
         - name: PGUSER
@@ -14878,6 +14890,7 @@ spec:
         runAsUser: 65532
         seccompProfile:
           type: RuntimeDefault
+      serviceAccountName: supabase-billing-schema-migrator
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -15151,6 +15164,42 @@ spec:
     - ports:
       - port: "8000"
         protocol: TCP
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: supabase-billing-schema-migrator
+  namespace: supabase-pg-re8ch
+spec:
+  egress:
+  - toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+    toServices:
+    - k8sService:
+        namespace: pigsty-external
+        serviceName: pg-re8ch-primary
+  - toEntities:
+    - host
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+  - toEndpoints:
+    - matchLabels:
+        io.kubernetes.pod.namespace: kube-system
+        k8s-app: kube-dns
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/component: schema-migration
+      app.kubernetes.io/part-of: supabase-billing
 ---
 addressType: IPv4
 apiVersion: discovery.k8s.io/v1
