@@ -167,7 +167,22 @@ begin
   end if;
   select * into strict v_existing from bifurcate.usage_events
     where producer_ref = p_producer_ref and idempotency_key = p_idempotency_key;
-  if v_existing.event_ref <> p_event_ref or v_existing.content_sha256 <> p_content_sha256 then
+  -- The caller-provided digest is audit metadata, not replay authority. Compare
+  -- every canonical business field so a producer cannot reuse a key and digest
+  -- while changing the event payload.
+  if v_existing.event_ref is distinct from p_event_ref
+     or v_existing.owner_org_ref is distinct from p_owner_org_ref
+     or v_existing.resource_ref is distinct from p_resource_ref
+     or v_existing.service_class is distinct from p_service_class
+     or v_existing.meter_code is distinct from p_meter_code
+     or v_existing.quantity is distinct from p_quantity
+     or v_existing.unit is distinct from p_unit
+     or v_existing.period_start is distinct from p_period_start
+     or v_existing.period_end is distinct from p_period_end
+     or v_existing.observed_at is distinct from p_observed_at
+     or v_existing.dimensions is distinct from coalesce(p_dimensions, '{}'::jsonb)
+     or v_existing.schema_version is distinct from p_schema_version
+     or v_existing.content_sha256 is distinct from p_content_sha256 then
     raise exception 'idempotency key already exists with different content'
       using errcode = '23505';
   end if;

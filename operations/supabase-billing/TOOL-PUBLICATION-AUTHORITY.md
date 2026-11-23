@@ -22,10 +22,12 @@ are all simultaneously active. Binding rows contain opaque service and binding
 references, never returned credential material.
 
 `accept_usage_event` accepts immutable, unpriced `usage.re8ch.com/v1` events.
-The producer supplies a canonical payload SHA-256. Replaying the same
-`(producer_ref, idempotency_key)` and digest succeeds; reusing the key for a
-different event or digest fails. Pricing and accounting flags are constrained
-to false so later billing stages remain separate authorities.
+The producer supplies a canonical payload SHA-256 for audit correlation, but
+the database does not trust it as replay proof. It compares every normalized
+business field on conflict. Replaying the same `(producer_ref,
+idempotency_key)` payload succeeds; changing any field or digest fails. Pricing
+and accounting flags are constrained to false so later billing stages remain
+separate authorities.
 
 ## Application and rollback
 

@@ -40,8 +40,39 @@ def test_usage_ingress_is_unpriced_and_content_safe_on_replay():
     assert "unique (producer_ref, idempotency_key)" in SQL
     assert "pricing_applied boolean not null default false check (pricing_applied = false)" in SQL
     assert "accounting_posted boolean not null default false check (accounting_posted = false)" in SQL
-    assert "v_existing.content_sha256 <> p_content_sha256" in SQL
+    assert "v_existing.content_sha256 is distinct from p_content_sha256" in SQL
     assert "idempotency key already exists with different content" in SQL
+
+
+def test_usage_replay_compares_every_business_field_without_trusting_digest():
+    replay_guard = SQL.split("The caller-provided digest is audit metadata", 1)[1].split(
+        "raise exception 'idempotency key already exists with different content'", 1
+    )[0]
+    for field in ("event_ref", "owner_org_ref", "resource_ref", "service_class",
+                  "meter_code", "quantity", "unit", "period_start", "period_end",
+                  "observed_at", "dimensions", "schema_version", "content_sha256"):
+        assert f"v_existing.{field} is distinct from" in replay_guard
+    assert "database does not trust it as replay proof" in DOC
+
+
+def test_usage_replay_rejects_same_key_event_and_hash_when_payload_changes():
+    # These are the security regression dimensions: each must participate in
+    # the database comparison even if event_ref and content_sha256 are reused.
+    replay_guard = SQL.split("The caller-provided digest is audit metadata", 1)[1].split(
+        "raise exception 'idempotency key already exists with different content'", 1
+    )[0]
+    for changed_field in ("quantity", "owner_org_ref", "resource_ref",
+                          "period_start", "period_end", "dimensions"):
+        assert f"v_existing.{changed_field} is distinct from" in replay_guard
+
+
+def test_usage_security_definer_is_narrow_and_fail_closed():
+    function = SQL.split("create or replace function bifurcate.accept_usage_event", 1)[1]
+    function = function.split("create or replace function bifurcate.reject_revision_mutation", 1)[0]
+    assert "language plpgsql security definer" in function
+    assert "set search_path = bifurcate, pg_catalog, pg_temp" in function
+    assert "revoke all on all functions in schema bifurcate from public" in SQL
+    assert "grant execute on function bifurcate.accept_usage_event" in SQL
 
 
 def test_contract_does_not_create_identity_or_oauth_state():
