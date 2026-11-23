@@ -1,0 +1,328 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supabase-oauth-application-runtime-v1
+  namespace: supabase-identity
+data:
+  migration.sql: |
+    begin;
+    create extension if not exists pgcrypto;
+
+    create table if not exists core.oauth_applications (
+      id uuid primary key references auth.oauth_clients(id) on delete cascade,
+      owner_org_ref text not null references core.organizations(tenant_ref) on delete restrict,
+      name text not null check (length(name) between 1 and 120),
+      client_uri text,
+      client_type text not null check (client_type in ('public', 'confidential')),
+      pkce_required boolean not null default true,
+      lifecycle text not null check (lifecycle in ('active', 'suspended', 'deleted')),
+      created_by_user_id uuid not null references auth.users(id) on delete restrict,
+      operation_key text not null check (length(operation_key) between 1 and 200),
+      request_hash text not null check (request_hash ~ '^[0-9a-f]{64}$'),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now(),
+      unique (owner_org_ref, operation_key)
+    );
+    create index if not exists oauth_applications_owner_idx
+      on core.oauth_applications(owner_org_ref, lifecycle, created_at);
+
+    create table if not exists core.oauth_application_redirect_uris (
+      application_id uuid not null references core.oauth_applications(id) on delete cascade,
+      redirect_uri text not null,
+      created_at timestamptz not null default now(),
+      primary key (application_id, redirect_uri),
+      constraint oauth_redirect_exact_https check (
+        redirect_uri ~ '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[^#[:space:]]*)?$'
+        and redirect_uri !~ '[*]'
+      )
+    );
+
+    create table if not exists core.oauth_application_secret_rotations (
+      application_id uuid not null references core.oauth_applications(id) on delete cascade,
+      operation_key text not null check (length(operation_key) between 1 and 200),
+      requested_by_user_id uuid not null references auth.users(id) on delete restrict,
+      rotated_at timestamptz not null default now(),
+      primary key (application_id, operation_key)
+    );
+
+    alter table core.oauth_applications owner to supabase_admin;
+    alter table core.oauth_application_redirect_uris owner to supabase_admin;
+    alter table core.oauth_application_secret_rotations owner to supabase_admin;
+    alter table core.oauth_applications enable row level security;
+    alter table core.oauth_application_redirect_uris enable row level security;
+    alter table core.oauth_application_secret_rotations enable row level security;
+    revoke all on core.oauth_applications, core.oauth_application_redirect_uris,
+      core.oauth_application_secret_rotations
+      from public, anon, authenticated, service_role;
+
+    drop policy if exists oauth_applications_active_org_read on core.oauth_applications;
+    create policy oauth_applications_active_org_read on core.oauth_applications
+      for select to authenticated using (
+        exists (
+          select 1 from core.organization_members m
+          join core.organizations o on o.tenant_ref = m.tenant_ref
+          join core.user_active_organizations a
+            on a.user_id = m.user_id and a.tenant_ref = m.tenant_ref
+          where m.user_id = api.current_user_id()
+            and m.tenant_ref = owner_org_ref
+            and m.status = 'active' and o.status = 'active'
+        )
+      );
+    drop policy if exists oauth_redirects_active_org_read on core.oauth_application_redirect_uris;
+    create policy oauth_redirects_active_org_read on core.oauth_application_redirect_uris
+      for select to authenticated using (
+        exists (
+          select 1 from core.oauth_applications a
+          join core.organization_members m on m.tenant_ref = a.owner_org_ref
+          join core.organizations o on o.tenant_ref = m.tenant_ref
+          join core.user_active_organizations active
+            on active.user_id = m.user_id and active.tenant_ref = m.tenant_ref
+          where a.id = application_id and m.user_id = api.current_user_id()
+            and m.status = 'active' and o.status = 'active'
+        )
+      );
+
+    create or replace function core.oauth_redirect_uris_valid(p_uris jsonb)
+    returns boolean language sql immutable set search_path = pg_catalog, pg_temp as $$
+      select jsonb_typeof(p_uris) = 'array'
+        and jsonb_array_length(p_uris) between 1 and 20
+        and (select count(*) = count(distinct value) from jsonb_array_elements_text(p_uris))
+        and not exists (
+          select 1 from jsonb_array_elements_text(p_uris) u(value)
+          where value !~ '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[^#[:space:]]*)?$'
+             or value ~ '[*]'
+        )
+    $$;
+    alter function core.oauth_redirect_uris_valid(jsonb) owner to supabase_admin;
+    revoke all on function core.oauth_redirect_uris_valid(jsonb) from public, anon, authenticated, service_role;
+
+    create or replace function core.active_oauth_org(p_user uuid)
+    returns table(tenant_ref text, member_role text)
+    language sql stable security definer set search_path = pg_catalog, pg_temp as $$
+      select m.tenant_ref, m.role
+      from core.user_active_organizations a
+      join core.organization_members m
+        on m.user_id = a.user_id and m.tenant_ref = a.tenant_ref
+      join core.organizations o on o.tenant_ref = m.tenant_ref
+      join auth.users u on u.id = m.user_id
+      where a.user_id = p_user and m.status = 'active' and o.status = 'active'
+        and u.deleted_at is null and m.role in ('owner', 'admin', 'member')
+    $$;
+    alter function core.active_oauth_org(uuid) owner to supabase_admin;
+    revoke all on function core.active_oauth_org(uuid) from public, anon, authenticated, service_role;
+
+    create or replace function core.can_manage_oauth_application(
+      p_user uuid, p_application uuid
+    ) returns boolean
+    language sql stable security definer set search_path = pg_catalog, pg_temp as $$
+      select exists (
+        select 1 from core.oauth_applications app
+        join core.organization_members m on m.tenant_ref = app.owner_org_ref
+        join core.organizations o on o.tenant_ref = m.tenant_ref
+        join core.user_active_organizations active
+          on active.user_id = m.user_id and active.tenant_ref = m.tenant_ref
+        join auth.users u on u.id = m.user_id
+        where app.id = p_application and m.user_id = p_user
+          and m.status = 'active' and o.status = 'active' and u.deleted_at is null
+          and (m.role in ('owner', 'admin')
+            or (m.role = 'member' and app.created_by_user_id = p_user))
+      )
+    $$;
+    alter function core.can_manage_oauth_application(uuid, uuid) owner to supabase_admin;
+    revoke all on function core.can_manage_oauth_application(uuid, uuid) from public, anon, authenticated, service_role;
+
+    create or replace function api.create_oauth_application(
+      p_name text,
+      p_redirect_uris jsonb,
+      p_operation_key text,
+      p_client_uri text default null,
+      p_client_type text default 'public'
+    ) returns jsonb
+    language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
+    declare
+      v_user uuid := api.current_user_id();
+      v_org text;
+      v_role text;
+      v_id uuid;
+      v_secret text;
+      v_hash text;
+      v_redirects text;
+      v_request_hash text;
+      v_existing core.oauth_applications;
+    begin
+      if v_user is null then raise exception 'authenticated user required' using errcode = '28000'; end if;
+      select tenant_ref, member_role into v_org, v_role from core.active_oauth_org(v_user);
+      if v_org is null then raise exception 'active organization membership required' using errcode = '42501'; end if;
+      if nullif(btrim(p_name), '') is null or length(p_name) > 120 then raise exception 'application name must contain 1 to 120 characters'; end if;
+      if nullif(btrim(p_operation_key), '') is null or length(p_operation_key) > 200 then raise exception 'operation key is required'; end if;
+      if p_client_type not in ('public', 'confidential') then raise exception 'client type must be public or confidential'; end if;
+      if not core.oauth_redirect_uris_valid(p_redirect_uris) then raise exception 'redirect URIs must be unique exact HTTPS URLs'; end if;
+      if p_client_uri is not null and (p_client_uri !~ '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[^#[:space:]]*)?$' or p_client_uri ~ '[*]') then
+        raise exception 'client URI must be an exact HTTPS URL';
+      end if;
+
+      select encode(public.digest(convert_to(jsonb_build_object(
+        'name', btrim(p_name),
+        'redirectUris', (select jsonb_agg(value order by value) from jsonb_array_elements_text(p_redirect_uris)),
+        'clientUri', p_client_uri,
+        'clientType', p_client_type
+      )::text, 'UTF8'), 'sha256'), 'hex') into v_request_hash;
+
+      perform pg_advisory_xact_lock(hashtextextended('oauth-app:' || v_org || ':' || p_operation_key, 0));
+      select * into v_existing from core.oauth_applications
+        where owner_org_ref = v_org and operation_key = p_operation_key;
+      if found then
+        if v_existing.request_hash <> v_request_hash then
+          raise exception 'operation key is already bound to a different OAuth application request'
+            using errcode = '22023';
+        end if;
+        return jsonb_build_object(
+          'applicationId', v_existing.id, 'clientId', v_existing.id,
+          'ownerOrgRef', v_existing.owner_org_ref, 'lifecycle', v_existing.lifecycle,
+          'clientType', v_existing.client_type, 'pkceRequired', v_existing.pkce_required,
+          'idempotentReplay', true, 'clientSecretIssued', false
+        );
+      end if;
+
+      v_id := gen_random_uuid();
+      if p_client_type = 'confidential' then
+        v_secret := rtrim(translate(encode(public.gen_random_bytes(32), 'base64'), '+/', '-_'), '=');
+        v_hash := public.crypt(v_secret, public.gen_salt('bf', 12));
+      else
+        v_hash := '';
+      end if;
+      select string_agg(value, ',' order by value) into v_redirects
+        from jsonb_array_elements_text(p_redirect_uris);
+
+      insert into auth.oauth_clients(
+        id, client_secret_hash, registration_type, client_type,
+        token_endpoint_auth_method, redirect_uris, grant_types,
+        client_name, client_uri
+      ) values (
+        v_id, v_hash, 'dynamic', p_client_type,
+        case when p_client_type = 'public' then 'none' else 'client_secret_basic' end,
+        v_redirects, 'authorization_code,refresh_token', btrim(p_name), p_client_uri
+      );
+      insert into core.oauth_applications(
+        id, owner_org_ref, name, client_uri, client_type, pkce_required,
+        lifecycle, created_by_user_id, operation_key, request_hash
+      ) values (v_id, v_org, btrim(p_name), p_client_uri, p_client_type, true,
+        'active', v_user, p_operation_key, v_request_hash);
+      insert into core.oauth_application_redirect_uris(application_id, redirect_uri)
+        select v_id, value from jsonb_array_elements_text(p_redirect_uris);
+
+      return jsonb_strip_nulls(jsonb_build_object(
+        'applicationId', v_id, 'clientId', v_id, 'ownerOrgRef', v_org,
+        'lifecycle', 'active', 'clientType', p_client_type, 'pkceRequired', true,
+        'idempotentReplay', false, 'clientSecretIssued', p_client_type = 'confidential',
+        'clientSecret', v_secret
+      ));
+    end $$;
+
+    create or replace function api.my_oauth_applications()
+    returns table(
+      application_id uuid, owner_org_ref text, name text, client_uri text,
+      client_type text, pkce_required boolean, lifecycle text,
+      redirect_uris jsonb, created_at timestamptz, updated_at timestamptz
+    ) language sql stable security definer set search_path = pg_catalog, pg_temp as $$
+      select a.id, a.owner_org_ref, a.name, a.client_uri, a.client_type,
+        a.pkce_required, a.lifecycle,
+        coalesce((select jsonb_agg(r.redirect_uri order by r.redirect_uri)
+          from core.oauth_application_redirect_uris r where r.application_id = a.id), '[]'::jsonb),
+        a.created_at, a.updated_at
+      from core.oauth_applications a
+      join core.active_oauth_org(api.current_user_id()) active
+        on active.tenant_ref = a.owner_org_ref
+      order by a.created_at, a.id
+    $$;
+
+    create or replace function api.set_oauth_application_lifecycle(
+      p_application_id uuid, p_lifecycle text
+    ) returns jsonb
+    language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
+    declare v_user uuid := api.current_user_id(); v_owner text;
+    begin
+      if v_user is null then raise exception 'authenticated user required' using errcode = '28000'; end if;
+      if p_lifecycle not in ('active', 'suspended', 'deleted') then raise exception 'invalid OAuth application lifecycle'; end if;
+      if not core.can_manage_oauth_application(v_user, p_application_id) then raise exception 'OAuth application management denied' using errcode = '42501'; end if;
+      if exists (select 1 from core.oauth_applications where id = p_application_id and lifecycle = 'deleted' and p_lifecycle <> 'deleted') then
+        raise exception 'deleted OAuth application is terminal; restore requires a separate reviewed contract' using errcode = '55000';
+      end if;
+      update core.oauth_applications set lifecycle = p_lifecycle, updated_at = now()
+        where id = p_application_id returning owner_org_ref into v_owner;
+      update auth.oauth_clients set deleted_at = case when p_lifecycle = 'active' then null else now() end,
+        updated_at = now() where id = p_application_id;
+      return jsonb_build_object('applicationId', p_application_id, 'ownerOrgRef', v_owner, 'lifecycle', p_lifecycle);
+    end $$;
+
+    create or replace function api.rotate_oauth_application_secret(
+      p_application_id uuid, p_operation_key text
+    )
+    returns jsonb
+    language plpgsql volatile security definer set search_path = pg_catalog, pg_temp as $$
+    declare v_user uuid := api.current_user_id(); v_secret text; v_owner text;
+    begin
+      if v_user is null then raise exception 'authenticated user required' using errcode = '28000'; end if;
+      if nullif(btrim(p_operation_key), '') is null or length(p_operation_key) > 200 then raise exception 'operation key is required'; end if;
+      if not core.can_manage_oauth_application(v_user, p_application_id) then raise exception 'OAuth application management denied' using errcode = '42501'; end if;
+      select owner_org_ref into v_owner from core.oauth_applications
+        where id = p_application_id and client_type = 'confidential' and lifecycle = 'active';
+      if v_owner is null then raise exception 'active confidential OAuth application required'; end if;
+      perform pg_advisory_xact_lock(hashtextextended('oauth-secret-rotation:' || p_application_id::text || ':' || p_operation_key, 0));
+      if exists (select 1 from core.oauth_application_secret_rotations
+        where application_id = p_application_id and operation_key = p_operation_key) then
+        return jsonb_build_object('applicationId', p_application_id, 'ownerOrgRef', v_owner,
+          'idempotentReplay', true, 'clientSecretIssued', false);
+      end if;
+      v_secret := rtrim(translate(encode(public.gen_random_bytes(32), 'base64'), '+/', '-_'), '=');
+      update auth.oauth_clients set client_secret_hash = public.crypt(v_secret, public.gen_salt('bf', 12)), updated_at = now()
+        where id = p_application_id and deleted_at is null;
+      insert into core.oauth_application_secret_rotations(application_id, operation_key, requested_by_user_id)
+        values (p_application_id, p_operation_key, v_user);
+      return jsonb_build_object('applicationId', p_application_id, 'ownerOrgRef', v_owner,
+        'idempotentReplay', false, 'clientSecretIssued', true, 'clientSecret', v_secret);
+    end $$;
+
+    alter function api.create_oauth_application(text,jsonb,text,text,text) owner to supabase_admin;
+    alter function api.my_oauth_applications() owner to supabase_admin;
+    alter function api.set_oauth_application_lifecycle(uuid,text) owner to supabase_admin;
+    alter function api.rotate_oauth_application_secret(uuid,text) owner to supabase_admin;
+    revoke all on function api.create_oauth_application(text,jsonb,text,text,text) from public, anon, service_role;
+    revoke all on function api.my_oauth_applications() from public, anon, service_role;
+    revoke all on function api.set_oauth_application_lifecycle(uuid,text) from public, anon, service_role;
+    revoke all on function api.rotate_oauth_application_secret(uuid,text) from public, anon, service_role;
+    grant usage on schema api to authenticated;
+    grant execute on function api.create_oauth_application(text,jsonb,text,text,text) to authenticated;
+    grant execute on function api.my_oauth_applications() to authenticated;
+    grant execute on function api.set_oauth_application_lifecycle(uuid,text) to authenticated;
+    grant execute on function api.rotate_oauth_application_secret(uuid,text) to authenticated;
+    notify pgrst, 'reload schema';
+    commit;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-oauth-application-runtime-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/hostname: r640}
+      tolerations: [{key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}]
+      containers:
+        - name: migrate
+          image: postgres:16.9-alpine
+          command: [/bin/sh, -ceu]
+          args: ["psql -X -v ON_ERROR_STOP=1 \"$GOTRUE_DB_DATABASE_URL\" -f /sql/migration.sql"]
+          env:
+            - name: GOTRUE_DB_DATABASE_URL
+              valueFrom: {secretKeyRef: {name: supabase-identity-secrets, key: GOTRUE_DB_DATABASE_URL}}
+          volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
+      volumes:
+        - name: sql
+          configMap: {name: supabase-oauth-application-runtime-v1}
