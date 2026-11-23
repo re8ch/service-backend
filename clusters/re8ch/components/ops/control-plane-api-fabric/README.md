@@ -2,14 +2,21 @@
 
 `10.250.0.1/32` is the K3s fixed registration VIP. It belongs to the host
 loopback/FRR accelerated domain and must never be allocated by Cilium LB IPAM.
-R640 and A1 are the production anycast origins. A1 serves the sole K3s API;
-R640 serves the local HAProxy relay whose only enabled backend is A1. B1 is a
-manual DR target and must not originate or receive VIP traffic before promotion.
+The production topology intentionally keeps A1 as the single K3s API/etcd
+voter. R640 is its domestic relay and B1 is a fenced manual recovery target;
+neither may silently join etcd. Availability therefore comes from independent
+API relays, external health evidence, automatic host recovery and tested
+snapshot restoration, not from adding voters. Atlantic/PublicEdge relays are
+stateless clients of the domestic VIP and must never become etcd voters or a
+prerequisite for domestic recovery.
 A node may originate the prefix only while its local
 `https://127.0.0.1:6443/readyz` check is healthy.
 
 The checked-in configs are host-managed files, not resources that Flux applies
-automatically. Execute the following gates in order:
+automatically. Execute the following gates in order. Never convert an agent to
+a server by reusing the historical `cluster-init` DR template: joining a voter
+requires a fresh snapshot, the existing cluster token, an explicit `server:`
+URL, and inspection of the node's old server data before any cleanup.
 
 1. Require A1 Ready, every required private WireGuard/BGP session Established,
    and no continuing etcd raft/snapshot catch-up messages.
@@ -52,10 +59,35 @@ declared single-peer WireGuard interfaces. Every node verifies the controller's
 canonical SHA-256 transaction before mutation. A1 requires three authenticated
 local `/readyz` successes to bind/advertise and withdraws after three failures.
 R640 applies the same local readiness gate to its relay; B1 remains ineligible.
-5. Follow `operations/network/docs/a1-single-control-plane-cutover.md` to reset
-   membership to A1 and convert B1 to an agent.
-6. Move one worker bootstrap to `https://10.250.0.1:6443`, then vm/zan, then the
-   remaining agents. Change internal DNS only after the canary succeeds.
+5. Require exactly one ready API EndpointSlice at `10.250.0.147`, a fresh
+   encrypted snapshot copy, and a tested B1 restore procedure. B1 remains
+   fenced during normal operation.
+6. Prove the R640 domestic relay and every Atlantic/PublicEdge relay withdraw
+   when authenticated `/readyz` fails and recover without depending on the
+   Kubernetes API for their own credentials.
+7. Run `ROLLOUT_STAGE=single ./verify.sh`, then move clients to
+   `https://10.250.0.1:6443`. Change DNS only after relay and restore gates pass.
+
+## Availability evidence
+
+The service objective is 99.9% over a rolling 30-day window (at most 43m 12s
+failed time). GitHub-hosted k6 probes exercise the public service name every
+five minutes with Kubernetes CA verification and a literal `readyz=ok`
+contract. Those probes detect external regressions but are not the availability
+denominator: the 15-second PublicEdge/relay health series is authoritative for
+the SLI. Missing measurements count as unknown and must never be silently
+converted to success.
+
+The following must remain independent of the Kubernetes API being measured:
+
+- public DNS and Atlantic relay health selection;
+- host-local API and etcd probes used to advertise or withdraw the VIP;
+- the GitHub-hosted synthetic runner and its Kubernetes CA;
+- recovery access and snapshots.
+
+Authentication or management tooling that fetches its own credential from the
+unreachable cluster before opening a connection is a circular dependency and
+does not qualify as a recovery path.
 
 Rollback stops at the current member. Restore its previous config and member
 peer URL, then confirm quorum before any other action. Do not remove the

@@ -15,13 +15,11 @@ printf '%s\n' "${endpoints}"
 
 case "${ROLLOUT_STAGE:-observe}" in
   observe) : ;;
-  api)
-    for address in 10.250.0.125 10.250.0.128 10.250.0.147; do
-      printf '%s\n' "${endpoints}" | grep -Fx "${address}" >/dev/null || {
-        echo "missing API EndpointSlice address ${address}" >&2
-        exit 1
-      }
-    done
+  single)
+    [ "$(printf '%s\n' "${endpoints}" | grep -c .)" -eq 1 ] || {
+      echo "single stage requires exactly one API endpoint" >&2
+      exit 1
+    }
     ;;
   *) echo "unknown ROLLOUT_STAGE=${ROLLOUT_STAGE}" >&2; exit 2 ;;
 esac

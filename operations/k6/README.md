@@ -13,7 +13,7 @@ load-generator cluster.
 | Signal | Runner and vantage | Period | Purpose |
 | --- | --- | --- | --- |
 | PublicEdgeManager route health | edge controller | 15 seconds | Select a healthy backend; not a functional contract |
-| Fast public contract | GitHub-hosted runner, outside K3S | 5 minutes at `2/5` | Catch public entry and authentication drift |
+| Fast public contract | GitHub-hosted runner, outside K3S | 5 minutes at `2/5` | Catch public entry, Kubernetes API readiness and authentication drift |
 | Fast internal contract | `synthetic-monitoring` CronJob | 5 minutes at `4/5` | Catch service-DNS health drift |
 | Public DNS authority | existing GitHub workflow | 15 minutes | Detect delegation and public authority drift |
 | Standard public contract | GitHub-hosted runner | 30 minutes at `18,48` | Check discovery and service semantics |
@@ -86,3 +86,8 @@ unreachable route as an accepted baseline. Internal checks must use read-only
 endpoints. Authenticated or state-changing journeys require scoped synthetic
 identities, cleanup steps, and separate review. Keep credentials and raw
 response bodies out of Git and workflow artifacts.
+
+The Kubernetes API probe validates the literal `/readyz` response through the
+public service name. The workflow appends the repository's
+`KUBE_API_CA_PEM` secret to the runner trust bundle; it must never disable TLS
+verification.

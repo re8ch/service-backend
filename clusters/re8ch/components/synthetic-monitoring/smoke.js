@@ -54,6 +54,9 @@ export default function () {
     if (valid && probe.header) {
       valid = String(response.headers[probe.header] || '').includes(probe.contains);
     }
+    if (valid && probe.bodyContains) {
+      valid = String(response.body || '').includes(probe.bodyContains);
+    }
     contractFailures.add(!valid, { probe: probe.id });
     check(response, { [`${probe.id} contract`]: () => valid }, { probe: probe.id });
   }

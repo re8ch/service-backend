@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "cadences": {
     "fast": {
       "periodSeconds": 300,
@@ -33,6 +33,15 @@
       "status": 401,
       "header": "Www-Authenticate",
       "contains": "Bearer"
+    },
+    {
+      "id": "kube-api-ready",
+      "owner": "platform/control-plane",
+      "vantage": "external",
+      "cadence": "fast",
+      "url": "https://kube-api.service.re8ch.com/readyz",
+      "status": 200,
+      "bodyContains": "ok"
     },
     {
       "id": "id-discovery",
