@@ -520,7 +520,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			if !input.Apply {
 				manifest, _ := json.Marshal(input.Manifest)
-				preview := map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=re8ch-admin-meta", "-f", "-", "-o", "name"}, "stdin": string(manifest), "timeout": 120}
+				preview := map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=" + nativeKubernetesApplyFieldManager, "-f", "-", "-o", "name"}, "stdin": string(manifest), "timeout": 120}
 				for key, value := range binding {
 					preview[key] = value
 				}

@@ -14,6 +14,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+// Match the existing Cloud writer's stable SSA owner. A different preview owner
+// falsely conflicts when updating a field this same tool previously created.
+const nativeKubernetesApplyFieldManager = "re8ch-cloud-platform"
+
 var tenantApplyKinds = map[string]bool{
 	"v1/ConfigMap": true, "v1/PersistentVolumeClaim": true, "v1/Service": true, "v1/ServiceAccount": true,
 	"apps/v1/Deployment": true, "apps/v1/StatefulSet": true, "apps/v1/DaemonSet": true,
@@ -121,7 +125,7 @@ func (s *server) callMetaKubernetes(ctx context.Context, name string, args map[s
 		}
 		if !flag(args, "apply", false) {
 			serialized, _ := json.Marshal(manifest)
-			return callNative("kubectl.exec", map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=re8ch-admin-meta", "-f", "-", "-o", "json"}, "stdin": string(serialized), "timeout": 180})
+			return callNative("kubectl.exec", map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=" + nativeKubernetesApplyFieldManager, "-f", "-", "-o", "json"}, "stdin": string(serialized), "timeout": 180})
 		}
 		arguments := map[string]any{"resource": strings.ToLower(asString(manifest, "kind")), "name": asString(metadata, "name"), "manifest": manifest}
 		if namespace != "" {

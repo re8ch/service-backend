@@ -173,6 +173,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	var kubectlTimeout int
 	var kubectlCalls int
 	var nativeOperation string
+	var nativeApplyHasOwnedFields bool
 	var kubectlCluster, kubectlBinding string
 	currentBinding := strings.Repeat("a", 64)
 	mcp.AddTool(backend, &mcp.Tool{Name: "clusters.resolve"}, func(_ context.Context, _ *mcp.CallToolRequest, input struct {
@@ -190,6 +191,14 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		kubectlCalls++
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
 		kubectlCluster, kubectlBinding = input.ClusterRef, input.ClusterBindingDigest
+		// The native writer owns fields after the first apply. Reproduce the
+		// real API's conflict on a subsequent preview under another SSA owner.
+		if nativeApplyHasOwnedFields && len(input.Argv) > 0 && input.Argv[0] == "apply" {
+			joined := " " + strings.Join(input.Argv, " ") + " "
+			if !strings.Contains(joined, " --field-manager=re8ch-cloud-platform ") || strings.Contains(joined, "--force-conflicts") {
+				return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: "conflict with re8ch-cloud-platform: .data.status"}}}, nil, nil
+			}
+		}
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
 	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct {
@@ -202,6 +211,9 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		name := name
 		mcp.AddTool(backend, &mcp.Tool{Name: name}, func(_ context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
 			nativeOperation = name
+			if name == "kube.resource.apply" {
+				nativeApplyHasOwnedFields = true
+			}
 			return nil, map[string]any{"operation": name, "arguments": input, "auditRef": "audit://kube/test"}, nil
 		})
 	}
@@ -362,6 +374,19 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	legacyApply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_apply", "arguments": map[string]any{"object": manifest, "apply": true}})
 	if legacyApply["error"] != nil || legacyApply["result"].(map[string]any)["isError"] == true || nativeOperation != "kube.resource.apply" {
 		t.Fatalf("existing Kubernetes apply interface did not use the native Meta backend: %#v; operation=%s", legacyApply, nativeOperation)
+	}
+	manifest["data"] = map[string]any{"status": "updated"}
+	for _, input := range []struct {
+		name      string
+		arguments map[string]any
+	}{
+		{"platform_kubernetes_resource_apply", map[string]any{"manifest": manifest}},
+		{"tenant_kubernetes_apply", map[string]any{"object": manifest}},
+	} {
+		updatedPreview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": input.name, "arguments": input.arguments})
+		if updatedPreview["error"] != nil || updatedPreview["result"].(map[string]any)["isError"] == true {
+			t.Fatalf("%s could not preview an update to its own fields: %#v", input.name, updatedPreview)
+		}
 	}
 	legacyDelete := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_delete", "arguments": map[string]any{"kind": "configmaps", "name": "meta-probe", "namespace": "ops", "apply": true}})
 	if legacyDelete["error"] != nil || legacyDelete["result"].(map[string]any)["isError"] == true || nativeOperation != "kube.resource.delete" {
