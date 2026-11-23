@@ -138,7 +138,16 @@ backend operation. `platform_kubernetes_resource_read` discovers all API
 resource types and reads bounded non-Secret objects.
 `platform_cluster_bindings_list` lists the existing self cluster (`re8ch`) and
 reviewed Admin-managed AmongCluster targets without registering duplicate BYOC
-connections. Kubernetes read/apply/delete and kubectl tools accept `clusterRef`;
+connections. The existing `byoc_connection_list` exposes these managed targets
+and an exact `platform_kubectl_exec` example per target. Existing argv-only clients
+select them with standard `--context=<clusterRef>` or `--context <clusterRef>`.
+The core resolves and removes this selector before execution; it cannot select
+a kubeconfig identity. Unknown, repeated, empty or conflicting selectors fail
+before a business command. Other target and identity overrides remain forbidden.
+This supports reads, dry-runs, SSA and updates without reconnecting a client whose
+tool schema is cached.
+
+Kubernetes read/apply/delete and kubectl tools also accept typed `clusterRef`;
 omission preserves the existing local adapter. An unknown or withdrawn target
 never falls back locally. Mutation plans bind the target and current reviewed
 binding digest. Admin infrastructure access is independent of the ordinary
@@ -149,9 +158,9 @@ require the exact preview plan hash before mutating any namespaced or
 cluster-scoped object. `platform_nodes_list`,
 `platform_nodes_get`, `platform_nodes_reachability`, and
 `platform_node_ssh_exec` preserve the existing node operations through the
-same directly connected native backend. These tools are for RE8CH-owned
-platform clusters; tenant BYOC remains the AmongCluster path for external
-clusters. Publishing these explicit operations does not publish the remaining
+same managed platform binding model. These Admin infrastructure targets are
+separate from ordinary tenant BYOC registrations and do not grant cross-tenant
+application access. Publishing these explicit operations does not publish the remaining
 backend tools. Plugin clients must use only operations
 in their current tool list; an authorization flag cannot attest publication.
 It reads the Supabase membership projection once per verified login session and
@@ -374,3 +383,17 @@ names dynamically, so Kubernetes RBAC cannot enumerate resourceNames for create;
 the dedicated namespace limits that authority. Tenant and subject ownership checks
 remain mandatory in the application. Namespace changes do not migrate existing
 credentials; revoke existing bindings before moving an enabled installation.
+
+### Managed cluster Admin SSA acceptance
+
+After promoting the signed core, call the current `byoc_connection_list` and use
+its kubectl examples. For each reviewed context (`re8ch`, `re8ch-atlantic`),
+preview then apply the exact merged-commit public fixture URL
+`operations/releases/conformance-fixtures/cloud-managed-cluster-admin-v1.yaml`
+with `--server-side --field-manager=re8ch-admin-binding-acceptance`. Read the
+ConfigMap UID/data and the `default/kubernetes` Service UID through that context.
+Preview/apply the sibling v2 fixture, verify the same per-target ConfigMap UID and
+revision2, then preview/delete the temporary ConfigMap through the same context.
+Both cluster API UIDs and object UIDs must differ. Preserve first failures;
+unknown contexts reject before API execution. These temporary objects are
+separate from the Actions executor's scoped delivery canary.

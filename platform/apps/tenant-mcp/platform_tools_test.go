@@ -171,6 +171,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	var authenticationInput controlPlaneAuthenticationInput
 	var kubectlArgv []string
 	var kubectlTimeout int
+	var kubectlCalls int
 	var nativeOperation string
 	var kubectlCluster, kubectlBinding string
 	currentBinding := strings.Repeat("a", 64)
@@ -186,6 +187,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		return nil, map[string]any{"clusters": []map[string]any{{"clusterRef": "re8ch", "bindingDigest": currentBinding, "state": "Ready", "adapter": "local", "clusterIdentityRef": map[string]any{"namespace": "pilot", "name": "re8ch", "uid": "fixture-self"}}, {"clusterRef": "re8ch-atlantic", "bindingDigest": currentBinding, "state": "Ready", "adapter": "among-broker", "serviceIdentity": "spiffe://fixture/ns/default/service/kubernetes"}}}, nil
 	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
+		kubectlCalls++
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
 		kubectlCluster, kubectlBinding = input.ClusterRef, input.ClusterBindingDigest
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
@@ -263,6 +265,34 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	if pluginKubectl["error"] != nil || pluginKubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/version" {
 		t.Fatalf("plugin kubectl argv was not routed: %#v; argv=%v", pluginKubectl, kubectlArgv)
 	}
+
+	// Use only the old published argv/timeout schema, including actual SSA verbs.
+	for _, ref := range []string{"re8ch", "re8ch-atlantic"} {
+		for _, dryRun := range []bool{true, false} {
+			argv := []string{"--context=" + ref, "apply", "--server-side", "--field-manager=fixture-acceptance", "-f", "https://example.invalid/reviewed/fixture.yaml"}
+			expected := append([]string{}, argv[1:]...)
+			if dryRun {
+				argv = append(argv, "--dry-run=server")
+				expected = append(expected, "--dry-run=server")
+			}
+			reply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": argv, "timeout": 20}})
+			if reply["error"] != nil || reply["result"].(map[string]any)["isError"] == true || kubectlCluster != ref || kubectlBinding != currentBinding || strings.Join(kubectlArgv, " ") != strings.Join(expected, " ") {
+				t.Fatalf("argv-only SSA lost binding or forwarded selector: %#v target=%s binding=%s argv=%v", reply, kubectlCluster, kubectlBinding, kubectlArgv)
+			}
+		}
+	}
+	for _, args := range []map[string]any{
+		{"argv": []string{"--context=unknown", "get", "pods"}},
+		{"argv": []string{"--context=re8ch", "--context=re8ch-atlantic", "get", "pods"}},
+		{"argv": []string{"--context=re8ch-atlantic", "get", "pods"}, "clusterRef": "re8ch"},
+		{"argv": []string{"--context", "get"}},
+	} {
+		before := kubectlCalls
+		denied := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": args})
+		if denied["error"] == nil && denied["result"].(map[string]any)["isError"] != true || kubectlCalls != before {
+			t.Fatalf("invalid/unknown context reached business command: %#v calls=%d before=%d", denied, kubectlCalls, before)
+		}
+	}
 	pluginResources := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover"}})
 	if pluginResources["error"] != nil || pluginResources["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "api-resources -o wide" || kubectlTimeout != 120 {
 		t.Fatalf("platform resource discovery was not routed: %#v; argv=%v timeout=%d", pluginResources, kubectlArgv, kubectlTimeout)
@@ -279,6 +309,20 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	encoded, _ := json.Marshal(byoc)
 	if !strings.Contains(string(encoded), "managed-cluster://admin/re8ch-atlantic") || !strings.Contains(string(encoded), "managed-cluster://admin/re8ch") {
 		t.Fatalf("Admin BYOC directory omitted managed targets: %s", encoded)
+	}
+
+	// Execute the existing directory's exact examples without any new input key.
+	connectionView := byoc["result"].(map[string]any)["structuredContent"].(map[string]any)
+	for _, raw := range connectionView["connections"].([]any) {
+		connection := raw.(map[string]any)
+		if connection["discovery_tool"] != "byoc_connection_list" {
+			t.Fatalf("directory references unrefreshed tool: %#v", connection)
+		}
+		operation := connection["kubectl"].(map[string]any)
+		reply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": operation["tool"], "arguments": operation["arguments"]})
+		if reply["error"] != nil || reply["result"].(map[string]any)["isError"] == true || kubectlCluster != connection["cluster_ref"] || kubectlBinding != currentBinding || strings.Join(kubectlArgv, " ") != "get --raw=/version" {
+			t.Fatalf("directory example did not resolve exactly its target: %#v %#v", connection, reply)
+		}
 	}
 	var registrations int
 	if err := s.ledger.QueryRow("SELECT COUNT(*) FROM cluster_registrations").Scan(&registrations); err != nil || registrations != 0 {
@@ -371,7 +415,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		t.Fatal("platform entry point missing from stable tool list")
 	}
 	assertPlatformStatus("ordinary-user", "session-2", false)
-	deniedKubectl := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "pods"}}})
+	deniedKubectl := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"--context=re8ch-atlantic", "get", "pods"}}})
 	if deniedKubectl["error"] == nil && deniedKubectl["result"].(map[string]any)["isError"] != true {
 		t.Fatal("ordinary user called explicit kubectl tool")
 	}

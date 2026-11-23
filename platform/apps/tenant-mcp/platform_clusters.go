@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"regexp"
+	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -53,6 +54,49 @@ func platformClusterArguments(ctx context.Context, s *server, ref string, argume
 	return arguments, nil
 }
 
+// platformKubectlSelection keeps existing argv-only clients target-aware using
+// kubectl's standard context selector. Only the reviewed binding resolver may
+// translate a context to a transport; it never reaches the backend kubeconfig.
+func platformKubectlSelection(input platformKubectlInput) (string, []string, error) {
+	ref, selected := input.ClusterRef, false
+	argv := make([]string, 0, len(input.Argv))
+	for i := 0; i < len(input.Argv); i++ {
+		arg := input.Argv[i]
+		if arg == "--" {
+			argv = append(argv, input.Argv[i:]...)
+			break
+		}
+		contextRef := ""
+		switch {
+		case arg == "--context":
+			i++
+			if i >= len(input.Argv) || input.Argv[i] == "" || strings.HasPrefix(input.Argv[i], "-") {
+				return "", nil, errors.New("kubectl context requires a reviewed clusterRef")
+			}
+			contextRef = input.Argv[i]
+		case strings.HasPrefix(arg, "--context="):
+			contextRef = strings.TrimPrefix(arg, "--context=")
+			if contextRef == "" {
+				return "", nil, errors.New("kubectl context requires a reviewed clusterRef")
+			}
+		default:
+			argv = append(argv, arg)
+			continue
+		}
+		if selected {
+			return "", nil, errors.New("kubectl context must be specified only once")
+		}
+		if input.ClusterRef != "" && input.ClusterRef != contextRef {
+			return "", nil, errors.New("kubectl context conflicts with clusterRef")
+		}
+		ref, selected = contextRef, true
+	}
+	if len(argv) == 0 {
+		return "", nil, errors.New("kubectl argv is required")
+	}
+	return ref, argv, nil
+}
+
 func (s *server) platformBYOCConnections(ctx context.Context, value any) (any, error) {
 	if _, err := platformIdentity(ctx); err != nil {
 		return nil, err
@@ -85,7 +129,9 @@ func (s *server) platformBYOCConnections(ctx context.Context, value any) (any, e
 			"tenant_ref": "admin", "cluster_ref": ref, "identity_ref": identityRef, "state": cluster["state"],
 			"source": "managed-cluster-binding", "managed": true, "registration_ref": nil,
 			"adapter": cluster["adapter"], "binding_digest": cluster["bindingDigest"],
-			"discovery_tool": "platform_cluster_bindings_list", "revocation": "reviewed-gitops"})
+			"discovery_tool": "byoc_connection_list", "revocation": "reviewed-gitops",
+			"kubectl_context": ref, "kubectl": map[string]any{"tool": "platform_kubectl_exec",
+				"arguments": map[string]any{"argv": []string{"--context=" + ref, "get", "--raw=/version"}, "timeout": 30}}})
 	}
 	view["connections"], view["managedTargetsIncluded"] = connections, true
 	return view, nil
