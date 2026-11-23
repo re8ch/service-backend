@@ -21,6 +21,17 @@
             "usersURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "organizationsURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "platformSessionURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
+            "invocationTokens": {
+              "type": "object", "additionalProperties": false,
+              "required": ["issuerURL", "jwksURL", "expectedIssuer", "credentialSecret", "credentialKey"],
+              "properties": {
+                "issuerURL": {"type": "string", "pattern": "^https?://[^ ]+/v1/invocation-tokens$"},
+                "jwksURL": {"type": "string", "pattern": "^https?://[^ ]+/.well-known/invocation-jwks.json$"},
+                "expectedIssuer": {"type": "string", "pattern": "^https://[^ ]+$"},
+                "credentialSecret": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
+                "credentialKey": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"}
+              }
+            },
             "modelGateway": {
               "type": "object", "additionalProperties": false,
               "properties": {

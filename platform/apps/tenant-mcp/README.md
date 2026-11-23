@@ -131,7 +131,8 @@ bearer to the read-only identity PostgREST endpoint; the RPC applies wallet
 authorization using `auth.uid()`. Results are Credits units, not currency or
 unpriced usage totals.
 
-The Re8ch plugin's public `/tenant-native/mcp` route maps to `/plugin/mcp`.
+The Re8ch plugin's canonical public `/tenant-plugin/mcp` route maps to
+`/plugin/mcp`; `/tenant-native/mcp` remains a compatibility alias.
 Platform operations are published as explicit tools with reviewable input
 schemas; the tenant MCP does not publish a generic catalog-and-dispatch bridge.
 Calls require a verified user with a current
@@ -419,3 +420,10 @@ route. The final provider audience must be resolved by the binding authority fro
 the selected `binding_ref`; callers must never select or override a provider
 audience. The verified active organization is likewise derived from the login
 session and tenant-control decision, not request fields or headers.
+
+The GitOps runtime points the issuer and JWKS contracts at the tenant control
+service. Until that service exposes both reviewed endpoints, token exchange
+intentionally returns `token_issuer_unavailable`; configuration presence is not
+evidence that a signing authority is ready. Runtime acceptance must verify the
+JWKS, a real signed exchange, binding ownership, and provider audience before
+enabling provider invocation.

@@ -60,6 +60,12 @@ spec:
         # the replicated in-cluster Auth Gateway instead of coupling every MCP
         # request directly to the single GoTrue Pod.
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
+        invocationTokens:
+          issuerURL: http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens
+          jwksURL: http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json
+          expectedIssuer: https://tools.service.re8ch.com/invocation
+          credentialSecret: tenant-claim-internal-auth
+          credentialKey: TENANT_CLAIM_SERVICE_TOKEN
       provider:
         enabled: true
         image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913

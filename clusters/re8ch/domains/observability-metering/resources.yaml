@@ -3672,6 +3672,12 @@ spec:
       tenantAPI:
         enabled: true
         image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:ee3cb1bc01d4db03e109ffaa2cdf8945daeab73a537f00ad4f4847df19319857
+        invocationTokens:
+          credentialKey: TENANT_CLAIM_SERVICE_TOKEN
+          credentialSecret: tenant-claim-internal-auth
+          expectedIssuer: https://tools.service.re8ch.com/invocation
+          issuerURL: http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens
+          jwksURL: http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json
         openAIAppsChallengeToken: 6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
