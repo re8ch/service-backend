@@ -28,7 +28,16 @@ type organizationContext struct {
 	Active    bool   `json:"is_active"`
 }
 
-func identityRPC(ctx context.Context, id identity, endpoint string, body any) ([]byte, error) {
+func identityRPC(ctx context.Context, id identity, endpoint string, body any) (result []byte, rpcErr error) {
+	phase := "identity.rpc"
+	for _, name := range []string{"credits_wallets", "my_tenant_runtime_contexts", "select_active_organization"} {
+		if strings.HasSuffix(endpoint, "/rpc/"+name) {
+			phase += "." + name
+			break
+		}
+	}
+	ctx, finishDiagnostic := diagnosticPhase(ctx, phase)
+	defer func() { finishDiagnostic(rpcErr) }()
 	if id.Service || id.Subject == "" || id.Token == "" {
 		return nil, errors.New("an authenticated user is required")
 	}
@@ -50,6 +59,7 @@ func identityRPC(ctx context.Context, id identity, endpoint string, body any) ([
 		return nil, errors.New("identity authority unavailable")
 	}
 	defer resp.Body.Close()
+	diagnosticHTTPStatus(ctx, resp.StatusCode)
 	data, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
 	if err != nil || len(data) > 1<<20 {
 		return nil, errors.New("invalid identity authority response")

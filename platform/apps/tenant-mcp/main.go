@@ -53,7 +53,7 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
-	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, mcpToolTelemetry.middleware)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, s.diagnostics().middleware, mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			caller, ok := ctx.Value(identityKey{}).(identity)
@@ -157,7 +157,7 @@ func (s *server) registerSelfServiceCapabilitiesTool(ms *mcp.Server) {
 
 func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant-self-service", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}}})
-	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, mcpToolTelemetry.middleware)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, s.diagnostics().middleware, mcpToolTelemetry.middleware)
 	if id.Service || id.Subject == "" || id.Tenant == "" {
 		return ms
 	}
@@ -418,7 +418,7 @@ func (s *server) handler() http.Handler {
 	})
 	mux.HandleFunc("GET /self-service/capabilities", s.selfServiceCapabilitiesHTTP)
 	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
-	mux.HandleFunc("GET /internal/mcp/catalog", s.mcpCatalogHTTP)
+	mux.Handle("GET /internal/mcp/catalog", s.diagnostics().http(http.HandlerFunc(s.mcpCatalogHTTP)))
 	mux.HandleFunc("GET /internal/mcp/catalog/events", s.mcpCatalogEventsHTTP)
 	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
@@ -463,7 +463,7 @@ func (s *server) handler() http.Handler {
 			}
 			if errors.Is(err, errIdentityUnavailable) {
 				log.Printf("tenant MCP identity authority unavailable: %v", err)
-				writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
+				writeJSON(w, 503, diagnosticErrorResponse(r.Context(), "identity_unavailable"))
 				return
 			}
 			if errors.Is(err, errInvalidToken) {
@@ -486,9 +486,9 @@ func (s *server) handler() http.Handler {
 		}
 		withVerifiedMCPSession(handler).ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	}
-	mux.HandleFunc("/mcp", mcpEndpoint)
-	mux.HandleFunc("/plugin/mcp", mcpEndpoint)
-	mux.HandleFunc("/self-service/mcp", mcpEndpoint)
+	mux.Handle("/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
+	mux.Handle("/plugin/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
+	mux.Handle("/self-service/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
 	return mux
 }
 
@@ -687,6 +687,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer s.db.Close()
+	s.toolDiagnostics, err = configuredToolDiagnostics()
+	if err != nil {
+		log.Print("tool diagnostics Sentry configuration invalid; local operation diagnostics remain enabled")
+		s.toolDiagnostics = &toolDiagnostics{}
+	}
+	if s.toolDiagnostics.client != nil {
+		defer s.toolDiagnostics.client.Flush(5 * time.Second)
+	}
+	log.Printf("tool diagnostics Sentry enabled=%t", s.toolDiagnostics.client != nil)
 	ledgerPath := os.Getenv("TENANT_SERVICE_DB")
 	if ledgerPath == "" {
 		ledgerPath = "/var/lib/tenant-platform/tenant-services.db"

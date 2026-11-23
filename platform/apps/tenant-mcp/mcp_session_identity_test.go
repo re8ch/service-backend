@@ -15,11 +15,16 @@ import (
 func TestMCPSessionBindsVerifiedUserAndOrganizationButAllowsTokenRefresh(t *testing.T) {
 	var calls atomic.Int32
 	var last atomic.Value
+	var lastOperation atomic.Value
+	diagnostics := &toolDiagnostics{}
 	ms := mcp.NewServer(&mcp.Implementation{Name: "principal-fixture", Version: "1"}, nil)
-	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, diagnostics.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Name: "read_fixture"}, func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 		calls.Add(1)
 		last.Store(ctx.Value(identityKey{}).(identity))
+		if state := diagnosticState(ctx); state != nil {
+			lastOperation.Store(state.operationID)
+		}
 		return nil, map[string]bool{"ok": true}, nil
 	})
 	transport := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return ms }, &mcp.StreamableHTTPOptions{JSONResponse: true, SessionTimeout: time.Minute})
@@ -32,14 +37,14 @@ func TestMCPSessionBindsVerifiedUserAndOrganizationButAllowsTokenRefresh(t *test
 		"b":           {Subject: "user-b", OrganizationRef: "org-a", Tenant: "tenant-a", RuntimeTenantRef: "tenant-a"},
 		"other-org":   {Subject: "user-a", OrganizationRef: "org-b", Tenant: "tenant-a", RuntimeTenantRef: "tenant-a"},
 	}
-	endpoint := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	endpoint := httptest.NewServer(diagnostics.http(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, ok := identities[strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")]
 		if !ok {
 			w.WriteHeader(401)
 			return
 		}
 		withVerifiedMCPSession(transport).ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
-	}))
+	})))
 	defer endpoint.Close()
 	request := func(method, token, sessionID, body string) *http.Response {
 		t.Helper()
@@ -59,6 +64,7 @@ func TestMCPSessionBindsVerifiedUserAndOrganizationButAllowsTokenRefresh(t *test
 	}
 	resp := request("POST", "a", "", `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","clientInfo":{"name":"fixture","version":"1"},"capabilities":{}}}`)
 	sessionID := resp.Header.Get("Mcp-Session-Id")
+	initializeOperation := resp.Header.Get("X-Re8ch-Operation-Id")
 	resp.Body.Close()
 	if resp.StatusCode != 200 || sessionID == "" {
 		t.Fatalf("init status=%d session=%q", resp.StatusCode, sessionID)
@@ -77,6 +83,7 @@ func TestMCPSessionBindsVerifiedUserAndOrganizationButAllowsTokenRefresh(t *test
 		t.Fatalf("other principal reached handler %d times", calls.Load())
 	}
 	resp = request("POST", "a-refreshed", sessionID, toolCall)
+	firstOperation := resp.Header.Get("X-Re8ch-Operation-Id")
 	var result struct{ Error any }
 	_ = json.NewDecoder(resp.Body).Decode(&result)
 	resp.Body.Close()
@@ -86,10 +93,17 @@ func TestMCPSessionBindsVerifiedUserAndOrganizationButAllowsTokenRefresh(t *test
 	if last.Load().(identity).Token != "fresh-token" {
 		t.Fatalf("handler used initial identity token instead of refreshed token")
 	}
+	if lastOperation.Load() != firstOperation || firstOperation == initializeOperation {
+		t.Fatal("tool retained initialization-time diagnostic scope")
+	}
 	resp = request("POST", "a-reduced", sessionID, toolCall)
+	secondOperation := resp.Header.Get("X-Re8ch-Operation-Id")
 	resp.Body.Close()
 	if resp.StatusCode != 200 || last.Load().(identity).PlatformAdmin || last.Load().(identity).Role != "viewer" {
 		t.Fatal("handler retained initialization-time permissions")
+	}
+	if lastOperation.Load() != secondOperation || firstOperation == secondOperation {
+		t.Fatal("tool reused another request's diagnostic scope")
 	}
 	resp = request("DELETE", "a-refreshed", sessionID, "")
 	resp.Body.Close()

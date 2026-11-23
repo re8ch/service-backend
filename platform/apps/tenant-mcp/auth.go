@@ -141,7 +141,9 @@ func serviceToken(token string) bool {
 	return secret != "" && subtle.ConstantTimeCompare([]byte(token), []byte(secret)) == 1
 }
 
-func (s *server) authenticate(ctx context.Context, bearer, selected string) (identity, error) {
+func (s *server) authenticate(ctx context.Context, bearer, selected string) (resolved identity, authErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "identity.resolve")
+	defer func() { finishDiagnostic(authErr) }()
 	if serviceToken(bearer) {
 		return identity{Subject: "service:litellm", Service: true}, nil
 	}
@@ -272,7 +274,9 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 	return id, nil
 }
 
-func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, error) {
+func (s *server) verifySupabase(ctx context.Context, bearer string) (verified identity, verificationErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "identity.verify_session")
+	defer func() { finishDiagnostic(verificationErr) }()
 	if bearer == "" || len(bearer) > 16384 {
 		return identity{}, errors.New("invalid bearer token")
 	}
@@ -313,6 +317,7 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 		return identity{}, fmt.Errorf("%w: GoTrue user lookup failed", errIdentityUnavailable)
 	}
 	defer response.Body.Close()
+	diagnosticHTTPStatus(ctx, response.StatusCode)
 	if response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= http.StatusInternalServerError {
 		return identity{}, fmt.Errorf("%w: GoTrue returned HTTP %d", errIdentityUnavailable, response.StatusCode)
 	}
