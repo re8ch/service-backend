@@ -15,6 +15,9 @@ COPY operations/cloud-platform/anatomy_diff_operation.py ./
 COPY operations/cloud-platform/cilium_cidr_operation.py ./
 COPY operations/cloud-platform/network_native_mutations.py ./
 COPY operations/cloud-platform/stalwart_admin.py operations/cloud-platform/stalwart_bootstrap.py operations/cloud-platform/stalwart_authority.py ./
+COPY operations/cloud-platform/cluster_bindings.py ./
+COPY operations/cloud-platform/cluster_execution_proxy.py ./
+COPY operations/releases/http_stream.py ./
 COPY operations/cloud-platform/network-planner/operations.json ./network-planner/operations.json
 COPY --from=network-planner /network-planner ./network-planner/network-planner
 COPY operations/plugin-capabilities/openapi/apis_anatomy.re8ch.com_v1alpha1.json ./anatomy-native-openapi.json

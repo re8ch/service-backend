@@ -18,7 +18,7 @@ MAX_BODY = 4 * 1024 * 1024
 def kubectl_prefix(kubeconfig):
     """Keep credential/CA authority while selecting a reviewed runtime endpoint."""
     argv = ["kubectl", "--kubeconfig", kubeconfig]
-    server = os.environ.get("KUBERNETES_SERVER_OVERRIDE", "")
+    server = getattr(kubeconfig, "server_override", os.environ.get("KUBERNETES_SERVER_OVERRIDE", ""))
     if server:
         parsed = urlsplit(server)
         if (parsed.scheme != "https" or not parsed.hostname or parsed.username or

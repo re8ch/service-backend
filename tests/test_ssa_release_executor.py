@@ -47,6 +47,37 @@ def contract(inventory=None, deletion=None):
     }
 
 
+def test_remote_execution_requires_explicit_binding_and_keeps_token_out_of_process_argv(monkeypatch):
+    value = contract()
+    value["spec"]["target"]["cluster"] = "re8ch-atlantic"
+    instance = executor.Executor()
+    with pytest.raises(executor.Rejected, match="binding digest"):
+        instance.bind_cluster_target(value)
+    value["spec"]["target"]["clusterBindingDigest"] = "b" * 64
+    instance.bind_cluster_target(value)
+    assert instance.cluster_release_id == "demo"
+    seen = []
+    def run(argv, **kwargs):
+        seen.append(argv)
+        config = json.loads(Path(argv[2]).read_text())
+        assert config["clusters"][0]["cluster"]["server"].startswith("http://127.0.0.1:")
+        assert "synthetic-token" not in json.dumps(config)
+        return subprocess.CompletedProcess(argv, 0, "{}", "")
+    instance.runner = run
+    instance.actions_kube_token = lambda: "synthetic-token"
+    assert instance.command(["kubectl", "get", "configmap", "demo"]).returncode == 0
+    assert seen and "synthetic-token" not in json.dumps(seen)
+    assert not Path(seen[0][2]).exists()
+
+
+def test_accepted_state_from_another_cluster_cannot_be_reused(tmp_path):
+    value, operation, bundle = prepare(tmp_path)
+    store = executor.Store(tmp_path, operation["releaseId"])
+    store.state = lambda: {"clusterRef": "different-cluster", "sequence": 0}
+    with pytest.raises(executor.Rejected, match="another cluster target"):
+        executor.Executor(now=lambda: NOW).validate(value, operation, bundle, store)
+
+
 def rendered(name="demo"):
     return f"""apiVersion: apps/v1
 kind: Deployment

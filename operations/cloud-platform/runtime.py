@@ -7,6 +7,7 @@ references to server-side executors and returns an operation/audit envelope.
 from __future__ import annotations
 
 import hashlib
+import contextlib
 import json
 import os
 import re
@@ -14,6 +15,7 @@ import secrets
 import shlex
 import subprocess
 import time
+import tempfile
 import urllib.request
 import uuid
 from dataclasses import dataclass
@@ -91,19 +93,50 @@ class Inventory:
 
 
 class CloudPlatform:
-    def __init__(self, inventory: Inventory, runner: OperationRunner, *, kubeconfig: str, ssh_config: str):
+    def __init__(self, inventory: Inventory, runner: OperationRunner, *, kubeconfig: str, ssh_config: str, cluster_ref: str = "re8ch"):
         self.inventory = inventory
         self.runner = runner
         self.kubeconfig = kubeconfig
         self.ssh_config = ssh_config
+        self.cluster_ref = cluster_ref
+
+    def cluster_bindings(self):
+        from cluster_bindings import ClusterBindings, ProjectedMetadataReader
+        return ClusterBindings.load(os.getenv("CLUSTER_BINDINGS_FILE", "/etc/re8ch-cluster-bindings/cluster-bindings.json"), ProjectedMetadataReader())
+
+    @contextlib.contextmanager
+    def for_cluster(self, cluster_ref, expected_digest=None):
+        from cluster_bindings import BoundKubeconfig
+        binding = self.cluster_bindings().resolve(cluster_ref)
+        if expected_digest and expected_digest != binding["bindingDigest"]:
+            raise OperationError("CLUSTER_BINDING_CHANGED", "review the current cluster binding before execution")
+        if binding["adapter"] == "local":
+            ref = binding["apiServiceRef"]
+            actual = self._kubectl(["get", "service", ref["name"], "--namespace", ref["namespace"], "-o", "json"])
+            if actual["exitCode"] or self._json_stdout(actual).get("metadata", {}).get("uid") != ref["uid"]:
+                raise OperationError("CLUSTER_BINDING_UNAVAILABLE", "native execution API differs from the reviewed self identity")
+            yield self, binding
+            return
+        # Only references to this process's projected identity are written here.
+        # The remote token, CA and API address remain exclusively in the broker.
+        with tempfile.TemporaryDirectory(prefix="re8ch-cluster-") as directory:
+            config = Path(directory) / "kubeconfig"
+            config.write_text(json.dumps({"apiVersion": "v1", "kind": "Config",
+                "clusters": [{"name": cluster_ref, "cluster": {"server": binding["brokerURL"]}}],
+                "users": [{"name": "cloud-platform", "user": {"tokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token"}}],
+                "contexts": [{"name": cluster_ref, "context": {"cluster": cluster_ref, "user": "cloud-platform"}}],
+                "current-context": cluster_ref}))
+            config.chmod(0o600)
+            yield CloudPlatform(self.inventory, self.runner, kubeconfig=BoundKubeconfig(str(config)),
+                                ssh_config=self.ssh_config, cluster_ref=cluster_ref), binding
 
     def nodes_list(self) -> dict[str, Any]:
-        desired = [target for target in self.inventory.list() if "k3s-" in " ".join(target["spec"]["capabilities"])]
+        desired = [target for target in self.inventory.list() if "k3s-" in " ".join(target["spec"]["capabilities"])] if self.cluster_ref == "re8ch" else []
         live = self._kubectl(["get", "nodes", "-o", "json"])
         return {"desired": desired, "live": self._json_stdout(live), "operation": live}
 
     def nodes_get(self, name: str) -> dict[str, Any]:
-        desired = self.inventory.get(name)
+        desired = self.inventory.get(name) if self.cluster_ref == "re8ch" else None
         live = self._kubectl(["get", "node", name, "-o", "json"])
         return {"desired": desired, "live": self._json_stdout(live), "operation": live}
 
@@ -121,7 +154,7 @@ class CloudPlatform:
         if not argv:
             raise OperationError("INVALID_ARGUMENT", "argv must not be empty")
         from plugin_http_transport import kubectl_prefix
-        return self.runner.run([*kubectl_prefix(self.kubeconfig), *argv], target="re8ch-k3s", timeout=timeout, stdin=stdin)
+        return self.runner.run([*kubectl_prefix(self.kubeconfig), *argv], target="re8ch-k3s" if self.cluster_ref == "re8ch" else self.cluster_ref, timeout=timeout, stdin=stdin)
 
     @staticmethod
     def _github_read(url: str, *, json_body: bool = False, limit: int = 1_048_576) -> Any:

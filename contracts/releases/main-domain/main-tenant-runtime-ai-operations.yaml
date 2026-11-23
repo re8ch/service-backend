@@ -24,11 +24,13 @@ spec:
     fieldManager: re8ch-release/main-tenant-runtime-ai-operations
     resources:
     - apps/Deployment
+    - core/ConfigMap
     - core/Service
     - core/ServiceAccount
     - gateway.networking.k8s.io/HTTPRoute
     - policy/PodDisruptionBudget
     objectNames:
+    - cloud-cluster-bindings
     - re8ch-cloud-platform
     - re8ch-cloud-platform-admin
     - re8ch-ssh-broker
@@ -36,7 +38,7 @@ spec:
     forceConflictObjects:
     - apps/Deployment/ai-operations/re8ch-cloud-platform
   inventory:
-    digest: sha256:93b30f7ab675b4cdd61a03bcbad4f529d1698b9507a930db1fb78d3fecba366c
+    digest: sha256:63c03e9a5d56f8841033f6dcc6a5155404106ff2ac9226984f01eb4371ccf7b4
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -49,6 +51,7 @@ spec:
     deletionAllowlist:
     - apps/Deployment/ai-operations/re8ch-cloud-platform
     - apps/Deployment/ai-operations/re8ch-ssh-broker
+    - core/ConfigMap/ai-operations/cloud-cluster-bindings
     - core/Service/ai-operations/re8ch-cloud-platform
     - core/Service/ai-operations/re8ch-ssh-broker
     - core/ServiceAccount/ai-operations/re8ch-cloud-platform

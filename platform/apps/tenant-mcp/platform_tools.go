@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -61,12 +62,15 @@ func currentPlatformAdmin(ctx context.Context, bearer string) (bool, error) {
 }
 
 type platformKubectlInput struct {
-	Argv    []string `json:"argv" jsonschema:"kubectl arguments as an array of strings, for example [get,--raw=/version]"`
-	Stdin   string   `json:"stdin,omitempty"`
-	Timeout int      `json:"timeout,omitempty" jsonschema:"Execution timeout in seconds, from 1 to 3600; defaults to 30"`
+	ClusterBindingDigest string   `json:"clusterBindingDigest,omitempty"`
+	ClusterRef           string   `json:"clusterRef,omitempty"`
+	Argv                 []string `json:"argv" jsonschema:"kubectl arguments as an array of strings, for example [get,--raw=/version]"`
+	Stdin                string   `json:"stdin,omitempty"`
+	Timeout              int      `json:"timeout,omitempty" jsonschema:"Execution timeout in seconds, from 1 to 3600; defaults to 30"`
 }
 
 type platformResourceReadInput struct {
+	ClusterRef    string `json:"clusterRef,omitempty"`
 	Action        string `json:"action"`
 	Resource      string `json:"resource,omitempty"`
 	Name          string `json:"name,omitempty"`
@@ -77,17 +81,19 @@ type platformResourceReadInput struct {
 }
 
 type platformResourceApplyInput struct {
-	Manifest map[string]any `json:"manifest"`
-	Apply    bool           `json:"apply,omitempty"`
-	PlanHash string         `json:"planHash,omitempty"`
+	ClusterRef string         `json:"clusterRef,omitempty"`
+	Manifest   map[string]any `json:"manifest"`
+	Apply      bool           `json:"apply,omitempty"`
+	PlanHash   string         `json:"planHash,omitempty"`
 }
 
 type platformResourceDeleteInput struct {
-	Resource  string `json:"resource"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace,omitempty"`
-	Apply     bool   `json:"apply,omitempty"`
-	PlanHash  string `json:"planHash,omitempty"`
+	ClusterRef string `json:"clusterRef,omitempty"`
+	Resource   string `json:"resource"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace,omitempty"`
+	Apply      bool   `json:"apply,omitempty"`
+	PlanHash   string `json:"planHash,omitempty"`
 }
 
 type platformStalwartAdminInput struct {
@@ -166,6 +172,13 @@ func validatePlatformPostgresInput(input map[string]any) error {
 }
 
 func callNativePlatformTool(ctx context.Context, s *server, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	if (name == "kubectl.exec" || strings.HasPrefix(name, "kube.") || name == "nodes.list" || name == "nodes.get") && arguments["clusterRef"] == nil {
+		var err error
+		arguments, err = platformClusterArguments(ctx, s, "re8ch", arguments)
+		if err != nil {
+			return nil, err
+		}
+	}
 	value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession) (any, error) {
 		return session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
 	})
@@ -175,6 +188,18 @@ func callNativePlatformTool(ctx context.Context, s *server, name string, argumen
 	result, ok := value.(*mcp.CallToolResult)
 	if !ok {
 		return nil, errors.New("native platform backend returned an invalid result")
+	}
+	if digest, bound := arguments["clusterBindingDigest"].(string); bound {
+		if id, identityErr := identityFrom(ctx); identityErr == nil {
+			audit := map[string]any{"event": "platform-cluster-operation", "actorRef": "sha256:" + sha256Hex(id.Subject),
+				"organizationRef": id.Tenant, "clusterRef": arguments["clusterRef"], "bindingDigest": digest, "tool": name, "isError": result.IsError}
+			if result.Meta == nil {
+				result.Meta = mcp.Meta{}
+			}
+			result.Meta["re8ch.com/cluster-binding"] = audit
+			encoded, _ := json.Marshal(audit)
+			log.Print(string(encoded))
+		}
 	}
 	return result, nil
 }
@@ -396,6 +421,7 @@ func platformIdentity(ctx context.Context) (identity, error) {
 }
 
 func (s *server) registerPlatformTools(ms *mcp.Server) {
+	s.registerPlatformClusterTools(ms)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_postgres_admin_sql"), Name: "platform_postgres_admin_sql", Description: "Run bounded SQL against the adopted pg-re8ch PostgreSQL authority. Re8ch Admin membership is required. Reads execute directly; writes require approvalId, preview, and the exact planHash. Credential material is never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"database":{"type":"string"},"sql":{"type":"string"},"readOnly":{"type":"boolean","default":true},"transactional":{"type":"boolean","default":true},"approvalId":{"type":"string"},"apply":{"type":"boolean","default":false},"planHash":{"type":"string"},"maxRows":{"type":"integer","minimum":1,"maximum":1000,"default":100},"timeoutSeconds":{"type":"integer","minimum":1,"maximum":120,"default":30}},"required":["database","sql"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
@@ -445,7 +471,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			result, err := callNativePlatformTool(ctx, s, name, arguments)
 			return result, nil, err
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_read"), Name: "platform_kubernetes_resource_read", Description: "Discover every Kubernetes API resource type or read a named/listed non-Secret resource from the directly connected RE8CH platform cluster. Re8ch Admin membership is required. Secret values are never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["discover","list","get"]},"resource":{"type":"string","description":"API resource name such as deployments.apps or ciliumnetworkpolicies.cilium.io"},"name":{"type":"string"},"namespace":{"type":"string"},"allNamespaces":{"type":"boolean"},"labelSelector":{"type":"string"},"fieldSelector":{"type":"string"}},"required":["action"],"additionalProperties":false}`)},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_read"), Name: "platform_kubernetes_resource_read", Description: "Discover every Kubernetes API resource type or read a named/listed non-Secret resource from a reviewed clusterRef (default self/re8ch). Re8ch Admin membership is required. Secret values are never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"action":{"type":"string","enum":["discover","list","get"]},"resource":{"type":"string","description":"API resource name such as deployments.apps or ciliumnetworkpolicies.cilium.io"},"name":{"type":"string"},"namespace":{"type":"string"},"allNamespaces":{"type":"boolean"},"labelSelector":{"type":"string"},"fieldSelector":{"type":"string"},"clusterRef":{"type":"string","description":"Reviewed callable clusterRef from platform_cluster_bindings_list; omission preserves the existing self cluster."}},"required":["action"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceReadInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
@@ -454,10 +480,14 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if err != nil {
 				return nil, nil, err
 			}
-			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
+			arguments, err := platformClusterArguments(ctx, s, input.ClusterRef, map[string]any{"argv": argv, "timeout": 120})
+			if err != nil {
+				return nil, nil, err
+			}
+			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", arguments)
 			return result, nil, err
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_apply"), Name: "platform_kubernetes_resource_apply", Description: "Server-side dry-run or apply one complete Kubernetes object in any namespace or at cluster scope through the direct RE8CH platform backend. Re8ch Admin membership and an exact preview planHash are required for apply. Secret values remain write-only.", InputSchema: json.RawMessage(`{"type":"object","properties":{"manifest":{"type":"object","description":"Complete Kubernetes object including apiVersion, kind and metadata.name"},"apply":{"type":"boolean"},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["manifest"],"additionalProperties":false}`)},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_apply"), Name: "platform_kubernetes_resource_apply", Description: "Server-side dry-run or apply one complete Kubernetes object in any namespace or at cluster scope through a reviewed clusterRef (default self/re8ch). Re8ch Admin membership and an exact preview planHash are required for apply. Secret values remain write-only.", InputSchema: json.RawMessage(`{"type":"object","properties":{"manifest":{"type":"object","description":"Complete Kubernetes object including apiVersion, kind and metadata.name"},"apply":{"type":"boolean"},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"},"clusterRef":{"type":"string","description":"Reviewed callable clusterRef from platform_cluster_bindings_list; omission preserves the existing self cluster."}},"required":["manifest"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceApplyInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
@@ -466,7 +496,12 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if asString(input.Manifest, "apiVersion") == "" || asString(input.Manifest, "kind") == "" || !validKubernetesName(asString(metadata, "name")) {
 				return nil, nil, errors.New("manifest apiVersion, kind and metadata.name are required")
 			}
-			planHash, err := platformMutationPlan("apply", input.Manifest)
+			binding, err := platformClusterArguments(ctx, s, input.ClusterRef, map[string]any{})
+			if err != nil {
+				return nil, nil, err
+			}
+			planInput := map[string]any{"manifest": input.Manifest, "cluster": binding}
+			planHash, err := platformMutationPlan("apply", planInput)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -474,6 +509,9 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 				return nil, nil, errors.New("apply requires the exact planHash returned by preview")
 			}
 			arguments := map[string]any{"resource": strings.ToLower(asString(input.Manifest, "kind")), "name": asString(metadata, "name"), "manifest": input.Manifest}
+			for key, value := range binding {
+				arguments[key] = value
+			}
 			if namespace := asString(metadata, "namespace"); namespace != "" {
 				if !validKubernetesName(namespace) {
 					return nil, nil, errors.New("invalid manifest namespace")
@@ -482,13 +520,17 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			if !input.Apply {
 				manifest, _ := json.Marshal(input.Manifest)
-				result, callErr := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=re8ch-admin-meta", "-f", "-", "-o", "name"}, "stdin": string(manifest), "timeout": 120})
+				preview := map[string]any{"argv": []string{"apply", "--server-side", "--dry-run=server", "--field-manager=re8ch-admin-meta", "-f", "-", "-o", "name"}, "stdin": string(manifest), "timeout": 120}
+				for key, value := range binding {
+					preview[key] = value
+				}
+				result, callErr := callNativePlatformTool(ctx, s, "kubectl.exec", preview)
 				return result, map[string]any{"planHash": planHash, "applied": false}, callErr
 			}
 			result, callErr := callNativePlatformTool(ctx, s, "kube.resource.apply", arguments)
 			return result, map[string]any{"planHash": planHash, "applied": callErr == nil}, callErr
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_delete"), Name: "platform_kubernetes_resource_delete", Description: "Preview or delete one Kubernetes object in any namespace or at cluster scope through the direct RE8CH platform backend. Re8ch Admin membership and the exact preview planHash are required for deletion.", InputSchema: json.RawMessage(`{"type":"object","properties":{"resource":{"type":"string"},"name":{"type":"string"},"namespace":{"type":"string"},"apply":{"type":"boolean"},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["resource","name"],"additionalProperties":false}`)},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubernetes_resource_delete"), Name: "platform_kubernetes_resource_delete", Description: "Preview or delete one Kubernetes object in any namespace or at cluster scope through a reviewed clusterRef (default self/re8ch). Re8ch Admin membership and the exact preview planHash are required for deletion.", InputSchema: json.RawMessage(`{"type":"object","properties":{"resource":{"type":"string"},"name":{"type":"string"},"namespace":{"type":"string"},"apply":{"type":"boolean"},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"},"clusterRef":{"type":"string","description":"Reviewed callable clusterRef from platform_cluster_bindings_list; omission preserves the existing self cluster."}},"required":["resource","name"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformResourceDeleteInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
@@ -498,18 +540,32 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 				return nil, nil, errors.New("valid resource, name and optional namespace are required")
 			}
 			planArguments := map[string]any{"resource": input.Resource, "name": input.Name, "namespace": input.Namespace}
+			binding, err := platformClusterArguments(ctx, s, input.ClusterRef, map[string]any{})
+			if err != nil {
+				return nil, nil, err
+			}
+			for key, value := range binding {
+				planArguments[key] = value
+			}
 			planHash, _ := platformMutationPlan("delete", planArguments)
 			if input.Apply && input.PlanHash != planHash {
 				return nil, nil, errors.New("delete requires the exact planHash returned by preview")
 			}
 			arguments := map[string]any{"resource": input.Resource, "name": input.Name}
+			for key, value := range binding {
+				arguments[key] = value
+			}
 			argv := []string{"delete", input.Resource, input.Name, "--dry-run=server", "-o", "name"}
 			if input.Namespace != "" {
 				arguments["namespace"] = input.Namespace
 				argv = append(argv, "--namespace", input.Namespace)
 			}
 			if !input.Apply {
-				result, callErr := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": argv, "timeout": 120})
+				preview := map[string]any{"argv": argv, "timeout": 120}
+				for key, value := range binding {
+					preview[key] = value
+				}
+				result, callErr := callNativePlatformTool(ctx, s, "kubectl.exec", preview)
 				return result, map[string]any{"planHash": planHash, "deleted": false}, callErr
 			}
 			result, callErr := callNativePlatformTool(ctx, s, "kube.resource.delete", arguments)
@@ -621,7 +677,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			}
 			return value.(*mcp.CallToolResult), nil, nil
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command in the RE8CH platform cluster with an argv string array. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments, for example [\"get\",\"--raw=/version\"]"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"}},"required":["argv"],"additionalProperties":false}`)},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_kubectl_exec"), Name: "platform_kubectl_exec", Description: "Execute one kubectl command on a reviewed clusterRef (default self/re8ch) with an argv string array. Requires verified platform administrator membership. Commands may change cluster state; inspect the exact argv and plan material writes first. Returns the backend result and audit reference.", InputSchema: json.RawMessage(`{"type":"object","properties":{"argv":{"type":"array","minItems":1,"items":{"type":"string"},"description":"kubectl arguments, for example [\"get\",\"--raw=/version\"]"},"timeout":{"type":"integer","minimum":1,"maximum":3600,"description":"Execution timeout in seconds; defaults to 30"},"clusterRef":{"type":"string","description":"Reviewed callable clusterRef from platform_cluster_bindings_list; omission preserves the existing self cluster."}},"required":["argv"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
 				return nil, nil, err
@@ -635,7 +691,11 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if input.Timeout < 1 || input.Timeout > 3600 {
 				return nil, nil, errors.New("kubectl timeout must be between 1 and 3600 seconds")
 			}
-			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", map[string]any{"argv": input.Argv, "timeout": input.Timeout})
+			arguments, err := platformClusterArguments(ctx, s, input.ClusterRef, map[string]any{"argv": input.Argv, "timeout": input.Timeout})
+			if err != nil {
+				return nil, nil, err
+			}
+			result, err := callNativePlatformTool(ctx, s, "kubectl.exec", arguments)
 			return result, nil, err
 		})
 }

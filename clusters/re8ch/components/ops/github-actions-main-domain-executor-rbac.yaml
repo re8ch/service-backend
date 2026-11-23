@@ -1487,6 +1487,7 @@ rules:
   resources:
   - configmaps
   resourceNames:
+  - cloud-cluster-bindings
   - ssa-state-main-tenant-runtime-ai-operations
   verbs:
   - get

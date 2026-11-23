@@ -55,6 +55,10 @@ func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 			continue
 		}
 		found = true
+		selection, ok := capability["targetSelection"].(map[string]any)
+		if !ok || selection["discoveryTool"] != "platform_cluster_bindings_list" || selection["default"] != "re8ch" {
+			t.Fatalf("missing managed target selector: %v", capability)
+		}
 		if capability["connection"] != "direct" || capability["ownership"] != "re8ch-admin" || capability["scope"] != "cluster" || capability["namespaceSelector"] != "*" || capability["grantIndependent"] != true || capability["canRead"] != true || capability["canWrite"] != true || capability["secretValuesReadable"] != false {
 			t.Fatalf("wrong platform capability: %v", capability)
 		}

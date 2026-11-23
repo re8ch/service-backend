@@ -136,6 +136,13 @@ administrator gate, backend authorization, and audit result. Its action definiti
 is explicit so a plugin reviewer can assess it independently of the generic
 backend operation. `platform_kubernetes_resource_read` discovers all API
 resource types and reads bounded non-Secret objects.
+`platform_cluster_bindings_list` lists the existing self cluster (`re8ch`) and
+reviewed Admin-managed AmongCluster targets without registering duplicate BYOC
+connections. Kubernetes read/apply/delete and kubectl tools accept `clusterRef`;
+omission preserves the existing local adapter. An unknown or withdrawn target
+never falls back locally. Mutation plans bind the target and current reviewed
+binding digest. Admin infrastructure access is independent of the ordinary
+tenant BYOC registration policy.
 `platform_kubernetes_resource_apply` and
 `platform_kubernetes_resource_delete` provide server-validated previews and
 require the exact preview plan hash before mutating any namespaced or

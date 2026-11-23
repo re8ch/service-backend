@@ -26,6 +26,8 @@ ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
+    "clusters.list": {},
+    "clusters.resolve": {"clusterRef": {"type": "string"}},
     "credentials.stalwart.authority.ensure": {"action": {"type": "string", "enum": ["discover", "seed", "revoke"], "default": "seed"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.stalwart.ensure": {"apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.webmail-session.ensure": {"apply": {"type": "boolean", "default": False}},
@@ -54,6 +56,11 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "workspace.memory-audit": {},
 }
 
+CLUSTER_TOOLS = {name for name in SCHEMAS if name.startswith("kube.")} | {"kubectl.exec", "nodes.list", "nodes.get"}
+for cluster_tool in CLUSTER_TOOLS:
+    SCHEMAS[cluster_tool] = {**SCHEMAS[cluster_tool], "clusterRef": {"type": "string"},
+                            "clusterBindingDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 MIHOMOS_BY_NAME = {tool["name"]: tool for tool in MIHOMOS_TOOLS}
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
@@ -71,7 +78,10 @@ PRIVILEGED_TOOLS = {*STALWART_ADMIN_BY_NAME, *MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL
 WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "reconcile_control_plane_authentication_config", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
 
+PRIVILEGED_TOOLS |= {"clusters.list", "clusters.resolve"}
+
 REQUIRED = {
+    "clusters.resolve": ["clusterRef"],
     "plugin.operations.list": ["groupVersion"],
     "plugin.operation.read": ["groupVersion", "operationId", "schemaHash"],
     "plugin.operation.http-check": ["groupVersion", "operationId", "schemaHash"],
@@ -132,9 +142,29 @@ def authenticate(header: str) -> Identity | None:
         return None
 
 
-def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
+def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity, *, _bound=False) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
+    if name == "clusters.list":
+        return service.cluster_bindings().list()
+    if name == "clusters.resolve":
+        binding = service.cluster_bindings().resolve(args["clusterRef"])
+        return {key: value for key, value in binding.items() if key != "brokerURL"}
+    if name in CLUSTER_TOOLS and not _bound:
+        if ADMIN_GROUP not in identity.groups:
+            raise OperationError("AUTHORIZATION_DENIED", "managed cluster access requires platform administration")
+        arguments = dict(args)
+        ref = arguments.pop("clusterRef", "re8ch")
+        expected = arguments.pop("clusterBindingDigest", None)
+        if name == "kubectl.exec":
+            target_flags = ("--server", "--kubeconfig", "--context", "--cluster", "--user", "--token", "--client-certificate", "--client-key", "--certificate-authority", "--insecure-skip-tls-verify", "--as", "--as-group", "--as-uid")
+            if any(arg.split("=", 1)[0] in target_flags for arg in arguments.get("argv", [])):
+                raise OperationError("INVALID_ARGUMENT", "kubectl cannot override a reviewed cluster target or identity")
+        with service.for_cluster(ref, expected) as (bound, binding):
+            result = dispatch(bound, name, arguments, identity, _bound=True)
+            if isinstance(result, dict):
+                result = {**result, "clusterRef": ref, "clusterBindingDigest": binding["bindingDigest"]}
+            return result
     if name in STALWART_ADMIN_BY_NAME:
         from stalwart_admin import call
         return call(name, args, identity.subject)
@@ -229,7 +259,57 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
 class Handler(BaseHTTPRequestHandler):
     server_version = "re8ch-cloud-platform/0.1"
 
+    def managed_cluster_proxy(self):
+        from cluster_execution_proxy import proxy_request, caller_identity, PROOF_HEADER
+        from plugin_http_transport import MAX_BODY
+        from http_stream import copy_response
+        try:
+            identity = caller_identity(self.headers.get(PROOF_HEADER, ""))
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 0 or length > MAX_BODY:
+                return self.reply(413, {"error": "KUBERNETES_BODY_TOO_LARGE"})
+            body = self.rfile.read(length) if length else None
+            response, audit = proxy_request(self.server.service, self.command, self.path, self.headers, body,
+                                           authenticate=lambda _: identity)
+            with response:
+                self.send_response(response.status)
+                for key in ("Content-Type", "Content-Encoding", "Warning", "Audit-Id"):
+                    for value in response.headers.get_all(key, []):
+                        self.send_header(key, value)
+                self.send_header("Connection", "close")
+                self.end_headers()
+                copy_response(response, self.connection, self.wfile)
+            print(json.dumps({"event": "managed-cluster-request", **audit}))
+        except OperationError as error:
+            self.reply(403 if error.code in {"AUTHENTICATION_REQUIRED", "AUTHORIZATION_DENIED"} else 409,
+                       {"error": error.code, "message": str(error)})
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except (OSError, ValueError):
+            self.reply(502, {"error": "CLUSTER_TRANSPORT_UNAVAILABLE"})
+        self.close_connection = True
+
+    def do_PUT(self):
+        return self.managed_cluster_proxy() if self.path.startswith("/k8s/") else self.reply(404, {"error": "not_found"})
+
+    do_PATCH = do_PUT
+    do_DELETE = do_PUT
+
     def do_GET(self) -> None:
+        if self.path.startswith("/cluster-bindings/"):
+            from cluster_execution_proxy import caller_identity, PROOF_HEADER, BINDING_HEADER
+            try:
+                identity = caller_identity(self.headers.get(PROOF_HEADER, ""))
+                ref = self.path.removeprefix("/cluster-bindings/")
+                binding = self.server.service.cluster_bindings().resolve(ref)
+                if binding["adapter"] != "local" or self.headers.get(BINDING_HEADER) != binding["bindingDigest"]:
+                    raise OperationError("CLUSTER_BINDING_CHANGED", "self execution binding differs from reviewed identity")
+                print(json.dumps({"event":"managed-cluster-binding", "clusterRef":ref, "bindingDigest":binding["bindingDigest"], "caller":identity["username"]}))
+                return self.reply(200, binding)
+            except OperationError as error:
+                return self.reply(403, {"error":error.code, "message":str(error)})
+        if self.path.startswith("/k8s/"):
+            return self.managed_cluster_proxy()
         if self.path in {"/healthz", "/readyz"}:
             self.reply(200, {"status": "ok"})
         elif self.path == "/.well-known/oauth-protected-resource/cloud/mcp":
@@ -238,6 +318,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(404, {"error": "not_found"})
 
     def do_POST(self) -> None:
+        if self.path.startswith("/k8s/"):
+            return self.managed_cluster_proxy()
         if self.path != "/mcp":
             return self.reply(404, {"error": "not_found"})
         identity = authenticate(self.headers.get("Authorization", ""))

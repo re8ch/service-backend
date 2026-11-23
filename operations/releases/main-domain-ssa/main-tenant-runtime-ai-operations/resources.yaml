@@ -37,6 +37,7 @@ spec:
                   app: re8ch-cloud-platform
               topologyKey: kubernetes.io/hostname
             weight: 100
+      automountServiceAccountToken: false
       containers:
       - env:
         - name: CONFIG_ROOT
@@ -45,6 +46,8 @@ spec:
           value: /etc/re8ch-platform/kubeconfig
         - name: KUBERNETES_SERVER_OVERRIDE
           value: https://10.250.0.147:6443
+        - name: CLUSTER_BINDINGS_FILE
+          value: /etc/re8ch-cluster-bindings/cluster-bindings.json
         - name: WORKSPACE_ROOT
           value: /srv/service-backend
         - name: HYPOTHESIS_STORAGE_DIRECTORY
@@ -102,6 +105,12 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
         volumeMounts:
+        - mountPath: /etc/re8ch-cluster-bindings
+          name: cluster-bindings
+          readOnly: true
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: cluster-binding-identity
+          readOnly: true
         - mountPath: /etc/stalwart-bootstrap/config
           name: stalwart-bootstrap-config
           readOnly: true
@@ -130,6 +139,21 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       serviceAccountName: re8ch-cloud-platform
       volumes:
+      - configMap:
+          name: cloud-cluster-bindings
+        name: cluster-bindings
+      - name: cluster-binding-identity
+        projected:
+          defaultMode: 288
+          sources:
+          - serviceAccountToken:
+              expirationSeconds: 3600
+              path: token
+          - configMap:
+              items:
+              - key: ca.crt
+                path: ca.crt
+              name: kube-root-ca.crt
       - configMap:
           defaultMode: 288
           items:
@@ -206,10 +230,6 @@ spec:
                 operator: In
                 values:
                 - core
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - r640
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:
@@ -309,6 +329,31 @@ spec:
               - key: id_ed25519
                 path: id_ed25519
               name: cloud-platform-runtime
+---
+apiVersion: v1
+data:
+  cluster-bindings.json: "{\n  \"clusters\": {\n    \"re8ch\": {\n      \"clusterRef\"\
+    : \"re8ch\", \"adapter\": \"local\", \"trustDomain\": \"re8ch.internal\",\n  \
+    \    \"clusterIdentityRef\": {\"namespace\": \"byoc-pilot\", \"name\": \"re8ch\"\
+    , \"uid\": \"9b360e14-2a36-44db-8c80-6b7ca690df63\"},\n      \"apiServiceRef\"\
+    : {\"namespace\": \"default\", \"name\": \"kubernetes\", \"uid\": \"9a4ff49b-d663-47df-962a-f1d562c85c32\"\
+    }\n    },\n    \"re8ch-atlantic\": {\n      \"clusterRef\": \"re8ch-atlantic\"\
+    ,\n      \"adapter\": \"among-broker\",\n      \"namespace\": \"byoc-pilot\",\n\
+    \      \"publisherRef\": \"re8ch-atlantic\",\n      \"serviceIdentity\": \"spiffe://atlantic.re8ch.com/ns/default/service/kubernetes\"\
+    ,\n      \"advertisementRef\": {\"name\": \"re8ch-atlantic-default-kubernetes\"\
+    , \"uid\": \"c282af55-67a5-4684-ba46-66e5667303ba\"},\n      \"importedServiceRef\"\
+    : {\"name\": \"re8ch-atlantic-default-kubernetes-re8ch-atlantic\", \"uid\": \"\
+    b91afbed-fe93-455f-9700-3424448ac66f\"},\n      \"peerRef\": {\"name\": \"re8ch-atlantic\"\
+    , \"uid\": \"d876a0ff-2001-4348-b9d4-c57a93670ef0\"},\n      \"grantRef\": {\"\
+    name\": \"re8ch-atlantic-headlamp-admin\", \"uid\": \"d9fae24e-cea9-4014-8c93-0837bd8e7e60\"\
+    },\n      \"grantScope\": {\"scope\": \"Cluster\", \"rules\": [{\"apiGroups\"\
+    : [\"*\"], \"resources\": [\"*\"], \"verbs\": [\"*\"]}]},\n      \"brokerURL\"\
+    : \"http://among-clusters-credential-broker.credential-broker.svc.cluster.local\"\
+    \n    }\n  }\n}\n"
+kind: ConfigMap
+metadata:
+  name: cloud-cluster-bindings
+  namespace: ai-operations
 ---
 apiVersion: v1
 kind: Service

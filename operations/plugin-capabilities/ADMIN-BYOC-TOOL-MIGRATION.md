@@ -30,8 +30,9 @@ their existing Ready-namespace, grant, and kind isolation.
 
 | Existing capability | New tool surface | Scope |
 | --- | --- | --- |
-| Platform Kubernetes discovery/read | `platform_kubernetes_resource_read` | Directly connected RE8CH platform cluster; all API resource types discoverable; Secret values excluded |
-| Platform Kubernetes apply/delete | `platform_kubernetes_resource_apply`, `platform_kubernetes_resource_delete` | Direct cluster; any namespaced or cluster-scoped resource; server dry-run and exact plan hash before write |
+| Callable platform clusters | `platform_cluster_bindings_list` | Existing self/re8ch adapter and reviewed Admin-managed AmongCluster bindings; separate from tenant registration policy; no duplicate registrations or credentials |
+| Platform Kubernetes discovery/read | `platform_kubernetes_resource_read` | Optional reviewed `clusterRef`, default self; all API resource types discoverable; Secret values excluded |
+| Platform Kubernetes apply/delete | `platform_kubernetes_resource_apply`, `platform_kubernetes_resource_delete` | Optional reviewed `clusterRef`; target-bound server dry-run and exact plan hash before write |
 | Existing Kubernetes read/apply/delete | `tenant_kubernetes_get`, `tenant_kubernetes_apply`, `tenant_kubernetes_delete` | Admin Meta tenant: every namespaced and cluster-scoped resource on the direct cluster; ordinary tenants: owned Ready namespaces, including external clusters selected through AmongCluster |
 | Secrets | `tenant_secret_upsert`, `tenant_secret_metadata_list`, `tenant_secret_delete` | Write-only/metadata-only in Admin-owned Ready namespaces |
 | Workloads, storage claims and HTTPS exposure | Existing tenant claim, Kubernetes and exposure tools | Admin-owned Ready namespaces |
