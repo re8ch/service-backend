@@ -46,6 +46,13 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     admin_env = {v["name"]: v.get("value") for v in admin["env"]}
     assert tenant_env["AUTH_DISCOVERY_URL"] == "http://supabase-identity-auth.supabase-identity.svc:9999/.well-known/oauth-authorization-server"
     assert tenant_env["SUPABASE_USER_URL"] == "http://supabase-identity-auth.supabase-identity.svc:9999/user"
+    assert tenant_env["INVOCATION_TOKEN_ISSUER_URL"] == "http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens"
+    assert tenant_env["INVOCATION_TOKEN_JWKS_URL"] == "http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json"
+    assert tenant_env["INVOCATION_TOKEN_ISSUER"] == "https://tools.service.re8ch.com/invocation"
+    invocation_credential = next(item for item in tenant["env"] if item["name"] == "TENANT_CLAIM_SERVICE_TOKEN")
+    assert invocation_credential["valueFrom"]["secretKeyRef"] == {
+        "name": "tenant-claim-internal-auth", "key": "TENANT_CLAIM_SERVICE_TOKEN", "optional": False,
+    }
     assert admin_env["AUTH_DISCOVERY_URL"] == "https://api.re8ch.com/auth/.well-known/openid-configuration"
     for env in (tenant_env, admin_env):
         assert env["DEX_USERINFO_URL"] == "https://api.re8ch.com/auth/userinfo"
@@ -58,6 +65,19 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.tenantAPI.enabled=true"], capture_output=True, text=True)
     assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
+
+
+def test_release_wires_fail_closed_invocation_authority_without_secret_values():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    config = release["spec"]["values"]["tenantPlatform"]["tenantAPI"]["invocationTokens"]
+    assert config == {
+        "issuerURL": "http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens",
+        "jwksURL": "http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json",
+        "expectedIssuer": "https://tools.service.re8ch.com/invocation",
+        "credentialSecret": "tenant-claim-internal-auth",
+        "credentialKey": "TENANT_CLAIM_SERVICE_TOKEN",
+    }
+    assert not any(key.lower().endswith(("token", "password", "privatekey")) for key in config)
 
 
 def test_provider_worker_requires_explicit_signed_image_rollout():
@@ -163,19 +183,22 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp",
     }
     tenant_env = {item["name"]: item.get("value") for item in deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
-    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
+    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-plugin/mcp"
     native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
     native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
     assert native_paths == {
         "/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp",
+        "/tenant-plugin/mcp", "/.well-known/oauth-protected-resource/tenant-plugin/mcp",
         "/tenant-self-service/mcp", "/.well-known/oauth-protected-resource/tenant-self-service/mcp",
         "/.well-known/openai-apps-challenge",
     }
     plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-native/mcp")
     assert plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
+    canonical_plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-plugin/mcp")
+    assert canonical_plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
     assert tenant_env["OPENAI_APPS_CHALLENGE_TOKEN"] == ""
     challenge_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/.well-known/openai-apps-challenge")
     assert challenge_rule["backendRefs"] == [{"name": "tenant-api", "port": 80}]
