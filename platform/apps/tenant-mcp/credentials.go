@@ -230,7 +230,9 @@ func controlRequestBody(ctx context.Context, tenant, path string, payload any) (
 	return controlRequestMethod(ctx, tenant, path, method, payload)
 }
 
-func controlRequestMethod(ctx context.Context, tenant, path, method string, payload any) (map[string]any, error) {
+func controlRequestMethod(ctx context.Context, tenant, path, method string, payload any) (controlResult map[string]any, controlErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "tenant_control.request")
+	defer func() { finishDiagnostic(controlErr) }()
 	base, secret := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/"), os.Getenv("TENANT_CLAIM_SERVICE_TOKEN")
 	if base == "" || secret == "" {
 		return nil, errors.New("tenant claim controller unavailable")

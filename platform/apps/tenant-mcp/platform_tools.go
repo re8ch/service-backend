@@ -173,7 +173,15 @@ func validatePlatformPostgresInput(input map[string]any) error {
 	return nil
 }
 
-func callNativePlatformTool(ctx context.Context, s *server, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+func callNativePlatformTool(ctx context.Context, s *server, name string, arguments map[string]any) (nativeResult *mcp.CallToolResult, nativeErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "platform.native")
+	defer func() {
+		failure := nativeErr
+		if failure == nil {
+			failure = nativeDiagnosticOutcome(ctx, nativeResult)
+		}
+		finishDiagnostic(failure)
+	}()
 	if (name == "kubectl.exec" || strings.HasPrefix(name, "kube.") || name == "nodes.list" || name == "nodes.get") && arguments["clusterRef"] == nil {
 		var err error
 		arguments, err = platformClusterArguments(ctx, s, "re8ch", arguments)

@@ -27,7 +27,7 @@ func withVerifiedMCPSession(next http.Handler) http.Handler {
 			id.Subject, id.OrganizationRef, id.Tenant, id.RuntimeTenantRef, id.Service,
 		})
 		return &auth.TokenInfo{UserID: fmt.Sprintf("%x", sha256.Sum256(principal)),
-			Extra: map[string]any{"re8ch.verified-identity": id}}, nil
+			Extra: map[string]any{"re8ch.verified-identity": id, "re8ch.tool-diagnostics": diagnosticState(ctx)}}, nil
 	}, &auth.RequireBearerTokenOptions{
 		// Expiration/revocation have just been checked by authenticate on this very
 		// request. Only its verified principal is being adapted into SDK context.
