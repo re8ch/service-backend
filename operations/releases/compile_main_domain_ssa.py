@@ -261,6 +261,9 @@ def compile_outputs() -> dict[Path, str]:
         }
         if name in reviewed_takeovers:
             contract["spec"]["authorization"]["forceConflictObjects"] = [reviewed_takeovers[name]]
+            if name == "main-operations-ui-headlamp":
+                contract["spec"]["authorization"]["forceConflictObjects"].append(
+                    "core/ConfigMap/headlamp/headlamp-public-edge-v033-mb4t89f2c6")
         if cluster:
             contract["spec"]["authorization"]["requireExisting"] = True
         files[CONTRACTS / f"{name}.yaml"] = yaml.safe_dump(contract, sort_keys=False)
