@@ -406,11 +406,21 @@
     "serviceClass": "observability.stack.v1"
   },
   {
+    "accessUnit": "OAuthApplicationRegistration",
+    "adapter": "identity-oauth-application-api",
+    "bindings": ["oauth:client-reference"],
+    "meters": {"authorizations": "authorization", "token_exchanges": "request"},
+    "parameters": ["audienceOrgRefs", "clientName", "clientType", "clientUri", "redirectUris", "scopes", "tokenEndpointAuthMethod"],
+    "plans": ["public-pkce", "confidential"],
+    "regions": ["global"],
+    "serviceClass": "integration.oauth.application.v1"
+  },
+  {
     "accessUnit": "ManagedMCPWorkload",
     "adapter": "mcp-managed-registration",
     "bindings": ["mcp:gateway", "access:broker-reference"],
     "meters": {"requests": "request", "runtime": "second"},
-    "parameters": ["claimRef", "imageDigest", "serviceName"],
+    "parameters": ["audienceOrgRefs", "authMode", "claimRef", "endpoint", "imageDigest", "meters", "oauthApplicationRef", "serviceName", "tools"],
     "plans": ["signed-image"],
     "regions": ["global", "loudi"],
     "serviceClass": "integration.mcp.managed.v1"

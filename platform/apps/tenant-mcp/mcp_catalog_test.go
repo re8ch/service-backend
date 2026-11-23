@@ -24,7 +24,7 @@ func TestMCPCatalogIsTenantIsolatedAndIdempotent(t *testing.T) {
 	s := catalogFixture(t)
 	definition := func(endpoint string) *mcpCatalogDefinition {
 		return &mcpCatalogDefinition{
-			ServiceName: "orders", Class: "integration.mcp.byoc.v1", Endpoint: endpoint,
+			ServiceName: "orders", Class: "integration.mcp.byoc.v1", Endpoint: endpoint, AudienceOrgRefs: []string{"acme"}, Meters: map[string]string{"requests": "request"},
 			AuthMode: "binding-reference", Health: "ready", Tools: []mcpCatalogTool{{Name: "orders_search"}},
 		}
 	}
@@ -52,7 +52,7 @@ func TestMCPCatalogIsTenantIsolatedAndIdempotent(t *testing.T) {
 }
 
 func TestMCPCatalogRejectsStandardNameOverride(t *testing.T) {
-	d := mcpCatalogDefinition{ServiceName: "custom", Class: "integration.mcp.managed.v1", Endpoint: "https://custom.example/mcp", AuthMode: "service-token", Tools: []mcpCatalogTool{{Name: "postgresql_drop"}}}
+	d := mcpCatalogDefinition{ServiceName: "custom", Class: "integration.mcp.managed.v1", Endpoint: "https://custom.example/mcp", AuthMode: "service-token", AudienceOrgRefs: []string{"acme"}, Meters: map[string]string{"requests": "request"}, Tools: []mcpCatalogTool{{Name: "postgresql_drop"}}}
 	if err := validateMCPDefinition("alpha", d); err == nil {
 		t.Fatal("custom provider overrode standard prefix")
 	}
