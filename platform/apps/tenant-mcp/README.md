@@ -404,3 +404,18 @@ revision2, then preview/delete the temporary ConfigMap through the same context.
 Both cluster API UIDs and object UIDs must differ. Preserve first failures;
 unknown contexts reject before API execution. These temporary objects are
 separate from the Actions executor's scoped delivery canary.
+
+### Provider invocation tokens
+
+The RFC 8693 compatibility exchange no longer returns the user's Supabase JWT.
+It requires `INVOCATION_TOKEN_ISSUER_URL`, pinned `INVOCATION_TOKEN_ISSUER`, and
+`INVOCATION_TOKEN_JWKS_URL`; missing or unavailable issuer/JWKS configuration
+fails closed. JWKS verification accepts only a known `kid` with an RS256 key and
+checks the issuer before the token can reach a provider. Signing keys remain in
+the approved issuer and are never configured in tenant-mcp.
+
+`RE8CH_TOOL_AUDIENCE` is a transitional generic audience for the compatibility
+route. The final provider audience must be resolved by the binding authority from
+the selected `binding_ref`; callers must never select or override a provider
+audience. The verified active organization is likewise derived from the login
+session and tenant-control decision, not request fields or headers.
