@@ -52,10 +52,27 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up validation containerd image store
+        uses: docker/setup-docker-action@3f1ab1ab0e29231562e4db4ca600c1a49653bac6 # v5.7.0
+        with:
+          version: v29.10.0
+          set-host: true
+          daemon-config: |
+            {"features":{"containerd-snapshotter":true}}
+      - name: Prepare isolated validation Docker configuration
+        run: |
+          export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-ci-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        id: validation-buildx
+        with:
+          driver: docker
       - run: python3 -m pip install 'PyYAML==6.0.2' 'jsonschema==4.23.0' 'pytest>=8.3' 'schemathesis==4.29.1' -r operations/cloud-platform/requirements-observability.txt
       - run: python3 -m pytest -q tests/test_python_sentry.py tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_cluster_bindings.py tests/test_cluster_execution_transport.py tests/test_cluster_interactive_transport.py tests/test_cloud_delete_acceptance.py tests/test_cluster_transport_redirects.py tests/test_ssh_broker.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py tests/test_anatomy_diff_operation.py tests/test_plugin_operation_progress.py tests/test_stalwart_admin.py tests/test_stalwart_bootstrap.py tests/test_stalwart_authority.py
       - name: Verify generated contracts and native schema enumeration
@@ -65,8 +82,28 @@ jobs:
           python3 operations/plugin-capabilities/verify.py
           python3 operations/plugin-capabilities/audit.py --report operations/plugin-capabilities/declaration-coverage-report.json
           git diff --exit-code -- operations/plugin-capabilities/declaration-coverage-report.json
-      - name: Build the actual runtime image
-        run: docker build --load -f operations/cloud-platform/Dockerfile -t re8ch-cloud-platform:pr .
+      - name: Start loopback-only validation registry
+        run: |
+          docker run -d --name cloud-ci-registry -p 127.0.0.1:5000:5000 registry@sha256:5b12b22f21522fe69443079df04c0f3f42cb9977857f3c20404386652a6c6d8e
+      - name: Build the actual runtime image and verify native attested Engine push
+        run: |
+          ./operations/mcp-conformance/release-tenant-infrastructure.sh
+          docker tag 127.0.0.1:5000/re8ch-cloud-platform:pr re8ch-cloud-platform:pr
+        env:
+          TENANT_IMAGE_BUILDER: ${{ steps.validation-buildx.outputs.name }}
+          TENANT_IMAGE_REPOSITORY: 127.0.0.1:5000/re8ch-cloud-platform
+          TENANT_IMAGE_TAG: pr
+          TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
+          TENANT_IMAGE_ARTIFACT_NAME: cloud-ci
+          TENANT_IMAGE_SKIP_FINALIZE: "1"
+          TENANT_IMAGE_DOCKER_PUSH: "1"
+          TENANT_IMAGE_REQUIRE_ATTESTATIONS: "1"
+          TENANT_IMAGE_INLINE_AUTH: "1"
+          TENANT_IMAGE_PUSH_ATTEMPTS: "1"
+          # Synthetic credentials only; this isolated loopback registry is anonymous.
+          IMAGE_REGISTRY_USERNAME: ci-unused
+          IMAGE_REGISTRY_PASSWORD: ci-unused
+          BUILDKIT_SBOM_GENERATOR: docker.io/docker/buildkit-syft-scanner@sha256:10a413da6b52acacf4af4262eafeae6ca05076fbd65850ad7f233163c6d6a81c
       - name: Smoke test packaged tool discovery
         run: |
           docker run --rm --network none --entrypoint python re8ch-cloud-platform:pr -c '
@@ -90,6 +127,20 @@ jobs:
           assert not (server.PRIVILEGED_TOOLS & viewer)
           print("Packaged tool discovery and privilege filtering passed")
           '
+      - name: Retain native publisher validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cloud-native-publisher-validation-${{ github.sha }}
+          path: |
+            cloud-ci.image
+            cloud-ci.index.json
+            cloud-ci.provenance.json
+            cloud-ci.sbom.json
+          if-no-files-found: warn
+      - name: Remove loopback validation registry
+        if: always()
+        run: docker rm -f cloud-ci-registry || true
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && inputs.reuse_run_id == ''
     needs: validate

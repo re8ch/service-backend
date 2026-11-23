@@ -176,8 +176,14 @@ if not any(m.get("annotations", {}).get("vnd.docker.reference.type") == "attesta
     sys.exit("Published index lost its image-bound attestation manifest")
 provenance = json.loads(Path(name + ".provenance.json").read_text()).get("linux/amd64", {}).get("SLSA", {})
 sbom = json.loads(Path(name + ".sbom.json").read_text()).get("linux/amd64", {}).get("SPDX", {})
-metadata = provenance.get("metadata", {}).get("https://mobyproject.org/buildkit@v1#metadata", {})
-if provenance.get("buildType") != "https://mobyproject.org/buildkit@v1" or metadata.get("vcs", {}).get("revision") != source:
+# BuildKit's supported SLSA v0.2 and v1 use different native metadata shapes.
+if "buildDefinition" in provenance:
+    build_type = provenance.get("buildDefinition", {}).get("buildType")
+    metadata = provenance.get("runDetails", {}).get("metadata", {}).get("buildkit_metadata", {})
+else:
+    build_type = provenance.get("buildType")
+    metadata = provenance.get("metadata", {}).get("https://mobyproject.org/buildkit@v1#metadata", {})
+if build_type != "https://mobyproject.org/buildkit@v1" or metadata.get("vcs", {}).get("revision") != source:
     sys.exit("Published provenance is absent or bound to a different source revision")
 if not metadata.get("source", {}).get("infos"):
     sys.exit("Published provenance does not retain max-mode source metadata")

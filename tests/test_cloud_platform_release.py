@@ -14,7 +14,7 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert release['environment'] == 'production'
     assert jobs['finalize']['needs'] == ['validate', 'release']
     assert jobs['finalize']['permissions']['id-token'] == 'write'
-    assert jobs['validate']['runs-on'] == ['self-hosted', 'Linux', 'X64', 'r640', 'untrusted-build']
+    assert jobs['validate']['runs-on'] == 'ubuntu-24.04'
     assert "inputs.publisher == 'r640'" in release['runs-on']
     assert release['runs-on'].endswith("|| 'ubuntu-24.04' }}")
     dispatch = workflow[True]['workflow_dispatch']['inputs']['publisher']
@@ -33,7 +33,14 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     download = next(step for step in jobs['finalize']['steps'] if 'actions/download-artifact@' in step.get('uses', ''))
     assert download['with']['run-id'] == '${{ steps.source.outputs.build_run }}'
     validation = '\n'.join(step.get('run', '') for step in jobs['validate']['steps'])
-    assert 'docker build --load -f operations/cloud-platform/Dockerfile' in validation
+    assert validation.count('./operations/mcp-conformance/release-tenant-infrastructure.sh') == 1
+    assert '127.0.0.1:5000:5000 registry@sha256:' in validation
+    ci_publisher = next(step for step in jobs['validate']['steps'] if 'verify native attested Engine push' in step.get('name', ''))
+    assert ci_publisher['env']['TENANT_IMAGE_DOCKERFILE'] == 'operations/cloud-platform/Dockerfile'
+    assert ci_publisher['env']['TENANT_IMAGE_REQUIRE_ATTESTATIONS'] == '1'
+    assert ci_publisher['env']['TENANT_IMAGE_DOCKER_PUSH'] == '1'
+    assert not any('secrets.' in str(step) for step in jobs['validate']['steps'])
+    assert any(step.get('if') == 'always()' and 'docker rm -f cloud-ci-registry' in step.get('run', '') for step in jobs['validate']['steps'])
     assert 'docker run --rm --network none' in validation
     assert 'server.PRIVILEGED_TOOLS & viewer' in validation
     assert 'operations/plugin-capabilities/verify.py' in validation

@@ -44,3 +44,15 @@ changed index bytes all fail without an image handoff. This regression validates
 the publisher's behavior; it is not evidence of a real containerd upload. The
 actual hosted release and remote evidence checks remain required before runtime
 promotion. No local Docker daemon was available during development.
+
+The existing Cloud validate job now runs on a disposable GitHub-hosted runner
+with the same pinned containerd daemon and Docker driver. Its single actual
+runtime-image build uses this publisher against a temporary registry bound only
+to `127.0.0.1:5000`. The same immutable-index gates run before the existing
+packaged API/schema smoke reuses that already-built image. Only synthetic local
+credentials are used; no Harbor secret is available to validation. Native
+validation evidence is retained even if a gate fails, and the temporary registry
+is always removed. This checks the actual Docker/BuildKit JSON formats before
+production publication. The gate accepts both BuildKit SLSA v0.2 metadata and
+v1 `buildDefinition`/`runDetails.metadata.buildkit_metadata` structures; unknown
+or incomplete provenance is rejected.

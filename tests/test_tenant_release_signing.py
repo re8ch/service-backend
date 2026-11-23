@@ -121,6 +121,10 @@ elif args[:3] == ['buildx', 'imagetools', 'inspect']:
                 'https://mobyproject.org/buildkit@v1#metadata': {
                     'vcs': {'revision': ('e' * 40 if case == 'wrong-source' else os.environ['GITHUB_SHA'])},
                     'source': {'infos': [{'filename': 'Dockerfile'}]}}}}}}
+        if case == 'valid-v1':
+            old = value['linux/amd64']['SLSA']
+            value['linux/amd64']['SLSA'] = {'buildDefinition': {'buildType': old['buildType']},
+                'runDetails': {'metadata': {'buildkit_metadata': old['metadata']['https://mobyproject.org/buildkit@v1#metadata']}}}
         print(json.dumps(value))
     elif '.SBOM' in args[-1]:
         print(json.dumps({} if case == 'missing-sbom' else {'linux/amd64': {'SPDX': {'spdxVersion': 'SPDX-2.3', 'packages': [{'name': 'fixture'}]}}}))
@@ -129,7 +133,7 @@ elif args[:3] == ['buildx', 'imagetools', 'inspect']:
 ''')
     docker.chmod(0o755)
     script = str(ROOT / 'operations/mcp-conformance/release-tenant-infrastructure.sh')
-    for case in ('valid', 'classic', 'missing-provenance', 'missing-sbom', 'wrong-source', 'wrong-subject', 'wrong-bytes'):
+    for case in ('valid', 'valid-v1', 'classic', 'missing-provenance', 'missing-sbom', 'wrong-source', 'wrong-subject', 'wrong-bytes'):
         folder = tmp_path / case
         folder.mkdir()
         record = folder / 'calls.jsonl'
@@ -153,8 +157,8 @@ elif args[:3] == ['buildx', 'imagetools', 'inspect']:
             pushes = [row for row in calls if row[:1] == ['push']]
             assert len(pushes) == 1 and '--platform' not in pushes[0]
         image = folder / 'tenant-infrastructure.image'
-        assert (result.returncode == 0) == (case == 'valid'), result.stderr
-        assert image.exists() == (case == 'valid')
-        if case == 'valid':
+        assert (result.returncode == 0) == (case in {'valid', 'valid-v1'}), result.stderr
+        assert image.exists() == (case in {'valid', 'valid-v1'})
+        if case in {'valid', 'valid-v1'}:
             raw = (folder / 'tenant-infrastructure.index.json').read_bytes().removesuffix(b'\n')
             assert image.read_text().strip().endswith('@sha256:' + hashlib.sha256(raw).hexdigest())
