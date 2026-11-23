@@ -33,6 +33,30 @@ def public_authority_context(root: Path) -> str:
     )
 
 
+RECOVERY_MODULES = frozenset({
+    "service-backend", "connectool", "among-clusters", "advanced-fabric",
+    "mihomos-cluster", "headlamp-advanced-fabric", "codex-admin-plugins",
+    "tool-distribution",
+})
+
+
+def recovery_context(module) -> list[str]:
+    if module.catalog != "platform" or module.name not in RECOVERY_MODULES:
+        return []
+    return [
+        "## Admin/BYOC recovery context",
+        "",
+        "Read `operations/releases/toolchain-runtime-verification.md` in the service-backend repository.",
+        "Dated verified outcomes and open acceptance: https://github.com/re8ch/service-backend/issues/3002.",
+        "Revalidate the runtime; CI, release completion, Connected Accounts and SDK capture IDs alone",
+        "do not prove recovery. Verify self and Atlantic with the same authorized Admin session.",
+        "Use existing GitHub Actions/bounded cloud SSA delivery; local Flux writers are retired.",
+        "AMD repair is deferred until core read/write, SSA and AF observation/convergence pass.",
+        "Preserve organization boundaries; never restore authority-health scheduling or reuse the invalid PublicEdge bundle.",
+        "",
+    ]
+
+
 def git(path: Path, *args: str) -> str:
     result = subprocess.run(["git", "-C", str(path), *args], text=True, capture_output=True, check=False)
     return result.stdout.strip() if result.returncode == 0 else ""
@@ -168,7 +192,7 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
         "",
         f"Existing repository AGENTS: `{'yes' if existing_agents and existing_agents.exists() else 'no'}`",
         "",
-    ] + authority_section)
+    ] + recovery_context(module) + authority_section)
 
 
 def main() -> None:

@@ -55,6 +55,13 @@ ClusterIP Service. Hostnames are allocated below `apps.re8ch.com`; the shared
 Gateway, listener, DNS and TLS policy remain platform-owned. Raw Secret and
 Gateway access are not published.
 
+## Recovery and cross-component acceptance
+
+Use the [runtime verification procedure](../../../operations/releases/toolchain-runtime-verification.md)
+for Admin/BYOC, deployment, registry, Sentry and Metrics acceptance. Current bounded
+observations and remaining gaps are tracked in [Issue3002](https://github.com/re8ch/service-backend/issues/3002).
+A successful tools/list or retry alone does not establish toolchain stability.
+
 ## Tool-call telemetry
 
 The native tenant MCP records completed authenticated `tools/call` requests at
