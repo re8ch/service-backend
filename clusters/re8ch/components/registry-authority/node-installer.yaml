@@ -54,7 +54,7 @@ data:
       printf '{"registry":"ghcr.io","state":"not-selected","restarted":false}\n'
       exit 0
     fi
-    exec chroot /host /usr/bin/python3 -c "$(cat /config/ghcr-native.py)" "$@" < /config/registries-prefix.yaml
+    exec chroot /host /usr/bin/python3 -c "$(cat /config/ghcr-native.py)" "$@"
   ghcr-native.py: |
     #!/usr/bin/env python3
     """Activate canonical GHCR in the existing K3s hosts-dir, without service restart.
@@ -68,6 +68,7 @@ data:
     import os
     from pathlib import Path
     import re
+    import stat
     import sys
     import tempfile
     from urllib.parse import urlsplit
@@ -196,7 +197,25 @@ data:
 
     def read_file(root, path):
         scoped_path(root, path)
-        return path.read_bytes() if path.exists() else None
+        try:
+            descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        except FileNotFoundError:
+            return None
+        with os.fdopen(descriptor, "rb") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise ValueError("expected a regular file")
+            return stream.read()
+
+
+    def private_backup(root, path):
+        scoped_path(root, path)
+        try:
+            info = path.lstat()
+        except FileNotFoundError:
+            return None
+        if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+            raise ValueError("existing backup is not a private regular file")
+        return read_file(root, path)
 
 
     def write_bytes(stream, data):
@@ -244,7 +263,7 @@ data:
                 try:
                     os.link(temporary, backup)
                 except FileExistsError:
-                    if read_file(root, backup) != before:
+                    if private_backup(root, backup) != before:
                         raise ValueError("existing backup does not match the original")
             finally:
                 os.unlink(temporary)
@@ -260,7 +279,7 @@ data:
                 os.unlink(temporary)
 
 
-    def activate(root, fallback, check=False, expected=None):
+    def activate(root, check=False, expected=None):
         root = Path(os.path.abspath(root))
         config = root / CONFIG.lstrip("/")
         config_bytes = read_file(root, config)
@@ -274,11 +293,10 @@ data:
         registry = root / REGISTRIES.lstrip("/")
         hosts = root / HOSTS_DIR.lstrip("/") / "ghcr.io" / "hosts.toml"
         before_registry, before_hosts = read_file(root, registry), read_file(root, hosts)
-        if before_registry is None and not fallback.strip():
-            raise ValueError("missing durable configuration requires the reviewed bootstrap prefix")
-        registry_source = before_registry if before_registry is not None else fallback
-        targets = [(registry, before_registry, without_ghcr_mirror(registry_source.decode()).encode()),
-                   (hosts, before_hosts, canonical_hosts((before_hosts or b"").decode()).encode())]
+        if before_registry is None or before_hosts is None:
+            raise ValueError("existing durable and active GHCR files are required")
+        targets = [(registry, before_registry, without_ghcr_mirror(before_registry.decode()).encode()),
+                   (hosts, before_hosts, canonical_hosts(before_hosts.decode()).encode())]
         material = [{"path": str(path.relative_to(root)),
                      "before": hashlib.sha256(before).hexdigest() if before is not None else None,
                      "after": hashlib.sha256(after).hexdigest()} for path, before, after in targets]
@@ -291,11 +309,8 @@ data:
             if read_file(root, path) != before:
                 raise ValueError("target changed while checking")
             backup = path.with_name(path.name + ".pre-re8ch-ghcr-native")
-            scoped_path(root, backup)
-            if backup.exists() and (
-                                      (not backup.is_file() or backup.stat().st_mode & 0o077)):
-                raise ValueError("existing backup is not a private regular file")
-            if before != after and backup.exists() and read_file(root, backup) != before:
+            backup_data = private_backup(root, backup)
+            if before != after and backup_data is not None and backup_data != before:
                 raise ValueError("existing backup does not match the original")
         if not check:
             for path, before, after in targets:
@@ -313,7 +328,7 @@ data:
         parser.add_argument("--expected-state")
         args = parser.parse_args()
         try:
-            result = activate(args.root, sys.stdin.buffer.read(), args.check, args.expected_state)
+            result = activate(args.root, args.check, args.expected_state)
         except (OSError, UnicodeError, ValueError) as error:
             # Exception text can contain source snippets; never log it or auth data.
             print(json.dumps({"registry": "ghcr.io", "errorClass": type(error).__name__,

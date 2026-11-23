@@ -111,7 +111,7 @@ def test_unknown_authority_fails_before_either_file_changes(tmp_path, hosts):
     durable, effective = sandbox(tmp_path, hosts=hosts)
     before = durable.read_bytes(), effective.read_bytes()
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"")
+        native.activate(tmp_path)
     assert (durable.read_bytes(), effective.read_bytes()) == before
     assert not list(tmp_path.rglob("*.pre-re8ch-ghcr-native"))
 
@@ -134,13 +134,13 @@ def test_unknown_yaml_layout_is_not_silently_treated_as_no_mirror(raw):
 def test_check_stale_guard_atomic_private_backups_and_idempotence(tmp_path):
     durable, effective = sandbox(tmp_path)
     before = durable.read_bytes(), effective.read_bytes()
-    checked = native.activate(tmp_path, b"", check=True)
+    checked = native.activate(tmp_path, check=True)
     assert checked["durableChanged"] and checked["effectiveChanged"]
     assert (durable.read_bytes(), effective.read_bytes()) == before
     assert not list(tmp_path.rglob("*.pre-re8ch-ghcr-native"))
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"", expected="stale")
-    native.activate(tmp_path, b"", expected=checked["fingerprint"])
+        native.activate(tmp_path, expected="stale")
+    native.activate(tmp_path, expected=checked["fingerprint"])
     assert durable.read_text() == native.without_ghcr_mirror(REGISTRY)
     assert effective.read_text() == native.canonical_hosts(HOSTS)
     for path, previous in zip((durable, effective), before):
@@ -149,7 +149,7 @@ def test_check_stale_guard_atomic_private_backups_and_idempotence(tmp_path):
         assert backup.stat().st_mode & 0o777 == 0o600
         assert path.stat().st_mode & 0o777 == 0o600
     mtimes = durable.stat().st_mtime_ns, effective.stat().st_mtime_ns
-    again = native.activate(tmp_path, b"")
+    again = native.activate(tmp_path)
     assert not again["durableChanged"] and not again["effectiveChanged"]
     assert (durable.stat().st_mtime_ns, effective.stat().st_mtime_ns) == mtimes
 
@@ -159,22 +159,22 @@ def test_wrong_active_hosts_dir_or_symlink_leaves_state_untouched(tmp_path):
     config = tmp_path / native.CONFIG.lstrip("/")
     config.write_text('config_path="/unreviewed/path"\n')
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"")
+        native.activate(tmp_path)
     assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
     config.write_text('config_path="' + native.HOSTS_DIR + '"\n')
     durable.rename(durable.with_suffix(".real"))
     durable.symlink_to(durable.with_suffix(".real"))
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"")
+        native.activate(tmp_path)
 
 
 def test_node_bound_check_cannot_be_used_on_another_node(tmp_path, monkeypatch):
     durable, effective = sandbox(tmp_path)
     monkeypatch.setenv("NODE_NAME", "r640")
-    checked = native.activate(tmp_path, b"", check=True)
+    checked = native.activate(tmp_path, check=True)
     monkeypatch.setenv("NODE_NAME", "another-node")
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"", expected=checked["fingerprint"])
+        native.activate(tmp_path, expected=checked["fingerprint"])
     assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
 
 
@@ -182,7 +182,7 @@ def test_unsafe_second_backup_fails_before_first_target_write(tmp_path):
     durable, effective = sandbox(tmp_path)
     effective.with_name(effective.name + ".pre-re8ch-ghcr-native").mkdir()
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"")
+        native.activate(tmp_path)
     assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
 
 
@@ -198,7 +198,7 @@ def test_parent_symlink_cannot_escape_into_another_owner(tmp_path, which):
     expected_registry = durable.read_bytes()
     expected_other = {p.name: p.read_bytes() for p in other.iterdir() if p.is_file()}
     with pytest.raises(ValueError):
-        native.activate(root, b"")
+        native.activate(root)
     assert durable.read_bytes() == expected_registry
     assert {p.name: p.read_bytes() for p in other.iterdir() if p.is_file()} == expected_other
     assert not list(tmp_path.rglob("*.pre-re8ch-ghcr-native"))
@@ -216,11 +216,11 @@ def test_partial_backup_write_is_never_installed_or_trusted_on_retry(tmp_path, m
 
     monkeypatch.setattr(native, "write_bytes", broken)
     with pytest.raises(OSError):
-        native.activate(tmp_path, b"")
+        native.activate(tmp_path)
     assert not list(tmp_path.rglob("*.pre-re8ch-ghcr-native"))
     assert (durable.read_bytes(), effective.read_bytes()) == original
     monkeypatch.setattr(native, "write_bytes", normal)
-    native.activate(tmp_path, b"")
+    native.activate(tmp_path)
     for path, before in zip((durable, effective), original):
         assert path.with_name(path.name + ".pre-re8ch-ghcr-native").read_bytes() == before
 
@@ -231,8 +231,26 @@ def test_preexisting_truncated_backup_blocks_all_target_changes(tmp_path):
     backup.write_text("truncated")
     backup.chmod(0o600)
     with pytest.raises(ValueError):
-        native.activate(tmp_path, b"")
+        native.activate(tmp_path)
     assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
+
+
+def test_missing_durable_auth_source_is_not_bootstrapped_to_empty(tmp_path):
+    durable, effective = sandbox(tmp_path)
+    durable.unlink()
+    with pytest.raises(ValueError):
+        native.activate(tmp_path)
+    assert not durable.exists() and effective.read_text() == HOSTS
+
+
+def test_special_target_file_is_not_read_or_overwritten(tmp_path):
+    import os
+    durable, effective = sandbox(tmp_path)
+    effective.unlink()
+    os.mkfifo(effective)
+    with pytest.raises(ValueError):
+        native.activate(tmp_path)
+    assert durable.read_text() == REGISTRY
 
 
 def test_cli_never_prints_auth_and_configmap_projection_is_exact(tmp_path):

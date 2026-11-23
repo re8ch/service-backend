@@ -60,6 +60,9 @@ and-file-bound check fingerprint. Existing file changes invalidate that check.
 Backups are complete and fsynced before an exclusive atomic link installs their
 name; an interrupted temporary write is never accepted as a valid backup. An
 existing mismatched backup requires inspection instead of silent replacement.
+This is a migration of existing files, not a new-node bootstrapper. Missing or
+unreadable durable/active configuration fails closed; it never initializes
+unknown authentication state from an empty/default template.
 
 This activation only touches `/etc/rancher/k3s/registries.yaml` and the GHCR
 `hosts.toml` (and their private backups). It does not rewrite `/etc/hosts`, delete
