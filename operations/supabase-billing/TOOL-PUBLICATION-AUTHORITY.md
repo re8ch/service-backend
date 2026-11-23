@@ -24,7 +24,7 @@ references, never returned credential material.
 Published revision definitions must carry `toolRef`, `providerAudience`, and
 `allowedScopes`. `bifurcate_api.resolve_tool_invocation` exposes only the
 ready binding decision to the authenticated tenant-control workload. The
-runtime bearer for that PostgREST role is provisioned outside Git as
+runtime bearer for that PostgREST role is minted in-cluster as
 `tenant-invocation-authority/BINDING_AUTHORITY_TOKEN`; absence is an explicit
 fail-closed deployment gate, not a reason to accept caller-supplied authority.
 

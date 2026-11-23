@@ -425,6 +425,9 @@ ready binding through Bifurcate before signing. Its mounted
 `tenant-invocation-signing/key-ring.json` supports one current and up to two
 overlap keys; JWKS publishes only their public RSA parameters. The separate
 `tenant-invocation-authority/BINDING_AUTHORITY_TOKEN` authenticates the bounded
-PostgREST RPC. Neither Secret is declared in Git. Until both are provisioned by
-the approved credential path, issuance and JWKS fail closed while unrelated
-tenant-control routes remain available.
+PostgREST RPC. Git declares only empty Secret objects and the narrow rotator;
+key and token values are generated in-cluster. The authority token is renewed
+every 12 hours with a 36-hour expiry. The RSA key rotates after 23 days and its
+public key remains in JWKS for a seven-day overlap; retiring private keys are
+discarded. Until the rotator succeeds, issuance and JWKS fail closed while
+unrelated tenant-control routes remain available.

@@ -76,6 +76,19 @@ def test_jwks_rotation_publishes_only_public_material(tmp_path, monkeypatch):
     assert decode(authority.issue(request())["accessToken"])[0]["kid"] == "old"
 
 
+def test_retiring_public_only_key_remains_in_jwks(tmp_path):
+    current_key, current = key_entry("current")
+    previous_key, _ = key_entry("previous")
+    public = previous_key.public_key().public_bytes(serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo).decode()
+    path = tmp_path / "keys.json"
+    path.write_text(json.dumps({"currentKid": "current", "keys": [current,
+        {"kid": "previous", "publicKeyPem": public}]}))
+    ring = issuer.KeyRing(path)
+    assert {key["kid"] for key in ring.jwks()["keys"]} == {"current", "previous"}
+    assert ring.load()[0] == "current"
+
+
 @pytest.mark.parametrize("change", [
     {"toolRef": "tool://attacker/wrong"}, {"bindingRef": "tool://binding/wrong"},
     {"scopes": ["admin:all"]}, {"subjectToken": ""},

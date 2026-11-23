@@ -60,11 +60,14 @@ class KeyRing:
                 kid = entry["kid"]
                 if not isinstance(kid, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,128}", kid) or kid in keys:
                     raise ValueError()
-                key = serialization.load_pem_private_key(entry["privateKeyPem"].encode(), password=None)
-                if not isinstance(key, rsa.RSAPrivateKey) or key.key_size < 2048:
+                if "privateKeyPem" in entry:
+                    key = serialization.load_pem_private_key(entry["privateKeyPem"].encode(), password=None)
+                else:
+                    key = serialization.load_pem_public_key(entry["publicKeyPem"].encode())
+                if not isinstance(key, (rsa.RSAPrivateKey, rsa.RSAPublicKey)) or key.key_size < 2048:
                     raise ValueError()
                 keys[kid] = key
-            if current not in keys:
+            if current not in keys or not isinstance(keys[current], rsa.RSAPrivateKey):
                 raise ValueError()
             return current, keys
         except (KeyError, TypeError, ValueError, OSError, json.JSONDecodeError) as exc:
@@ -74,7 +77,8 @@ class KeyRing:
         _, keys = self.load()
         result = []
         for kid, key in keys.items():
-            numbers = key.public_key().public_numbers()
+            public = key.public_key() if isinstance(key, rsa.RSAPrivateKey) else key
+            numbers = public.public_numbers()
             result.append({"kty": "RSA", "use": "sig", "alg": "RS256", "kid": kid,
                            "n": _b64(numbers.n.to_bytes((numbers.n.bit_length() + 7) // 8, "big")),
                            "e": _b64(numbers.e.to_bytes((numbers.e.bit_length() + 7) // 8, "big"))})
