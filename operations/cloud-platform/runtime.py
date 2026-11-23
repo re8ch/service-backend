@@ -308,7 +308,15 @@ class CloudPlatform:
             argv += [f"--resource-version={resource_version}"]
         if verb in {"get", "list"}:
             argv += ["-o", "json"]
-        return self._kubectl(argv, stdin=stdin)
+        if verb == "delete":
+            # Deletion acceptance is distinct from finalizer/grace completion.
+            # Waiting here races the runner deadline after a successful DELETE,
+            # incorrectly inviting callers to replay an already accepted write.
+            argv += ["--wait=false"]
+        result = self._kubectl(argv, stdin=stdin)
+        if verb == "delete" and result.get("exitCode") == 0:
+            result.update(deletionAccepted=True, completionObserved=False)
+        return result
 
     def ensure_webmail_session_secret(self, *, apply: bool = False) -> dict[str, Any]:
         """Create the reviewed system credential without accepting or returning values."""
