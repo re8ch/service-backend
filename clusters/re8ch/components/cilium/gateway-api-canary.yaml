@@ -205,7 +205,6 @@ spec:
     - {name: billing-supabase-https, hostname: billing-supabase.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: billing-studio-https, hostname: billing-studio.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: auth-https, hostname: auth.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
-    - {name: open-https, hostname: open.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: auth-origin-https, hostname: auth-origin.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: codex-https, hostname: codex.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: decision-https, hostname: decision.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}

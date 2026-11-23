@@ -21119,18 +21119,6 @@ spec:
   - allowedRoutes:
       namespaces:
         from: All
-    hostname: open.re8ch.com
-    name: open-https
-    port: 443
-    protocol: HTTPS
-    tls:
-      certificateRefs:
-      - kind: Secret
-        name: re8ch-wildcard-tls
-      mode: Terminate
-  - allowedRoutes:
-      namespaces:
-        from: All
     hostname: auth-origin.re8ch.com
     name: auth-origin-https
     port: 443

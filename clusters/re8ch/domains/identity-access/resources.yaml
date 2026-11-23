@@ -15871,11 +15871,11 @@ metadata:
   namespace: supabase-identity
 spec:
   hostnames:
-  - open.re8ch.com
+  - open.service.re8ch.com
   parentRefs:
   - name: re8ch-gateway-canary
     namespace: kube-system
-    sectionName: open-https
+    sectionName: service-wildcard-https
   rules:
   - backendRefs:
     - name: supabase-identity-rest

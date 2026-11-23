@@ -5,8 +5,8 @@ metadata:
   namespace: supabase-identity
 spec:
   parentRefs:
-    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: open-https}
-  hostnames: [open.re8ch.com]
+    - {name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}
+  hostnames: [open.service.re8ch.com]
   rules:
     - matches: [{method: POST, path: {type: Exact, value: /oauth-applications/v1/register}}]
       filters: [{type: URLRewrite, urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /rpc/create_oauth_application}}}]

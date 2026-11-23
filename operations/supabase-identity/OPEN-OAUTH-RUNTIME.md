@@ -5,7 +5,7 @@ secret hashes, lifecycle, and the owning organization membership. An application
 registration is a runtime database write through authenticated RPCs. It does not
 create a Git branch, manifest, Flux object, or other per-application GitOps state.
 
-`open.re8ch.com` publishes only the four authenticated application-management
+`open.service.re8ch.com` publishes only the four authenticated application-management
 RPCs under `/oauth-applications/v1`; it does not expose the complete PostgREST
 surface. Catalog publication, selectable audience organizations, installations,
 service bindings, and usage/metering remain pg-billing/Bifurcate authority rather
@@ -54,6 +54,6 @@ events.
 The OAuth authorization-server issuer remains
 `https://db-rw.re8ch.com/auth/v1`. Its RFC 8414 metadata must advertise that same
 issuer and HTTPS authorization/token endpoints plus `S256` in
-`code_challenge_methods_supported`. `open.re8ch.com` is a management API origin,
+`code_challenge_methods_supported`. `open.service.re8ch.com` is a management API origin,
 not a second issuer. Requests require an Identity bearer JWT; no anonymous or
 service-role RPC grants are introduced by the route.

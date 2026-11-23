@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_open_oauth_route_exposes_only_bounded_rpc_paths():
     route = yaml.safe_load((ROOT / "operations/supabase-identity/open-oauth-route.yaml").read_text())
-    assert route["spec"]["hostnames"] == ["open.re8ch.com"]
+    assert route["spec"]["hostnames"] == ["open.service.re8ch.com"]
     assert route["spec"]["parentRefs"] == [{
-        "name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "open-https"
+        "name": "re8ch-gateway-canary", "namespace": "kube-system", "sectionName": "service-wildcard-https"
     }]
     paths = {}
     for rule in route["spec"]["rules"]:
@@ -32,9 +32,9 @@ def test_open_listener_and_identity_domain_include_route():
         (ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml").read_text()
     ) if doc]
     gateway = next(doc for doc in docs if doc["kind"] == "Gateway" and doc["metadata"]["name"] == "re8ch-gateway-canary")
-    listener = next(item for item in gateway["spec"]["listeners"] if item["name"] == "open-https")
-    assert listener["hostname"] == "open.re8ch.com"
-    assert listener["tls"]["certificateRefs"][0]["name"] == "re8ch-wildcard-tls"
+    listener = next(item for item in gateway["spec"]["listeners"] if item["name"] == "service-wildcard-https")
+    assert listener["hostname"] == "*.service.re8ch.com"
+    assert listener["tls"]["certificateRefs"][0]["name"] == "re8ch-service-wildcard-tls"
     kustomization = yaml.safe_load((ROOT / "operations/supabase-identity/kustomization.yaml").read_text())
     assert "open-oauth-route.yaml" in kustomization["resources"]
 
