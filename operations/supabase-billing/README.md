@@ -99,6 +99,26 @@ writes to `re8ch_billing` execute after `SET ROLE re8ch_billing_migrator`.
 Read-only inspection remains under `supabase_admin`. Do not use
 `REASSIGN OWNED BY postgres`, because it can capture extension or unrelated
 objects in the same database.
+
+`runtime-authority-migrations.yaml` packages the reviewed Tool Publication and
+Org Cluster Binding SQL into versioned, retry-bounded Jobs. A schema change
+requires a new Job/ConfigMap version; ordinary publication, installation,
+binding, usage, and organization-cluster registration remain runtime database
+writes and never create a per-registration GitOps object.
+
+The Jobs run in `supabase-pg-re8ch` and reuse the existing managed
+`supabase-pg-re8ch-secrets` keys `POSTGRES_USER_READ_WRITE` and
+`POSTGRES_PASSWORD`. That is the same server-side `supabase_admin` path used by
+the reviewed administrator workflow; the SQL immediately sets the bounded
+NOLOGIN role `re8ch_billing_migrator`. No second password, copied Secret, or
+hand-built database URI is introduced. Rotation remains owned by the existing
+Supabase credential workflow.
+
+PostgREST continues to expose only `payment_api,commerce_api`. Org Cluster
+Binding is available through its three `commerce_api` RPCs. The raw
+`bifurcate` schema is intentionally not exposed: Catalog/Bifurcate services use
+the narrowly granted `billing_commerce_runtime` projection and
+`accept_usage_event` function through their server-side database connection.
 6. Start GoTrue, Storage, and Realtime privately so they initialize their
    managed schemas. Then plan and apply `post-start.sql` to install the
    canonical Identity-subject claim helper, private Storage owner policies, and

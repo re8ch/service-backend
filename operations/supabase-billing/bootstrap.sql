@@ -20,6 +20,9 @@ begin
   if exists (select 1 from pg_roles where rolname = 'commerce_runtime') then
     grant commerce_runtime to billing_supabase_pgrst_rw, billing_supabase_pgrst_ro;
   end if;
+  if exists (select 1 from pg_roles where rolname = 'billing_commerce_runtime') then
+    grant billing_commerce_runtime to billing_supabase_pgrst_rw, billing_supabase_pgrst_ro;
+  end if;
 end
 $$;
 
