@@ -1,0 +1,43 @@
+[
+  {
+    "project": "go-http",
+    "repository": "re8ch/service-backend",
+    "default_branch": "main",
+    "mappings": [
+      {
+        "stack_root": "re8ch/tenant-mcp/",
+        "source_root": "platform/apps/tenant-mcp/"
+      },
+      {
+        "stack_root": "operations/cloud-platform/",
+        "source_root": "operations/cloud-platform/"
+      },
+      {
+        "stack_root": "clusters/re8ch/components/ai-operations/",
+        "source_root": "clusters/re8ch/components/ai-operations/"
+      }
+    ]
+  },
+  {
+    "project": "go-http",
+    "repository": "among-clusters/connectool",
+    "default_branch": "main",
+    "mappings": [
+      {
+        "stack_root": "github.com/among-clusters/connectool/",
+        "source_root": ""
+      }
+    ]
+  },
+  {
+    "project": "go-http",
+    "repository": "among-clusters/among-clusters",
+    "default_branch": "main",
+    "mappings": [
+      {
+        "stack_root": "github.com/among-clusters/among-clusters/",
+        "source_root": ""
+      }
+    ]
+  }
+]
