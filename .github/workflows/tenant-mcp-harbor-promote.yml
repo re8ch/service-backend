@@ -52,6 +52,9 @@ jobs:
           export DOCKER_CONFIG="$RUNNER_TEMP/tenant-mcp-promotion-docker"
           install -d -m 700 "$DOCKER_CONFIG"
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+          export BUILDX_CONFIG="${HOME}/.docker/buildx"
+          echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
+          docker buildx inspect r640-mihomos >/dev/null
           printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin >/dev/null
           printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
         env:
