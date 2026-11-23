@@ -88,10 +88,24 @@ def test_native_hosts_never_moves_harbor_auth_to_canonical():
     assert tomllib.loads(result)["server"] == "https://ghcr.io/v2"
 
 
+def test_empty_host_parent_and_explicit_canonical_headers_are_preserved():
+    prefix = 'server="https://ghcr.io"\n[host]\n'
+    canonical = '[host."https://ghcr.io"]\ncapabilities=["pull","resolve"]\n[host."https://ghcr.io".header]\nAuthorization=["opaque-ghcr-fixture"]\n'
+    removed = '[host."https://registry.re8ch.com/v2"]\ncapabilities=["pull"]\n'
+    result = native.canonical_hosts(prefix + canonical + removed)
+    assert result == prefix + canonical
+    assert set(tomllib.loads(result)["host"]) == {"https://ghcr.io"}
+
+
 @pytest.mark.parametrize("hosts", [
     HOSTS.replace("registry.re8ch.com", "unreviewed.example"),
     HOSTS.replace('server = "https://ghcr.io/v2"', 'server = "https://other.example"'),
     'server = "https://ghcr.io"\n[host."https://ghcr.io".rewrite]\n".*"="changed"\n',
+    'server="https://ghcr.io"\n[host]\n"https://unreviewed.example"={capabilities=["pull"]}\n',
+    'server="https://ghcr.io"\nhost={"https://unreviewed.example"={capabilities=["pull"]}}\n',
+    'server="https://ghcr.io"\nhost."https://unreviewed.example".capabilities=["pull"]\n',
+    '"server"="https://unreviewed.example"\n',
+    '"server"={url="https://unreviewed.example"}\n',
 ])
 def test_unknown_authority_fails_before_either_file_changes(tmp_path, hosts):
     durable, effective = sandbox(tmp_path, hosts=hosts)
@@ -107,6 +121,10 @@ def test_unknown_authority_fails_before_either_file_changes(tmp_path, hosts):
     'mirrors:\n    ghcr.io: {}\nconfigs: {}\n',
     '"mirrors":\n  ghcr.io: {}\nconfigs: {}\n',
     'mirrors:\n  ghcr.io: &shared {}\n  docker.io: *shared\nconfigs: {}\n',
+    'mirrors:\n  "*": {endpoint: ["https://registry.re8ch.com"]}\nconfigs: {}\n',
+    'mirrors:\n  <<: *inherited\nconfigs: {}\n',
+    '<<: *inherited\nconfigs: {}\n',
+    'mirrors:\n  "\\u002a": {endpoint: ["https://registry.re8ch.com"]}\nconfigs: {}\n',
 ])
 def test_unknown_yaml_layout_is_not_silently_treated_as_no_mirror(raw):
     with pytest.raises(ValueError):
@@ -163,6 +181,55 @@ def test_node_bound_check_cannot_be_used_on_another_node(tmp_path, monkeypatch):
 def test_unsafe_second_backup_fails_before_first_target_write(tmp_path):
     durable, effective = sandbox(tmp_path)
     effective.with_name(effective.name + ".pre-re8ch-ghcr-native").mkdir()
+    with pytest.raises(ValueError):
+        native.activate(tmp_path, b"")
+    assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
+
+
+@pytest.mark.parametrize("which", ["hosts-parent", "config-parent"])
+def test_parent_symlink_cannot_escape_into_another_owner(tmp_path, which):
+    root = tmp_path / "owned"
+    root.mkdir()
+    durable, effective = sandbox(root)
+    parent = effective.parent if which == "hosts-parent" else (root / native.CONFIG.lstrip("/")).parent
+    other = tmp_path / "other-owner"
+    parent.rename(other)
+    parent.symlink_to(other, target_is_directory=True)
+    expected_registry = durable.read_bytes()
+    expected_other = {p.name: p.read_bytes() for p in other.iterdir() if p.is_file()}
+    with pytest.raises(ValueError):
+        native.activate(root, b"")
+    assert durable.read_bytes() == expected_registry
+    assert {p.name: p.read_bytes() for p in other.iterdir() if p.is_file()} == expected_other
+    assert not list(tmp_path.rglob("*.pre-re8ch-ghcr-native"))
+
+
+def test_partial_backup_write_is_never_installed_or_trusted_on_retry(tmp_path, monkeypatch):
+    durable, effective = sandbox(tmp_path)
+    original = durable.read_bytes(), effective.read_bytes()
+    normal = native.write_bytes
+
+    def broken(stream, data):
+        stream.write(data[:len(data) // 2])
+        stream.flush()
+        raise OSError("injected backup failure")
+
+    monkeypatch.setattr(native, "write_bytes", broken)
+    with pytest.raises(OSError):
+        native.activate(tmp_path, b"")
+    assert not list(tmp_path.rglob("*.pre-re8ch-ghcr-native"))
+    assert (durable.read_bytes(), effective.read_bytes()) == original
+    monkeypatch.setattr(native, "write_bytes", normal)
+    native.activate(tmp_path, b"")
+    for path, before in zip((durable, effective), original):
+        assert path.with_name(path.name + ".pre-re8ch-ghcr-native").read_bytes() == before
+
+
+def test_preexisting_truncated_backup_blocks_all_target_changes(tmp_path):
+    durable, effective = sandbox(tmp_path)
+    backup = effective.with_name(effective.name + ".pre-re8ch-ghcr-native")
+    backup.write_text("truncated")
+    backup.chmod(0o600)
     with pytest.raises(ValueError):
         native.activate(tmp_path, b"")
     assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS

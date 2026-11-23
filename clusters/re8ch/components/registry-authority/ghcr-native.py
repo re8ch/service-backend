@@ -21,6 +21,9 @@ CONFIG = "/var/lib/rancher/k3s/agent/etc/containerd/config.toml"
 
 def without_ghcr_mirror(raw):
     lines = raw.splitlines(keepends=True)
+    if any(line and not line[0].isspace() and not line.startswith("#")
+           and not re.match(r"^(mirrors|configs):", line) for line in lines):
+        raise ValueError("unsupported registry top-level structure")
     if any(re.match(r'''^["']mirrors["']:''', line) for line in lines):
         raise ValueError("unsupported quoted mirrors key")
     starts = [i for i, line in enumerate(lines) if re.match(r"^mirrors:\s*(?:#.*)?$", line.rstrip())]
@@ -32,6 +35,11 @@ def without_ghcr_mirror(raw):
         return raw
     start = starts[0]
     end = next((i for i in range(start + 1, len(lines)) if re.match(r"^[^\s#][^:]*:", lines[i])), len(lines))
+    if any(re.match(r'''^\s+(?:\*|'\*'|"\*"|<<|'<<'|"<<"):\s*''', line)
+           for line in lines[start + 1:end]):
+        raise ValueError("inherited or wildcard mirrors require separate review")
+    if any(re.match(r'''^  ["'][^"']*\\''', line) for line in lines[start + 1:end]):
+        raise ValueError("escaped mirror keys require separate review")
     if any(re.match(r'''^\s+(?:ghcr\.io|'ghcr\.io'|"ghcr\.io"):''', line)
            and not line.startswith("  ghcr.io:") and not line.startswith("  'ghcr.io':")
            and not line.startswith('  "ghcr.io":') for line in lines[start + 1:end]):
@@ -60,8 +68,15 @@ def canonical_endpoint(value):
 
 
 def canonical_hosts(raw):
-    kept, dropping, server_seen = [], False, False
+    kept, dropping, server_seen, context = [], False, False, "root"
+    allowed = {"server", "capabilities", "ca", "client", "skip_verify", "override_path", "header", "dial_timeout"}
     for line in raw.splitlines(keepends=True):
+        if line.lstrip().startswith("#") or not line.strip():
+            if not dropping:
+                kept.append(line)
+            continue
+        if '\"\"\"' in line or "'''" in line:
+            raise ValueError("multiline TOML values require separate review")
         section = re.match(r'^\s*\[(.+)\]\s*(?:#.*)?$', line.rstrip())
         if section:
             heading = section.group(1)
@@ -79,14 +94,29 @@ def canonical_hosts(raw):
                 if not harbor and heading.endswith(".rewrite"):
                     raise ValueError("canonical host must not rewrite repository identity")
                 dropping = harbor
+                suffix = heading[heading.rfind(host.group(1)) + 1:]
+                if suffix not in ("", ".header", ".rewrite"):
+                    raise ValueError("unknown host subsection")
+                context = "header" if suffix == ".header" else "host"
             else:
                 dropping = False
-                if heading == "rewrite":
-                    raise ValueError("canonical host must not rewrite repository identity")
+                if heading not in ("header", "host"):
+                    raise ValueError("unknown TOML table")
+                context = "header" if heading == "header" else "empty-host"
         if dropping:
             continue
-        server = re.match(r'''^\s*server\s*=\s*(["'])(.*?)\1\s*(?:#.*)?$''', line.rstrip())
-        if server:
+        if not section:
+            if context == "empty-host":
+                raise ValueError("inline host mappings are not permitted")
+            if context != "header" and "=" in line:
+                assignment = re.match(r'''^\s*(?:"([^"\\]+)"|'([^']+)'|([A-Za-z0-9_-]+))\s*=''', line)
+                key = next((v for v in assignment.groups() if v is not None), None) if assignment else None
+                if key not in allowed or (context == "host" and key == "server"):
+                    raise ValueError("unknown or inline TOML host structure")
+        server = re.match(r'''^\s*(?:server|"server"|'server')\s*=\s*(["'])(.*?)\1\s*(?:#.*)?$''', line.rstrip())
+        if not section and context == "root" and "=" in line and key == "server" and not server:
+            raise ValueError("canonical server must be an explicit string")
+        if server and context == "root":
             if server_seen or not canonical_endpoint(server.group(2)):
                 raise ValueError("unexpected canonical server")
             server_seen = True
@@ -96,52 +126,96 @@ def canonical_hosts(raw):
     return "".join(kept)
 
 
-def read_file(path):
-    if path.is_symlink():
-        raise ValueError("refusing a symlink target")
+def scoped_path(root, path):
+    relative = path.relative_to(root)
+    cursor = root
+    for part in (None, *relative.parts):
+        if part is not None:
+            cursor = cursor / part
+        if cursor.is_symlink():
+            raise ValueError("refusing a symlink path component")
+
+
+def read_file(root, path):
+    scoped_path(root, path)
     return path.read_bytes() if path.exists() else None
 
 
-def atomic_write(path, data, before):
-    if read_file(path) != before:
-        raise ValueError("target changed after check")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if before is not None:
-        backup = path.with_name(path.name + ".pre-re8ch-ghcr-native")
-        if backup.is_symlink():
-            raise ValueError("refusing a symlink backup")
-        try:
-            descriptor = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            pass
-        else:
-            with os.fdopen(descriptor, "wb") as stream:
-                stream.write(before)
-                stream.flush()
-                os.fsync(stream.fileno())
+def write_bytes(stream, data):
+    remaining = memoryview(data)
+    while remaining:
+        written = stream.write(remaining)
+        if written is None or written <= 0:
+            raise OSError("incomplete file write")
+        remaining = remaining[written:]
+    stream.flush()
+    os.fsync(stream.fileno())
+
+
+def complete_temp(root, path, data):
+    scoped_path(root, path.parent)
     descriptor, temporary = tempfile.mkstemp(prefix="." + path.name + ".", dir=path.parent)
     try:
         with os.fdopen(descriptor, "wb") as stream:
             os.fchmod(stream.fileno(), 0o600)
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
+            write_bytes(stream, data)
+        return temporary
+    except BaseException:
+        os.unlink(temporary)
+        raise
+
+
+def sync_directory(root, directory):
+    scoped_path(root, directory)
+    descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def atomic_write(root, path, data, before):
+    if read_file(root, path) != before:
+        raise ValueError("target changed after check")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if before is not None:
+        backup = path.with_name(path.name + ".pre-re8ch-ghcr-native")
+        scoped_path(root, backup)
+        temporary = complete_temp(root, backup, before)
+        try:
+            try:
+                os.link(temporary, backup)
+            except FileExistsError:
+                if read_file(root, backup) != before:
+                    raise ValueError("existing backup does not match the original")
+        finally:
+            os.unlink(temporary)
+        sync_directory(root, path.parent)
+    temporary = complete_temp(root, path, data)
+    try:
+        if read_file(root, path) != before:
+            raise ValueError("target changed before replacement")
         os.replace(temporary, path)
+        sync_directory(root, path.parent)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
 
 
 def activate(root, fallback, check=False, expected=None):
+    root = Path(os.path.abspath(root))
     config = root / CONFIG.lstrip("/")
-    config_lines = config.read_text().splitlines()
+    config_bytes = read_file(root, config)
+    if config_bytes is None:
+        raise ValueError("active containerd configuration is missing")
+    config_lines = config_bytes.decode().splitlines()
     paths = [match.group(2) for line in config_lines
              if (match := re.match(r'''^\s*config_path\s*=\s*(["'])(.*?)\1''', line))]
     if paths != [HOSTS_DIR]:
         raise ValueError("active hosts-dir is not the reviewed K3s path")
     registry = root / REGISTRIES.lstrip("/")
     hosts = root / HOSTS_DIR.lstrip("/") / "ghcr.io" / "hosts.toml"
-    before_registry, before_hosts = read_file(registry), read_file(hosts)
+    before_registry, before_hosts = read_file(root, registry), read_file(root, hosts)
     if before_registry is None and not fallback.strip():
         raise ValueError("missing durable configuration requires the reviewed bootstrap prefix")
     registry_source = before_registry if before_registry is not None else fallback
@@ -155,17 +229,20 @@ def activate(root, fallback, check=False, expected=None):
     if expected is not None and expected != fingerprint:
         raise ValueError("checked state changed; run check again")
     # Validate every target before the first write. Keep opaque auth bytes intact.
-    for path, before, _ in targets:
-        if read_file(path) != before:
+    for path, before, after in targets:
+        if read_file(root, path) != before:
             raise ValueError("target changed while checking")
         backup = path.with_name(path.name + ".pre-re8ch-ghcr-native")
-        if backup.is_symlink() or (backup.exists() and
+        scoped_path(root, backup)
+        if backup.exists() and (
                                   (not backup.is_file() or backup.stat().st_mode & 0o077)):
             raise ValueError("existing backup is not a private regular file")
+        if before != after and backup.exists() and read_file(root, backup) != before:
+            raise ValueError("existing backup does not match the original")
     if not check:
         for path, before, after in targets:
             if before != after:
-                atomic_write(path, after, before)
+                atomic_write(root, path, after, before)
     return {"registry": "ghcr.io", "node": node, "fingerprint": fingerprint, "checkOnly": check,
             "durableChanged": targets[0][1] != targets[0][2],
             "effectiveChanged": targets[1][1] != targets[1][2], "restarted": False}

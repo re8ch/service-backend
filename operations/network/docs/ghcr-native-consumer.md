@@ -53,8 +53,13 @@ without restarting K3s or reserializing opaque credentials. The small stdlib
 helper is embedded verbatim in the existing ConfigMap, not a new controller,
 registry, credential synchronizer or polling service. It validates both targets
 before writing, guards the exact active hosts-dir, refuses unknown authorities,
-symlinks and unsupported YAML layouts, writes atomically, and supports a node-
+inline/inherited host maps, wildcard or merged mirrors and symlinks in every
+component from the selected root through config/targets/backups. It writes
+atomically and supports a node-
 and-file-bound check fingerprint. Existing file changes invalidate that check.
+Backups are complete and fsynced before an exclusive atomic link installs their
+name; an interrupted temporary write is never accepted as a valid backup. An
+existing mismatched backup requires inspection instead of silent replacement.
 
 This activation only touches `/etc/rancher/k3s/registries.yaml` and the GHCR
 `hosts.toml` (and their private backups). It does not rewrite `/etc/hosts`, delete
