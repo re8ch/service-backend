@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -171,6 +172,13 @@ func validatePlatformPostgresInput(input map[string]any) error {
 }
 
 func callNativePlatformTool(ctx context.Context, s *server, name string, arguments map[string]any) (*mcp.CallToolResult, error) {
+	if (name == "kubectl.exec" || strings.HasPrefix(name, "kube.") || name == "nodes.list" || name == "nodes.get") && arguments["clusterRef"] == nil {
+		var err error
+		arguments, err = platformClusterArguments(ctx, s, "re8ch", arguments)
+		if err != nil {
+			return nil, err
+		}
+	}
 	value, err := s.moduleRegistry().call(ctx, "native", func(session *mcp.ClientSession) (any, error) {
 		return session.CallTool(ctx, &mcp.CallToolParams{Name: name, Arguments: arguments})
 	})
@@ -180,6 +188,18 @@ func callNativePlatformTool(ctx context.Context, s *server, name string, argumen
 	result, ok := value.(*mcp.CallToolResult)
 	if !ok {
 		return nil, errors.New("native platform backend returned an invalid result")
+	}
+	if digest, bound := arguments["clusterBindingDigest"].(string); bound {
+		if id, identityErr := identityFrom(ctx); identityErr == nil {
+			audit := map[string]any{"event": "platform-cluster-operation", "actorRef": "sha256:" + sha256Hex(id.Subject),
+				"organizationRef": id.Tenant, "clusterRef": arguments["clusterRef"], "bindingDigest": digest, "tool": name, "isError": result.IsError}
+			if result.Meta == nil {
+				result.Meta = mcp.Meta{}
+			}
+			result.Meta["re8ch.com/cluster-binding"] = audit
+			encoded, _ := json.Marshal(audit)
+			log.Print(string(encoded))
+		}
 	}
 	return result, nil
 }
@@ -480,10 +500,7 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			if err != nil {
 				return nil, nil, err
 			}
-			var planInput any = input.Manifest
-			if input.ClusterRef != "" {
-				planInput = map[string]any{"manifest": input.Manifest, "cluster": binding}
-			}
+			planInput := map[string]any{"manifest": input.Manifest, "cluster": binding}
 			planHash, err := platformMutationPlan("apply", planInput)
 			if err != nil {
 				return nil, nil, err

@@ -1,6 +1,10 @@
 {
   "clusters": {
-    "re8ch": {"clusterRef": "re8ch", "adapter": "local"},
+    "re8ch": {
+      "clusterRef": "re8ch", "adapter": "local", "trustDomain": "re8ch.internal",
+      "clusterIdentityRef": {"namespace": "byoc-pilot", "name": "re8ch", "uid": "9b360e14-2a36-44db-8c80-6b7ca690df63"},
+      "apiServiceRef": {"namespace": "default", "name": "kubernetes", "uid": "9a4ff49b-d663-47df-962a-f1d562c85c32"}
+    },
     "re8ch-atlantic": {
       "clusterRef": "re8ch-atlantic",
       "adapter": "among-broker",

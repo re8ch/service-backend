@@ -169,3 +169,48 @@ def test_rejected_request_never_reaches_broker(case):
         proxy_request(Service(), "GET", path, headers, None, authenticate=authenticate,
                       open_url=lambda *a, **k: calls.append(a))
     assert calls == []
+
+
+def test_self_execution_verifies_uid_binding_and_preserves_original_api_identity(monkeypatch):
+    import cluster_transport
+    import test_ssa_release_executor as base
+    digest = "b" * 64
+    seen = []
+    wrong_binding = False
+    class MainAPI(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            assert self.headers.get("Authorization") == "Bearer synthetic-actions-caller"
+            seen.append(self.path)
+            if self.path.endswith("/cluster-bindings/re8ch"):
+                assert self.headers.get(PROOF_HEADER) == "Bearer synthetic-actions-caller"
+                value = {"clusterRef":"re8ch", "bindingDigest": "c"*64 if wrong_binding else digest,
+                         "clusterIdentityRef":{"uid":"original-cluster"}, "apiServiceRef":{"uid":"original-api"}}
+            else:
+                assert self.path == "/version"
+                assert not self.headers.get(PROOF_HEADER)
+                value = {"gitVersion":"self-cluster"}
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(json.dumps(value).encode())
+        def log_message(self, *_): pass
+    with serving(MainAPI) as api:
+        monkeypatch.setattr(cluster_transport,"MAIN_API",f"http://127.0.0.1:{api.server_port}")
+        contract = base.contract()
+        contract["spec"]["target"]["clusterBindingDigest"] = digest
+        instance = base.executor.Executor()
+        instance.actions_kube_token = lambda: "synthetic-actions-caller"
+        instance.bind_cluster_target(contract)
+        def runner(argv, **kwargs):
+            config = json.loads(Path(argv[2]).read_text())
+            assert "synthetic-actions-caller" not in json.dumps(config)
+            assert "synthetic-actions-caller" not in json.dumps(argv)
+            with urllib.request.urlopen(config["clusters"][0]["cluster"]["server"]+"/version") as response:
+                return subprocess.CompletedProcess(argv,0,response.read().decode(),"")
+        instance.runner = runner
+        assert json.loads(instance.command(["kubectl","get","--raw=/version"]).stdout)["gitVersion"] == "self-cluster"
+        assert len(seen) == 2 and seen[0].endswith("/cluster-bindings/re8ch") and seen[1] == "/version"
+        wrong_binding = True
+        instance.bind_cluster_target(contract)
+        with pytest.raises(base.executor.Rejected, match="self cluster binding"):
+            instance.command(["kubectl","get","--raw=/version"])
+        assert len(seen) == 3 and seen[-1].endswith("/cluster-bindings/re8ch")

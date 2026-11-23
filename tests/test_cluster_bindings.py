@@ -15,7 +15,11 @@ NOW = dt.datetime(2026, 11, 23, tzinfo=dt.timezone.utc)
 def authority():
     document = json.loads((Path(__file__).parents[1] / "platform/cloud-platform/cluster-bindings.json").read_text())
     binding = document["clusters"]["re8ch-atlantic"]
-    objects = {}
+    self_binding = document["clusters"]["re8ch"]
+    objects = {
+        "clusteridentities": {"metadata": dict(self_binding["clusterIdentityRef"]), "spec": {"clusterID": "re8ch", "trustDomain": "re8ch.internal"}},
+        "services": {"metadata": dict(self_binding["apiServiceRef"]), "spec": {"ports": [{"port": 443}]}}
+    }
     for key, resource in (("advertisementRef", "serviceadvertisements"), ("importedServiceRef", "importedservices"),
                           ("grantRef", "managedaccessgrants"), ("peerRef", "peers")):
         ref = binding[key]
@@ -32,8 +36,8 @@ def authority():
     peer["spec"] = {"suspended": False, "localIdentityRef": "re8ch", "remoteIdentityRef": binding["publisherRef"]}
     peer["status"] = {"state": "Ready", "observedGeneration": 1}
     def read(resource, namespace, name):
-        assert namespace == "byoc-pilot"
         obj = objects[resource.split(".")[0]]
+        assert namespace == obj["metadata"]["namespace"]
         assert name == obj["metadata"]["name"]
         return obj
     return ClusterBindings(document, read, lambda: NOW), objects
@@ -43,7 +47,7 @@ def test_self_and_managed_cluster_share_callable_binding_model(authority):
     resolver, _ = authority
     result = resolver.list()
     assert [c["clusterRef"] for c in result["clusters"]] == ["re8ch", "re8ch-atlantic"]
-    assert result["clusters"][0]["state"] == "Configured"
+    assert result["clusters"][0]["state"] == "Ready"
     assert result["clusters"][0]["providerHealth"] == "Unverified"
     assert result["clusters"][1]["state"] == "Ready"
     assert result["registrationPolicyIndependent"]
@@ -90,7 +94,15 @@ def test_read_failure_never_falls_back_to_self(authority):
     resolver.read = lambda *_: (_ for _ in ()).throw(OperationError("BACKEND_TIMEOUT", "unavailable"))
     with pytest.raises(OperationError):
         resolver.resolve("re8ch-atlantic")
-    assert resolver.list()["clusters"][0]["state"] == "Configured"
+    assert resolver.list()["clusters"][0]["state"] == "Unavailable"
+
+
+@pytest.mark.parametrize("resource", ["clusteridentities", "services"])
+def test_self_binding_requires_live_original_identity(authority, resource):
+    resolver, objects = authority
+    objects[resource]["metadata"]["uid"] = "replacement"
+    with pytest.raises(OperationError): resolver.resolve("re8ch")
+    assert resolver.list()["clusters"][0]["state"] == "Unavailable"
 
 
 def test_release_grant_is_distinct_scoped_and_uid_bound(authority):

@@ -182,17 +182,19 @@ class Executor:
         self._kube_token_refresh_at = 0.0
         self.cluster_target = None
         self.cluster_release_id = None
+        self._self_binding_verified = False
 
     def bind_cluster_target(self, contract):
         validate_schema(contract, "release-contract.schema.json")
         target = contract["spec"]["target"]
         self.cluster_release_id = contract["metadata"]["name"]
+        self._self_binding_verified = False
         if target["cluster"] != "re8ch":
             if not target.get("clusterBindingDigest"):
                 raise Rejected("remote execution requires the reviewed cluster binding digest")
             self.cluster_target = target
         else:
-            self.cluster_target = None
+            self.cluster_target = target if target.get("clusterBindingDigest") else None
 
     def actions_kube_token(self) -> str | None:
         request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
@@ -231,6 +233,13 @@ class Executor:
         effective = list(argv)
         if effective and effective[0] == "kubectl" and self.cluster_target:
             from cluster_transport import transport
+            if self.cluster_target["cluster"] == "re8ch" and not self._self_binding_verified:
+                from cluster_transport import verify_self
+                try:
+                    verify_self(self.cluster_target["clusterBindingDigest"], self.actions_kube_token)
+                except ValueError:
+                    raise Rejected("self cluster binding verification failed") from None
+                self._self_binding_verified = True
             with transport(self.cluster_target["cluster"], self.cluster_target["clusterBindingDigest"], self.actions_kube_token,
                            release_id=self.cluster_release_id) as kubeconfig:
                 try:

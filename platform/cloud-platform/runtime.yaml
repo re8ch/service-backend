@@ -31,8 +31,8 @@ spec:
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
-            - {name: CLUSTER_BINDINGS_FILE, value: /etc/re8ch-cluster-bindings/cluster-bindings.json}
             - {name: KUBERNETES_SERVER_OVERRIDE, value: "https://10.250.0.147:6443"}
+            - {name: CLUSTER_BINDINGS_FILE, value: /etc/re8ch-cluster-bindings/cluster-bindings.json}
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
             - {name: HYPOTHESIS_STORAGE_DIRECTORY, value: /tmp/hypothesis}
             - {name: OAUTH_AUDIENCE, value: re8ch-cloud-platform-tool}
@@ -151,7 +151,6 @@ spec:
             nodeSelectorTerms:
               - matchExpressions:
                   - {key: scheduling.re8ch.com/service-plane, operator: In, values: [core]}
-                  - {key: kubernetes.io/hostname, operator: In, values: [r640]}
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100

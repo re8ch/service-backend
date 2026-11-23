@@ -142,7 +142,7 @@ def authenticate(header: str) -> Identity | None:
         return None
 
 
-def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
+def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity, *, _bound=False) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
     if name == "clusters.list":
@@ -150,18 +150,18 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
     if name == "clusters.resolve":
         binding = service.cluster_bindings().resolve(args["clusterRef"])
         return {key: value for key, value in binding.items() if key != "brokerURL"}
-    if name in CLUSTER_TOOLS and "clusterRef" in args:
+    if name in CLUSTER_TOOLS and not _bound:
         if ADMIN_GROUP not in identity.groups:
             raise OperationError("AUTHORIZATION_DENIED", "managed cluster access requires platform administration")
         arguments = dict(args)
-        ref = arguments.pop("clusterRef")
+        ref = arguments.pop("clusterRef", "re8ch")
         expected = arguments.pop("clusterBindingDigest", None)
         if name == "kubectl.exec":
             target_flags = ("--server", "--kubeconfig", "--context", "--cluster", "--user", "--token", "--client-certificate", "--client-key", "--certificate-authority", "--insecure-skip-tls-verify", "--as", "--as-group", "--as-uid")
             if any(arg.split("=", 1)[0] in target_flags for arg in arguments.get("argv", [])):
                 raise OperationError("INVALID_ARGUMENT", "kubectl cannot override a reviewed cluster target or identity")
         with service.for_cluster(ref, expected) as (bound, binding):
-            result = dispatch(bound, name, arguments, identity)
+            result = dispatch(bound, name, arguments, identity, _bound=True)
             if isinstance(result, dict):
                 result = {**result, "clusterRef": ref, "clusterBindingDigest": binding["bindingDigest"]}
             return result
@@ -296,6 +296,18 @@ class Handler(BaseHTTPRequestHandler):
     do_DELETE = do_PUT
 
     def do_GET(self) -> None:
+        if self.path.startswith("/cluster-bindings/"):
+            from cluster_execution_proxy import caller_identity, PROOF_HEADER, BINDING_HEADER
+            try:
+                identity = caller_identity(self.headers.get(PROOF_HEADER, ""))
+                ref = self.path.removeprefix("/cluster-bindings/")
+                binding = self.server.service.cluster_bindings().resolve(ref)
+                if binding["adapter"] != "local" or self.headers.get(BINDING_HEADER) != binding["bindingDigest"]:
+                    raise OperationError("CLUSTER_BINDING_CHANGED", "self execution binding differs from reviewed identity")
+                print(json.dumps({"event":"managed-cluster-binding", "clusterRef":ref, "bindingDigest":binding["bindingDigest"], "caller":identity["username"]}))
+                return self.reply(200, binding)
+            except OperationError as error:
+                return self.reply(403, {"error":error.code, "message":str(error)})
         if self.path.startswith("/k8s/"):
             return self.managed_cluster_proxy()
         if self.path in {"/healthz", "/readyz"}:

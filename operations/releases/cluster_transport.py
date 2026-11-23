@@ -25,6 +25,23 @@ def no_redirect_open(request, *, timeout=120):
     return urllib.request.build_opener(NoRedirect()).open(request, timeout=timeout)
 
 
+def verify_self(binding_digest, token_source, *, open_url=no_redirect_open):
+    token = token_source()
+    if not token:
+        raise ValueError("self binding requires the original execution identity")
+    url = MAIN_API + CLOUD_PROXY.removesuffix("k8s/") + "cluster-bindings/re8ch"
+    request = urllib.request.Request(url, headers={"Authorization":"Bearer "+token,
+        "X-Re8ch-Execution-Proof":"Bearer "+token, "X-Re8ch-Cluster-Binding":binding_digest})
+    try:
+        with open_url(request, timeout=30) as response:
+            binding = json.load(response)
+    except Exception:
+        raise ValueError("self cluster binding verification failed") from None
+    if binding.get("clusterRef") != "re8ch" or binding.get("bindingDigest") != binding_digest or not binding.get("clusterIdentityRef") or not binding.get("apiServiceRef"):
+        raise ValueError("self cluster binding identity mismatch")
+    return binding
+
+
 @contextlib.contextmanager
 def transport(cluster_ref, binding_digest, token_source, *, release_id, open_url=no_redirect_open):
     """Only this command's loopback socket exists; proofs never enter argv/files."""
@@ -41,10 +58,13 @@ def transport(cluster_ref, binding_digest, token_source, *, release_id, open_url
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length) if length else None
             headers = {key: self.headers[key] for key in ("Content-Type", "Accept", "Accept-Encoding") if self.headers.get(key)}
-            headers.update({"Authorization": "Bearer " + token, "X-Re8ch-Execution-Proof": "Bearer " + token,
-                            "X-Re8ch-Release-Id": release_id,
-                            "X-Re8ch-Cluster-Binding": binding_digest})
-            request = urllib.request.Request(MAIN_API + CLOUD_PROXY + urllib.parse.quote(cluster_ref, safe="") + self.path,
+            headers["Authorization"] = "Bearer " + token
+            url = MAIN_API + self.path
+            if cluster_ref != "re8ch":
+                headers.update({"X-Re8ch-Execution-Proof": "Bearer " + token,
+                                "X-Re8ch-Release-Id": release_id, "X-Re8ch-Cluster-Binding": binding_digest})
+                url = MAIN_API + CLOUD_PROXY + urllib.parse.quote(cluster_ref, safe="") + self.path
+            request = urllib.request.Request(url,
                                              data=body, headers=headers, method=self.command)
             try:
                 response = open_url(request, timeout=120)

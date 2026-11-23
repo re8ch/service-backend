@@ -858,7 +858,11 @@ data:
   cluster-bindings.json: |
     {
       "clusters": {
-        "re8ch": {"clusterRef": "re8ch", "adapter": "local"},
+        "re8ch": {
+          "clusterRef": "re8ch", "adapter": "local", "trustDomain": "re8ch.internal",
+          "clusterIdentityRef": {"namespace": "byoc-pilot", "name": "re8ch", "uid": "9b360e14-2a36-44db-8c80-6b7ca690df63"},
+          "apiServiceRef": {"namespace": "default", "name": "kubernetes", "uid": "9a4ff49b-d663-47df-962a-f1d562c85c32"}
+        },
         "re8ch-atlantic": {
           "clusterRef": "re8ch-atlantic",
           "adapter": "among-broker",
@@ -1684,10 +1688,10 @@ spec:
           value: /etc/re8ch-platform
         - name: KUBECONFIG
           value: /etc/re8ch-platform/kubeconfig
-        - name: CLUSTER_BINDINGS_FILE
-          value: /etc/re8ch-cluster-bindings/cluster-bindings.json
         - name: KUBERNETES_SERVER_OVERRIDE
           value: https://10.250.0.147:6443
+        - name: CLUSTER_BINDINGS_FILE
+          value: /etc/re8ch-cluster-bindings/cluster-bindings.json
         - name: WORKSPACE_ROOT
           value: /srv/service-backend
         - name: HYPOTHESIS_STORAGE_DIRECTORY
@@ -1870,10 +1874,6 @@ spec:
                 operator: In
                 values:
                 - core
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - r640
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:

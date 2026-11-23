@@ -133,13 +133,19 @@ func TestPlatformStalwartAdminRoutesOnlyBoundedOperations(t *testing.T) {
 
 func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	s := testServer(t)
+	var ledgerErr error
+	s.ledger, ledgerErr = openLedger(t.TempDir() + "/ledger.db")
+	if ledgerErr != nil {
+		t.Fatal(ledgerErr)
+	}
+	t.Cleanup(func() { s.ledger.Close() })
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, _ := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 		writeJSON(w, 200, map[string]string{"id": claims.Subject})
 	}))
 	defer goTrue.Close()
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, 200, map[string]string{"tenantRef": "admin", "role": "admin", "defaultNamespace": "admin-default"})
+		writeJSON(w, 200, map[string]any{"tenantRef": "admin", "role": "admin", "defaultNamespace": "admin-default", "byocAllowed": false, "nativeAccess": true, "hostingMode": "platform-managed"})
 	}))
 	defer control.Close()
 	active := true
@@ -177,14 +183,17 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		return nil, map[string]any{"clusterRef": input.ClusterRef, "bindingDigest": currentBinding}, nil
 	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "clusters.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
-		return nil, map[string]any{"clusters": []string{"re8ch", "re8ch-atlantic"}}, nil
+		return nil, map[string]any{"clusters": []map[string]any{{"clusterRef": "re8ch", "bindingDigest": currentBinding, "state": "Ready", "adapter": "local", "clusterIdentityRef": map[string]any{"namespace": "pilot", "name": "re8ch", "uid": "fixture-self"}}, {"clusterRef": "re8ch-atlantic", "bindingDigest": currentBinding, "state": "Ready", "adapter": "among-broker", "serviceIdentity": "spiffe://fixture/ns/default/service/kubernetes"}}}, nil
 	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
 		kubectlCluster, kubectlBinding = input.ClusterRef, input.ClusterBindingDigest
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
 	})
-	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct {
+		ClusterRef           string `json:"clusterRef,omitempty"`
+		ClusterBindingDigest string `json:"clusterBindingDigest,omitempty"`
+	}) (*mcp.CallToolResult, any, error) {
 		return nil, map[string]any{"nodes": []string{"r640"}}, nil
 	})
 	for _, name := range []string{"kube.resource.apply", "kube.resource.delete"} {
@@ -262,6 +271,18 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	bindings := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_cluster_bindings_list", "arguments": map[string]any{}})
 	if bindings["error"] != nil || bindings["result"].(map[string]any)["isError"] == true {
 		t.Fatalf("cluster directory unavailable: %#v", bindings)
+	}
+	byoc := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "byoc_connection_list", "arguments": map[string]any{}})
+	if byoc["error"] != nil || byoc["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("Admin BYOC view unavailable: %#v", byoc)
+	}
+	encoded, _ := json.Marshal(byoc)
+	if !strings.Contains(string(encoded), "managed-cluster://admin/re8ch-atlantic") || !strings.Contains(string(encoded), "managed-cluster://admin/re8ch") {
+		t.Fatalf("Admin BYOC directory omitted managed targets: %s", encoded)
+	}
+	var registrations int
+	if err := s.ledger.QueryRow("SELECT COUNT(*) FROM cluster_registrations").Scan(&registrations); err != nil || registrations != 0 {
+		t.Fatalf("managed view created duplicate registrations: %d %v", registrations, err)
 	}
 	for _, ref := range []string{"re8ch", "re8ch-atlantic"} {
 		read := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover", "clusterRef": ref}})

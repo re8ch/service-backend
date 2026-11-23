@@ -111,6 +111,10 @@ class CloudPlatform:
         if expected_digest and expected_digest != binding["bindingDigest"]:
             raise OperationError("CLUSTER_BINDING_CHANGED", "review the current cluster binding before execution")
         if binding["adapter"] == "local":
+            ref = binding["apiServiceRef"]
+            actual = self._kubectl(["get", "service", ref["name"], "--namespace", ref["namespace"], "-o", "json"])
+            if actual["exitCode"] or self._json_stdout(actual).get("metadata", {}).get("uid") != ref["uid"]:
+                raise OperationError("CLUSTER_BINDING_UNAVAILABLE", "native execution API differs from the reviewed self identity")
             yield self, binding
             return
         # Only references to this process's projected identity are written here.

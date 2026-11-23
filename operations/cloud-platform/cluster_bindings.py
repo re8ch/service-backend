@@ -39,8 +39,12 @@ class ProjectedMetadataReader:
         self.server = "https://" + os.getenv("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc") + ":" + os.getenv("KUBERNETES_SERVICE_PORT_HTTPS", "443")
 
     def __call__(self, resource, namespace, name):
-        plural, group = resource.split(".", 1)
-        path = "/apis/" + group + "/v1alpha1/namespaces/" + quote(namespace, safe="") + "/" + plural + "/" + quote(name, safe="")
+        if "." in resource:
+            plural, group = resource.split(".", 1)
+            prefix = "/apis/" + group + "/v1alpha1"
+        else:
+            plural, prefix = resource, "/api/v1"
+        path = prefix + "/namespaces/" + quote(namespace, safe="") + "/" + plural + "/" + quote(name, safe="")
         try:
             if self.context is None:
                 self.context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
@@ -99,6 +103,21 @@ class ClusterBindings:
         if binding.get("adapter") == "local":
             if cluster_ref != "re8ch":
                 reject("only the existing self cluster can use the local adapter")
+            ref = binding["clusterIdentityRef"]
+            identity = self.read("clusteridentities." + GROUP, ref["namespace"], ref["name"])
+            spec, meta = identity.get("spec", {}), identity.get("metadata", {})
+            if (meta.get("uid") != ref["uid"] or meta.get("deletionTimestamp")
+                    or spec.get("clusterID") != cluster_ref or spec.get("trustDomain") != binding["trustDomain"]):
+                reject("self cluster identity was replaced or changed")
+            ref = binding["apiServiceRef"]
+            service = self.read("services", ref["namespace"], ref["name"])
+            if (service.get("metadata", {}).get("uid") != ref["uid"]
+                    or service.get("metadata", {}).get("deletionTimestamp")
+                    or not any(p.get("port") == 443 for p in service.get("spec", {}).get("ports", []))):
+                reject("self Kubernetes API service identity was replaced or withdrawn")
+            result.update(clusterIdentityRef=binding["clusterIdentityRef"], apiServiceRef=binding["apiServiceRef"],
+                          serviceIdentity="spiffe://"+binding["trustDomain"]+"/ns/"+ref["namespace"]+"/service/"+ref["name"],
+                          authorization="verified-platform-admin/local-api-rbac", connectionModel="managed-byoc")
             return result
         if binding.get("adapter") != "among-broker":
             reject("unsupported cluster adapter")
@@ -156,6 +175,8 @@ class ClusterBindings:
                 or endpoint.query or endpoint.fragment):
             reject("invalid reviewed broker endpoint")
         result.update(namespace=namespace, grantRef=binding["grantRef"],
+                      serviceIdentity=binding["serviceIdentity"], connectionModel="managed-byoc",
+                      advertisementRef=binding["advertisementRef"], importedServiceRef=binding["importedServiceRef"],
                       brokerURL=binding["brokerURL"].rstrip("/") + "/k8s/" + quote(namespace, safe="") + "/" + quote(binding["grantRef"]["name"], safe=""),
                       scope=binding["grantScope"])
         return result
@@ -192,10 +213,10 @@ class ClusterBindings:
             try:
                 resolved = self.resolve(ref)
                 result.append({k: v for k, v in resolved.items() if k != "brokerURL"} |
-                              {"state": "Configured" if resolved["adapter"] == "local" else "Ready",
+                              {"state": "Ready",
                                "providerHealth": "Unverified", "callable": True,
                                "isSelf": resolved["adapter"] == "local",
-                               "source": "platform-self" if resolved["adapter"] == "local" else "admin-managed-byoc",
+                               "source": "admin-managed-byoc-self" if resolved["adapter"] == "local" else "admin-managed-byoc",
                                "executionReleases": sorted(self.bindings[ref].get("executionBindings", {}))})
             except OperationError as error:
                 result.append({"clusterRef": ref, "state": "Unavailable", "ownership": "re8ch-admin",
