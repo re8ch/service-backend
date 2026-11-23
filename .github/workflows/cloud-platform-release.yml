@@ -184,7 +184,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && inputs.reuse_run_id == ''
     needs: validate
     runs-on: ${{ inputs.publisher == 'r640' && fromJSON('["self-hosted","Linux","X64","r640","untrusted-build"]') || 'ubuntu-24.04' }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     environment: production
     permissions:
       contents: read
@@ -370,7 +370,7 @@ jobs:
       - name: Replicate the verified immutable primary to Harbor
         id: mirror
         continue-on-error: true
-        timeout-minutes: 12
+        timeout-minutes: 90
         env:
           HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
