@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import yaml
+import re8ch_observability as observation
 
 SECRET_KEYS = {"data", "stringData", "token", "password", "privateKey", "clientSecret"}
 READ_ONLY_KUBE_VERBS = {"get", "list", "watch", "logs", "events", "auth-can-i"}
@@ -60,7 +61,10 @@ class OperationRunner:
         operation_id = f"op_{uuid.uuid4().hex}"
         started = time.time()
         try:
-            result = self.executor(argv, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+            with observation.phase("cloud.operation", backend_operation_id=operation_id):
+                result = self.executor(argv, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+                if result.returncode:
+                    observation.failure(error_category="command_exit")
         except subprocess.TimeoutExpired as exc:
             raise OperationError("BACKEND_TIMEOUT", f"{target} timed out", retryable=True) from exc
         return {
@@ -107,7 +111,8 @@ class CloudPlatform:
     @contextlib.contextmanager
     def for_cluster(self, cluster_ref, expected_digest=None):
         from cluster_bindings import BoundKubeconfig
-        binding = self.cluster_bindings().resolve(cluster_ref)
+        with observation.phase("cloud.binding"):
+            binding = self.cluster_bindings().resolve(cluster_ref)
         if expected_digest and expected_digest != binding["bindingDigest"]:
             raise OperationError("CLUSTER_BINDING_CHANGED", "review the current cluster binding before execution")
         if binding["adapter"] == "local":
@@ -121,7 +126,9 @@ class CloudPlatform:
         # request-local relay adds this Pod's projected identity to the fixed
         # reviewed broker, whose existing TokenReview/grant checks still apply.
         from cluster_execution_proxy import interactive_transport
-        with interactive_transport(binding) as config:
+        trace_context = observation.current_carrier()
+        trace_options = {"trace_context": trace_context} if trace_context is not None else {}
+        with interactive_transport(binding, **trace_options) as config:
             yield CloudPlatform(self.inventory, self.runner, kubeconfig=BoundKubeconfig(config),
                                 ssh_config=self.ssh_config, cluster_ref=cluster_ref), binding
 

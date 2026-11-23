@@ -245,6 +245,7 @@ domains:
       - clusters/re8ch/domains/main-legacy/operations-ui
       - clusters/re8ch/domains/main-legacy/tenant-runtime
     tests:
+      - tests/test_python_sentry.py
       - tests/test_cloud_platform.py
       - tests/test_cluster_bindings.py
       - tests/test_cluster_execution_transport.py
@@ -366,6 +367,17 @@ unit_defaults:
   - operations/ci/unit_catalog.py
   - operations/ci/unit_report.py
 validation_units:
+  tests/test_python_sentry.py:
+    sources:
+    - operations/cloud-platform/**
+    - clusters/re8ch/components/ai-operations/tenant_control_controller.py
+    data:
+    - clusters/re8ch/components/ai-operations/Dockerfile
+    - .github/workflows/cloud-platform-release.yml
+    - .github/workflows/tenant-release.yml
+    helpers: []
+    tools: [python]
+    reuse: never
   tests/test_github_bot_merge.py:
     sources:
     - operations/github-maintenance/bot_merge.py

@@ -1,6 +1,10 @@
 FROM alpine:3.22
 
-RUN apk add --no-cache python3 kubectl helm cosign openssh-client ca-certificates curl github-cli
+RUN apk add --no-cache python3 py3-pip kubectl helm cosign openssh-client ca-certificates curl github-cli
+COPY operations/cloud-platform/requirements-observability.txt /tmp/requirements-observability.txt
+RUN pip3 install --no-cache-dir --target=/app/python -r /tmp/requirements-observability.txt
+ENV PYTHONPATH=/app/python
+COPY operations/cloud-platform/re8ch_observability.py /app/re8ch_observability.py
 COPY clusters/re8ch/components/ai-operations/ai_operations_mcp.py /app/ai_operations_mcp.py
 COPY clusters/re8ch/components/ai-operations/grafana_exploration.py /app/grafana_exploration.py
 COPY clusters/re8ch/components/ai-operations/grafana_capabilities.json /app/grafana_capabilities.json

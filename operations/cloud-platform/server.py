@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime import CloudPlatform, Identity, Inventory, OperationError, OperationRunner
+import re8ch_observability as observation
 
 HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 PORT = int(os.getenv("LISTEN_PORT", "19443"))
@@ -114,6 +115,7 @@ def tool_list(identity: Identity) -> list[dict[str, Any]]:
     return result
 
 
+@observation.observed_phase("cloud.auth")
 def authenticate(header: str) -> Identity | None:
     if not header.startswith("Bearer "):
         return None
@@ -142,6 +144,7 @@ def authenticate(header: str) -> Identity | None:
         return None
 
 
+@observation.observed_phase("cloud.dispatch")
 def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity, *, _bound=False) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
@@ -272,41 +275,58 @@ class Handler(BaseHTTPRequestHandler):
             response, audit = proxy_request(self.server.service, self.command, self.path, self.headers, body,
                                            authenticate=lambda _: identity)
             with response:
+                observation.status(response.status)
                 self.send_response(response.status)
                 for key in ("Content-Type", "Content-Encoding", "Warning", "Audit-Id"):
                     for value in response.headers.get_all(key, []):
                         self.send_header(key, value)
                 self.send_header("Connection", "close")
                 self.end_headers()
-                copy_response(response, self.connection, self.wfile)
+                with observation.phase("http.response"):
+                    copy_response(response, self.connection, self.wfile)
             print(json.dumps({"event": "managed-cluster-request", **audit}))
         except OperationError as error:
+            observation.failure(error)
             self.reply(403 if error.code in {"AUTHENTICATION_REQUIRED", "AUTHORIZATION_DENIED"} else 409,
                        {"error": error.code, "message": str(error)})
-        except (BrokenPipeError, ConnectionResetError):
-            pass
-        except (OSError, ValueError):
+        except (BrokenPipeError, ConnectionResetError) as error:
+            observation.failure(error)
+        except (OSError, ValueError) as error:
+            observation.failure(error)
             self.reply(502, {"error": "CLUSTER_TRANSPORT_UNAVAILABLE"})
         self.close_connection = True
 
+    @observation.observed_http("cloud-platform")
     def do_PUT(self):
         return self.managed_cluster_proxy() if self.path.startswith("/k8s/") else self.reply(404, {"error": "not_found"})
 
     do_PATCH = do_PUT
     do_DELETE = do_PUT
 
+    @observation.observed_http("cloud-platform")
     def do_GET(self) -> None:
+        if self.path == "/metrics":
+            payload, content_type, status = observation.metrics(self.headers.get("Accept", ""))
+            observation.status(status)
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         if self.path.startswith("/cluster-bindings/"):
             from cluster_execution_proxy import caller_identity, PROOF_HEADER, BINDING_HEADER
             try:
                 identity = caller_identity(self.headers.get(PROOF_HEADER, ""))
                 ref = self.path.removeprefix("/cluster-bindings/")
-                binding = self.server.service.cluster_bindings().resolve(ref)
+                with observation.phase("cloud.binding"):
+                    binding = self.server.service.cluster_bindings().resolve(ref)
                 if binding["adapter"] != "local" or self.headers.get(BINDING_HEADER) != binding["bindingDigest"]:
                     raise OperationError("CLUSTER_BINDING_CHANGED", "self execution binding differs from reviewed identity")
                 print(json.dumps({"event":"managed-cluster-binding", "clusterRef":ref, "bindingDigest":binding["bindingDigest"], "caller":identity["username"]}))
                 return self.reply(200, binding)
             except OperationError as error:
+                observation.failure(error)
                 return self.reply(403, {"error":error.code, "message":str(error)})
         if self.path.startswith("/k8s/"):
             return self.managed_cluster_proxy()
@@ -317,6 +337,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.reply(404, {"error": "not_found"})
 
+    @observation.observed_http("cloud-platform")
     def do_POST(self) -> None:
         if self.path.startswith("/k8s/"):
             return self.managed_cluster_proxy()
@@ -324,6 +345,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(404, {"error": "not_found"})
         identity = authenticate(self.headers.get("Authorization", ""))
         if identity is None:
+            observation.failure(error_category="authorization", phase_name="cloud.auth")
             challenge = f'Bearer realm="https://auth.re8ch.com", resource_metadata="{RESOURCE_METADATA_URL}", scope="openid profile email groups offline_access"'
             return self.reply(401, {"error": "unauthenticated"}, {"WWW-Authenticate": challenge})
         try:
@@ -343,19 +365,24 @@ class Handler(BaseHTTPRequestHandler):
                 raise OperationError("METHOD_NOT_FOUND", str(method))
             self.reply(200, {"jsonrpc": "2.0", "id": request.get("id"), "result": result})
         except OperationError as exc:
+            observation.failure(exc)
             self.reply(200, {"jsonrpc": "2.0", "id": request.get("id"), "error": {"code": -32000, "message": str(exc), "data": {"code": exc.code, "retryable": exc.retryable}}})
         except Exception as exc:
+            observation.failure(exc)
             self.reply(400, {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": type(exc).__name__}})
 
     def log_message(self, fmt: str, *args: Any) -> None:
-        # Never log request bodies. Reverse proxies provide request metadata.
-        print(json.dumps({"event": "http", "remote": self.client_address[0], "message": fmt % args}))
+        # The request boundary emits only fixed classifications and opaque IDs.
+        pass
 
     def reply(self, status: int, body: dict[str, Any], headers: dict[str, str] | None = None) -> None:
+        observation.status(status)
         payload = json.dumps(body).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(payload)))
+        if operation_id := observation.headers().get("X-Re8ch-Operation-Id"):
+            self.send_header("X-Re8ch-Operation-Id", operation_id)
         for name, value in (headers or {}).items():
             self.send_header(name, value)
         self.end_headers()
@@ -363,6 +390,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    observation.initialize("cloud-platform")
     confidential_nodes = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-platform/infrastructure/compat-nodes.yaml"))
     inventory = Inventory([confidential_nodes, ROOT / "inventory/devices.yaml", ROOT / "inventory/cloud-providers.yaml"])
     service = CloudPlatform(inventory, OperationRunner(), kubeconfig=os.getenv("KUBECONFIG", "/etc/re8ch-platform/kubeconfig"), ssh_config=os.getenv("SSH_CONFIG", "/etc/re8ch-platform/ssh_config"))

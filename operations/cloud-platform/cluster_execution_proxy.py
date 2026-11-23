@@ -16,12 +16,14 @@ import urllib.request
 
 from runtime import OperationError
 from cluster_bindings import no_redirect_open
+import re8ch_observability as observation
 
 PROOF_HEADER = "X-Re8ch-Execution-Proof"
 BINDING_HEADER = "X-Re8ch-Cluster-Binding"
 RELEASE_HEADER = "X-Re8ch-Release-Id"
 
 
+@observation.observed_phase("cloud.caller")
 def caller_identity(proof, open_url=no_redirect_open):
     """Native self-review authenticates the original caller without review RBAC.
 
@@ -35,6 +37,7 @@ def caller_identity(proof, open_url=no_redirect_open):
     request = urllib.request.Request(f"https://{host}:{port}/apis/authentication.k8s.io/v1/selfsubjectreviews",
         data=json.dumps({"apiVersion": "authentication.k8s.io/v1", "kind": "SelfSubjectReview"}).encode(),
         method="POST", headers={"Authorization": proof, "Content-Type": "application/json"})
+    request.headers.update(observation.headers())
     context = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
     try:
         with open_url(request, context=context, timeout=30) as response:
@@ -56,11 +59,13 @@ def _relative_target(target):
     return parsed
 
 
+@observation.observed_phase("cloud.broker")
 def _broker_request(binding, method, target, headers, body, proof, *, open_url=no_redirect_open):
     parsed = _relative_target(target)
     url = binding["brokerURL"] + parsed.path + (("?" + parsed.query) if parsed.query else "")
     forwarded = {key: headers[key] for key in ("Content-Type", "Accept", "Accept-Encoding") if headers.get(key)}
     forwarded["Authorization"] = proof
+    forwarded.update(observation.headers())
     request = urllib.request.Request(url, data=body, method=method, headers=forwarded)
     try:
         return open_url(request, timeout=120)
@@ -75,7 +80,7 @@ def projected_token():
 
 
 @contextlib.contextmanager
-def interactive_transport(binding, token_source=None):
+def interactive_transport(binding, token_source=None, trace_context=None):
     """Native kubectl omits AuthInfo for HTTP. Inject this Pod's identity in memory.
 
     The reviewed broker still authenticates it with TokenReview and exact grant
@@ -86,6 +91,13 @@ def interactive_transport(binding, token_source=None):
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def forward(self):
+            # ThreadingHTTPServer does not inherit the caller's ContextVars.
+            # This carrier is request-local and refreshed by the command span.
+            with observation.request_scope("cloud-relay", observation.headers(trace_context),
+                    phase_name="cloud.cluster_proxy", method=self.command, http=False, parent_carrier=trace_context):
+                return self.forward_scoped()
+
+        def forward_scoped(self):
             started = False
             try:
                 _relative_target(self.path)
@@ -101,6 +113,7 @@ def interactive_transport(binding, token_source=None):
                     return
                 response = _broker_request(binding, self.command, self.path, self.headers, body, "Bearer " + token)
                 with response:
+                    observation.status(response.status)
                     self.send_response(response.status)
                     for key in ("Content-Type", "Content-Encoding", "Warning", "Audit-Id", "WWW-Authenticate"):
                         for value in response.headers.get_all(key, []):
@@ -108,16 +121,19 @@ def interactive_transport(binding, token_source=None):
                     self.send_header("Connection", "close")
                     self.end_headers()
                     started = True
-                    copy_response(response, self.connection, self.wfile)
+                    with observation.phase("http.response"):
+                        copy_response(response, self.connection, self.wfile)
                 print(json.dumps({"event": "managed-cluster-interactive-request",
                     "clusterRef": binding["clusterRef"], "clusterBindingDigest": binding["bindingDigest"],
                     "method": self.command, "status": response.status}))
             except OperationError as error:
+                observation.failure(error)
                 if not started:
                     self.send_error(400 if error.code == "INVALID_ARGUMENT" else 502, "managed cluster transport failed")
-            except (BrokenPipeError, ConnectionResetError):
-                pass
-            except (OSError, ValueError):
+            except (BrokenPipeError, ConnectionResetError) as error:
+                observation.failure(error)
+            except (OSError, ValueError) as error:
+                observation.failure(error)
                 if not started:
                     self.send_error(502, "projected caller transport unavailable")
             finally:
@@ -164,7 +180,8 @@ def proxy_request(service, method, target, headers, body, *, authenticate=caller
     release_id = headers.get(RELEASE_HEADER, "")
     if not release_id:
         raise OperationError("INVALID_ARGUMENT", "scoped release identity is required")
-    binding = service.cluster_bindings().resolve_execution(cluster_ref, release_id)
+    with observation.phase("cloud.binding"):
+        binding = service.cluster_bindings().resolve_execution(cluster_ref, release_id)
     if binding["adapter"] != "among-broker":
         raise OperationError("INVALID_ARGUMENT", "self cluster uses its existing direct API transport")
     if headers.get(BINDING_HEADER) != binding["bindingDigest"]:

@@ -16,6 +16,8 @@ on:
     branches: [main]
     paths:
       - clusters/re8ch/components/ai-operations/**
+      - operations/cloud-platform/re8ch_observability.py
+      - operations/cloud-platform/requirements-observability.txt
       - operations/mcp-conformance/release-tenant-infrastructure.sh
 permissions:
   contents: read
@@ -68,6 +70,7 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: {fetch-depth: 0}
       - run: printf '%s\n' "$TENANT_IMAGE" > tenant-infrastructure.image
         env:
           TENANT_IMAGE: ${{ inputs.reuse_image != '' && inputs.reuse_image || needs.release.outputs.image }}
@@ -91,6 +94,19 @@ jobs:
         env:
           HARBOR_USERNAME: ${{ secrets.TENANT_IMAGE_REGISTRY_USERNAME }}
           HARBOR_PASSWORD: ${{ secrets.TENANT_IMAGE_REGISTRY_PASSWORD }}
+      # Legacy reuse_image does not carry a verified original build SHA.
+      # Never attribute a resumed older image to the current workflow commit.
+      - name: Publish native tenant-control Sentry release metadata
+        if: vars.SENTRY_RELEASE_ENABLED == 'true' && github.ref == 'refs/heads/main' && inputs.reuse_image == ''
+        uses: getsentry/action-release@2e505a70ff06dac263413242aa3617fec90134e5 # v3.9.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        with:
+          version: tenant-control@${{ github.sha }}
+          set_commits: auto
+          finalize: true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: tenant-release-finalized-${{ github.sha }}
