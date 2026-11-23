@@ -9,6 +9,7 @@ spec:
     metadata: {labels: {app: re8ch-cloud-platform}}
     spec:
       serviceAccountName: re8ch-cloud-platform
+      automountServiceAccountToken: false
       securityContext: {fsGroup: 65532, fsGroupChangePolicy: OnRootMismatch}
       imagePullSecrets: [{name: harbor-registry-pull}]
       affinity:
@@ -30,6 +31,7 @@ spec:
           env:
             - {name: CONFIG_ROOT, value: /etc/re8ch-platform}
             - {name: KUBECONFIG, value: /etc/re8ch-platform/kubeconfig}
+            - {name: CLUSTER_BINDINGS_FILE, value: /etc/re8ch-cluster-bindings/cluster-bindings.json}
             - {name: KUBERNETES_SERVER_OVERRIDE, value: "https://10.250.0.147:6443"}
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
             - {name: HYPOTHESIS_STORAGE_DIRECTORY, value: /tmp/hypothesis}
@@ -49,6 +51,8 @@ spec:
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, runAsNonRoot: true, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
           volumeMounts:
+            - {name: cluster-bindings, mountPath: /etc/re8ch-cluster-bindings, readOnly: true}
+            - {name: cluster-binding-identity, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
             - {name: stalwart-bootstrap-config, mountPath: /etc/stalwart-bootstrap/config, readOnly: true}
             - {name: stalwart-bootstrap-credential, mountPath: /etc/stalwart-bootstrap/credential, readOnly: true}
             - {name: stalwart-admin-credential, mountPath: /etc/stalwart-admin/credential, readOnly: true}
@@ -57,6 +61,15 @@ spec:
             - {name: kubeconfig, mountPath: /etc/re8ch-platform/kubeconfig, subPath: kubeconfig, readOnly: true}
             - {name: infrastructure-contracts, mountPath: /etc/re8ch-platform/infrastructure, readOnly: true}
       volumes:
+        - {name: cluster-bindings, configMap: {name: cloud-cluster-bindings}}
+        - name: cluster-binding-identity
+          projected:
+            defaultMode: 288
+            sources:
+              - serviceAccountToken: {path: token, expirationSeconds: 3600}
+              - configMap:
+                  name: kube-root-ca.crt
+                  items: [{key: ca.crt, path: ca.crt}]
         # Temporary platform-owned provisioning authority, never the runtime key.
         - name: stalwart-bootstrap-config
           configMap:

@@ -580,8 +580,11 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 	if strings.Contains(response.Body.String(), `"name":"github_governance"`) {
 		t.Fatal("GitHub governance leaked as a separately registered MCP tool")
 	}
-	if len(names) != len(legacy)-hiddenAliases+19 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+19)
+	if !names["platform_cluster_bindings_list"] {
+		t.Fatal("missing callable cluster binding directory")
+	}
+	if len(names) != len(legacy)-hiddenAliases+20 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+20)
 	}
 }
 

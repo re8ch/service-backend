@@ -166,8 +166,22 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	var kubectlArgv []string
 	var kubectlTimeout int
 	var nativeOperation string
+	var kubectlCluster, kubectlBinding string
+	currentBinding := strings.Repeat("a", 64)
+	mcp.AddTool(backend, &mcp.Tool{Name: "clusters.resolve"}, func(_ context.Context, _ *mcp.CallToolRequest, input struct {
+		ClusterRef string `json:"clusterRef"`
+	}) (*mcp.CallToolResult, any, error) {
+		if input.ClusterRef != "re8ch" && input.ClusterRef != "re8ch-atlantic" {
+			return &mcp.CallToolResult{IsError: true}, nil, nil
+		}
+		return nil, map[string]any{"clusterRef": input.ClusterRef, "bindingDigest": currentBinding}, nil
+	})
+	mcp.AddTool(backend, &mcp.Tool{Name: "clusters.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		return nil, map[string]any{"clusters": []string{"re8ch", "re8ch-atlantic"}}, nil
+	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
+		kubectlCluster, kubectlBinding = input.ClusterRef, input.ClusterBindingDigest
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
 	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
@@ -245,6 +259,33 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		t.Fatalf("platform resource discovery was not routed: %#v; argv=%v timeout=%d", pluginResources, kubectlArgv, kubectlTimeout)
 	}
 	manifest := map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "metadata": map[string]any{"name": "meta-probe", "namespace": "ops"}, "data": map[string]any{"status": "ready"}}
+	bindings := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_cluster_bindings_list", "arguments": map[string]any{}})
+	if bindings["error"] != nil || bindings["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("cluster directory unavailable: %#v", bindings)
+	}
+	for _, ref := range []string{"re8ch", "re8ch-atlantic"} {
+		read := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover", "clusterRef": ref}})
+		if read["error"] != nil || read["result"].(map[string]any)["isError"] == true || kubectlCluster != ref || kubectlBinding != currentBinding {
+			t.Fatalf("target read did not preserve binding: %#v %s %s", read, kubectlCluster, kubectlBinding)
+		}
+	}
+	remotePreview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest, "clusterRef": "re8ch-atlantic"}})
+	if remotePreview["error"] != nil || remotePreview["result"].(map[string]any)["isError"] == true || kubectlCluster != "re8ch-atlantic" {
+		t.Fatalf("remote preview failed: %#v", remotePreview)
+	}
+	remotePlan, _ := platformMutationPlan("apply", map[string]any{"manifest": manifest, "cluster": map[string]any{"clusterRef": "re8ch-atlantic", "clusterBindingDigest": currentBinding}})
+	for _, ref := range []string{"re8ch", "unknown"} {
+		before := nativeOperation
+		denied := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest, "clusterRef": ref, "apply": true, "planHash": remotePlan}})
+		if denied["error"] == nil && denied["result"].(map[string]any)["isError"] != true || nativeOperation != before {
+			t.Fatalf("cross-target plan reached apply: %#v", denied)
+		}
+	}
+	currentBinding = strings.Repeat("b", 64)
+	stale := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest, "clusterRef": "re8ch-atlantic", "apply": true, "planHash": remotePlan}})
+	if stale["error"] == nil && stale["result"].(map[string]any)["isError"] != true {
+		t.Fatalf("stale binding plan accepted: %#v", stale)
+	}
 	preview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest}})
 	if preview["error"] != nil || preview["result"].(map[string]any)["isError"] == true || !strings.Contains(strings.Join(kubectlArgv, " "), "--dry-run=server") {
 		t.Fatalf("platform resource apply preview was not server validated: %#v; argv=%v", preview, kubectlArgv)
