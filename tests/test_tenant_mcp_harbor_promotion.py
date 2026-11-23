@@ -17,3 +17,5 @@ def test_tenant_mcp_promotion_reuses_one_verified_artifact():
     assert "if: github.ref == 'refs/heads/main'" in workflow
     assert "TENANT_MCP_REGISTRY_USERNAME" in workflow
     assert "TENANT_MCP_REGISTRY_PASSWORD" in workflow
+    assert 'BUILDX_CONFIG="${HOME}/.docker/buildx"' in workflow
+    assert "docker buildx inspect r640-mihomos" in workflow
