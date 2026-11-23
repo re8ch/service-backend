@@ -42,7 +42,17 @@ def test_native_runtime_release_cannot_publish_unvalidated_pr_or_branch():
     assert publisher['env']['TENANT_IMAGE_DOCKERFILE'] == 'operations/cloud-platform/Dockerfile'
     assert publisher['env']['TENANT_IMAGE_INLINE_AUTH'] == '1'
     assert publisher['env']['TENANT_IMAGE_SKIP_FINALIZE'] == '1'
-    assert any('docker/setup-buildx-action@' in step.get('uses', '') for step in release['steps'])
+    docker = next(step for step in release['steps'] if 'docker/setup-docker-action@' in step.get('uses', ''))
+    assert docker['if'] == "inputs.publisher != 'r640'"
+    assert docker['with']['set-host'] is True
+    assert 'containerd-snapshotter' in docker['with']['daemon-config']
+    buildx = next(step for step in release['steps'] if 'docker/setup-buildx-action@' in step.get('uses', ''))
+    assert buildx['with']['driver'] == 'docker'
+    assert publisher['env']['TENANT_IMAGE_DOCKER_PUSH'] == '1'
+    assert publisher['env']['TENANT_IMAGE_REQUIRE_ATTESTATIONS'] == '1'
+    uploaded = next(step for step in release['steps'] if 'actions/upload-artifact@' in step.get('uses', ''))
+    for evidence in ('index.json', 'provenance.json', 'sbom.json'):
+        assert 'cloud-platform.' + evidence in uploaded['with']['path']
     assert any('cloud-platform-release.yml@refs/heads/main' in step.get('run', '') and 'cosign verify' in step.get('run', '') for step in jobs['finalize']['steps'])
 
 

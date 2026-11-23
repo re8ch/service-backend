@@ -93,6 +93,18 @@ else
   printf '%s' "$registry_password" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$registry_username" --password-stdin >/dev/null
 fi
 
+# The opt-in Engine path retains attestations only with the containerd store.
+# Never silently downgrade this mode to the legacy classic-store publisher.
+require_attestations="${TENANT_IMAGE_REQUIRE_ATTESTATIONS:-0}"
+if [[ "$require_attestations" == "1" ]]; then
+  [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]] || { echo "Attested Engine publication requires TENANT_IMAGE_DOCKER_PUSH=1" >&2; exit 2; }
+  docker info --format '{{json .DriverStatus}}' | python3 -c '
+import json, sys
+if ["driver-type", "io.containerd.snapshotter.v1"] not in json.load(sys.stdin):
+    sys.exit("Attested Engine publication requires the containerd image store")
+'
+fi
+
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 push_attempt=1
 push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
@@ -100,10 +112,15 @@ while true; do
   if [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]]; then
     # Harbor's BuildKit registry exporter can stall indefinitely on layer
     # uploads. The Docker Engine uses a distinct, proven HTTP/1.1 upload path.
-    # GitHub's finalize job attests the immutable Harbor digest after this step.
+    # Classic callers retain their existing explicit provenance opt-out.
+    # Opt-in containerd callers load and push the entire attested index.
+    attestation_args=(--provenance=false)
+    if [[ "$require_attestations" == "1" ]]; then
+      attestation_args=(--provenance=mode=max --attest "type=sbom,generator=${sbom_generator}")
+    fi
     if run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" \
          docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 \
-           --provenance=false --progress plain --load -f "$dockerfile" -t "$image" . \
+           "${attestation_args[@]}" --progress plain --load -f "$dockerfile" -t "$image" . \
        && run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker push "$image" \
        && run_with_release_timeout 60s docker buildx imagetools inspect "$image" \
             --format '{{json .Manifest}}' > "$metadata"; then
@@ -135,6 +152,39 @@ print(value.get("containerimage.digest") or value["digest"])
 PY
 )
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
+if [[ "$require_attestations" == "1" ]]; then
+  # Read back the published immutable index, not the mutable tag or local cache.
+  run_with_release_timeout 120s docker buildx imagetools inspect "$immutable" --raw > "${TENANT_IMAGE_ARTIFACT_NAME}.index.json"
+  run_with_release_timeout 120s docker buildx imagetools inspect "$immutable" --format '{{json .Provenance}}' > "${TENANT_IMAGE_ARTIFACT_NAME}.provenance.json"
+  run_with_release_timeout 120s docker buildx imagetools inspect "$immutable" --format '{{json .SBOM}}' > "${TENANT_IMAGE_ARTIFACT_NAME}.sbom.json"
+  python3 - "$TENANT_IMAGE_ARTIFACT_NAME" "$digest" "${GITHUB_SHA:-}" <<'PYATTEST'
+import hashlib, json, re, sys
+from pathlib import Path
+name, digest, source = sys.argv[1:]
+if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest) or not re.fullmatch(r"[0-9a-f]{40}", source):
+    sys.exit("Invalid immutable digest or source revision")
+raw = Path(name + ".index.json").read_bytes()
+if digest[7:] not in {hashlib.sha256(raw).hexdigest(), hashlib.sha256(raw.removesuffix(b"\n")).hexdigest()}:
+    sys.exit("Published index digest does not match returned bytes")
+index = json.loads(raw)
+images = [m for m in index.get("manifests", []) if m.get("platform", {}).get("os") == "linux" and m.get("platform", {}).get("architecture") == "amd64"]
+if len(images) != 1:
+    sys.exit("Published index must contain exactly one linux/amd64 image")
+subject = images[0]["digest"]
+if not any(m.get("annotations", {}).get("vnd.docker.reference.type") == "attestation-manifest" and m.get("annotations", {}).get("vnd.docker.reference.digest") == subject for m in index["manifests"]):
+    sys.exit("Published index lost its image-bound attestation manifest")
+provenance = json.loads(Path(name + ".provenance.json").read_text()).get("linux/amd64", {}).get("SLSA", {})
+sbom = json.loads(Path(name + ".sbom.json").read_text()).get("linux/amd64", {}).get("SPDX", {})
+metadata = provenance.get("metadata", {}).get("https://mobyproject.org/buildkit@v1#metadata", {})
+if provenance.get("buildType") != "https://mobyproject.org/buildkit@v1" or metadata.get("vcs", {}).get("revision") != source:
+    sys.exit("Published provenance is absent or bound to a different source revision")
+if not metadata.get("source", {}).get("infos"):
+    sys.exit("Published provenance does not retain max-mode source metadata")
+if not str(sbom.get("spdxVersion", "")).startswith("SPDX-") or not sbom.get("packages"):
+    sys.exit("Published image lost its SPDX SBOM")
+print("Published OCI index retained source-bound max provenance and SPDX SBOM")
+PYATTEST
+fi
 printf '%s\n' "$immutable" | tee "${TENANT_IMAGE_ARTIFACT_NAME}.image"
 if [[ "${TENANT_IMAGE_SKIP_FINALIZE:-}" == "1" ]]; then
   echo "Image published; SBOM and signing delegated to the hosted finalize job"

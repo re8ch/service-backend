@@ -98,6 +98,14 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up isolated containerd image store
+        if: inputs.publisher != 'r640'
+        uses: docker/setup-docker-action@3f1ab1ab0e29231562e4db4ca600c1a49653bac6 # v5.7.0
+        with:
+          version: v29.10.0
+          set-host: true
+          daemon-config: |
+            {"features":{"containerd-snapshotter":true}}
       - name: Prepare isolated Docker authorization
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-platform-release-docker"
@@ -107,6 +115,8 @@ jobs:
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         id: buildx
+        with:
+          driver: docker
         if: inputs.publisher != 'r640'
       - if: inputs.publisher != 'r640'
         run: echo "TENANT_IMAGE_BUILDER=${{ steps.buildx.outputs.name }}" >> "$GITHUB_ENV"
@@ -126,17 +136,23 @@ jobs:
           TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: cloud-platform
           TENANT_IMAGE_SKIP_FINALIZE: "1"
+          TENANT_IMAGE_DOCKER_PUSH: "1"
+          TENANT_IMAGE_REQUIRE_ATTESTATIONS: "1"
           BUILDKIT_NO_CLIENT_TOKEN: "1"
           BUILDKIT_SBOM_GENERATOR: docker.io/docker/buildkit-syft-scanner@sha256:10a413da6b52acacf4af4262eafeae6ca05076fbd65850ad7f233163c6d6a81c
-          # Harbor layer publication exceeded 15 minutes in run 41028448350.
-          # Give one build/push a bounded 30 minutes instead of rebuilding it
-          # after an upload timeout; the release job retains 15 minutes overhead.
+          # Run 45190080936 built in one minute, then the BuildKit registry
+          # exporter stalled until its 30-minute budget. Load the full OCI index
+          # into containerd and publish once through Docker Engine instead.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "1800"
           TENANT_IMAGE_PUSH_ATTEMPTS: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cloud-platform-release-${{ github.sha }}
-          path: cloud-platform.image
+          path: |
+            cloud-platform.image
+            cloud-platform.index.json
+            cloud-platform.provenance.json
+            cloud-platform.sbom.json
           if-no-files-found: error
       - name: Remove temporary Docker authorization
         if: always()
