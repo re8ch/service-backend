@@ -197,6 +197,7 @@ class ClusterBindings:
                                "isSelf": resolved["adapter"] == "local",
                                "source": "platform-self" if resolved["adapter"] == "local" else "admin-managed-byoc",
                                "executionReleases": sorted(self.bindings[ref].get("executionBindings", {}))})
-            except OperationError:
-                result.append({"clusterRef": ref, "state": "Unavailable", "ownership": "re8ch-admin"})
+            except OperationError as error:
+                result.append({"clusterRef": ref, "state": "Unavailable", "ownership": "re8ch-admin",
+                               "reason": str(error), "errorCode": error.code})
         return {"clusters": result, "registrationPolicyIndependent": True}

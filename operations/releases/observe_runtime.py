@@ -27,6 +27,10 @@ def observe(root, contract=None):
                         if isinstance(v := yaml.safe_load(p.read_text()), dict)
                         and v.get('metadata', {}).get('name') == operation['releaseId']
                         and digest(canonical(v)) == operation['contractDigest'])
+        target = contract['spec']['target']
+        if (digest(canonical(contract)) != operation['contractDigest']
+                or operation['target'] != target['cluster'] + '/' + target['namespace']):
+            raise ValueError('runtime observation target mismatch')
         if os.environ.get('ACTIONS_ID_TOKEN_REQUEST_URL'):
             os.environ.setdefault('EXECUTOR_AUDIENCE', operation['github']['audience'])
         executor = Executor()

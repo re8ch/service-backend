@@ -36,7 +36,7 @@ def test_observation_never_changes_ssa_outcome_or_state(tmp_path, monkeypatch, h
     (tmp_path/'pulled').mkdir()
     shutil.copyfile(bundle, tmp_path/'pulled/release.bundle')
     (tmp_path/'result.json').write_text(json.dumps({'releaseId': operation['releaseId'], 'outcome': outcome, 'health': {'status': 'unknown', 'reason': 'execution evidence'}}))
-    class Observer:
+    class Observer(base.executor.Executor):
         def wait_healthy(self, *args):
             if health == 'unknown': raise RuntimeError('unavailable API; never expose raw payload')
             return health == 'healthy', 'observed runtime'
@@ -48,3 +48,17 @@ def test_observation_never_changes_ssa_outcome_or_state(tmp_path, monkeypatch, h
     if outcome == 'failed':
         assert result['health']['reason'] == 'execution evidence'
     assert not (tmp_path/'state').exists()
+
+
+def test_observation_rejects_a_different_target_before_api_access(tmp_path, monkeypatch):
+    contract, operation, bundle = base.prepare(tmp_path)
+    operation['target'] = 'different-cluster/demo'
+    (tmp_path/'operation.json').write_text(json.dumps(operation))
+    (tmp_path/'pulled').mkdir()
+    shutil.copyfile(bundle, tmp_path/'pulled/release.bundle')
+    class Observer(base.executor.Executor):
+        def wait_healthy(self, *args):
+            pytest.fail('cross-target observation reached the API')
+    monkeypatch.setattr(observe_runtime, 'Executor', Observer)
+    result = observe_runtime.observe(tmp_path, contract=contract)
+    assert result['health']['status'] == 'unknown'
