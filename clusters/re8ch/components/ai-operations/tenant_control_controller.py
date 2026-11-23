@@ -27,6 +27,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import re8ch_observability as observation
 
 try:
     from tenant_claim_contracts import ContractError, normalize_claim, plan, validate_update
@@ -69,6 +70,7 @@ class Kubernetes:
         self.token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read().strip()
         self.ssl = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 
+    @observation.observed_phase("tenant.kubernetes", service="tenant-control")
     def request(self, method, path, body=None, content_type="application/json"):
         payload = json.dumps(body).encode() if body is not None else None
         last_error = None
@@ -77,6 +79,7 @@ class Kubernetes:
                 self.base + path, data=payload, method=method,
                 headers={"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": content_type},
             )
+            req.headers.update(observation.headers())
             try:
                 with urllib.request.urlopen(req, context=self.ssl, timeout=10) as response:
                     return json.load(response)
@@ -207,6 +210,7 @@ def condition(kind, ok, reason, message=""):
 ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
 
 
+@observation.observed_phase("tenant.resolve")
 def resolve(issuer, subject_hash, groups=None, caller="tenant", requested_tenant=None, default_tenant=None):
     subject_matches = []
     group_matches = []
@@ -259,6 +263,7 @@ def resolve(issuer, subject_hash, groups=None, caller="tenant", requested_tenant
     }
 
 
+@observation.observed_phase("tenant.resolve")
 def resolve_supabase_membership(access_token, requested_tenant):
     """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
     if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
@@ -270,6 +275,7 @@ def resolve_supabase_membership(access_token, requested_tenant):
         data=b"{}", method="POST",
         headers={"Authorization": "Bearer " + access_token, "Content-Type": "application/json", "Accept": "application/json"},
     )
+    request.headers.update(observation.headers())
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             memberships = json.load(response)
@@ -577,6 +583,7 @@ def reconcile_exposure_policies(tenant_ref, namespace, granted):
             kube().delete("ciliumnetworkpolicies", name, namespace, "apis/cilium.io/v2")
 
 
+@observation.observed_phase("tenant.reconcile", service="tenant-control")
 def reconcile_tenant_namespace(resource, tenants):
     meta, spec = resource["metadata"], resource["spec"]
     tenant_ref, namespace = spec["tenantRef"], spec["namespaceName"]
@@ -855,6 +862,7 @@ def among_clusters_policy(instance):
     }
 
 
+@observation.observed_phase("tenant.reconcile", service="tenant-control")
 def reconcile_among_clusters_instance(instance):
     meta, spec = instance["metadata"], instance["spec"]
     namespace = meta["namespace"]
@@ -955,6 +963,7 @@ def verify_image_policy(image):
     if not IMAGE_POLICY_URL or not IMAGE_POLICY_TOKEN:
         raise PermissionError("image policy verifier is unavailable")
     request = urllib.request.Request(IMAGE_POLICY_URL + "/v1/verify", data=json.dumps({"imageDigest": image}).encode(), method="POST", headers={"Authorization": f"Bearer {IMAGE_POLICY_TOKEN}", "Content-Type": "application/json", "Accept": "application/json"})
+    request.headers.update(observation.headers())
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
             result = json.load(response)
@@ -1034,6 +1043,7 @@ def volume_observation(claim, namespace, released=False):
             "persistentVolume": pvc.get("spec", {}).get("volumeName") if bound else None}
 
 
+@observation.observed_phase("tenant.reconcile", service="tenant-control")
 def reconcile_claim(claim):
     meta, spec = claim["metadata"], claim["spec"]
     namespace = meta["namespace"]
@@ -1163,6 +1173,7 @@ def organization_dependencies(tenant_ref, authorization):
     request = urllib.request.Request(
         IDENTITY_REST_URL + "/rpc/platform_session_entitlement", data=b"{}", method="POST",
         headers={"Authorization": authorization, "Content-Type": "application/json"})
+    request.headers.update(observation.headers())
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             grant = json.load(response)
@@ -1195,12 +1206,45 @@ def organization_dependencies(tenant_ref, authorization):
     return {"tenantRef": tenant_ref, "canArchive": tenant_ref != "admin" and not counts, "dependencies": counts}
 
 
+@observation.observed_phase("tenant.auth")
+def service_token_matches(actual, expected):
+    matched = hmac.compare_digest(actual, expected)
+    if not matched:
+        observation.failure(error_category="authorization")
+    return matched
+
+
+@observation.observed_phase("tenant.auth")
+def post_caller(handler, path):
+    caller = handler.headers.get("X-Tenant-Caller", "")
+    if caller not in ALLOWED_CALLERS:
+        handler.send_json(401, {"error": "unauthorized"}); return None
+    if path != "/v1/resolve" and caller != "tenant":
+        handler.send_json(404, {"error": "not_found"}); return None
+    if path != "/v1/resolve" and (not CLAIM_SERVICE_TOKEN or not service_token_matches(handler.headers.get("X-Tenant-Service-Token", ""), CLAIM_SERVICE_TOKEN)):
+        handler.send_json(401, {"error": "unauthorized"}); return None
+    return caller
+
+
 class Handler(BaseHTTPRequestHandler):
     def send_json(self, status, value):
+        observation.status(status)
         body = json.dumps(value, separators=(",", ":")).encode()
-        self.send_response(status); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        if operation_id := observation.headers().get("X-Re8ch-Operation-Id"):
+            self.send_header("X-Re8ch-Operation-Id", operation_id)
+        self.end_headers()
+        self.wfile.write(body)
 
+    @observation.observed_http("tenant-control")
     def do_GET(self):
+        if self.path == "/metrics":
+            payload, content_type, status = observation.metrics(self.headers.get("Accept", ""))
+            observation.status(status)
+            self.send_response(status); self.send_header("Content-Type", content_type); self.send_header("Content-Length", str(len(payload))); self.end_headers(); self.wfile.write(payload)
+            return
         path = urllib.parse.urlparse(self.path).path
         if path == "/livez": self.send_json(200, {"status": "ok"}); return
         if path == "/readyz":
@@ -1224,7 +1268,7 @@ class Handler(BaseHTTPRequestHandler):
         service_token = self.headers.get("X-Tenant-Service-Token", "")
         caller = self.headers.get("X-Tenant-Caller", "")
         if path == "/v1/tenants":
-            if caller != "admin" or self.headers.get("X-Tenant-Ref", "") != "admin" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            if caller != "admin" or self.headers.get("X-Tenant-Ref", "") != "admin" or not CLAIM_SERVICE_TOKEN or not service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
                 self.send_json(403, {"error": "protected admin tenant is required"}); return
             try:
                 items = []
@@ -1244,11 +1288,11 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 LOG.exception("tenant inventory read failed: %s", exc)
                 self.send_json(503, {"error": "tenant inventory is unavailable"}); return
-        if caller == "tenant" and path == "/v1/namespaces" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path == "/v1/namespaces" and CLAIM_SERVICE_TOKEN and service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
-        if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             tenant = self.headers.get("X-Tenant-Ref", "")
             try:
                 response = {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}
@@ -1257,7 +1301,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, response); return
             except PermissionError as exc:
                 self.send_json(403, {"error": str(exc)}); return
-        if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             try:
                 tenant = self.headers["X-Tenant-Ref"]
                 namespace = runtime_namespace(tenant)
@@ -1276,7 +1320,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(403, {"error": str(exc)}); return
             except Exception as exc:
                 self.send_json(400, {"error": str(exc)}); return
-        if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
             tenant = self.headers["X-Tenant-Ref"]
@@ -1307,15 +1351,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": str(exc)})
         return
 
+    @observation.observed_http("tenant-control")
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        caller = self.headers.get("X-Tenant-Caller", "")
-        if caller not in ALLOWED_CALLERS:
-            self.send_json(401, {"error": "unauthorized"}); return
-        if path != "/v1/resolve" and caller != "tenant":
-            self.send_json(404, {"error": "not_found"}); return
-        if path != "/v1/resolve" and (not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(self.headers.get("X-Tenant-Service-Token", ""), CLAIM_SERVICE_TOKEN)):
-            self.send_json(401, {"error": "unauthorized"}); return
+        caller = post_caller(self, path)
+        if caller is None:
+            return
         mutation_locked = (path.startswith("/v1/claims") and path != "/v1/claims/plan") or (path.startswith("/v1/services") and path != "/v1/services/plan")
         if mutation_locked:
             CLAIM_MUTATION_LOCK.acquire()
@@ -1531,10 +1572,11 @@ class Handler(BaseHTTPRequestHandler):
             if mutation_locked:
                 CLAIM_MUTATION_LOCK.release()
 
+    @observation.observed_http("tenant-control")
     def do_DELETE(self):
         path = urllib.parse.urlparse(self.path).path
         service_token = self.headers.get("X-Tenant-Service-Token", "")
-        if not path.startswith("/v1/namespaces/") or self.headers.get("X-Tenant-Caller") != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if not path.startswith("/v1/namespaces/") or self.headers.get("X-Tenant-Caller") != "tenant" or not CLAIM_SERVICE_TOKEN or not service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
             tenant = self.headers["X-Tenant-Ref"]
@@ -1561,6 +1603,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    observation.initialize("tenant-control")
     KUBE = Kubernetes()
     threading.Thread(target=reconcile_loop, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

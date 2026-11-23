@@ -9,3 +9,5 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app
 USER 65532:65532
 EXPOSE 8080
 ENTRYPOINT ["python3", "/app/postgresql_provider.py"]
+
+COPY operations/cloud-platform/re8ch_observability.py /app/re8ch_observability.py
