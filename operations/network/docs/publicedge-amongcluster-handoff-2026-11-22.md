@@ -1,6 +1,12 @@
 # PublicEdge and AmongCluster handoff
 
-Last verified: 2026-11-22 (Asia/Shanghai)
+Historical snapshot: 2026-11-22 (Asia/Shanghai)
+
+> For the later toolchain recovery baseline and remaining acceptance work, read
+> [Issue3002](https://github.com/re8ch/service-backend/issues/3002) and the
+> [runtime verification procedure](../../releases/toolchain-runtime-verification.md).
+> The release state below is historical, not a current deployment assertion.
+> The invalid 0.8.11 bundle and authority-health scheduling remain prohibited.
 
 This is the entry point for continuing the PublicEdge, authoritative DNS, and
 cross-cluster delivery work. It separates observed state from intended design.

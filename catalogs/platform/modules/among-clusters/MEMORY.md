@@ -29,6 +29,16 @@ AmongClusters AmongClusters is an independent control plane for recording collab
 
 Existing repository AGENTS: `no`
 
+## Admin/BYOC recovery context
+
+Read `operations/releases/toolchain-runtime-verification.md` in the service-backend repository.
+Dated verified outcomes and open acceptance: https://github.com/re8ch/service-backend/issues/3002.
+Revalidate the runtime; CI, release completion, Connected Accounts and SDK capture IDs alone
+do not prove recovery. Verify self and Atlantic with the same authorized Admin session.
+Use existing GitHub Actions/bounded cloud SSA delivery; local Flux writers are retired.
+AMD repair is deferred until core read/write, SSA and AF observation/convergence pass.
+Preserve organization boundaries; never restore authority-health scheduling or reuse the invalid PublicEdge bundle.
+
 ## R640 public network authority
 
 Source of truth: `operations/network/manifests/network/public-mesh/inventory.json`
