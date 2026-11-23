@@ -75,6 +75,9 @@ strategy, privileges and startup-only lifecycle remain unchanged.
    the two-file change metadata, source SHA and node-bound fingerprint. Run the
    same reviewed helper with `--expected-state <fingerprint>` once. If the
    response is unknown, read back and check again instead of blindly replaying.
+  Files are atomic individually, not a cross-file transaction. An I/O failure
+  reports incomplete/read-back-required and must not be called zero writes;
+  a fresh check identifies the remaining work without replaying completed writes.
 4. Verify durable mirror absence, unchanged opaque-config bytes, canonical-only
    active host metadata, source SHA, permissions and unchanged native process
    PID/start identity. Other registries, host mapping and proxy files must stay

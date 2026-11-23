@@ -42,7 +42,7 @@ def without_ghcr_mirror(raw):
     if not matches:
         return raw
     first = matches[0]
-    last = next((i for i in range(first + 1, end) if re.match(r"^  \S", lines[i])), end)
+    last = next((i for i in range(first + 1, end) if re.match(r"^  [^\s#][^:]*:", lines[i])), end)
     if any(re.search(r"(?:^|[\s{])&[A-Za-z_]", line) for line in lines[first:last]):
         raise ValueError("GHCR mirror owns an unsupported YAML anchor")
     remaining = lines[start + 1:first] + lines[last:end]
@@ -158,6 +158,10 @@ def activate(root, fallback, check=False, expected=None):
     for path, before, _ in targets:
         if read_file(path) != before:
             raise ValueError("target changed while checking")
+        backup = path.with_name(path.name + ".pre-re8ch-ghcr-native")
+        if backup.is_symlink() or (backup.exists() and
+                                  (not backup.is_file() or backup.stat().st_mode & 0o077)):
+            raise ValueError("existing backup is not a private regular file")
     if not check:
         for path, before, after in targets:
             if before != after:
@@ -177,6 +181,7 @@ if __name__ == "__main__":
         result = activate(args.root, sys.stdin.buffer.read(), args.check, args.expected_state)
     except (OSError, UnicodeError, ValueError) as error:
         # Exception text can contain source snippets; never log it or auth data.
-        print(json.dumps({"registry": "ghcr.io", "errorClass": type(error).__name__, "applied": False}), file=sys.stderr)
+        print(json.dumps({"registry": "ghcr.io", "errorClass": type(error).__name__,
+                          "completed": False, "state": "read-back-required"}), file=sys.stderr)
         raise SystemExit(1)
     print(json.dumps(result, sort_keys=True))

@@ -71,6 +71,12 @@ def test_only_mirror_becomes_empty_map_and_configs_remain_opaque():
     assert native.without_ghcr_mirror(raw) == "mirrors: {}\nconfigs:\n  untouched: true\n"
 
 
+def test_mapping_level_comment_does_not_leave_rewrite_on_another_registry():
+    raw = REGISTRY.replace('    rewrite:', '  # still inside the GHCR mapping\n    rewrite:')
+    result = native.without_ghcr_mirror(raw)
+    assert result == REGISTRY[:REGISTRY.index("  ghcr.io:\n")] + REGISTRY[REGISTRY.index("  quay.io:\n"):]
+
+
 def test_native_hosts_never_moves_harbor_auth_to_canonical():
     result = native.canonical_hosts(HOSTS)
     assert result == HOSTS[:HOSTS.index('[host."https://registry.re8ch.com/v2"]')]
@@ -151,6 +157,14 @@ def test_node_bound_check_cannot_be_used_on_another_node(tmp_path, monkeypatch):
     monkeypatch.setenv("NODE_NAME", "another-node")
     with pytest.raises(ValueError):
         native.activate(tmp_path, b"", expected=checked["fingerprint"])
+    assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
+
+
+def test_unsafe_second_backup_fails_before_first_target_write(tmp_path):
+    durable, effective = sandbox(tmp_path)
+    effective.with_name(effective.name + ".pre-re8ch-ghcr-native").mkdir()
+    with pytest.raises(ValueError):
+        native.activate(tmp_path, b"")
     assert durable.read_text() == REGISTRY and effective.read_text() == HOSTS
 
 
