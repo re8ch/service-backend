@@ -9,7 +9,10 @@ Identity remains the authority for users, active organizations, and memberships.
 These RPCs consume a short-lived audience-limited token containing `sub`,
 `org_ref`, `org_role`, and `org_membership_state=active`. There is no caller-supplied
 organization argument: prompt, body, or header organization overrides have no
-effect. The token exchange must revalidate membership before issuing these claims.
+effect. The API gateway/PostgREST authentication entrypoint must verify the token
+signature, expected issuer, Billing audience, and expiry before populating
+`request.jwt.claims`; that PostgreSQL setting is not independently trustworthy.
+The token exchange must revalidate membership before issuing these claims.
 
 - Registration is limited to active organization owners/admins and is idempotent
   by organization operation key. The downscoped token must also attest
@@ -22,6 +25,9 @@ effect. The token exchange must revalidate membership before issuing these claim
 - Cluster operations call `verify_active_org_cluster_binding` with the minimum
   binding role they need. The function verifies active membership claims, owning
   organization, `Ready` state, and role hierarchy before returning the digest.
+  Effective permission is the intersection of membership and binding roles:
+  owner/admin membership permits up to owner, member up to operator, and viewer
+  only viewer; the binding can reduce that ceiling further.
   The dispatcher must compare that digest with the provider-resolved connection;
   the database response is not a kubeconfig or connection credential.
 - Tables have RLS enabled and no direct authenticated access. No kubeconfig,

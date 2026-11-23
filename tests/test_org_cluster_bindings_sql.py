@@ -88,6 +88,16 @@ def test_membership_and_binding_role_fail_closed(binding_db):
     viewer_write = call(sql, claims(BOB, "acme", "viewer", cluster_ref="cluster/nope", digest=DIGEST_B), f"commerce_api.register_active_org_cluster_binding('cluster/nope','viewer','{DIGEST_B}','nope')", expect_failure=True)
     assert "owner or admin required" in viewer_write
 
+    owner_token = claims(ALICE, "acme", cluster_ref="cluster/owner", digest=DIGEST_B)
+    call(sql, owner_token, f"commerce_api.register_active_org_cluster_binding('cluster/owner','owner','{DIGEST_B}','owner-1')")
+    viewer_operator = call(sql, claims(BOB, "acme", "viewer"), "commerce_api.verify_active_org_cluster_binding('cluster/owner','operator')", expect_failure=True)
+    assert "role is insufficient" in viewer_operator
+    viewer_owner = call(sql, claims(BOB, "acme", "viewer"), "commerce_api.verify_active_org_cluster_binding('cluster/owner','owner')", expect_failure=True)
+    assert "role is insufficient" in viewer_owner
+    member_owner = call(sql, claims(BOB, "acme", "member"), "commerce_api.verify_active_org_cluster_binding('cluster/owner','owner')", expect_failure=True)
+    assert "role is insufficient" in member_owner
+    assert call(sql, claims(BOB, "acme", "member"), "commerce_api.verify_active_org_cluster_binding('cluster/owner','operator')->>'effectiveRole'") == "operator"
+
 
 def test_idempotency_digest_guard_and_revocation(binding_db):
     sql = binding_db

@@ -112,19 +112,28 @@ create or replace function commerce_api.verify_active_org_cluster_binding(
   p_cluster_ref text, p_required_role text default 'viewer'
 ) returns jsonb
 language plpgsql stable security definer set search_path=pg_catalog,pg_temp as $$
-declare v_org text; v_binding billing.org_cluster_bindings;
+declare v_org text; v_membership_role text; v_binding billing.org_cluster_bindings;
+  v_membership_rank integer; v_binding_rank integer; v_required_rank integer;
 begin
-  select org_ref into v_org from billing.current_identity_org_context();
+  select org_ref,membership_role into v_org,v_membership_role
+    from billing.current_identity_org_context();
   if p_required_role not in ('owner','operator','viewer') then raise exception 'invalid required cluster role'; end if;
   select * into v_binding from billing.org_cluster_bindings
     where cluster_ref=p_cluster_ref and org_ref=v_org and lifecycle='Ready';
   if not found then raise exception 'active organization has no Ready cluster binding' using errcode='42501'; end if;
-  if (case v_binding.binding_role when 'owner' then 3 when 'operator' then 2 else 1 end) <
-     (case p_required_role when 'owner' then 3 when 'operator' then 2 else 1 end) then
+  v_membership_rank := case v_membership_role
+    when 'owner' then 3 when 'admin' then 3 when 'member' then 2 else 1 end;
+  v_binding_rank := case v_binding.binding_role
+    when 'owner' then 3 when 'operator' then 2 else 1 end;
+  v_required_rank := case p_required_role
+    when 'owner' then 3 when 'operator' then 2 else 1 end;
+  if least(v_membership_rank,v_binding_rank) < v_required_rank then
     raise exception 'cluster binding role is insufficient' using errcode='42501';
   end if;
   return jsonb_build_object('clusterRef',v_binding.cluster_ref,'orgRef',v_binding.org_ref,
     'bindingRole',v_binding.binding_role,'lifecycle',v_binding.lifecycle,
+    'effectiveRole',case least(v_membership_rank,v_binding_rank)
+      when 3 then 'owner' when 2 then 'operator' else 'viewer' end,
     'bindingDigest',v_binding.binding_digest);
 end $$;
 
