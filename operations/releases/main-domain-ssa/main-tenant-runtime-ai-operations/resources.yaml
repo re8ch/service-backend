@@ -40,6 +40,12 @@ spec:
       automountServiceAccountToken: false
       containers:
       - env:
+        - name: SENTRY_DSN
+          value: https://2b6b17d602c68bbb6789de55c05afa1a@o4509349085577216.ingest.us.sentry.io/4509349088985088
+        - name: SENTRY_ENVIRONMENT
+          value: production
+        - name: SENTRY_RELEASE
+          value: re8ch-cloud-platform@c472221acf8b2a132807832df680a23a3ec94224
         - name: CONFIG_ROOT
           value: /etc/re8ch-platform
         - name: KUBECONFIG
@@ -73,7 +79,7 @@ spec:
             secretKeyRef:
               key: token
               name: cluster-infra-service-auth
-        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:638c4df8efc16db64922319ed470e51ae58943b7417870676e8db6fc3cdb1db8
+        image: ghcr.io/re8ch/service-backend-cloud-platform@sha256:89241538d949fad4e6b680e26982650f3c6b8f5debf3402eb46d456c16566986
         livenessProbe:
           httpGet:
             path: /healthz
