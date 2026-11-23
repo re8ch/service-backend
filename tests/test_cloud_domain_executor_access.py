@@ -101,6 +101,35 @@ def test_new_identity_adoption_targets_are_exact_and_group_bound():
         assert binding['subjects'] == [{'apiGroup': 'rbac.authorization.k8s.io', 'kind': 'Group', 'name': 're8ch:release-executor:identity-access'}]
 
 
+def test_open_oauth_release_has_exact_configmap_and_route_access():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    role = next(d for d in docs if d['kind'] == 'Role'
+                and d['metadata']['name'] == 'identity-access-domain-supabase-identity')
+    assert role['metadata']['namespace'] == 'supabase-identity'
+    grants = {(group, resource, name, tuple(rule['verbs']))
+              for rule in role['rules']
+              for group in rule['apiGroups']
+              for resource in rule['resources']
+              for name in rule['resourceNames']}
+    assert ('', 'configmaps', 'supabase-oauth-application-runtime-v1',
+            ('get', 'patch', 'update')) in grants
+    assert ('gateway.networking.k8s.io', 'httproutes', 'supabase-identity-open-oauth',
+            ('get', 'patch', 'update')) in grants
+    assert not any(resource in {'secrets', 'roles', 'rolebindings'} and
+                   name in {'supabase-oauth-application-runtime-v1', 'supabase-identity-open-oauth'}
+                   for _, resource, name, _ in grants)
+
+    import json
+    ledger = json.loads((ROOT / 'operations/releases/cloud-domain-access-sources.json').read_text())
+    identity = next(item for item in ledger['sources'] if item['repository'] == 're8ch/identity-gitops')
+    assert identity == {
+        'repository': 're8ch/identity-gitops',
+        'revision': '5765c15e68f94b048f4731042feffa461d23a1f9',
+        'path': 'operations/releases/domain-access.yaml',
+        'sha256': '2c3b3d55645d7102f4cc0744e78684e7475fb44d8dc1b46a0490318602ba2031',
+    }
+
+
 def test_networking_executor_scopes_kube_api_to_its_own_release():
     docs = list(yaml.safe_load_all(PATH.read_text()))
     role = next(d for d in docs if d['kind'] == 'Role' and d['metadata']['name'] == 'networking-native-kube-api')

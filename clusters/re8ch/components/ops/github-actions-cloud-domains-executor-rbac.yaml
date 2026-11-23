@@ -2369,6 +2369,7 @@ rules:
   - supabase-identity-kong-config
   - supabase-identity-privacy-v1
   - supabase-multi-organization-memberships-v1
+  - supabase-oauth-application-runtime-v1
   - supabase-oauth-client-tenant-mcp-v1
   - supabase-oauth-clients-access-subscription-v1
   - supabase-oauth-clients-anycam-v1
@@ -2420,6 +2421,7 @@ rules:
   - re8ch-supabase-auth-db-rw
   - supabase-identity-data-db-ro
   - supabase-identity-data-db-rw
+  - supabase-identity-open-oauth
   - supabase-identity-studio-http-redirect
   - supabase-identity-studio-public
   verbs:
