@@ -41,15 +41,19 @@ prove() {
     # Client-only failure injection, never changes/stops production Harbor.
     local denied=registry.re8ch.com:443:127.0.0.1:1
     if $local_test; then denied=127.0.0.1:5001:127.0.0.1:1; fi
-    if oras manifest fetch "${discover_args[@]}" --resolve "$denied" "$target@$digest" >/dev/null 2>&1; then
+    if oras manifest fetch "${discover_args[@]}" --resolve "$denied" "$target@$digest" >/dev/null 2> "$work/denied-error"; then
       echo 'Isolated Harbor failure injection did not fail' >&2; exit 1
     fi
+    # A new replica may legitimately return 404; that is not an outage proof.
+    grep -Fq '127.0.0.1:1: connect: connection refused' "$work/denied-error" || {
+      echo 'Harbor failure injection was not the intended loopback connection refusal' >&2; exit 1;
+    }
     args+=(--from-resolve "$denied")
   fi
   oras cp --recursive "${args[@]}" "$image" --to-oci-layout "$work/$name:proof" >/dev/null
   python3 "$script_dir/verify-image-evidence.py" layout "$work/$name" "$digest" > "$output"
   if [[ "$name" == source ]]; then
-    jq '. + {harborDeniedForClient:true}' "$output" > "$work/source-proof.json"
+    jq '. + {harborDeniedForClient:true,harborFailureClass:"connection_refused"}' "$output" > "$work/source-proof.json"
     cp "$work/source-proof.json" "$output"
   fi
 }
