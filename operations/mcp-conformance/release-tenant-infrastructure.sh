@@ -111,7 +111,8 @@ push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
 while true; do
   if [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]]; then
     # Harbor's BuildKit registry exporter can stall indefinitely on layer
-    # uploads. The Docker Engine uses a distinct, proven HTTP/1.1 upload path.
+    # uploads. Use Docker Engine's separate publication API; do not assume
+    # the containerd transport has the classic store's HTTP implementation.
     # Classic callers retain their existing explicit provenance opt-out.
     # Opt-in containerd callers load and push the entire attested index.
     attestation_args=(--provenance=false)
