@@ -441,3 +441,20 @@ three-way upgrade therefore preserves the live-only data written by the
 rotator. Do not enable force/replacement upgrades for these Secrets. A
 retiring private key is deleted at rotation, while its public key stays in
 JWKS for seven days—well beyond the five-minute maximum invocation-token life.
+
+### Managed MCP compatibility projection
+
+The 1.0.2 service tools reuse `service_catalog_list`,
+`service_instance_list`, and `service_binding_list` to expose installed managed
+MCP applications as `integration.mcp.managed.v1`. Managed applications do not
+add platform or Kubernetes top-level tools.
+
+Tenant Control may provide `GET /v1/tools/catalog`. Tenant MCP sends the
+authenticated active organization only in `X-Tenant-Ref`, together with its
+service credential; prompt arguments never select the organization. A response
+contains `activeOrgRef` and Ready items with publication, revision,
+installation, binding, service-instance, service-binding and tool references.
+The authority must return only active-audience, installed, Ready and published
+records. The client repeats organization and structural checks and fails closed
+on mismatches. HTTP 404 or a response with no compatibility envelope preserves
+the static catalog until the Billing list RPC lands.

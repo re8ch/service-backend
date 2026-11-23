@@ -16,7 +16,7 @@ var providerBacked = map[string]bool{
 	"observability.grafana.v1": true, "observability.stack.v1": true,
 	"integration.mcp.managed.v1": true, "integration.mcp.byoc.v1": true,
 	"integration.oauth.application.v1": true,
-	"application.ledger.v1": true, "integration.github.enterprise-governance.v1": true,
+	"application.ledger.v1":            true, "integration.github.enterprise-governance.v1": true,
 	"infrastructure.ssh-broker.v1": true,
 	"ai.model-gateway.v1":          true, "collaboration.stalwart.v1": true,
 	"sandbox.runtime.v1": true,
@@ -251,6 +251,13 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			return nil, err
 		}
 		services := activeGrantedServices(liveServiceOnly(catalog, tenant), grants)
+		managed, err := managedToolInstallations(ctx, tenant)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range managed {
+			services = append(services, item.catalogProjection())
+		}
 		if tenant == "artchais" {
 			if _, err = controlRequest(ctx, tenant, "/v1/services/catalog"); err != nil {
 				var denied controlHTTPError
@@ -319,6 +326,13 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			combined = append(combined, legacyIntentOnly(item))
 		}
 		combined = append(combined, slice(controlled["items"])...)
+		managed, err := managedToolInstallations(ctx, tenant)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range managed {
+			combined = append(combined, item.instanceProjection(tenant))
+		}
 		return map[string]any{"tenantRef": tenant, "instances": combined}, nil
 	case "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete":
 		if err := requireOperator(id); err != nil {
@@ -366,6 +380,15 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		items, err := s.serviceBindings(ctx, tenant, ref)
 		if err != nil {
 			return nil, err
+		}
+		managed, err := managedToolInstallations(ctx, tenant)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range managed {
+			if ref == "" || ref == item.ServiceInstanceRef {
+				items = append(items, item.bindingProjection(tenant))
+			}
 		}
 		return map[string]any{"tenantRef": tenant, "bindings": items}, nil
 	case "service_binding_revoke":
