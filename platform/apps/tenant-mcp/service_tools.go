@@ -15,6 +15,7 @@ var providerBacked = map[string]bool{
 	"registry.harbor.v1": true, "registry.oci.harbor.v1": true,
 	"observability.grafana.v1": true, "observability.stack.v1": true,
 	"integration.mcp.managed.v1": true, "integration.mcp.byoc.v1": true,
+	"integration.oauth.application.v1": true,
 	"application.ledger.v1": true, "integration.github.enterprise-governance.v1": true,
 	"infrastructure.ssh-broker.v1": true,
 	"ai.model-gateway.v1":          true, "collaboration.stalwart.v1": true,
