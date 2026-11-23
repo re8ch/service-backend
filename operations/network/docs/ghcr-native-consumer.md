@@ -76,6 +76,12 @@ strategy, privileges and startup-only lifecycle remain unchanged.
 2. Read the exact R640 installer Pod UID and mounted helper SHA after ConfigMap
    refresh. Do not assume a mounted update executed: the existing Pod sleeps
    after startup and this change deliberately does not trigger a fleet rollout.
+   The initial reviewed activation-node list contains only `r640`. A future
+   restart of another installer Pod therefore cannot activate the shared new
+   ConfigMap accidentally; its startup reports `not-selected`. `--check` is
+   available on all nodes, but writes require the reviewed selected-node list.
+   Widen that list through GitOps after the canary; Pod Ready alone is not an
+   activation receipt.
 3. Run `/config/install.sh --check` through that existing installer Pod. Review
    the two-file change metadata, source SHA and node-bound fingerprint. Run the
    same reviewed helper with `--expected-state <fingerprint>` once. If the

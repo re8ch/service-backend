@@ -245,8 +245,33 @@ def test_cli_never_prints_auth_and_configmap_projection_is_exact(tmp_path):
     config = next(o for o in objects if o["kind"] == "ConfigMap")
     assert config["data"]["ghcr-native.py"] == (BASE / "ghcr-native.py").read_text()
     assert "ghcr.io" not in yaml.safe_load(config["data"]["registries-prefix.yaml"])["mirrors"]
+    assert config["data"]["ghcr-activation-nodes.txt"].split() == ["r640"]
     script = config["data"]["install.sh"]
     assert "systemctl" not in script and "hosts_work" not in script and "proxy_dropin" not in script
     daemon = next(o for o in objects if o["kind"] == "DaemonSet")
     assert next(e["value"] for e in daemon["spec"]["template"]["spec"]["containers"][0]["env"]
                 if e["name"] == "RESTART_K3S") == "false"
+
+
+def test_unselected_node_startup_cannot_activate_shared_config(tmp_path):
+    import os
+    config = next(o for o in yaml.safe_load_all((BASE / "node-installer.yaml").read_text())
+                  if o["kind"] == "ConfigMap")
+    mount = tmp_path / "config"
+    mount.mkdir()
+    for name, value in config["data"].items():
+        (mount / name).write_text(value)
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    marker = tmp_path / "called"
+    stub = fake_bin / "chroot"
+    stub.write_text('#!/bin/sh\nprintf called > "$MARKER"\n')
+    stub.chmod(0o755)
+    install = mount / "install.sh"
+    install.write_text(install.read_text().replace("/config/", str(mount) + "/"))
+    env = {**os.environ, "PATH": str(fake_bin) + ":" + os.environ["PATH"],
+           "NODE_NAME": "another-node", "MARKER": str(marker)}
+    result = subprocess.run(["/bin/sh", str(install)], capture_output=True, text=True, env=env, check=True)
+    assert json.loads(result.stdout)["state"] == "not-selected" and not marker.exists()
+    subprocess.run(["/bin/sh", str(install), "--check"], env=env, check=True)
+    assert marker.exists()

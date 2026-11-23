@@ -37,6 +37,8 @@ data:
         rewrite: {"^(.*)$": "proxy-oracle/$1"}
       registry.re8ch.com:
         endpoint: ["https://registry.re8ch.com"]
+  ghcr-activation-nodes.txt: |
+    r640
   install.sh: |
     #!/bin/sh
     set -eu
@@ -46,6 +48,11 @@ data:
     if [ "${RESTART_K3S:-false}" != false ]; then
       printf 'registry activation cannot restart K3s\n' >&2
       exit 1
+    fi
+    test -r /config/ghcr-activation-nodes.txt
+    if [ "${1:-}" != --check ] && ! grep -Fxq -- "${NODE_NAME:-}" /config/ghcr-activation-nodes.txt; then
+      printf '{"registry":"ghcr.io","state":"not-selected","restarted":false}\n'
+      exit 0
     fi
     exec chroot /host /usr/bin/python3 -c "$(cat /config/ghcr-native.py)" "$@" < /config/registries-prefix.yaml
   ghcr-native.py: |
