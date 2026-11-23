@@ -30,9 +30,13 @@ spec:
     agent-runtime:
       organization: 8iops
       repository: ssh://git@ssh.github.com:443/8iops/agent-gitops.git
+      repositoryId: "1435935941"
+      repositoryOwnerId: "334604670"
+      repositoryVisibility: public
       controllerNamespace: flux-agent-system
       lock: fe9cae9809804832433c73decdd9dc9fceddcbee
       state: github-actions-ssa
+      fluxConsumerState: retired
     identity-access:
       organization: re8ch
       repository: ssh://git@ssh.github.com:443/re8ch/identity-gitops.git

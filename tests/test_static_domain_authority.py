@@ -73,6 +73,23 @@ def test_delivery_products_is_the_first_verified_main_domain_mapping():
     assert item["execution"]["workflow"] == ".github/workflows/static-release.yml"
 
 
+def test_agent_runtime_uses_active_cloud_ssa_authority_and_no_flux_consumer():
+    item = authority()["domains"]["agent-runtime"]
+    assert item["source"] == {
+        "organization": "8iops",
+        "repository": "8iops/agent-gitops",
+        "repositoryId": "1435935941",
+        "repositoryOwnerId": "334604670",
+        "repositoryVisibility": "public",
+        "ref": "refs/heads/main",
+        "mappingState": "verified",
+    }
+    assert item["execution"]["repository"] == "8iops/agent-gitops"
+    assert item["execution"]["workflow"] == ".github/workflows/static-release.yml"
+    assert item["execution"]["deliveryMode"] == "github-actions-ssa"
+    assert item["execution"]["fluxConsumerState"] == "retired"
+
+
 def test_data_storage_inventory_maps_destination_without_moving_execution_authority():
     item = authority()["domains"]["data-storage"]
     assert item["state"] == "inventory"
