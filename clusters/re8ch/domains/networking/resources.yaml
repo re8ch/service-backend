@@ -18743,11 +18743,13 @@ spec:
                 - overseas-la
                 - r640
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                app.kubernetes.io/name: identity-egress
-            topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: identity-egress
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       automountServiceAccountToken: false
       containers:
       - args:
@@ -18801,8 +18803,8 @@ spec:
           readOnly: true
         - mountPath: /var/lib/mihomo
           name: state
-      dnsPolicy: Default
-      hostNetwork: true
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
       initContainers:
       - args:
         - 'if [ "$NODE_NAME" = r640 ]; then cp /base/config.yaml /work/config.yaml;
