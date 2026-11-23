@@ -107,4 +107,5 @@ def test_split_publisher_does_not_require_finalize_only_tools():
 
     assert 'if [[ "$TENANT_IMAGE_SKIP_FINALIZE" != "1" ]]' in publisher
     assert "command -v cosign" in publisher
-    assert "docker info" not in publisher
+    assert "run_with_release_timeout 30s docker info --format '{{json .DriverStatus}}'" in publisher
+    assert 'if [[ "$require_attestations" == "1" ]]' in publisher

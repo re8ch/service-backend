@@ -246,6 +246,7 @@ domains:
       - clusters/re8ch/domains/main-legacy/tenant-runtime
     tests:
       - tests/test_python_sentry.py
+      - tests/test_registry_transfer.py
       - tests/test_cloud_platform.py
       - tests/test_cluster_bindings.py
       - tests/test_cluster_execution_transport.py
