@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: reef-jade
+codename: tundra-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:c62e79365404f2f08ad41b76166756475cf7f0c6020bf9652d6c312bba9be789
+  digest: sha256:01b8ef3685bdd96afc63ec0d86e9bde296280e4a5b64aab53b589a76b161d405
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
