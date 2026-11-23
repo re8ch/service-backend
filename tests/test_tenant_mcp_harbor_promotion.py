@@ -12,7 +12,8 @@ def test_tenant_mcp_promotion_reuses_one_verified_artifact():
     assert "docker buildx imagetools create" in workflow
     assert 'select(.platform.os == "linux" and .platform.architecture == "amd64")' in workflow
     assert "expected exactly one linux/amd64 child manifest" in workflow
-    assert 'test "$promoted_digest" = "$expected_target_digest"' in workflow
+    assert "config:.config.digest,layers:[.layers[].digest]" in workflow
+    assert "diff -u source-content.json target-content.json" in workflow
     assert "docker build " not in workflow
     assert "docker buildx build" not in workflow
     assert "environment: production" in workflow
