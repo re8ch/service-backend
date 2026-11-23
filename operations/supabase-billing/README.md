@@ -43,6 +43,12 @@ authenticate with Identity and receive short-lived, audience-limited business
 JWTs; they never receive a Billing service-role key. This keeps the two database
 roles and DSNs independent without inventing a second consumer identity model.
 
+Organization-owned cluster associations use the reviewed
+[`org-cluster-bindings.sql`](org-cluster-bindings.sql) runtime authority contract.
+Its API and adoption boundaries are documented in
+[`ORG-CLUSTER-BINDINGS.md`](ORG-CLUSTER-BINDINGS.md). Binding rows are runtime
+writes in Billing/Bifurcate and are not emitted as one GitOps object per cluster.
+
 ## Required preflight
 
 Use the authenticated platform administrator catalog. Do not connect with
