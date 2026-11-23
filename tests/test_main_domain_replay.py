@@ -118,7 +118,7 @@ def test_refresh_uses_existing_oidc_guards_and_atomic_private_kubeconfig(tmp_pat
     assert path.read_bytes() == before
 
 
-def test_reviewed_takeover_is_publish_only_and_exactly_four_deployments(tmp_path):
+def test_reviewed_takeover_is_publish_only_with_exact_deployments_and_plugin_configmap(tmp_path):
     import os
     import subprocess
     workflow = yaml.safe_load((ROOT / '.github/workflows/main-domain-release.yml').read_text())
@@ -131,7 +131,10 @@ def test_reviewed_takeover_is_publish_only_and_exactly_four_deployments(tmp_path
     for path in (ROOT / 'contracts/releases/main-domain').glob('*.yaml'):
         contract = yaml.safe_load(path.read_text())
         allowed = contract['spec']['authorization'].get('forceConflictObjects', [])
-        assert allowed == ([expected[path.stem]] if path.stem in expected else [])
+        expected_objects = ([expected[path.stem]] if path.stem in expected else [])
+        if path.stem == 'main-operations-ui-headlamp':
+            expected_objects.append('core/ConfigMap/headlamp/headlamp-public-edge-v033-mb4t89f2c6')
+        assert allowed == expected_objects
     for release, mode, enabled, success in [
         ('main-data-storage-ops', 'publish', 'true', True),
         ('main-operations-ui-headlamp', 'publish', 'true', True),
@@ -145,7 +148,10 @@ def test_reviewed_takeover_is_publish_only_and_exactly_four_deployments(tmp_path
         result = subprocess.run(['bash', '-euo', 'pipefail', '-c', script + '\nprintf "%s\\n" "${takeover_args[@]}"'], env=env, text=True, capture_output=True)
         assert (result.returncode == 0) == success
         if success and enabled == 'true':
-            assert result.stdout.splitlines() == ['--action', 'force-reconcile', '--force-object', expected[release]]
+            expected_args = ['--action', 'force-reconcile', '--force-object', expected[release]]
+            if release == 'main-operations-ui-headlamp':
+                expected_args += ['--force-object', 'core/ConfigMap/headlamp/headlamp-public-edge-v033-mb4t89f2c6']
+            assert result.stdout.splitlines() == expected_args
         if success and enabled == 'false':
             assert result.stdout.splitlines() == ['--action', 'reconcile']
 
