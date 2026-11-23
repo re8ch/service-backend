@@ -125,6 +125,7 @@ jobs:
           TENANT_IMAGE_ARTIFACT_NAME: cloud-platform
           TENANT_IMAGE_SKIP_FINALIZE: "1"
           BUILDKIT_NO_CLIENT_TOKEN: "1"
+          BUILDKIT_SBOM_GENERATOR: docker.io/docker/buildkit-syft-scanner@sha256:10a413da6b52acacf4af4262eafeae6ca05076fbd65850ad7f233163c6d6a81c
           # Harbor layer publication exceeded 15 minutes in run 41028448350.
           # Give one build/push a bounded 30 minutes instead of rebuilding it
           # after an upload timeout; the release job retains 15 minutes overhead.
