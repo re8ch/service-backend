@@ -1634,6 +1634,8 @@ modules:
       digest: sha256:a6c76aedfee5e0c15c0e0107d5a76ed819e5f2351641691a383625f05ff53a48
     - codename: zephyr-garnet
       digest: sha256:537952bc04e58d1cd852312cb97ca8f91d5dc5cdb4ee00cb1e309cd0cff1b565
+    - codename: bora-beryl
+      digest: sha256:b45dba8d351baf5727a4531c02036be41f328950db9129e5b41a1c8b2db6ede2
   platform/adapter:
     releases:
     - codename: anchor
