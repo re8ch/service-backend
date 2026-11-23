@@ -30,13 +30,16 @@ type mcpCatalogTool struct {
 }
 
 type mcpCatalogDefinition struct {
-	ServiceName string           `json:"serviceName"`
-	Class       string           `json:"class"`
-	Endpoint    string           `json:"endpoint"`
-	AuthMode    string           `json:"authMode"`
-	Health      string           `json:"health"`
-	Tools       []mcpCatalogTool `json:"tools"`
-	Shared      bool             `json:"shared,omitempty"`
+	ServiceName         string            `json:"serviceName"`
+	Class               string            `json:"class"`
+	Endpoint            string            `json:"endpoint"`
+	AuthMode            string            `json:"authMode"`
+	Health              string            `json:"health"`
+	Tools               []mcpCatalogTool  `json:"tools"`
+	AudienceOrgRefs     []string          `json:"audienceOrgRefs,omitempty"`
+	OAuthApplicationRef string            `json:"oauthApplicationRef,omitempty"`
+	Meters              map[string]string `json:"meters,omitempty"`
+	Shared              bool              `json:"shared,omitempty"`
 }
 
 type mcpCatalogCommand struct {
@@ -65,6 +68,7 @@ func validateMCPDefinition(tenant string, d mcpCatalogDefinition) error {
 	if !allowedClass[d.Class] {
 		return errors.New("unsupported MCP service class")
 	}
+	custom := strings.HasPrefix(d.Class, "integration.mcp.")
 	u, err := url.Parse(d.Endpoint)
 	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && !(u.Scheme == "http" && strings.HasSuffix(u.Hostname(), ".svc"))) {
 		return errors.New("endpoint must be HTTPS or an in-cluster service URL")
@@ -72,11 +76,33 @@ func validateMCPDefinition(tenant string, d mcpCatalogDefinition) error {
 	if d.AuthMode != "service-token" && d.AuthMode != "oauth-forward" && d.AuthMode != "binding-reference" {
 		return errors.New("unsupported authentication mode")
 	}
+	if custom {
+		if len(d.AudienceOrgRefs) < 1 || len(d.AudienceOrgRefs) > 64 {
+			return errors.New("custom MCP publication requires 1 to 64 audienceOrgRefs")
+		}
+		seenAudiences := map[string]bool{}
+		for _, audience := range d.AudienceOrgRefs {
+			if audience == "admin" || !tenantName.MatchString(audience) || seenAudiences[audience] {
+				return errors.New("audienceOrgRefs must be unique non-admin organization references")
+			}
+			seenAudiences[audience] = true
+		}
+		if d.AuthMode == "oauth-forward" && d.OAuthApplicationRef == "" {
+			return errors.New("oauth-forward requires oauthApplicationRef")
+		}
+		if len(d.Meters) < 1 || len(d.Meters) > 32 {
+			return errors.New("custom MCP publication requires 1 to 32 unpriced meters")
+		}
+		for meter, unit := range d.Meters {
+			if !mcpToolName.MatchString(meter) || unit == "" {
+				return errors.New("invalid MCP meter contract")
+			}
+		}
+	}
 	if len(d.Tools) == 0 || len(d.Tools) > 256 {
 		return errors.New("a provider must publish 1 to 256 tools")
 	}
 	seen := map[string]bool{}
-	custom := strings.HasPrefix(d.Class, "integration.mcp.")
 	for _, tool := range d.Tools {
 		if !mcpToolName.MatchString(tool.Name) || seen[tool.Name] {
 			return fmt.Errorf("invalid or duplicate tool %q", tool.Name)
