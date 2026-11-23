@@ -19,7 +19,8 @@ waiting for a one-minute test timer.
 Before replacing the current single-replica Recreate runtime, pull the exact
 verified image using an unselected, temporary Pod on its actual node. Give it
 no service-account token, credentials, application labels or state volume, and
-run only `/bin/true`. Verify the image ID and successful completion, then remove
-that Pod through the existing Admin preview/apply deletion path. Deploy the same
-digest through the signed GitOps PR. This avoids an image-download outage and
+run only `/bin/true`. Verify the image ID and successful completion, then deploy
+the same digest through the signed GitOps PR. Keep the temporary Pod until the
+new runtime is Ready, then remove it through the Admin preview/apply deletion
+path. This avoids an image-download outage and
 does not create a second image build or a persistent controller.
