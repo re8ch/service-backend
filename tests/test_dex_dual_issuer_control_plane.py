@@ -90,6 +90,7 @@ def test_all_control_planes_share_supabase_authentication():
         'observability-metering': ('siren-observer/observability-gitops', '1423312205', '334604879'),
         'networking': ('pillars-infra/network-gitops', '1435935851', '334604858'),
     }
+    assert external['agent-runtime'] == ('8iops/agent-gitops', '1435935941', '334604670')
     for domain in ('agent-runtime', 'identity-access', 'networking'):
         repository, repository_id, owner_id = external[domain]
         for boundary_rule in (public_rule, runner_rule):
