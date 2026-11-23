@@ -107,8 +107,12 @@ create table if not exists bifurcate.tool_bindings (
 );
 
 create or replace view bifurcate.ready_tool_bindings as
-select b.binding_ref, b.installation_ref, b.owner_org_ref, b.service_instance_ref,
-       b.service_binding_ref, b.provider_kind, i.publication_ref, i.revision_ref
+select b.binding_ref, b.installation_ref, b.owner_org_ref as active_org_ref,
+       p.owner_org_ref, b.service_instance_ref,
+       b.service_binding_ref, b.provider_kind, i.publication_ref, i.revision_ref,
+       r.definition ->> 'toolRef' as tool_ref,
+       r.definition ->> 'providerAudience' as provider_audience,
+       r.definition -> 'allowedScopes' as allowed_scopes
 from bifurcate.tool_bindings b
 join bifurcate.tool_installations i using (installation_ref)
 join bifurcate.tool_audiences a using (audience_ref, publication_ref)
@@ -116,6 +120,24 @@ join bifurcate.tool_revisions r using (revision_ref, publication_ref)
 join bifurcate.tool_publications p using (publication_ref)
 where b.state = 'ready' and i.state = 'installed' and a.state = 'active'
   and r.lifecycle = 'published' and p.lifecycle = 'published';
+
+create schema if not exists bifurcate_api authorization re8ch_billing_owner;
+create or replace function bifurcate_api.resolve_tool_invocation(p_binding_ref text, p_active_org_ref text)
+returns table(binding_ref text, tool_ref text, active_org_ref text, owner_org_ref text,
+              provider_audience text, allowed_scopes jsonb, max_ttl_seconds integer)
+language sql security definer stable
+set search_path = bifurcate, pg_catalog, pg_temp
+as $$
+  select b.binding_ref, b.tool_ref, p_active_org_ref, b.owner_org_ref,
+         b.provider_audience, b.allowed_scopes, 300
+    from bifurcate.ready_tool_bindings b
+   where b.binding_ref = p_binding_ref
+     and b.active_org_ref = p_active_org_ref
+     and b.tool_ref ~ '^[a-z][a-z0-9+.-]*://[^[:space:]]{1,512}$'
+     and length(b.provider_audience) between 1 and 512
+     and jsonb_typeof(b.allowed_scopes) = 'array'
+     and jsonb_array_length(b.allowed_scopes) between 1 and 16;
+$$;
 
 create table if not exists bifurcate.usage_events (
   event_ref text primary key check (event_ref ~ '^ue_[a-f0-9]{32}$'),
@@ -209,8 +231,12 @@ for each row execute function bifurcate.reject_revision_mutation();
 revoke all on schema bifurcate from public;
 revoke all on all tables in schema bifurcate from public;
 revoke all on all functions in schema bifurcate from public;
+revoke all on schema bifurcate_api from public;
+revoke all on all functions in schema bifurcate_api from public;
 grant usage on schema bifurcate to billing_commerce_runtime;
 grant select on bifurcate.ready_tool_bindings to billing_commerce_runtime;
+grant usage on schema bifurcate_api to billing_commerce_runtime;
+grant execute on function bifurcate_api.resolve_tool_invocation(text,text) to billing_commerce_runtime;
 grant execute on function bifurcate.accept_usage_event(text,text,text,text,text,text,text,numeric,text,timestamptz,timestamptz,timestamptz,jsonb,text,text)
   to billing_commerce_runtime;
 do $$

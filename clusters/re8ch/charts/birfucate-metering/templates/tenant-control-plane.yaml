@@ -120,10 +120,15 @@ spec:
           envFrom:
             - {secretRef: {name: tenant-registry-supply-chain, optional: true}}
             - {secretRef: {name: tenant-claim-internal-auth, optional: true}}
+            - {secretRef: {name: tenant-invocation-authority, optional: true}}
           env:
             - {name: LISTEN_PORT, value: "19447"}
             - {name: IMAGE_POLICY_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
+            - {name: IDENTITY_USER_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/user"}
+            - {name: IDENTITY_CONTEXTS_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000/rpc/my_tenant_runtime_contexts"}
+            - {name: BINDING_AUTHORITY_URL, value: "http://supabase-billing-rest-rw.supabase-billing.svc:3000/rpc/resolve_tool_invocation"}
+            - {name: INVOCATION_TOKEN_ISSUER, value: "https://tools.service.re8ch.com/invocation"}
             - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
             - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
           ports: [{name: http, containerPort: 19447}]
@@ -132,6 +137,11 @@ spec:
           livenessProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 3, periodSeconds: 15, timeoutSeconds: 3}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: invocation-signing, mountPath: /var/run/re8ch-invocation-signing, readOnly: true}
+      volumes:
+        - name: invocation-signing
+          secret: {secretName: tenant-invocation-signing, optional: true}
 ---
 apiVersion: v1
 kind: Service

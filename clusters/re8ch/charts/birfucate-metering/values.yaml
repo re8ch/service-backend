@@ -21,6 +21,9 @@ browserAPI:
 # the reusable chart; production enables it with a verified image digest.
 tenantPlatform:
   enabled: false
+  invocationCredentials:
+    enabled: false
+    schedule: "17 */12 * * *"
   image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
   tenantAPI:
     enabled: false
