@@ -422,7 +422,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	}
 	assertPlatformStatus("admin-user", "session-1", true)
 	kubectl := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "--raw=/readyz"}}})
-	if kubectl["error"] != nil || kubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/readyz" || kubectlTimeout != 30 {
+	if kubectl["error"] != nil || kubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/readyz" || kubectlTimeout != 600 {
 		t.Fatalf("explicit kubectl argv was not routed unchanged: %#v; argv=%v timeout=%d", kubectl, kubectlArgv, kubectlTimeout)
 	}
 	direct := call("admin-user", "session-1", "tools/call", map[string]any{"name": "reconcile_control_plane_authentication_config", "arguments": map[string]any{"commitSha": strings.Repeat("a", 40), "apply": true, "planHash": strings.Repeat("b", 64)}})
