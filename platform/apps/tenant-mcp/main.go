@@ -527,7 +527,8 @@ func (s *server) exchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := r.Form.Get("subject_token")
-	if _, err := s.verifySupabase(r.Context(), token); err != nil {
+	id, err := s.authenticate(r.Context(), token, "")
+	if err != nil {
 		if errors.Is(err, errIdentityUnavailable) {
 			writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
 			return
@@ -535,15 +536,23 @@ func (s *server) exchangeToken(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
 		return
 	}
-	claims, err := decodeClaims(token)
-	if err != nil {
-		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
+	if id.Service || id.Tenant == "" || id.OrganizationRef == "" {
+		writeJSON(w, 403, map[string]string{"error": "active_organization_required"})
 		return
 	}
-	expires := min(max(claims.Expires-time.Now().Unix(), 1), 600)
+	request, err := invocationTokenRequestFromForm(r.Form, id, audience)
+	if err != nil {
+		writeJSON(w, 400, map[string]string{"error": "invalid_request", "error_description": err.Error()})
+		return
+	}
+	issued, err := s.issueInvocationToken(r.Context(), request)
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "token_issuer_unavailable"})
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
-	writeJSON(w, 200, map[string]any{"access_token": token, "issued_token_type": tokenType, "token_type": "Bearer", "expires_in": expires})
+	writeJSON(w, 200, map[string]any{"access_token": issued.Token, "issued_token_type": tokenType, "token_type": "Bearer", "expires_in": issued.ExpiresIn, "scope": strings.Join(issued.Scopes, " ")})
 }
 
 func billingHeaders(w http.ResponseWriter, r *http.Request) {

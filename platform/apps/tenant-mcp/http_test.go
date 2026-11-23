@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -475,18 +474,29 @@ func TestMCPSharedPersonalViewerCannotMutateResourceFamilies(t *testing.T) {
 	}
 }
 
-func TestTokenExchangePreservesUserJWT(t *testing.T) {
+func TestTokenExchangeReturnsDownscopedInvocationJWT(t *testing.T) {
 	s := testServer(t)
+	s.invocationIssuer = testInvocationIssuer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, 200, map[string]string{"id": "user-1"}) }))
 	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"tenantRef": "acme", "role": "operator", "defaultNamespace": "acme"})
+	}))
+	defer control.Close()
+	memberships := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, 200, []any{}) }))
+	defer memberships.Close()
 	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	t.Setenv("PLATFORM_MEMBERSHIP_URL", memberships.URL)
 	t.Setenv("RE8CH_TOOL_AUDIENCE", "re8ch-tenant")
-	form := url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:token-exchange"}, "subject_token_type": {"urn:ietf:params:oauth:token-type:access_token"}, "audience": {"re8ch-tenant"}, "subject_token": {fixtureToken()}}
+	form := url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:token-exchange"}, "subject_token_type": {"urn:ietf:params:oauth:token-type:access_token"}, "audience": {"re8ch-tenant"}, "subject_token": {fixtureToken()}, "tool_ref": {"tool://publisher/search"}, "binding_ref": {"binding://acme/one"}, "scope": {"tools:invoke usage:write"}, "active_org_ref": {"attacker"}}
 	req := httptest.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+	req.Header.Set("X-RE8CH-Tenant", "attacker")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	response := httptest.NewRecorder()
 	s.handler().ServeHTTP(response, req)
-	if response.Code != 200 || !strings.Contains(response.Body.String(), fmt.Sprintf(`"access_token":"%s"`, fixtureToken())) {
+	if response.Code != 200 || strings.Contains(response.Body.String(), fixtureToken()) || !strings.Contains(response.Body.String(), `"scope":"tools:invoke usage:write"`) {
 		t.Fatalf("exchange failed: %d %s", response.Code, response.Body.String())
 	}
 }

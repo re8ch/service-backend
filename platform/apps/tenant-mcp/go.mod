@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/VictoriaMetrics/metricsql v0.87.4
 	github.com/getsentry/sentry-go v0.50.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	golang.org/x/sync v0.22.0
