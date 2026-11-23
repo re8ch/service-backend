@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: grove-jade
+codename: reef-jade
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:684bbd62b202009b9a98b8ab780501189279866a9153a6f07fa76ec37a6dbf1a
+  digest: sha256:c62e79365404f2f08ad41b76166756475cf7f0c6020bf9652d6c312bba9be789
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
