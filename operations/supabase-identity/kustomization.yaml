@@ -12,6 +12,7 @@ resources:
 - oauth-clients-access-subscription.yaml
 - oauth-clients-catalog.yaml
 - oauth-clients-tenant-mcp.yaml
+- oauth-application-runtime.yaml
 - tenant-runtime-memberships.yaml
 - tenant-runtime-contexts.yaml
 - multi-organization-memberships.yaml
