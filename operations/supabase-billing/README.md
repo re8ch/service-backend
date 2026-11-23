@@ -43,6 +43,10 @@ authenticate with Identity and receive short-lived, audience-limited business
 JWTs; they never receive a Billing service-role key. This keeps the two database
 roles and DSNs independent without inventing a second consumer identity model.
 
+Self-registered tool publication and unpriced usage intake use the separate
+[`bifurcate` authority contract](TOOL-PUBLICATION-AUTHORITY.md). Those runtime
+writes are organization-owned Billing state and never require a GitOps edit.
+
 ## Required preflight
 
 Use the authenticated platform administrator catalog. Do not connect with
