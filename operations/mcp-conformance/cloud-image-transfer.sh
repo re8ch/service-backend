@@ -23,14 +23,12 @@ identity=https://github.com/re8ch/service-backend/.github/workflows/cloud-platfo
 verify_args=(--certificate-identity "$identity" --certificate-oidc-issuer "$issuer")
 sign_args=(--yes)
 cp_args=()
-cosign_copy_args=()
 discover_args=()
 if $local_test; then
   : "${CLOUD_CI_SIGNING_KEY:?ephemeral test key required}"
   verify_args=(--key "$CLOUD_CI_SIGNING_KEY.pub" --insecure-ignore-tlog=true --allow-insecure-registry)
   sign_args=(--yes --key "$CLOUD_CI_SIGNING_KEY.key" --tlog-upload=false --allow-insecure-registry)
   cp_args=(--from-plain-http --to-plain-http)
-  cosign_copy_args=(--allow-insecure-registry)
   discover_args=(--plain-http)
 fi
 prove() {
@@ -84,8 +82,9 @@ target = digests(json.loads(Path(prefix + '.target-referrers.json').read_text())
 if not source <= target:
     sys.exit('Target omitted source OCI referrers')
 PY
-# Cosign v2 legacy attachments are tags rather than OCI referrers. Preserve
-# them with native cosign copy, then add a truthful destination-repository claim.
+# Cosign v2 legacy attachments are tags rather than OCI referrers. Copy their
+# native triangulated tags, never cosign-copy's synthetic sha256-DIGEST image
+# tag: it collides with the OCI referrers fallback index used by ORAS.
 existing=false
 if cosign verify "${verify_args[@]}" "$target@$digest" > "$work/existing.json" 2>/dev/null; then
   if python3 - "$work/existing.json" "$source_repo" "$target" "$digest" <<'PY'
@@ -97,7 +96,17 @@ PY
   then existing=true; fi
 fi
 if ! $existing; then
-  cosign copy "${cosign_copy_args[@]}" --only=sig --only=att --only=sbom "$source" "$target:${CERTIFIED_SOURCE_SHA}"
+  for kind in signature attestation sbom; do
+    attachment=$(cosign triangulate --type "$kind" "$source")
+    if oras manifest fetch "${discover_args[@]}" --descriptor "$attachment" > "$work/$kind.json" 2> "$work/$kind-error"; then
+      oras cp --recursive "${cp_args[@]}" "$attachment" "$target:${attachment##*:}" >/dev/null
+    elif [[ "$kind" != signature ]] && grep -Eq '(404 Not Found|: not found|MANIFEST_UNKNOWN|NAME_UNKNOWN)' "$work/$kind-error"; then
+      continue
+    else
+      echo 'Cannot inspect or copy a required legacy signature attachment' >&2
+      exit 1
+    fi
+  done
   cosign sign "${sign_args[@]}" "$target@$digest"
 fi
 cosign verify "${verify_args[@]}" "$target@$digest" > "$prefix.target-signature.json"

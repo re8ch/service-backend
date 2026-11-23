@@ -79,7 +79,10 @@ workflow artifacts. The signed immutable primary remains usable if Harbor fails.
 
 The existing finalize job then uses native `oras cp --recursive` to copy the
 whole graph and OCI referrers into the existing Harbor project, without another
-build. Native `cosign copy` preserves v2 legacy signature/attestation/SBOM tags.
+build. Native `cosign triangulate` locates v2 legacy signature/attestation/SBOM tags,
+which ORAS copies without rewriting their bytes. Actual CI rejected `cosign copy`
+because its synthetic `sha256-DIGEST` image tag collides with the OCI referrers
+fallback index; that tag must never be force-overwritten.
 The destination also receives a separate truthful signature naming its own
 repository; copying the source claim alone is insufficient. Both repository
 claims and the common digest are checked cryptographically. Source referrer
