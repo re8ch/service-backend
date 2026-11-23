@@ -419,3 +419,12 @@ route. The final provider audience must be resolved by the binding authority fro
 the selected `binding_ref`; callers must never select or override a provider
 audience. The verified active organization is likewise derived from the login
 session and tenant-control decision, not request fields or headers.
+
+Tenant-control revalidates the subject token with pg-identity and resolves the
+ready binding through Bifurcate before signing. Its mounted
+`tenant-invocation-signing/key-ring.json` supports one current and up to two
+overlap keys; JWKS publishes only their public RSA parameters. The separate
+`tenant-invocation-authority/BINDING_AUTHORITY_TOKEN` authenticates the bounded
+PostgREST RPC. Neither Secret is declared in Git. Until both are provisioned by
+the approved credential path, issuance and JWKS fail closed while unrelated
+tenant-control routes remain available.

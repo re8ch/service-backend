@@ -10449,7 +10449,7 @@ spec:
               key: PGRST_DB_URI_RW
               name: supabase-billing-secrets
         - name: PGRST_DB_SCHEMAS
-          value: payment_api,commerce_api
+          value: payment_api,commerce_api,bifurcate_api
         - name: PGRST_DB_EXTRA_SEARCH_PATH
           value: public,payment,billing,commerce
         - name: PGRST_DB_ANON_ROLE

@@ -32,6 +32,7 @@ type invocationTokenRequest struct {
 	Scopes       []string `json:"scopes"`
 	Audience     string   `json:"audience"`
 	MaxTTL       int      `json:"maxTtlSeconds"`
+	SubjectToken string   `json:"subjectToken"`
 }
 type issuedInvocationToken struct {
 	Token     string   `json:"accessToken"`
@@ -74,7 +75,7 @@ func invocationTokenRequestFromForm(form url.Values, id identity, audience strin
 		}
 		seen[scope] = true
 	}
-	return invocationTokenRequest{Subject: id.Subject, ActiveOrgRef: id.OrganizationRef, ToolRef: toolRef, BindingRef: bindingRef, Scopes: scopes, Audience: audience, MaxTTL: invocationTokenMaxTTL}, nil
+	return invocationTokenRequest{Subject: id.Subject, ActiveOrgRef: id.OrganizationRef, ToolRef: toolRef, BindingRef: bindingRef, Scopes: scopes, Audience: audience, MaxTTL: invocationTokenMaxTTL, SubjectToken: id.Token}, nil
 }
 
 func (s *server) issueInvocationToken(ctx context.Context, request invocationTokenRequest) (issuedInvocationToken, error) {
@@ -98,7 +99,7 @@ func (s *server) issueInvocationToken(ctx context.Context, request invocationTok
 	}
 	claims := *issued.claims
 	now := time.Now().Unix()
-	if claims.Subject != request.Subject || claims.ActiveOrgRef != request.ActiveOrgRef || claims.ToolRef != request.ToolRef || claims.BindingRef != request.BindingRef || !tenantName.MatchString(claims.OwnerOrgRef) || claims.JTI == "" || !audienceContains(claims.Audience, request.Audience) || claims.Expires <= now || claims.Expires > now+invocationTokenMaxTTL || !sameScopes(claims.Scopes, request.Scopes) || !sameScopes(claims.Scopes, issued.Scopes) {
+	if claims.Subject != request.Subject || claims.ActiveOrgRef != request.ActiveOrgRef || claims.ToolRef != request.ToolRef || claims.BindingRef != request.BindingRef || !tenantName.MatchString(claims.OwnerOrgRef) || claims.JTI == "" || !hasAudience(claims.Audience) || claims.Expires <= now || claims.Expires > now+invocationTokenMaxTTL || !sameScopes(claims.Scopes, request.Scopes) || !sameScopes(claims.Scopes, issued.Scopes) {
 		return issuedInvocationToken{}, errors.New("issuer returned an invalid downscoped token")
 	}
 	if issued.ExpiresIn < 1 || issued.ExpiresIn > invocationTokenMaxTTL {
@@ -115,6 +116,7 @@ func (h *httpInvocationTokenIssuer) Issue(ctx context.Context, request invocatio
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Tenant-Service-Token", h.serviceToken)
+	req.Header.Set("X-Tenant-Caller", "tenant")
 	resp, err := (&http.Client{Timeout: 5 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, h.endpoint, "identity.invocation_token.http")}).Do(req)
 	if err != nil {
 		return issuedInvocationToken{}, err
@@ -222,6 +224,10 @@ func audienceContains(raw any, expected string) bool {
 		}
 	}
 	return false
+}
+func hasAudience(raw any) bool {
+	if value, ok := raw.(string); ok { return value != "" }
+	values, ok := raw.([]any); return ok && len(values) == 1 && values[0] != ""
 }
 func sameScopes(left, right []string) bool {
 	if len(left) != len(right) {
