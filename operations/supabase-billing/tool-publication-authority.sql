@@ -3,8 +3,8 @@
 -- client, user, session, credential, or organization-membership tables.
 begin transaction isolation level serializable;
 
-create schema if not exists bifurcate authorization re8ch_billing_owner;
 set local role re8ch_billing_migrator;
+create schema if not exists bifurcate authorization re8ch_billing_owner;
 
 create table if not exists bifurcate.tool_publications (
   publication_ref text primary key check (publication_ref ~ '^toolpub_[a-z0-9][a-z0-9_-]{7,95}$'),
@@ -213,5 +213,16 @@ grant usage on schema bifurcate to billing_commerce_runtime;
 grant select on bifurcate.ready_tool_bindings to billing_commerce_runtime;
 grant execute on function bifurcate.accept_usage_event(text,text,text,text,text,text,text,numeric,text,timestamptz,timestamptz,timestamptz,jsonb,text,text)
   to billing_commerce_runtime;
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'billing_supabase_pgrst_rw') then
+    grant billing_commerce_runtime to billing_supabase_pgrst_rw;
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'billing_supabase_pgrst_ro') then
+    grant billing_commerce_runtime to billing_supabase_pgrst_ro;
+  end if;
+end
+$$;
+notify pgrst, 'reload schema';
 
 commit;
