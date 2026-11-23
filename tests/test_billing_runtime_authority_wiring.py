@@ -106,7 +106,8 @@ def test_migration_jobs_reuse_managed_supabase_admin_credential_without_copying_
 
 def test_commerce_postgrest_and_target_runtime_role_are_wired():
     postgrest = (BASE / "postgrest-runtime.yaml").read_text()
-    assert postgrest.count('PGRST_DB_SCHEMAS, value: "payment_api,commerce_api"') == 2
+    assert postgrest.count('PGRST_DB_SCHEMAS, value: "payment_api,commerce_api"') == 1
+    assert postgrest.count('PGRST_DB_SCHEMAS, value: "payment_api,commerce_api,bifurcate_api"') == 1
     assert "PGRST_DB_SCHEMAS, value: \"bifurcate" not in postgrest
     cluster_sql = (BASE / "org-cluster-bindings.sql").read_text()
     for rpc in ("register_active_org_cluster_binding", "revoke_active_org_cluster_binding",
