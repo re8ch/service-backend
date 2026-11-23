@@ -98,7 +98,7 @@ fi
 require_attestations="${TENANT_IMAGE_REQUIRE_ATTESTATIONS:-0}"
 if [[ "$require_attestations" == "1" ]]; then
   [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]] || { echo "Attested Engine publication requires TENANT_IMAGE_DOCKER_PUSH=1" >&2; exit 2; }
-  docker info --format '{{json .DriverStatus}}' | python3 -c '
+  run_with_release_timeout 30s docker info --format '{{json .DriverStatus}}' | python3 -c '
 import json, sys
 if ["driver-type", "io.containerd.snapshotter.v1"] not in json.load(sys.stdin):
     sys.exit("Attested Engine publication requires the containerd image store")
@@ -174,8 +174,11 @@ if len(images) != 1:
 subject = images[0]["digest"]
 if not any(m.get("annotations", {}).get("vnd.docker.reference.type") == "attestation-manifest" and m.get("annotations", {}).get("vnd.docker.reference.digest") == subject for m in index["manifests"]):
     sys.exit("Published index lost its image-bound attestation manifest")
-provenance = json.loads(Path(name + ".provenance.json").read_text()).get("linux/amd64", {}).get("SLSA", {})
-sbom = json.loads(Path(name + ".sbom.json").read_text()).get("linux/amd64", {}).get("SPDX", {})
+provenance_doc = json.loads(Path(name + ".provenance.json").read_text())
+sbom_doc = json.loads(Path(name + ".sbom.json").read_text())
+# Buildx uses an unkeyed stub for one runtime platform, a map for multiple.
+provenance = provenance_doc.get("linux/amd64", provenance_doc).get("SLSA", {})
+sbom = sbom_doc.get("linux/amd64", sbom_doc).get("SPDX", {})
 # BuildKit's supported SLSA v0.2 and v1 use different native metadata shapes.
 if "buildDefinition" in provenance:
     build_type = provenance.get("buildDefinition", {}).get("buildType")
@@ -183,7 +186,8 @@ if "buildDefinition" in provenance:
 else:
     build_type = provenance.get("buildType")
     metadata = provenance.get("metadata", {}).get("https://mobyproject.org/buildkit@v1#metadata", {})
-if build_type != "https://mobyproject.org/buildkit@v1" or metadata.get("vcs", {}).get("revision") != source:
+build_types = {"https://mobyproject.org/buildkit@v1", "https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md"}
+if build_type not in build_types or metadata.get("vcs", {}).get("revision") != source:
     sys.exit("Published provenance is absent or bound to a different source revision")
 if not metadata.get("source", {}).get("infos"):
     sys.exit("Published provenance does not retain max-mode source metadata")
