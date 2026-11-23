@@ -2255,7 +2255,7 @@ def get_database_routing_status():
 
 def get_external_publication_readiness():
     mcp_origin = os.getenv("EXTERNAL_TOOLS_ORIGIN", "https://tools.service.re8ch.com").rstrip("/")
-    mcp_resource = os.getenv("EXTERNAL_MCP_RESOURCE", mcp_origin + "/tenant-native/mcp").rstrip("/")
+    mcp_resource = os.getenv("EXTERNAL_MCP_RESOURCE", mcp_origin + "/tenant-plugin/mcp").rstrip("/")
     metadata_url = os.getenv("EXTERNAL_RESOURCE_METADATA_URL", mcp_origin + "/.well-known/oauth-protected-resource" + urllib.parse.urlparse(mcp_resource).path)
     auth_origin = os.getenv("EXTERNAL_AUTH_ORIGIN", "https://db-rw.re8ch.com/auth/v1").rstrip("/")
     upstream_auth_origin = os.getenv("UPSTREAM_AUTH_ORIGIN", "https://auth.re8ch.com").rstrip("/")

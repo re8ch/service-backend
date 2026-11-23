@@ -24082,7 +24082,7 @@ spec:
         acceptedStatuses:
         - 200
         class: service-pilot
-        probePath: /.well-known/oauth-protected-resource/tenant-native/mcp
+        probePath: /.well-known/oauth-protected-resource/tenant-plugin/mcp
         service: tools-service
     transferTopology:
       httpPort: 18081
