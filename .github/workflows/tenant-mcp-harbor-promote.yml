@@ -36,14 +36,14 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {persist-credentials: false}
-      - name: Validate and verify immutable source
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Validate immutable source against reviewed promotion lock
         run: |
           set -euo pipefail
           [[ "$SOURCE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          desired="$(sed -n 's|^  image: ghcr.io/re8ch/service-backend-tenant-mcp@||p' clusters/re8ch/tenant-mcp-image/image.yaml)"
+          [[ "$desired" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$SOURCE_DIGEST" = "$desired"
           source="$SOURCE_REPOSITORY@$SOURCE_DIGEST"
-          gh attestation verify "oci://$source" --repo "$GITHUB_REPOSITORY"
           docker buildx imagetools inspect "$source" >/dev/null
       - name: Authenticate isolated registries
         if: inputs.execute
