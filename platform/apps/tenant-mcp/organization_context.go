@@ -28,6 +28,39 @@ type organizationContext struct {
 	Active    bool   `json:"is_active"`
 }
 
+// requireActiveOrganization re-reads the identity authority immediately before
+// tenant-owned list data is returned. Organization selection and ordinary MCP
+// calls use separate HTTP requests, so a request authenticated concurrently
+// with a selection can carry the previous organization. Such a request must
+// fail closed rather than expose that organization's instances or bindings.
+func requireActiveOrganization(ctx context.Context, id identity) error {
+	if id.Service || id.Subject == "" || id.Token == "" || id.Tenant == "" || id.OrganizationRef != id.Tenant {
+		return errors.New("an authenticated active organization is required")
+	}
+	data, err := identityRPC(ctx, id, contextRPCURL("my_tenant_runtime_contexts"), map[string]any{})
+	if err != nil {
+		return err
+	}
+	var rows []organizationContext
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return errors.New("invalid organization context response")
+	}
+	active := ""
+	for _, row := range rows {
+		if !row.Active {
+			continue
+		}
+		if active != "" || !organizationRef.MatchString(row.TenantRef) {
+			return errors.New("identity authority returned an ambiguous active organization")
+		}
+		active = row.TenantRef
+	}
+	if active == "" || active != id.Tenant {
+		return errors.New("active organization changed; retry the request")
+	}
+	return nil
+}
+
 func identityRPC(ctx context.Context, id identity, endpoint string, body any) (result []byte, rpcErr error) {
 	phase := "identity.rpc"
 	for _, name := range []string{"credits_wallets", "my_tenant_runtime_contexts", "select_active_organization"} {
@@ -132,7 +165,12 @@ func (s *server) registerOrganizationContextTools(ms *mcp.Server) {
 			if err := json.Unmarshal(data, &result); err != nil {
 				return nil, nil, errors.New("invalid organization context response")
 			}
-			result["effectiveOn"] = "next_request"
+			selected := id
+			selected.Tenant, selected.OrganizationRef = input.TenantRef, input.TenantRef
+			if err := requireActiveOrganization(ctx, selected); err != nil {
+				return nil, nil, err
+			}
+			result["effectiveOn"] = "confirmed"
 			return nil, result, nil
 		})
 }

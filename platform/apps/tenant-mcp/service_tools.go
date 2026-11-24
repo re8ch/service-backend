@@ -226,6 +226,11 @@ func (s *server) registerServiceTools(ms *mcp.Server) {
 				if err != nil {
 					return nil, nil, err
 				}
+				if name == "service_instance_list" || name == "service_binding_list" {
+					if err := requireActiveOrganization(ctx, id); err != nil {
+						return nil, nil, err
+					}
+				}
 				value, err := s.callService(ctx, id, name, args)
 				return nil, value, err
 			})
