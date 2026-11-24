@@ -37,9 +37,9 @@ spec:
                   name: stalwart-webmail-session
                   key: session-secret
             - {name: OAUTH_ENABLED, value: "true"}
-            - {name: OAUTH_ONLY, value: "false"}
-            - {name: OAUTH_CLIENT_ID, value: stalwart-webui}
-            - {name: OAUTH_ISSUER_URL, value: https://auth.re8ch.com}
+            - {name: OAUTH_ONLY, value: "true"}
+            - {name: OAUTH_CLIENT_ID, value: 705c1168-43d8-4ec3-980a-0327a59c7fc6}
+            - {name: OAUTH_ISSUER_URL, value: https://db-rw.re8ch.com/auth/v1}
             - {name: APP_NAME, value: RE8CH Mail}
             - {name: APP_SHORT_NAME, value: Mail}
             - {name: LOGIN_COMPANY_NAME, value: RE8CH}

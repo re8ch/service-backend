@@ -57,9 +57,9 @@ tenant-mcp 保存的只是连接元数据。PKCE verifier、access token 和 ref
 | `COLLABORATION_AUTH_MODE=auth-hub-pkce` | 普通流程默认 User Hub PKCE |
 | `STALWART_URL=https://id.re8ch.com` | 安全校验、JMAP/DAV 响应和授权计划使用的逻辑公开 origin |
 | `STALWART_CONNECT_URL=http://stalwart.mail-system.svc.cluster.local:8080` | 仅用于实际出站连接；代码只接受 HTTP `.svc.cluster.local` origin |
-| `STALWART_CLIENT_ID=stalwart-webui` | Auth Hub 与 Stalwart 接受的 audience/client |
-| `STALWART_AUTHORIZATION_URL=https://auth.re8ch.com/authorize` | Authorization endpoint |
-| `STALWART_TOKEN_URL=https://auth.re8ch.com/token` | code exchange 与 refresh endpoint |
+| `STALWART_CLIENT_ID=705c1168-43d8-4ec3-980a-0327a59c7fc6` | 已存在的 RE8CH Mail 公共 PKCE 客户端 |
+| `STALWART_AUTHORIZATION_URL=https://db-rw.re8ch.com/auth/v1/oauth/authorize` | GoTrue Authorization endpoint；AuthUserHub 只负责用户界面 |
+| `STALWART_TOKEN_URL=https://db-rw.re8ch.com/auth/v1/oauth/token` | GoTrue code exchange 与 refresh endpoint |
 | `STALWART_REDIRECT_URI=https://tools.service.re8ch.com/collaboration/oauth/callback` | 预注册的固定回调 |
 
 逻辑 origin 和连接 origin 被刻意分开。JMAP session 返回的 `apiUrl`、DAV href 和
@@ -76,14 +76,10 @@ tenant-mcp 生成一次性随机 `state` 和 PKCE verifier，只发送 S256 chal
 
 ```text
 response_type=code
-client_id=stalwart-webui
+client_id=705c1168-43d8-4ec3-980a-0327a59c7fc6
 redirect_uri=https://tools.service.re8ch.com/collaboration/oauth/callback
 code_challenge_method=S256
 scope=openid profile email offline_access
-      urn:ietf:params:oauth:scope:mail
-      urn:ietf:params:oauth:scope:calendars
-      urn:ietf:params:oauth:scope:contacts
-      urn:ietf:params:oauth:scope:files
 ```
 
 产品侧权限仍分别是 `mail.read`、`calendar.read`、`calendar.respond`、
@@ -146,8 +142,8 @@ account token。最初无法区分 token 校验失败、JMAP endpoint 错误或�
 
 - Re8ch Auth 会话有效，用户为 `harry@re8ch.com`，无需开启本地密码；
 - Auth Hub authorization code 的签发、消费和 refresh 路径均返回成功；
-- Stalwart OIDC Directory issuer 为 `https://auth.re8ch.com`；
-- username claim 使用 `email`，accepted audience 包含 `stalwart-webui`；
+- Stalwart OIDC Directory issuer 必须为 `https://db-rw.re8ch.com/auth/v1`；
+- username claim 使用 `email`，accepted audience 为 `authenticated`；
 - Auth Hub access token 代码已携带 scope claim；
 - Stalwart 与 tenant-api 时钟一致；
 - JMAP、Calendar、Contacts、FileNode 能力在服务器内部 session 中存在；
@@ -250,7 +246,7 @@ Re8ch self-service，但会影响直接访问账户页面、公开 JMAP/DAV 客�
 access token 至少需要可验证的：
 
 - `iss`：精确 issuer；
-- `aud`：目标服务，例如 `stalwart-webui`，不得接受任意 audience；
+- `aud`：Supabase 用户令牌必须为 `authenticated`，不得接受任意 audience；
 - `sub`：稳定且不可因邮箱重命名而改变的用户标识；
 - `email` 及验证状态：仅用于当前 Stalwart directory 的 username 映射；
 - `iat`、`nbf`、`exp`；

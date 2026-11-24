@@ -105,8 +105,8 @@ credentialRef、授权范围、允许的集合、generation、到期与撤销状
 `files.read`。这些是 Re8ch 权限，不声称是 Stalwart OAuth 的原生 scope。
 Stalwart 的服务 scope 可能比只读更宽，适配器必须继续限制具体方法。
 
-普通用户默认使用 Auth Hub Authorization Code + PKCE。浏览器复用 User Hub
-登录会话，Auth Hub 为 `stalwart-webui` audience 签发令牌，回调只接受预注册
+普通用户默认使用 db-rw GoTrue Authorization Code + PKCE。浏览器复用 AuthUserHub
+登录会话，GoTrue 为 `authenticated` audience 签发令牌，回调只接受预注册
 URI、一次性随机 state 和 S256 verifier；provider access/refresh token 只进入
 Credential Broker。设备授权继续作为显式 `authorizationMode: device` 的兼容及
 机器人入口，不要求普通用户开启 Stalwart 本地密码。provider OAuth token 不得
