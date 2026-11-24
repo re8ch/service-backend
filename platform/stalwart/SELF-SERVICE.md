@@ -1,5 +1,8 @@
 # Stalwart 接入 Re8ch self-service
 
+Re8ch Org 基础服务、完整 CLI 能力分层和 Bifurcate meter 的目标契约见
+[`RE8CH-ORG-SERVICE-CONTRACT.md`](RE8CH-ORG-SERVICE-CONTRACT.md)。
+
 状态：动态工具、device 授权和 User Hub PKCE 已发布；邮件、日历、通讯录、
 Drive 读取及 refresh 已完成生产验收。`id.re8ch.com` 公网 Gateway 503 是独立的
 剩余故障。2026-10-31。完整排障与统一 OAuth 交接见
