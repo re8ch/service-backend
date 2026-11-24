@@ -525,6 +525,15 @@ def test_stalwart_mail_tls_is_issued_mounted_and_reloaded():
         "readOnly": True,
     }
 
+    webmail_resources = documents(ROOT / "platform/stalwart/webmail.yaml")
+    webmail = next(item for item in webmail_resources if item["kind"] == "Deployment")
+    webmail_spec = webmail["spec"]["template"]["spec"]
+    proxy = next(item for item in webmail_spec["containers"] if item["name"] == "tls-proxy")
+    assert proxy["ports"] == [{"name": "https", "containerPort": 8443}]
+    assert next(item for item in webmail_spec["volumes"] if item["name"] == "mail-tls")["secret"]["secretName"] == "stalwart-mail-re8ch-tls"
+    webmail_service = next(item for item in webmail_resources if item["kind"] == "Service")
+    assert {item["name"]: item["port"] for item in webmail_service["spec"]["ports"]} == {"http": 80, "https": 443}
+
     plan = next(
         item
         for item in documents(ROOT / "platform/stalwart/bootstrap-plan.yaml")

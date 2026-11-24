@@ -2631,6 +2631,29 @@ metadata:
 ---
 apiVersion: v1
 data:
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 8443 ssl;
+        server_name mail.re8ch.com;
+        ssl_certificate /var/run/stalwart-tls/tls.crt;
+        ssl_certificate_key /var/run/stalwart-tls/tls.key;
+        location / {
+          proxy_pass http://127.0.0.1:3000;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: stalwart-webmail-tls-proxy
+  namespace: mail-system
+---
+apiVersion: v1
+data:
   proxy.py: |
     import http.server
     import json
@@ -5905,6 +5928,9 @@ spec:
   - name: http
     port: 80
     targetPort: http
+  - name: https
+    port: 443
+    targetPort: https
   selector:
     app.kubernetes.io/name: stalwart-webmail
 ---
@@ -8667,6 +8693,47 @@ spec:
           name: data
         - mountPath: /tmp
           name: tmp
+      - image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          tcpSocket:
+            port: https
+        name: tls-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+        readinessProbe:
+          initialDelaySeconds: 3
+          periodSeconds: 10
+          tcpSocket:
+            port: https
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /etc/nginx/nginx.conf
+          name: tls-proxy-config
+          readOnly: true
+          subPath: nginx.conf
+        - mountPath: /var/run/stalwart-tls
+          name: mail-tls
+          readOnly: true
+        - mountPath: /var/cache/nginx
+          name: nginx-cache
+        - mountPath: /var/run
+          name: nginx-run
       nodeSelector:
         kubernetes.io/hostname: overseas-flk
       securityContext:
@@ -8690,6 +8757,16 @@ spec:
         name: data
       - emptyDir: {}
         name: tmp
+      - configMap:
+          name: stalwart-webmail-tls-proxy
+        name: tls-proxy-config
+      - name: mail-tls
+        secret:
+          secretName: stalwart-mail-re8ch-tls
+      - emptyDir: {}
+        name: nginx-cache
+      - emptyDir: {}
+        name: nginx-run
 ---
 apiVersion: apps/v1
 kind: Deployment
