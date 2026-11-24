@@ -15043,6 +15043,7 @@ metadata:
 spec:
   dnsNames:
   - mail.re8ch.com
+  - id.re8ch.com
   duration: 2160h
   issuerRef:
     kind: ClusterIssuer

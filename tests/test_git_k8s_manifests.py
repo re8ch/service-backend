@@ -497,7 +497,7 @@ def test_stalwart_mail_tls_is_issued_mounted_and_reloaded():
     tls_resources = documents(ROOT / "platform/stalwart/tls.yaml")
     certificate = next(item for item in tls_resources if item["kind"] == "Certificate")
     assert certificate["metadata"]["namespace"] == "mail-system"
-    assert certificate["spec"]["dnsNames"] == ["mail.re8ch.com"]
+    assert certificate["spec"]["dnsNames"] == ["mail.re8ch.com", "id.re8ch.com"]
     assert certificate["spec"]["issuerRef"] == {
         "kind": "ClusterIssuer",
         "name": "re8ch-cloudflare-dns01",

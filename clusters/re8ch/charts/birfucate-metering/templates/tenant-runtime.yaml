@@ -231,13 +231,12 @@ spec:
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: TENANT_USAGE_CLIENT, value: 'system:serviceaccount:{{ .Release.Namespace }}:{{ include "birfucate-metering.fullname" . }}'}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
-            # Use the existing public GoTrue PKCE client. The stalwart Service
-            # is backed by the Atlantic EndpointSlice projected by AmongCluster.
+            # Use the existing public GoTrue PKCE client and reach the
+            # Atlantic-owned Stalwart through its public HTTPS origin.
             - {name: COLLABORATION_AUTH_MODE, value: auth-hub-pkce}
             - {name: STALWART_CLIENT_ID, value: 705c1168-43d8-4ec3-980a-0327a59c7fc6}
             - {name: STALWART_AUTHORIZATION_URL, value: https://db-rw.re8ch.com/auth/v1/oauth/authorize}
             - {name: STALWART_TOKEN_URL, value: https://db-rw.re8ch.com/auth/v1/oauth/token}
-            - {name: STALWART_CONNECT_URL, value: http://stalwart.mail-system.svc.cluster.local:8080}
             {{- if .Values.tenantPlatform.provider.githubEnterpriseGovernance.enabled }}
             - {name: GITHUB_GOVERNANCE_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: app-id}}}
             - {name: GITHUB_GOVERNANCE_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: private-key}}}
