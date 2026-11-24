@@ -396,6 +396,19 @@ func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
 	if _, err := s.bindingRevoke(second, firstBinding); err == nil {
 		t.Fatal("second Personal owner revoked first owner's binding")
 	}
+	contexts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, err := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		if err != nil || r.URL.Path != "/rpc/my_tenant_runtime_contexts" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		owner := first
+		if claims.Subject == "user-2" {
+			owner = second
+		}
+		writeJSON(w, http.StatusOK, []organizationContext{{TenantRef: owner, Active: true}})
+	}))
+	defer contexts.Close()
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, err := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 		if err != nil {
@@ -425,6 +438,7 @@ func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
 	}))
 	defer control.Close()
 	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("IDENTITY_REST_URL", contexts.URL)
 	t.Setenv("TENANT_CONTROL_URL", control.URL)
 	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
 	for _, item := range []struct{ subject, own, other string }{{"user-1", "first-db", "second-db"}, {"user-2", "second-db", "first-db"}} {

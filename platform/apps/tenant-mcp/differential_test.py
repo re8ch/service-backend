@@ -76,7 +76,10 @@ class FixtureAPI(BaseHTTPRequestHandler):
             self.reply(404, {"error": "not_found"})
 
     def do_POST(self):
-        if self.path == "/v1/services/plan":
+        if self.path == "/rpc/my_tenant_runtime_contexts":
+            self.reply(200, [{"tenant_ref": "acme", "tenant_role": "operator", "tenant_kind": "enterprise",
+                              "display_name": "Acme", "parent_ref": "", "is_active": True}])
+        elif self.path == "/v1/services/plan":
             self.reply(200, {"operation": "plan", "accepted": True})
         elif self.path == "/v1/services":
             self.reply(201, {"metadata": {"name": "proposed"}, "status": {"phase": "Pending"}})
@@ -168,7 +171,7 @@ def main():
         fixture_thread.start()
         fixture_url = f"http://127.0.0.1:{fixture.server_port}"
         python_db, go_db = root / "python.db", root / "go.db"
-        common_env = {**os.environ, "RE8CH_TOOL_PROFILE": "tenant", "RE8CH_TOOL_AUDIENCE": "re8ch-tenant", "TENANT_CLAIM_SERVICE_TOKEN": "fixture-secret", "SUPABASE_USER_URL": fixture_url + "/user", "TENANT_CONTROL_URL": fixture_url, "AUTH_DISCOVERY_URL": fixture_url + "/.well-known/openid-configuration", "HARBOR_SUPPLY_CHAIN_URL": fixture_url, "SERVICE_API_TOKEN": "fixture-service-token", "INVOCATION_TOKEN_ISSUER_URL": fixture_url + "/v1/invocation-tokens", "INVOCATION_TOKEN_ISSUER": INVOCATION_ISSUER, "INVOCATION_TOKEN_JWKS_URL": fixture_url + "/.well-known/invocation-jwks.json"}
+        common_env = {**os.environ, "RE8CH_TOOL_PROFILE": "tenant", "RE8CH_TOOL_AUDIENCE": "re8ch-tenant", "TENANT_CLAIM_SERVICE_TOKEN": "fixture-secret", "SUPABASE_USER_URL": fixture_url + "/user", "IDENTITY_REST_URL": fixture_url, "TENANT_CONTROL_URL": fixture_url, "AUTH_DISCOVERY_URL": fixture_url + "/.well-known/openid-configuration", "HARBOR_SUPPLY_CHAIN_URL": fixture_url, "SERVICE_API_TOKEN": "fixture-service-token", "INVOCATION_TOKEN_ISSUER_URL": fixture_url + "/v1/invocation-tokens", "INVOCATION_TOKEN_ISSUER": INVOCATION_ISSUER, "INVOCATION_TOKEN_JWKS_URL": fixture_url + "/.well-known/invocation-jwks.json"}
         os.environ.update(common_env)
         os.environ["TENANT_SERVICE_DB"] = str(python_db)
         os.environ["DEVICE_REGISTRY_PATH"] = str(root / "python-devices.db")
