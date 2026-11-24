@@ -5071,6 +5071,17 @@ metadata:
   namespace: mail-system
 rules:
 - apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  resourceNames:
+  - stalwart-atlantic-management
+  - stalwart-idp-atlantic
+  - stalwart-webmail-atlantic
+  verbs:
+  - get
+  - patch
+- apiGroups:
   - gateway.networking.k8s.io
   resources:
   - httproutes
