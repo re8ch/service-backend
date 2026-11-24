@@ -49,6 +49,10 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     assert tenant_env["INVOCATION_TOKEN_ISSUER_URL"] == "http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens"
     assert tenant_env["INVOCATION_TOKEN_JWKS_URL"] == "http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json"
     assert tenant_env["INVOCATION_TOKEN_ISSUER"] == "https://tools.service.re8ch.com/invocation"
+    assert tenant_env["STALWART_CLIENT_ID"] == "705c1168-43d8-4ec3-980a-0327a59c7fc6"
+    assert tenant_env["STALWART_AUTHORIZATION_URL"] == "https://db-rw.re8ch.com/auth/v1/oauth/authorize"
+    assert tenant_env["STALWART_TOKEN_URL"] == "https://db-rw.re8ch.com/auth/v1/oauth/token"
+    assert "STALWART_CONNECT_URL" not in tenant_env
     invocation_credential = next(item for item in tenant["env"] if item["name"] == "TENANT_CLAIM_SERVICE_TOKEN")
     assert invocation_credential["valueFrom"]["secretKeyRef"] == {
         "name": "tenant-claim-internal-auth", "key": "TENANT_CLAIM_SERVICE_TOKEN", "optional": False,
