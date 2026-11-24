@@ -497,7 +497,7 @@ def test_stalwart_mail_tls_is_issued_mounted_and_reloaded():
     tls_resources = documents(ROOT / "platform/stalwart/tls.yaml")
     certificate = next(item for item in tls_resources if item["kind"] == "Certificate")
     assert certificate["metadata"]["namespace"] == "mail-system"
-    assert certificate["spec"]["dnsNames"] == ["mail.re8ch.com"]
+    assert certificate["spec"]["dnsNames"] == ["mail.re8ch.com", "id.re8ch.com"]
     assert certificate["spec"]["issuerRef"] == {
         "kind": "ClusterIssuer",
         "name": "re8ch-cloudflare-dns01",
@@ -554,7 +554,8 @@ def test_stalwart_idp_pilot_is_isolated_and_uses_asymmetric_oidc_signing():
         for item in resources
         if item["kind"] == "ConfigMap" and item["metadata"]["name"] == "stalwart-idp-bootstrap-plan-v6"
     )["data"]["plan.ndjson"]
-    assert '"issuerUrl":"https://auth.re8ch.com"' in plan
+    assert '"issuerUrl":"https://db-rw.re8ch.com/auth/v1"' in plan
+    assert '"requireAudience":"authenticated"' in plan
     assert '"claimGroups":"groups"' in plan
     assert '"anonymousClientRegistration":true' in plan
     assert '"signatureAlgorithm":"es256"' in plan
@@ -579,7 +580,8 @@ def test_stalwart_unified_identity_bootstraps_existing_mail_store():
     job = next(item for item in resources if item["kind"] == "Job")
     rows = [json.loads(line) for line in plan["data"]["plan.ndjson"].splitlines()]
     directory = next(row for row in rows if row["object"] == "Directory")
-    assert directory["value"]["re8ch-enterprise-sso"]["issuerUrl"] == "https://auth.re8ch.com"
+    assert directory["value"]["re8ch-enterprise-sso"]["issuerUrl"] == "https://db-rw.re8ch.com/auth/v1"
+    assert directory["value"]["re8ch-enterprise-sso"]["requireAudience"] == "authenticated"
     assert directory["value"]["re8ch-enterprise-sso"]["claimUsername"] == "email"
     assert next(row for row in rows if row["object"] == "Authentication")["value"]["directoryId"] == "#re8ch-enterprise-sso"
     assert next(row for row in rows if row["object"] == "OidcProvider")["value"]["signatureKey"]["filePath"] == "/var/run/stalwart-idp/signing-private.pem"
@@ -968,10 +970,10 @@ def test_stalwart_webmail_is_digest_pinned_stateless_and_public():
     assert pod["securityContext"]["runAsNonRoot"] is True
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
     assert env["JMAP_SERVER_URL"] == "https://id.re8ch.com"
-    assert env["OAUTH_ISSUER_URL"] == "https://auth.re8ch.com"
+    assert env["OAUTH_ISSUER_URL"] == "https://db-rw.re8ch.com/auth/v1"
     assert env["OAUTH_ENABLED"] == "true"
-    assert env["OAUTH_ONLY"] == "false"
-    assert env["OAUTH_CLIENT_ID"] == "stalwart-webui"
+    assert env["OAUTH_ONLY"] == "true"
+    assert env["OAUTH_CLIENT_ID"] == "705c1168-43d8-4ec3-980a-0327a59c7fc6"
     assert env["ALLOW_CUSTOM_JMAP_ENDPOINT"] == "false"
     assert env["SETTINGS_SYNC_ENABLED"] == "false"
     assert env["BULWARK_TELEMETRY"] == "off"

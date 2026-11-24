@@ -8,7 +8,7 @@ spec:
   issuerRef:
     kind: ClusterIssuer
     name: re8ch-cloudflare-dns01
-  dnsNames: [mail.re8ch.com]
+  dnsNames: [mail.re8ch.com, id.re8ch.com]
   duration: 2160h
   renewBefore: 360h
   privateKey:

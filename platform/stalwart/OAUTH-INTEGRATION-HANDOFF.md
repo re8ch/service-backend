@@ -1,7 +1,8 @@
 # Stalwart 与 Re8ch 统一 OAuth 接入交接
 
-状态：User Hub PKCE、refresh token 和 self-service 数据读取已于 2026-10-31
-完成生产验收；`id.re8ch.com` 公网 Gateway 仍有独立的 503 故障。本文用于交接
+状态：db-rw GoTrue PKCE、refresh token 和 self-service 数据读取已完成实现；
+`id.re8ch.com` 的 Atlantic PublicEdge 是 tenant 工具和直接客户端的统一数据入口。
+本文用于交接
 统一 OAuth 第三方接口，不替代 Stalwart 原生 OAuth、设备授权或 JMAP/DAV 能力。
 
 ## 1. 目标和不变边界
@@ -14,9 +15,9 @@ OAuth 是账户授权边界，不是第二套邮箱账户、组织或用户目�
 
 | 入口 | 职责 | 是否保留 |
 | --- | --- | --- |
-| `auth.re8ch.com` | User Hub 统一登录；Authorization Code + PKCE；第三方授权码、access token、refresh token 的签发和刷新 | 是，普通用户默认入口 |
+| `auth.re8ch.com` | AuthUserHub 用户界面；复用登录会话并引导 db-rw GoTrue 授权 | 是，普通用户界面入口 |
+| `db-rw.re8ch.com/auth/v1` | GoTrue Authorization Code + PKCE；授权码、access token、refresh token 的签发和刷新 | 是，OAuth issuer |
 | `id.re8ch.com` | Stalwart 的公开 JMAP、DAV、账户页面以及原生 OAuth/设备授权兼容入口 | 是，不得因 User Hub 接入而删除 |
-| `stalwart.mail-system.svc.cluster.local:8080` | tenant-mcp 到 Stalwart 的集群内数据通道 | 是，仅供受控运行时使用，不是公开 issuer 或 redirect URI |
 
 设备授权继续用于无浏览器 Agent、机器人和兼容场景。User Hub PKCE 是新增的统一
 入口，不是废弃 Stalwart 原生授权的迁移开关。直接 JMAP 应用密码、Webmail SSO
@@ -30,15 +31,14 @@ OAuth 是账户授权边界，不是第二套邮箱账户、组织或用户目�
    ▼
 Re8ch tenant-mcp / self-service
    │ 1. authorization redirect
-   ├──────────────────────────────► auth.re8ch.com
-   │                                  │ User Hub session
+   ├──────────────────────────────► db-rw.re8ch.com/auth/v1
+   │                                  │ AuthUserHub session
    │ 2. code + PKCE                    │ signed OAuth tokens
    ◄───────────────────────────────────┘
    │
-   │ 3. Bearer token；逻辑 origin 仍为 https://id.re8ch.com
-   │    实际连接使用 STALWART_CONNECT_URL
+   │ 3. Bearer token；HTTPS 公网数据入口
    ▼
-stalwart.mail-system.svc.cluster.local:8080
+id.re8ch.com（Atlantic PublicEdge）
    │
    ├── JMAP Mail / Calendar / Contacts / FileNode
    └── DAV file collections
@@ -56,10 +56,10 @@ tenant-mcp 保存的只是连接元数据。PKCE verifier、access token 和 ref
 | `COLLABORATION_ENABLED=true` | 发布协作连接和数据工具 |
 | `COLLABORATION_AUTH_MODE=auth-hub-pkce` | 普通流程默认 User Hub PKCE |
 | `STALWART_URL=https://id.re8ch.com` | 安全校验、JMAP/DAV 响应和授权计划使用的逻辑公开 origin |
-| `STALWART_CONNECT_URL=http://stalwart.mail-system.svc.cluster.local:8080` | 仅用于实际出站连接；代码只接受 HTTP `.svc.cluster.local` origin |
-| `STALWART_CLIENT_ID=stalwart-webui` | Auth Hub 与 Stalwart 接受的 audience/client |
-| `STALWART_AUTHORIZATION_URL=https://auth.re8ch.com/authorize` | Authorization endpoint |
-| `STALWART_TOKEN_URL=https://auth.re8ch.com/token` | code exchange 与 refresh endpoint |
+| `STALWART_CONNECT_URL` 未设置 | 实际出站连接使用 `STALWART_URL=https://id.re8ch.com`；Stalwart 由 Atlantic PublicEdge 对外发布，不依赖 AmongCluster 服务投影 |
+| `STALWART_CLIENT_ID=705c1168-43d8-4ec3-980a-0327a59c7fc6` | 已存在的 RE8CH Mail 公共 PKCE 客户端 |
+| `STALWART_AUTHORIZATION_URL=https://db-rw.re8ch.com/auth/v1/oauth/authorize` | GoTrue Authorization endpoint；AuthUserHub 只负责用户界面 |
+| `STALWART_TOKEN_URL=https://db-rw.re8ch.com/auth/v1/oauth/token` | GoTrue code exchange 与 refresh endpoint |
 | `STALWART_REDIRECT_URI=https://tools.service.re8ch.com/collaboration/oauth/callback` | 预注册的固定回调 |
 
 逻辑 origin 和连接 origin 被刻意分开。JMAP session 返回的 `apiUrl`、DAV href 和
@@ -76,14 +76,10 @@ tenant-mcp 生成一次性随机 `state` 和 PKCE verifier，只发送 S256 chal
 
 ```text
 response_type=code
-client_id=stalwart-webui
+client_id=705c1168-43d8-4ec3-980a-0327a59c7fc6
 redirect_uri=https://tools.service.re8ch.com/collaboration/oauth/callback
 code_challenge_method=S256
 scope=openid profile email offline_access
-      urn:ietf:params:oauth:scope:mail
-      urn:ietf:params:oauth:scope:calendars
-      urn:ietf:params:oauth:scope:contacts
-      urn:ietf:params:oauth:scope:files
 ```
 
 产品侧权限仍分别是 `mail.read`、`calendar.read`、`calendar.respond`、
@@ -146,8 +142,8 @@ account token。最初无法区分 token 校验失败、JMAP endpoint 错误或�
 
 - Re8ch Auth 会话有效，用户为 `harry@re8ch.com`，无需开启本地密码；
 - Auth Hub authorization code 的签发、消费和 refresh 路径均返回成功；
-- Stalwart OIDC Directory issuer 为 `https://auth.re8ch.com`；
-- username claim 使用 `email`，accepted audience 包含 `stalwart-webui`；
+- Stalwart OIDC Directory issuer 必须为 `https://db-rw.re8ch.com/auth/v1`；
+- username claim 使用 `email`，accepted audience 为 `authenticated`；
 - Auth Hub access token 代码已携带 scope claim；
 - Stalwart 与 tenant-api 时钟一致；
 - JMAP、Calendar、Contacts、FileNode 能力在服务器内部 session 中存在；
@@ -167,17 +163,15 @@ session。因此 OAuth token 本身不是主因，故障点是公开 Gateway 到
 `https://mail.re8ch.com` 虽能完成 OAuth，但 JMAP session 仍返回
 `https://id.re8ch.com`，触发同源校验。这两条都不是正确长期方案。
 
-最终方案是新增独立 `STALWART_CONNECT_URL`：保留 `id.re8ch.com` 为协议和产品
-origin，只把 tenant-mcp 的网络连接定向到内部 Service。service-backend PR #2578
-实现，镜像 PR #2579 发布；observability-gitops PR #60 固化 Helm values、schema、
-locked renders 和实际 Deployment 环境变量。
+PR #2578 曾以 `STALWART_CONNECT_URL` 绕过损坏的公网入口。Atlantic 独立
+PublicEdge 恢复后，tenant-mcp 不再注入这个覆盖值，协议 origin 和实际连接均使用
+`https://id.re8ch.com`。AmongCluster 可发布受限服务能力，但不是该数据路径的依赖。
 
 ### 5.4 仍未解决的独立问题
 
-截至 2026-10-31，`id.re8ch.com` 的公开 JMAP 路径仍返回 503。它不再阻塞
-Re8ch self-service，但会影响直接访问账户页面、公开 JMAP/DAV 客户端以及需要该
-入口的原生 OAuth 流程。应按 Cilium Gateway/跨节点 backend 故障单独修复，不能
-把内部连接绕行写成“下线 id.re8ch.com”。恢复后需重新验证：
+若 `id.re8ch.com` 的公开 JMAP 路径不可用，它会同时阻塞 Re8ch self-service、
+直接账户页面、JMAP/DAV 客户端和原生 OAuth 流程。应修复 Atlantic PublicEdge，
+不能用跨集群内部连接掩盖故障。恢复后需重新验证：
 
 - `/` 到 `/account` 的跳转；
 - `/.well-known/jmap`、`/jmap/session`；
@@ -250,7 +244,7 @@ Re8ch self-service，但会影响直接访问账户页面、公开 JMAP/DAV 客�
 access token 至少需要可验证的：
 
 - `iss`：精确 issuer；
-- `aud`：目标服务，例如 `stalwart-webui`，不得接受任意 audience；
+- `aud`：Supabase 用户令牌必须为 `authenticated`，不得接受任意 audience；
 - `sub`：稳定且不可因邮箱重命名而改变的用户标识；
 - `email` 及验证状态：仅用于当前 Stalwart directory 的 username 映射；
 - `iat`、`nbf`、`exp`；

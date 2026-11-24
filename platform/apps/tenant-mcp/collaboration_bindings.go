@@ -89,10 +89,10 @@ func collaborationHTTPSURL(name, fallback string, allowPath bool) (string, error
 	return u.String(), nil
 }
 func collaborationAuthorizationURL() (string, error) {
-	return collaborationHTTPSURL("STALWART_AUTHORIZATION_URL", "https://auth.re8ch.com/authorize", true)
+	return collaborationHTTPSURL("STALWART_AUTHORIZATION_URL", "https://db-rw.re8ch.com/auth/v1/oauth/authorize", true)
 }
 func collaborationTokenURL() (string, error) {
-	return collaborationHTTPSURL("STALWART_TOKEN_URL", "https://auth.re8ch.com/token", true)
+	return collaborationHTTPSURL("STALWART_TOKEN_URL", "https://db-rw.re8ch.com/auth/v1/oauth/token", true)
 }
 func collaborationRedirectURL() (string, error) {
 	return collaborationHTTPSURL("STALWART_REDIRECT_URI", "https://tools.service.re8ch.com/collaboration/oauth/callback", true)
@@ -452,7 +452,7 @@ func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, sco
 		}
 		return old.public(), nil
 	}
-	selected, providerScope, _ := collaborationScopes(scopes)
+	selected, _, _ := collaborationScopes(scopes)
 	encoded, _ := json.Marshal(selected)
 	clientID := strings.TrimSpace(os.Getenv("STALWART_CLIENT_ID"))
 	if clientID == "" {
@@ -485,7 +485,10 @@ func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, sco
 	query.Set("response_type", "code")
 	query.Set("client_id", clientID)
 	query.Set("redirect_uri", redirectURI)
-	query.Set("scope", "openid profile email offline_access "+providerScope)
+	// GoTrue authenticates the user. The selected JMAP permissions remain an
+	// internal RE8CH grant and are enforced when the connection is consumed;
+	// they are not GoTrue OAuth scopes.
+	query.Set("scope", "openid profile email offline_access")
 	query.Set("state", state)
 	query.Set("code_challenge", base64.RawURLEncoding.EncodeToString(challenge[:]))
 	query.Set("code_challenge_method", "S256")

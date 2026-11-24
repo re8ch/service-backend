@@ -2259,7 +2259,7 @@ metadata:
 apiVersion: v1
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true,"profile":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH User Hub","issuerUrl":"https://db-rw.re8ch.com/auth/v1","requireAudience":"authenticated","requireScopes":{"openid":true,"email":true,"profile":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
     {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":900000,"idTokenExpiry":900000,"refreshTokenExpiry":28800000,"refreshTokenRenewal":3600000}}
     {"@type":"upsert","object":"OAuthClient","matchOn":["clientId"],"value":{"kubectl-pilot":{"clientId":"kubectl-stalwart-pilot","description":"Kubernetes RBAC Stalwart pilot","redirectUris":{"http://127.0.0.1:8000":true,"http://localhost:8000":true}}}}
@@ -2613,7 +2613,7 @@ metadata:
 apiVersion: v1
 data:
   plan.ndjson: |
-    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH Enterprise SSO broker","issuerUrl":"https://auth.re8ch.com","requireAudience":"stalwart-webui","requireScopes":{"openid":true,"email":true,"profile":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
+    {"@type":"upsert","object":"Directory","matchOn":["description"],"value":{"re8ch-enterprise-sso":{"@type":"Oidc","description":"RE8CH User Hub","issuerUrl":"https://db-rw.re8ch.com/auth/v1","requireAudience":"authenticated","requireScopes":{"openid":true,"email":true,"profile":true},"claimUsername":"email","claimName":"name","claimGroups":"groups"}}}
     {"@type":"update","object":"Authentication","value":{"directoryId":"#re8ch-enterprise-sso"}}
     {"@type":"update","object":"Http","value":{"usePermissiveCors":true,"clientIpSource":"xForwardedFor","forwardedHops":1}}
     {"@type":"update","object":"OidcProvider","value":{"anonymousClientRegistration":true,"requireClientRegistration":true,"signatureAlgorithm":"es256","signatureKey":{"@type":"File","filePath":"/var/run/stalwart-idp/signing-private.pem"},"encryptionKey":{"@type":"File","filePath":"/var/run/stalwart-idp/encryption-key"},"accessTokenExpiry":900000,"idTokenExpiry":900000,"refreshTokenExpiry":28800000,"refreshTokenRenewal":3600000}}
@@ -4545,6 +4545,37 @@ data:
 kind: ConfigMap
 metadata:
   name: supabase-oauth-clients-headlamp-v2
+  namespace: supabase-identity
+---
+apiVersion: v1
+data:
+  clients.sql: |
+    begin;
+    insert into auth.oauth_clients (
+      id, client_secret_hash, registration_type, client_type,
+      token_endpoint_auth_method, redirect_uris, grant_types,
+      client_name, client_uri
+    ) values (
+      '705c1168-43d8-4ec3-980a-0327a59c7fc6', '', 'manual', 'public',
+      'none',
+      'https://mail.re8ch.com/auth/callback,https://mail.re8ch.com/ar/auth/callback,https://mail.re8ch.com/ca/auth/callback,https://mail.re8ch.com/cs/auth/callback,https://mail.re8ch.com/da/auth/callback,https://mail.re8ch.com/de/auth/callback,https://mail.re8ch.com/en/auth/callback,https://mail.re8ch.com/es/auth/callback,https://mail.re8ch.com/fa/auth/callback,https://mail.re8ch.com/fr/auth/callback,https://mail.re8ch.com/he/auth/callback,https://mail.re8ch.com/hu/auth/callback,https://mail.re8ch.com/it/auth/callback,https://mail.re8ch.com/ja/auth/callback,https://mail.re8ch.com/ko/auth/callback,https://mail.re8ch.com/lv/auth/callback,https://mail.re8ch.com/mn/auth/callback,https://mail.re8ch.com/nb/auth/callback,https://mail.re8ch.com/nl/auth/callback,https://mail.re8ch.com/pl/auth/callback,https://mail.re8ch.com/pt/auth/callback,https://mail.re8ch.com/ro/auth/callback,https://mail.re8ch.com/ru/auth/callback,https://mail.re8ch.com/sk/auth/callback,https://mail.re8ch.com/tr/auth/callback,https://mail.re8ch.com/uk/auth/callback,https://mail.re8ch.com/zh/auth/callback,https://mail.re8ch.com/zh-TW/auth/callback,https://tools.service.re8ch.com/collaboration/oauth/callback',
+      'authorization_code,refresh_token', 'RE8CH Mail',
+      'https://mail.re8ch.com'
+    ) on conflict (id) do update set
+      client_secret_hash = excluded.client_secret_hash,
+      registration_type = excluded.registration_type,
+      client_type = excluded.client_type,
+      token_endpoint_auth_method = excluded.token_endpoint_auth_method,
+      redirect_uris = excluded.redirect_uris,
+      grant_types = excluded.grant_types,
+      client_name = excluded.client_name,
+      client_uri = excluded.client_uri,
+      deleted_at = null,
+      updated_at = now();
+    commit;
+kind: ConfigMap
+metadata:
+  name: supabase-oauth-clients-stalwart-v1
   namespace: supabase-identity
 ---
 apiVersion: v1
@@ -8580,11 +8611,11 @@ spec:
         - name: OAUTH_ENABLED
           value: "true"
         - name: OAUTH_ONLY
-          value: "false"
+          value: "true"
         - name: OAUTH_CLIENT_ID
-          value: stalwart-webui
+          value: 705c1168-43d8-4ec3-980a-0327a59c7fc6
         - name: OAUTH_ISSUER_URL
-          value: https://auth.re8ch.com
+          value: https://db-rw.re8ch.com/auth/v1
         - name: APP_NAME
           value: RE8CH Mail
         - name: APP_SHORT_NAME
@@ -14580,6 +14611,60 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
+  name: supabase-oauth-clients-stalwart-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - psql -X -v ON_ERROR_STOP=1 "$GOTRUE_DB_DATABASE_URL" -f /sql/clients.sql
+        command:
+        - /bin/sh
+        - -ceu
+        env:
+        - name: GOTRUE_DB_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: GOTRUE_DB_DATABASE_URL
+              name: supabase-identity-secrets
+        image: postgres:16.9-alpine
+        name: register
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /sql
+          name: sql
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      restartPolicy: Never
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: pg-re8ch
+      volumes:
+      - configMap:
+          name: supabase-oauth-clients-stalwart-v1
+        name: sql
+  ttlSecondsAfterFinished: 604800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
   name: supabase-platform-admin-api-v5
   namespace: supabase-identity
 spec:
@@ -14958,6 +15043,7 @@ metadata:
 spec:
   dnsNames:
   - mail.re8ch.com
+  - id.re8ch.com
   duration: 2160h
   issuerRef:
     kind: ClusterIssuer
