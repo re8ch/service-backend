@@ -64,15 +64,12 @@ func collaborationOrigin() (string, error) {
 	return u.String(), nil
 }
 func collaborationConnectOrigin(fallback string) (string, error) {
-	raw := strings.TrimRight(strings.TrimSpace(os.Getenv("STALWART_CONNECT_URL")), "/")
-	if raw == "" {
-		return fallback, nil
-	}
-	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "http" || !strings.HasSuffix(u.Hostname(), ".svc.cluster.local") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" {
-		return "", errors.New("reviewed internal Stalwart connect origin is required")
-	}
-	return u.String(), nil
+	// Stalwart is owned by the Atlantic cluster. Both tenant and platform
+	// callers deliberately use its PublicEdge origin so the main-cluster
+	// runtime cannot acquire a hidden dependency on cross-cluster DNS or an
+	// AmongCluster service projection. STALWART_CONNECT_URL is a retired
+	// compatibility variable and must never override the reviewed origin.
+	return fallback, nil
 }
 func collaborationHTTPSURL(name, fallback string, allowPath bool) (string, error) {
 	raw := strings.TrimSpace(os.Getenv(name))
