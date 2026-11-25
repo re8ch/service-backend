@@ -78,7 +78,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 class Client:
     def __init__(self, endpoint, token, *, opener=None):
         parsed = urllib.parse.urlsplit(endpoint)
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("", "/"):
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+                or parsed.query or parsed.fragment or parsed.path not in ("", "/")):
             raise OperationError("STALWART_CONFIGURATION_INVALID", "A fixed HTTPS provider origin is required")
         if not token or len(token) > 16384 or any(c.isspace() for c in token):
             raise OperationError("STALWART_CREDENTIAL_UNAVAILABLE", "Dedicated management credential is unavailable")
@@ -149,7 +150,11 @@ class Client:
             raise OperationError("STALWART_RESPONSE_INVALID", "Management API URL missing")
         parsed = urllib.parse.urlsplit(api_url)
         origin = urllib.parse.urlsplit(self.endpoint)
-        if parsed.scheme != origin.scheme or parsed.netloc != origin.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in ("/jmap", "/jmap/"):
+        reviewed_public_edge = (self.endpoint == "https://stalwart-admin.service.re8ch.com"
+                                and api_url == "https://id.re8ch.com/jmap/")
+        same_origin = parsed.scheme == origin.scheme and parsed.netloc == origin.netloc
+        if ((not same_origin and not reviewed_public_edge) or parsed.username or parsed.password
+                or parsed.query or parsed.fragment or parsed.path not in ("/jmap", "/jmap/")):
             raise OperationError("STALWART_ENDPOINT_REJECTED", "Management API URL is outside the reviewed origin/path")
         self.api_url = api_url
 

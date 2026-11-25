@@ -1489,6 +1489,7 @@ rules:
   resourceNames:
   - cloud-cluster-bindings
   - ssa-state-main-tenant-runtime-ai-operations
+  - stalwart-admin-runtime
   verbs:
   - get
   - patch

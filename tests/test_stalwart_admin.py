@@ -206,6 +206,20 @@ def test_native_client_uses_scoped_properties_and_same_origin():
     assert transport.calls[1].headers["Authorization"] == "Bearer test-only"
 
 
+def test_reviewed_public_edge_accepts_only_its_canonical_jmap_origin():
+    session = {"capabilities": {admin.CAPABILITY: {}}, "apiUrl": "https://id.re8ch.com/jmap/"}
+    transport = Transport([session, {"methodResponses": [["x:Account/query", {"ids": []}, "admin"]]}])
+    client = admin.Client("https://stalwart-admin.service.re8ch.com", "test-only", opener=transport)
+    assert client.method("Account", "query", {"limit": 1}) == {"ids": []}
+
+    for api_url in ["http://id.re8ch.com/jmap/", "https://evil.test/jmap/",
+                    "https://id.re8ch.com/admin", "https://id.re8ch.com/jmap/?token=x"]:
+        transport = Transport([{"capabilities": {admin.CAPABILITY: {}}, "apiUrl": api_url}])
+        with pytest.raises(OperationError) as failure:
+            admin.Client("https://stalwart-admin.service.re8ch.com", "test-only", opener=transport).discover()
+        assert failure.value.code == "STALWART_ENDPOINT_REJECTED"
+
+
 def test_v1_management_capability_is_accepted_on_authenticated_primary_account():
     transport = Transport([
         {"capabilities": {"urn:ietf:params:jmap:core": {}},
