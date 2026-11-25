@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: atoll-pearl
+codename: canopy-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:458f85a4e46b1b992fca64e831c9bdb2b17af75db6bf944e63039fe802d9f779
+  digest: sha256:fff8628130bef7eb8cfede83ad26350bec80c719c69e4bd2271314c7930851b4
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
