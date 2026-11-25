@@ -666,6 +666,23 @@ spec:
           value: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth
         - name: HYPERSWITCH_PROFILE_ID
           value: pro_DrrIuD3GsS8AlvOkJCvo
+        - name: PAYPAL_BASE_URL
+          value: https://api-m.sandbox.paypal.com
+        - name: PAYPAL_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: PAYPAL_CLIENT_ID
+              name: payment-registry-secrets
+        - name: PAYPAL_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: PAYPAL_CLIENT_SECRET
+              name: payment-registry-secrets
+        - name: PAYPAL_WEBHOOK_ID
+          valueFrom:
+            secretKeyRef:
+              key: PAYPAL_WEBHOOK_ID
+              name: payment-registry-secrets
         - name: PAYMENT_POSTGREST_RW_BASE_URL
           value: http://payment-postgrest.payments.svc.cluster.local:3000
         - name: PAYMENT_POSTGREST_RO_BASE_URL
@@ -717,7 +734,7 @@ spec:
         envFrom:
         - secretRef:
             name: payment-registry-secrets
-        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:f0ad980d4d4408cc321b7f921cd91a726832b627a5cd2b141d7b1e6bdc98458c
+        image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:f9feb85ac15f6722a89cc0520c377036f7c748db4a49c3ec09c427fe46ae7df8
         livenessProbe:
           httpGet:
             path: /v1/healthz

@@ -36,3 +36,26 @@ def test_retired_payment_database_routes_are_not_declared():
 
     assert "re8ch-payment-registry-db-ro" not in routes
     assert "re8ch-payment-registry-db-rw" not in routes
+
+
+def test_payment_registry_uses_signed_paypal_sandbox_release():
+    root = Path(__file__).parents[1]
+    deployments = {
+        item["metadata"]["name"]: item
+        for item in yaml.safe_load_all(
+            (root / "clusters/re8ch/components/payments/credits-runtime.yaml").read_text()
+        )
+        if item and item.get("kind") == "Deployment"
+    }
+    container = deployments["nuclio-payment-registry-api"]["spec"]["template"]["spec"]["containers"][0]
+    assert container["image"] == (
+        "registry.re8ch.com/hyperswitch/processor-payment-registry-api@"
+        "sha256:f9feb85ac15f6722a89cc0520c377036f7c748db4a49c3ec09c427fe46ae7df8"
+    )
+    env = {entry["name"]: entry for entry in container["env"]}
+    assert env["PAYPAL_BASE_URL"]["value"] == "https://api-m.sandbox.paypal.com"
+    for key in ("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_WEBHOOK_ID"):
+        assert env[key]["valueFrom"]["secretKeyRef"] == {
+            "name": "payment-registry-secrets",
+            "key": key,
+        }
