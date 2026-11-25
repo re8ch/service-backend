@@ -26,7 +26,7 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: runtime
-          image: ghcr.io/re8ch/service-backend-cloud-platform@sha256:c56a9a0e4a04a6d48f5fa24e538330578af5719bbf2bb2ac495a618dc1fd3f0f
+          image: ghcr.io/re8ch/service-backend-cloud-platform@sha256:6c4c68b9fe38eb46f1c3c00dd231212d1f124af8581ffc0aa7c1835e0d7f1cc7
           ports: [{name: mcp, containerPort: 19443}]
           env:
             - {name: SENTRY_DSN, value: "https://2b6b17d602c68bbb6789de55c05afa1a@o4509349085577216.ingest.us.sentry.io/4509349088985088"}
