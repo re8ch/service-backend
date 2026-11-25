@@ -623,6 +623,8 @@ modules:
       digest: sha256:c62e79365404f2f08ad41b76166756475cf7f0c6020bf9652d6c312bba9be789
     - codename: tundra-jade
       digest: sha256:01b8ef3685bdd96afc63ec0d86e9bde296280e4a5b64aab53b589a76b161d405
+    - codename: wetland-jade
+      digest: sha256:df0fced86f410506fb2cf7459ea300bf327bffdf1c030bf5c07c928a6bee4dba
   platform/advanced-fabric:
     releases:
     - codename: bora

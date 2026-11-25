@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: tundra-jade
+    delivery.re8ch.com/codename: wetland-jade
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:01b8ef3685bdd96afc63ec0d86e9bde296280e4a5b64aab53b589a76b161d405
+    digest: sha256:df0fced86f410506fb2cf7459ea300bf327bffdf1c030bf5c07c928a6bee4dba
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: tundra-jade
+    delivery.re8ch.com/codename: wetland-jade
 spec:
   interval: 1m
   retryInterval: 1m
