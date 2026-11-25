@@ -212,7 +212,7 @@ class StalwartAdmin:
         plan = {"@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
                 "value": {"tenant-user": {"@type": "User", "name": local, "domainId": domain["id"],
                 "description": description, "roles": {"@type": "User"}, "permissions": {"@type": "Inherit"},
-                "quotas": {"disk": quota_bytes}, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
+                "quotas/maxDiskQuota": quota_bytes, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
         self.run("apply", "--stdin", "--json", stdin=json.dumps(plan) + "\n")
         matches = [item for item in self.rows("Account", "id,name,domainId,roles")
                    if item.get("name") == local and item.get("domainId") == domain["id"]]

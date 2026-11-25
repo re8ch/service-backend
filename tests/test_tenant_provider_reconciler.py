@@ -229,6 +229,28 @@ def test_stalwart_cli_uses_memory_backed_state_on_read_only_root(monkeypatch):
     assert captured["XDG_CACHE_HOME"] == "/dev/shm"
 
 
+def test_stalwart_account_upsert_uses_native_disk_quota_path(monkeypatch):
+    client = provider.StalwartAdmin("recovery", "password", cli="stalwart-cli")
+    queries = iter([
+        [{"id": "domain-1", "name": "acme.example"}],
+        [],
+        [{"id": "account-1", "name": "admin", "domainId": "domain-1", "roles": {"@type": "User"}}],
+    ])
+    plans = []
+    monkeypatch.setattr(client, "rows", lambda *_args: next(queries))
+
+    def run(*args, stdin=None):
+        if args[0] == "apply":
+            plans.append(json.loads(stdin))
+        return ""
+
+    monkeypatch.setattr(client, "run", run)
+    assert client.ensure_oidc_user("admin@acme.example", "member", 5 * 1024 ** 3) == "account-1"
+    value = plans[0]["value"]["tenant-user"]
+    assert value["quotas/maxDiskQuota"] == 5 * 1024 ** 3
+    assert "quotas" not in value
+
+
 def test_cubesandbox_reconcile_requires_live_endpoints_and_returns_capability(monkeypatch):
     class CubeKube(FakeKube):
         def get(self, plural, name, namespace=None, api=None):
