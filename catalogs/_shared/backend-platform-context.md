@@ -19,17 +19,31 @@ repository 为准；集群、工作区锁定版本、工具与部署关系以本
 
 ## 多集群声明与访问边界
 
+唯一权威契约是
+[`operations/network/docs/multicluster-federation-contract.md`](../../operations/network/docs/multicluster-federation-contract.md)。
+任何设计和故障记录都必须明确是集群控制 federation、PublicEdge 公共服务
+federation、AmongCluster 私有服务 federation，还是应用 federation；不得用未限定的
+“federation”混合不同层次的成功信号。
+
 - `re8ch` 主集群和 `re8ch-atlantic` 等子集群是独立 Kubernetes 权威。每个集群
   分别拥有 API 入口、CA、OIDC audience、GitHub Environment、RBAC、SSA 状态和
   故障域；ReleaseContract 的 `target.cluster` 必须选择对应执行 profile。
 - 主集群 Cloud SSA 优先使用多入口 `kube-api.service.re8ch.com`；
   `kube-api.re8ch.com` 仅作临时回退。Atlantic 使用自己的 API 入口，不经主集群
-  API，也不把主集群入口当成跨集群代理。
+  API，也不把主集群入口当成跨集群代理。Atlantic 的规范入口是
+  `kube-api.atlantic.service.re8ch.com`；后续集群遵循
+  `kube-api.<cluster>.service.re8ch.com`。
 - AmongCluster 只交换有界的服务身份、端点、健康、容量与路径事实。它不分发
   Kubernetes 对象、kubeconfig、Secret 或集群管理员权限，也不替目标集群执行 SSA。
 - 应用部署在实际承载它的目标集群。跨集群消费优先走服务的 PublicEdge 域名；
   只有服务契约明确要求时才使用 AmongCluster 的有界私网路径。内部调用同样默认
   使用 PublicEdge，以减少对集群内部拓扑的耦合。
+- 跨集群应用拆分必须使用应用自己拥有的版本化 API、事件、复制或数据契约；共享
+  数据库、文件系统、集群 DNS 和未声明的身份状态不是 federation。认证发现、授权、
+  token、账号映射和服务端接纳必须与网络通路分别验收。
+- `Grant Active` 只表示控制器接受了授权意图，绝不表示目标集群、RBAC 投影、SPIFFE
+  会话、服务流或应用可用。必须从真实消费者身份验证正确集群、精确权限、实际通路
+  和端到端功能；禁止用扩大 RBAC、通配 grant 或错误集群入口补偿网络/会话故障。
 - GitHub PR、签名制品和 bounded Cloud SSA 是正式写入路径。Kubernetes 是运行态
   权威；本地 Flux writer 已退役，保留的 Flux 声明仅作历史或迁移输入。
 - 网络控制面参考 advanced-fabric、AmongCluster、PublicEdge 与 mihomos-cluster；

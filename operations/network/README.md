@@ -19,11 +19,11 @@ repository.
 
 ## PublicEdge and cross-cluster architecture
 
-Start with the current
-[`PublicEdge and AmongCluster handoff`](docs/publicedge-amongcluster-handoff-2026-11-22.md).
-It defines the deployment, service-sharing and control-plane boundaries. The
-filename is retained to avoid breaking existing links; historical incident
-status was removed from the document.
+The single normative source is the
+[`multi-cluster federation contract`](docs/multicluster-federation-contract.md).
+It separates cluster control, PublicEdge, AmongCluster private service exchange
+and application federation, and defines mandatory end-to-end acceptance. Do not
+restate or weaken that contract in a component runbook.
 
 ## Cilium and Gateway authority
 

@@ -1,5 +1,10 @@
 # Retired Flux federation operating model
 
+Here `federation` is only the historical repository/controller ownership model.
+It is not cluster-control or service federation. Current multi-cluster rules are
+defined exclusively by the
+[`multi-cluster federation contract`](../network/docs/multicluster-federation-contract.md).
+
 The four autonomous domain controller stacks are retired. GitHub Actions uses
 bounded executor identities and server-side apply as the only delivery path for
 Agent, Identity, Observability and Network. The cluster root intentionally does

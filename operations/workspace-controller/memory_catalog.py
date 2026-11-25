@@ -49,11 +49,16 @@ def recovery_context(module) -> list[str]:
         "Treat `re8ch` and `re8ch-atlantic` as independent Kubernetes authorities.",
         "A ReleaseContract targets one cluster-specific API, CA, OIDC audience, GitHub Environment,",
         "RBAC identity and SSA state; AmongCluster never proxies Kubernetes writes.",
-        "The main cluster prefers `kube-api.service.re8ch.com`; Atlantic uses its own API transport.",
-        "Share bounded service identity, endpoint, health and path facts through AmongCluster, and",
-        "prefer PublicEdge service names for external and internal consumers.",
+        "The main cluster uses `kube-api.service.re8ch.com`; Atlantic uses",
+        "`kube-api.atlantic.service.re8ch.com`. PublicEdge is the default service path for external",
+        "and internal consumers. AmongCluster is only a reviewed, SPIFFE-bound private service path.",
+        "Application federation requires an explicit versioned API, event, replication or data contract.",
+        "`Grant Active` is authorization intent, not health: verify exact target/RBAC, peer/session or",
+        "PublicEdge transport, and a functional probe from the real consumer identity before acceptance.",
+        "Never widen RBAC or grants to compensate for endpoint, transport or session failure.",
         "Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor",
         "is the only runtime writer after signed PR and CI review.",
+        "Normative contract: `operations/network/docs/multicluster-federation-contract.md`.",
         "",
     ]
 
@@ -112,6 +117,13 @@ def render(module, document: dict, checkout: Path | None, root: Path) -> str:
     purpose = synopsis(readme) if readme else ""
     if module.name == "service-backend":
         purpose = "Read the root README and contracts/network-topology/README.md. Production topology is available only through authenticated context."
+    if module.name == "among-clusters":
+        purpose = (
+            "AmongClusters provides reviewed private service federation between autonomous clusters. "
+            "Its bounded SPIFFE service identities, export/import contracts, health and paths do not "
+            "convey Kubernetes control-plane authority. Follow the service-backend multi-cluster "
+            "federation contract and inspect the locked product source for implementation details."
+        )
     if module.catalog == "platform" and re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", purpose):
         purpose = module.name.replace("-", " ").title() + " module. Infrastructure details are available through contracts/network-topology/README.md; inspect the authenticated runtime context rather than a copied repository synopsis."
     if module.catalog == "platform":
