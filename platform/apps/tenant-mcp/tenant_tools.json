@@ -1354,12 +1354,20 @@
     "name": "tenant_namespace_delete"
   },
   {
-    "description": "Read a non-secret Kubernetes object. Ordinary tenants are limited to allowlisted kinds in their Ready namespaces; the verified Admin Meta tenant uses this same interface for any API resource across the directly connected cluster. Secret values are never returned.",
+    "description": "Read native Kubernetes status without a separate platform state machine. Read the workload for status.conditions, select its Pods or ReplicaSets with labelSelector, and query Events with fieldSelector (for example involvedObject.name=web) to see progress and failures. Ordinary tenants remain limited to non-secret allowlisted kinds in their Ready namespaces; the verified Admin Meta tenant may read any API resource on the directly connected cluster.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
         "kind": {
           "type": "string"
+        },
+        "labelSelector": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "fieldSelector": {
+          "type": "string",
+          "maxLength": 1024
         },
         "name": {
           "type": "string"
