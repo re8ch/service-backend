@@ -42,7 +42,8 @@ def postgres(tmp_path):
 @pytest.fixture
 def oauth_db(postgres):
     postgres(f"""
-        create role supabase_admin superuser; create role service_role;
+        create role supabase_admin superuser; create role supabase_auth_admin;
+        create role service_role;
         create role authenticated; create role anon;
         create schema auth; create schema core; create schema api;
         create table auth.users (id uuid primary key, deleted_at timestamptz);
@@ -51,6 +52,8 @@ def oauth_db(postgres):
           registration_type text, client_type text, token_endpoint_auth_method text,
           redirect_uris text, grant_types text, client_name text, client_uri text,
           deleted_at timestamptz, updated_at timestamptz default now());
+        alter table auth.users owner to supabase_auth_admin;
+        alter table auth.oauth_clients owner to supabase_auth_admin;
         create table core.organizations (tenant_ref text primary key, status text);
         create table core.organization_members (
           tenant_ref text, user_id uuid, status text, role text,
@@ -66,6 +69,10 @@ def oauth_db(postgres):
           ('acme','{BOB}','active','member'),
           ('personal-{ALICE}','{ALICE}','active','owner');
         insert into core.user_active_organizations values ('{ALICE}','acme'),('{BOB}','acme');
+        grant usage on schema auth to supabase_auth_admin;
+        grant usage, create on schema core, api to supabase_auth_admin;
+        grant select on auth.users, core.organizations, core.organization_members,
+          core.user_active_organizations to supabase_auth_admin;
     """)
     config_map, job = list(yaml.safe_load_all(MANIFEST.read_text()))
     postgres(config_map["data"]["migration.sql"])
@@ -133,3 +140,4 @@ def test_manifest_mount_and_privilege_contract(oauth_db):
     assert sql("select relrowsecurity from pg_class where oid='core.oauth_applications'::regclass") == "t"
     assert sql("select has_function_privilege('authenticated','api.create_oauth_application(text,jsonb,text,text,text)','execute')") == "t"
     assert sql("select has_function_privilege('anon','api.create_oauth_application(text,jsonb,text,text,text)','execute')") == "f"
+    assert sql("select pg_get_userbyid(proowner) from pg_proc where oid='api.create_oauth_application(text,jsonb,text,text,text)'::regprocedure") == "supabase_auth_admin"

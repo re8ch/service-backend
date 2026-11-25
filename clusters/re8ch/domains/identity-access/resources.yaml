@@ -4118,9 +4118,9 @@ data:
       primary key (application_id, operation_key)
     );
 
-    alter table core.oauth_applications owner to supabase_admin;
-    alter table core.oauth_application_redirect_uris owner to supabase_admin;
-    alter table core.oauth_application_secret_rotations owner to supabase_admin;
+    alter table core.oauth_applications owner to supabase_auth_admin;
+    alter table core.oauth_application_redirect_uris owner to supabase_auth_admin;
+    alter table core.oauth_application_secret_rotations owner to supabase_auth_admin;
     alter table core.oauth_applications enable row level security;
     alter table core.oauth_application_redirect_uris enable row level security;
     alter table core.oauth_application_secret_rotations enable row level security;
@@ -4166,7 +4166,7 @@ data:
              or value ~ '[*]'
         )
     $$;
-    alter function core.oauth_redirect_uris_valid(jsonb) owner to supabase_admin;
+    alter function core.oauth_redirect_uris_valid(jsonb) owner to supabase_auth_admin;
     revoke all on function core.oauth_redirect_uris_valid(jsonb) from public, anon, authenticated, service_role;
 
     create or replace function core.active_oauth_org(p_user uuid)
@@ -4181,7 +4181,7 @@ data:
       where a.user_id = p_user and m.status = 'active' and o.status = 'active'
         and u.deleted_at is null and m.role in ('owner', 'admin', 'member')
     $$;
-    alter function core.active_oauth_org(uuid) owner to supabase_admin;
+    alter function core.active_oauth_org(uuid) owner to supabase_auth_admin;
     revoke all on function core.active_oauth_org(uuid) from public, anon, authenticated, service_role;
 
     create or replace function core.can_manage_oauth_application(
@@ -4201,7 +4201,7 @@ data:
             or (m.role = 'member' and app.created_by_user_id = p_user))
       )
     $$;
-    alter function core.can_manage_oauth_application(uuid, uuid) owner to supabase_admin;
+    alter function core.can_manage_oauth_application(uuid, uuid) owner to supabase_auth_admin;
     revoke all on function core.can_manage_oauth_application(uuid, uuid) from public, anon, authenticated, service_role;
 
     create or replace function api.create_oauth_application(
@@ -4356,10 +4356,10 @@ data:
         'idempotentReplay', false, 'clientSecretIssued', true, 'clientSecret', v_secret);
     end $$;
 
-    alter function api.create_oauth_application(text,jsonb,text,text,text) owner to supabase_admin;
-    alter function api.my_oauth_applications() owner to supabase_admin;
-    alter function api.set_oauth_application_lifecycle(uuid,text) owner to supabase_admin;
-    alter function api.rotate_oauth_application_secret(uuid,text) owner to supabase_admin;
+    alter function api.create_oauth_application(text,jsonb,text,text,text) owner to supabase_auth_admin;
+    alter function api.my_oauth_applications() owner to supabase_auth_admin;
+    alter function api.set_oauth_application_lifecycle(uuid,text) owner to supabase_auth_admin;
+    alter function api.rotate_oauth_application_secret(uuid,text) owner to supabase_auth_admin;
     revoke all on function api.create_oauth_application(text,jsonb,text,text,text) from public, anon, service_role;
     revoke all on function api.my_oauth_applications() from public, anon, service_role;
     revoke all on function api.set_oauth_application_lifecycle(uuid,text) from public, anon, service_role;

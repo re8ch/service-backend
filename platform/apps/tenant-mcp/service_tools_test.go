@@ -50,7 +50,14 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 		{"consumableRef": "observability.grafana.v1", "lifecycle": "Suspended"},
 		{"consumableRef": "database.postgresql.shared.v1", "lifecycle": "Active"},
 	})
-	if len(granted) != 2 || asString(granted[0], "serviceClass") != "database.postgresql.shared.v1" || asString(granted[1], "serviceClass") != "registry.harbor.v1" {
+	classes := map[string]bool{}
+	for _, item := range granted {
+		classes[asString(item, "serviceClass")] = true
+	}
+	if !classes["integration.oauth.application.v1"] || !classes["integration.mcp.managed.v1"] {
+		t.Fatal("self-registered OAuth and managed MCP classes must not require a pre-issued consumable grant")
+	}
+	if len(granted) != 4 || !classes["database.postgresql.shared.v1"] || !classes["registry.harbor.v1"] || classes["observability.grafana.v1"] {
 		t.Fatalf("catalog ignored tenant grants or provider backing: %v", granted)
 	}
 }

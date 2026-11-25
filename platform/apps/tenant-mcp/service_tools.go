@@ -22,6 +22,11 @@ var providerBacked = map[string]bool{
 	"sandbox.runtime.v1": true,
 }
 
+var grantIndependentServices = map[string]bool{
+	"integration.oauth.application.v1": true,
+	"integration.mcp.managed.v1":       true,
+}
+
 func liveServiceOnly(services []map[string]any, tenant string) []map[string]any {
 	filtered := []map[string]any{}
 	for _, service := range services {
@@ -44,7 +49,8 @@ func activeGrantedServices(services []map[string]any, grants []map[string]any) [
 	}
 	filtered := []map[string]any{}
 	for _, service := range services {
-		if active[asString(service, "serviceClass")] {
+		serviceClass := asString(service, "serviceClass")
+		if active[serviceClass] || grantIndependentServices[serviceClass] {
 			filtered = append(filtered, service)
 		}
 	}
@@ -311,8 +317,10 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 	case "service_instance_plan", "service_instance_create":
 		spec := object(args["spec"])
 		serviceClass := asString(spec, "serviceClass")
-		if err := requireGrantedConsumable(ctx, id, serviceClass); err != nil {
-			return nil, err
+		if !grantIndependentServices[serviceClass] {
+			if err := requireGrantedConsumable(ctx, id, serviceClass); err != nil {
+				return nil, err
+			}
 		}
 		if providerBacked[serviceClass] {
 			if err := requireOperator(id); err != nil {

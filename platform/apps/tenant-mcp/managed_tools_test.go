@@ -55,7 +55,13 @@ func TestManagedToolCompatibilityProjectionUsesAuthenticatedActiveOrg(t *testing
 	}
 	catalog := catalogValue.(map[string]any)
 	services := catalog["services"].([]map[string]any)
-	if catalog["tenantRef"] != tenant || len(services) != 1 || services[0]["serviceClass"] != managedMCPServiceClass || services[0]["name"] != "observer" {
+	var observer map[string]any
+	for _, service := range services {
+		if service["name"] == "observer" {
+			observer = service
+		}
+	}
+	if catalog["tenantRef"] != tenant || len(services) != 3 || observer == nil || observer["serviceClass"] != managedMCPServiceClass {
 		t.Fatalf("managed catalog projection is wrong: %#v", catalog)
 	}
 
