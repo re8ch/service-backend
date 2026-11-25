@@ -20,7 +20,10 @@ Admin 身份、恢复管理员或平台 Secret 暴露给租户。
 一个 ServiceInstance 表示一个 Stalwart 账户及其邮件、日历、通讯录、文件和配额。
 创建流程动态执行，不要求为每个账户修改 GitOps：
 
-1. Re8ch Org active member 调用 `service_instance_plan`。
+1. Re8ch Org active member 调用 `service_instance_plan`。创建本人账户时省略
+   `identityUserRef`，tenant-mcp 必须用已验证会话的稳定 subject 绑定本人，客户端不得
+   查询、复制或猜测身份 UUID；Org operator 为其他 active member 创建时才显式提供
+   `identityUserRef`。
 2. 计划解析账户地址策略、现有账户冲突、配额、保留期、计量影响和授权状态。
 3. 使用稳定 idempotency key 创建实例；provider controller 调用受限管理适配器创建账户。
 4. 用户通过 User Hub SSO 建立个人 `collaboration_connection`。

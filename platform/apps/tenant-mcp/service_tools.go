@@ -210,6 +210,34 @@ func requireOperator(id identity) error {
 	return nil
 }
 
+// Stalwart's default member workflow provisions the mailbox for the verified
+// caller. Keep the subject server-owned so self-service clients do not need to
+// discover, copy, or guess an identity UUID. Organization operators may still
+// provide an explicit identityUserRef when provisioning another active member.
+func bindStalwartSelfIdentity(id identity, spec map[string]any) (map[string]any, error) {
+	if asString(spec, "serviceClass") != "collaboration.stalwart.v1" {
+		return spec, nil
+	}
+	parameters := object(spec["parameters"])
+	if asString(parameters, "identityUserRef") != "" {
+		return spec, nil
+	}
+	if id.Subject == "" || id.Service {
+		return nil, errors.New("an authenticated organization member is required for Stalwart self-service")
+	}
+	boundParameters := make(map[string]any, len(parameters)+1)
+	for key, value := range parameters {
+		boundParameters[key] = value
+	}
+	boundParameters["identityUserRef"] = id.Subject
+	boundSpec := make(map[string]any, len(spec))
+	for key, value := range spec {
+		boundSpec[key] = value
+	}
+	boundSpec["parameters"] = boundParameters
+	return boundSpec, nil
+}
+
 func (s *server) registerServiceTools(ms *mcp.Server) {
 	definitions, err := legacyDefinitions()
 	if err != nil {
@@ -290,6 +318,11 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			if err := requireOperator(id); err != nil {
 				return nil, err
 			}
+			boundSpec, bindErr := bindStalwartSelfIdentity(id, spec)
+			if bindErr != nil {
+				return nil, bindErr
+			}
+			spec = boundSpec
 			payload := map[string]any{"name": args["name"], "spec": spec}
 			path := "/v1/services/plan"
 			if name == "service_instance_create" {

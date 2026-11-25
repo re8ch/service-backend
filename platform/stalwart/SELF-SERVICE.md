@@ -76,6 +76,9 @@ Drive 读取及 refresh 已完成生产验收。`id.re8ch.com` 公网 Gateway 50
 复用 `service_catalog_list`、`service_instance_plan/create/get` 和
 `service_binding_*` 的状态机；公开 self-service 只增加协作所需的受限入口，
 不能因此暴露内部所有服务或管理员工具。
+本人账户的 plan/create 省略 `identityUserRef`；tenant-mcp 从已验证会话绑定当前
+subject。只有 Org operator 为其他 active member 创建账户时才显式传入该成员的
+`identityUserRef`，普通 self-service 客户端不应发现或猜测用户 UUID。
 
 建议一个协作服务实例，共用一个 Stalwart 账户和配额，三个独立授权面。
 避免分别申请邮件、日历、文件时重复创建三个身份。拟定服务类为
