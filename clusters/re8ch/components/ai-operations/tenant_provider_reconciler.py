@@ -184,7 +184,10 @@ class StalwartAdmin:
             raise RuntimeError("Stalwart recovery credential is unavailable")
         self.cli = cli
         self.env = {**os.environ, "STALWART_USER": username, "STALWART_PASSWORD": password,
-                    "STALWART_URL": os.getenv("STALWART_URL", "https://stalwart-admin.service.re8ch.com")}
+                    "STALWART_URL": os.getenv("STALWART_URL", "https://stalwart-admin.service.re8ch.com"),
+                    # The reconciler has a read-only root filesystem. Keep the CLI's
+                    # transient config and cache in the pod's memory-backed /dev/shm.
+                    "HOME": "/dev/shm", "XDG_CONFIG_HOME": "/dev/shm", "XDG_CACHE_HOME": "/dev/shm"}
 
     def run(self, *args: str, stdin: str | None = None) -> str:
         result = subprocess.run([self.cli, *args], input=stdin, text=True, capture_output=True,
