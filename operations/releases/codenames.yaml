@@ -627,6 +627,8 @@ modules:
       digest: sha256:df0fced86f410506fb2cf7459ea300bf327bffdf1c030bf5c07c928a6bee4dba
     - codename: atoll-pearl
       digest: sha256:458f85a4e46b1b992fca64e831c9bdb2b17af75db6bf944e63039fe802d9f779
+    - codename: canopy-pearl
+      digest: sha256:fff8628130bef7eb8cfede83ad26350bec80c719c69e4bd2271314c7930851b4
   platform/advanced-fabric:
     releases:
     - codename: bora
