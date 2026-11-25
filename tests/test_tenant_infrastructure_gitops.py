@@ -15,6 +15,36 @@ def documents(path):
     return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if item]
 
 
+def test_stalwart_provider_can_read_only_the_existing_recovery_credential():
+    docs = documents(ROOT / "platform/stalwart/mailbox-provisioner.yaml")
+    binding = next(
+        item for item in docs
+        if item["kind"] == "RoleBinding"
+        and item["metadata"]["name"] == "tenant-provider-stalwart-recovery-read"
+    )
+    assert binding["roleRef"] == {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "tenant-provider-stalwart-recovery-read",
+    }
+    assert binding["subjects"] == [{
+        "kind": "ServiceAccount",
+        "name": "tenant-provider-reconciler",
+        "namespace": "tenant-infrastructure",
+    }]
+    role = next(
+        item for item in docs
+        if item["kind"] == "Role"
+        and item["metadata"]["name"] == "tenant-provider-stalwart-recovery-read"
+    )
+    assert role["rules"] == [{
+        "apiGroups": [""],
+        "resources": ["secrets"],
+        "resourceNames": ["stalwart-recovery-admin"],
+        "verbs": ["get"],
+    }]
+
+
 def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False, postgresql_provider_enabled=False, extra_values=None):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
