@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -48,6 +52,61 @@ func TestServiceCatalogOnlyAdvertisesLiveProvisioners(t *testing.T) {
 	})
 	if len(granted) != 2 || asString(granted[0], "serviceClass") != "database.postgresql.shared.v1" || asString(granted[1], "serviceClass") != "registry.harbor.v1" {
 		t.Fatalf("catalog ignored tenant grants or provider backing: %v", granted)
+	}
+}
+
+func TestStalwartSelfServiceBindsVerifiedCallerIdentity(t *testing.T) {
+	const subject = "11111111-1111-4111-8111-111111111111"
+	var planned map[string]any
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/capabilities":
+			writeJSON(w, http.StatusOK, map[string]any{"tenantRef": "re8ch", "grants": []any{map[string]any{
+				"consumableRef": "collaboration.stalwart.v1", "roleRef": "operator", "lifecycle": "Active",
+			}}})
+		case "/v1/services/plan":
+			if err := json.NewDecoder(r.Body).Decode(&planned); err != nil {
+				t.Fatal(err)
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"decision": "preview"})
+		default:
+			t.Fatalf("unexpected control path: %s", r.URL.Path)
+		}
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+
+	inputSpec := map[string]any{
+		"serviceClass": "collaboration.stalwart.v1", "planRef": "member",
+		"parameters": map[string]any{"storageGiB": float64(5), "retentionClass": "standard"},
+	}
+	_, err := (&server{}).callService(context.Background(), identity{
+		Tenant: "re8ch", Subject: subject, Role: "operator",
+	}, "service_instance_plan", map[string]any{"name": "my-collaboration", "spec": inputSpec})
+	if err != nil {
+		t.Fatal(err)
+	}
+	parameters := object(object(planned["spec"])["parameters"])
+	if parameters["identityUserRef"] != subject {
+		t.Fatalf("verified caller was not bound to the Stalwart plan: %v", planned)
+	}
+	if _, leaked := object(inputSpec["parameters"])["identityUserRef"]; leaked {
+		t.Fatal("caller input was mutated while binding the verified identity")
+	}
+}
+
+func TestStalwartOperatorExplicitMemberIdentityIsPreserved(t *testing.T) {
+	explicit := "22222222-2222-4222-8222-222222222222"
+	spec, err := bindStalwartSelfIdentity(identity{Subject: "11111111-1111-4111-8111-111111111111"}, map[string]any{
+		"serviceClass": "collaboration.stalwart.v1",
+		"parameters":   map[string]any{"identityUserRef": explicit},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if object(spec["parameters"])["identityUserRef"] != explicit {
+		t.Fatal("explicit organization member identity was replaced")
 	}
 }
 
