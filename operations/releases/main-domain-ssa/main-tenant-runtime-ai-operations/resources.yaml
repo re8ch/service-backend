@@ -75,7 +75,7 @@ spec:
             secretKeyRef:
               key: token
               name: cluster-infra-service-auth
-        image: ghcr.io/re8ch/service-backend-cloud-platform@sha256:c56a9a0e4a04a6d48f5fa24e538330578af5719bbf2bb2ac495a618dc1fd3f0f
+        image: ghcr.io/re8ch/service-backend-cloud-platform@sha256:6c4c68b9fe38eb46f1c3c00dd231212d1f124af8581ffc0aa7c1835e0d7f1cc7
         livenessProbe:
           httpGet:
             path: /healthz
