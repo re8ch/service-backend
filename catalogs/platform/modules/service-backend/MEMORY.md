@@ -17,19 +17,7 @@
 
 Read the repository-root AGENTS.md first when present, then README and declared knowledge. For every `github-pr` module, start changes in a task-specific Git worktree based on the authoritative GitHub default branch; never develop in the default checkout. Preserve dirty checkouts before cleanup and remove clean task worktrees after merge or intentional closure. The `/Volumes/A1/service-backend` checkout is a physically read-only `github/main` anchor; only a clean fast-forward sync may temporarily unlock it. Use the module write policy; collaboration/read-only modules must not be pushed as owned code. Never copy credentials into patches, logs, MEMORY, or Git.
 
-Local Flux writers are permanently retired and forbidden across the platform
-and all federated GitOps repositories. Never create, restore, scale, restart,
-repair, proxy or authorize Flux Source, Kustomize, Helm, Notification, image
-automation, compatibility or domain controllers. Never use Flux reconciliation
-as a fallback. Retained Flux CRDs, custom resources and manifests are historical
-or migration inputs only. GitHub webhooks/Actions select reviewed immutable
-artifacts and the bounded cloud SSA executor is the sole runtime writer.
-
-The current `Re8ch` plugin is the single tenant self-service entry. Discover `tenant_self_service_capabilities`, use the specific published operation, and verify its real result. Check the active organization before provider-backed work. Tenant Kubernetes tools are restricted to allowlisted kinds and Ready namespaces owned by that organization. Older Cloud Platform connections are not tenant self-service prerequisites or health checks. `platform_tool_call` is not supported or enabled, and raw `kubectl.exec`-style execution is not a tenant-service prerequisite. A legacy capability description is not authorization.
-
-ConnecTool v0.6.9 is live behind the unchanged public MCP URL and OAuth contract. It routes from the OAuth-authoritative `tenantRef`, merges tenant-core tools with tenant-visible independent providers, and preserves MCP content negotiation plus protocol, method and session metadata. Successful installed-plugin calls have verified organization context, self-service capabilities and the service catalog for the `admin` tenant.
-
-The tenant-core contract comprises `tenant_claim_*`, `service_instance_*`, `service_binding_*`, write-only Secret materialization, and Catalog/Bifurcate discovery and metering. Binding results are opaque references and must not return credential material. The authenticated Admin catalog currently proves only GitHub Enterprise Governance. PostgreSQL (`database.postgresql.shared.v1`), Registry (`registry.oci.harbor.v1`) and Observability (`observability.stack.v1`) remain pending independent-provider rollout; PostgreSQL currently reports `unverified`. Do not mark one live until catalog registration, health, tenant isolation, instance lifecycle, opaque binding and UsageEvent acceptance succeed through the installed plugin. GitHub checks, a published image or a Ready Pod alone are insufficient runtime evidence.
+The current `Re8ch` plugin is the single tenant self-service entry. Discover `tenant_self_service_capabilities`, use the specific published operation, and verify its real result. Check the active organization before provider-backed work. Tenant Kubernetes tools are restricted to allowlisted kinds and Ready namespaces owned by that organization. Older Cloud Platform connections and the retired generic platform catalog/call bridge are not tenant self-service prerequisites or health checks. Use only an explicitly published administrator tool for an authorized platform task. For Pigsty schema changes, discover the current authorized plan/apply operation, keep credentials inside the cluster, follow GitOps review, and retain migration evidence.
 
 Re8ch Admin GitHub governance is an Admin-only singleton service capability, not a separate plugin tool. For GitHub Rulesets, Actions Variables, and allowlisted organization settings, use `service://admin/github-enterprise-governance` through `service_instance_update` only after confirming the authenticated `admin` tenant and role, Active `integration.github.enterprise-governance.v1` grant, Ready instance, and the current catalog `operationContract`. Supported resources are `repository_ruleset`, `organization_ruleset`, `repository_variable`, `organization_variable`, and `organization`. Reads execute directly; create, update, and delete require preview, the exact returned `planHash`, `apply: true`, and an effective-state readback. The provider keeps its GitHub App private key and short-lived installation tokens opaque. Never infer Secrets, arbitrary API, bypass, or cross-organization authority from this capability. See the root README and `platform/apps/tenant-mcp/README.md` for the exact contract and acceptance baseline.
 
@@ -37,31 +25,24 @@ Re8ch Admin GitHub governance is an Admin-only singleton service capability, not
 
 - Catalog index: catalogs/platform/knowledge/resources.yaml
 - Catalog overview: Platform Cluster desired state, operations tooling, networking, storage and developer tooling.
-- Shared backend context: RE8CH 后台与集群上下文 本文件是所有 workspace catalog 模块共享的后台背景入口。产品源码仍以各自 GitHub repository 为准；集群、工作区锁定版本、工具与部署关系以本 service-backend 控制面仓库为准。 权威边界 - catalogs/<catalog>/catalog.yaml：项目组身份、所有权与知识入口。 - catalogs/<catalog>/modules/<module>/module.yaml：GitHub repo、默认分支、模块类型、 本机/R640 路径、工具、依赖和部署目标。 - catalogs/<catalog>/modules/<module>/MEMORY.md：注入隔离工作区的 Agent 背景； 它是生成文件，不替代产品 repository 根目录的 AGENTS.md。 - workspace/workspace.lock.yaml：R640 物化任务工作区必须使用的锁定 commit。 - indexes/*.json：跨 catalog 的项目、知识、工具与部署反向索引。 - inventory/：节点和基础设施清单；不得把清单地址当成凭据或直接写入目标。 - plugins/：PluginDefinition 与平台工具发布声明。 - operations/：workspace controller、Cloud Platform 等后台控制面实现与 runbook。 集群声明在哪里 - 集群 desired state 的主要产品仓库是 catalogs/platform/modules/cloud-functions/module.yaml 指向的 re8ch/cloud-functions，其中 manifests/k3s/ 按认证、网络、存储、可观测性、 AI operations、区域路由等域组织。 - GitOps、workspace catalog、锁定 revision、基础设施 inventory 和工具发布声明由 catalogs/platform/modules/service-backend/module.yaml 指向的本仓库维护。
+- Shared backend context: RE8CH 后台与集群上下文 本文件是所有 workspace catalog 模块共享的后台背景入口。产品源码仍以各自 GitHub repository 为准；集群、工作区锁定版本、工具与部署关系以本 service-backend 控制面仓库为准。 权威边界 - catalogs/<catalog>/catalog.yaml：项目组身份、所有权与知识入口。 - catalogs/<catalog>/modules/<module>/module.yaml：GitHub repo、默认分支、模块类型、 本机/R640 路径、工具、依赖和部署目标。 - catalogs/<catalog>/modules/<module>/MEMORY.md：注入隔离工作区的 Agent 背景； 它是生成文件，不替代产品 repository 根目录的 AGENTS.md。 - workspace/workspace.lock.yaml：R640 物化任务工作区必须使用的锁定 commit。 - indexes/*.json：跨 catalog 的项目、知识、工具与部署反向索引。 - inventory/：节点和基础设施清单；不得把清单地址当成凭据或直接写入目标。 - plugins/：PluginDefinition 与平台工具发布声明。 - operations/：workspace controller、Cloud Platform 等后台控制面实现与 runbook。 多集群声明与访问边界 - `re8ch` 主集群和 `re8ch-atlantic` 等子集群是独立 Kubernetes 权威。每个集群 分别拥有 API 入口、CA、OIDC audience、GitHub Environment、RBAC、SSA 状态和 故障域；ReleaseContract 的 `target.cluster` 必须选择对应执行 profile。 - 主集群 Cloud SSA 优先使用多入口 `kube-api.service.re8ch.com`； `kube-api.re8ch.com` 仅作临时回退。Atlantic 使用自己的 API 入口，不经主集群
 
 ## Repository synopsis
 
-The repository root README is the platform overview and must be read before
-changing cluster desired state.
-
-## Restricted infrastructure context
-
-The versioned topology is restricted. Read `contracts/network-topology/README.md`
-for the authenticated runtime API and protected member/App diagnostic workflow.
-The public inventory path is an immutable reference, not executable node data.
-Do not infer endpoint, route, failover or storage behavior from an old MEMORY.
+Read the root README and contracts/network-topology/README.md. Production topology is available only through authenticated context.
 
 Existing repository AGENTS: `no`
 
-## Admin/BYOC recovery context
+## Multi-cluster delivery context
 
-Read `operations/releases/toolchain-runtime-verification.md` in the service-backend repository.
-Dated verified outcomes and open acceptance: https://github.com/re8ch/service-backend/issues/3002.
-Revalidate the runtime; CI, release completion, Connected Accounts and SDK capture IDs alone
-do not prove recovery. Verify self and Atlantic with the same authorized Admin session.
-Use existing GitHub Actions/bounded cloud SSA delivery; local Flux writers are retired.
-AMD repair is deferred until core read/write, SSA and AF observation/convergence pass.
-Preserve organization boundaries; never restore authority-health scheduling or reuse the invalid PublicEdge bundle.
+Treat `re8ch` and `re8ch-atlantic` as independent Kubernetes authorities.
+A ReleaseContract targets one cluster-specific API, CA, OIDC audience, GitHub Environment,
+RBAC identity and SSA state; AmongCluster never proxies Kubernetes writes.
+The main cluster prefers `kube-api.service.re8ch.com`; Atlantic uses its own API transport.
+Share bounded service identity, endpoint, health and path facts through AmongCluster, and
+prefer PublicEdge service names for external and internal consumers.
+Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor
+is the only runtime writer after signed PR and CI review.
 
 ## R640 public network authority
 
