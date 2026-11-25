@@ -356,6 +356,7 @@ spec:
             - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
             - {name: IDENTITY_SERVICE_KEY, valueFrom: {secretKeyRef: {name: tenant-provider-identity, key: service-role-key}}}
             - {name: GRAFANA_DATABASE_BINDINGS_JSON, value: {{ .Values.tenantPlatform.provider.databaseBindings | toJson | quote }}}
+            - {name: STALWART_URL, value: "https://stalwart-admin.service.re8ch.com"}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           volumeMounts:

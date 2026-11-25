@@ -121,6 +121,7 @@ def test_provider_worker_requires_explicit_signed_image_rollout():
     container = worker["spec"]["template"]["spec"]["containers"][0]
     assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64
     assert container["env"][1]["valueFrom"]["secretKeyRef"] == {"name": "tenant-provider-identity", "key": "service-role-key"}
+    assert {item["name"]: item.get("value") for item in container["env"]}["STALWART_URL"] == "https://stalwart-admin.service.re8ch.com"
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.provider.enabled=true"], capture_output=True, text=True)
     assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
