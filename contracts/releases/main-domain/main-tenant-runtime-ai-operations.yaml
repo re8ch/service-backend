@@ -34,12 +34,11 @@ spec:
     - re8ch-cloud-platform
     - re8ch-cloud-platform-admin
     - re8ch-ssh-broker
-    - stalwart-admin-runtime
     allowClusterScoped: false
     forceConflictObjects:
     - apps/Deployment/ai-operations/re8ch-cloud-platform
   inventory:
-    digest: sha256:c2f7d687c903e5076cf8a593ab5c24d1bd2d307004c8bc4712f65ff60823f95b
+    digest: sha256:63c03e9a5d56f8841033f6dcc6a5155404106ff2ac9226984f01eb4371ccf7b4
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -53,7 +52,6 @@ spec:
     - apps/Deployment/ai-operations/re8ch-cloud-platform
     - apps/Deployment/ai-operations/re8ch-ssh-broker
     - core/ConfigMap/ai-operations/cloud-cluster-bindings
-    - core/ConfigMap/ai-operations/stalwart-admin-runtime
     - core/Service/ai-operations/re8ch-cloud-platform
     - core/Service/ai-operations/re8ch-ssh-broker
     - core/ServiceAccount/ai-operations/re8ch-cloud-platform

@@ -1,9 +1,3 @@
-apiVersion: v1
-kind: ConfigMap
-metadata: {name: stalwart-admin-runtime, namespace: ai-operations}
-data:
-  origin: https://stalwart-admin.service.re8ch.com
----
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
@@ -45,11 +39,9 @@ spec:
             - {name: WORKSPACE_ROOT, value: /srv/service-backend}
             - {name: HYPOTHESIS_STORAGE_DIRECTORY, value: /tmp/hypothesis}
             - {name: OAUTH_AUDIENCE, value: re8ch-cloud-platform-tool}
-            # Optional until platform-authorized provisioning completes. Missing
-            # origin/token/plans keeps the bounded management adapter closed.
-            - name: STALWART_ADMIN_ORIGIN
-              valueFrom:
-                configMapKeyRef: {name: stalwart-admin-runtime, key: origin, optional: true}
+            # The non-secret PublicEdge origin is rollout-reviewed with this
+            # existing Deployment. Missing token/plans keeps the adapter closed.
+            - {name: STALWART_ADMIN_ORIGIN, value: "https://stalwart-admin.service.re8ch.com"}
             - {name: STALWART_ADMIN_TOKEN_FILE, value: /etc/stalwart-admin/credential/token}
             - {name: STALWART_APPROVED_PLANS_DIR, value: /etc/stalwart-admin/approved-plans}
             - {name: STALWART_BOOTSTRAP_CONFIG, value: /etc/stalwart-bootstrap/config/config.json}

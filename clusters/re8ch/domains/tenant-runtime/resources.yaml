@@ -885,14 +885,6 @@ metadata:
 ---
 apiVersion: v1
 data:
-  origin: https://stalwart-admin.service.re8ch.com
-kind: ConfigMap
-metadata:
-  name: stalwart-admin-runtime
-  namespace: ai-operations
----
-apiVersion: v1
-data:
   kubeconfig: |
     apiVersion: v1
     kind: Config
@@ -1713,11 +1705,7 @@ spec:
         - name: OAUTH_AUDIENCE
           value: re8ch-cloud-platform-tool
         - name: STALWART_ADMIN_ORIGIN
-          valueFrom:
-            configMapKeyRef:
-              key: origin
-              name: stalwart-admin-runtime
-              optional: true
+          value: https://stalwart-admin.service.re8ch.com
         - name: STALWART_ADMIN_TOKEN_FILE
           value: /etc/stalwart-admin/credential/token
         - name: STALWART_APPROVED_PLANS_DIR

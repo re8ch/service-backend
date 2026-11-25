@@ -118,9 +118,9 @@ Official references:
 The owned `platform/cloud-platform/runtime.yaml` projects optional read-only
 mounts. Before publishing the admin allowlist, platform-authorized credential
 provisioning must create `ai-operations/stalwart-self-service-admin` Secret with
-key `token` using a dedicated Account/Domain management identity. Provision
-`stalwart-admin-runtime` ConfigMap key `origin` with the reviewed HTTPS origin;
-changing that environment value requires a reviewed rollout. Neither value is
+key `token` using a dedicated Account/Domain management identity. The reviewed
+Deployment sets `STALWART_ADMIN_ORIGIN` to the fixed HTTPS origin; changing that
+environment value requires a reviewed rollout. Neither value is
 accepted from callers. Recovery-administrator credentials must not be reused.
 
 The reviewed origin is `https://stalwart-admin.service.re8ch.com`. Stalwart's
