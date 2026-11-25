@@ -1,0 +1,13 @@
+# Scalar API execution endpoints are installation-specific. Replace the
+# placeholder only after the installation has been created and reviewed.
+# Never add Authorization headers, Scalar PATs, OAuth tokens, or upstream API
+# credentials to this file.
+
+[mcp_servers.scalar-api]
+url = "https://mcp.scalar.com/mcp/REPLACE_WITH_INSTALL_ID"
+
+# Scalar's public documentation-search MCP is separate from an API execution
+# installation. Enable it only in clients that need Scalar product guidance.
+#
+# [mcp_servers.scalar-docs]
+# url = "https://scalar.com/mcp"
