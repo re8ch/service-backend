@@ -184,7 +184,7 @@ class StalwartAdmin:
             raise RuntimeError("Stalwart recovery credential is unavailable")
         self.cli = cli
         self.env = {**os.environ, "STALWART_USER": username, "STALWART_PASSWORD": password,
-                    "STALWART_URL": os.getenv("STALWART_URL", "http://stalwart.mail-system.svc.cluster.local:8080")}
+                    "STALWART_URL": os.getenv("STALWART_URL", "https://stalwart-admin.service.re8ch.com")}
 
     def run(self, *args: str, stdin: str | None = None) -> str:
         result = subprocess.run([self.cli, *args], input=stdin, text=True, capture_output=True,
