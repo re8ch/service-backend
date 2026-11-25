@@ -2,13 +2,19 @@
 
 ## Multi-cluster execution profiles
 
+The normative boundary and acceptance rules live in the
+[`multi-cluster federation contract`](../network/docs/multicluster-federation-contract.md).
+This release document defines only cluster-control implementation; it does not
+redefine service or application federation.
+
 Cloud SSA selects a target cluster from the reviewed ReleaseContract; it does
 not default every release to the main cluster. Each supported cluster has an
 independent execution profile containing its API endpoint candidates, CA,
 GitHub Environment, OIDC audience, RBAC identity and durable release state.
 
 `re8ch` uses `kube-api.service.re8ch.com` as its stable multi-entry transport.
-`re8ch-atlantic` uses its own API transport and protected Environment. A bundle
+`re8ch-atlantic` uses `kube-api.atlantic.service.re8ch.com` and its protected
+Environment. A bundle
 targeting Atlantic is authenticated and applied directly to Atlantic; the main
 cluster and AmongCluster never proxy that Kubernetes write.
 
@@ -22,6 +28,10 @@ Adding another cluster therefore requires a reviewed execution profile and
 cluster-local identity/RBAC before any contract can target it. Scheduled replay
 must also have a cluster-specific reconciler identity; until then, releases for
 that cluster remain explicit protected dispatches.
+
+An Active access grant is not release evidence. Acceptance requires the exact
+target endpoint and identity, exact authorization, SSA accepted/applied state,
+managed-field/read-back evidence and workload health from that same cluster.
 
 ## Unified immutable bundle contract (Wave 5)
 

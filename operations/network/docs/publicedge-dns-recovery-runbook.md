@@ -1,7 +1,7 @@
 # PublicEdge and authoritative DNS recovery runbook
 
 Use this runbook after reading the dated
-[handoff](publicedge-amongcluster-handoff-2026-11-22.md). Commands are examples;
+[multi-cluster federation contract](multicluster-federation-contract.md). Commands are examples;
 confirm namespaces, object names, and current repository contracts first.
 
 ## Safety and authority checks
