@@ -376,6 +376,21 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
+  name: tenant-provider-stalwart-recovery-read
+  namespace: mail-system
+rules:
+- apiGroups:
+  - ""
+  resourceNames:
+  - stalwart-recovery-admin
+  resources:
+  - secrets
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
   name: stalwart-cloudflare-token-source
   namespace: qianwen-ops
 rules:
@@ -566,6 +581,20 @@ subjects:
 - kind: ServiceAccount
   name: stalwart-metrics-secret-bootstrap
   namespace: mail-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tenant-provider-stalwart-recovery-read
+  namespace: mail-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tenant-provider-stalwart-recovery-read
+subjects:
+- kind: ServiceAccount
+  name: tenant-provider-reconciler
+  namespace: tenant-infrastructure
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
