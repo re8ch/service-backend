@@ -17,22 +17,21 @@ repository.
 - `scripts`: FRR, PodCIDR, policy-routing, RouterOS and economics tooling.
 - `docs`: historical decisions, performance checkpoints and runbooks.
 
-## PublicEdge and cross-cluster handoff
+## PublicEdge and cross-cluster architecture
 
-Start with the dated
+Start with the current
 [`PublicEdge and AmongCluster handoff`](docs/publicedge-amongcluster-handoff-2026-11-22.md).
-It links the federated architecture, recovery runbook, current release evidence,
-and authoritative DNS acceleration decision guide. The handoff is deliberately
-separate from runtime desired state, which remains in
-`pillars-infra/network-gitops`.
+It defines the deployment, service-sharing and control-plane boundaries. The
+filename is retained to avoid breaking existing links; historical incident
+status was removed from the document.
 
 ## Cilium and Gateway authority
 
-Network runtime desired state is owned by the autonomous
-`flux-network-system` stack sourcing `pillars-infra/network-gitops`. This
-repository retains the public authority inventory, controller lifecycle,
-bounded cluster RBAC, and cross-domain policy boundary. Do not reintroduce a
-second Cilium Helm owner under the main Flux.
+Network runtime desired state is reviewed in `pillars-infra/network-gitops` and
+applied by its bounded Cloud SSA executor. This repository retains the public
+authority inventory, controller lifecycle, bounded cluster RBAC, and
+cross-domain policy boundary. Retained Flux objects are migration inputs, not
+authorization to restore a local writer or create a second Cilium owner.
 
 R640 retains native XDP and uses eBPF masquerading on `eno2np1`. Its node
 configuration must explicitly clear the chart-wide legacy

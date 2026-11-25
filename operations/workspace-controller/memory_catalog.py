@@ -44,15 +44,16 @@ def recovery_context(module) -> list[str]:
     if module.catalog != "platform" or module.name not in RECOVERY_MODULES:
         return []
     return [
-        "## Admin/BYOC recovery context",
+        "## Multi-cluster delivery context",
         "",
-        "Read `operations/releases/toolchain-runtime-verification.md` in the service-backend repository.",
-        "Dated verified outcomes and open acceptance: https://github.com/re8ch/service-backend/issues/3002.",
-        "Revalidate the runtime; CI, release completion, Connected Accounts and SDK capture IDs alone",
-        "do not prove recovery. Verify self and Atlantic with the same authorized Admin session.",
-        "Use existing GitHub Actions/bounded cloud SSA delivery; local Flux writers are retired.",
-        "AMD repair is deferred until core read/write, SSA and AF observation/convergence pass.",
-        "Preserve organization boundaries; never restore authority-health scheduling or reuse the invalid PublicEdge bundle.",
+        "Treat `re8ch` and `re8ch-atlantic` as independent Kubernetes authorities.",
+        "A ReleaseContract targets one cluster-specific API, CA, OIDC audience, GitHub Environment,",
+        "RBAC identity and SSA state; AmongCluster never proxies Kubernetes writes.",
+        "The main cluster prefers `kube-api.service.re8ch.com`; Atlantic uses its own API transport.",
+        "Share bounded service identity, endpoint, health and path facts through AmongCluster, and",
+        "prefer PublicEdge service names for external and internal consumers.",
+        "Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor",
+        "is the only runtime writer after signed PR and CI review.",
         "",
     ]
 

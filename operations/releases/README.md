@@ -1,5 +1,28 @@
 # Domain releases
 
+## Multi-cluster execution profiles
+
+Cloud SSA selects a target cluster from the reviewed ReleaseContract; it does
+not default every release to the main cluster. Each supported cluster has an
+independent execution profile containing its API endpoint candidates, CA,
+GitHub Environment, OIDC audience, RBAC identity and durable release state.
+
+`re8ch` uses `kube-api.service.re8ch.com` as its stable multi-entry transport.
+`re8ch-atlantic` uses its own API transport and protected Environment. A bundle
+targeting Atlantic is authenticated and applied directly to Atlantic; the main
+cluster and AmongCluster never proxy that Kubernetes write.
+
+AmongCluster operates after deployment at the service boundary: it publishes
+bounded service identity, endpoint, health, freshness, capacity and path facts.
+PublicEdge is the default consumer-facing and cross-cluster service access
+surface, including for internal callers where practical. Neither mechanism
+shares kubeconfigs, Secrets, Kubernetes object bodies or SSA ownership.
+
+Adding another cluster therefore requires a reviewed execution profile and
+cluster-local identity/RBAC before any contract can target it. Scheduled replay
+must also have a cluster-specific reconciler identity; until then, releases for
+that cluster remain explicit protected dispatches.
+
 ## Unified immutable bundle contract (Wave 5)
 
 `unified_bundle.py` defines the renderer-neutral boundary for the GitHub static

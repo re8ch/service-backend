@@ -17,19 +17,23 @@ repository 为准；集群、工作区锁定版本、工具与部署关系以本
 - plugins/：PluginDefinition 与平台工具发布声明。
 - operations/：workspace controller、Cloud Platform 等后台控制面实现与 runbook。
 
-## 集群声明在哪里
+## 多集群声明与访问边界
 
-- 集群 desired state 的主要产品仓库是
-  catalogs/platform/modules/cloud-functions/module.yaml 指向的
-  re8ch/cloud-functions，其中 manifests/k3s/ 按认证、网络、存储、可观测性、
-  AI operations、区域路由等域组织。
-- GitOps、workspace catalog、锁定 revision、基础设施 inventory 和工具发布声明由
-  catalogs/platform/modules/service-backend/module.yaml 指向的本仓库维护。
-- 网络控制面参考 advanced-fabric 与 mihomos-cluster；插件/MCP 分发参考
-  codex-admin-plugins、tool-distribution 与 mcp-registry。
-- 对集群做变更前，先读取目标 repository 的 AGENTS.md，观察线上状态，使用
-  当前发布的 Re8ch 工具；正式 GitOps 变更需签名提交、成功 CI 与 PR，
-  通过现有 GitHub Actions 和 bounded cloud SSA 发布；本地 Flux writer 已退役。
+- `re8ch` 主集群和 `re8ch-atlantic` 等子集群是独立 Kubernetes 权威。每个集群
+  分别拥有 API 入口、CA、OIDC audience、GitHub Environment、RBAC、SSA 状态和
+  故障域；ReleaseContract 的 `target.cluster` 必须选择对应执行 profile。
+- 主集群 Cloud SSA 优先使用多入口 `kube-api.service.re8ch.com`；
+  `kube-api.re8ch.com` 仅作临时回退。Atlantic 使用自己的 API 入口，不经主集群
+  API，也不把主集群入口当成跨集群代理。
+- AmongCluster 只交换有界的服务身份、端点、健康、容量与路径事实。它不分发
+  Kubernetes 对象、kubeconfig、Secret 或集群管理员权限，也不替目标集群执行 SSA。
+- 应用部署在实际承载它的目标集群。跨集群消费优先走服务的 PublicEdge 域名；
+  只有服务契约明确要求时才使用 AmongCluster 的有界私网路径。内部调用同样默认
+  使用 PublicEdge，以减少对集群内部拓扑的耦合。
+- GitHub PR、签名制品和 bounded Cloud SSA 是正式写入路径。Kubernetes 是运行态
+  权威；本地 Flux writer 已退役，保留的 Flux 声明仅作历史或迁移输入。
+- 网络控制面参考 advanced-fabric、AmongCluster、PublicEdge 与 mihomos-cluster；
+  插件/MCP 分发参考 codex-admin-plugins、tool-distribution 与 mcp-registry。
 
 ## 目录工作方式
 
