@@ -87,15 +87,11 @@ def test_ssh_credentials_are_isolated_in_the_independent_broker():
 
 
 def test_stalwart_management_uses_optional_dedicated_readonly_mounts():
-    runtime = next(item for item in resources() if item["kind"] == "ConfigMap"
-                   and item["metadata"]["name"] == "stalwart-admin-runtime")
-    assert runtime["data"]["origin"] == "https://stalwart-admin.service.re8ch.com"
     deployment = next(item for item in resources() if item["kind"] == "Deployment")
     pod = deployment["spec"]["template"]["spec"]
     container = pod["containers"][0]
     env = {entry["name"]: entry for entry in container["env"]}
-    assert env["STALWART_ADMIN_ORIGIN"]["valueFrom"]["configMapKeyRef"] == {
-        "name": "stalwart-admin-runtime", "key": "origin", "optional": True}
+    assert env["STALWART_ADMIN_ORIGIN"]["value"] == "https://stalwart-admin.service.re8ch.com"
     mounts = {m["mountPath"]: m for m in container["volumeMounts"]}
     volumes = {v["name"]: v for v in pod["volumes"]}
     token_path = env["STALWART_ADMIN_TOKEN_FILE"]["value"]
