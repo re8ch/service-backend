@@ -65,10 +65,10 @@ def test_user_only_sees_own_config_and_instance_cannot_rebind(postgres):
     """)
     postgres(MIGRATION.read_text())
 
-    def upsert(user, name, uid):
+    def upsert(user, name, uid, service_class="registry.harbor.v1"):
         return f"""
             set role service_role;
-            select api.upsert_tenant_service_config('acme', 'registry.harbor.v1', '{uid}',
+            select api.upsert_tenant_service_config('acme', '{service_class}', '{uid}',
                 '{name}', '{user}', 'harbor-{name}', '{name}', '{{}}', '{{}}',
                 'credential://test/{name}', 'Requested', 'Ready', 1);
         """
@@ -78,6 +78,7 @@ def test_user_only_sees_own_config_and_instance_cannot_rebind(postgres):
     for user, own, other in ((ALICE, "alice-registry", "bob-registry"), (BOB, "bob-registry", "alice-registry")):
         rows = postgres(f"set role authenticated; set request.jwt.claim.sub = '{user}'; select instance_name from api.my_tenant_service_configs();")
         assert rows == own and other not in rows
+    postgres(upsert(ALICE, "alice-mail", "instance-3", "collaboration.stalwart.v1"))
     error = postgres(upsert(BOB, "stolen-registry", "instance-1"), expect_failure=True)
     assert "service instance is bound to another identity" in error
     assert postgres("select identity_user_id from core.tenant_service_configs where instance_uid = 'instance-1'") == ALICE
