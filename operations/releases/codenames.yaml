@@ -828,6 +828,8 @@ modules:
       digest: sha256:50ccb31f29d892d489cba62feb3afdac4c29a75f2b1961305c4ac80196bb6d96
     - codename: aurora-silver
       digest: sha256:6d45e994f71dac644481088cdd01698277cdf3c5c67db23e135c407a3370bfef
+    - codename: flare-silver
+      digest: sha256:d6447c0af07ac9fab73d0dc9517b999a9c9ce3ffbb059ae53d6d8efa8d430812
   platform/apps/access-subscription:
     releases:
     - codename: aegis
