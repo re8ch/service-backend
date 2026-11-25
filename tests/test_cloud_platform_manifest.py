@@ -87,6 +87,9 @@ def test_ssh_credentials_are_isolated_in_the_independent_broker():
 
 
 def test_stalwart_management_uses_optional_dedicated_readonly_mounts():
+    runtime = next(item for item in resources() if item["kind"] == "ConfigMap"
+                   and item["metadata"]["name"] == "stalwart-admin-runtime")
+    assert runtime["data"]["origin"] == "https://stalwart-admin.service.re8ch.com"
     deployment = next(item for item in resources() if item["kind"] == "Deployment")
     pod = deployment["spec"]["template"]["spec"]
     container = pod["containers"][0]

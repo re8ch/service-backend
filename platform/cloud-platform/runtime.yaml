@@ -1,3 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-admin-runtime, namespace: ai-operations}
+data:
+  origin: https://stalwart-admin.service.re8ch.com
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: re8ch-cloud-platform, namespace: ai-operations}
