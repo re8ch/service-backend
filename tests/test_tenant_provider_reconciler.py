@@ -207,6 +207,28 @@ def test_stalwart_reconcile_creates_oidc_account_then_requires_user_authorizatio
     assert local_identity.records[0][1] == "AuthorizationRequired"
 
 
+def test_stalwart_cli_uses_memory_backed_state_on_read_only_root(monkeypatch):
+    captured = {}
+
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def run(_argv, **kwargs):
+        captured.update(kwargs["env"])
+        return Result()
+
+    monkeypatch.setattr(provider.subprocess, "run", run)
+    client = provider.StalwartAdmin("recovery", "password", cli="stalwart-cli")
+    client.run("query", "Domain", "--json")
+
+    assert captured["STALWART_URL"] == "https://stalwart-admin.service.re8ch.com"
+    assert captured["HOME"] == "/dev/shm"
+    assert captured["XDG_CONFIG_HOME"] == "/dev/shm"
+    assert captured["XDG_CACHE_HOME"] == "/dev/shm"
+
+
 def test_cubesandbox_reconcile_requires_live_endpoints_and_returns_capability(monkeypatch):
     class CubeKube(FakeKube):
         def get(self, plural, name, namespace=None, api=None):
