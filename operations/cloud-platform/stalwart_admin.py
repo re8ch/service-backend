@@ -187,7 +187,11 @@ class Client:
         result = self.method(object_type, "get", {"ids": ids, "properties": list(FIELDS[object_type])})
         values = result.get("list")
         state = result.get("state")
-        if not isinstance(values, list) or len(values) > len(ids) or not isinstance(state, str) or not state or len(state) > 512:
+        # Stalwart 1.0 returns the collection state from Object/query as
+        # queryState and omits it from Object/get. Reads can use that query
+        # state, while mutation planning still requires a native get state.
+        if (not isinstance(values, list) or len(values) > len(ids)
+                or (state is not None and (not isinstance(state, str) or not state or len(state) > 512))):
             raise OperationError("STALWART_RESPONSE_INVALID", "Invalid management object list/state")
         seen = set()
         for value in values:
@@ -219,9 +223,15 @@ def read(client, args):
     position, limit = args.get("position", 0), args.get("limit", 25)
     result = client.method(object_type, "query", {"position": position, "limit": limit, "calculateTotal": False})
     ids = result.get("ids")
+    query_state = result.get("queryState")
     if not isinstance(ids, list) or len(ids) > limit or any(not isinstance(v, str) or not re.fullmatch(ID_PATTERN, v) for v in ids) or len(set(ids)) != len(ids):
         raise OperationError("STALWART_RESPONSE_INVALID", "Invalid management query IDs")
-    values, state = client.get(object_type, ids) if ids else ([], None)
+    if query_state is not None and (not isinstance(query_state, str) or not query_state or len(query_state) > 512):
+        raise OperationError("STALWART_RESPONSE_INVALID", "Invalid management query state")
+    values, get_state = client.get(object_type, ids) if ids else ([], None)
+    state = get_state or query_state
+    if state is None:
+        raise OperationError("STALWART_RESPONSE_INVALID", "Management query state missing")
     return {"object": object_type, "items": [project(object_type, v) for v in values],
             "state": state, "position": position, "nextPosition": position + len(ids) if len(ids) == limit else None,
             "pageMayHaveMore": len(ids) == limit}
@@ -237,6 +247,8 @@ def one(client, object_type, object_id):
     values, state = client.get(object_type, [object_id])
     if len(values) != 1:
         raise OperationError("STALWART_OBJECT_NOT_FOUND", "Management object was not found")
+    if not isinstance(state, str) or not state:
+        raise OperationError("STALWART_UNSUPPORTED", "Provider does not expose a mutation precondition state")
     return values[0], state
 
 

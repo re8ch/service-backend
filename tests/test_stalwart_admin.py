@@ -29,7 +29,7 @@ class Provider:
     def method(self, object_type, operation, args):
         self.calls.append((object_type, operation, args))
         if operation == "query":
-            return {"ids": ["a"]}
+            return {"ids": ["a"], "queryState": self.state}
         assert operation == "set"
         self.writes.append(args)
         if args["ifInState"] != self.state:
@@ -204,6 +204,32 @@ def test_native_client_uses_scoped_properties_and_same_origin():
     assert payload["methodCalls"][0][0] == "x:Account/get"
     assert "credentials" not in payload["methodCalls"][0][1]["properties"]
     assert transport.calls[1].headers["Authorization"] == "Bearer test-only"
+
+
+def test_v1_read_uses_query_state_when_get_omits_state():
+    transport = Transport([
+        {"capabilities": {admin.CAPABILITY: {}}, "apiUrl": "https://mail.example.test/jmap/"},
+        {"methodResponses": [["x:Account/query", {"ids": ["a"], "queryState": "q1"}, "admin"]]},
+        {"methodResponses": [["x:Account/get", {"accountId": "admin-account",
+                                                  "list": [{"id": "a", "name": "alice"}],
+                                                  "notFound": []}, "admin"]]},
+    ])
+    client = admin.Client("https://mail.example.test", "test-only", opener=transport)
+    result = admin.read(client, {"object": "Account", "limit": 1})
+    assert result["state"] == "q1"
+    assert result["items"][0]["id"] == "a"
+    assert result["items"][0]["name"] == "alice"
+
+
+def test_v1_get_without_state_cannot_plan_a_mutation():
+    transport = Transport([
+        {"capabilities": {admin.CAPABILITY: {}}, "apiUrl": "https://mail.example.test/jmap/"},
+        {"methodResponses": [["x:Account/get", {"list": [{"id": "a"}], "notFound": []}, "admin"]]},
+    ])
+    client = admin.Client("https://mail.example.test", "test-only", opener=transport)
+    with pytest.raises(OperationError) as failure:
+        admin.one(client, "Account", "a")
+    assert failure.value.code == "STALWART_UNSUPPORTED"
 
 
 def test_reviewed_public_edge_accepts_only_its_canonical_jmap_origin():
