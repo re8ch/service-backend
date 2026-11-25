@@ -19,12 +19,22 @@ data:
     tcp-concurrent: true
     find-process-mode: "off"
     proxies:
+      # Stable cross-cluster MihomosCluster projection. Harbor reaches this via
+      # the node-local mixed proxy without encoding a remote node or address.
+      - {name: ATLANTIC-REGISTRY, type: socks5, server: mihomos-global-exit-atlantic.egress-fabric.svc.cluster.local, port: 1080, udp: false}
       # Keep exits as distinct members so Mihomo, rather than DNS selection,
       # owns health tracking and failover. Order is the required preference.
       - {name: OVERSEAS-LA, type: socks5, server: mihomo-egress-overseas-la.egress-fabric.svc.cluster.local, port: 1080, udp: true}
       - {name: OVERSEAS-LA-2, type: socks5, server: mihomo-egress-overseas-la-2.egress-fabric.svc.cluster.local, port: 1080, udp: true}
       - {name: OVERSEAS-FLK, type: socks5, server: mihomo-egress-overseas-flk.egress-fabric.svc.cluster.local, port: 1080, udp: true}
     proxy-groups:
+      - name: registry-egress
+        type: fallback
+        proxies: [ATLANTIC-REGISTRY, OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
+        url: https://registry.k8s.io/v2/
+        interval: 600
+        timeout: 5000
+        lazy: true
       - name: stable-egress
         type: fallback
         proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
@@ -53,8 +63,18 @@ data:
       # Probe/control destinations must reveal the physical direct path.
       - DOMAIN,ipinfo.io,DIRECT
       - DOMAIN-SUFFIX,ipinfo.io,DIRECT
-      - DOMAIN-SUFFIX,ghcr.io,stable-egress
-      - DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,stable-egress
+      # Upstreams represented by registry.re8ch.com Harbor proxy projects.
+      - DOMAIN-SUFFIX,docker.io,registry-egress
+      - DOMAIN,production.cloudflare.docker.com,registry-egress
+      - DOMAIN-SUFFIX,gcr.io,registry-egress
+      - DOMAIN-SUFFIX,quay.io,registry-egress
+      - DOMAIN-SUFFIX,nvcr.io,registry-egress
+      - DOMAIN-SUFFIX,registry.k8s.io,registry-egress
+      - DOMAIN-SUFFIX,mcr.microsoft.com,registry-egress
+      - DOMAIN-SUFFIX,docker.elastic.co,registry-egress
+      - DOMAIN-SUFFIX,container-registry.oracle.com,registry-egress
+      - DOMAIN-SUFFIX,ghcr.io,registry-egress
+      - DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,registry-egress
       - DOMAIN-SUFFIX,github.com,stable-egress
       - DOMAIN-SUFFIX,githubusercontent.com,stable-egress
       - DOMAIN-SUFFIX,cn,DIRECT
