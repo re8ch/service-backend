@@ -69,3 +69,18 @@ The generator merges the developer-context catalog with the runtime GitOps
 authority list. Enforcement remains `blocked` where a repository cannot yet
 obtain the bounded private-Project read identity; formatting alone never makes
 that check enforceable.
+
+## Pull-request factors
+
+`factor-model.json` defines a factor as an Issue that explains why a pull
+request exists. Every human PR has exactly one primary factor with the native
+closing relationship; it owns lifecycle, Project state and acceptance. A PR
+may also carry secondary `contributes_to`, `depends_on`, `blocks` or `observes`
+factors. Those factors may cross repositories, organizations and Projects and
+use the canonical `owner/repository#number` identity.
+
+`factor_audit.py` validates normalized records produced by the PR audit ledger.
+It does not force all factors into one Project and does not treat a secondary
+cross-organization reference as a substitute for primary lifecycle ownership.
+Repository-local governance can add domain requirements without changing this
+minimum relationship contract.
