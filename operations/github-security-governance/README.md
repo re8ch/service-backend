@@ -12,6 +12,7 @@ security remain separate authorities.
 - `SECURITY-PRODUCTS-BASELINE-2026-11-27.json` records aggregate product
   coverage and the first public canary declaration.
 - `audit.py` produces the detailed local evidence used for reconciliation.
+- `rulesets/` records Tier 3 admission, bypass review and evaluate-only canaries.
 
 Run the live audit with a token that can read every Enterprise organization and
 repository administration surface:
