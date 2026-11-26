@@ -32,6 +32,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "credentials.stalwart.authority.ensure": {"action": {"type": "string", "enum": ["discover", "seed", "revoke"], "default": "seed"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.stalwart.ensure": {"apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.webmail-session.ensure": {"apply": {"type": "boolean", "default": False}},
+    "credentials.litellm-openoauth.project": {"credentialRef": {"type": "string", "pattern": r"^credential://open-oauth/re8ch/[0-9a-f-]{36}$"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "plugin.capabilities.list": {},
     "plugin.operations.list": {"groupVersion": {"type": "string"}},
     "plugin.operation.read": {"groupVersion": {"type": "string"}, "operationId": {"type": "string"}, "schemaHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "parameters": {"type": "object"}},
@@ -57,7 +58,7 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "workspace.memory-audit": {},
 }
 
-CLUSTER_TOOLS = {name for name in SCHEMAS if name.startswith("kube.")} | {"kubectl.exec", "nodes.list", "nodes.get"}
+CLUSTER_TOOLS = {name for name in SCHEMAS if name.startswith("kube.")} | {"kubectl.exec", "nodes.list", "nodes.get", "credentials.litellm-openoauth.project"}
 for cluster_tool in CLUSTER_TOOLS:
     SCHEMAS[cluster_tool] = {**SCHEMAS[cluster_tool], "clusterRef": {"type": "string"},
                             "clusterBindingDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
@@ -76,7 +77,7 @@ GENERATED_PLUGIN_TOOLS = {
 }
 PRIVILEGED_TOOLS = {*STALWART_ADMIN_BY_NAME, *MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
-WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "reconcile_control_plane_authentication_config", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
+WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "credentials.litellm-openoauth.project", "node.ssh.exec", "kubectl.exec", "reconcile_control_plane_authentication_config", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
 
 PRIVILEGED_TOOLS |= {"clusters.list", "clusters.resolve"}
@@ -88,6 +89,7 @@ REQUIRED = {
     "plugin.operation.http-check": ["groupVersion", "operationId", "schemaHash"],
     "plugin.openapi.get": ["groupVersion"],
     "nodes.get": ["name"], "nodes.reachability": ["name"], "node.ssh.exec": ["name", "argv"], "kubectl.exec": ["argv"], "reconcile_control_plane_authentication_config": ["commitSha"],
+    "credentials.litellm-openoauth.project": ["credentialRef"],
     **{f"kube.resource.{verb}": ["resource"] for verb in ("get", "list", "watch", "apply", "patch", "delete")},
 }
 
@@ -181,6 +183,11 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
         if set(args) - {"apply"} or not isinstance(args.get("apply", False), bool):
             raise OperationError("INVALID_ARGUMENT", "only boolean apply is accepted")
         return service.ensure_webmail_session_secret(apply=args.get("apply", False))
+    if name == "credentials.litellm-openoauth.project":
+        if set(args) - {"credentialRef", "apply", "planHash"}:
+            raise OperationError("INVALID_ARGUMENT", "target overrides are forbidden")
+        return service.project_litellm_openoauth_credential(
+            args.get("credentialRef", ""), apply=args.get("apply", False), plan_hash=args.get("planHash", ""))
     if name == "plugin.operation.http-check":
         from plugin_http_conformance import conformance
         return conformance(service, args.get("groupVersion"), args.get("operationId"), args.get("schemaHash"), args.get("parameters"))

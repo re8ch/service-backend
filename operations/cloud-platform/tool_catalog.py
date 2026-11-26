@@ -7,6 +7,7 @@ TOOLS = {
     "stalwart.admin.plan": "stalwart_admin.call",
     "stalwart.admin.apply": "stalwart_admin.call",
     "credentials.webmail-session.ensure": "ensure_webmail_session_secret",
+    "credentials.litellm-openoauth.project": "project_litellm_openoauth_credential",
     "mihomos.controllers.list": "mihomos_capabilities.controllers",
     "mihomos.controller.version": "mihomos_capabilities.controller_version",
     "mihomos.workloads.list": "mihomos_capabilities.workloads",

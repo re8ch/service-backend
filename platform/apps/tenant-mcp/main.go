@@ -111,6 +111,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerBYOCTools(ms)
 	s.registerServiceTools(ms)
 	s.registerModelGatewayTools(ms)
+	s.registerOpenOAuthTools(ms)
 	s.registerHarborTools(ms, false)
 	s.registerGrafanaTools(ms)
 	s.registerCollaborationTools(ms)

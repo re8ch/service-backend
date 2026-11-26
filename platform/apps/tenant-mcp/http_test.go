@@ -596,7 +596,7 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_postgres_admin_sql", "platform_observability_status", "platform_stalwart_status", "platform_stalwart_admin", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "ssh_broker_targets_list", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
+	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "oauth_application_register_litellm", "platform_litellm_openoauth_credential_project", "platform_postgres_admin_sql", "platform_observability_status", "platform_stalwart_status", "platform_stalwart_admin", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "ssh_broker_targets_list", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
@@ -607,8 +607,8 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 	if !names["platform_cluster_bindings_list"] {
 		t.Fatal("missing callable cluster binding directory")
 	}
-	if len(names) != len(legacy)-hiddenAliases+20 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+20)
+	if len(names) != len(legacy)-hiddenAliases+22 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+22)
 	}
 }
 

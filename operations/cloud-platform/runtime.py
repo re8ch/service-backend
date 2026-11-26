@@ -30,6 +30,7 @@ READ_ONLY_KUBE_VERBS = {"get", "list", "watch", "logs", "events", "auth-can-i"}
 AUTH_CONFIG_PATH = "clusters/re8ch/components/ops/dex-dual-issuer-authentication.yaml"
 AUTH_RECONCILER_PATH = "clusters/re8ch/components/ops/authentication-config-reconciler.yaml"
 COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
+OPEN_OAUTH_REF = re.compile(r"^credential://open-oauth/re8ch/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$")
 
 
 class OperationError(RuntimeError):
@@ -319,6 +320,58 @@ class CloudPlatform:
         if verb == "delete" and result.get("exitCode") == 0:
             result.update(deletionAccepted=True, completionObserved=False)
         return result
+
+    def project_litellm_openoauth_credential(self, credential_ref: str, *, apply: bool = False,
+                                             plan_hash: str = "") -> dict[str, Any]:
+        """Project one brokered OpenOAuth credential to the fixed LiteLLM Secret."""
+        matched = OPEN_OAUTH_REF.fullmatch(credential_ref)
+        if not matched:
+            raise OperationError("INVALID_CREDENTIAL_REFERENCE", "reviewed OpenOAuth credential reference required")
+        client_id = matched.group(1)
+        plan = {
+            "credentialRef": credential_ref,
+            "target": "llm-gateway/litellm-gotrue-sso",
+            "fieldManager": "re8ch-release/litellm-openoauth-credential",
+        }
+        expected = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        if apply and plan_hash != expected:
+            raise OperationError("PLAN_HASH_REQUIRED", "apply requires the exact preview planHash")
+
+        source_name = f"oauth-litellm-{client_id}"
+        source_result = self._kubectl(["get", "secret", source_name, "--namespace", "credential-broker", "-o", "json"])
+        if source_result["exitCode"]:
+            raise OperationError("CREDENTIAL_UNAVAILABLE", "brokered OpenOAuth credential is unavailable")
+        try:
+            source = json.loads(source_result["stdout"])
+            labels = source["metadata"]["labels"]
+            data = source["data"]
+            if labels != {
+                "credentials.re8ch.com/provider": "open-oauth",
+                "credentials.re8ch.com/tenant": "re8ch",
+                "credentials.re8ch.com/projection": "litellm-gotrue-sso",
+            } or set(data) != {"client-id", "client-secret"}:
+                raise ValueError
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise OperationError("CREDENTIAL_INVALID", "brokered OpenOAuth credential contract is invalid") from exc
+
+        result = {"applied": False, "planHash": expected, **plan}
+        if not apply:
+            return result
+        manifest = {
+            "apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+            "metadata": {
+                "name": "litellm-gotrue-sso", "namespace": "llm-gateway",
+                "annotations": {"credentials.re8ch.com/content-ref": credential_ref},
+            },
+            "data": {"client-id": data["client-id"], "client-secret": data["client-secret"]},
+        }
+        operation = self._kubectl([
+            "apply", "--server-side", "--field-manager=re8ch-release/litellm-openoauth-credential",
+            "--namespace", "llm-gateway", "-f", "-",
+        ], stdin=json.dumps(manifest))
+        if operation["exitCode"]:
+            raise OperationError("CREDENTIAL_PROJECTION_FAILED", "LiteLLM OpenOAuth credential projection failed")
+        return {**result, "applied": True, "operation": operation}
 
     def ensure_webmail_session_secret(self, *, apply: bool = False) -> dict[str, Any]:
         """Create the reviewed system credential without accepting or returning values."""
