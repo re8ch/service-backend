@@ -17,10 +17,16 @@ def test_cloud_delivery_allowlist_only_permits_reviewed_jobs():
     assert policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "tenant-go-validate", job)
     assert policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "release", job)
     assert policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "finalize", job)
+    assert policy.reviewed_cloud_job(Path(".github/workflows/transaction-context.yml"), "validate", job)
     assert policy.reviewed_cloud_job(Path(".github/workflows/release-compat-controller.yml"), "release", job)
     assert not policy.reviewed_cloud_job(Path(".github/workflows/tenant-go-release.yml"), "unknown", job)
     assert not policy.reviewed_cloud_job(Path(".github/workflows/unknown.yml"), "execute", job)
     assert not policy.reviewed_cloud_job(Path(".github/workflows/main-domain-release.yml"), "execute", {"runs-on": "ubuntu-latest"})
+
+
+def test_transaction_context_prefers_github_hosted_runner():
+    document = yaml.safe_load((ROOT / '.github/workflows/transaction-context.yml').read_text())
+    assert document['jobs']['validate']['runs-on'] == 'ubuntu-24.04'
 
 
 def test_tenant_publisher_recovery_expression_is_exactly_bounded():
