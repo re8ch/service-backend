@@ -88,10 +88,16 @@ def main() -> None:
     )
     require(cluster_egress is not None,
             "Kubernetes job hooks must reach the cluster service and Pod CIDRs")
-    require(cluster_egress["spec"]["egress"] == [{"to": [
-                {"ipBlock": {"cidr": "10.42.0.0/16"}},
-                {"ipBlock": {"cidr": "10.43.0.0/16"}},
-            ]}], "cluster egress must remain bounded to Pod and Service CIDRs")
+    require(cluster_egress["spec"]["egress"] == [
+                {"to": [
+                    {"ipBlock": {"cidr": "10.42.0.0/16"}},
+                    {"ipBlock": {"cidr": "10.43.0.0/16"}},
+                ]},
+                {
+                    "to": [{"ipBlock": {"cidr": "10.250.0.147/32"}}],
+                    "ports": [{"protocol": "TCP", "port": 6443}],
+                },
+            ], "cluster egress must include only cluster CIDRs and the API endpoint")
     require(
         "gha-runner-scale-set-controller@sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90"
         in rendered_controller,
