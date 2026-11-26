@@ -7,7 +7,9 @@ permissions: {contents: read}
 
 jobs:
   ephemeral-boundary:
-    runs-on: re8ch-self-hosted-ephemeral
+    runs-on:
+      group: RE8CH Self-Hosted
+      labels: re8ch-self-hosted-ephemeral
     timeout-minutes: 10
     container:
       image: ghcr.io/actions/actions-runner@sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690

@@ -73,6 +73,9 @@ def labels(value: object) -> set[str]:
         return {value}
     if isinstance(value, list) and all(isinstance(item, str) for item in value):
         return set(value)
+    if (isinstance(value, dict) and isinstance(value.get('group'), str)
+            and isinstance(value.get('labels'), str)):
+        return {value['labels']}
     raise AssertionError(f"unsupported runs-on declaration: {value!r}")
 
 
@@ -97,7 +100,10 @@ def arc_scale_set_smoke(path: Path, job_name: str, document: dict, job: dict) ->
     return (
         path == Path('.github/workflows/arc-agent-runtime-smoke.yml')
         and job_name == 'ephemeral-boundary'
-        and job.get('runs-on') == 're8ch-self-hosted-ephemeral'
+        and job.get('runs-on') == {
+            'group': 'RE8CH Self-Hosted',
+            'labels': 're8ch-self-hosted-ephemeral',
+        }
         and isinstance(triggers, dict) and set(triggers) == {'workflow_dispatch'}
         and document.get('permissions') == {'contents': 'read'}
         and job.get('permissions', {'contents': 'read'}) == {'contents': 'read'}
