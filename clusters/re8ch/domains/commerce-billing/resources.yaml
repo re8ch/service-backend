@@ -667,7 +667,7 @@ spec:
         - name: HYPERSWITCH_PROFILE_ID
           value: pro_DrrIuD3GsS8AlvOkJCvo
         - name: PAYPAL_BASE_URL
-          value: https://api-m.sandbox.paypal.com
+          value: https://api-m.paypal.com
         - name: PAYPAL_CLIENT_ID
           valueFrom:
             secretKeyRef:

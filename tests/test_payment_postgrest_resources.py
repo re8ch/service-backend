@@ -38,7 +38,7 @@ def test_retired_payment_database_routes_are_not_declared():
     assert "re8ch-payment-registry-db-rw" not in routes
 
 
-def test_payment_registry_uses_signed_paypal_sandbox_release():
+def test_payment_registry_uses_signed_paypal_live_release():
     root = Path(__file__).parents[1]
     deployments = {
         item["metadata"]["name"]: item
@@ -53,7 +53,7 @@ def test_payment_registry_uses_signed_paypal_sandbox_release():
         "sha256:f9feb85ac15f6722a89cc0520c377036f7c748db4a49c3ec09c427fe46ae7df8"
     )
     env = {entry["name"]: entry for entry in container["env"]}
-    assert env["PAYPAL_BASE_URL"]["value"] == "https://api-m.sandbox.paypal.com"
+    assert env["PAYPAL_BASE_URL"]["value"] == "https://api-m.paypal.com"
     for key in ("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_WEBHOOK_ID"):
         assert env[key]["valueFrom"]["secretKeyRef"] == {
             "name": "payment-registry-secrets",

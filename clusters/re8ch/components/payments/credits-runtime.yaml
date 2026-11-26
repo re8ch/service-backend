@@ -185,7 +185,7 @@ spec:
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
             - {name: RE8CH_AUTH_BASE_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
-            - {name: PAYPAL_BASE_URL, value: "https://api-m.sandbox.paypal.com"}
+            - {name: PAYPAL_BASE_URL, value: "https://api-m.paypal.com"}
             - {name: PAYPAL_CLIENT_ID, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_CLIENT_ID}}}
             - {name: PAYPAL_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_CLIENT_SECRET}}}
             - {name: PAYPAL_WEBHOOK_ID, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_WEBHOOK_ID}}}
