@@ -28,6 +28,11 @@ def test_dependabot_factor_is_bounded_by_repository_and_ecosystem():
     assert result["primaryFactorKey"] == "dependency-update:example/repo:npm_and_yarn"
 
 
+def test_graphql_canonical_dependabot_login_is_aggregated():
+    result = classify("dependabot", "dependabot/npm_and_yarn/react-20")
+    assert result["decision"] == "aggregate"
+
+
 def test_dependabot_identity_without_standard_branch_fails_closed():
     result = classify("app/dependabot", "feature/not-dependabot")
     assert result["decision"] == "review"
@@ -47,6 +52,16 @@ def test_domain_promoter_uses_one_repository_stream():
     )
     assert result["decision"] == "aggregate"
     assert result["primaryFactorKey"] == "domain-oci-promotion:re8ch/service-backend"
+
+
+def test_graphql_canonical_promoter_login_is_aggregated():
+    result = classify(
+        "re8ch-domain-promoter",
+        "codex/promote-domain-123",
+        "chore(gitops): promote verified domain OCI digests",
+        "re8ch/service-backend",
+    )
+    assert result["decision"] == "aggregate"
 
 
 def test_domain_promoter_requires_reviewed_title_and_branch():
