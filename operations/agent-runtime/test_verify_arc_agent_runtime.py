@@ -17,7 +17,7 @@ class ArcAgentRuntimeContractTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
-        self.assertIn("PASS ephemeral R640 ARC contract", result.stdout)
+        self.assertIn("PASS portable self-hosted ARC contract", result.stdout)
 
 
 if __name__ == "__main__":

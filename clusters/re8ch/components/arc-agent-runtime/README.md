@@ -1,4 +1,4 @@
-# Ephemeral R640 agent runners
+# Ephemeral self-hosted agent runners
 
 This component declares the outer execution boundary for RE8CH agent jobs. ARC
 creates one runner Pod for one GitHub Actions job and removes it immediately
@@ -7,9 +7,13 @@ GitHub job lifecycle, while OpenSandbox remains the inner untrusted-code
 lifecycle when an agent needs to execute generated code.
 
 The scale set is organization-scoped so it can authenticate with a least-
-privilege GitHub App instead of an enterprise PAT. The App requires only
-organization `Self-hosted runners: read and write` and metadata read access.
-Create the `arc-re8ch-agent-github-app` Secret in `arc-runners` through the
+privilege GitHub App instead of an enterprise PAT. GitHub does not support
+GitHub App authentication for enterprise-scoped ARC runner scale sets; moving
+the registration URL to `https://github.com/enterprises/re8ch` would therefore
+require a classic PAT with `manage_runners:enterprise` and a separate reviewed
+credential contract. The App requires only organization
+`Self-hosted runners: read and write` and metadata read access. Create the
+`arc-re8ch-agent-github-app` Secret in `re8ch-arc-runners` through the
 approved secret path with keys `github_app_id`, `github_app_installation_id`,
 and `github_app_private_key`. No credential value belongs in Git.
 
@@ -17,12 +21,14 @@ The runner uses `kubernetes-novolume` mode. Every workflow job must declare a
 job container; ARC creates that job container as a separate Pod, no Docker
 socket is exposed, and the runner Pod itself receives no workload credentials.
 `minRunners: 0` prevents an idle credential-bearing runner from persisting.
-The initial ceiling is 16 concurrent runners under a namespace quota of 32
-requested/48 limited CPU cores and 96/128 GiB memory. This is derived from the
-R640 node's 76 allocatable CPU cores and roughly 235 GiB allocatable memory,
-not from the separate four-core `GitHub Hosted EastAsia` Azure runner profile.
-That hosted-compute profile remains a private-network control and verification
-path; it does not cap R640 execution capacity.
+The controller, listener and runners select
+`scheduling.re8ch.com/agent-runtime=true`, not a hostname. R640 is the first
+member of that pool; additional self-hosted Kubernetes nodes join by receiving
+the same reviewed label and compatible taint/toleration contract. The initial
+ceiling is 16 concurrent runners under a namespace quota of 32 requested/48
+limited CPU cores and 96/128 GiB memory. The separate four-core
+`GitHub Hosted EastAsia` Azure profile remains a private-network control and
+verification path; it does not cap the self-hosted pool.
 
 BYOK is consumed through the existing LiteLLM virtual-key and quota plane. A
 job receives only a task-scoped virtual key from the approved secret broker and

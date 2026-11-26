@@ -43908,7 +43908,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: arc-controller-gha-rs-controller-single-namespace-watch
-  namespace: arc-runners
+  namespace: re8ch-arc-runners
 rules:
 - apiGroups:
   - actions.github.com
@@ -44064,7 +44064,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: arc-controller-gha-rs-controller-single-namespace-watch
-  namespace: arc-runners
+  namespace: re8ch-arc-runners
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -44091,7 +44091,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     actions.github.com/controller-service-account-namespace: arc-systems
     actions.github.com/controller-service-account-name: arc-controller-gha-rs-controller
-    actions.github.com/controller-watch-single-namespace: arc-runners
+    actions.github.com/controller-watch-single-namespace: re8ch-arc-runners
 spec:
   replicas: 1
   selector:
@@ -44120,7 +44120,7 @@ spec:
         - "--auto-scaling-runner-set-only"
         - "--log-level=info"
         - "--log-format=json"
-        - "--watch-single-namespace=arc-runners"
+        - "--watch-single-namespace=re8ch-arc-runners"
         - "--autoscaling-runner-set-max-concurrent-reconciles=2"
         - "--autoscaling-listener-max-concurrent-reconciles=2"
         - "--ephemeral-runner-set-max-concurrent-reconciles=2"
@@ -44160,7 +44160,7 @@ spec:
       - name: tmp
         emptyDir: {}
       nodeSelector:
-        kubernetes.io/hostname: r640
+        scheduling.re8ch.com/agent-runtime: "true"
       tolerations:
         - effect: NoSchedule
           key: dedicated

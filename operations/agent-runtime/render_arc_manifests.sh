@@ -29,9 +29,9 @@ sed -i.bak \
   "$component/controller-rendered.yaml"
 rm "$component/controller-rendered.yaml.bak"
 
-helm template r640-agent-ephemeral \
+helm template re8ch-self-hosted-ephemeral \
   "$runner_chart" \
-  --namespace arc-runners --include-crds \
+  --namespace re8ch-arc-runners --include-crds \
   -f "$component/runner-values.yaml" \
   >"$component/runner-rendered.yaml"
 

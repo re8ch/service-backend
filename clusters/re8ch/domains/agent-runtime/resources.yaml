@@ -20,13 +20,6 @@ kind: Namespace
 metadata:
   labels:
     app.kubernetes.io/part-of: re8ch-agent-runtime
-  name: arc-runners
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    app.kubernetes.io/part-of: re8ch-agent-runtime
   name: arc-systems
 ---
 apiVersion: v1
@@ -51,10 +44,18 @@ metadata:
   name: mcp-registry
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/part-of: re8ch-agent-runtime
+    tenancy.re8ch.com/tenant: re8ch
+  name: re8ch-arc-runners
+---
+apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: r640-agent-runtime
-  namespace: arc-runners
+  name: self-hosted-agent-runtime
+  namespace: re8ch-arc-runners
 spec:
   hard:
     limits.cpu: "48"
@@ -46344,24 +46345,6 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  finalizers:
-  - actions.github.com/cleanup-protection
-  labels:
-    actions.github.com/scale-set-name: r640-agent-ephemeral
-    actions.github.com/scale-set-namespace: arc-runners
-    app.kubernetes.io/instance: r640-agent-ephemeral
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: r640-agent-ephemeral
-    app.kubernetes.io/part-of: gha-rs
-    app.kubernetes.io/version: 0.15.1
-    helm.sh/chart: gha-rs-0.15.1
-    re8ch.com/execution-lifecycle: single-job
-  name: r640-agent-ephemeral-gha-rs-kube-mode
-  namespace: arc-runners
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
   labels:
     app.kubernetes.io/instance: arc-controller
     app.kubernetes.io/managed-by: Helm
@@ -46426,6 +46409,24 @@ kind: ServiceAccount
 metadata:
   name: planning-evidence
   namespace: git-workspaces
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  finalizers:
+  - actions.github.com/cleanup-protection
+  labels:
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/part-of: gha-rs
+    app.kubernetes.io/version: 0.15.1
+    helm.sh/chart: gha-rs-0.15.1
+    re8ch.com/execution-lifecycle: single-job
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -46586,258 +46587,6 @@ rules:
   - apiconformanceruns/status
   verbs:
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: arc-controller-gha-rs-controller-single-namespace-watch
-  namespace: arc-runners
-rules:
-- apiGroups:
-  - actions.github.com
-  resources:
-  - autoscalingrunnersets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - actions.github.com
-  resources:
-  - autoscalingrunnersets/finalizers
-  verbs:
-  - patch
-  - update
-- apiGroups:
-  - actions.github.com
-  resources:
-  - autoscalingrunnersets/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - actions.github.com
-  resources:
-  - ephemeralrunnersets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - actions.github.com
-  resources:
-  - ephemeralrunnersets/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - actions.github.com
-  resources:
-  - ephemeralrunnersets/finalizers
-  verbs:
-  - patch
-  - update
-- apiGroups:
-  - actions.github.com
-  resources:
-  - ephemeralrunners
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - actions.github.com
-  resources:
-  - ephemeralrunners/finalizers
-  verbs:
-  - patch
-  - update
-- apiGroups:
-  - actions.github.com
-  resources:
-  - ephemeralrunners/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - actions.github.com
-  resources:
-  - autoscalinglisteners
-  verbs:
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - list
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - rolebindings
-  verbs:
-  - list
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  verbs:
-  - list
-  - watch
-  - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  finalizers:
-  - actions.github.com/cleanup-protection
-  labels:
-    actions.github.com/scale-set-name: r640-agent-ephemeral
-    actions.github.com/scale-set-namespace: arc-runners
-    app.kubernetes.io/instance: r640-agent-ephemeral
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: r640-agent-ephemeral
-    app.kubernetes.io/part-of: gha-rs
-    app.kubernetes.io/version: 0.15.1
-    helm.sh/chart: gha-rs-0.15.1
-    re8ch.com/execution-lifecycle: single-job
-  name: r640-agent-ephemeral-gha-rs-kube-mode
-  namespace: arc-runners
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - get
-  - list
-  - create
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - pods/exec
-  verbs:
-  - get
-  - create
-- apiGroups:
-  - ""
-  resources:
-  - pods/log
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - create
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  finalizers:
-  - actions.github.com/cleanup-protection
-  labels:
-    actions.github.com/scale-set-name: r640-agent-ephemeral
-    actions.github.com/scale-set-namespace: arc-runners
-    app.kubernetes.io/component: manager-role
-    app.kubernetes.io/instance: r640-agent-ephemeral
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: r640-agent-ephemeral
-    app.kubernetes.io/part-of: gha-rs
-    app.kubernetes.io/version: 0.15.1
-    helm.sh/chart: gha-rs-0.15.1
-    re8ch.com/execution-lifecycle: single-job
-  name: r640-agent-ephemeral-gha-rs-manager
-  namespace: arc-runners
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - create
-  - delete
-  - get
-- apiGroups:
-  - ""
-  resources:
-  - pods/status
-  verbs:
-  - get
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - rolebindings
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-  - update
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  verbs:
-  - create
-  - delete
-  - get
-  - patch
-  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -47183,6 +46932,258 @@ rules:
   verbs:
   - get
   - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: arc-controller-gha-rs-controller-single-namespace-watch
+  namespace: re8ch-arc-runners
+rules:
+- apiGroups:
+  - actions.github.com
+  resources:
+  - autoscalingrunnersets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - actions.github.com
+  resources:
+  - autoscalingrunnersets/finalizers
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - actions.github.com
+  resources:
+  - autoscalingrunnersets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - actions.github.com
+  resources:
+  - ephemeralrunnersets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - actions.github.com
+  resources:
+  - ephemeralrunnersets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - actions.github.com
+  resources:
+  - ephemeralrunnersets/finalizers
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - actions.github.com
+  resources:
+  - ephemeralrunners
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - actions.github.com
+  resources:
+  - ephemeralrunners/finalizers
+  verbs:
+  - patch
+  - update
+- apiGroups:
+  - actions.github.com
+  resources:
+  - ephemeralrunners/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - actions.github.com
+  resources:
+  - autoscalinglisteners
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  verbs:
+  - list
+  - watch
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  finalizers:
+  - actions.github.com/cleanup-protection
+  labels:
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/part-of: gha-rs
+    app.kubernetes.io/version: 0.15.1
+    helm.sh/chart: gha-rs-0.15.1
+    re8ch.com/execution-lifecycle: single-job
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  finalizers:
+  - actions.github.com/cleanup-protection
+  labels:
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/component: manager-role
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/part-of: gha-rs
+    app.kubernetes.io/version: 0.15.1
+    helm.sh/chart: gha-rs-0.15.1
+    re8ch.com/execution-lifecycle: single-job
+  name: re8ch-self-hosted-ephemeral-gha-rs-manager
+  namespace: re8ch-arc-runners
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -48028,73 +48029,6 @@ subjects:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: arc-controller-gha-rs-controller-single-namespace-watch
-  namespace: arc-runners
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: arc-controller-gha-rs-controller-single-namespace-watch
-subjects:
-- kind: ServiceAccount
-  name: arc-controller-gha-rs-controller
-  namespace: arc-systems
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  finalizers:
-  - actions.github.com/cleanup-protection
-  labels:
-    actions.github.com/scale-set-name: r640-agent-ephemeral
-    actions.github.com/scale-set-namespace: arc-runners
-    app.kubernetes.io/instance: r640-agent-ephemeral
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: r640-agent-ephemeral
-    app.kubernetes.io/part-of: gha-rs
-    app.kubernetes.io/version: 0.15.1
-    helm.sh/chart: gha-rs-0.15.1
-    re8ch.com/execution-lifecycle: single-job
-  name: r640-agent-ephemeral-gha-rs-kube-mode
-  namespace: arc-runners
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: r640-agent-ephemeral-gha-rs-kube-mode
-subjects:
-- kind: ServiceAccount
-  name: r640-agent-ephemeral-gha-rs-kube-mode
-  namespace: arc-runners
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  finalizers:
-  - actions.github.com/cleanup-protection
-  labels:
-    actions.github.com/scale-set-name: r640-agent-ephemeral
-    actions.github.com/scale-set-namespace: arc-runners
-    app.kubernetes.io/component: manager-role-binding
-    app.kubernetes.io/instance: r640-agent-ephemeral
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: r640-agent-ephemeral
-    app.kubernetes.io/part-of: gha-rs
-    app.kubernetes.io/version: 0.15.1
-    helm.sh/chart: gha-rs-0.15.1
-    re8ch.com/execution-lifecycle: single-job
-  name: r640-agent-ephemeral-gha-rs-manager
-  namespace: arc-runners
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: r640-agent-ephemeral-gha-rs-manager
-subjects:
-- kind: ServiceAccount
-  name: arc-controller-gha-rs-controller
-  namespace: arc-systems
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
   name: arc-controller-gha-rs-controller-listener
   namespace: arc-systems
 roleRef:
@@ -48307,6 +48241,73 @@ subjects:
 - kind: ServiceAccount
   name: ops-mcp-operate
   namespace: toolhive-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: arc-controller-gha-rs-controller-single-namespace-watch
+  namespace: re8ch-arc-runners
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: arc-controller-gha-rs-controller-single-namespace-watch
+subjects:
+- kind: ServiceAccount
+  name: arc-controller-gha-rs-controller
+  namespace: arc-systems
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  finalizers:
+  - actions.github.com/cleanup-protection
+  labels:
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/part-of: gha-rs
+    app.kubernetes.io/version: 0.15.1
+    helm.sh/chart: gha-rs-0.15.1
+    re8ch.com/execution-lifecycle: single-job
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+subjects:
+- kind: ServiceAccount
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  finalizers:
+  - actions.github.com/cleanup-protection
+  labels:
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/component: manager-role-binding
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/part-of: gha-rs
+    app.kubernetes.io/version: 0.15.1
+    helm.sh/chart: gha-rs-0.15.1
+    re8ch.com/execution-lifecycle: single-job
+  name: re8ch-self-hosted-ephemeral-gha-rs-manager
+  namespace: re8ch-arc-runners
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: re8ch-self-hosted-ephemeral-gha-rs-manager
+subjects:
+- kind: ServiceAccount
+  name: arc-controller-gha-rs-controller
+  namespace: arc-systems
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -55850,7 +55851,7 @@ metadata:
   labels:
     actions.github.com/controller-service-account-name: arc-controller-gha-rs-controller
     actions.github.com/controller-service-account-namespace: arc-systems
-    actions.github.com/controller-watch-single-namespace: arc-runners
+    actions.github.com/controller-watch-single-namespace: re8ch-arc-runners
     app.kubernetes.io/instance: arc-controller
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: gha-rs-controller
@@ -55884,7 +55885,7 @@ spec:
         - --auto-scaling-runner-set-only
         - --log-level=info
         - --log-format=json
-        - --watch-single-namespace=arc-runners
+        - --watch-single-namespace=re8ch-arc-runners
         - --autoscaling-runner-set-max-concurrent-reconciles=2
         - --autoscaling-listener-max-concurrent-reconciles=2
         - --ephemeral-runner-set-max-concurrent-reconciles=2
@@ -55923,7 +55924,7 @@ spec:
         - mountPath: /tmp
           name: tmp
       nodeSelector:
-        kubernetes.io/hostname: r640
+        scheduling.re8ch.com/agent-runtime: "true"
       serviceAccountName: arc-controller-gha-rs-controller
       terminationGracePeriodSeconds: 35
       tolerations:
@@ -56617,25 +56618,25 @@ apiVersion: actions.github.com/v1alpha1
 kind: AutoscalingRunnerSet
 metadata:
   annotations:
-    actions.github.com/cleanup-kubernetes-mode-role-binding-name: r640-agent-ephemeral-gha-rs-kube-mode
-    actions.github.com/cleanup-kubernetes-mode-role-name: r640-agent-ephemeral-gha-rs-kube-mode
-    actions.github.com/cleanup-kubernetes-mode-service-account-name: r640-agent-ephemeral-gha-rs-kube-mode
-    actions.github.com/cleanup-manager-role-binding: r640-agent-ephemeral-gha-rs-manager
-    actions.github.com/cleanup-manager-role-name: r640-agent-ephemeral-gha-rs-manager
-    actions.github.com/values-hash: f8b275ceace60a3cbe312da5dcf634dbf6cb991db2318210d7665f033b20af8
+    actions.github.com/cleanup-kubernetes-mode-role-binding-name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+    actions.github.com/cleanup-kubernetes-mode-role-name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+    actions.github.com/cleanup-kubernetes-mode-service-account-name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+    actions.github.com/cleanup-manager-role-binding: re8ch-self-hosted-ephemeral-gha-rs-manager
+    actions.github.com/cleanup-manager-role-name: re8ch-self-hosted-ephemeral-gha-rs-manager
+    actions.github.com/values-hash: b74ce7c11b9c02976bdf0928daa0d295926e3bbf7c3c248a711f68b3215d48c
   labels:
-    actions.github.com/scale-set-name: r640-agent-ephemeral
-    actions.github.com/scale-set-namespace: arc-runners
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
     app.kubernetes.io/component: autoscaling-runner-set
-    app.kubernetes.io/instance: r640-agent-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
     app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: r640-agent-ephemeral
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
     app.kubernetes.io/part-of: gha-rs
     app.kubernetes.io/version: 0.15.1
     helm.sh/chart: gha-rs-0.15.1
     re8ch.com/execution-lifecycle: single-job
-  name: r640-agent-ephemeral
-  namespace: arc-runners
+  name: re8ch-self-hosted-ephemeral
+  namespace: re8ch-arc-runners
 spec:
   githubConfigSecret: arc-re8ch-agent-github-app
   githubConfigUrl: https://github.com/re8ch
@@ -56656,7 +56657,7 @@ spec:
           runAsNonRoot: true
           runAsUser: 1000
       nodeSelector:
-        kubernetes.io/hostname: r640
+        scheduling.re8ch.com/agent-runtime: "true"
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -56664,8 +56665,8 @@ spec:
         value: pg-re8ch
   maxRunners: 16
   minRunners: 0
-  runnerGroup: GitOps R640
-  runnerScaleSetName: r640-agent-ephemeral
+  runnerGroup: RE8CH Self-Hosted
+  runnerScaleSetName: re8ch-self-hosted-ephemeral
   template:
     spec:
       containers:
@@ -56701,9 +56702,9 @@ spec:
           runAsUser: 1001
         volumeMounts: []
       nodeSelector:
-        kubernetes.io/hostname: r640
+        scheduling.re8ch.com/agent-runtime: "true"
       restartPolicy: Never
-      serviceAccountName: r640-agent-ephemeral-gha-rs-kube-mode
+      serviceAccountName: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
       tolerations:
       - effect: NoSchedule
         key: dedicated
@@ -59233,36 +59234,6 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-dns-egress
-  namespace: arc-runners
-spec:
-  egress:
-  - ports:
-    - port: 53
-      protocol: UDP
-    - port: 53
-      protocol: TCP
-    to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-  podSelector: {}
-  policyTypes:
-  - Egress
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-ingress
-  namespace: arc-runners
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
   name: postgresql-ingress
   namespace: mcp-registry
 spec:
@@ -59303,6 +59274,36 @@ spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: mcp-registry-postgresql
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: re8ch-arc-runners
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+  podSelector: {}
+  policyTypes:
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: re8ch-arc-runners
+spec:
+  podSelector: {}
   policyTypes:
   - Ingress
 ---

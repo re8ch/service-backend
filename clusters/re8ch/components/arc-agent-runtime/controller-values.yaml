@@ -3,7 +3,7 @@ replicaCount: 1
 flags:
   logLevel: info
   logFormat: json
-  watchSingleNamespace: arc-runners
+  watchSingleNamespace: re8ch-arc-runners
   terminatedRunnerPodGracePeriodSeconds: 0
 
 securityContext:
@@ -19,7 +19,7 @@ resources:
   limits: {cpu: 500m, memory: 512Mi}
 
 nodeSelector:
-  kubernetes.io/hostname: r640
+  scheduling.re8ch.com/agent-runtime: "true"
 
 tolerations:
 - key: dedicated

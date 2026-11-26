@@ -1,7 +1,7 @@
 githubConfigUrl: https://github.com/re8ch
 githubConfigSecret: arc-re8ch-agent-github-app
-runnerGroup: GitOps R640
-runnerScaleSetName: r640-agent-ephemeral
+runnerGroup: RE8CH Self-Hosted
+runnerScaleSetName: re8ch-self-hosted-ephemeral
 
 minRunners: 0
 maxRunners: 16
@@ -16,7 +16,7 @@ controllerServiceAccount:
 listenerTemplate:
   spec:
     nodeSelector:
-      kubernetes.io/hostname: r640
+      scheduling.re8ch.com/agent-runtime: "true"
     tolerations:
     - key: dedicated
       operator: Equal
@@ -35,7 +35,7 @@ listenerTemplate:
 template:
   spec:
     nodeSelector:
-      kubernetes.io/hostname: r640
+      scheduling.re8ch.com/agent-runtime: "true"
     tolerations:
     - key: dedicated
       operator: Equal
