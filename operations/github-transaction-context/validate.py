@@ -78,9 +78,10 @@ def branch_exemption(pr: dict[str, Any], config: dict[str, Any]) -> str | None:
     head = pr.get("headRefName", "")
     title = pr.get("title", "")
     for rule in config.get("exemptions", []):
+        authors = rule.get("authors") or [rule.get("author")]
         title_prefixes = rule.get("titlePrefixes", [])
         if (
-            author == rule["author"]
+            author in authors
             and head.startswith(rule["headPrefix"])
             and (not title_prefixes or any(title.startswith(prefix) for prefix in title_prefixes))
         ):

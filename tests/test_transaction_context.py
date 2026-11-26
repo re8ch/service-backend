@@ -72,6 +72,16 @@ def test_dependabot_standard_branch_exempts_only_issue_number():
     assert MODULE.validate(pr, CONFIG) == []
 
 
+def test_dependabot_maintenance_app_graphql_alias_is_exactly_supported():
+    pr = pull_request([issue()], author="dependabot", head="dependabot/pip/pyyaml-6")
+    assert MODULE.validate(pr, CONFIG) == []
+
+
+def test_dependabot_rest_alias_is_exactly_supported():
+    pr = pull_request([issue()], author="dependabot[bot]", head="dependabot/pip/pyyaml-6")
+    assert MODULE.validate(pr, CONFIG) == []
+
+
 def test_dependabot_still_requires_closing_issue():
     pr = pull_request(author="app/dependabot", head="dependabot/npm_and_yarn/vite-7")
     assert "must close at least one Issue" in MODULE.validate(pr, CONFIG)[0]
@@ -88,6 +98,16 @@ def test_domain_promoter_exact_contract_exempts_branch_number():
         author="app/re8ch-domain-promoter",
         head="codex/promote-domain-40567205243",
         title="chore(gitops): promote attested domain OCI digests",
+    )
+    assert MODULE.validate(pr, CONFIG) == []
+
+
+def test_domain_promoter_maintenance_app_graphql_alias_is_supported():
+    pr = pull_request(
+        [issue()],
+        author="re8ch-domain-promoter",
+        head="codex/promote-domain-40567205243",
+        title="chore(gitops): promote verified domain OCI digests",
     )
     assert MODULE.validate(pr, CONFIG) == []
 
