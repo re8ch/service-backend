@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-var credentialRef = regexp.MustCompile(`^credential://(harbor|grafana)/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})$`)
+var credentialRef = regexp.MustCompile(`^credential://(harbor|grafana|litellm)/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})$`)
 
 func openRedemptions(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)

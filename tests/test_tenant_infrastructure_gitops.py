@@ -755,50 +755,12 @@ def test_shared_personal_runtime_class_has_owner_resource_policy():
     assert shared["namespacePolicy"]["bootstrapNamespaces"] == ["personal-standard-default"]
 
 
-def test_model_gateway_defaults_do_not_expose_inference_credentials():
-    values = yaml.load(
-        (ROOT / "clusters/re8ch/charts/birfucate-metering/values.yaml").read_text(),
-        Loader=YAML_SAFE_LOADER,
-    )
-    gateway = values["tenantPlatform"]["tenantAPI"]["modelGateway"]
-    assert gateway == {"enabled": False, "gatewayURL": "", "credentialsSecret": "", "bindings": {}}
-    for item in tenant_chart_documents(tenant_go_enabled=True):
-        if item["kind"] == "Deployment":
-            for container in item["spec"]["template"]["spec"]["containers"]:
-                assert not any(env["name"].startswith("LITELLM_") for env in container.get("env", []))
-
-
-def test_model_gateway_injects_only_explicit_tenant_secret_keys():
-    bindings = {"research-fixture": {"tokenEnv": "LITELLM_TENANT_RESEARCH_FIXTURE_KEY", "models": ["fixture-model"]}}
-    gateway = {"enabled": True, "gatewayURL": "http://litellm.llm-gateway.svc.cluster.local:4000", "credentialsSecret": "research-fixture-credentials", "bindings": bindings}
-    docs = tenant_chart_documents(tenant_go_enabled=True, extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": gateway}}})
+def test_model_gateway_uses_public_endpoint_and_broker_credentials_only():
+    docs = tenant_chart_documents(tenant_go_enabled=True)
     deployments = {item["metadata"]["name"]: item for item in docs if item["kind"] == "Deployment"}
     tenant = deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]
     admin = deployments["admin-api"]["spec"]["template"]["spec"]["containers"][0]
     env = {item["name"]: item for item in tenant["env"]}
-    assert env["LITELLM_GATEWAY_URL"]["value"] == gateway["gatewayURL"]
-    assert json.loads(env["LITELLM_TENANT_BINDINGS_JSON"]["value"]) == bindings
-    assert env[bindings["research-fixture"]["tokenEnv"]]["valueFrom"]["secretKeyRef"] == {
-        "name": gateway["credentialsSecret"], "key": "LITELLM_TENANT_RESEARCH_FIXTURE_KEY", "optional": False}
+    assert env["LITELLM_GATEWAY_URL"]["value"] == "https://litellm.service.re8ch.com/v1"
+    assert not any(name == "LITELLM_TENANT_BINDINGS_JSON" or name.startswith("LITELLM_TENANT_") for name in env)
     assert not any(item["name"].startswith("LITELLM_") for item in admin["env"])
-    for container in (tenant, admin):
-        assert not any(item.get("secretRef", {}).get("name") == gateway["credentialsSecret"] for item in container.get("envFrom", []))
-    assert not any(item["kind"] == "Secret" and item["metadata"]["name"] == gateway["credentialsSecret"] for item in docs)
-
-
-def test_model_gateway_rejects_incomplete_or_shared_credentials():
-    import pytest
-    base = {"enabled": True, "gatewayURL": "https://gateway.example.test", "credentialsSecret": "fixture-credentials"}
-    cases = [
-        ({}, "non-empty bindings"),
-        ({"a": {"tokenEnv": "SERVICE_API_TOKEN", "models": ["m"]}}, "dedicated LITELLM_TENANT"),
-        ({"a": {"tokenEnv": "LITELLM_TENANT_A_KEY", "models": []}}, "non-empty approved model ceiling"),
-        ({name: {"tokenEnv": "LITELLM_TENANT_SHARED_KEY", "models": ["m"]} for name in ("a", "b")}, "must not share"),
-    ]
-    for bindings, message in cases:
-        with pytest.raises(subprocess.CalledProcessError) as error:
-            tenant_chart_documents(tenant_go_enabled=True, extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": {**base, "bindings": bindings}}}})
-        assert message in error.value.stderr
-    with pytest.raises(subprocess.CalledProcessError) as error:
-        tenant_chart_documents(extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": base}}})
-    assert "requires tenantPlatform.tenantAPI.enabled" in error.value.stderr
