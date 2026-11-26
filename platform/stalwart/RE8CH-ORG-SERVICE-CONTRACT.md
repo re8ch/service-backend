@@ -32,6 +32,22 @@ Admin 身份、恢复管理员或平台 Secret 暴露给租户。
 创建账户与使用账户是两个独立授权面：创建需要服务实例权限；读取邮件、日历、联系人、
 文件或执行用户操作需要用户自己的 connection 和 scope。
 
+## Agent 工具源码和交付边界
+
+Stalwart 的 JMAP、CalDAV、CardDAV、WebDAV、Sieve 和管理 API 适配源码及兼容性
+基线归 `8iops/stalwart-agent-tools`。ConnecTool 聚合其 MCP 工具，ToolHive 隔离并运行
+不可变制品；`8iops/agent-gitops` 只保存镜像及契约 digest、ToolHive publication、
+策略和 Secret 引用、探针与回滚声明。
+
+本仓库只拥有 `collaboration.stalwart.v1` 服务类、租户 grant、ServiceInstance、
+用户 connection 的不透明引用、调用授权和中立计量。迁移期间现有 tenant-mcp 适配器
+保持兼容，直到独立工具通过同一测试账户、scope、资源 ACL 和真实 PublicEdge 路径的
+等价验收。不得把 ServiceInstance、用户绑定、provider token、邮件内容或账户专属状态
+复制到 GitOps。
+
+普通消费从主集群通过 Stalwart 的稳定 PublicEdge endpoint 访问 Atlantic。独立工具
+不能以 AmongCluster 作为 Kubernetes 控制、凭据或通用 provider 代理。
+
 ## CLI 能力
 
 产品目标是覆盖 Stalwart CLI 的全部正式能力，但不能提供任意 shell 或未审计 argv
