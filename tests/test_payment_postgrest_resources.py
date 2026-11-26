@@ -50,7 +50,7 @@ def test_payment_registry_uses_signed_paypal_live_release():
     container = deployments["nuclio-payment-registry-api"]["spec"]["template"]["spec"]["containers"][0]
     assert container["image"] == (
         "registry.re8ch.com/hyperswitch/processor-payment-registry-api@"
-        "sha256:f9feb85ac15f6722a89cc0520c377036f7c748db4a49c3ec09c427fe46ae7df8"
+        "sha256:b4d03943c801323150e159750add5c4643e34361b8a8ce8e34a495bf76197d70"
     )
     env = {entry["name"]: entry for entry in container["env"]}
     assert env["PAYPAL_BASE_URL"]["value"] == "https://api-m.paypal.com"
