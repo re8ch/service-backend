@@ -83,6 +83,13 @@ An `aggregate` decision permits a later reviewed migration to reuse the factor
 key; it never permits closing a PR. `review` means no automatic factor may be
 assigned.
 
+Reviewed mutations are recorded under `migrations/`. Each record preserves the
+original and resulting PR-body digests, immutable head revision, primary factor
+context, native closing-reference readback and explicit zero-close/zero-merge
+safety counters. A cross-organization factor is accepted only after GitHub
+returns it through `closingIssuesReferences`; a failed readback requires exact
+body rollback.
+
 Regenerate the repository set and validate it with:
 
 ```bash
