@@ -59300,6 +59300,20 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: allow-https-egress
+  namespace: re8ch-arc-runners
+spec:
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+  podSelector: {}
+  policyTypes:
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: default-deny-ingress
   namespace: re8ch-arc-runners
 spec:
