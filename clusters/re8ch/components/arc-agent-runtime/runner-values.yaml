@@ -11,7 +11,7 @@ containerMode:
 
 controllerServiceAccount:
   namespace: arc-systems
-  name: arc-controller-gha-runner-scale-set-controller
+  name: arc-controller-gha-rs-controller
 
 listenerTemplate:
   spec:
