@@ -13,6 +13,10 @@ security remain separate authorities.
   coverage and the first public canary declaration.
 - `audit.py` produces the detailed local evidence used for reconciliation.
 - `rulesets/` records Tier 3 admission, bypass review and evaluate-only canaries.
+- `ACTIONS-ENVIRONMENTS.md` defines workflow provenance, hosted-runner and
+  deployment Environment governance.
+- `audit_workflows.py` inventories default-branch workflow references without
+  executing repository code.
 
 Run the live audit with a token that can read every Enterprise organization and
 repository administration surface:
