@@ -1,0 +1,62 @@
+githubConfigUrl: https://github.com/re8ch
+githubConfigSecret: arc-re8ch-agent-github-app
+runnerGroup: GitOps R640
+runnerScaleSetName: r640-agent-ephemeral
+
+minRunners: 0
+maxRunners: 16
+
+containerMode:
+  type: kubernetes-novolume
+
+controllerServiceAccount:
+  namespace: arc-systems
+  name: arc-controller-gha-runner-scale-set-controller
+
+listenerTemplate:
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: r640
+    tolerations:
+    - key: dedicated
+      operator: Equal
+      value: pg-re8ch
+      effect: NoSchedule
+    containers:
+    - name: listener
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+
+template:
+  spec:
+    nodeSelector:
+      kubernetes.io/hostname: r640
+    tolerations:
+    - key: dedicated
+      operator: Equal
+      value: pg-re8ch
+      effect: NoSchedule
+    containers:
+    - name: runner
+      image: ghcr.io/actions/actions-runner@sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690
+      command: [/home/runner/run.sh]
+      resources:
+        requests: {cpu: 250m, memory: 512Mi}
+        limits: {cpu: "2", memory: 4Gi}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        runAsUser: 1001
+
+labels:
+  app.kubernetes.io/part-of: re8ch-agent-runtime
+  re8ch.com/execution-lifecycle: single-job
+

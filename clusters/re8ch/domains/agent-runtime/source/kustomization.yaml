@@ -12,6 +12,7 @@ resources:
 - ../../../components/ai-operations/stagehand-service.yaml
 - ../../../components/ai-operations/sandbox-trials
 - ../../../components/codex-conversation-archive/storage.yaml
+- ../../../components/arc-agent-runtime
 - ../../../components/mcp-registry/registry.yaml
 - ../../../components/toolhive/external-observe-publication.yaml
 - ../../../components/toolhive/external-observe-rbac.yaml
