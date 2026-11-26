@@ -36,6 +36,16 @@ def test_factor_backfill_records_are_non_destructive():
             assert record["safety"]["pullRequestsMerged"] == 0
             assert record["safety"]["existingBodiesPreserved"] is True
             assert sum(len(exception["pullRequests"]) for exception in record["exceptions"]) == result["failed"]
+        elif record["kind"] == "EnterprisePullRequestContextBackfillRecord":
+            result = record["result"]
+            scope = record["scope"]
+            assert result["attempted"] == result["succeeded"] + result["failed"] + result["skipped"]
+            assert scope["detachedSnapshotRows"] == scope["trueDetachedPullRequests"] + scope["boundedExceptions"]
+            assert len(record["boundedExceptions"]) == scope["boundedExceptions"]
+            assert record["projectReadback"]["factorItemsComplete"] == scope["factorGroups"]
+            assert record["safety"]["pullRequestsClosed"] == 0
+            assert record["safety"]["pullRequestsMerged"] == 0
+            assert record["safety"]["pullRequestBasesChanged"] == 0
         else:
             raise AssertionError(f"unsupported migration record kind: {record['kind']}")
 

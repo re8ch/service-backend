@@ -17,6 +17,10 @@ def test_promoter_factor_title_is_scoped():
     assert MODULE.slug_title("domain-oci-promotion:re8ch/service-backend") == "Track domain OCI promotions for re8ch/service-backend"
 
 
+def test_human_factor_title_is_scoped_to_one_pull_request():
+    assert MODULE.slug_title("pull-request-context:example/repo:42") == "Track example/repo#42"
+
+
 def test_append_closing_preserves_body_and_is_idempotent():
     original = "Original body\n"
     first = MODULE.append_closing(original, "https://github.com/example/repo/issues/9", "dependency-update:example/repo:pip")

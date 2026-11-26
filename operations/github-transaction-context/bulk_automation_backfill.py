@@ -23,6 +23,8 @@ MARKER = "transaction-factor-backfill"
 
 def slug_title(key: str) -> str:
     kind, repository, stream = (key.split(":", 2) + [""])[:3]
+    if kind == "pull-request-context":
+        return f"Track {repository}#{stream}"
     if kind == "domain-oci-promotion":
         return f"Track domain OCI promotions for {repository}"
     return f"Track {stream} dependency updates for {repository}"
@@ -117,10 +119,10 @@ def project_context(client: GitHub) -> tuple[str, dict[str, Any]]:
     return project["id"], {node["name"]: node for node in project["fields"]["nodes"] if node.get("name")}
 
 
-def set_project_fields(client: GitHub, project_id: str, fields: dict[str, Any], item_id: str) -> None:
+def set_project_fields(client: GitHub, project_id: str, fields: dict[str, Any], item_id: str, work_type: str = "Dependency") -> None:
     today = dt.date.today()
     values = {
-        "Status": "Todo", "Lifecycle": "Ready", "Work Type": "Dependency",
+        "Status": "Todo", "Lifecycle": "Ready", "Work Type": work_type,
         "Context Status": "Ready", "Start Date": today.isoformat(),
         "Target Date": (today + dt.timedelta(days=30)).isoformat(),
     }
@@ -149,7 +151,9 @@ def ensure_parent(client: GitHub, factor: dict[str, Any], parent: str) -> None:
 def create_factor(client: GitHub, group: dict[str, Any], project_id: str, fields: dict[str, Any], parent: str) -> dict[str, Any]:
     metadata = client.request(f"/repos/{group['repository']}")
     target_repository = metadata["full_name"]
-    repository = target_repository if metadata["has_issues"] else "re8ch/service-backend"
+    repository = group.get("factorRepository") or (
+        target_repository if metadata["has_issues"] else "re8ch/service-backend"
+    )
     owner, repo = repository.split("/", 1)
     marker = f"<!-- {MARKER}:{group['key']} -->"
     existing = client.request(f"/repos/{repository}/issues?state=open&per_page=100")
@@ -159,7 +163,7 @@ def create_factor(client: GitHub, group: dict[str, Any], project_id: str, fields
             ensure_parent(client, factor, parent)
             return factor
     issue = client.request(f"/repos/{repository}/issues", "POST", {
-        "title": slug_title(group["key"]),
+        "title": group.get("title") or slug_title(group["key"]),
         "body": factor_body(group["key"], parent, len(group["pullRequests"])) + (
             f"\nFactor repository fallback: `{target_repository}` has Issues disabled.\n"
             if repository != target_repository else ""
@@ -169,7 +173,7 @@ def create_factor(client: GitHub, group: dict[str, Any], project_id: str, fields
     task = next(node["id"] for node in types if node["name"] == "Task")
     client.graphql(UPDATE_TYPE, {"id": issue["node_id"], "type": task})
     item = client.graphql(ADD_ITEM, {"project": project_id, "content": issue["node_id"]})["addProjectV2ItemById"]["item"]
-    set_project_fields(client, project_id, fields, item["id"])
+    set_project_fields(client, project_id, fields, item["id"], group.get("workType", "Dependency"))
     factor = {"repository": repository, "number": issue["number"], "url": issue["html_url"], "id": issue["id"]}
     ensure_parent(client, factor, parent)
     return factor
