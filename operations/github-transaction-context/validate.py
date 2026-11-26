@@ -17,6 +17,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       number
+      title
       headRefName
       author { login }
       closingIssuesReferences(first: 20) {
@@ -72,20 +73,25 @@ def field_values(item: dict[str, Any]) -> dict[str, str]:
     return values
 
 
-def exemption(pr: dict[str, Any], config: dict[str, Any]) -> str | None:
+def branch_exemption(pr: dict[str, Any], config: dict[str, Any]) -> str | None:
     author = (pr.get("author") or {}).get("login")
     head = pr.get("headRefName", "")
+    title = pr.get("title", "")
     for rule in config.get("exemptions", []):
-        if author == rule["author"] and head.startswith(rule["headPrefix"]):
+        title_prefixes = rule.get("titlePrefixes", [])
+        if (
+            author == rule["author"]
+            and head.startswith(rule["headPrefix"])
+            and (not title_prefixes or any(title.startswith(prefix) for prefix in title_prefixes))
+        ):
             return rule["reason"]
     return None
 
 
 def validate(pr: dict[str, Any], config: dict[str, Any]) -> list[str]:
-    exempt_reason = exemption(pr, config)
+    exempt_reason = branch_exemption(pr, config)
     if exempt_reason:
-        print(f"Explicit exemption: {exempt_reason}")
-        return []
+        print(f"Explicit branch exemption: {exempt_reason}")
 
     issues = pr.get("closingIssuesReferences", {}).get("nodes", [])
     if not issues:
@@ -101,7 +107,7 @@ def validate(pr: dict[str, Any], config: dict[str, Any]) -> list[str]:
     for issue in issues:
         number = issue["number"]
         prefix = f"Issue #{number}"
-        if str(number) not in head:
+        if str(number) not in head and not exempt_reason:
             failures.append(f"{prefix}: branch name must contain the Issue number.")
         if not issue.get("issueType"):
             failures.append(f"{prefix}: Issue Type must be set.")

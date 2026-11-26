@@ -38,10 +38,11 @@ def issue(number=3095, values=None):
     }
 
 
-def pull_request(issues=None, author="Woomou", head="governance/3095-context"):
+def pull_request(issues=None, author="Woomou", head="governance/3095-context", title="Change context"):
     return {
         "number": 1,
         "author": {"login": author},
+        "title": title,
         "headRefName": head,
         "closingIssuesReferences": {"nodes": issues or []},
     }
@@ -66,14 +67,39 @@ def test_issue_number_must_be_in_branch():
     assert "branch name" in failures[0]
 
 
-def test_dependabot_standard_branch_is_explicitly_exempt():
-    pr = pull_request(author="dependabot[bot]", head="dependabot/npm_and_yarn/vite-7")
+def test_dependabot_standard_branch_exempts_only_issue_number():
+    pr = pull_request([issue()], author="app/dependabot", head="dependabot/npm_and_yarn/vite-7")
     assert MODULE.validate(pr, CONFIG) == []
 
 
+def test_dependabot_still_requires_closing_issue():
+    pr = pull_request(author="app/dependabot", head="dependabot/npm_and_yarn/vite-7")
+    assert "must close at least one Issue" in MODULE.validate(pr, CONFIG)[0]
+
+
 def test_similar_bot_name_is_not_exempt():
-    pr = pull_request(author="dependabot-copy[bot]", head="dependabot/npm_and_yarn/vite-7")
+    pr = pull_request([issue()], author="app/dependabot-copy", head="dependabot/npm_and_yarn/vite-7")
     assert MODULE.validate(pr, CONFIG)
+
+
+def test_domain_promoter_exact_contract_exempts_branch_number():
+    pr = pull_request(
+        [issue()],
+        author="app/re8ch-domain-promoter",
+        head="codex/promote-domain-40567205243",
+        title="chore(gitops): promote attested domain OCI digests",
+    )
+    assert MODULE.validate(pr, CONFIG) == []
+
+
+def test_domain_promoter_unreviewed_title_fails_closed():
+    pr = pull_request(
+        [issue()],
+        author="app/re8ch-domain-promoter",
+        head="codex/promote-domain-40567205243",
+        title="change unrelated files",
+    )
+    assert "branch name" in MODULE.validate(pr, CONFIG)[0]
 
 
 def test_project_owner_query_uses_union_fragments():
