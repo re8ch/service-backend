@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "kind": "ProjectHygieneRecord",
   "recordedAt": "2026-11-26",
   "issue": "https://github.com/re8ch/service-backend/issues/3299",
   "project": {
