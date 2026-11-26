@@ -77,4 +77,8 @@ spec:
   - to:
     - ipBlock: {cidr: 10.42.0.0/16}
     - ipBlock: {cidr: 10.43.0.0/16}
+  - to:
+    - ipBlock: {cidr: 10.250.0.147/32}
+    ports:
+    - {protocol: TCP, port: 6443}
 
