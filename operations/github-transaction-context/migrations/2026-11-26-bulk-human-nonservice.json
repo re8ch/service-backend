@@ -1,0 +1,513 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorBackfill",
+  "metadata": {
+    "issue": "re8ch/service-backend#3127",
+    "parent": "re8ch/service-backend#3112",
+    "executedAt": "2026-11-26",
+    "scope": "non-service-backend human detached open PRs"
+  },
+  "safety": {
+    "dryRunComment": "https://github.com/re8ch/service-backend/issues/3127#issuecomment-7186076829",
+    "closedPullRequests": 0,
+    "mergedPullRequests": 0,
+    "preservedOriginalBodies": true,
+    "onePrimaryFactorPerPullRequest": true
+  },
+  "counts": {
+    "planned": 79,
+    "factorsCreated": 79,
+    "nativeClosingLinked": 77,
+    "exceptions": 2,
+    "failedMutations": 0
+  },
+  "transactions": [
+    {
+      "pullRequest": "8iops/agent-gitops#11",
+      "primaryFactor": "re8ch/service-backend#3129",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "8iops/agent-gitops#122",
+      "primaryFactor": "re8ch/service-backend#3130",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/2woodblog#31",
+      "primaryFactor": "re8ch/service-backend#3206",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/2woodblog#32",
+      "primaryFactor": "re8ch/service-backend#3207",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/2woodblog#33",
+      "primaryFactor": "re8ch/service-backend#3208",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/2woodblog#38",
+      "primaryFactor": "re8ch/service-backend#3209",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/career-ops#1",
+      "primaryFactor": "re8ch/service-backend#3210",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/network-decomplexer-ios#1",
+      "primaryFactor": "re8ch/service-backend#3211",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "Woomou/network-decomplexer-ios#2",
+      "primaryFactor": "re8ch/service-backend#3212",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "advanced-fabrics/core#19",
+      "primaryFactor": "re8ch/service-backend#3131",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "advanced-fabrics/headlamp-advanced-fabric#6",
+      "primaryFactor": "re8ch/service-backend#3132",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "among-clusters/connectool#1",
+      "primaryFactor": "re8ch/service-backend#3134",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "among-clusters/connectool#3",
+      "primaryFactor": "re8ch/service-backend#3135",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "bifurcate-systems/bifurcate#1",
+      "primaryFactor": "re8ch/service-backend#3136",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "biziops/brand-assets#12",
+      "primaryFactor": "re8ch/service-backend#3138",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "biziops/brand-assets#2",
+      "primaryFactor": "re8ch/service-backend#3137",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "biziops/re8ch-corporate-site#44",
+      "primaryFactor": "re8ch/service-backend#3139",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "biziops/re8ch-corporate-site#60",
+      "primaryFactor": "re8ch/service-backend#3140",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "compocv/compocv#1",
+      "primaryFactor": "re8ch/service-backend#3141",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "compocv/compocv#9",
+      "primaryFactor": "re8ch/service-backend#3142",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "public-edge/mihomos-cluster#1",
+      "primaryFactor": "re8ch/service-backend#3143",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "public-edge/mihomos-cluster#2",
+      "primaryFactor": "re8ch/service-backend#3144",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "public-edge/mihomos-cluster#3",
+      "primaryFactor": "re8ch/service-backend#3145",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-ai/codex-admin-plugins#4",
+      "primaryFactor": "re8ch/service-backend#3146",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-business/catalog#11",
+      "primaryFactor": "re8ch/service-backend#3147",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-business/catalog#27",
+      "primaryFactor": "re8ch/service-backend#3148",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-cloud/cluster-website#1",
+      "primaryFactor": "re8ch/service-backend#3149",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-cloud/cluster-website#19",
+      "primaryFactor": "re8ch/service-backend#3150",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-image/image-website#1",
+      "primaryFactor": "re8ch/service-backend#3151",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-image/registry-website#1",
+      "primaryFactor": "re8ch/service-backend#3152",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch-observability/observable-website#1",
+      "primaryFactor": "re8ch/service-backend#3153",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/Anycam#4",
+      "primaryFactor": "re8ch/service-backend#3160",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/Anycam#9",
+      "primaryFactor": "re8ch/service-backend#3161",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/AnycamIOS#1",
+      "primaryFactor": "re8ch/service-backend#3165",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/aesthete#14",
+      "primaryFactor": "re8ch/service-backend#3155",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/aesthete#15",
+      "primaryFactor": "re8ch/service-backend#3156",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/aesthete#16",
+      "primaryFactor": "re8ch/service-backend#3157",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/aesthete#17",
+      "primaryFactor": "re8ch/service-backend#3158",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/aesthete#18",
+      "primaryFactor": "re8ch/service-backend#3159",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/aesthete#2",
+      "primaryFactor": "re8ch/service-backend#3154",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/anycam-backend#1",
+      "primaryFactor": "re8ch/service-backend#3162",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/anycam-backend#4",
+      "primaryFactor": "re8ch/service-backend#3163",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/anycam-website#1",
+      "primaryFactor": "re8ch/service-backend#3164",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/anysiteonearth#6",
+      "primaryFactor": "re8ch/service-backend#3166",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/anysiteonearth-website#1",
+      "primaryFactor": "re8ch/service-backend#3167",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/baozou-ppt-studio#1",
+      "primaryFactor": "re8ch/service-backend#3168",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/baozou-ppt-studio#3",
+      "primaryFactor": "re8ch/service-backend#3170",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#118",
+      "primaryFactor": "re8ch/service-backend#3178",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#41",
+      "primaryFactor": "re8ch/service-backend#3171",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#50",
+      "primaryFactor": "re8ch/service-backend#3173",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#57",
+      "primaryFactor": "re8ch/service-backend#3175",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#65",
+      "primaryFactor": "re8ch/service-backend#3176",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#97",
+      "primaryFactor": "re8ch/service-backend#3177",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/director-engines#1",
+      "primaryFactor": "re8ch/service-backend#3180",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/garageband-mcp#1",
+      "primaryFactor": "re8ch/service-backend#3181",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/garageband-mcp-site#1",
+      "primaryFactor": "re8ch/service-backend#3182",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/jjklive#1",
+      "primaryFactor": "re8ch/service-backend#3183",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/ledger#1",
+      "primaryFactor": "re8ch/service-backend#3184",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/ledger-dashboard#1",
+      "primaryFactor": "re8ch/service-backend#3185",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/ledger-website#1",
+      "primaryFactor": "re8ch/service-backend#3186",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/motor-muscle-sim#1",
+      "primaryFactor": "re8ch/service-backend#3187",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/motor-muscle-sim#2",
+      "primaryFactor": "re8ch/service-backend#3189",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/phonaid-android#3",
+      "primaryFactor": "re8ch/service-backend#3190",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/phonaid-service#1",
+      "primaryFactor": "re8ch/service-backend#3191",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/phonaid-website#1",
+      "primaryFactor": "re8ch/service-backend#3192",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/product-public-data#1",
+      "primaryFactor": "re8ch/service-backend#3193",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/space-mining-stage#1",
+      "primaryFactor": "re8ch/service-backend#3194",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/thiking-machine#1",
+      "primaryFactor": "re8ch/service-backend#3195",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/tool-distribution#1",
+      "primaryFactor": "re8ch/service-backend#3196",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/user-hub#126",
+      "primaryFactor": "re8ch/service-backend#3197",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/user-hub#127",
+      "primaryFactor": "re8ch/service-backend#3199",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/user-hub#128",
+      "primaryFactor": "re8ch/service-backend#3200",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/user-hub#129",
+      "primaryFactor": "re8ch/service-backend#3201",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/user-hub#138",
+      "primaryFactor": "re8ch/service-backend#3202",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "siren-observer/observability-gitops#83",
+      "primaryFactor": "re8ch/service-backend#3203",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "siren-observer/observability-gitops#84",
+      "primaryFactor": "re8ch/service-backend#3204",
+      "project": "re8ch/2",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "strata-silica/storage-gitops#52",
+      "primaryFactor": "re8ch/service-backend#3205",
+      "project": "re8ch/2",
+      "result": "complete"
+    }
+  ],
+  "exceptions": [
+    {
+      "pullRequest": "among-clusters/among-clusters#63",
+      "primaryFactor": "re8ch/service-backend#3133",
+      "project": "re8ch/2",
+      "result": "non-default-base-no-native-closing-reference",
+      "baseRef": "codex/standalone-control-plane"
+    },
+    {
+      "pullRequest": "re8ch/cloud-functions#47",
+      "primaryFactor": "re8ch/service-backend#3172",
+      "project": "re8ch/2",
+      "result": "non-default-base-no-native-closing-reference",
+      "baseRef": "codex/access-anytls-public-edge"
+    }
+  ],
+  "readback": {
+    "nativeClosingReferences": 77,
+    "completePrimaryFactorContexts": 77,
+    "remainingDetachedInScope": 2,
+    "repositoryErrorsOutsideScope": [
+      "re8ch/service-backend SSL EOF during full audit"
+    ],
+    "targetPullRequestsRemainOpen": true
+  }
+}
