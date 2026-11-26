@@ -88,16 +88,29 @@ def main() -> None:
     )
     require(cluster_egress is not None,
             "Kubernetes job hooks must reach the cluster service and Pod CIDRs")
-    require(cluster_egress["spec"]["egress"] == [
-                {"to": [
-                    {"ipBlock": {"cidr": "10.42.0.0/16"}},
-                    {"ipBlock": {"cidr": "10.43.0.0/16"}},
-                ]},
-                {
-                    "to": [{"ipBlock": {"cidr": "10.250.0.147/32"}}],
-                    "ports": [{"protocol": "TCP", "port": 6443}],
-                },
-            ], "cluster egress must include only cluster CIDRs and the API endpoint")
+    require(cluster_egress["spec"]["egress"] == [{"to": [
+                {"ipBlock": {"cidr": "10.42.0.0/16"}},
+                {"ipBlock": {"cidr": "10.43.0.0/16"}},
+            ]}], "cluster egress must remain bounded to Pod and Service CIDRs")
+    cilium_policies = [
+        document for document in yaml.safe_load_all(
+            (COMPONENT / "namespaces-and-policy.yaml").read_text()
+        ) if document and document.get("kind") == "CiliumNetworkPolicy"
+    ]
+    api_egress = next(
+        (policy for policy in cilium_policies
+         if policy["metadata"]["name"] == "allow-kube-apiserver-egress"),
+        None,
+    )
+    require(api_egress is not None,
+            "Cilium must identify the kube-apiserver across service translation")
+    require(api_egress["spec"]["egress"] == [{
+                "toEntities": ["kube-apiserver"],
+                "toPorts": [{"ports": [
+                    {"protocol": "TCP", "port": "443"},
+                    {"protocol": "TCP", "port": "6443"},
+                ]}],
+            }], "API egress must remain entity-bound and port-limited")
     require(
         "gha-runner-scale-set-controller@sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90"
         in rendered_controller,

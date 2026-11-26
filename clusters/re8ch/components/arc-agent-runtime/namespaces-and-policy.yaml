@@ -77,8 +77,18 @@ spec:
   - to:
     - ipBlock: {cidr: 10.42.0.0/16}
     - ipBlock: {cidr: 10.43.0.0/16}
-  - to:
-    - ipBlock: {cidr: 10.250.0.147/32}
-    ports:
-    - {protocol: TCP, port: 6443}
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-kube-apiserver-egress
+  namespace: re8ch-arc-runners
+spec:
+  endpointSelector: {}
+  egress:
+  - toEntities: [kube-apiserver]
+    toPorts:
+    - ports:
+      - {protocol: TCP, port: "443"}
+      - {protocol: TCP, port: "6443"}
 
