@@ -47,7 +47,7 @@ def test_security_products_keep_detection_remediation_and_cost_separate():
     assert record["dependabot"]["alertsEnabledActiveNonFork"] > record[
         "dependabot"
     ]["securityUpdatesEnabledActiveNonFork"]
-    assert record["secretProtection"]["publicGapsActiveNonFork"] == 9
+    assert record["secretProtection"]["publicGapsActiveNonFork"] == 8
     assert record["secretProtection"]["privateOrInternalGapsActiveNonFork"] == 80
     assert record["safety"] == {
         "secretValuesRecorded": False,
@@ -55,6 +55,7 @@ def test_security_products_keep_detection_remediation_and_cost_separate():
         "paidProductsEnabled": 0,
         "aiFeaturesEnabled": 0,
         "bulkMutations": 0,
+        "liveCanariesApplied": 1,
     }
 
 
@@ -71,3 +72,8 @@ def test_security_canary_is_free_bounded_and_reversible():
         "secret_scanning_push_protection=disabled",
         "secret_scanning=disabled",
     ]
+    assert canary["status"] == "applied-readback-complete"
+    assert canary["readback"]["paidProductsEnabled"] == 0
+    assert canary["readback"]["naturalDeveloperPathProbe"] == (
+        "pending-next-legitimate-change"
+    )

@@ -57,6 +57,12 @@ Existing history may generate alerts after scanning is enabled. Those alerts are
 private security evidence and do not justify rewriting history or rotating a
 credential without a separate exposure assessment.
 
+The initial canary was applied after its declaration merged. Effective readback
+confirmed secret scanning and provider-pattern push protection enabled while
+Dependabot security updates, Code Security and AI detection remained disabled.
+No synthetic pull request was created solely as evidence; the next legitimate
+signed change supplies the developer-path observation.
+
 ## Cost decision
 
 Private/internal activation is blocked until an owner records GitHub's current
