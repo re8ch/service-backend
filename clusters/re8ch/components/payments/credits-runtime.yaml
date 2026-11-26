@@ -174,7 +174,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: payment-registry-api
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:f9feb85ac15f6722a89cc0520c377036f7c748db4a49c3ec09c427fe46ae7df8
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:b4d03943c801323150e159750add5c4643e34361b8a8ce8e34a495bf76197d70
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 8080}]
           envFrom:
