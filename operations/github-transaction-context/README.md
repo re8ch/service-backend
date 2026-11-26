@@ -132,3 +132,8 @@ GH_TOKEN="$(gh auth token)" python \
 
 The ledger is evidence for reviewed backfill work. It does not create Issues,
 edit PRs or close stale work.
+
+Reviewed mutations are recorded under `migrations/`. Each record identifies
+the dry-run evidence, one primary factor per PR, additive cross-organization
+secondary factors, the local Project and independent readback result. A record
+must report zero PR closures; stale-work decisions remain a separate concern.
