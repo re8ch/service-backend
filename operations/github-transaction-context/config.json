@@ -11,9 +11,18 @@
   "completionDateFields": ["Target Date", "Completed Date"],
   "exemptions": [
     {
-      "author": "dependabot[bot]",
+      "author": "app/dependabot",
       "headPrefix": "dependabot/",
-      "reason": "GitHub-managed dependency update with immutable advisory metadata"
+      "reason": "GitHub-managed dependency branch predates the assigned factor Issue"
+    },
+    {
+      "author": "app/re8ch-domain-promoter",
+      "headPrefix": "codex/promote-domain-",
+      "titlePrefixes": [
+        "chore(gitops): promote verified domain OCI digests",
+        "chore(gitops): promote attested domain OCI digests"
+      ],
+      "reason": "reviewed domain promotion branch predates the assigned factor Issue"
     }
   ]
 }
