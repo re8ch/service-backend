@@ -30,3 +30,17 @@ def test_factor_body_forbids_implicit_merge_or_close():
     body = MODULE.factor_body("dependency-update:example/repo:pip", "re8ch/service-backend#3126", 4)
     assert "does not authorize merging or closing" in body
     assert "Planned PR count: 4" in body
+
+
+def test_ensure_parent_is_idempotent_when_factor_is_already_attached():
+    class Client:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, url, method="GET", data=None):
+            self.calls.append((url, method, data))
+            return [{"id": 42}]
+
+    client = Client()
+    MODULE.ensure_parent(client, {"id": 42}, "re8ch/service-backend#3126")
+    assert client.calls == [("/repos/re8ch/service-backend/issues/3126/sub_issues?per_page=100", "GET", None)]

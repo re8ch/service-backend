@@ -134,6 +134,18 @@ def set_project_fields(client: GitHub, project_id: str, fields: dict[str, Any], 
         client.graphql(UPDATE_FIELD, {"project": project_id, "item": item_id, "field": field["id"], "value": encoded})
 
 
+def ensure_parent(client: GitHub, factor: dict[str, Any], parent: str) -> None:
+    parent_repository, parent_number = parent.rsplit("#", 1)
+    sub_issues = client.request(f"/repos/{parent_repository}/issues/{parent_number}/sub_issues?per_page=100")
+    if any(issue["id"] == factor["id"] for issue in sub_issues):
+        return
+    client.request(
+        f"/repos/{parent_repository}/issues/{parent_number}/sub_issues",
+        "POST",
+        {"sub_issue_id": factor["id"]},
+    )
+
+
 def create_factor(client: GitHub, group: dict[str, Any], project_id: str, fields: dict[str, Any], parent: str) -> dict[str, Any]:
     metadata = client.request(f"/repos/{group['repository']}")
     target_repository = metadata["full_name"]
@@ -143,7 +155,9 @@ def create_factor(client: GitHub, group: dict[str, Any], project_id: str, fields
     existing = client.request(f"/repos/{repository}/issues?state=open&per_page=100")
     for candidate in existing:
         if "pull_request" not in candidate and marker in (candidate.get("body") or ""):
-            return {"repository": repository, "number": candidate["number"], "url": candidate["html_url"]}
+            factor = {"repository": repository, "number": candidate["number"], "url": candidate["html_url"], "id": candidate["id"]}
+            ensure_parent(client, factor, parent)
+            return factor
     issue = client.request(f"/repos/{repository}/issues", "POST", {
         "title": slug_title(group["key"]),
         "body": factor_body(group["key"], parent, len(group["pullRequests"])) + (
@@ -156,7 +170,9 @@ def create_factor(client: GitHub, group: dict[str, Any], project_id: str, fields
     client.graphql(UPDATE_TYPE, {"id": issue["node_id"], "type": task})
     item = client.graphql(ADD_ITEM, {"project": project_id, "content": issue["node_id"]})["addProjectV2ItemById"]["item"]
     set_project_fields(client, project_id, fields, item["id"])
-    return {"repository": repository, "number": issue["number"], "url": issue["html_url"]}
+    factor = {"repository": repository, "number": issue["number"], "url": issue["html_url"], "id": issue["id"]}
+    ensure_parent(client, factor, parent)
+    return factor
 
 
 def link_pr(client: GitHub, group: dict[str, Any], pr: dict[str, Any], factor: dict[str, Any]) -> dict[str, Any]:

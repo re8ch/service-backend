@@ -23,6 +23,7 @@
     "pullRequestsMerged": 0,
     "existingBodiesPreserved": true,
     "issueFactorsCreatedOrReused": 22,
+    "nativeParentRelationshipsVerified": 22,
     "project": "re8ch/2",
     "dryRunComment": "https://github.com/re8ch/service-backend/issues/3126#issuecomment-7186101174"
   },
