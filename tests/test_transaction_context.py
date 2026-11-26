@@ -74,3 +74,8 @@ def test_dependabot_standard_branch_is_explicitly_exempt():
 def test_similar_bot_name_is_not_exempt():
     pr = pull_request(author="dependabot-copy[bot]", head="dependabot/npm_and_yarn/vite-7")
     assert MODULE.validate(pr, CONFIG)
+
+
+def test_project_owner_query_uses_union_fragments():
+    assert "... on Organization { login }" in MODULE.QUERY
+    assert "... on User { login }" in MODULE.QUERY
