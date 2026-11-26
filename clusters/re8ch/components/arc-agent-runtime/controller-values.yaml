@@ -1,0 +1,29 @@
+replicaCount: 1
+
+flags:
+  logLevel: info
+  logFormat: json
+  watchSingleNamespace: arc-runners
+  terminatedRunnerPodGracePeriodSeconds: 0
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 512Mi}
+
+nodeSelector:
+  kubernetes.io/hostname: r640
+
+tolerations:
+- key: dedicated
+  operator: Equal
+  value: pg-re8ch
+  effect: NoSchedule
+

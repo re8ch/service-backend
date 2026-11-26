@@ -99,7 +99,9 @@ domains:
       - platform/git-workspaces/**
       - clusters/re8ch/components/codex-app-server-console/**
       - clusters/re8ch/components/ai-operations/sandbox-trials/**
+      - clusters/re8ch/components/arc-agent-runtime/**
       - clusters/re8ch/domains/agent-runtime/**
+      - operations/agent-runtime/**
       - clusters/re8ch/flux-federation/**
       - operations/flux-federation/**
     roots:
@@ -108,6 +110,7 @@ domains:
       - platform/git-workspaces
       - clusters/re8ch/components/codex-app-server-console
       - clusters/re8ch/components/ai-operations/sandbox-trials
+      - clusters/re8ch/components/arc-agent-runtime
       - clusters/re8ch/domains/agent-runtime
       - clusters/re8ch/flux-federation
     tests:
