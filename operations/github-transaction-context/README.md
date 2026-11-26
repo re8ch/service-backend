@@ -109,3 +109,26 @@ It does not force all factors into one Project and does not treat a secondary
 cross-organization reference as a substitute for primary lifecycle ownership.
 Repository-local governance can add domain requirements without changing this
 minimum relationship contract.
+
+## Open pull-request audit ledger
+
+`audit_open_prs.py` performs the read-only data-completeness audit tracked by
+service-backend#3112. It reads the owned repository inventory, paginates every
+open PR, and records closing factor Issues, branch identity, author kind, age,
+native Issue type, parent/root declaration and Project fields. Multiple factors
+and factors owned by another repository or organization are preserved.
+
+The PR listing query intentionally excludes nested Project values. Only linked
+factor Issues receive a bounded follow-up query, keeping GraphQL node and rate
+cost proportional to actual relationships rather than to every detached PR.
+Repository read failures remain explicit in `errors`, produce a non-zero exit,
+and are never interpreted as an empty repository.
+
+```bash
+GH_TOKEN="$(gh auth token)" python \
+  operations/github-transaction-context/audit_open_prs.py \
+  --output /tmp/open-pr-transaction-ledger.json
+```
+
+The ledger is evidence for reviewed backfill work. It does not create Issues,
+edit PRs or close stale work.
