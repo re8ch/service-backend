@@ -7,6 +7,10 @@ security remain separate authorities.
 - `POLICY.md` defines the tiered target and rollout safety.
 - `BASELINE-2026-11-27.json` records the aggregate initial readback without
   publishing the private repository-level inventory.
+- `SECURITY-PRODUCTS.md` separates free detection, remediation automation and
+  licensed product rollout.
+- `SECURITY-PRODUCTS-BASELINE-2026-11-27.json` records aggregate product
+  coverage and the first public canary declaration.
 - `audit.py` produces the detailed local evidence used for reconciliation.
 
 Run the live audit with a token that can read every Enterprise organization and
