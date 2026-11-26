@@ -1,0 +1,54 @@
+name: GitOps transaction context intake
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '4,19,34,49 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitops-transaction-context-intake
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - {owner: re8ch, repo: identity-gitops, project: 1}
+          - {owner: strata-silica, repo: storage-gitops, project: 1}
+          - {owner: pillars-infra, repo: network-gitops, project: 1}
+          - {owner: 8iops, repo: agent-gitops, project: 5}
+          - {owner: siren-observer, repo: observability-gitops, project: 1}
+    steps:
+      - name: Mint repository-scoped maintenance token
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        env:
+          NODE_USE_ENV_PROXY: '1'
+        with:
+          app-id: ${{ vars.GITOPS_ENTERPRISE_MAINTENANCE_APP_ID }}
+          private-key: ${{ secrets.GITOPS_ENTERPRISE_MAINTENANCE_PRIVATE_KEY }}
+          owner: ${{ matrix.owner }}
+          repositories: ${{ matrix.repo }}
+          permission-issues: write
+          permission-organization-projects: write
+      - name: Check out trusted fleet policy
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Fill missing transaction context
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: >-
+          python operations/github-transaction-context/intake.py
+          --repository '${{ matrix.owner }}/${{ matrix.repo }}'
+          --project-owner '${{ matrix.owner }}'
+          --project-number '${{ matrix.project }}'
+          --scan

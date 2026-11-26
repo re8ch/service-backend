@@ -49,6 +49,15 @@ instruction. The two-week target is a planning default, not an inferred
 commitment; changing it is the only date action needed when the default is
 wrong. Reconciliation is idempotent and never executes Issue-supplied code.
 
+The five GitOps authorities use the central
+`gitops-transaction-context-intake.yml` reconciliation matrix. This is the
+bounded fallback for GitHub's missing cross-repository Issue-event bridge: the
+Maintenance App key remains only in service-backend, each matrix job mints a
+short-lived token for one repository and organization Project, and the scan is
+limited to the 30 most recently updated open Issues. Items carrying the intake
+marker are skipped, and existing Project field values are preserved. The
+schedule adds at most a 15-minute delay without adding any developer step.
+
 Regenerate the repository set and validate it with:
 
 ```bash

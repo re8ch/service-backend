@@ -21,16 +21,27 @@ FIELD_DEFAULTS = {
 }
 
 QUERY = """
-query($owner: String!, $repo: String!, $number: Int!, $project: Int!) {
+query($owner: String!, $repo: String!, $number: Int!, $projectOwner: String!, $project: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       id number title body issueType { name }
       comments(last: 50) { nodes { body } }
-      projectItems(first: 20) { nodes { id project { id number } } }
+      projectItems(first: 20) {
+        nodes {
+          id
+          project { id number owner { ... on Organization { login } ... on User { login } } }
+          fieldValues(first: 50) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2SingleSelectField { name } } }
+              ... on ProjectV2ItemFieldDateValue { date field { ... on ProjectV2FieldCommon { name } } }
+            }
+          }
+        }
+      }
     }
     issueTypes(first: 20) { nodes { id name } }
   }
-  organization(login: $owner) {
+  organization(login: $projectOwner) {
     projectV2(number: $project) {
       id
       fields(first: 50) {
@@ -39,6 +50,16 @@ query($owner: String!, $repo: String!, $number: Int!, $project: Int!) {
           ... on ProjectV2SingleSelectField { id name options { id name } }
         }
       }
+    }
+  }
+}
+"""
+
+SCAN_QUERY = """
+query($owner: String!, $repo: String!) {
+  repository(owner: $owner, name: $repo) {
+    issues(first: 30, states: OPEN, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      nodes { number comments(last: 20) { nodes { body } } }
     }
   }
 }
@@ -116,9 +137,30 @@ def mutation(token: str, query: str, **variables: Any) -> dict[str, Any]:
     return request(token, query, variables)
 
 
-def reconcile(token: str, repository: str, number: int, today: dt.date) -> None:
+def current_fields(item: dict[str, Any]) -> dict[str, str]:
+    values = {}
+    for node in item.get("fieldValues", {}).get("nodes", []):
+        name = (node.get("field") or {}).get("name")
+        value = node.get("name") or node.get("date")
+        if name and value:
+            values[name] = value
+    return values
+
+
+def reconcile(
+    token: str,
+    repository: str,
+    number: int,
+    today: dt.date,
+    project_owner: str | None = None,
+    project_number: int = PROJECT_NUMBER,
+) -> None:
     owner, repo = repository.split("/", 1)
-    data = request(token, QUERY, {"owner": owner, "repo": repo, "number": number, "project": PROJECT_NUMBER})
+    project_owner = project_owner or owner
+    data = request(token, QUERY, {
+        "owner": owner, "repo": repo, "number": number,
+        "projectOwner": project_owner, "project": project_number,
+    })
     issue = data["repository"]["issue"]
     project = data["organization"]["projectV2"]
     if not issue or not project:
@@ -129,13 +171,20 @@ def reconcile(token: str, repository: str, number: int, today: dt.date) -> None:
     if (issue.get("issueType") or {}).get("name") != selected_type:
         mutation(token, "mutation($id:ID!,$type:ID!){updateIssue(input:{id:$id,issueTypeId:$type}){issue{id}}}", id=issue["id"], type=issue_types[selected_type])
 
-    item = next((node for node in issue["projectItems"]["nodes"] if node["project"]["number"] == PROJECT_NUMBER), None)
+    item = next((
+        node for node in issue["projectItems"]["nodes"]
+        if node["project"]["number"] == project_number
+        and (node["project"].get("owner") or {}).get("login") == project_owner
+    ), None)
     if not item:
         result = mutation(token, "mutation($project:ID!,$content:ID!){addProjectV2ItemById(input:{projectId:$project,contentId:$content}){item{id}}}", project=project["id"], content=issue["id"])
         item = result["addProjectV2ItemById"]["item"]
 
+    existing = current_fields(item)
     fields = {node["name"]: node for node in project["fields"]["nodes"] if node.get("name")}
     for name, value in desired_fields(issue.get("body") or "", today).items():
+        if existing.get(name):
+            continue
         field = fields[name]
         if "options" in field:
             options = {option["name"]: option["id"] for option in field["options"]}
@@ -149,13 +198,47 @@ def reconcile(token: str, repository: str, number: int, today: dt.date) -> None:
         mutation(token, "mutation($subject:ID!,$body:String!){addComment(input:{subjectId:$subject,body:$body}){commentEdge{node{id}}}}", subject=issue["id"], body=next_action(issue))
 
 
+def scan(
+    token: str,
+    repository: str,
+    today: dt.date,
+    project_owner: str,
+    project_number: int,
+) -> list[int]:
+    owner, repo = repository.split("/", 1)
+    data = request(token, SCAN_QUERY, {"owner": owner, "repo": repo})
+    pending = [
+        node["number"]
+        for node in data["repository"]["issues"]["nodes"]
+        if not any(MARKER in comment.get("body", "") for comment in node["comments"]["nodes"])
+    ]
+    for number in pending:
+        reconcile(token, repository, number, today, project_owner, project_number)
+    return pending
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repository", required=True)
-    parser.add_argument("--issue", required=True, type=int)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--issue", type=int)
+    target.add_argument("--scan", action="store_true")
+    parser.add_argument("--project-owner")
+    parser.add_argument("--project-number", type=int, default=PROJECT_NUMBER)
     args = parser.parse_args()
-    reconcile(os.environ["GH_TOKEN"], args.repository, args.issue, dt.date.today())
-    print(f"Issue #{args.issue} transaction defaults reconciled.")
+    if args.scan:
+        owner = args.project_owner or args.repository.split("/", 1)[0]
+        reconciled = scan(
+            os.environ["GH_TOKEN"], args.repository, dt.date.today(),
+            owner, args.project_number,
+        )
+        print(f"Reconciled {len(reconciled)} Issue(s): {reconciled}")
+    else:
+        reconcile(
+            os.environ["GH_TOKEN"], args.repository, args.issue, dt.date.today(),
+            args.project_owner, args.project_number,
+        )
+        print(f"Issue #{args.issue} transaction defaults reconciled.")
     return 0
 
 
