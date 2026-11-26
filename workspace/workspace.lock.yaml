@@ -109,7 +109,7 @@ modules:
     - among-clusters
     repository: https://github.com/re8ch-business/catalog.git
   cloud-functions:
-    commit: 7832f51762a9959d022d51be7e5b643e5271fa97
+    commit: 09728ec6b851068417d4bf2ad53b04bd9e04191d
     defaultBranch: master
     dependencies: []
     repository: https://github.com/re8ch/cloud-functions.git
