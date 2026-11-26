@@ -81,6 +81,17 @@ def main() -> None:
     require(https_egress["spec"]["egress"] == [{
                 "ports": [{"protocol": "TCP", "port": 443}],
             }], "runner HTTPS egress must be limited to TCP/443")
+    cluster_egress = next(
+        (policy for policy in policies
+         if policy["metadata"]["name"] == "allow-cluster-egress"),
+        None,
+    )
+    require(cluster_egress is not None,
+            "Kubernetes job hooks must reach the cluster service and Pod CIDRs")
+    require(cluster_egress["spec"]["egress"] == [{"to": [
+                {"ipBlock": {"cidr": "10.42.0.0/16"}},
+                {"ipBlock": {"cidr": "10.43.0.0/16"}},
+            ]}], "cluster egress must remain bounded to Pod and Service CIDRs")
     require(
         "gha-runner-scale-set-controller@sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90"
         in rendered_controller,
