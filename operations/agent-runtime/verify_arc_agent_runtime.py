@@ -30,6 +30,10 @@ def main() -> None:
             "completed runner Pods must be removed immediately")
     require(controller["nodeSelector"]["kubernetes.io/hostname"] == "r640",
             "ARC controller must remain on R640")
+    require(runner["controllerServiceAccount"] == {
+                "namespace": "arc-systems",
+                "name": "arc-controller-gha-rs-controller",
+            }, "runner RBAC must bind the rendered controller identity")
 
     require(runner["githubConfigUrl"] == "https://github.com/re8ch",
             "runner scale set must remain organization scoped")
@@ -55,6 +59,18 @@ def main() -> None:
             "runner privilege escalation must be disabled")
     require(security["capabilities"]["drop"] == ["ALL"],
             "runner Linux capabilities must be dropped")
+
+    rendered_controller = (COMPONENT / "controller-rendered.yaml").read_text()
+    rendered_runner = (COMPONENT / "runner-rendered.yaml").read_text()
+    require(
+        "gha-runner-scale-set-controller@sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90"
+        in rendered_controller,
+        "rendered controller image must be digest pinned",
+    )
+    require("kind: AutoscalingRunnerSet" in rendered_runner,
+            "rendered runner scale set must be present")
+    require("name: r640-agent-ephemeral" in rendered_runner,
+            "rendered runner scale-set identity must be stable")
 
     text = "\n".join(path.read_text() for path in COMPONENT.glob("*.yaml"))
     # Keep the scanner patterns constructed so this guard does not itself look
