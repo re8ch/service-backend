@@ -46,6 +46,18 @@ def test_factor_backfill_records_are_non_destructive():
             assert record["safety"]["pullRequestsClosed"] == 0
             assert record["safety"]["pullRequestsMerged"] == 0
             assert record["safety"]["pullRequestBasesChanged"] == 0
+        elif record["kind"] == "ProjectHygieneRecord":
+            postcondition = record["postcondition"]
+            assert postcondition["contextDraftItems"] == 0
+            assert postcondition["issuesWithoutLabels"] == 0
+            for field in (
+                "missingLifecycle",
+                "missingWorkType",
+                "missingContextStatus",
+                "missingStartDate",
+                "missingTargetOrCompletedDate",
+            ):
+                assert postcondition[field] == 0
         else:
             raise AssertionError(f"unsupported migration record kind: {record['kind']}")
 
