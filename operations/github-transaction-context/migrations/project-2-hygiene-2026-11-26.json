@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-11-26",
+  "issue": "https://github.com/re8ch/service-backend/issues/3299",
+  "project": {
+    "organization": "re8ch",
+    "number": 2,
+    "title": "Service Backend Internal Operations"
+  },
+  "purpose": "Restore required views and normalize historical Project context without rewriting repository-specific workflows.",
+  "before": {
+    "items": 484,
+    "nativeDraftItems": 206,
+    "contextDraftItems": 35,
+    "missingLifecycle": 263,
+    "missingWorkType": 263,
+    "missingContextStatus": 263,
+    "missingStartDate": 263,
+    "missingTargetOrCompletedDate": 263,
+    "views": [
+      "View 1"
+    ]
+  },
+  "normalization": {
+    "requiredViews": [
+      "List",
+      "Status",
+      "Timeline"
+    ],
+    "historicalDraftRule": "Native DraftIssue placeholders imported from document paths remain native draft items temporarily, but use Lifecycle and Context Status Historical and Status Done.",
+    "acceptedDraftRule": "Accepted Issue items use Context Status Ready; Draft is reserved for proposals awaiting acceptance.",
+    "labelProjection": [
+      "project:internal-operations",
+      "work:<type>",
+      "phase:transaction-context",
+      "planning:unphased"
+    ],
+    "milestones": [
+      "Enterprise transaction context normalization",
+      "Historical reconstruction — 2026"
+    ],
+    "milestonePolicy": "Phase children inherit the phase milestone; closed reconstructed work uses the historical milestone; unscheduled open work is labelled planning:unphased instead of receiving a fabricated deadline."
+  },
+  "postcondition": {
+    "items": 485,
+    "nativeDraftItems": 206,
+    "missingLifecycle": 0,
+    "missingWorkType": 0,
+    "missingContextStatus": 0,
+    "missingStartDate": 0,
+    "missingTargetOrCompletedDate": 0,
+    "contextDraftItems": 0,
+    "issuesWithoutLabels": 0,
+    "phaseMilestoneIssues": 112,
+    "historicalMilestoneIssues": 23,
+    "existingMilestoneIssues": 9,
+    "unphasedOpenIssues": 126,
+    "contextStatusCounts": {
+      "Complete": 28,
+      "Historical": 215,
+      "Ready": 242
+    },
+    "verification": "Read back from the live Project after all repository label and milestone mutations completed. Unphased open Issues intentionally have no fabricated Milestone and carry planning:unphased."
+  }
+}
