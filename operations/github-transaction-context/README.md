@@ -140,6 +140,19 @@ GH_TOKEN="$(gh auth token)" python \
 The ledger is evidence for reviewed backfill work. It does not create Issues,
 edit PRs or close stale work.
 
+`bulk_backfill_human_factors.py` is the reviewed migration client for detached
+human-authored PRs outside service-backend. It plans from a complete ledger and
+requires `--apply` before writing. Each distinct PR receives one central
+Project 2 lifecycle factor, while the original PR body is preserved and gains
+only a canonical cross-repository closing reference and idempotency marker.
+Canonical repository identity comes from the live PR URL so organization moves
+do not create duplicate factors on retry. A checkpoint reuses already-created
+factors and lets independent failures continue.
+
+GitHub does not populate `closingIssuesReferences` while a PR targets a
+non-default stacked base. Those PRs keep their factor and reference but remain
+explicit migration exceptions until retargeting is separately reviewed.
+
 Reviewed mutations are recorded under `migrations/`. Each record identifies
 the dry-run evidence, one primary factor per PR, additive cross-organization
 secondary factors, the local Project and independent readback result. A record
