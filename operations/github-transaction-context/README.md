@@ -42,6 +42,13 @@ ambiguous ownership, acceptance and the meaning of runtime evidence. A failed
 check should offer one corrective action; it must not require developers to
 inspect this inventory or manually reconcile multiple GitHub surfaces.
 
+For service-backend, `transaction-context-intake.yml` implements that path on
+new Issues. It runs trusted `main` code on a GitHub-hosted worker, uses the
+bounded maintenance App, applies reviewable defaults, and posts one branch/PR
+instruction. The two-week target is a planning default, not an inferred
+commitment; changing it is the only date action needed when the default is
+wrong. Reconciliation is idempotent and never executes Issue-supplied code.
+
 Regenerate the repository set and validate it with:
 
 ```bash

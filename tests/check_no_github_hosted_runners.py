@@ -28,6 +28,7 @@ CLOUD_JOBS = {
     },
     ".github/workflows/github-security-checks.yml": {"dependency-review"},
     ".github/workflows/transaction-context.yml": {"validate"},
+    ".github/workflows/transaction-context-intake.yml": {"reconcile"},
     ".github/workflows/tenant-go-release.yml": {"tenant-go-validate", "release", "finalize"},
     ".github/workflows/postgresql-provider-release.yml": {"validate", "release"},
     ".github/workflows/release-compat-controller.yml": {"release"},
