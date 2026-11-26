@@ -27,7 +27,14 @@ query($owner: String!, $repo: String!, $number: Int!) {
           parent { number }
           projectItems(first: 20) {
             nodes {
-              project { number title owner { login } }
+              project {
+                number
+                title
+                owner {
+                  ... on Organization { login }
+                  ... on User { login }
+                }
+              }
               fieldValues(first: 50) {
                 nodes {
                   ... on ProjectV2ItemFieldSingleSelectValue {
