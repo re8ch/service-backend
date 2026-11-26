@@ -1,0 +1,49 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorBulkBackfillRecord",
+  "capturedAt": "2026-11-26T16:24:22+08:00",
+  "issue": "re8ch/service-backend#3126",
+  "parent": "re8ch/service-backend#3112",
+  "scope": {
+    "deterministicAutomationPullRequests": 137,
+    "factorGroups": 22,
+    "dependabotPullRequests": 125,
+    "domainPromoterPullRequests": 12
+  },
+  "result": {
+    "attempted": 137,
+    "succeeded": 129,
+    "failed": 8,
+    "skipped": 0,
+    "openPullRequestsAfterReadback": 137,
+    "nativeClosingRelationshipsAfterReadback": 129
+  },
+  "safety": {
+    "pullRequestsClosed": 0,
+    "pullRequestsMerged": 0,
+    "existingBodiesPreserved": true,
+    "issueFactorsCreatedOrReused": 22,
+    "nativeParentRelationshipsVerified": 22,
+    "project": "re8ch/2",
+    "dryRunComment": "https://github.com/re8ch/service-backend/issues/3126#issuecomment-7186101174"
+  },
+  "exceptions": [
+    {
+      "repository": "among-clusters/among-clusters",
+      "pullRequests": [70, 71, 73, 74, 75, 76, 77, 78],
+      "baseRefName": "codex/standalone-control-plane",
+      "defaultBranch": "main",
+      "reason": "GitHub does not populate closingIssuesReferences for closing keywords on pull requests whose base is not the default branch",
+      "bodyReferencesPresent": true,
+      "baseBranchChanged": false
+    }
+  ],
+  "postMigrationAudit": {
+    "openPullRequests": 282,
+    "linkedPullRequests": 272,
+    "detachedPullRequests": 10,
+    "automationDetached": 8,
+    "humanDetached": 2,
+    "repositoryErrors": 0
+  }
+}
