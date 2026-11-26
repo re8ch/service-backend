@@ -1,3 +1,4 @@
+import importlib.util
 import json
 from pathlib import Path
 
@@ -77,3 +78,33 @@ def test_security_canary_is_free_bounded_and_reversible():
     assert canary["readback"]["naturalDeveloperPathProbe"] == (
         "pending-next-legitimate-change"
     )
+
+
+def test_static_first_profile_has_zero_actions_and_compile_cost():
+    profile = json.loads((GOVERNANCE / "static-first-profile.json").read_text())
+    assert profile["delivery"] == {
+        "mode": "github-native-server-side",
+        "workflowsAdded": 0,
+        "requiredChecksAdded": 0,
+        "codeqlSetupsAdded": 0,
+        "repositoryBuildMinutesAdded": 0,
+    }
+    repositories = {
+        repository
+        for batch in profile["publicRollout"]["batches"]
+        for repository in batch["repositories"]
+    }
+    assert len(repositories) == 8
+    assert profile["privateInternal"]["activation"] == (
+        "blocked-pending-cost-preview"
+    )
+
+
+def test_static_first_validator_accepts_reviewed_profile():
+    path = GOVERNANCE / "validate_static_first.py"
+    spec = importlib.util.spec_from_file_location("validate_static_first", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    profile = json.loads((GOVERNANCE / "static-first-profile.json").read_text())
+    module.validate(profile)
