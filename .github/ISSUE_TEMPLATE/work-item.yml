@@ -1,0 +1,48 @@
+name: Governed work item
+description: Create a reviewable service-backend delivery or governance concern.
+title: ""
+projects: ["re8ch/2"]
+body:
+  - type: dropdown
+    id: work-type
+    attributes:
+      label: Work type
+      options: [Feature, Bug, Task, Governance, Dependency, Documentation, Migration]
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: State the observable result, not the implementation activity.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Declare the parent Issue, Project, Milestone and planned branch/worktree.
+      value: |
+        - Parent Issue: none
+        - Project: Service Backend Internal Operations
+        - Milestone: none
+        - Branch/worktree: pending
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      value: |
+        - [ ] Static contract or code verification
+        - [ ] Runtime verification where applicable
+        - [ ] Immutable evidence linked below
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Checks, deployment status, observability, sanitized runtime output or Wiki links.
+    validations:
+      required: true

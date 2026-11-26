@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Operational discussion
+    url: https://github.com/re8ch/service-backend/discussions
+    about: Use a Discussion when there is no actionable review unit yet.
