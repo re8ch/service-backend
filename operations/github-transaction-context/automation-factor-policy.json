@@ -8,7 +8,7 @@
   },
   "actors": {
     "dependabot": {
-      "authors": ["dependabot[bot]", "app/dependabot"],
+      "authors": ["dependabot", "dependabot[bot]", "app/dependabot"],
       "headPrefixes": ["dependabot/"],
       "factorKind": "dependency-update",
       "aggregation": ["repository", "ecosystem"],
@@ -16,7 +16,7 @@
       "workType": "Dependency"
     },
     "domain-promoter": {
-      "authors": ["re8ch-domain-promoter[bot]", "app/re8ch-domain-promoter"],
+      "authors": ["re8ch-domain-promoter", "re8ch-domain-promoter[bot]", "app/re8ch-domain-promoter"],
       "headPrefixes": ["codex/promote-domain-"],
       "titlePattern": "^chore\\(gitops\\): promote (?:verified|attested) domain OCI digests$",
       "factorKind": "domain-oci-promotion",
