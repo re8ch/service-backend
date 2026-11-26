@@ -27,6 +27,7 @@ CLOUD_JOBS = {
         "tenant-select", "tenant-contract", "control-plane-validate",
     },
     ".github/workflows/github-security-checks.yml": {"dependency-review"},
+    ".github/workflows/transaction-context.yml": {"validate"},
     ".github/workflows/tenant-go-release.yml": {"tenant-go-validate", "release", "finalize"},
     ".github/workflows/postgresql-provider-release.yml": {"validate", "release"},
     ".github/workflows/release-compat-controller.yml": {"release"},
