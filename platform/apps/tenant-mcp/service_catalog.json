@@ -292,7 +292,14 @@
     "regions": [
       "global"
     ],
-    "serviceClass": "collaboration.stalwart.v1"
+    "serviceClass": "collaboration.stalwart.v1",
+    "toolProvider": {
+      "contract": "stalwart-agent-tools.re8ch.com/v1alpha1",
+      "deliveryRepository": "https://github.com/8iops/agent-gitops",
+      "runtime": "toolhive-mcpserver",
+      "sourceRepository": "https://github.com/8iops/stalwart-agent-tools",
+      "transport": "public-edge"
+    }
   },
   {
     "accessUnit": "SandboxSession",
