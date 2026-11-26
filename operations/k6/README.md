@@ -23,9 +23,10 @@ load-generator cluster.
 The offsets spread expected traffic. GitHub scheduled workflows are best effort,
 so the phases are coordination hints, not a strict distributed clock. Each
 internal CronJob forbids overlap, has a three-minute deadline, and retains failed
-Jobs for inspection. A failed external k6 threshold fails the workflow. A failed
-internal Job is visible in Kubernetes Job status and logs; alert routing can
-consume that status through cluster telemetry.
+  Jobs for inspection. A failed external k6 threshold fails the workflow and
+  records supporting evidence in Secretary. Internal success staleness alerts
+  fire after 15 minutes for fast checks and 75 minutes for standard checks;
+  Alertmanager sends them to Secretary and IncidentRelay.
 
 ## Where to see results
 
