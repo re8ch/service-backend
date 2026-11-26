@@ -92,6 +92,18 @@ def isolated_private_docs(path: Path, job_name: str, document: dict, job: dict) 
     )
 
 
+def arc_scale_set_smoke(path: Path, job_name: str, document: dict, job: dict) -> bool:
+    triggers = document.get('on', document.get(True))
+    return (
+        path == Path('.github/workflows/arc-agent-runtime-smoke.yml')
+        and job_name == 'ephemeral-boundary'
+        and job.get('runs-on') == 're8ch-self-hosted-ephemeral'
+        and isinstance(triggers, dict) and set(triggers) == {'workflow_dispatch'}
+        and document.get('permissions') == {'contents': 'read'}
+        and job.get('permissions', {'contents': 'read'}) == {'contents': 'read'}
+    )
+
+
 def main() -> None:
     failures: list[str] = []
     for root in ROOTS:
@@ -107,6 +119,7 @@ def main() -> None:
                     continue
                 if ("self-hosted" not in runner_labels
                         and not isolated_private_docs(path, job_name, document, job)
+                        and not arc_scale_set_smoke(path, job_name, document, job)
                         and not reviewed_cloud_job(path, job_name, job)):
                     failures.append(
                         f"{path}:{job_name}: must target a self-hosted runner, got "

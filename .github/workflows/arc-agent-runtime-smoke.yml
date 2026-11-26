@@ -1,0 +1,23 @@
+name: ARC agent runtime smoke
+
+on:
+  workflow_dispatch: {}
+
+permissions: {contents: read}
+
+jobs:
+  ephemeral-boundary:
+    runs-on: re8ch-self-hosted-ephemeral
+    timeout-minutes: 10
+    container:
+      image: ghcr.io/actions/actions-runner@sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690
+    steps:
+    - name: Verify ephemeral self-hosted boundary
+      shell: bash
+      run: |
+        set -euo pipefail
+        test "${RUNNER_ENVIRONMENT:-}" = self-hosted
+        test "${RUNNER_OS:-}" = Linux
+        test "${RUNNER_ARCH:-}" = X64
+        printf 'runner=%s environment=%s os=%s arch=%s\n' \
+          "${RUNNER_NAME:-unknown}" "$RUNNER_ENVIRONMENT" "$RUNNER_OS" "$RUNNER_ARCH"
