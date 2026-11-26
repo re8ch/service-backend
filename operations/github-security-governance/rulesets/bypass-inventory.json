@@ -1,0 +1,48 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "GitHubRulesetBypassInventory",
+  "observedAt": "2026-11-27",
+  "trackingIssue": "https://github.com/re8ch/service-backend/issues/3337",
+  "standingBypassCount": 5,
+  "personalUserBypassCount": 0,
+  "entries": [
+    {
+      "scope": "among-clusters/Protected default branch",
+      "actor": "repository-role:5",
+      "mode": "always",
+      "disposition": "replace-with-narrow-app-or-expiring-breakglass",
+      "risk": "high"
+    },
+    {
+      "scope": "among-clusters/Protected default branch",
+      "actor": "app:re8ch-policy-reviewer",
+      "appId": 4973967,
+      "mode": "always",
+      "disposition": "narrow-to-pull-request-after-canary",
+      "risk": "medium"
+    },
+    {
+      "scope": "bifurcate-systems/Protected default branch",
+      "actor": "app:re8ch-bifurcate-merge-reviewer",
+      "appId": 5357916,
+      "mode": "pull_request",
+      "disposition": "retain-with-quarterly-readback",
+      "risk": "low"
+    },
+    {
+      "scope": "re8ch/gitlab-pipeline-archive/Archive integrity",
+      "actor": "enterprise-owner",
+      "mode": "always",
+      "disposition": "replace-with-expiring-archive-breakglass",
+      "risk": "high"
+    },
+    {
+      "scope": "re8ch/service-backend/GitHub-first main",
+      "actor": "team:gitops-breakglass",
+      "teamId": 19495017,
+      "mode": "pull_request",
+      "disposition": "retain-with-membership-and-quarterly-exercise",
+      "risk": "medium"
+    }
+  ]
+}
