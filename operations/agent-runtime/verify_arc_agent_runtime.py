@@ -66,6 +66,21 @@ def main() -> None:
 
     rendered_controller = (COMPONENT / "controller-rendered.yaml").read_text()
     rendered_runner = (COMPONENT / "runner-rendered.yaml").read_text()
+    policies = [
+        document for document in yaml.safe_load_all(
+            (COMPONENT / "namespaces-and-policy.yaml").read_text()
+        ) if document and document.get("kind") == "NetworkPolicy"
+    ]
+    https_egress = next(
+        (policy for policy in policies
+         if policy["metadata"]["name"] == "allow-https-egress"),
+        None,
+    )
+    require(https_egress is not None,
+            "runner namespace must explicitly allow HTTPS egress")
+    require(https_egress["spec"]["egress"] == [{
+                "ports": [{"protocol": "TCP", "port": 443}],
+            }], "runner HTTPS egress must be limited to TCP/443")
     require(
         "gha-runner-scale-set-controller@sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90"
         in rendered_controller,
