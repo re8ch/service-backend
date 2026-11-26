@@ -4,9 +4,11 @@
   <key>Label</key><string>com.re8ch.gitops-drift</string>
   <key>ProgramArguments</key><array><string>/Users/harryneo/Library/Application Support/RE8CH/bin/run-gitops-drift-audit.sh</string></array>
   <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>/Users/harryneo/.pyenv/versions/3.13.3/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
     <key>RE8CH_GITOPS_DRIFT_AUDIT</key><string>/Users/harryneo/Library/Application Support/RE8CH/bin/gitops-drift-audit.py</string>
-    <key>RE8CH_SERVICE_BACKEND_ANCHOR</key><string>/Volumes/A1/service-backend</string>
+    <key>RE8CH_NAMESPACE_CLASSIFICATION</key><string>/Users/harryneo/Library/Application Support/RE8CH/gitops-drift/namespace-access-classification.yaml</string>
   </dict>
+  <key>WorkingDirectory</key><string>/Users/harryneo</string>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>3600</integer>
   <key>ProcessType</key><string>Background</string>
