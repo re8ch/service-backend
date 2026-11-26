@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   contract:
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: [self-hosted, Linux, X64, untrusted-build]
     timeout-minutes: 10
     steps:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

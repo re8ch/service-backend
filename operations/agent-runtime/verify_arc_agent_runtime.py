@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static fail-closed checks for the ephemeral R640 agent runner contract."""
+"""Static fail-closed checks for the portable self-hosted agent runner contract."""
 
 from pathlib import Path
 import sys
@@ -24,12 +24,13 @@ def main() -> None:
     controller = load("controller-values.yaml")
     runner = load("runner-values.yaml")
 
-    require(controller["flags"]["watchSingleNamespace"] == "arc-runners",
+    require(controller["flags"]["watchSingleNamespace"] == "re8ch-arc-runners",
             "ARC controller must be namespace bounded")
     require(controller["flags"]["terminatedRunnerPodGracePeriodSeconds"] == 0,
             "completed runner Pods must be removed immediately")
-    require(controller["nodeSelector"]["kubernetes.io/hostname"] == "r640",
-            "ARC controller must remain on R640")
+    require(controller["nodeSelector"] == {
+                "scheduling.re8ch.com/agent-runtime": "true",
+            }, "ARC controller must use the portable self-hosted node pool")
     require(runner["controllerServiceAccount"] == {
                 "namespace": "arc-systems",
                 "name": "arc-controller-gha-rs-controller",
@@ -41,7 +42,9 @@ def main() -> None:
             "runner authentication must use the approved Secret reference")
     require(not isinstance(runner["githubConfigSecret"], dict),
             "inline GitHub credentials are forbidden")
-    require(runner["runnerScaleSetName"] == "r640-agent-ephemeral",
+    require(runner["runnerGroup"] == "RE8CH Self-Hosted",
+            "runner group must use the portable self-hosted contract")
+    require(runner["runnerScaleSetName"] == "re8ch-self-hosted-ephemeral",
             "workflow label is part of the external contract")
     require(runner["minRunners"] == 0 and runner["maxRunners"] <= 16,
             "runner pool must be bounded and have no persistent idle runner")
@@ -49,8 +52,9 @@ def main() -> None:
             "jobs must run in isolated Kubernetes job Pods")
 
     pod = runner["template"]["spec"]
-    require(pod["nodeSelector"]["kubernetes.io/hostname"] == "r640",
-            "ephemeral runners must remain on R640")
+    require(pod["nodeSelector"] == {
+                "scheduling.re8ch.com/agent-runtime": "true",
+            }, "ephemeral runners must use the portable self-hosted node pool")
     container = pod["containers"][0]
     require(container["name"] == "runner", "ARC customization must target runner")
     require("@sha256:" in container["image"], "runner image must be digest pinned")
@@ -69,7 +73,7 @@ def main() -> None:
     )
     require("kind: AutoscalingRunnerSet" in rendered_runner,
             "rendered runner scale set must be present")
-    require("name: r640-agent-ephemeral" in rendered_runner,
+    require("name: re8ch-self-hosted-ephemeral" in rendered_runner,
             "rendered runner scale-set identity must be stable")
 
     text = "\n".join(path.read_text() for path in COMPONENT.glob("*.yaml"))
@@ -82,7 +86,7 @@ def main() -> None:
     )
     require(not any(value in text for value in forbidden),
             "credential material or master-key references are forbidden")
-    print("PASS ephemeral R640 ARC contract")
+    print("PASS portable self-hosted ARC contract")
 
 
 if __name__ == "__main__":
