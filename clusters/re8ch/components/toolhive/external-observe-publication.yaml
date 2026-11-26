@@ -77,7 +77,7 @@ spec:
           ports: [{name: http, containerPort: 3000}]
           env:
             - {name: NODE_ENV, value: production}
-            - {name: OIDC_ISSUER_URL, value: "https://auth.re8ch.com/application/o/toolhive-cloud-ui"}
+            - {name: OIDC_ISSUER_URL, value: "https://auth.re8ch.com"}
             - {name: OIDC_CLIENT_ID, value: re8ch-toolhive-cloud-ui}
             - {name: BETTER_AUTH_URL, value: "https://tools.re8ch.com"}
             - {name: TRUSTED_ORIGINS, value: "https://tools.re8ch.com"}

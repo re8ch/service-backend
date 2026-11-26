@@ -10,6 +10,7 @@ def test_directory_public_origin_matches_routes_and_oauth_callback():
     env = {item['name']: item.get('value') for item in deployment['spec']['template']['spec']['containers'][0]['env']}
     host = 'tools.re8ch.com'
     origin = 'https://' + host
+    assert env['OIDC_ISSUER_URL'] == 'https://auth.re8ch.com'
     assert env['BETTER_AUTH_URL'] == origin
     assert env['TRUSTED_ORIGINS'].split(',') == [origin]
     assert any(doc.get('kind') == 'HTTPRoute' and host in doc['spec'].get('hostnames', []) for doc in documents)
