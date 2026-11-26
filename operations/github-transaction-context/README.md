@@ -58,6 +58,31 @@ limited to the 30 most recently updated open Issues. Items carrying the intake
 marker are skipped, and existing Project field values are preserved. The
 schedule adds at most a 15-minute delay without adding any developer step.
 
+## Historical automation factors
+
+`automation-factor-policy.json` defines the only automation identities that may
+be aggregated during open-PR backfill. Classification requires the exact App
+identity and its reviewed branch shape; the domain promoter additionally needs
+the reviewed title contract. Similar names and unknown Apps fail closed to
+manual review.
+
+Dependabot factors are bounded by repository and package ecosystem. Domain OCI
+promotion factors are bounded by repository and promotion stream. This avoids
+creating one hand-maintained Issue per bot PR while retaining one primary Issue
+that owns lifecycle for each automation stream. Cross-organization and
+cross-Project factors remain additive secondary relationships.
+
+The classifier consumes audit-ledger JSON without changing GitHub state:
+
+```bash
+python operations/github-transaction-context/classify_automation_factor.py \
+  --input open-pr-ledger.json
+```
+
+An `aggregate` decision permits a later reviewed migration to reuse the factor
+key; it never permits closing a PR. `review` means no automatic factor may be
+assigned.
+
 Regenerate the repository set and validate it with:
 
 ```bash
