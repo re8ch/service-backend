@@ -23,7 +23,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
-	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
+	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create", "oauth_application_register_litellm":
 		// Additive operations against the configured tenant platform.
 	case "collaboration_connection", "calendar_respond":
 		destructive, openWorld = true, true
@@ -50,6 +50,9 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":
 		// Replaces two fixed control-plane resources from a verified Git revision.
+		destructive = true
+	case "platform_litellm_openoauth_credential_project":
+		// Replaces only the fixed LiteLLM Secret from an approved broker reference.
 		destructive = true
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
