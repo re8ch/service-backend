@@ -144,3 +144,7 @@ Reviewed mutations are recorded under `migrations/`. Each record identifies
 the dry-run evidence, one primary factor per PR, additive cross-organization
 secondary factors, the local Project and independent readback result. A record
 must report zero PR closures; stale-work decisions remain a separate concern.
+Metadata-only repair records also separate factor-context completion from
+branch migration, so a repaired Issue or Project is never reported as a fully
+compliant transaction while its historical head branch still lacks the primary
+Issue identity.
