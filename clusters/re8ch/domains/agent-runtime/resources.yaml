@@ -57215,6 +57215,23 @@ spec:
       - port: "8080"
         protocol: TCP
 ---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-kube-apiserver-egress
+  namespace: re8ch-arc-runners
+spec:
+  egress:
+  - toEntities:
+    - kube-apiserver
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+      - port: "6443"
+        protocol: TCP
+  endpointSelector: {}
+---
 apiVersion: conformance.re8ch.com/v1alpha1
 kind: APIConformanceTarget
 metadata:
@@ -59289,12 +59306,6 @@ spec:
         cidr: 10.42.0.0/16
     - ipBlock:
         cidr: 10.43.0.0/16
-  - ports:
-    - port: 6443
-      protocol: TCP
-    to:
-    - ipBlock:
-        cidr: 10.250.0.147/32
   podSelector: {}
   policyTypes:
   - Egress
