@@ -55,6 +55,14 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 		return nil, err
 	}
 	result := selfServiceCapabilitiesFromState(id, namespaces, grants)
+	for _, capability := range result["capabilities"].([]map[string]any) {
+		if capability["id"] == "model-gateway" {
+			configured := modelGatewayConfigured(ctx, id.Tenant)
+			capability["configured"] = configured
+			capability["providerState"] = map[bool]string{true: "Ready", false: "unavailable"}[configured]
+			capability["canRequest"] = configured && hasRequestableGrant(grants, modelGatewayCapability)
+		}
+	}
 	if id.PlatformAdmin && id.Tenant == "admin" {
 		systemAccess, accessErr := tenantSystemAccess(ctx, id.Tenant)
 		if accessErr != nil {
@@ -82,7 +90,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready, "grantedConsumables": grants,
 		"hostingMode": id.HostingMode, "byocAllowed": id.BYOCAllowed, "nativeAccess": id.NativeAccess,
 		"capabilities": []map[string]any{
-			{"id": "model-gateway", "kinds": []string{}, "tools": []string{"model_gateway_catalog", "model_gateway_chat"}, "requiredConsumable": modelGatewayCapability, "configured": modelGatewayConfigured(id.Tenant), "providerState": "unverified", "canRequest": modelGatewayConfigured(id.Tenant) && hasRequestableGrant(grants, modelGatewayCapability), "canWrite": false, "consumesQuota": true},
+			{"id": "model-gateway", "kinds": []string{}, "tools": []string{"model_gateway_catalog", "model_gateway_chat"}, "requiredConsumable": modelGatewayCapability, "configured": false, "providerState": "discover-with-model_gateway_catalog", "canRequest": hasRequestableGrant(grants, modelGatewayCapability), "canWrite": false, "consumesQuota": true},
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite && id.NativeAccess},
 			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": kubernetesTools, "canWrite": namespacedWrite},

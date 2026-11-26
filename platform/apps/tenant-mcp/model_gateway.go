@@ -25,19 +25,37 @@ const modelGatewayMaxResponse = 262144
 // This is credential location plus a reviewed safety ceiling, not a key/team
 // provisioning system. LiteLLM remains the model and budget authority.
 type modelGatewayBinding struct {
-	TokenEnv string   `json:"tokenEnv"`
-	Models   []string `json:"models"`
+	AccessRef string
+	Models    []string
 }
 
-var modelGatewayTokenEnv = regexp.MustCompile(`^LITELLM_TENANT_[A-Z0-9_]+_KEY$`)
+var modelGatewayCredentialRef = regexp.MustCompile(`^credential://litellm/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})$`)
+var modelGatewayCredentialMaterial = credentialMaterial
 
-func tenantModelGatewayBinding(tenant string) (modelGatewayBinding, error) {
-	var bindings map[string]modelGatewayBinding
-	if json.Unmarshal([]byte(os.Getenv("LITELLM_TENANT_BINDINGS_JSON")), &bindings) != nil {
-		return modelGatewayBinding{}, errors.New("tenant model gateway binding is not configured")
+func tenantModelGatewayBinding(ctx context.Context, tenant string) (modelGatewayBinding, error) {
+	result, err := controlRequest(ctx, tenant, "/v1/services")
+	if err != nil {
+		return modelGatewayBinding{}, err
 	}
-	binding, ok := bindings[tenant]
-	if !ok || !modelGatewayTokenEnv.MatchString(binding.TokenEnv) || len(binding.Models) == 0 || len(binding.Models) > 100 {
+	var matches []modelGatewayBinding
+	for _, raw := range slice(result["items"]) {
+		instance := object(raw)
+		meta, spec, status := object(instance["metadata"]), object(instance["spec"]), object(instance["status"])
+		if asString(spec, "tenantRef") != tenant || asString(spec, "serviceClass") != modelGatewayCapability || status["phase"] != "Ready" {
+			continue
+		}
+		if generation, ok := meta["generation"]; ok && status["observedGeneration"] != generation {
+			continue
+		}
+		access := object(status["access"])
+		matches = append(matches, modelGatewayBinding{AccessRef: asString(access, "accessRef"), Models: stringSlice(access["models"])})
+	}
+	if len(matches) != 1 {
+		return modelGatewayBinding{}, errors.New("exactly one Ready tenant model gateway binding is required")
+	}
+	binding := matches[0]
+	ref := modelGatewayCredentialRef.FindStringSubmatch(binding.AccessRef)
+	if ref == nil || ref[1] != tenant || len(binding.Models) == 0 || len(binding.Models) > 100 {
 		return modelGatewayBinding{}, errors.New("tenant model gateway binding is not configured")
 	}
 	seen := map[string]bool{}
@@ -47,17 +65,27 @@ func tenantModelGatewayBinding(tenant string) (modelGatewayBinding, error) {
 		}
 		seen[model] = true
 	}
-	// Reject accidental reuse of one credential reference across organizations.
-	for owner, other := range bindings {
-		if owner != tenant && other.TokenEnv == binding.TokenEnv {
-			return modelGatewayBinding{}, errors.New("tenant model gateway credential reference must be exclusive")
-		}
-	}
 	return binding, nil
+}
+
+func stringSlice(value any) []string {
+	values := slice(value)
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		text, ok := value.(string)
+		if !ok {
+			return nil
+		}
+		result = append(result, text)
+	}
+	return result
 }
 
 func modelGatewayBase() (string, error) {
 	base := strings.TrimRight(os.Getenv("LITELLM_GATEWAY_URL"), "/")
+	if base == "" {
+		base = "https://litellm.service.re8ch.com/v1"
+	}
 	parsed, err := url.Parse(base)
 	if err != nil || parsed.Hostname() == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/v1") {
 		return "", errors.New("model gateway URL is not configured")
@@ -74,12 +102,8 @@ func modelGatewayBase() (string, error) {
 	return base, nil
 }
 
-func modelGatewayConfigured(tenant string) bool {
-	binding, err := tenantModelGatewayBinding(tenant)
-	if err != nil || os.Getenv(binding.TokenEnv) == "" {
-		return false
-	}
-	_, err = modelGatewayBase()
+func modelGatewayConfigured(ctx context.Context, tenant string) bool {
+	_, err := tenantModelGatewayBinding(ctx, tenant)
 	return err == nil
 }
 
@@ -110,13 +134,13 @@ type modelGatewayClient struct {
 	http        *http.Client
 }
 
-func newModelGatewayClient(tenant string) (*modelGatewayClient, modelGatewayBinding, error) {
-	binding, err := tenantModelGatewayBinding(tenant)
+func newModelGatewayClient(ctx context.Context, tenant string) (*modelGatewayClient, modelGatewayBinding, error) {
+	binding, err := tenantModelGatewayBinding(ctx, tenant)
 	if err != nil {
 		return nil, binding, err
 	}
-	token := os.Getenv(binding.TokenEnv)
-	if token == "" {
+	provider, material, err := modelGatewayCredentialMaterial(ctx, tenant, binding.AccessRef)
+	if err != nil || provider != "litellm" || material["key"] == "" {
 		return nil, binding, errors.New("tenant model gateway credential is not configured")
 	}
 	base, err := modelGatewayBase()
@@ -124,7 +148,7 @@ func newModelGatewayClient(tenant string) (*modelGatewayClient, modelGatewayBind
 		return nil, binding, err
 	}
 	client := &http.Client{Timeout: 45 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect denied") }}
-	return &modelGatewayClient{base: base, token: token, http: client}, binding, nil
+	return &modelGatewayClient{base: base, token: material["key"], http: client}, binding, nil
 }
 
 func (c *modelGatewayClient) request(ctx context.Context, method, path string, payload any) (map[string]any, error) {
@@ -242,7 +266,7 @@ func (s *server) callModelGateway(ctx context.Context, id identity, name string,
 	if err := requireGrantedConsumable(ctx, id, modelGatewayCapability); err != nil {
 		return nil, err
 	}
-	client, binding, err := newModelGatewayClient(id.Tenant)
+	client, binding, err := newModelGatewayClient(ctx, id.Tenant)
 	if err != nil {
 		return nil, err
 	}

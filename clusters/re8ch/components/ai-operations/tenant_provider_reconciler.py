@@ -284,6 +284,9 @@ def revoke_litellm(kube, instance: dict[str, Any], client: LiteLLMAdmin) -> None
     secret = kube.get("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
     key = base64.b64decode((secret.get("data") or {})["key"]).decode()
     client.block_key(key)
+    # Removal is deliberately ordered after native revocation. A later resume
+    # must mint a fresh virtual key instead of reusing the blocked material.
+    kube.delete("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
 
 
 def managed_credential(kube, instance: dict[str, Any], provider: str, project: str, username: str, *, create_if_missing: bool = True) -> tuple[str | None, str | None]:

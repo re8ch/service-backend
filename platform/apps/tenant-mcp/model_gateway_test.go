@@ -14,28 +14,40 @@ import (
 
 func modelGatewayFixture(t *testing.T) {
 	t.Helper()
-	t.Setenv("LITELLM_TENANT_BINDINGS_JSON", `{"re8ch":{"tokenEnv":"LITELLM_TENANT_RE8CH_KEY","models":["research-model"]}}`)
-	t.Setenv("LITELLM_TENANT_RE8CH_KEY", "test-tenant-key")
 	t.Setenv("LITELLM_GATEWAY_URL", "https://gateway.invalid/v1")
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "test-control")
+	original := modelGatewayCredentialMaterial
+	modelGatewayCredentialMaterial = func(_ context.Context, tenant, reference string) (string, map[string]string, error) {
+		if tenant != "re8ch" || reference != "credential://litellm/re8ch/0123456789abcdef0123456789abcdef" {
+			return "", nil, fmt.Errorf("unexpected credential scope")
+		}
+		return "litellm", map[string]string{"key": "test-tenant-key"}, nil
+	}
+	t.Cleanup(func() { modelGatewayCredentialMaterial = original })
+}
+
+func modelGatewayServices(tenant, accessRef string, models []any) map[string]any {
+	return map[string]any{"items": []any{map[string]any{
+		"metadata": map[string]any{"name": "agent-runtime", "generation": float64(1)},
+		"spec":     map[string]any{"tenantRef": tenant, "serviceClass": modelGatewayCapability},
+		"status":   map[string]any{"phase": "Ready", "observedGeneration": float64(1), "access": map[string]any{"accessRef": accessRef, "models": models}},
+	}}}
 }
 
 func TestModelGatewayBindingIsolation(t *testing.T) {
 	modelGatewayFixture(t)
-	if !modelGatewayConfigured("re8ch") {
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, modelGatewayServices("re8ch", "credential://litellm/re8ch/0123456789abcdef0123456789abcdef", []any{"research-model"}))
+	}))
+	defer control.Close()
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	if !modelGatewayConfigured(context.Background(), "re8ch") {
 		t.Fatal("expected configured binding")
 	}
 	for _, tenant := range []string{"admin", "other", "personal-standard"} {
-		if _, err := tenantModelGatewayBinding(tenant); err == nil {
+		if _, err := tenantModelGatewayBinding(context.Background(), tenant); err == nil {
 			t.Fatalf("cross-tenant binding accepted: %s", tenant)
 		}
-	}
-	t.Setenv("LITELLM_TENANT_BINDINGS_JSON", `{"re8ch":{"tokenEnv":"LITELLM_MASTER_KEY","models":["research-model"]}}`)
-	if _, err := tenantModelGatewayBinding("re8ch"); err == nil {
-		t.Fatal("master key reference accepted")
-	}
-	t.Setenv("LITELLM_TENANT_BINDINGS_JSON", `{"re8ch":{"tokenEnv":"LITELLM_TENANT_RE8CH_KEY","models":["research-model"]},"other":{"tokenEnv":"LITELLM_TENANT_RE8CH_KEY","models":["research-model"]}}`)
-	if _, err := tenantModelGatewayBinding("re8ch"); err == nil {
-		t.Fatal("shared credential reference accepted")
 	}
 }
 
@@ -207,6 +219,10 @@ func TestModelGatewayAuthenticatedSDKCallsUseTenantKeyOnce(t *testing.T) {
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/v1/capabilities" {
 			writeJSON(w, 200, map[string]any{"tenantRef": "re8ch", "grants": []any{map[string]any{"consumableRef": modelGatewayCapability, "roleRef": "operator", "lifecycle": "Active"}}})
+			return
+		}
+		if r.URL.Path == "/v1/services" {
+			writeJSON(w, 200, modelGatewayServices("re8ch", "credential://litellm/re8ch/0123456789abcdef0123456789abcdef", []any{"research-model"}))
 			return
 		}
 		writeJSON(w, 200, map[string]string{"tenantRef": "re8ch", "role": "operator", "defaultNamespace": "re8ch"})

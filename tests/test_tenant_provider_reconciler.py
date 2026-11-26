@@ -181,6 +181,13 @@ def test_litellm_reconcile_stores_key_and_publishes_only_opaque_reference(monkey
     provider.reconcile_instance(kube, value, litellm_factory=lambda _kube: client)
     assert client.blocked == ["sk-opaque-provider-material"]
     assert kube.status["phase"] == "Suspended"
+    assert not any(namespace == "credential-broker" for namespace, _ in kube.secrets)
+
+    value["status"] = kube.status
+    value["spec"]["lifecycle"] = "Requested"
+    provider.reconcile_instance(kube, value, litellm_factory=lambda _kube: client)
+    assert len(client.generated) == 2
+    assert kube.status["phase"] == "Ready"
 
 
 def test_stalwart_reconcile_creates_oidc_account_then_requires_user_authorization(monkeypatch):
@@ -313,6 +320,11 @@ class FakeKube:
         secret["data"].update({key: base64.b64encode(item.encode()).decode()
                                for key, item in value["stringData"].items()})
         return secret
+
+    def delete(self, plural, name, namespace=None, api=None):
+        assert plural == "secrets" and namespace == "credential-broker"
+        self.secrets.pop((namespace, name), None)
+        return {}
 
     def patch_status(self, plural, name, status, namespace):
         assert plural == "tenantserviceinstances" and namespace == "acme"
