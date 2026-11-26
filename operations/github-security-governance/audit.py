@@ -129,6 +129,7 @@ def audit_repository(client: Client, repository: dict) -> dict:
         "fork": repository["fork"],
         "defaultBranch": repository["default_branch"],
         "securityAndAnalysis": repository.get("security_and_analysis"),
+        "dependabotAlerts": endpoint(client, f"{base}/vulnerability-alerts"),
         "effectiveDefaultBranchRules": endpoint(
             client, f"{base}/rules/branches/{branch}"
         ),

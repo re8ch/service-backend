@@ -1,0 +1,74 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "GitHubSecurityProductsBaselineSummary",
+  "observedAt": "2026-11-27",
+  "enterprise": "re8ch",
+  "trackingIssue": "https://github.com/re8ch/service-backend/issues/3339",
+  "scope": {
+    "repositories": 145,
+    "activeNonForkRepositories": 141,
+    "publicRepositories": 46,
+    "privateRepositories": 98,
+    "internalRepositories": 1
+  },
+  "dependabot": {
+    "alertsEnabledActiveNonFork": 67,
+    "alertsDisabledActiveNonFork": 74,
+    "publicAlertsDisabledActiveNonFork": 0,
+    "securityUpdatesEnabledActiveNonFork": 28,
+    "securityUpdatesDisabledActiveNonFork": 113,
+    "semantics": "Alerts are read-only detection. Security updates create pull requests and require repository transaction, grouping and private-registry policy."
+  },
+  "secretProtection": {
+    "secretScanningEnabledAllRepositories": 53,
+    "secretScanningAndPushProtectionDisabledActiveNonFork": 89,
+    "publicGapsActiveNonFork": 9,
+    "privateOrInternalGapsActiveNonFork": 80,
+    "publicPricing": "free native coverage",
+    "privatePricingBoundary": "requires a GitHub Secret Protection cost preview based on unique active committers before enablement",
+    "aiDetection": "excluded because it consumes separately billed AI credits"
+  },
+  "codeSecurity": {
+    "defaultSetupConfigured": 40,
+    "defaultSetupNotConfigured": 12,
+    "unavailableOrUnreadable": 93,
+    "primaryGitOpsAuthorities": {
+      "count": 6,
+      "secretScanningAndPushProtectionEnabled": 6,
+      "codeScanningConfigured": 4,
+      "codeScanningNotConfigured": 2
+    },
+    "decision": "Do not infer that unavailable means disabled. Public and licensed private candidates require language, duplicate-scan, runner and cost review."
+  },
+  "canary": {
+    "repository": "advanced-fabrics/examples",
+    "visibility": "public",
+    "riskTier": 1,
+    "openPullRequestsBefore": 0,
+    "secretScanningBefore": "disabled",
+    "pushProtectionBefore": "disabled",
+    "dependabotAlertsBefore": "enabled",
+    "dependabotSecurityUpdatesBefore": "disabled",
+    "plannedMutation": [
+      "secret_scanning=enabled",
+      "secret_scanning_push_protection=enabled"
+    ],
+    "excludedMutation": [
+      "secret_scanning_ai_detection",
+      "dependabot_security_updates",
+      "code_security"
+    ],
+    "rollback": [
+      "secret_scanning_push_protection=disabled",
+      "secret_scanning=disabled"
+    ],
+    "status": "declared-pending-merge"
+  },
+  "safety": {
+    "secretValuesRecorded": false,
+    "alertDetailsRecorded": false,
+    "paidProductsEnabled": 0,
+    "aiFeaturesEnabled": 0,
+    "bulkMutations": 0
+  }
+}
