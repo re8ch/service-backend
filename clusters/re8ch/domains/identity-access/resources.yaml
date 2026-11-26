@@ -4415,6 +4415,50 @@ data:
       token_endpoint_auth_method, redirect_uris, grant_types,
       client_name, client_uri
     ) values (
+      '32098a11-be0c-5dd4-9f29-ec87c30faf19', '', 'manual', 'public',
+      'none', 'https://tools.re8ch.com/api/auth/oauth2/callback/oidc',
+      'authorization_code,refresh_token', 'RE8CH ToolHive Cloud UI',
+      'https://tools.re8ch.com'
+    ) on conflict (id) do update set
+      client_secret_hash = excluded.client_secret_hash,
+      registration_type = excluded.registration_type,
+      client_type = excluded.client_type,
+      token_endpoint_auth_method = excluded.token_endpoint_auth_method,
+      redirect_uris = excluded.redirect_uris,
+      grant_types = excluded.grant_types,
+      client_name = excluded.client_name,
+      client_uri = excluded.client_uri,
+      deleted_at = null,
+      updated_at = now();
+    do $$
+    begin
+      if not exists (
+        select 1 from auth.oauth_clients
+        where id = '32098a11-be0c-5dd4-9f29-ec87c30faf19'
+          and client_secret_hash = ''
+          and client_type = 'public'
+          and token_endpoint_auth_method = 'none'
+          and redirect_uris = 'https://tools.re8ch.com/api/auth/oauth2/callback/oidc'
+          and deleted_at is null
+      ) then
+        raise exception 'ToolHive OpenOAuth client was not registered';
+      end if;
+    end $$;
+    commit;
+kind: ConfigMap
+metadata:
+  name: supabase-oauth-client-toolhive-v1
+  namespace: supabase-identity
+---
+apiVersion: v1
+data:
+  clients.sql: |
+    begin;
+    insert into auth.oauth_clients (
+      id, client_secret_hash, registration_type, client_type,
+      token_endpoint_auth_method, redirect_uris, grant_types,
+      client_name, client_uri
+    ) values (
       'e93247af-5bc0-4f3d-829b-8a70e0a69d31', '', 'manual', 'public',
       'none', 'https://sub.access.re8ch.com/oauth/callback',
       'authorization_code,refresh_token', 'RE8CH Access subscription',
@@ -14466,6 +14510,55 @@ spec:
       volumes:
       - configMap:
           name: supabase-oauth-client-tenant-mcp-v1
+        name: sql
+  ttlSecondsAfterFinished: 604800
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-oauth-client-toolhive-v1
+  namespace: supabase-identity
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - psql -X -v ON_ERROR_STOP=1 "$GOTRUE_DB_DATABASE_URL" -f /sql/clients.sql
+        command:
+        - /bin/sh
+        - -ceu
+        env:
+        - name: GOTRUE_DB_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: GOTRUE_DB_DATABASE_URL
+              name: supabase-identity-secrets
+        image: postgres:16.9-alpine
+        name: register
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        volumeMounts:
+        - mountPath: /sql
+          name: sql
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      restartPolicy: Never
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: pg-re8ch
+      volumes:
+      - configMap:
+          name: supabase-oauth-client-toolhive-v1
         name: sql
   ttlSecondsAfterFinished: 604800
 ---
