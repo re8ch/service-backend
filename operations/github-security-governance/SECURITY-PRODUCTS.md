@@ -16,6 +16,13 @@ it, and an unavailable endpoint is not evidence that the product was disabled.
 | Code Security / CodeQL | Licensed or public source analysis with workflow compute | Review languages, existing scanners and runner placement once per revision before enablement |
 | AI secret detection and push protection | Detects unstructured secrets | Excluded from baseline; separately billed AI credits and preview behavior require a new Issue |
 
+The default delivery profile is
+[`static-first-profile.json`](static-first-profile.json). It uses GitHub's
+native server-side repository settings and adds no repository workflow,
+required check, CodeQL setup or build-minute consumer. The profile is validated
+offline before review. Effective repository state is still read back after a
+merged declaration is applied.
+
 Dependabot alerts and security updates must never be represented as the same
 control. Alerts can be enabled without creating pull requests. Update PRs enter
 the normal Issue/Project/PR transaction model and must not bypass it merely
@@ -71,6 +78,11 @@ repositories over the applicable activity window, not raw repository count.
 The preview must include current licenses, incremental committers, monthly
 estimate, billing mode and a disable/retention decision. No static dollar total
 is committed because it becomes stale and can expose internal staffing data.
+
+The current 80 private/internal gaps are candidates, not an activation plan.
+Tier 3 is only the first review queue. A repository remains blocked if product
+availability, active-committer overlap, incremental monthly estimate or an
+accountable retention and rollback owner is missing.
 
 ## Maintenance
 

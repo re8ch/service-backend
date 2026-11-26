@@ -11,6 +11,10 @@ security remain separate authorities.
   licensed product rollout.
 - `SECURITY-PRODUCTS-BASELINE-2026-11-27.json` records aggregate product
   coverage and the first public canary declaration.
+- `static-first-profile.json` declares the bounded public server-side rollout
+  and the zero-workflow cost boundary.
+- `validate_static_first.py` rejects workflow, required-check, paid-product, AI
+  and broad CodeQL expansion.
 - `audit.py` produces the detailed local evidence used for reconciliation.
 - `rulesets/` records Tier 3 admission, bypass review and evaluate-only canaries.
 - `ACTIONS-ENVIRONMENTS.md` defines workflow provenance, hosted-runner and
