@@ -20,9 +20,9 @@
     "semantics": "Alerts are read-only detection. Security updates create pull requests and require repository transaction, grouping and private-registry policy."
   },
   "secretProtection": {
-    "secretScanningEnabledAllRepositories": 54,
-    "secretScanningAndPushProtectionDisabledActiveNonFork": 88,
-    "publicGapsActiveNonFork": 8,
+    "secretScanningEnabledAllRepositories": 62,
+    "secretScanningAndPushProtectionDisabledActiveNonFork": 80,
+    "publicGapsActiveNonFork": 0,
     "privateOrInternalGapsActiveNonFork": 80,
     "publicPricing": "free native coverage",
     "privatePricingBoundary": "requires a GitHub Secret Protection cost preview based on unique active committers before enablement",
@@ -79,6 +79,7 @@
     "paidProductsEnabled": 0,
     "aiFeaturesEnabled": 0,
     "bulkMutations": 0,
-    "liveCanariesApplied": 1
+    "liveCanariesApplied": 1,
+    "boundedPublicRolloutRepositoriesApplied": 8
   }
 }

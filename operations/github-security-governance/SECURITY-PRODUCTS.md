@@ -70,6 +70,13 @@ Dependabot security updates, Code Security and AI detection remained disabled.
 No synthetic pull request was created solely as evidence; the next legitimate
 signed change supplies the developer-path observation.
 
+The remaining eight active public gaps were subsequently applied as two
+declared server-side batches. All eight read back with Secret Scanning and Push
+Protection enabled, Dependabot alerts enabled, security-update pull requests
+disabled, AI detection disabled and CodeQL default setup not configured. The
+rollout triggered no repository Actions runs and added no workflow, required
+check, CodeQL setup or repository build-minute consumer.
+
 ## Cost decision
 
 Private/internal activation is blocked until an owner records GitHub's current

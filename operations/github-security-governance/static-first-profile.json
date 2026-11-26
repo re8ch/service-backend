@@ -10,7 +10,7 @@
     "repositoryBuildMinutesAdded": 0
   },
   "publicRollout": {
-    "status": "declared-not-applied",
+    "status": "applied-readback-complete",
     "preconditions": {
       "visibility": "public",
       "archived": false,
@@ -51,7 +51,18 @@
           "advanced-fabrics/spec"
         ]
       }
-    ]
+    ],
+    "readback": {
+      "repositoriesApplied": 8,
+      "secretScanningEnabled": 8,
+      "pushProtectionEnabled": 8,
+      "dependabotAlertsEnabled": 8,
+      "dependabotSecurityUpdatesDisabled": 8,
+      "aiDetectionDisabled": 8,
+      "codeqlDefaultSetupNotConfigured": 8,
+      "actionsRunsTriggeredSinceDeclarationMerge": 0,
+      "failures": 0
+    }
   },
   "privateInternal": {
     "gapCount": 80,

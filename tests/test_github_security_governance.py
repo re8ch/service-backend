@@ -48,7 +48,7 @@ def test_security_products_keep_detection_remediation_and_cost_separate():
     assert record["dependabot"]["alertsEnabledActiveNonFork"] > record[
         "dependabot"
     ]["securityUpdatesEnabledActiveNonFork"]
-    assert record["secretProtection"]["publicGapsActiveNonFork"] == 8
+    assert record["secretProtection"]["publicGapsActiveNonFork"] == 0
     assert record["secretProtection"]["privateOrInternalGapsActiveNonFork"] == 80
     assert record["safety"] == {
         "secretValuesRecorded": False,
@@ -57,6 +57,7 @@ def test_security_products_keep_detection_remediation_and_cost_separate():
         "aiFeaturesEnabled": 0,
         "bulkMutations": 0,
         "liveCanariesApplied": 1,
+        "boundedPublicRolloutRepositoriesApplied": 8,
     }
 
 
@@ -95,6 +96,18 @@ def test_static_first_profile_has_zero_actions_and_compile_cost():
         for repository in batch["repositories"]
     }
     assert len(repositories) == 8
+    assert profile["publicRollout"]["status"] == "applied-readback-complete"
+    assert profile["publicRollout"]["readback"] == {
+        "repositoriesApplied": 8,
+        "secretScanningEnabled": 8,
+        "pushProtectionEnabled": 8,
+        "dependabotAlertsEnabled": 8,
+        "dependabotSecurityUpdatesDisabled": 8,
+        "aiDetectionDisabled": 8,
+        "codeqlDefaultSetupNotConfigured": 8,
+        "actionsRunsTriggeredSinceDeclarationMerge": 0,
+        "failures": 0,
+    }
     assert profile["privateInternal"]["activation"] == (
         "blocked-pending-cost-preview"
     )
