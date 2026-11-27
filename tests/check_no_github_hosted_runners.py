@@ -97,14 +97,23 @@ def isolated_private_docs(path: Path, job_name: str, document: dict, job: dict) 
 
 def arc_scale_set_smoke(path: Path, job_name: str, document: dict, job: dict) -> bool:
     triggers = document.get('on', document.get(True))
+    byok_smoke = (
+        path == Path('.github/workflows/copilot-byok-arc-smoke.yml')
+        and job_name == 'byok-model'
+        and isinstance(triggers, dict)
+        and set(triggers) == {'pull_request', 'workflow_dispatch'}
+        and job.get('environment') == 'copilot-byok'
+    )
     return (
-        path == Path('.github/workflows/arc-agent-runtime-smoke.yml')
-        and job_name == 'ephemeral-boundary'
-        and job.get('runs-on') == {
+        (path == Path('.github/workflows/arc-agent-runtime-smoke.yml')
+         and job_name == 'ephemeral-boundary'
+         and isinstance(triggers, dict) and set(triggers) == {'workflow_dispatch'})
+        or byok_smoke
+    ) and (
+        job.get('runs-on') == {
             'group': 'RE8CH Self-Hosted',
             'labels': 're8ch-self-hosted-ephemeral',
         }
-        and isinstance(triggers, dict) and set(triggers) == {'workflow_dispatch'}
         and document.get('permissions') == {'contents': 'read'}
         and job.get('permissions', {'contents': 'read'}) == {'contents': 'read'}
     )

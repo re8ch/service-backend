@@ -123,9 +123,10 @@ def main() -> None:
             "rendered runner scale-set identity must be stable")
 
     byok_smoke = BYOK_SMOKE.read_text()
-    require("- self-hosted" in byok_smoke and
-            "- re8ch-self-hosted-ephemeral" in byok_smoke,
+    require("labels: re8ch-self-hosted-ephemeral" in byok_smoke,
             "BYOK smoke must use the ARC scale-set label")
+    require("environment: copilot-byok" in byok_smoke,
+            "BYOK credentials must be scoped to the reviewed environment")
     require("node:22-bookworm-slim@sha256:" in byok_smoke,
             "BYOK job image must be digest pinned")
     require("SSL_CERT_FILE: /tmp/node-root-certificates.pem" in byok_smoke,
