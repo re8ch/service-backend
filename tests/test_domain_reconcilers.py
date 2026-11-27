@@ -243,7 +243,7 @@ def test_flux_keeps_platform_edges_for_detached_products():
             ("gateway.networking.k8s.io/v1", "HTTPRoute", "auth", "re8ch-user-center"),
         },
         "agent-runtime": {
-            ("gateway.networking.k8s.io/v1", "HTTPRoute", "toolhive-system", "connectool-cloud-mcp"),
+            ("v1", "ConfigMap", "toolhive-system", "re8ch-approved-tool-catalog"),
         },
     }
     for domain, expected in required.items():

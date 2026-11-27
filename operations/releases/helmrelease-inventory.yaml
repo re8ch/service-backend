@@ -160,7 +160,7 @@ releases:
   declarationSha256: sha256:3ecc0f0eb2c99c0b1dd853864d4b7fa4dc5da8f7150e3568220cde061848eb0c
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 286
+    document: 279
   - file: platform/advanced-fabric/release.yaml
     document: 2
   classification:
@@ -206,7 +206,7 @@ releases:
   declarationSha256: sha256:cd50d7da52cbc0b32745914fba8b58371c8bec455cf89e8387b71687f68eb836
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 287
+    document: 280
   - file: platform/among-clusters/release.yaml
     document: 4
   classification:
@@ -252,7 +252,7 @@ releases:
   declarationSha256: sha256:71f225350564631f2dbd918f69347e04b3e87561e465fb4e3fb53910cbcb8468
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 288
+    document: 281
   - file: platform/among-clusters/release.yaml
     document: 2
   classification:
@@ -326,7 +326,7 @@ releases:
     namespace: null
   values:
     inlinePresent: true
-    inlineSha256: sha256:d1e105add449b3c9f352a07bca93aea7039054efdfb2c30a369904559337cfcf
+    inlineSha256: sha256:30abff8e255838adfe4bebd4c60f8dfc109fb4c664f9abecedfb60e9a0b409eb
     references: []
   lifecycle:
     install:
@@ -346,7 +346,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:1a184158b41993f0dcf5a6a093921f52984ec9d836966f49410c8421e0123e3f
+  declarationSha256: sha256:dda1ecf244b8ced8f5d805945f7bee6da2e281e81c27743830e56d07604ca596
   occurrences:
   - file: platform/connectool/release.yaml
     document: 2
@@ -682,7 +682,7 @@ releases:
   declarationSha256: sha256:2ea96f216b4bd081e14469dce17e8bb2499d67aa4329f0e5833192e0fe1b57f7
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
-    document: 289
+    document: 282
   - file: platform/public-edge-manager/release.yaml
     document: 2
   classification:
@@ -781,7 +781,7 @@ releases:
   - file: clusters/re8ch/components/toolhive/operator-release.yaml
     document: 2
   - file: clusters/re8ch/domains/agent-runtime/resources.yaml
-    document: 304
+    document: 256
   classification:
     id: helmrelease:flux-system:toolhive-operator
     disposition: retain-helm-lifecycle
