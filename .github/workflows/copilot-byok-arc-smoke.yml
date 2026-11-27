@@ -2,6 +2,11 @@ name: Copilot BYOK ARC smoke
 
 on:
   workflow_dispatch: {}
+  pull_request:
+    paths:
+      - .github/workflows/copilot-byok-arc-smoke.yml
+      - clusters/re8ch/components/arc-agent-runtime/**
+      - operations/agent-runtime/**
 
 permissions:
   contents: read
