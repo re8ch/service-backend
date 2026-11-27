@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../../../../../operations/plugin-capabilities
+- ../../../../../operations/toolhive-catalog
 - ../../../secrets/tenant-claim-internal-auth.sops.yaml
 - ../../../secrets/api-conformance-github-app.sops.yaml
 - ../../../secrets/tenant-registry-supply-chain.sops.yaml

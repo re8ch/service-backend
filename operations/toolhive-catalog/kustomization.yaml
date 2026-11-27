@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+configMapGenerator:
+  - name: re8ch-approved-tool-catalog
+    namespace: toolhive-system
+    files:
+      - registry.json=registry.json
+generatorOptions:
+  disableNameSuffixHash: true
