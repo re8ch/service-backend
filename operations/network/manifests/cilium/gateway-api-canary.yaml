@@ -49,6 +49,15 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    # Public mail is L4 passthrough. Keep these listener names synchronized
+    # with platform/stalwart/public-mail.yaml; changing or removing one makes
+    # the corresponding TCPRoute unaccepted while the public port can still
+    # appear reachable at the TCP layer.
+    - {name: mail-smtp, protocol: TCP, port: 25, allowedRoutes: {namespaces: {from: All}}}
+    - {name: mail-smtps, protocol: TCP, port: 465, allowedRoutes: {namespaces: {from: All}}}
+    - {name: mail-submission, protocol: TCP, port: 587, allowedRoutes: {namespaces: {from: All}}}
+    - {name: mail-imaps, protocol: TCP, port: 993, allowedRoutes: {namespaces: {from: All}}}
+    - {name: mail-sieve, protocol: TCP, port: 4190, allowedRoutes: {namespaces: {from: All}}}
     - {name: teable-https, hostname: teable.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: browser-https, hostname: browser.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     - {name: storage-https, hostname: storage.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: re8ch-wildcard-tls}]}, allowedRoutes: {namespaces: {from: All}}}
