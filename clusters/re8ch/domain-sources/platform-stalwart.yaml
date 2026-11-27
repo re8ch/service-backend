@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: flare-silver
+    delivery.re8ch.com/codename: signal-silver
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-stalwart
   ref:
-    digest: sha256:d6447c0af07ac9fab73d0dc9517b999a9c9ce3ffbb059ae53d6d8efa8d430812
+    digest: sha256:d8cbca466b9e40c6328492c850873c5f97deb31d085df9c64033b18125b152c2
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/stalwart
-    delivery.re8ch.com/codename: flare-silver
+    delivery.re8ch.com/codename: signal-silver
 spec:
   interval: 1m
   retryInterval: 1m
