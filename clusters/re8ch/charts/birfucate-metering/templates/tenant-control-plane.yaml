@@ -120,10 +120,15 @@ spec:
           envFrom:
             - {secretRef: {name: tenant-registry-supply-chain, optional: true}}
             - {secretRef: {name: tenant-claim-internal-auth, optional: true}}
+            - {secretRef: {name: tenant-invocation-authority, optional: true}}
           env:
             - {name: LISTEN_PORT, value: "19447"}
             - {name: IMAGE_POLICY_URL, value: "http://harbor-supply-chain.tenant-infrastructure.svc"}
             - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
+            - {name: IDENTITY_USER_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/user"}
+            - {name: IDENTITY_CONTEXTS_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000/rpc/my_tenant_runtime_contexts"}
+            - {name: BINDING_AUTHORITY_URL, value: "http://supabase-billing-rest-rw.supabase-billing.svc:3000/rpc/resolve_tool_invocation"}
+            - {name: INVOCATION_TOKEN_ISSUER, value: "https://tools.service.re8ch.com/invocation"}
             - {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}
             - {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}
           ports: [{name: http, containerPort: 19447}]
@@ -132,6 +137,11 @@ spec:
           livenessProbe: {httpGet: {path: /livez, port: http}, failureThreshold: 3, periodSeconds: 15, timeoutSeconds: 3}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: invocation-signing, mountPath: /var/run/re8ch-invocation-signing, readOnly: true}
+      volumes:
+        - name: invocation-signing
+          secret: {secretName: tenant-invocation-signing, optional: true}
 ---
 apiVersion: v1
 kind: Service
@@ -211,28 +221,11 @@ spec:
           env:
             - {name: LISTEN_PORT, value: "8080"}
             - {name: PIGSTY_PRIMARY_HOST, value: {{ .Values.tenantPlatform.postgresqlProvider.primaryHost | quote }}}
-            - {name: MCP_CATALOG_ADMIN_TOKEN, valueFrom: {secretKeyRef: {name: tenant-claim-internal-auth, key: TENANT_CLAIM_SERVICE_TOKEN}}}
-            - {name: MCP_CATALOG_ADMIN_URL, value: "http://tenant-api.tenant-infrastructure.svc:19450/internal/mcp/catalog"}
-          ports: [{name: mcp, containerPort: 8080}]
-          readinessProbe: {httpGet: {path: /readyz, port: mcp}, periodSeconds: 5, timeoutSeconds: 3}
-          livenessProbe: {httpGet: {path: /livez, port: mcp}, periodSeconds: 15, timeoutSeconds: 3}
+          ports: [{name: health, containerPort: 8080}]
+          readinessProbe: {httpGet: {path: /readyz, port: health}, periodSeconds: 5, timeoutSeconds: 3}
+          livenessProbe: {httpGet: {path: /livez, port: health}, periodSeconds: 15, timeoutSeconds: 3}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
----
-apiVersion: v1
-kind: Service
-metadata: {name: postgresql-provider, namespace: tenant-infrastructure}
-spec: {selector: {app: postgresql-provider}, ports: [{name: mcp, port: 8080, targetPort: mcp}]}
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata: {name: postgresql-provider, namespace: tenant-infrastructure}
-spec:
-  podSelector: {matchLabels: {app: postgresql-provider}}
-  policyTypes: [Ingress]
-  ingress:
-    - from: [{podSelector: {matchLabels: {app: tenant-api}}}]
-      ports: [{protocol: TCP, port: 8080}]
 {{- end }}
 ---
 {{- if .Values.tenantPlatform.provider.enabled }}
@@ -249,7 +242,7 @@ metadata: {name: tenant-provider-reconciler}
 rules:
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances, tenants], verbs: [get, list]}
   - {apiGroups: [tenancy.re8ch.com], resources: [tenantserviceinstances/status], verbs: [get, patch]}
-  - {apiGroups: [""], resources: [services, endpoints], resourceNames: [ledger-api-gateway-local, pg-re8ch-primary, cube-trial-api, cube-trial-ops, cube-trial-proxy], verbs: [get]}
+  - {apiGroups: [""], resources: [services, endpoints], resourceNames: [ledger-api-gateway-local, pg-re8ch-primary, supabase-studio, supabase-identity-studio, supabase-billing-studio, cube-trial-api, cube-trial-ops, cube-trial-proxy], verbs: [get]}
 {{- if .Values.tenantPlatform.provider.databaseBindings }}
   - {apiGroups: [""], resources: [namespaces], resourceNames: [{{- range $i, $binding := .Values.tenantPlatform.provider.databaseBindings }}{{ if $i }}, {{ end }}{{ $binding.namespace }}{{- end }}], verbs: [get]}
 {{- end }}
@@ -327,7 +320,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: tenant-provider-credential-write, namespace: credential-broker}
 rules:
-  - {apiGroups: [""], resources: [secrets], verbs: [get, create, patch]}
+  - {apiGroups: [""], resources: [secrets], verbs: [get, create, patch, delete]}
   - {apiGroups: [operator.victoriametrics.com], resources: [vmusers], verbs: [get, create, delete]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -363,6 +356,7 @@ spec:
             - {name: IDENTITY_REST_URL, value: "http://supabase-identity-rest.supabase-identity.svc:3000"}
             - {name: IDENTITY_SERVICE_KEY, valueFrom: {secretKeyRef: {name: tenant-provider-identity, key: service-role-key}}}
             - {name: GRAFANA_DATABASE_BINDINGS_JSON, value: {{ .Values.tenantPlatform.provider.databaseBindings | toJson | quote }}}
+            - {name: STALWART_URL, value: "https://stalwart-admin.service.re8ch.com"}
           resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: 500m, memory: 256Mi}}
           securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
           volumeMounts:

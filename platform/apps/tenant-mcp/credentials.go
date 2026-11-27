@@ -18,10 +18,11 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
-var credentialRef = regexp.MustCompile(`^credential://(harbor|grafana)/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})$`)
+var credentialRef = regexp.MustCompile(`^credential://(harbor|grafana|litellm)/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})$`)
 
 func openRedemptions(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
@@ -111,20 +112,65 @@ func kubeClient() (*http.Client, string, string, error) {
 	if port == "" {
 		port = "443"
 	}
-	token, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	return kubernetesHTTPClients.fromFiles("https://"+host+":"+port,
+		"/var/run/secrets/kubernetes.io/serviceaccount/token",
+		"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+}
+
+// Transport pools outlive individual requests; credentials do not. Rotation
+// replaces the endpoint/CA pool and retires its idle connections only.
+var kubernetesHTTPClients kubeTransportCache
+var kubernetesTransportDefaults = http.DefaultTransport.(*http.Transport).Clone()
+
+type kubeTransportCache struct {
+	mu       sync.Mutex
+	endpoint string
+	caDigest [32]byte
+	client   *http.Client
+}
+
+func (c *kubeTransportCache) fromFiles(base, tokenFile, caFile string) (*http.Client, string, string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	token, err := os.ReadFile(tokenFile)
 	if err != nil {
 		return nil, "", "", err
 	}
-	ca, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+	ca, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, "", "", err
+	}
+	client, err := c.forCALocked(base, ca)
+	if err != nil {
+		return nil, "", "", err
+	}
+	return client, base, strings.TrimSpace(string(token)), nil
+}
+
+func (c *kubeTransportCache) forCA(base string, ca []byte) (*http.Client, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.forCALocked(base, ca)
+}
+
+func (c *kubeTransportCache) forCALocked(base string, ca []byte) (*http.Client, error) {
+	digest := sha256.Sum256(ca)
+	if c.client != nil && c.endpoint == base && c.caDigest == digest {
+		return c.client, nil
 	}
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(ca) {
-		return nil, "", "", errors.New("invalid Kubernetes CA")
+		return nil, errors.New("invalid Kubernetes CA")
 	}
-	client := &http.Client{Timeout: 30 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
-	return client, "https://" + host + ":" + port, strings.TrimSpace(string(token)), nil
+	transport := kubernetesTransportDefaults.Clone()
+	transport.Proxy = nil // Preserve the existing direct Kubernetes API path.
+	transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	client := &http.Client{Timeout: 30 * time.Second, Transport: transport}
+	if c.client != nil {
+		c.client.CloseIdleConnections()
+	}
+	c.endpoint, c.caDigest, c.client = base, digest, client
+	return client, nil
 }
 
 type kubeResponseError struct{ Status int }
@@ -138,6 +184,12 @@ func kubeRequest(ctx context.Context, method, path string, payload any) (map[str
 	if err != nil {
 		return nil, err
 	}
+	return kubeRequestHTTP(ctx, client, base, token, method, path, payload)
+}
+
+// Keep one HTTP exchange separate for real-API credential-read tests without
+// service-account files; mutation request behavior remains unchanged.
+func kubeRequestHTTP(ctx context.Context, client *http.Client, base, token, method, path string, payload any) (map[string]any, error) {
 	var body io.Reader
 	if payload != nil {
 		data, _ := json.Marshal(payload)
@@ -178,7 +230,9 @@ func controlRequestBody(ctx context.Context, tenant, path string, payload any) (
 	return controlRequestMethod(ctx, tenant, path, method, payload)
 }
 
-func controlRequestMethod(ctx context.Context, tenant, path, method string, payload any) (map[string]any, error) {
+func controlRequestMethod(ctx context.Context, tenant, path, method string, payload any) (controlResult map[string]any, controlErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "tenant_control.request")
+	defer func() { finishDiagnostic(controlErr) }()
 	base, secret := strings.TrimRight(os.Getenv("TENANT_CONTROL_URL"), "/"), os.Getenv("TENANT_CLAIM_SERVICE_TOKEN")
 	if base == "" || secret == "" {
 		return nil, errors.New("tenant claim controller unavailable")
@@ -197,7 +251,7 @@ func controlRequestMethod(ctx context.Context, tenant, path, method string, payl
 	req.Header.Set("X-Tenant-Caller", "tenant")
 	req.Header.Set("X-Tenant-Ref", tenant)
 	req.Header.Set("X-Tenant-Service-Token", secret)
-	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
+	response, err := (&http.Client{Timeout: 30 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, base, "tenant_control.http")}).Do(req)
 	if err != nil {
 		return nil, err
 	}

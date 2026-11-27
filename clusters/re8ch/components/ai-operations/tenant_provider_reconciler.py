@@ -184,7 +184,10 @@ class StalwartAdmin:
             raise RuntimeError("Stalwart recovery credential is unavailable")
         self.cli = cli
         self.env = {**os.environ, "STALWART_USER": username, "STALWART_PASSWORD": password,
-                    "STALWART_URL": os.getenv("STALWART_URL", "http://stalwart.mail-system.svc.cluster.local:8080")}
+                    "STALWART_URL": os.getenv("STALWART_URL", "https://stalwart-admin.service.re8ch.com"),
+                    # The reconciler has a read-only root filesystem. Keep the CLI's
+                    # transient config and cache in the pod's memory-backed /dev/shm.
+                    "HOME": "/dev/shm", "XDG_CONFIG_HOME": "/dev/shm", "XDG_CACHE_HOME": "/dev/shm"}
 
     def run(self, *args: str, stdin: str | None = None) -> str:
         result = subprocess.run([self.cli, *args], input=stdin, text=True, capture_output=True,
@@ -209,7 +212,7 @@ class StalwartAdmin:
         plan = {"@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
                 "value": {"tenant-user": {"@type": "User", "name": local, "domainId": domain["id"],
                 "description": description, "roles": {"@type": "User"}, "permissions": {"@type": "Inherit"},
-                "quotas": {"disk": quota_bytes}, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
+                "quotas/maxDiskQuota": quota_bytes, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
         self.run("apply", "--stdin", "--json", stdin=json.dumps(plan) + "\n")
         matches = [item for item in self.rows("Account", "id,name,domainId,roles")
                    if item.get("name") == local and item.get("domainId") == domain["id"]]
@@ -281,6 +284,9 @@ def revoke_litellm(kube, instance: dict[str, Any], client: LiteLLMAdmin) -> None
     secret = kube.get("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
     key = base64.b64decode((secret.get("data") or {})["key"]).decode()
     client.block_key(key)
+    # Removal is deliberately ordered after native revocation. A later resume
+    # must mint a fresh virtual key instead of reusing the blocked material.
+    kube.delete("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
 
 
 def managed_credential(kube, instance: dict[str, Any], provider: str, project: str, username: str, *, create_if_missing: bool = True) -> tuple[str | None, str | None]:
@@ -854,7 +860,38 @@ def reconcile_instance(kube, instance: dict[str, Any], harbor_factory=harbor_cli
         }, namespace)
         return
     if service_class == "database.postgresql.shared.v1":
-        # PostgreSQL is reconciled by the independently released provider.
+        # Tenant-created databases are reconciled by the independently released
+        # provider. The three existing Admin authorities are adopted here so
+        # their native Supabase MCP endpoints remain ordinary Service Instances.
+        adopted = {
+            "pg-re8ch": ("supabase-pg-re8ch", "supabase-studio", "http://supabase-studio.supabase-pg-re8ch.svc.cluster.local:3000/mcp"),
+            "pg-identity": ("supabase-identity", "supabase-identity-studio", "http://supabase-identity-studio.supabase-identity.svc.cluster.local:3000/mcp"),
+            "pg-billing": ("supabase-billing", "supabase-billing-studio", "http://supabase-billing-studio.supabase-billing.svc.cluster.local:3000/mcp"),
+        }
+        target = adopted.get(meta["name"]) if tenant == "admin" else None
+        if not target:
+            return
+        if spec.get("parameters") or spec.get("plan") != "standard":
+            raise PermissionError("Admin PostgreSQL adoption is parameterless")
+        if lifecycle in {"Suspended", "Deleting"}:
+            phase = "Suspended" if lifecycle == "Suspended" else "Deleted"
+            kube.patch_status("tenantserviceinstances", meta["name"], {
+                "observedGeneration": meta.get("generation", 1), "phase": phase,
+                "access": (instance.get("status") or {}).get("access"),
+                "conditions": [control.condition("Ready", False, "NativeMCPAccessRevoked")],
+            }, namespace)
+            return
+        service_namespace, service_name, endpoint = target
+        service = kube.get("services", service_name, service_namespace, "api/v1")
+        if not (service.get("spec") or {}).get("clusterIP"):
+            raise RuntimeError("Supabase Studio MCP service endpoint is not ready")
+        kube.patch_status("tenantserviceinstances", meta["name"], {
+            "observedGeneration": meta.get("generation", 1), "phase": "Ready", "reason": None,
+            "access": {"accessRef": f"capability://supabase-mcp/admin/{meta['name']}",
+                       "mcpRef": endpoint, "credentialMaterialReturned": False},
+            "humanCredentialRef": None,
+            "conditions": [control.condition("Ready", True, "NativeSupabaseMCPReady")],
+        }, namespace)
         return
     if service_class == "ai.model-gateway.v1":
         request = {"serviceClass": service_class, "planRef": spec["plan"], "parameters": spec.get("parameters") or {}}

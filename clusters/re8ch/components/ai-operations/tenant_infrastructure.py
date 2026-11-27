@@ -95,6 +95,20 @@ CATALOG: dict[str, dict[str, Any]] = {
         "meters": {"runtime": "second", "cpu": "core-second", "memory": "GiB-second", "artifacts": "GiB-hour", "egress": "byte"},
         "adapter": "cubesandbox-runtime", "accessUnit": "SandboxRuntimePool", "bindings": ["runtime:cubesandbox", "sandbox:session", "artifact:scoped"],
     },
+    "integration.oauth.application.v1": {
+        "plans": ["public-pkce", "confidential"], "regions": ["global"],
+        "parameters": {"clientName", "clientUri", "redirectUris", "scopes", "clientType", "tokenEndpointAuthMethod", "audienceOrgRefs"},
+        "meters": {"authorizations": "authorization", "token_exchanges": "request"},
+        "adapter": "identity-oauth-application-api", "accessUnit": "OAuthApplicationRegistration",
+        "bindings": ["oauth:client-reference"],
+    },
+    "integration.mcp.managed.v1": {
+        "plans": ["signed-image"], "regions": ["global", "loudi"],
+        "parameters": {"serviceName", "claimRef", "imageDigest", "endpoint", "authMode", "oauthApplicationRef", "audienceOrgRefs", "tools", "meters"},
+        "meters": {"requests": "request", "runtime": "second"},
+        "adapter": "billing-bifurcate-managed-mcp-api", "accessUnit": "ManagedMCPPublication",
+        "bindings": ["mcp:gateway", "access:broker-reference"],
+    },
 }
 
 
@@ -164,6 +178,28 @@ def validate_spec(spec: dict[str, Any], *, previous: dict[str, Any] | None = Non
             raise ServiceError("Grafana requires datasourceRefs, humanLogin and identityUserRef")
     if service_class == "network.among-clusters.v1" and not parameters.get("destinationClusterRefs"):
         raise ServiceError("AmongClusters requires destinationClusterRefs")
+    if service_class in {"integration.oauth.application.v1", "integration.mcp.managed.v1"}:
+        audiences = parameters.get("audienceOrgRefs", [])
+        if not isinstance(audiences, list) or not audiences or len(audiences) > 64 or any(
+            not isinstance(value, str) or not re.fullmatch(r"[a-z0-9](?:[-a-z0-9]*[a-z0-9])?", value) or value == "admin"
+            for value in audiences
+        ) or len(set(audiences)) != len(audiences):
+            raise ServiceError("audienceOrgRefs must be 1 to 64 unique non-admin organization references")
+    if service_class == "integration.oauth.application.v1":
+        redirects = parameters.get("redirectUris")
+        scopes = parameters.get("scopes")
+        if not parameters.get("clientName") or not isinstance(redirects, list) or not redirects or len(redirects) > 20:
+            raise ServiceError("OAuth application requires clientName and 1 to 20 redirectUris")
+        if not isinstance(scopes, list) or not scopes or len(scopes) > 32 or any(not isinstance(value, str) or not value for value in scopes):
+            raise ServiceError("OAuth application requires 1 to 32 scopes")
+    if service_class == "integration.mcp.managed.v1":
+        tools, meters = parameters.get("tools"), parameters.get("meters")
+        if not re.fullmatch(r"[a-z][a-z0-9-]{0,62}", str(parameters.get("serviceName", ""))):
+            raise ServiceError("managed MCP requires a valid serviceName")
+        if not isinstance(tools, list) or not 1 <= len(tools) <= 256 or any(not isinstance(tool, dict) or not tool.get("name") for tool in tools):
+            raise ServiceError("managed MCP requires 1 to 256 tool contracts")
+        if not isinstance(meters, dict) or not meters or len(meters) > 32 or any(not isinstance(key, str) or not isinstance(value, str) for key, value in meters.items()):
+            raise ServiceError("managed MCP requires 1 to 32 unpriced meter contracts")
     return {**spec, "desiredState": spec.get("desiredState", "Ready"), "parameters": parameters, "labels": spec.get("labels") or {}}
 
 

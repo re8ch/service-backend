@@ -18,23 +18,9 @@ data:
         type: fallback
         proxies: [{{- range $index, $candidate := .Values.exits.globalCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name }}{{- end }}]
         url: "https://www.gstatic.com/generate_204"
-        interval: 30
-        lazy: false
-      # OAuth code exchange is a release-critical path. Probe the real GitHub
-      # endpoint instead of assuming that a generic Google probe proves it.
-      - name: GITHUB
-        type: fallback
-        proxies: [{{- range $index, $candidate := .Values.exits.globalCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name }}{{- end }}]
-        url: "https://github.com/login/oauth/access_token"
-        interval: 30
-        lazy: false
-      - name: GHCR
-        type: fallback
-        proxies: [{{- range $index, $candidate := .Values.exits.globalCandidates }}{{ if $index }}, {{ end }}{{ $candidate.name }}{{- end }}]
-        url: "https://ghcr.io/v2/"
-        interval: 30
-        lazy: false
-    rules: ["IP-CIDR,10.0.0.0/8,DIRECT,no-resolve", "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve", "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve", "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ghcr.io,GHCR", "DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,GHCR", "DOMAIN-SUFFIX,github.com,GITHUB", "DOMAIN-SUFFIX,githubusercontent.com,GITHUB", "DOMAIN-SUFFIX,cn,DIRECT", "RULE-SET,cn-ip,DIRECT", "MATCH,GLOBAL"]
+        interval: 600
+        lazy: true
+    rules: ["IP-CIDR,10.0.0.0/8,DIRECT,no-resolve", "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve", "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve", "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ghcr.io,GLOBAL", "DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,GLOBAL", "DOMAIN-SUFFIX,github.com,GLOBAL", "DOMAIN-SUFFIX,githubusercontent.com,GLOBAL", "DOMAIN-SUFFIX,cn,DIRECT", "RULE-SET,cn-ip,DIRECT", "MATCH,GLOBAL"]
   global.yaml: |
     mixed-port: {{ .Values.nodeProxy.port }}
     external-controller: 0.0.0.0:{{ .Values.nodeProxy.controllerPort }}
@@ -59,9 +45,9 @@ data:
       - name: CN
         type: fallback
         proxies: [CN-FABRIC]
-        url: "https://connectivitycheck.gstatic.com/generate_204"
-        interval: 30
-        lazy: false
+        url: "https://connect.rom.miui.com/generate_204"
+        interval: 600
+        lazy: true
     rules: ["IP-CIDR,10.0.0.0/8,DIRECT,no-resolve", "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve", "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve", "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve", "DOMAIN,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,ipinfo.io,DIRECT", "DOMAIN-SUFFIX,cn,CN", "RULE-SET,cn-ip,CN", "MATCH,DIRECT"]
   exit.yaml: |
     mixed-port: {{ .Values.exits.port }}
@@ -149,16 +135,12 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           args: [-d, /etc/mihomo]
           ports: [{name: socks, containerPort: {{ $.Values.exits.port }}}, {name: controller, containerPort: {{ $.Values.exits.controllerPort }}}]
+          # Readiness only proves that the local proxy is accepting traffic.
+          # End-to-end route health is sampled separately at a bounded rate.
           readinessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -ec
-                - >-
-                  wget -q -T 7 -O /dev/null
-                  'http://127.0.0.1:{{ $.Values.exits.controllerPort }}/proxies/DIRECT/delay?url={{ if eq $geo "global" }}https%3A%2F%2Fapi.github.com%2Frate_limit{{ else }}https%3A%2F%2Fconnectivitycheck.gstatic.com%2Fgenerate_204{{ end }}&timeout=5000'
+            tcpSocket: {port: socks}
             periodSeconds: 10
-            timeoutSeconds: 8
+            timeoutSeconds: 2
             failureThreshold: 2
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 250m, memory: 256Mi}}

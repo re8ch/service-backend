@@ -1,0 +1,35 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorBackfill",
+  "metadata": {
+    "issue": "re8ch/service-backend#3120",
+    "parent": "re8ch/service-backend#3112",
+    "executedAt": "2026-11-26",
+    "repository": "re8ch/identity-gitops"
+  },
+  "safety": {
+    "dryRunComment": "https://github.com/re8ch/service-backend/issues/3120#issuecomment-7185664906",
+    "closedPullRequests": 0,
+    "preservedOriginalBodies": true,
+    "onePrimaryFactorPerPullRequest": true
+  },
+  "workflowEvidence": "https://github.com/re8ch/service-backend/actions/runs/45776813327",
+  "transactions": [
+    {
+      "pullRequest": "re8ch/identity-gitops#85",
+      "primaryFactor": "re8ch/identity-gitops#106",
+      "secondaryFactors": ["re8ch/service-backend#3120"],
+      "nativeIssueType": "Bug",
+      "project": "re8ch/1",
+      "result": "complete"
+    },
+    {
+      "pullRequest": "re8ch/identity-gitops#44",
+      "primaryFactor": "re8ch/identity-gitops#107",
+      "secondaryFactors": ["re8ch/service-backend#3120"],
+      "nativeIssueType": "Task",
+      "project": "re8ch/1",
+      "result": "complete"
+    }
+  ]
+}

@@ -23,6 +23,7 @@ import (
 )
 
 const moduleDiscoveryBudget = 5 * time.Second
+const moduleConnectBudget = 15 * time.Second
 const moduleCacheLifetime = 30 * time.Second
 
 type platformRegistryDocument struct {
@@ -50,7 +51,10 @@ func decodePlatformRegistry(data []byte) (platformRegistryDocument, error) {
 		if !moduleName.MatchString(name) || err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 			return doc, fmt.Errorf("invalid endpoint for module %q", name)
 		}
-		if b.Namespace == "" || b.Secret == "" || b.SecretKey == "" || b.Header == "" || strings.ContainsAny(b.Header, "\r\n :") {
+		if b.AuthMode != "" && b.AuthMode != "none" {
+			return doc, fmt.Errorf("unsupported auth mode for module %q", name)
+		}
+		if b.AuthMode != "none" && (b.Namespace == "" || b.Secret == "" || b.SecretKey == "" || b.Header == "" || strings.ContainsAny(b.Header, "\r\n :")) {
 			return doc, fmt.Errorf("incomplete module %q", name)
 		}
 	}
@@ -187,7 +191,12 @@ func (e *platformModule) release() {
 	}
 }
 func (e *platformModule) acquire(ctx context.Context, name string) (*mcp.ClientSession, error) {
+	ctx, cancel := context.WithTimeout(ctx, moduleConnectBudget)
+	defer cancel()
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		e.mu.Lock()
 		if e.retired {
 			e.mu.Unlock()
@@ -237,7 +246,7 @@ func (e *platformModule) acquire(ctx context.Context, name string) (*mcp.ClientS
 	}
 }
 func connectPlatformModule(ctx context.Context, name string, b platformBackend) (*mcp.ClientSession, error) {
-	ctx, cancel := context.WithTimeout(ctx, moduleDiscoveryBudget)
+	ctx, cancel := context.WithTimeout(ctx, moduleConnectBudget)
 	defer cancel()
 	token, err := platformCredential(ctx, b)
 	if err != nil {
@@ -251,11 +260,24 @@ func connectPlatformModule(ctx context.Context, name string, b platformBackend) 
 	connecting := new(atomic.Bool)
 	connecting.Store(true)
 	deadline, _ := ctx.Deadline()
-	transport := platformAuthTransport{base: http.DefaultTransport, token: token, header: b.Header, connecting: connecting, connectDeadline: deadline}
-	httpClient := &http.Client{Timeout: 60 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	var transport http.RoundTripper = http.DefaultTransport
+	if b.AuthMode != "none" {
+		transport = platformAuthTransport{base: http.DefaultTransport, token: token, header: b.Header, connecting: connecting, connectDeadline: deadline}
+	}
+	if name == "native" {
+		transport = tracedInfrastructureTransport(transport, endpoint, "cloud_platform.http")
+	}
+	httpClient := platformModuleHTTPClient(transport)
 	session, err := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: endpoint, HTTPClient: httpClient, DisableStandaloneSSE: true, MaxRetries: -1}, nil)
 	connecting.Store(false)
 	return session, err
+}
+
+func platformModuleHTTPClient(transport http.RoundTripper) *http.Client {
+	// The caller context and backend operation budget own invocation deadlines.
+	// A client-wide cap otherwise truncates valid long commands despite their
+	// explicit timeout. Connection setup remains bounded separately above.
+	return &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 }
 func (r *platformRegistry) call(ctx context.Context, name string, fn func(*mcp.ClientSession) (any, error)) (any, error) {
 	e := r.snapshot()[name]

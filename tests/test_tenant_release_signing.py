@@ -20,7 +20,7 @@ def test_tenant_release_uses_github_oidc_and_pinned_digest_verification():
     assert 'fresh registry upload session' in release
     assert 'docker push "$image"' in release
     assert "docker buildx imagetools inspect" in release
-    assert '--provenance=false --progress plain --load' in release
+    assert 'attestation_args=(--provenance=false)' in release
     assert "workflow_dispatch:" in workflow
     assert "clusters/re8ch/components/ai-operations/**" in workflow
 
@@ -85,3 +85,83 @@ sys.exit(subprocess.call(sys.argv[4:]))
         result = subprocess.run(['bash', script], cwd=tmp_path, env=env, capture_output=True, text=True)
         assert result.returncode == 2
         assert 'must be an integer from 60 through 3600' in result.stderr
+
+
+def test_attested_engine_publisher_preserves_full_index_or_fails_closed(tmp_path):
+    """Run the actual publisher with a recording Docker CLI, not a string mirror."""
+    import hashlib
+    import json
+    import os
+    import subprocess
+    import sys
+
+    bindir = tmp_path / 'bin'
+    bindir.mkdir()
+    docker = bindir / 'docker'
+    docker.write_text(f'#!{sys.executable}\n' + '''import hashlib, json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ['DOCKER_RECORD'], 'a') as f:
+    f.write(json.dumps(args) + '\\n')
+case = os.environ['PUBLICATION_CASE']
+subject = 'sha256:' + 'b' * 64
+index = {'schemaVersion': 2, 'mediaType': 'application/vnd.oci.image.index.v1+json', 'manifests': [
+    {'digest': subject, 'platform': {'os': 'linux', 'architecture': 'amd64'}},
+    {'digest': 'sha256:' + 'c' * 64, 'annotations': {'vnd.docker.reference.type': 'attestation-manifest',
+        'vnd.docker.reference.digest': 'sha256:' + ('d' if case == 'wrong-subject' else 'b') * 64}}]}
+raw = json.dumps(index, separators=(',', ':'))
+digest = 'sha256:' + hashlib.sha256(raw.encode()).hexdigest()
+if args[:1] == ['info']:
+    print(json.dumps([] if case == 'classic' else [['driver-type', 'io.containerd.snapshotter.v1']]))
+elif args[:3] == ['buildx', 'imagetools', 'inspect']:
+    if '--raw' in args:
+        print(raw + (' ' if case == 'wrong-bytes' else ''))
+    elif '.Provenance' in args[-1]:
+        value = {} if case == 'missing-provenance' else {'linux/amd64': {'SLSA': {
+            'buildType': 'https://mobyproject.org/buildkit@v1', 'metadata': {
+                'https://mobyproject.org/buildkit@v1#metadata': {
+                    'vcs': {'revision': ('e' * 40 if case == 'wrong-source' else os.environ['GITHUB_SHA'])},
+                    'source': {'infos': [{'filename': 'Dockerfile'}]}}}}}}
+        if case in {'valid-v1', 'valid-flat-v1'}:
+            old = value['linux/amd64']['SLSA']
+            value['linux/amd64']['SLSA'] = {'buildDefinition': {'buildType': 'https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md'},
+                'runDetails': {'metadata': {'buildkit_metadata': old['metadata']['https://mobyproject.org/buildkit@v1#metadata']}}}
+        if case == 'valid-flat-v1':
+            value = value['linux/amd64']
+        print(json.dumps(value))
+    elif '.SBOM' in args[-1]:
+        sbom = {'SPDX': {'spdxVersion': 'SPDX-2.3', 'packages': [{'name': 'fixture'}]}}
+        print(json.dumps({} if case == 'missing-sbom' else sbom if case == 'valid-flat-v1' else {'linux/amd64': sbom}))
+    else:
+        print(json.dumps({'digest': digest}))
+''')
+    docker.chmod(0o755)
+    script = str(ROOT / 'operations/mcp-conformance/release-tenant-infrastructure.sh')
+    for case in ('valid', 'valid-v1', 'valid-flat-v1', 'classic', 'missing-provenance', 'missing-sbom', 'wrong-source', 'wrong-subject', 'wrong-bytes'):
+        folder = tmp_path / case
+        folder.mkdir()
+        record = folder / 'calls.jsonl'
+        env = {**os.environ, 'PATH': str(bindir) + os.pathsep + os.environ['PATH'],
+               'GITHUB_ACTIONS': '', 'GITHUB_SHA': 'a' * 40,
+               'TENANT_IMAGE_SKIP_FINALIZE': '1', 'TENANT_IMAGE_DOCKER_PUSH': '1',
+               'TENANT_IMAGE_REQUIRE_ATTESTATIONS': '1', 'TENANT_IMAGE_PUSH_ATTEMPTS': '1',
+               'TENANT_IMAGE_INLINE_AUTH': '', 'HARBOR_USERNAME': 'test-only', 'HARBOR_PASSWORD': 'test-only',
+               'DOCKER_RECORD': str(record), 'PUBLICATION_CASE': case}
+        result = subprocess.run(['bash', script], cwd=folder, env=env, text=True, capture_output=True)
+        calls = [json.loads(row) for row in record.read_text().splitlines()]
+        builds = [row for row in calls if row[:2] == ['buildx', 'build']]
+        if case == 'classic':
+            assert not builds
+            assert 'requires the containerd image store' in result.stderr
+        else:
+            assert len(builds) == 1
+            assert '--load' in builds[0] and '--provenance=mode=max' in builds[0]
+            assert any(v.startswith('type=sbom,generator=') for v in builds[0])
+            assert '--push' not in builds[0] and '--provenance=false' not in builds[0]
+            pushes = [row for row in calls if row[:1] == ['push']]
+            assert len(pushes) == 1 and '--platform' not in pushes[0]
+        image = folder / 'tenant-infrastructure.image'
+        assert (result.returncode == 0) == (case in {'valid', 'valid-v1', 'valid-flat-v1'}), result.stderr
+        assert image.exists() == (case in {'valid', 'valid-v1', 'valid-flat-v1'})
+        if case in {'valid', 'valid-v1', 'valid-flat-v1'}:
+            raw = (folder / 'tenant-infrastructure.index.json').read_bytes().removesuffix(b'\n')
+            assert image.read_text().strip().endswith('@sha256:' + hashlib.sha256(raw).hexdigest())

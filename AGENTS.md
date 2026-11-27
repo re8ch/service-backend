@@ -78,3 +78,15 @@ product repository's root instructions.
   R640 public-delivery authority. Resolve its authenticated topology through
   `contracts/network-topology/README.md` for network work.
 - Runtime health combines GitHub checks with actual runtime evidence.
+
+## Multi-cluster federation invariant
+
+`operations/network/docs/multicluster-federation-contract.md` is the single
+normative contract. Qualify federation as cluster control, public service,
+private AmongCluster service or application federation; never infer success in
+one plane from another. Cloud SSA writes directly to the named cluster through
+its cluster-specific API. PublicEdge is the default cross-cluster service path;
+AmongCluster is only a bounded private service path and never a Kubernetes
+control proxy. `Grant Active` is authorization intent, never completion
+evidence; exact target/RBAC, transport/session and real-consumer functional
+probes are all required before declaring recovery.

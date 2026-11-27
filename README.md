@@ -67,6 +67,7 @@ approved secret systems contain values.
 ## Entry points
 
 - External project delivery: [`runbooks/external-project-deployment.md`](runbooks/external-project-deployment.md)
+- Service public-path network investigation: [`runbooks/service-public-path-network-investigation.md`](runbooks/service-public-path-network-investigation.md)
 - GitHub-native publishers: [`operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md`](operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md)
 - Static public sites: [`operations/public-sites/README.md`](operations/public-sites/README.md)
 - Tenant self-service: [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md)

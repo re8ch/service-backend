@@ -8,7 +8,7 @@ import "github.com/modelcontextprotocol/go-sdk/mcp"
 func toolAnnotations(name string) *mcp.ToolAnnotations {
 	readOnly, destructive, openWorld := false, false, false
 	switch name {
-	case "mail_query", "mail_read", "calendar_query", "contacts_query", "files_list", "files_read", "tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
+	case "mail_query", "mail_read", "calendar_query", "contacts_query", "files_list", "files_read", "stalwart_capabilities", "stalwart_mail_query", "stalwart_mail_read", "stalwart_calendar_query", "stalwart_contacts_query", "stalwart_files_list", "stalwart_files_read", "tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load",
@@ -18,14 +18,14 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"grafana_capability_list", "grafana_capability_get", "grafana_datasource_list", "grafana_datasource_get",
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
 		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read",
-		"platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "ssh_broker_targets_list",
+		"platform_cluster_bindings_list", "platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "ssh_broker_targets_list",
 		"platform_observability_status", "platform_stalwart_status":
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
-	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create":
+	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create", "oauth_application_register_litellm":
 		// Additive operations against the configured tenant platform.
-	case "collaboration_connection", "calendar_respond":
+	case "collaboration_connection", "calendar_respond", "stalwart_mail_send", "stalwart_calendar_respond":
 		destructive, openWorld = true, true
 	case "tenant_secret_upsert":
 		// Replaces existing write-only Secret data and cannot restore prior values.
@@ -50,6 +50,9 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		destructive, openWorld = true, true
 	case "reconcile_control_plane_authentication_config":
 		// Replaces two fixed control-plane resources from a verified Git revision.
+		destructive = true
+	case "platform_litellm_openoauth_credential_project":
+		// Replaces only the fixed LiteLLM Secret from an approved broker reference.
 		destructive = true
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",

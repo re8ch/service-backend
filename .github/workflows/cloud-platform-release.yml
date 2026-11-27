@@ -4,6 +4,7 @@ on:
     paths:
       - .github/workflows/cloud-platform-release.yml
       - operations/cloud-platform/**
+      - operations/releases/http_stream.py
       - operations/ssh-broker/**
       - clusters/re8ch/charts/runtime-anatomy/files/controller.py
       - operations/plugin-capabilities/**
@@ -13,23 +14,30 @@ on:
       - tests/test_mihomos_capabilities.py
       - tests/test_plugin_declaration_audit.py
       - tests/test_cloud_platform*.py
+      - tests/test_python_sentry.py
+      - tests/test_registry_transfer.py
       - tests/test_ssh_broker.py
       - tests/test_stalwart_admin.py
       - tests/test_stalwart_bootstrap.py
       - tests/test_stalwart_authority.py
       - inventory/**
       - operations/mcp-conformance/release-tenant-infrastructure.sh
+      - operations/mcp-conformance/verify-image-evidence.py
+      - operations/mcp-conformance/cloud-image-transfer.sh
   push:
     branches: [main]
     paths:
       - .github/workflows/cloud-platform-release.yml
       - operations/cloud-platform/**
+      - operations/releases/http_stream.py
       - operations/ssh-broker/**
       - clusters/re8ch/charts/runtime-anatomy/files/controller.py
       - operations/plugin-capabilities/**
       - plugins/**
       - inventory/**
       - operations/mcp-conformance/release-tenant-infrastructure.sh
+      - operations/mcp-conformance/verify-image-evidence.py
+      - operations/mcp-conformance/cloud-image-transfer.sh
   workflow_dispatch:
     inputs:
       publisher:
@@ -49,12 +57,31 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    runs-on: [self-hosted, Linux, X64, r640, untrusted-build]
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - run: python3 -m pip install 'PyYAML==6.0.2' 'jsonschema==4.23.0' 'pytest>=8.3' 'schemathesis==4.29.1'
-      - run: python3 -m pytest -q tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_ssh_broker.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_plugin_declaration_audit.py tests/test_anatomy_diff_operation.py tests/test_plugin_operation_progress.py tests/test_stalwart_admin.py tests/test_stalwart_bootstrap.py tests/test_stalwart_authority.py
+      - uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with: {version: v1.33.1}
+      - name: Set up validation containerd image store
+        uses: docker/setup-docker-action@3f1ab1ab0e29231562e4db4ca600c1a49653bac6 # v5.7.0
+        with:
+          version: v29.10.0
+          set-host: true
+          daemon-config: |
+            {"features":{"containerd-snapshotter":true}}
+      - name: Prepare isolated validation Docker configuration
+        run: |
+          export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-ci-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '{}\n' > "$DOCKER_CONFIG/config.json"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        id: validation-buildx
+        with:
+          driver: docker
+      - run: python3 -m pip install 'PyYAML==6.0.2' 'jsonschema==4.23.0' 'pytest>=8.3' 'schemathesis==4.29.1' -r operations/cloud-platform/requirements-observability.txt
+      - run: python3 -m pytest -q tests/test_python_sentry.py tests/test_cloud_platform.py tests/test_cloud_platform_manifest.py tests/test_cluster_bindings.py tests/test_cluster_execution_transport.py tests/test_cluster_interactive_transport.py tests/test_cloud_delete_acceptance.py tests/test_cluster_transport_redirects.py tests/test_ssh_broker.py tests/test_plugin_capabilities.py tests/test_plugin_http_conformance.py tests/test_mihomos_capabilities.py tests/test_cloud_platform_release.py tests/test_registry_transfer.py tests/test_plugin_declaration_audit.py tests/test_anatomy_diff_operation.py tests/test_plugin_operation_progress.py tests/test_stalwart_admin.py tests/test_stalwart_bootstrap.py tests/test_stalwart_authority.py
       - name: Verify generated contracts and native schema enumeration
         run: |
           python3 operations/plugin-capabilities/generate.py
@@ -62,12 +89,34 @@ jobs:
           python3 operations/plugin-capabilities/verify.py
           python3 operations/plugin-capabilities/audit.py --report operations/plugin-capabilities/declaration-coverage-report.json
           git diff --exit-code -- operations/plugin-capabilities/declaration-coverage-report.json
-      - name: Build the actual runtime image
-        run: docker build --load -f operations/cloud-platform/Dockerfile -t re8ch-cloud-platform:pr .
+      - name: Start loopback-only validation registry
+        run: |
+          docker run -d --name cloud-ci-registry -p 127.0.0.1:5000:5000 registry@sha256:5b12b22f21522fe69443079df04c0f3f42cb9977857f3c20404386652a6c6d8e
+          docker run -d --name cloud-ci-replica -p 127.0.0.1:5001:5000 registry@sha256:5b12b22f21522fe69443079df04c0f3f42cb9977857f3c20404386652a6c6d8e
+      - name: Build the actual runtime image and verify native attested Engine push
+        run: |
+          ./operations/mcp-conformance/release-tenant-infrastructure.sh
+          docker tag 127.0.0.1:5000/re8ch-cloud-platform:pr re8ch-cloud-platform:pr
+        env:
+          TENANT_IMAGE_BUILDER: ${{ steps.validation-buildx.outputs.name }}
+          TENANT_IMAGE_REPOSITORY: 127.0.0.1:5000/re8ch-cloud-platform
+          TENANT_IMAGE_TAG: pr
+          TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
+          TENANT_IMAGE_ARTIFACT_NAME: cloud-ci
+          TENANT_IMAGE_SKIP_FINALIZE: "1"
+          TENANT_IMAGE_DOCKER_PUSH: "1"
+          TENANT_IMAGE_REQUIRE_ATTESTATIONS: "1"
+          TENANT_IMAGE_INLINE_AUTH: "1"
+          TENANT_IMAGE_PUSH_ATTEMPTS: "1"
+          # Synthetic credentials only; this isolated loopback registry is anonymous.
+          IMAGE_REGISTRY_USERNAME: ci-unused
+          IMAGE_REGISTRY_PASSWORD: REDACTED
+          BUILDKIT_SBOM_GENERATOR: docker.io/docker/buildkit-syft-scanner@sha256:10a413da6b52acacf4af4262eafeae6ca05076fbd65850ad7f233163c6d6a81c
       - name: Smoke test packaged tool discovery
         run: |
           docker run --rm --network none --entrypoint python re8ch-cloud-platform:pr -c '
-          import server, schemathesis, plugin_http_conformance, plugin_http_transport
+          import server, schemathesis, plugin_http_conformance, plugin_http_transport, cluster_execution_proxy, http_stream, sentry_sdk, prometheus_client, re8ch_observability
+          assert re8ch_observability.metrics()[2] == 200
           from runtime import Identity
           admin = Identity("build-smoke", (server.ADMIN_GROUP,))
           tools = {tool["name"] for tool in server.tool_list(admin)}
@@ -86,14 +135,70 @@ jobs:
           assert not (server.PRIVILEGED_TOOLS & viewer)
           print("Packaged tool discovery and privilege filtering passed")
           '
+      - uses: oras-project/setup-oras@ac735097e22fe643015b0d19645f7c9a69942128 # v2.0.4
+        with:
+          version: 1.3.0
+      - uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+        with:
+          install-dir: ${{ runner.temp }}/cloud-ci-cosign
+      - name: Verify native recursive transfer, own repository claims and independent cold reads
+        env:
+          CLOUD_CI_SIGNING_KEY: ${{ runner.temp }}/cloud-ci-key
+          COSIGN_PASSWORD: ''
+          CERTIFIED_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          source="$(cat cloud-ci.image)"
+          cosign generate-key-pair --output-key-prefix "$CLOUD_CI_SIGNING_KEY"
+          printf '%s\n' '{"acceptance":"immutable-referrer-roundtrip"}' > "$RUNNER_TEMP/cloud-ci-referrer.json"
+          (cd "$RUNNER_TEMP" && oras attach --plain-http --artifact-type application/vnd.re8ch.publisher-test.referrer "$source" cloud-ci-referrer.json:application/json)
+          cosign sign --yes --key "$CLOUD_CI_SIGNING_KEY.key" --tlog-upload=false --allow-insecure-registry "$source"
+          ./operations/mcp-conformance/cloud-image-transfer.sh prove "$source" 127.0.0.1:5001/re8ch-cloud-platform cloud-ci-transfer
+          ./operations/mcp-conformance/cloud-image-transfer.sh mirror "$source" 127.0.0.1:5001/re8ch-cloud-platform cloud-ci-transfer
+          python3 - <<'PYREFERRER'
+          import json
+          def contains(value):
+              if isinstance(value, dict):
+                  return value.get("artifactType") == "application/vnd.re8ch.publisher-test.referrer" or any(contains(v) for v in value.values())
+              return isinstance(value, list) and any(contains(v) for v in value)
+          for name in ("source", "target"):
+              assert contains(json.load(open("cloud-ci-transfer." + name + "-referrers.json"))), "Native referrer was omitted"
+          PYREFERRER
+      - name: Retain native publisher validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cloud-native-publisher-validation-${{ github.sha }}
+          path: |
+            cloud-ci.image
+            cloud-ci.index.json
+            cloud-ci.provenance.json
+            cloud-ci.sbom.json
+            cloud-ci-transfer.*
+          if-no-files-found: warn
+      - name: Remove loopback validation registry
+        if: always()
+        run: |
+          docker rm -f cloud-ci-registry cloud-ci-replica || true
+          rm -f "$RUNNER_TEMP/cloud-ci-key.key" "$RUNNER_TEMP/cloud-ci-key.pub"
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && inputs.reuse_run_id == ''
     needs: validate
     runs-on: ${{ inputs.publisher == 'r640' && fromJSON('["self-hosted","Linux","X64","r640","untrusted-build"]') || 'ubuntu-24.04' }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     environment: production
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up isolated containerd image store
+        if: inputs.publisher != 'r640'
+        uses: docker/setup-docker-action@3f1ab1ab0e29231562e4db4ca600c1a49653bac6 # v5.7.0
+        with:
+          version: v29.10.0
+          set-host: true
+          daemon-config: |
+            {"features":{"containerd-snapshotter":true}}
       - name: Prepare isolated Docker authorization
         run: |
           export DOCKER_CONFIG="${RUNNER_TEMP}/cloud-platform-release-docker"
@@ -103,6 +208,8 @@ jobs:
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         id: buildx
+        with:
+          driver: docker
         if: inputs.publisher != 'r640'
       - if: inputs.publisher != 'r640'
         run: echo "TENANT_IMAGE_BUILDER=${{ steps.buildx.outputs.name }}" >> "$GITHUB_ENV"
@@ -113,25 +220,42 @@ jobs:
           docker buildx inspect r640-mihomos >/dev/null
           echo "BUILDX_CONFIG=$BUILDX_CONFIG" >> "$GITHUB_ENV"
           echo 'TENANT_IMAGE_BUILDER=r640-mihomos' >> "$GITHUB_ENV"
+      - name: Validate the reviewed public-source Cloud package before publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/re8ch/service-backend --jq '.private == false' | grep -qx true
+          if gh api orgs/re8ch/packages/container/service-backend-cloud-platform > "$RUNNER_TEMP/cloud-package.json" 2> "$RUNNER_TEMP/cloud-package-error"; then
+            jq -e '.visibility == "public" and .repository.full_name == "re8ch/service-backend"' "$RUNNER_TEMP/cloud-package.json" >/dev/null
+          else
+            grep -q '(HTTP 404)' "$RUNNER_TEMP/cloud-package-error"
+          fi
       - run: ./operations/mcp-conformance/release-tenant-infrastructure.sh
         env:
-          HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
+          IMAGE_REGISTRY_USERNAME: ${{ github.actor }}
+          IMAGE_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           TENANT_IMAGE_INLINE_AUTH: "1"
-          TENANT_IMAGE_REPOSITORY: registry.re8ch.com/functions-shared/re8ch-cloud-platform
+          TENANT_IMAGE_REPOSITORY: ghcr.io/re8ch/service-backend-cloud-platform
           TENANT_IMAGE_DOCKERFILE: operations/cloud-platform/Dockerfile
           TENANT_IMAGE_ARTIFACT_NAME: cloud-platform
           TENANT_IMAGE_SKIP_FINALIZE: "1"
+          TENANT_IMAGE_DOCKER_PUSH: "1"
+          TENANT_IMAGE_REQUIRE_ATTESTATIONS: "1"
           BUILDKIT_NO_CLIENT_TOKEN: "1"
-          # Harbor layer publication exceeded 15 minutes in run 41028448350.
-          # Give one build/push a bounded 30 minutes instead of rebuilding it
-          # after an upload timeout; the release job retains 15 minutes overhead.
+          BUILDKIT_SBOM_GENERATOR: docker.io/docker/buildkit-syft-scanner@sha256:10a413da6b52acacf4af4262eafeae6ca05076fbd65850ad7f233163c6d6a81c
+          # Run 45190080936 built in one minute, then the BuildKit registry
+          # exporter stalled until its 30-minute budget. Load the full OCI index
+          # into containerd and publish once through Docker Engine instead.
           TENANT_IMAGE_PUSH_TIMEOUT_SECONDS: "1800"
           TENANT_IMAGE_PUSH_ATTEMPTS: "1"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cloud-platform-release-${{ github.sha }}
-          path: cloud-platform.image
+          path: |
+            cloud-platform.image
+            cloud-platform.index.json
+            cloud-platform.provenance.json
+            cloud-platform.sbom.json
           if-no-files-found: error
       - name: Remove temporary Docker authorization
         if: always()
@@ -151,6 +275,7 @@ jobs:
       contents: read
       actions: read
       id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with: {fetch-depth: 0}
@@ -185,26 +310,104 @@ jobs:
         with:
           install-dir: ${{ runner.temp }}/cloud-platform-cosign-${{ github.run_id }}-${{ github.run_attempt }}
       - uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
-      - run: |
-          image="$(cat cloud-platform.image)"
-          if [[ ! "$image" =~ ^registry\.re8ch\.com/functions-shared/re8ch-cloud-platform@sha256:[0-9a-f]{64}$ ]]; then
-            echo "Invalid Cloud Platform image reference" >&2
-            exit 1
-          fi
-          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
-          syft "$image" -o spdx-json > cloud-platform.spdx.json
-          cosign sign --yes "$image"
-          cosign verify \
-            --certificate-identity 'https://github.com/re8ch/service-backend/.github/workflows/cloud-platform-release.yml@refs/heads/main' \
-            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-            "$image" >/dev/null
+      - uses: oras-project/setup-oras@ac735097e22fe643015b0d19645f7c9a69942128 # v2.0.4
+        with:
+          version: 1.3.0
+      - name: Verify public-source package and finalize the independent GHCR primary
+        id: primary
         env:
-          HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
-          HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_REGISTRY_USERNAME: ${{ github.actor }}
+          IMAGE_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image="$(cat cloud-platform.image)"
+          [[ "$image" =~ ^ghcr\.io/re8ch/service-backend-cloud-platform@sha256:[0-9a-f]{64}$ ]]
+          gh api repos/re8ch/service-backend --jq '.private == false' | grep -qx true
+          gh api orgs/re8ch/packages/container/service-backend-cloud-platform --jq '{visibility,repository:.repository.full_name}' > cloud-platform.package.json
+          jq -e '.visibility == "public" and .repository == "re8ch/service-backend"' cloud-platform.package.json >/dev/null
+          export DOCKER_CONFIG="$RUNNER_TEMP/cloud-finalize-docker"
+          install -d -m 700 "$DOCKER_CONFIG"
+          printf '%s' "$IMAGE_REGISTRY_PASSWORD" | docker login ghcr.io --username "$IMAGE_REGISTRY_USERNAME" --password-stdin >/dev/null
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+          syft "$image" -o spdx-json > cloud-platform.spdx.json
+          identity='https://github.com/re8ch/service-backend/.github/workflows/cloud-platform-release.yml@refs/heads/main'
+          issuer='https://token.actions.githubusercontent.com'
+          if ! cosign verify --certificate-identity "$identity" --certificate-oidc-issuer "$issuer" "$image" > cloud-platform.primary-signature.json 2>/dev/null || ! python3 operations/mcp-conformance/verify-image-evidence.py claim cloud-platform.primary-signature.json "${image##*@}" "${image%@*}"; then
+            cosign sign --yes "$image"
+          fi
+          ./operations/mcp-conformance/cloud-image-transfer.sh prove "$image" registry.re8ch.com/functions-shared/re8ch-cloud-platform cloud-platform
+      - name: Check out certified source for Sentry commit association
+        if: vars.SENTRY_RELEASE_ENABLED == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          fetch-depth: 0
+          path: sentry-source
+      - name: Publish native Sentry release metadata
+        if: vars.SENTRY_RELEASE_ENABLED == 'true'
+        uses: getsentry/action-release@2e505a70ff06dac263413242aa3617fec90134e5 # v3.9.1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+        with:
+          release: re8ch-cloud-platform@${{ steps.source.outputs.sha }}
+          working_directory: sentry-source
+          set_commits: auto
+          disable_telemetry: true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.primary.outcome == 'success'
         with:
           name: cloud-platform-finalized-${{ github.sha }}
           path: |
             cloud-platform.image
             cloud-platform.spdx.json
+            cloud-platform.index.json
+            cloud-platform.provenance.json
+            cloud-platform.sbom.json
+            cloud-platform.package.json
+            cloud-platform.primary-signature.json
+            cloud-platform.primary-cold.json
           if-no-files-found: error
+      - name: Replicate the verified immutable primary to Harbor
+        id: mirror
+        continue-on-error: true
+        timeout-minutes: 90
+        env:
+          HARBOR_USERNAME: ${{ secrets.CLOUD_PLATFORM_REGISTRY_USERNAME }}
+          HARBOR_PASSWORD: ${{ secrets.CLOUD_PLATFORM_REGISTRY_PASSWORD }}
+          CERTIFIED_SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          printf '%s' "$HARBOR_PASSWORD" | docker login registry.re8ch.com --username "$HARBOR_USERNAME" --password-stdin >/dev/null
+          ./operations/mcp-conformance/cloud-image-transfer.sh mirror "$(cat cloud-platform.image)" registry.re8ch.com/functions-shared/re8ch-cloud-platform cloud-platform
+      - name: Record replica result without blocking the independent primary
+        if: always()
+        env:
+          MIRROR_OUTCOME: ${{ steps.mirror.outcome }}
+          PRIMARY_OUTCOME: ${{ steps.primary.outcome }}
+        run: |
+          jq -n --arg outcome "$MIRROR_OUTCOME" --arg primary "$PRIMARY_OUTCOME" '{primaryOutcome:$primary,mirrorOutcome:$outcome,primaryRegistry:"ghcr.io",replicaRegistry:"registry.re8ch.com",sameBuild:true}' > cloud-platform.mirror-result.json
+          if [ "$PRIMARY_OUTCOME" != success ]; then
+            echo '::error::GHCR primary is not verified; no runtime promotion is allowed.'
+          elif [ "$MIRROR_OUTCOME" != success ]; then
+            echo '::warning::Harbor replica is not verified; use only the signed GHCR primary. Reuse the successful build artifact to retry transfer without rebuilding.'
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: cloud-platform-replica-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            cloud-platform.mirror-result.json
+            cloud-platform.harbor.image
+            cloud-platform.harbor-cold.json
+            cloud-platform.source-signature.json
+            cloud-platform.target-signature.json
+            cloud-platform.source-referrers.json
+            cloud-platform.target-referrers.json
+          if-no-files-found: warn
+      - name: Remove temporary registry authorization
+        if: always()
+        run: |
+          if [ -n "${DOCKER_CONFIG:-}" ]; then
+            rm -f "$DOCKER_CONFIG/config.json"
+          fi

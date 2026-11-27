@@ -24,7 +24,7 @@ func TestMCPCatalogIsTenantIsolatedAndIdempotent(t *testing.T) {
 	s := catalogFixture(t)
 	definition := func(endpoint string) *mcpCatalogDefinition {
 		return &mcpCatalogDefinition{
-			ServiceName: "orders", Class: "integration.mcp.byoc.v1", Endpoint: endpoint,
+			ServiceName: "orders", Class: "integration.mcp.byoc.v1", Endpoint: endpoint, AudienceOrgRefs: []string{"acme"}, Meters: map[string]string{"requests": "request"},
 			AuthMode: "binding-reference", Health: "ready", Tools: []mcpCatalogTool{{Name: "orders_search"}},
 		}
 	}
@@ -52,7 +52,7 @@ func TestMCPCatalogIsTenantIsolatedAndIdempotent(t *testing.T) {
 }
 
 func TestMCPCatalogRejectsStandardNameOverride(t *testing.T) {
-	d := mcpCatalogDefinition{ServiceName: "custom", Class: "integration.mcp.managed.v1", Endpoint: "https://custom.example/mcp", AuthMode: "service-token", Tools: []mcpCatalogTool{{Name: "postgresql_drop"}}}
+	d := mcpCatalogDefinition{ServiceName: "custom", Class: "integration.mcp.managed.v1", Endpoint: "https://custom.example/mcp", AuthMode: "service-token", AudienceOrgRefs: []string{"acme"}, Meters: map[string]string{"requests": "request"}, Tools: []mcpCatalogTool{{Name: "postgresql_drop"}}}
 	if err := validateMCPDefinition("alpha", d); err == nil {
 		t.Fatal("custom provider overrode standard prefix")
 	}
@@ -75,5 +75,34 @@ func TestMCPCatalogPauseKeepsHistory(t *testing.T) {
 	}
 	if paused["state"] != "paused" || len(entries) != 1 || entries[0].State != "paused" {
 		t.Fatalf("pause not visible: %#v %#v", paused, entries)
+	}
+}
+
+func TestOpenLedgerWithdrawsLegacyPostgresqlProviderCatalogHead(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "ledger.db")
+	db, err := openLedger(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO mcp_catalog_revisions(revision,tenant_ref,service_name,definition_json,state,operation_key,actor,created_at) VALUES('old','*','postgresql-provider','{}','active','old-op','legacy','2026-01-01T00:00:00Z')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = db.Exec(`INSERT INTO mcp_catalog_heads(tenant_ref,service_name,revision) VALUES('*','postgresql-provider','old')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	db, err = openLedger(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var count int
+	if err = db.QueryRow(`SELECT COUNT(*) FROM mcp_catalog_heads WHERE service_name='postgresql-provider'`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("legacy catalog head survived migration: count=%d err=%v", count, err)
+	}
+	if err = db.QueryRow(`SELECT COUNT(*) FROM mcp_catalog_revisions WHERE service_name='postgresql-provider'`).Scan(&count); err != nil || count != 1 {
+		t.Fatalf("legacy audit revision was not preserved: count=%d err=%v", count, err)
 	}
 }

@@ -56,6 +56,41 @@ whose meaning remains unresolved.
 3. `Timeline`: roadmap using Start Date and Completed Date; use Target Date for
    unfinished work.
 
+These three views are required navigation surfaces. Automation may repair their
+field visibility, but must not replace user-defined filters, slices or additional
+views. A missing required view is drift, not a reason to reset the Project.
+
+## Draft and historical semantics
+
+- Start an unaccepted proposal in Discussion. Add a native Project draft only
+  when it needs scheduling or ownership before an Issue exists.
+- `Context Status: Draft` means a live proposal awaiting acceptance. Once the
+  proposal is accepted, convert it to an Issue and set `Context Status: Ready`.
+- Imported document paths, completed migration notes and other reconstruction
+  evidence use `Lifecycle: Historical` and `Context Status: Historical`. They
+  must not appear as active Draft work even if GitHub still reports the native
+  item type as `DraftIssue` pending a later archive migration.
+- `Lifecycle: Done` is for completed tracked work; `Historical` is for evidence
+  reconstructed after the fact. Neither state is active backlog.
+
+## Labels and milestones
+
+Project fields are authoritative for lifecycle and scheduling. Repository labels
+are searchable projections, not a second state machine:
+
+- `project:<domain>` identifies the owning Project.
+- `work:<type>` projects Work Type for repository search and automation.
+- `phase:<name>` identifies an accepted cross-repository phase.
+- `planning:unphased` identifies accepted work that still needs a parent phase
+  or Milestone; it is a visible intake queue, not an error developers must fix
+  before opening a PR.
+
+Use Milestones for bounded delivery phases. Children inherit the phase Milestone
+from their parent outcome. Do not invent a deadline for unscheduled backlog;
+apply `planning:unphased` until triage assigns a phase. Closed reconstructed work
+may use a dated historical-reconstruction Milestone so it remains queryable
+without contaminating current delivery plans.
+
 ## Issue template
 
 ```markdown

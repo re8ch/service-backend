@@ -55,6 +55,13 @@ ClusterIP Service. Hostnames are allocated below `apps.re8ch.com`; the shared
 Gateway, listener, DNS and TLS policy remain platform-owned. Raw Secret and
 Gateway access are not published.
 
+## Recovery and cross-component acceptance
+
+Use the [runtime verification procedure](../../../operations/releases/toolchain-runtime-verification.md)
+for Admin/BYOC, deployment, registry, Sentry and Metrics acceptance. Current bounded
+observations and remaining gaps are tracked in [Issue3002](https://github.com/re8ch/service-backend/issues/3002).
+A successful tools/list or retry alone does not establish toolchain stability.
+
 ## Tool-call telemetry
 
 The native tenant MCP records completed authenticated `tools/call` requests at
@@ -136,15 +143,31 @@ administrator gate, backend authorization, and audit result. Its action definiti
 is explicit so a plugin reviewer can assess it independently of the generic
 backend operation. `platform_kubernetes_resource_read` discovers all API
 resource types and reads bounded non-Secret objects.
+`platform_cluster_bindings_list` lists the existing self cluster (`re8ch`) and
+reviewed Admin-managed AmongCluster targets without registering duplicate BYOC
+connections. The existing `byoc_connection_list` exposes these managed targets
+and an exact `platform_kubectl_exec` example per target. Existing argv-only clients
+select them with standard `--context=<clusterRef>` or `--context <clusterRef>`.
+The core resolves and removes this selector before execution; it cannot select
+a kubeconfig identity. Unknown, repeated, empty or conflicting selectors fail
+before a business command. Other target and identity overrides remain forbidden.
+This supports reads, dry-runs, SSA and updates without reconnecting a client whose
+tool schema is cached.
+
+Kubernetes read/apply/delete and kubectl tools also accept typed `clusterRef`;
+omission preserves the existing local adapter. An unknown or withdrawn target
+never falls back locally. Mutation plans bind the target and current reviewed
+binding digest. Admin infrastructure access is independent of the ordinary
+tenant BYOC registration policy.
 `platform_kubernetes_resource_apply` and
 `platform_kubernetes_resource_delete` provide server-validated previews and
 require the exact preview plan hash before mutating any namespaced or
 cluster-scoped object. `platform_nodes_list`,
 `platform_nodes_get`, `platform_nodes_reachability`, and
 `platform_node_ssh_exec` preserve the existing node operations through the
-same directly connected native backend. These tools are for RE8CH-owned
-platform clusters; tenant BYOC remains the AmongCluster path for external
-clusters. Publishing these explicit operations does not publish the remaining
+same managed platform binding model. These Admin infrastructure targets are
+separate from ordinary tenant BYOC registrations and do not grant cross-tenant
+application access. Publishing these explicit operations does not publish the remaining
 backend tools. Plugin clients must use only operations
 in their current tool list; an authorization flag cannot attest publication.
 It reads the Supabase membership projection once per verified login session and
@@ -367,3 +390,71 @@ names dynamically, so Kubernetes RBAC cannot enumerate resourceNames for create;
 the dedicated namespace limits that authority. Tenant and subject ownership checks
 remain mandatory in the application. Namespace changes do not migrate existing
 credentials; revoke existing bindings before moving an enabled installation.
+
+### Managed cluster Admin SSA acceptance
+
+After promoting the signed core, call the current `byoc_connection_list` and use
+its kubectl examples. For each reviewed context (`re8ch`, `re8ch-atlantic`),
+preview then apply the exact merged-commit public fixture URL
+`operations/releases/conformance-fixtures/cloud-managed-cluster-admin-v1.yaml`
+with `--server-side --field-manager=re8ch-admin-binding-acceptance`. Read the
+ConfigMap UID/data and the `default/kubernetes` Service UID through that context.
+Preview/apply the sibling v2 fixture, verify the same per-target ConfigMap UID and
+revision2, then preview/delete the temporary ConfigMap through the same context.
+Both cluster API UIDs and object UIDs must differ. Preserve first failures;
+unknown contexts reject before API execution. These temporary objects are
+separate from the Actions executor's scoped delivery canary.
+
+### Provider invocation tokens
+
+The RFC 8693 compatibility exchange no longer returns the user's Supabase JWT.
+It requires `INVOCATION_TOKEN_ISSUER_URL`, pinned `INVOCATION_TOKEN_ISSUER`, and
+`INVOCATION_TOKEN_JWKS_URL`; missing or unavailable issuer/JWKS configuration
+fails closed. JWKS verification accepts only a known `kid` with an RS256 key and
+checks the issuer before the token can reach a provider. Signing keys remain in
+the approved issuer and are never configured in tenant-mcp.
+
+`RE8CH_TOOL_AUDIENCE` is a transitional generic audience for the compatibility
+route. The final provider audience must be resolved by the binding authority from
+the selected `binding_ref`; callers must never select or override a provider
+audience. The verified active organization is likewise derived from the login
+session and tenant-control decision, not request fields or headers.
+
+Tenant-control revalidates the subject token with pg-identity and resolves the
+ready binding through Bifurcate before signing. Its mounted
+`tenant-invocation-signing/key-ring.json` supports one current and up to two
+overlap keys; JWKS publishes only their public RSA parameters. The separate
+`tenant-invocation-authority/BINDING_AUTHORITY_TOKEN` authenticates the bounded
+PostgREST RPC. Git declares only empty Secret objects and the narrow rotator;
+key and token values are generated in-cluster. The authority token is renewed
+every 12 hours with a 36-hour expiry. The RSA key rotates after 23 days and its
+public key remains in JWKS for a seven-day overlap; retiring private keys are
+discarded. Until the rotator succeeds, issuance and JWKS fail closed while
+unrelated tenant-control routes remain available.
+
+The rotator CronJob and `supabase-billing-secrets` are both in
+`supabase-billing`, so its `secretKeyRef` is namespace-local. The Job's service
+account has no ClusterRole. A Role and RoleBinding in `tenant-infrastructure`
+grant only `get/update/patch` on the two named output Secrets. The chart owns
+only their metadata and intentionally omits `data`/`stringData`; Helm's
+three-way upgrade therefore preserves the live-only data written by the
+rotator. Do not enable force/replacement upgrades for these Secrets. A
+retiring private key is deleted at rotation, while its public key stays in
+JWKS for seven days—well beyond the five-minute maximum invocation-token life.
+
+### Managed MCP compatibility projection
+
+The 1.0.2 service tools reuse `service_catalog_list`,
+`service_instance_list`, and `service_binding_list` to expose installed managed
+MCP applications as `integration.mcp.managed.v1`. Managed applications do not
+add platform or Kubernetes top-level tools.
+
+Tenant Control may provide `GET /v1/tools/catalog`. Tenant MCP sends the
+authenticated active organization only in `X-Tenant-Ref`, together with its
+service credential; prompt arguments never select the organization. A response
+contains `activeOrgRef` and Ready items with publication, revision,
+installation, binding, service-instance, service-binding and tool references.
+The authority must return only active-audience, installed, Ready and published
+records. The client repeats organization and structural checks and fails closed
+on mismatches. HTTP 404 or a response with no compatibility envelope preserves
+the static catalog until the Billing list RPC lands.

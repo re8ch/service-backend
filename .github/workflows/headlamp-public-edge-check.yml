@@ -1,0 +1,30 @@
+name: headlamp-public-edge-check
+on:
+  pull_request:
+    paths:
+      - platform/plugins/headlamp-public-edge/**
+      - .github/workflows/headlamp-public-edge-check.yml
+permissions:
+  contents: read
+jobs:
+  model-and-build:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: platform/plugins/headlamp-public-edge
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test tests/evidenceModel.test.mjs
+      - run: npm run lint
+      - run: npm run tsc
+      - run: npm run build
+      - run: npm run package
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: headlamp-public-edge-reviewed-plugin
+          path: platform/plugins/headlamp-public-edge/*.tar.gz
+          if-no-files-found: error

@@ -140,7 +140,7 @@ jobs:
           print(*json.loads(os.environ["SUBMODULES"]), sep="\n")
           PY
       - uses: ./.github/actions/setup-native-yaml
-      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1' 'cryptography==50.0.2'
+      - run: python -m pip install 'PyYAML>=6.0.2' 'jsonschema>=4.23' 'pytest>=8.3' 'schemathesis==4.29.1' 'cryptography==50.0.2' -r operations/cloud-platform/requirements-observability.txt
       - name: Validate authenticated API acceptance runner
         run: node --test operations/plugin-capabilities/api-acceptance/runner.test.cjs
       - name: Validate PublicEdge dispatcher Worker

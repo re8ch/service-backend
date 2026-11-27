@@ -82,12 +82,18 @@ func (s *server) resourceValue(ctx context.Context, id identity, suffix string) 
 		}
 		return map[string]any{"services": object(result)["services"], "pricingIncluded": false}, nil
 	case "instances":
+		if err := requireActiveOrganization(ctx, id); err != nil {
+			return nil, err
+		}
 		result, err := s.callService(ctx, id, "service_instance_list", nil)
 		if err != nil {
 			return nil, err
 		}
 		return map[string]any{"instances": object(result)["instances"]}, nil
 	case "bindings":
+		if err := requireActiveOrganization(ctx, id); err != nil {
+			return nil, err
+		}
 		items, err := s.serviceBindings(ctx, id.Tenant, "")
 		return map[string]any{"bindings": items}, err
 	case "service-usage":

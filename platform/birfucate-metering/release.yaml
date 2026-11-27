@@ -42,13 +42,15 @@ spec:
       kubernetes.io/hostname: r640
     tenantPlatform:
       enabled: true
+      invocationCredentials:
+        enabled: true
       # Keep the shared RWO state and both MCP backends on the R640 worker so
       # loss of either WSL control-plane host cannot strand public tool access.
       placement:
         nodeNames: [r640]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:efc3344c17f82b49c6d5c65376e51c02160acd9ea6aeac2b02c7c22d208b3fcd
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
@@ -60,9 +62,15 @@ spec:
         # the replicated in-cluster Auth Gateway instead of coupling every MCP
         # request directly to the single GoTrue Pod.
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
+        invocationTokens:
+          issuerURL: http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens
+          jwksURL: http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json
+          expectedIssuer: https://tools.service.re8ch.com/invocation
+          credentialSecret: tenant-claim-internal-auth
+          credentialKey: TENANT_CLAIM_SERVICE_TOKEN
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:efc3344c17f82b49c6d5c65376e51c02160acd9ea6aeac2b02c7c22d208b3fcd
         githubEnterpriseGovernance:
           enabled: true
         databaseBindings:
@@ -285,6 +293,16 @@ spec:
         - database.postgresql.shared.v1
         - registry.harbor.v1
         - observability.grafana.v1
+    adoptedResources:
+      # pg-identity and pg-billing are logical authorities backed by the same
+      # long-lived pg-re8ch Pigsty service. Keeping both layers explicit makes
+      # the dependency visible to AI queries without inventing extra clusters.
+      - {tenantRef: admin, resourceRef: "service://admin/pg-re8ch", serviceClass: database.postgresql.shared.v1, resourceType: database-authority, purpose: shared-postgresql, sourceRef: service-backend, dependencyRefs: [], availabilityQuery: 'max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/pg-identity", serviceClass: database.postgresql.shared.v1, resourceType: logical-database, purpose: identity-database, sourceRef: identity-gitops, dependencyRefs: ["service://admin/pg-re8ch"], availabilityQuery: 'max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/pg-billing", serviceClass: database.postgresql.shared.v1, resourceType: logical-database, purpose: billing-database, sourceRef: billing, dependencyRefs: ["service://admin/pg-re8ch"], availabilityQuery: 'max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/grafana", serviceClass: observability.grafana.v1, resourceType: observability-component, purpose: dashboards, sourceRef: observability-gitops, dependencyRefs: [], availabilityQuery: 'max(kube_deployment_status_replicas_available{namespace="observability-system",deployment="re8ch-grafana"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/kube-metrics", serviceClass: observability.grafana.v1, resourceType: observability-component, purpose: kubernetes-metrics, sourceRef: observability-gitops, dependencyRefs: [], availabilityQuery: 'max(kube_deployment_status_replicas_available{namespace="observability-system",deployment=~".*kube-state-metrics.*"})'}
+      - {tenantRef: admin, resourceRef: "service://admin/harbor-registry", serviceClass: registry.harbor.v1, resourceType: registry-authority, purpose: image-registry, sourceRef: storage-gitops, dependencyRefs: [], availabilityQuery: 'max(up{job=~".*harbor.*"})'}
     pricing:
       enabled: false
       currency: CNY
@@ -292,4 +310,4 @@ spec:
     serviceMonitor:
       enabled: false
     vmServiceScrape:
-      enabled: false
+      enabled: true

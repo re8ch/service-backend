@@ -5,6 +5,15 @@ from mihomo_node_labels import desired_labels, reconcile
 
 
 class MihomoNodeLabelsTests(unittest.TestCase):
+    def test_cn_unverified_still_receives_node_proxy(self):
+        node = {"metadata": {"name": "vm-20-12-ubuntu", "labels": {
+            "topology.kubernetes.io/region": "cn-unverified"}},
+            "status": {"conditions": [{"type": "Ready", "status": "True"}]}}
+        self.assertEqual(desired_labels(node, {}), {
+            "networking.re8ch.com/mihomo-node": "enabled",
+            "networking.re8ch.com/geo": "cn",
+        })
+
     def test_ready_node_defaults_to_consumer_and_public_global_exit(self):
         inventory = {"overseas-flk": {"region": "de-fsn", "capacityMbps": 400}}
         node = {"metadata": {"name": "overseas-flk"},

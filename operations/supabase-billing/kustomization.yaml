@@ -6,3 +6,15 @@ resources:
   - network-policy.yaml
   - public-routes.yaml
   - ledger-service-catalog.yaml
+  - runtime-authority-migrations.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+  - name: supabase-billing-tool-publication-authority-v1
+    namespace: supabase-pg-re8ch
+    files:
+      - migration.sql=tool-publication-authority.sql
+  - name: supabase-billing-org-cluster-bindings-v1
+    namespace: supabase-pg-re8ch
+    files:
+      - migration.sql=org-cluster-bindings.sql

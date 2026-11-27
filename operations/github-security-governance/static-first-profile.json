@@ -1,0 +1,119 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "GitHubStaticFirstSecurityProfile",
+  "trackingIssue": "https://github.com/re8ch/service-backend/issues/3352",
+  "delivery": {
+    "mode": "github-native-server-side",
+    "workflowsAdded": 0,
+    "requiredChecksAdded": 0,
+    "codeqlSetupsAdded": 0,
+    "repositoryBuildMinutesAdded": 0
+  },
+  "publicRollout": {
+    "status": "applied-readback-complete",
+    "preconditions": {
+      "visibility": "public",
+      "archived": false,
+      "fork": false,
+      "secretScanning": "disabled",
+      "pushProtection": "disabled"
+    },
+    "mutation": {
+      "secret_scanning": "enabled",
+      "secret_scanning_push_protection": "enabled"
+    },
+    "excludedMutations": [
+      "secret_scanning_ai_detection",
+      "dependabot_security_updates",
+      "code_security",
+      "code_scanning_default_setup"
+    ],
+    "rollbackOrder": [
+      "secret_scanning_push_protection=disabled",
+      "secret_scanning=disabled"
+    ],
+    "batches": [
+      {
+        "id": "public-static-1",
+        "repositories": [
+          "advanced-fabrics/.github",
+          "advanced-fabrics/community",
+          "advanced-fabrics/docs",
+          "advanced-fabrics/website"
+        ]
+      },
+      {
+        "id": "public-static-2",
+        "repositories": [
+          "advanced-fabrics/api",
+          "advanced-fabrics/conformance",
+          "advanced-fabrics/headlamp-advanced-fabric",
+          "advanced-fabrics/spec"
+        ]
+      }
+    ],
+    "readback": {
+      "repositoriesApplied": 8,
+      "secretScanningEnabled": 8,
+      "pushProtectionEnabled": 8,
+      "dependabotAlertsEnabled": 8,
+      "dependabotSecurityUpdatesDisabled": 8,
+      "aiDetectionDisabled": 8,
+      "codeqlDefaultSetupNotConfigured": 8,
+      "actionsRunsTriggeredSinceDeclarationMerge": 0,
+      "failures": 0
+    }
+  },
+  "privateInternal": {
+    "gapCount": 80,
+    "visibility": {
+      "private": 79,
+      "internal": 1
+    },
+    "tier": {
+      "tier3Candidates": 1,
+      "otherOrUnassignedCandidates": 79,
+      "tier3Candidate": "re8ch/delivery-products-gitops"
+    },
+    "productAvailability": {
+      "repositorySettingVisibleAndDisabled": 80,
+      "licenseActivationApproved": 0
+    },
+    "activeCommitterCost": {
+      "candidatePreview": "required-not-executed",
+      "currentSecretProtectionReadback": {
+        "repositories": 18,
+        "uniqueActiveCommitters": 1
+      },
+      "authority": "GitHub selected-repository cost preview using the trailing 90-day active-committer window"
+    },
+    "activation": "blocked-pending-cost-preview",
+    "selectionOrder": [
+      "Tier 3 authority with an explicit security owner",
+      "repository adding no incremental unique active committer",
+      "repository with a reviewed incremental monthly estimate"
+    ],
+    "requiredDecisionEvidence": [
+      "product and license availability",
+      "unique active committer overlap",
+      "incremental active committers",
+      "incremental monthly estimate",
+      "retention and rollback owner"
+    ]
+  },
+  "dependabot": {
+    "alerts": "retain-read-only-coverage",
+    "securityUpdatePullRequests": "opt-in-only"
+  },
+  "codeql": {
+    "broadDefaultSetup": "excluded",
+    "futureEligibility": "Tier 3 opt-in only",
+    "revisionInvariant": "do not scan the same source revision and build configuration twice"
+  },
+  "aiDetection": "excluded",
+  "evidenceSafety": {
+    "recordAlertDetails": false,
+    "recordSecretValues": false,
+    "enablePaidProducts": false
+  }
+}

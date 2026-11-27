@@ -855,6 +855,36 @@ subjects:
 ---
 apiVersion: v1
 data:
+  cluster-bindings.json: |
+    {
+      "clusters": {
+        "re8ch": {
+          "clusterRef": "re8ch", "adapter": "local", "trustDomain": "re8ch.internal",
+          "clusterIdentityRef": {"namespace": "byoc-pilot", "name": "re8ch", "uid": "9b360e14-2a36-44db-8c80-6b7ca690df63"},
+          "apiServiceRef": {"namespace": "default", "name": "kubernetes", "uid": "9a4ff49b-d663-47df-962a-f1d562c85c32"}
+        },
+        "re8ch-atlantic": {
+          "clusterRef": "re8ch-atlantic",
+          "adapter": "among-broker",
+          "namespace": "byoc-pilot",
+          "publisherRef": "re8ch-atlantic",
+          "serviceIdentity": "spiffe://atlantic.re8ch.com/ns/default/service/kubernetes",
+          "advertisementRef": {"name": "re8ch-atlantic-default-kubernetes", "uid": "c282af55-67a5-4684-ba46-66e5667303ba"},
+          "importedServiceRef": {"name": "re8ch-atlantic-default-kubernetes-re8ch-atlantic", "uid": "b91afbed-fe93-455f-9700-3424448ac66f"},
+          "peerRef": {"name": "re8ch-atlantic", "uid": "d876a0ff-2001-4348-b9d4-c57a93670ef0"},
+          "grantRef": {"name": "re8ch-atlantic-headlamp-admin", "uid": "d9fae24e-cea9-4014-8c93-0837bd8e7e60"},
+          "grantScope": {"scope": "Cluster", "rules": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}]},
+          "brokerURL": "http://among-clusters-credential-broker.credential-broker.svc.cluster.local"
+        }
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: cloud-cluster-bindings
+  namespace: ai-operations
+---
+apiVersion: v1
+data:
   kubeconfig: |
     apiVersion: v1
     kind: Config
@@ -1651,12 +1681,23 @@ spec:
                   app: re8ch-cloud-platform
               topologyKey: kubernetes.io/hostname
             weight: 100
+      automountServiceAccountToken: false
       containers:
       - env:
+        - name: SENTRY_DSN
+          value: https://2b6b17d602c68bbb6789de55c05afa1a@o4509349085577216.ingest.us.sentry.io/4509349088985088
+        - name: SENTRY_ENVIRONMENT
+          value: production
+        - name: SENTRY_RELEASE
+          value: re8ch-cloud-platform@c472221acf8b2a132807832df680a23a3ec94224
         - name: CONFIG_ROOT
           value: /etc/re8ch-platform
         - name: KUBECONFIG
           value: /etc/re8ch-platform/kubeconfig
+        - name: KUBERNETES_SERVER_OVERRIDE
+          value: https://10.250.0.147:6443
+        - name: CLUSTER_BINDINGS_FILE
+          value: /etc/re8ch-cluster-bindings/cluster-bindings.json
         - name: WORKSPACE_ROOT
           value: /srv/service-backend
         - name: HYPOTHESIS_STORAGE_DIRECTORY
@@ -1664,11 +1705,7 @@ spec:
         - name: OAUTH_AUDIENCE
           value: re8ch-cloud-platform-tool
         - name: STALWART_ADMIN_ORIGIN
-          valueFrom:
-            configMapKeyRef:
-              key: origin
-              name: stalwart-admin-runtime
-              optional: true
+          value: https://stalwart-admin.service.re8ch.com
         - name: STALWART_ADMIN_TOKEN_FILE
           value: /etc/stalwart-admin/credential/token
         - name: STALWART_APPROVED_PLANS_DIR
@@ -1682,7 +1719,7 @@ spec:
             secretKeyRef:
               key: token
               name: cluster-infra-service-auth
-        image: registry.re8ch.com/functions-shared/re8ch-cloud-platform@sha256:4e27cb91ebc641e809ff3cfd5217ca16ff605bed82c0a98bac543b27e77161e5
+        image: ghcr.io/re8ch/service-backend-cloud-platform@sha256:38bfe7e694cdd38e5c9b5c0a2da28ae35fd5eb1ac00638e56cb7d483c07aa138
         livenessProbe:
           httpGet:
             path: /healthz
@@ -1714,6 +1751,12 @@ spec:
           readOnlyRootFilesystem: true
           runAsNonRoot: true
         volumeMounts:
+        - mountPath: /etc/re8ch-cluster-bindings
+          name: cluster-bindings
+          readOnly: true
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: cluster-binding-identity
+          readOnly: true
         - mountPath: /etc/stalwart-bootstrap/config
           name: stalwart-bootstrap-config
           readOnly: true
@@ -1742,6 +1785,21 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
       serviceAccountName: re8ch-cloud-platform
       volumes:
+      - configMap:
+          name: cloud-cluster-bindings
+        name: cluster-bindings
+      - name: cluster-binding-identity
+        projected:
+          defaultMode: 288
+          sources:
+          - serviceAccountToken:
+              expirationSeconds: 3600
+              path: token
+          - configMap:
+              items:
+              - key: ca.crt
+                path: ca.crt
+              name: kube-root-ca.crt
       - configMap:
           defaultMode: 288
           items:
@@ -1818,10 +1876,6 @@ spec:
                 operator: In
                 values:
                 - core
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - r640
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - podAffinityTerm:

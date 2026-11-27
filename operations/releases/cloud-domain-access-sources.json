@@ -8,9 +8,9 @@
     },
     {
       "repository": "re8ch/identity-gitops",
-      "revision": "6e6d756a0c61fbc27fdfeda5e4219bd72f7278ca",
+      "revision": "35af58117fed3946d9827b8886329a85d8148632",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "d57baa3ee9d0546cf36ef2d3a40d2ef7016cfcc2daebfb6fec158c4f70ff70b7"
+      "sha256": "bdbd236e054b4bbe9af0fb341b84c7a8b4e5d1bdcebe7484d7c451d3d41eb801"
     },
     {
       "repository": "siren-observer/observability-gitops",

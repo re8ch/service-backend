@@ -117,6 +117,9 @@ spec:
     - {name: among-clusters-https, hostname: among-clusters.re8ch.com, protocol: HTTPS, port: 443, tls: {mode: Terminate, certificateRefs: [{kind: Secret, name: among-clusters-ingest-tls}]}, allowedRoutes: {namespaces: {from: All}}}
     # access.re8ch.com is SNI-routed as raw TLS; Mihomo terminates AnyTLS.
     - {name: access-tls, hostname: access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-backup-tls, hostname: backup.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-direct-cn-tls, hostname: direct-cn.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
+    - {name: access-route-kl-tls, hostname: route-kl.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-us-ca-tls, hostname: us-ca.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-my-kul-tls, hostname: my-kul.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}
     - {name: access-us-la-tls, hostname: route-la.access.re8ch.com, protocol: TLS, port: 443, tls: {mode: Passthrough}, allowedRoutes: {namespaces: {from: All}}}

@@ -88,7 +88,7 @@ def authoritative_route_preflight(hostname, path, expected_status, *, accept="ap
 def preflight(harbor_url, grafana_url, identity_url, mcp_url):
     mcp = urllib.parse.urlparse(mcp_url)
     grafana = urllib.parse.urlparse(grafana_url)
-    native = mcp.path.endswith("/tenant-native/mcp")
+    native = mcp.path.endswith(("/tenant-native/mcp", "/tenant-plugin/mcp"))
     authoritative_route_preflight(mcp.hostname, mcp.path, 405 if native else 401,
                                   accept="application/json, text/event-stream")
     authoritative_route_preflight(grafana.hostname, grafana.path + "/api/health", 200)
@@ -382,7 +382,7 @@ def main():
     parser.add_argument("--harbor-url", default="https://registry.re8ch.com")
     parser.add_argument("--grafana-url", default="https://grafana.service.re8ch.com/grafana")
     parser.add_argument("--identity-url", default="https://db-rw.re8ch.com/identity/rest/v1")
-    parser.add_argument("--mcp-url", default="https://tools.service.re8ch.com/tenant-native/mcp")
+    parser.add_argument("--mcp-url", default="https://tools.service.re8ch.com/tenant-plugin/mcp")
     args = parser.parse_args()
     try:
         require(not args.resume_provider or args.resume_suffix, "--resume-provider requires --resume-suffix")

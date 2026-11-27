@@ -17,13 +17,21 @@ repository.
 - `scripts`: FRR, PodCIDR, policy-routing, RouterOS and economics tooling.
 - `docs`: historical decisions, performance checkpoints and runbooks.
 
+## PublicEdge and cross-cluster architecture
+
+The single normative source is the
+[`multi-cluster federation contract`](docs/multicluster-federation-contract.md).
+It separates cluster control, PublicEdge, AmongCluster private service exchange
+and application federation, and defines mandatory end-to-end acceptance. Do not
+restate or weaken that contract in a component runbook.
+
 ## Cilium and Gateway authority
 
-Network runtime desired state is owned by the autonomous
-`flux-network-system` stack sourcing `pillars-infra/network-gitops`. This
-repository retains the public authority inventory, controller lifecycle,
-bounded cluster RBAC, and cross-domain policy boundary. Do not reintroduce a
-second Cilium Helm owner under the main Flux.
+Network runtime desired state is reviewed in `pillars-infra/network-gitops` and
+applied by its bounded Cloud SSA executor. This repository retains the public
+authority inventory, controller lifecycle, bounded cluster RBAC, and
+cross-domain policy boundary. Retained Flux objects are migration inputs, not
+authorization to restore a local writer or create a second Cilium owner.
 
 R640 retains native XDP and uses eBPF masquerading on `eno2np1`. Its node
 configuration must explicitly clear the chart-wide legacy

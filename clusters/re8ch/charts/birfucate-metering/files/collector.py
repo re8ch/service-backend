@@ -343,6 +343,29 @@ def collect_once(config: dict[str, Any], outbox: Outbox, start: int, end: int) -
         set_metric("birfucate_dependency_up", {"dependency": "service-instances"}, 1)
     except (KeyError, OSError, RuntimeError, urllib.error.URLError):
         set_metric("birfucate_dependency_up", {"dependency": "service-instances"}, 0)
+    for resource in config.get("adoptedResources") or []:
+        samples = meter_query(resource["availabilityQuery"])
+        available = any(float(sample.get("value", [0, 0])[-1]) > 0 for sample in samples)
+        labels = {"tenant": resource["tenantRef"], "resource_ref": resource["resourceRef"],
+                  "service_class": resource["serviceClass"], "source_ref": resource["sourceRef"]}
+        set_metric("birfucate_adopted_resource_available", labels, 1 if available else 0)
+        queue(usage_event(resource["tenantRef"], resource["resourceRef"], "application",
+                          "observation.resource_availability", 1, "observation", start, end,
+                          {"resourceType": resource["resourceType"], "purpose": resource["purpose"],
+                           "sourceRef": resource["sourceRef"],
+                           "dependencyRefs": resource["dependencyRefs"], "adopted": True,
+                           "available": available, "billingEligible": False},
+                          service_class=resource["serviceClass"]))
+        if not available:
+            continue
+        quantity = float(interval)
+        tenant_resources.add((resource["tenantRef"], resource["resourceRef"], resource["resourceType"]))
+        queue(usage_event(resource["tenantRef"], resource["resourceRef"], "application",
+                          "usage.instance_runtime", quantity, "second", start, end,
+                          {"resourceType": resource["resourceType"], "purpose": resource["purpose"],
+                           "sourceRef": resource["sourceRef"],
+                           "dependencyRefs": resource["dependencyRefs"], "adopted": True,
+                           "billingEligible": False}, service_class=resource["serviceClass"]))
     opencost = config.get("opencost") or {}
     if opencost.get("enabled"):
         request = urllib.request.Request(opencost["baseURL"].rstrip("/") + opencost["allocationPath"], headers={"Accept": "application/json"})

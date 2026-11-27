@@ -46,6 +46,24 @@ only; it does not carry arbitrary terminal IP traffic.
   `egress-fabric-paths` Secret. Missing paths are absent, not fake healthy
   endpoints. Never commit passwords or provider subscription payloads.
 
+## Identity and GitOps egress
+
+`identity-egress` is a three-replica, ClusterIP-only proxy used by bounded
+Identity and Flux source-controller callers. Replicas run on the Pod network;
+they must not use `hostNetwork` or `hostPort` because 17893/19091 are
+replica-local ports and may need to coexist on R640 while overseas nodes are
+unavailable. Scheduler anti-affinity is a strong preference, so healthy edge
+nodes receive one replica each when possible without turning a reduced node
+set into a complete outage.
+
+The Pod NetworkPolicy remains the security boundary: only declared Identity,
+Flux and conformance callers may reach 17893, and proxy egress is limited to
+public TCP/443 plus cluster DNS. `identity-egress-gitops` uses cluster-wide
+endpoint selection. `identity-egress-control-plane` deliberately keeps local
+R640 selection and its stable ClusterIP for bootstrap callers. None of these
+services changes R640's public authority, exposes the proxy publicly, or
+bypasses the existing provider-egress and private-address exclusions.
+
 ## Path policy
 
 ### NetBird user-facing exit profiles

@@ -2,3 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - runtime.yaml
+configMapGenerator:
+  - name: cloud-cluster-bindings
+    namespace: ai-operations
+    files: [cluster-bindings.json]
+generatorOptions:
+  disableNameSuffixHash: true

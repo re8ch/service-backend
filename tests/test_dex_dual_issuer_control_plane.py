@@ -90,6 +90,7 @@ def test_all_control_planes_share_supabase_authentication():
         'observability-metering': ('siren-observer/observability-gitops', '1423312205', '334604879'),
         'networking': ('pillars-infra/network-gitops', '1435935851', '334604858'),
     }
+    assert external['agent-runtime'] == ('8iops/agent-gitops', '1435935941', '334604670')
     for domain in ('agent-runtime', 'identity-access', 'networking'):
         repository, repository_id, owner_id = external[domain]
         for boundary_rule in (public_rule, runner_rule):
@@ -150,7 +151,11 @@ def test_headlamp_uses_api_trusted_supabase_issuer_and_service_callback():
     assert '-oidc-use-access-token' in container['args']
     assert '-oidc-callback-url=https://headlamp.service.re8ch.com/oidc-callback' in container['args']
     aliases = {hostname: item['ip'] for item in pod['hostAliases'] for hostname in item['hostnames']}
-    assert aliases['db-rw.re8ch.com'] == '10.251.0.4'
+    assert aliases['db-rw.re8ch.com'] == '223.159.210.222'
+    assert aliases['among-clusters.service.re8ch.com'] == '223.159.210.222'
+    bootstrap = next(item for item in pod['initContainers'] if item['name'] == 'install-flux-static-github-ops')
+    bootstrap_env = {item['name']: item['value'] for item in bootstrap['env']}
+    assert bootstrap_env['https_proxy'] == 'http://mihomos-global-exit-atlantic.egress-fabric.svc.cluster.local:1080'
 
 
 def test_mubao_k3s_start_gate_keeps_oidc_discovery_on_internal_gateway():

@@ -53,7 +53,7 @@ type submitInput struct {
 
 func (s *server) skillMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
-	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, s.diagnostics().middleware, mcpToolTelemetry.middleware)
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("tenant_access_status"), Name: "tenant_access_status", Description: "Report this session's runtime class and resource access state."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
 			caller, ok := ctx.Value(identityKey{}).(identity)
@@ -111,9 +111,11 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerBYOCTools(ms)
 	s.registerServiceTools(ms)
 	s.registerModelGatewayTools(ms)
+	s.registerOpenOAuthTools(ms)
 	s.registerHarborTools(ms, false)
 	s.registerGrafanaTools(ms)
 	s.registerCollaborationTools(ms)
+	s.registerStalwartRelayTools(ms)
 	s.registerKubernetesTools(ms)
 	s.registerSecretTools(ms)
 	s.registerExposureTools(ms)
@@ -124,6 +126,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	// entry points to that discovery session too; each call still requires an
 	// authenticated platform administrator and the backend's own authorization.
 	s.registerPlatformTools(ms)
+	s.registerNativeServiceInstanceTools(ms)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
@@ -156,7 +159,7 @@ func (s *server) registerSelfServiceCapabilitiesTool(ms *mcp.Server) {
 
 func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch-tenant-self-service", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}}})
-	ms.AddReceivingMiddleware(mcpToolTelemetry.middleware)
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, s.diagnostics().middleware, mcpToolTelemetry.middleware)
 	if id.Service || id.Subject == "" || id.Tenant == "" {
 		return ms
 	}
@@ -165,6 +168,7 @@ func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms, true)
 	s.registerGrafanaTools(ms)
 	s.registerCollaborationTools(ms)
+	s.registerStalwartRelayTools(ms)
 	s.registerModelGatewayTools(ms)
 	return ms
 }
@@ -230,7 +234,16 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 	if json.Unmarshal(body, &request) != nil {
 		return nil
 	}
-	initialize := containsMCPMethod(request, "initialize") || containsMCPMethod(request, "server/discover")
+	// Discovery belongs to the stateless protocol. Marking it as initialization
+	// routes it through the legacy transport, whose supportedVersions excludes
+	// the very modern version the client is probing.
+	initialize := containsMCPMethod(request, "initialize")
+	originalName := ""
+	if rpc, ok := request.(map[string]any); ok && rpc["method"] == "tools/call" {
+		if params, ok := rpc["params"].(map[string]any); ok {
+			originalName, _ = params["name"].(string)
+		}
+	}
 	uses := []toolAliasUse{}
 	changed := rewriteToolNames(request, &uses)
 	if !changed {
@@ -238,6 +251,10 @@ func rewriteReviewDemoToolCall(r *http.Request) error {
 			*r = *r.WithContext(context.WithValue(r.Context(), mcpInitializeKey{}, true))
 		}
 		return nil
+	}
+	if originalName != "" && r.Header.Get("Mcp-Name") == originalName {
+		canonical, _ := normalizeToolName(originalName)
+		r.Header.Set("Mcp-Name", canonical)
 	}
 	normalized, err := json.Marshal(request)
 	if err != nil {
@@ -320,6 +337,9 @@ func rewriteToolNames(value any, uses *[]toolAliasUse) bool {
 
 func (s *server) handler() http.Handler {
 	serverFor := func(req *http.Request) *mcp.Server {
+		if active, ok := req.Context().Value(activeMCPServerKey{}).(*mcp.Server); ok {
+			return active
+		}
 		id, _ := req.Context().Value(identityKey{}).(identity)
 		if publicSelfService(req.Context()) {
 			return s.publicSelfServiceMCP(id)
@@ -331,6 +351,8 @@ func (s *server) handler() http.Handler {
 	}
 	mcpHandler := mcp.NewStreamableHTTPHandler(serverFor,
 		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
+	activeServers := &activeMCPServers{}
+	modernHandler := activeServers.handler(mcpHandler, serverFor)
 	// Initialized clients retain a server session and a standalone SSE or
 	// subscriptions/listen stream. That is the channel used for true dynamic
 	// tools/list_changed delivery. Calls without a session remain compatible
@@ -345,6 +367,7 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("GET /metrics", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		mcpToolTelemetry.writePrometheus(w)
+		s.diagnostics().writePrometheusStatus(w)
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ready, checks := s.readiness(r.Context())
@@ -399,7 +422,8 @@ func (s *server) handler() http.Handler {
 	})
 	mux.HandleFunc("GET /self-service/capabilities", s.selfServiceCapabilitiesHTTP)
 	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
-	mux.HandleFunc("GET /internal/mcp/catalog", s.mcpCatalogHTTP)
+	mux.HandleFunc("POST /v1/collaboration/resolve", s.collaborationBrokerResolveHTTP)
+	mux.Handle("GET /internal/mcp/catalog", s.diagnostics().http(http.HandlerFunc(s.mcpCatalogHTTP)))
 	mux.HandleFunc("GET /internal/mcp/catalog/events", s.mcpCatalogEventsHTTP)
 	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })
 	mux.HandleFunc("GET /credentials/adopt", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, adoptPage) })
@@ -444,7 +468,7 @@ func (s *server) handler() http.Handler {
 			}
 			if errors.Is(err, errIdentityUnavailable) {
 				log.Printf("tenant MCP identity authority unavailable: %v", err)
-				writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
+				writeJSON(w, 503, diagnosticErrorResponse(r.Context(), "identity_unavailable"))
 				return
 			}
 			if errors.Is(err, errInvalidToken) {
@@ -459,14 +483,17 @@ func (s *server) handler() http.Handler {
 		}
 		recordToolAliasUses(r.Context())
 		handler := http.Handler(mcpHandler)
+		if r.Method == http.MethodPost && r.Header.Get("Mcp-Session-Id") == "" && r.Header.Get("Mcp-Protocol-Version") >= "2026-07-28" {
+			handler = modernHandler
+		}
 		if mcpInitialize(r.Context()) || r.Header.Get("Mcp-Session-Id") != "" || r.Method == http.MethodGet || r.Method == http.MethodDelete {
 			handler = statefulMCPHandler
 		}
-		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
+		withVerifiedMCPSession(handler).ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), identityKey{}, id)))
 	}
-	mux.HandleFunc("/mcp", mcpEndpoint)
-	mux.HandleFunc("/plugin/mcp", mcpEndpoint)
-	mux.HandleFunc("/self-service/mcp", mcpEndpoint)
+	mux.Handle("/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
+	mux.Handle("/plugin/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
+	mux.Handle("/self-service/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
 	return mux
 }
 
@@ -504,7 +531,8 @@ func (s *server) exchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := r.Form.Get("subject_token")
-	if _, err := s.verifySupabase(r.Context(), token); err != nil {
+	id, err := s.authenticate(r.Context(), token, "")
+	if err != nil {
 		if errors.Is(err, errIdentityUnavailable) {
 			writeJSON(w, 503, map[string]string{"error": "identity_unavailable"})
 			return
@@ -512,15 +540,23 @@ func (s *server) exchangeToken(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
 		return
 	}
-	claims, err := decodeClaims(token)
-	if err != nil {
-		writeJSON(w, 401, map[string]string{"error": "invalid_subject_token"})
+	if id.Service || id.Tenant == "" || id.OrganizationRef == "" {
+		writeJSON(w, 403, map[string]string{"error": "active_organization_required"})
 		return
 	}
-	expires := min(max(claims.Expires-time.Now().Unix(), 1), 600)
+	request, err := invocationTokenRequestFromForm(r.Form, id, audience)
+	if err != nil {
+		writeJSON(w, 400, map[string]string{"error": "invalid_request", "error_description": err.Error()})
+		return
+	}
+	issued, err := s.issueInvocationToken(r.Context(), request)
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "token_issuer_unavailable"})
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
-	writeJSON(w, 200, map[string]any{"access_token": token, "issued_token_type": tokenType, "token_type": "Bearer", "expires_in": expires})
+	writeJSON(w, 200, map[string]any{"access_token": issued.Token, "issued_token_type": tokenType, "token_type": "Bearer", "expires_in": issued.ExpiresIn, "scope": strings.Join(issued.Scopes, " ")})
 }
 
 func billingHeaders(w http.ResponseWriter, r *http.Request) {
@@ -665,6 +701,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer s.db.Close()
+	s.toolDiagnostics, err = configuredToolDiagnostics()
+	if err != nil {
+		log.Print("tool diagnostics Sentry configuration invalid; local operation diagnostics remain enabled")
+		s.toolDiagnostics = &toolDiagnostics{}
+	}
+	if s.toolDiagnostics.client != nil {
+		defer s.toolDiagnostics.client.Flush(5 * time.Second)
+	}
+	log.Printf("tool diagnostics Sentry enabled=%t", s.toolDiagnostics.client != nil)
 	ledgerPath := os.Getenv("TENANT_SERVICE_DB")
 	if ledgerPath == "" {
 		ledgerPath = "/var/lib/tenant-platform/tenant-services.db"

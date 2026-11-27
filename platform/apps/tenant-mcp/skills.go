@@ -44,6 +44,8 @@ type skill struct {
 }
 
 type server struct {
+	invocationIssuer      invocationTokenIssuer
+	toolDiagnostics       *toolDiagnostics
 	authFlights           singleflight.Group
 	modulesOnce           sync.Once
 	modules               *platformRegistry

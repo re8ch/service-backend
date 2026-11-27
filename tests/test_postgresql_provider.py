@@ -105,3 +105,11 @@ def test_parameter_and_identity_guards():
             raise AssertionError("unsafe PostgreSQL parameters accepted")
     database, role = provider.database_identity("admin", "pg-re8ch", "uid")
     assert database.startswith("t_admin_pg_re8ch_") and role.endswith("_owner")
+
+
+def test_provider_is_not_an_mcp_server_or_catalog_registrant():
+    source = MODULE.read_text()
+    assert "postgresql_provider_status" not in source
+    assert "MCP_CATALOG" not in source
+    assert "def register(" not in source
+    assert 'self.path in {"/livez", "/readyz"}' in source

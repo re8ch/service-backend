@@ -66,6 +66,24 @@ def main() -> None:
             authority["spec"].get("controllerVersion") == "retired",
             "retired controller authority must not advertise an active Flux version",
         )
+        agent = authority["spec"]["domains"]["agent-runtime"]
+        require(
+            {
+                "repository": agent.get("repository"),
+                "repositoryId": agent.get("repositoryId"),
+                "repositoryOwnerId": agent.get("repositoryOwnerId"),
+                "repositoryVisibility": agent.get("repositoryVisibility"),
+                "fluxConsumerState": agent.get("fluxConsumerState"),
+            }
+            == {
+                "repository": "ssh://git@ssh.github.com:443/8iops/agent-gitops.git",
+                "repositoryId": "1435935941",
+                "repositoryOwnerId": "334604670",
+                "repositoryVisibility": "public",
+                "fluxConsumerState": "retired",
+            },
+            "agent runtime must bind Cloud SSA to the active repository identity and retired Flux consumer",
+        )
         print("Flux federation retired: GitHub Actions SSA is the four-domain delivery authority")
         return
 

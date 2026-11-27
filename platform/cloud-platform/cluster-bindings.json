@@ -1,0 +1,22 @@
+{
+  "clusters": {
+    "re8ch": {
+      "clusterRef": "re8ch", "adapter": "local", "trustDomain": "re8ch.internal",
+      "clusterIdentityRef": {"namespace": "byoc-pilot", "name": "re8ch", "uid": "9b360e14-2a36-44db-8c80-6b7ca690df63"},
+      "apiServiceRef": {"namespace": "default", "name": "kubernetes", "uid": "9a4ff49b-d663-47df-962a-f1d562c85c32"}
+    },
+    "re8ch-atlantic": {
+      "clusterRef": "re8ch-atlantic",
+      "adapter": "among-broker",
+      "namespace": "byoc-pilot",
+      "publisherRef": "re8ch-atlantic",
+      "serviceIdentity": "spiffe://atlantic.re8ch.com/ns/default/service/kubernetes",
+      "advertisementRef": {"name": "re8ch-atlantic-default-kubernetes", "uid": "c282af55-67a5-4684-ba46-66e5667303ba"},
+      "importedServiceRef": {"name": "re8ch-atlantic-default-kubernetes-re8ch-atlantic", "uid": "b91afbed-fe93-455f-9700-3424448ac66f"},
+      "peerRef": {"name": "re8ch-atlantic", "uid": "d876a0ff-2001-4348-b9d4-c57a93670ef0"},
+      "grantRef": {"name": "re8ch-atlantic-headlamp-admin", "uid": "d9fae24e-cea9-4014-8c93-0837bd8e7e60"},
+      "grantScope": {"scope": "Cluster", "rules": [{"apiGroups": ["*"], "resources": ["*"], "verbs": ["*"]}]},
+      "brokerURL": "http://among-clusters-credential-broker.credential-broker.svc.cluster.local"
+    }
+  }
+}

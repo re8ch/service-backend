@@ -21,6 +21,9 @@ browserAPI:
 # the reusable chart; production enables it with a verified image digest.
 tenantPlatform:
   enabled: false
+  invocationCredentials:
+    enabled: false
+    schedule: "17 */12 * * *"
   image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
   tenantAPI:
     enabled: false
@@ -29,13 +32,14 @@ tenantPlatform:
     organizationsURL: ""
     usersURL: ""
     openAIAppsChallengeToken: ""
-    # Opt-in inference transport; native LiteLLM keys keep model/budget authority.
-    # Never put key values here. Bindings only locate same-named Secret keys.
-    modelGateway:
-      enabled: false
-      gatewayURL: ""
-      credentialsSecret: ""
-      bindings: {}
+    invocationTokens:
+      # The binding authority resolves owner Org and provider audience before
+      # signing. tenant-mcp never receives the signing key.
+      issuerURL: http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens
+      jwksURL: http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json
+      expectedIssuer: https://tools.service.re8ch.com/invocation
+      credentialSecret: tenant-claim-internal-auth
+      credentialKey: TENANT_CLAIM_SERVICE_TOKEN
   provider:
     enabled: false
     image: registry.re8ch.com/image/re8ch-ai-operations@sha256:IMAGE_REQUIRES_VERIFIED_DIGEST
@@ -173,6 +177,19 @@ billingSink:
 serviceInstanceRuntime:
   enabled: false
   serviceClasses: []
+
+# Platform-owned authorities that predate TenantServiceInstance are adopted as
+# explicit resource facts. Availability is proven from Prometheus; no provider
+# credential or synthetic tenant service instance is introduced.
+adoptedResources: []
+# - tenantRef: admin
+#   resourceRef: service://admin/pg-re8ch
+#   serviceClass: database.postgresql.shared.v1
+#   resourceType: database-authority
+#   purpose: platform-database
+#   sourceRef: service-backend
+#   dependencyRefs: []
+#   availabilityQuery: max(kube_service_info{namespace="pigsty-external",service="pg-re8ch-primary"})
 
 outbox:
   enabled: true

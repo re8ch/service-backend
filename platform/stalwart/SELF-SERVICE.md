@@ -1,5 +1,8 @@
 # Stalwart 接入 Re8ch self-service
 
+Re8ch Org 基础服务、完整 CLI 能力分层和 Bifurcate meter 的目标契约见
+[`RE8CH-ORG-SERVICE-CONTRACT.md`](RE8CH-ORG-SERVICE-CONTRACT.md)。
+
 状态：动态工具、device 授权和 User Hub PKCE 已发布；邮件、日历、通讯录、
 Drive 读取及 refresh 已完成生产验收。`id.re8ch.com` 公网 Gateway 503 是独立的
 剩余故障。2026-10-31。完整排障与统一 OAuth 交接见
@@ -73,6 +76,9 @@ Drive 读取及 refresh 已完成生产验收。`id.re8ch.com` 公网 Gateway 50
 复用 `service_catalog_list`、`service_instance_plan/create/get` 和
 `service_binding_*` 的状态机；公开 self-service 只增加协作所需的受限入口，
 不能因此暴露内部所有服务或管理员工具。
+本人账户的 plan/create 省略 `identityUserRef`；tenant-mcp 从已验证会话绑定当前
+subject。只有 Org operator 为其他 active member 创建账户时才显式传入该成员的
+`identityUserRef`，普通 self-service 客户端不应发现或猜测用户 UUID。
 
 建议一个协作服务实例，共用一个 Stalwart 账户和配额，三个独立授权面。
 避免分别申请邮件、日历、文件时重复创建三个身份。拟定服务类为
@@ -105,8 +111,8 @@ credentialRef、授权范围、允许的集合、generation、到期与撤销状
 `files.read`。这些是 Re8ch 权限，不声称是 Stalwart OAuth 的原生 scope。
 Stalwart 的服务 scope 可能比只读更宽，适配器必须继续限制具体方法。
 
-普通用户默认使用 Auth Hub Authorization Code + PKCE。浏览器复用 User Hub
-登录会话，Auth Hub 为 `stalwart-webui` audience 签发令牌，回调只接受预注册
+普通用户默认使用 db-rw GoTrue Authorization Code + PKCE。浏览器复用 AuthUserHub
+登录会话，GoTrue 为 `authenticated` audience 签发令牌，回调只接受预注册
 URI、一次性随机 state 和 S256 verifier；provider access/refresh token 只进入
 Credential Broker。设备授权继续作为显式 `authorizationMode: device` 的兼容及
 机器人入口，不要求普通用户开启 Stalwart 本地密码。provider OAuth token 不得

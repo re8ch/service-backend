@@ -1,0 +1,37 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "AutomationPullRequestFactorPolicy",
+  "semantics": {
+    "primaryFactor": "one open repository-local Issue owns lifecycle for a bounded automation stream",
+    "secondaryFactors": "cross-repository, cross-organization and cross-Project Issue references are allowed",
+    "closure": "classification never authorizes closing a pull request"
+  },
+  "actors": {
+    "dependabot": {
+      "authors": ["dependabot", "dependabot[bot]", "app/dependabot"],
+      "headPrefixes": ["dependabot/"],
+      "factorKind": "dependency-update",
+      "aggregation": ["repository", "ecosystem"],
+      "issueType": "Task",
+      "workType": "Dependency"
+    },
+    "domain-promoter": {
+      "authors": ["re8ch-domain-promoter", "re8ch-domain-promoter[bot]", "app/re8ch-domain-promoter"],
+      "headPrefixes": ["codex/promote-domain-"],
+      "titlePattern": "^chore\\(gitops\\): promote (?:verified|attested) domain OCI digests$",
+      "factorKind": "domain-oci-promotion",
+      "aggregation": ["repository", "factorKind"],
+      "issueType": "Task",
+      "workType": "Dependency"
+    }
+  },
+  "unknownAutomation": {
+    "decision": "review",
+    "reason": "unreviewed automation identity or identity/branch mismatch"
+  },
+  "migration": {
+    "createFactors": "one Issue per aggregation key only after ledger review",
+    "linking": "each retained PR closes or is natively linked to its primary factor; secondary factor references remain additive",
+    "historicalPRs": "do not close or rewrite solely to improve completeness"
+  }
+}

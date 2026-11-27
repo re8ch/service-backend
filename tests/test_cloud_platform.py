@@ -214,6 +214,59 @@ def test_webmail_credential_tool_is_admin_only_and_rejects_target_overrides():
     assert server.dispatch(service, "credentials.webmail-session.ensure", {}, admin)["applied"] is False
 
 
+def test_litellm_openoauth_projection_is_fixed_and_never_returns_material():
+    client_id = "123e4567-e89b-42d3-a456-426614174000"
+    reference = f"credential://open-oauth/re8ch/{client_id}"
+    source = {
+        "metadata": {"labels": {
+            "credentials.re8ch.com/provider": "open-oauth",
+            "credentials.re8ch.com/tenant": "re8ch",
+            "credentials.re8ch.com/projection": "litellm-gotrue-sso",
+        }},
+        "data": {"client-id": "Y2xpZW50", "client-secret": "c3VwZXItc2VjcmV0"},
+    }
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        if "get" in argv:
+            return completed(json.dumps(source))
+        manifest = json.loads(kwargs["input"])
+        assert manifest["metadata"] == {
+            "name": "litellm-gotrue-sso", "namespace": "llm-gateway",
+            "annotations": {"credentials.re8ch.com/content-ref": reference},
+        }
+        assert manifest["data"] == source["data"]
+        assert "--field-manager=re8ch-release/litellm-openoauth-credential" in argv
+        return completed("secret/litellm-gotrue-sso server-side applied")
+
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(run), kubeconfig="x", ssh_config="y")
+    preview = service.project_litellm_openoauth_credential(reference)
+    assert preview["applied"] is False and len(preview["planHash"]) == 64
+    assert "c3VwZXItc2VjcmV0" not in json.dumps(preview)
+    applied = service.project_litellm_openoauth_credential(reference, apply=True, plan_hash=preview["planHash"])
+    assert applied["applied"] is True
+    assert "c3VwZXItc2VjcmV0" not in json.dumps(applied)
+    assert len(calls) == 3
+
+
+def test_litellm_openoauth_projection_rejects_overrides_and_stale_plan():
+    import importlib.util
+    from runtime import Identity
+    spec = importlib.util.spec_from_file_location("cloud_platform_server_oauth_test", ROOT / "operations/cloud-platform/server.py")
+    server = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(server)
+    service = CloudPlatform(Inventory([NODE_FIXTURE]), OperationRunner(), kubeconfig="x", ssh_config="y")
+    admin = Identity("operator", (server.ADMIN_GROUP,))
+    reference = "credential://open-oauth/re8ch/123e4567-e89b-42d3-a456-426614174000"
+    with pytest.raises(OperationError) as exc:
+        server.dispatch(service, "credentials.litellm-openoauth.project", {"credentialRef": reference, "namespace": "other"}, admin, _bound=True)
+    assert exc.value.code == "INVALID_ARGUMENT"
+    with pytest.raises(OperationError) as exc:
+        service.project_litellm_openoauth_credential(reference, apply=True, plan_hash="0" * 64)
+    assert exc.value.code == "PLAN_HASH_REQUIRED"
+
+
 def authentication_git_authority(monkeypatch, commit_sha):
     reconciler = """apiVersion: apps/v1
 kind: DaemonSet
@@ -340,3 +393,27 @@ def test_authentication_reconcile_tool_is_admin_only_and_bounded(monkeypatch):
         server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha, "namespace": "default"}, admin)
     assert caught.value.code == "INVALID_ARGUMENT"
     assert server.dispatch(service, "reconcile_control_plane_authentication_config", {"commitSha": commit_sha}, admin)["applied"] is False
+
+
+def test_reviewed_endpoint_override_preserves_kubeconfig_for_all_native_commands(monkeypatch):
+    from plugin_http_transport import kubectl_prefix
+    monkeypatch.setenv("KUBERNETES_SERVER_OVERRIDE", "https://192.0.2.10:6443")
+    calls = []
+    service = CloudPlatform(Inventory([NODE_FIXTURE]),
+                            OperationRunner(lambda argv, **kwargs: calls.append(argv) or completed()),
+                            kubeconfig="credential-authority", ssh_config="y")
+    service.kubectl_exec(["get", "nodes"])
+    service._kubectl(["get", "pods"])
+    expected = ["kubectl", "--kubeconfig", "credential-authority", "--server", "https://192.0.2.10:6443"]
+    assert kubectl_prefix("credential-authority") == expected
+    assert all(argv[:len(expected)] == expected for argv in calls)
+    monkeypatch.delenv("KUBERNETES_SERVER_OVERRIDE")
+    assert kubectl_prefix("credential-authority") == ["kubectl", "--kubeconfig", "credential-authority"]
+
+
+@pytest.mark.parametrize("endpoint", ["http://192.0.2.10", "https://user:password@example.test", "https://example.test/apis", "https://example.test?token=x", "https://example.test#x"])
+def test_endpoint_override_rejects_credentials_and_non_origin_urls(monkeypatch, endpoint):
+    from plugin_http_transport import kubectl_prefix
+    monkeypatch.setenv("KUBERNETES_SERVER_OVERRIDE", endpoint)
+    with pytest.raises(OperationError):
+        kubectl_prefix("credential-authority")
