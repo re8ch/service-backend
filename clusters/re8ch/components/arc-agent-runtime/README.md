@@ -36,6 +36,14 @@ uses the authenticated tenant MCP endpoint. Provider master keys, the LiteLLM
 master key, MCP backend credentials, Kubernetes credentials, and GitHub App
 private keys must never be exposed to a workflow job.
 
+GitHub Enterprise Custom Models still requires a Copilot seat even when its
+provider key is customer-owned. The seat-independent runtime therefore uses the
+official Copilot CLI in BYOK mode inside the ARC job. Model traffic goes
+directly to the public LiteLLM endpoint and the CLI runs with GitHub model
+authentication and telemetry disabled. GitHub remains the dispatch,
+governance, checks and audit authority; the job may receive a separate bounded
+GitHub App token only when a task needs GitHub API access.
+
 Chart inputs are pinned to the official ARC `0.15.1` release:
 
 - controller chart digest: `sha256:c2497a6dedaaa723322abfe9ea2f5a81b9b8fbb90b38e45d7835b6c7629a3aae`

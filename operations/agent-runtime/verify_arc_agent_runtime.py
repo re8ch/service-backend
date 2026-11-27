@@ -9,6 +9,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPONENT = ROOT / "clusters/re8ch/components/arc-agent-runtime"
+BYOK_SMOKE = ROOT / ".github/workflows/copilot-byok-arc-smoke.yml"
 
 
 def require(condition: bool, message: str) -> None:
@@ -120,6 +121,26 @@ def main() -> None:
             "rendered runner scale set must be present")
     require("name: re8ch-self-hosted-ephemeral" in rendered_runner,
             "rendered runner scale-set identity must be stable")
+
+    byok_smoke = BYOK_SMOKE.read_text()
+    require("labels: re8ch-self-hosted-ephemeral" in byok_smoke,
+            "BYOK smoke must use the ARC scale-set label")
+    require("environment: copilot-byok" in byok_smoke,
+            "BYOK credentials must be scoped to the reviewed environment")
+    require("node:22-bookworm-slim@sha256:" in byok_smoke,
+            "BYOK job image must be digest pinned")
+    require("SSL_CERT_FILE: /tmp/node-root-certificates.pem" in byok_smoke,
+            "Copilot native HTTP must use the job's reviewed CA roots")
+    require("@github/copilot@1.0.116" in byok_smoke,
+            "Copilot CLI version must be pinned")
+    require("COPILOT_OFFLINE: \"true\"" in byok_smoke,
+            "seat-independent BYOK jobs must disable GitHub model traffic")
+    require("https://litellm.service.re8ch.com/v1" in byok_smoke,
+            "BYOK jobs must use the public authenticated LiteLLM endpoint")
+    require("secrets.COPILOT_PROVIDER_API_KEY" in byok_smoke,
+            "BYOK jobs must receive only the scoped provider key")
+    require("--secret-env-vars=COPILOT_PROVIDER_API_KEY" in byok_smoke,
+            "Copilot CLI must redact the provider key from output")
 
     text = "\n".join(path.read_text() for path in COMPONENT.glob("*.yaml"))
     # Keep the scanner patterns constructed so this guard does not itself look
