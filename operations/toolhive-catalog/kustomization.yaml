@@ -7,3 +7,5 @@ configMapGenerator:
       - registry.json=registry.json
 generatorOptions:
   disableNameSuffixHash: true
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
