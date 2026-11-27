@@ -184,11 +184,11 @@ spec:
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-plugin/mcp"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
             - {name: OPENAI_APPS_CHALLENGE_TOKEN, value: {{ .Values.tenantPlatform.tenantAPI.openAIAppsChallengeToken | default "" | quote }}}
             - {name: LITELLM_GATEWAY_URL, value: "https://litellm.service.re8ch.com/v1"}
             - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: AUTH_DISCOVERY_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/.well-known/oauth-authorization-server"}
             - {name: DEX_USERINFO_URL, value: "https://api.re8ch.com/auth/userinfo"}
@@ -301,19 +301,12 @@ spec:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /plugin/mcp}}
       backendRefs: [{name: tenant-api, port: 80}]
-    - matches: [{path: {type: Exact, value: /tenant-plugin/mcp}}]
-      filters:
-        - type: URLRewrite
-          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /plugin/mcp}}
-      backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /tenant-self-service/mcp}}]
       filters:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /self-service/mcp}}
       backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-native/mcp}}]
-      backendRefs: [{name: tenant-api, port: 80}]
-    - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-plugin/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-self-service/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
