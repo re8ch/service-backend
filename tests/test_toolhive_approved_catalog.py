@@ -18,7 +18,7 @@ def test_approved_catalog_is_the_authenticated_re8ch_entry():
     assert (server["name"], server["title"]) == ("com.re8ch/re8ch", "RE8CH")
     assert server["remotes"] == [{
         "type": "streamable-http",
-        "url": "https://tools.service.re8ch.com/tenant-native/mcp",
+        "url": "https://tools.service.re8ch.com/tenant-plugin/mcp",
     }]
     assert "organization, membership and grants" in server["description"]
 
