@@ -279,7 +279,7 @@ releases:
       namespace: flux-system
   values:
     inlinePresent: true
-    inlineSha256: sha256:ac70c4b76c090e6b63396812638f14fd0dc6f4fcf909dd6bd7a3bd354d018935
+    inlineSha256: sha256:4a96f9234f62f57131e2c4b7070c2ce4d64ba6c4cdecd7e152f2d9ebf73dfdd4
     references: []
   lifecycle:
     install:
@@ -299,7 +299,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:c7c9ce6f95535960b65e4b5eaf7b2e4b0912388d2e38cc7a8babf5023758e7e4
+  declarationSha256: sha256:070627bea11ad6dbc9ed05b1ca8effb494f41b7621d3067f2910bcc51c32be80
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
     document: 85
@@ -659,7 +659,7 @@ releases:
     namespace: null
   values:
     inlinePresent: true
-    inlineSha256: sha256:86efe807888b812e7c470577da7dccc9f945e4f9cb29085061f1217f87fdc904
+    inlineSha256: sha256:a5f01d509ef883cf4e0861bc434d3b5a3acfd7d71cf2983a0e05b91ea957ddc5
     references: []
   lifecycle:
     install:
@@ -679,7 +679,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:2ea96f216b4bd081e14469dce17e8bb2499d67aa4329f0e5833192e0fe1b57f7
+  declarationSha256: sha256:d825ec26ed3098892b0bc2e3be3e51aa74416d040bcd3a47191ded9e544f02a0
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
     document: 289
@@ -732,7 +732,7 @@ releases:
   declarationSha256: sha256:996649046f6bd55163f56d4dce965d2f41eb04b6942a7550cd18365a12571a9d
   occurrences:
   - file: clusters/re8ch/domains/tenant-runtime/resources.yaml
-    document: 34
+    document: 35
   - file: platform/runtime-anatomy/release.yaml
     document: 1
   classification:
@@ -781,7 +781,7 @@ releases:
   - file: clusters/re8ch/components/toolhive/operator-release.yaml
     document: 2
   - file: clusters/re8ch/domains/agent-runtime/resources.yaml
-    document: 281
+    document: 303
   classification:
     id: helmrelease:flux-system:toolhive-operator
     disposition: retain-helm-lifecycle

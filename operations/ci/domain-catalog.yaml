@@ -99,7 +99,9 @@ domains:
       - platform/git-workspaces/**
       - clusters/re8ch/components/codex-app-server-console/**
       - clusters/re8ch/components/ai-operations/sandbox-trials/**
+      - clusters/re8ch/components/arc-agent-runtime/**
       - clusters/re8ch/domains/agent-runtime/**
+      - operations/agent-runtime/**
       - clusters/re8ch/flux-federation/**
       - operations/flux-federation/**
     roots:
@@ -108,6 +110,7 @@ domains:
       - platform/git-workspaces
       - clusters/re8ch/components/codex-app-server-console
       - clusters/re8ch/components/ai-operations/sandbox-trials
+      - clusters/re8ch/components/arc-agent-runtime
       - clusters/re8ch/domains/agent-runtime
       - clusters/re8ch/flux-federation
     tests:
@@ -245,7 +248,12 @@ domains:
       - clusters/re8ch/domains/main-legacy/operations-ui
       - clusters/re8ch/domains/main-legacy/tenant-runtime
     tests:
+      - tests/test_python_sentry.py
+      - tests/test_registry_transfer.py
       - tests/test_cloud_platform.py
+      - tests/test_cluster_bindings.py
+      - tests/test_cluster_execution_transport.py
+      - tests/test_cluster_transport_redirects.py
       - tests/test_cloud_platform_manifest.py
       - tests/test_runtime_anatomy_canary_script.py
       - tests/test_runtime_anatomy_chart.py
@@ -363,6 +371,17 @@ unit_defaults:
   - operations/ci/unit_catalog.py
   - operations/ci/unit_report.py
 validation_units:
+  tests/test_python_sentry.py:
+    sources:
+    - operations/cloud-platform/**
+    - clusters/re8ch/components/ai-operations/tenant_control_controller.py
+    data:
+    - clusters/re8ch/components/ai-operations/Dockerfile
+    - .github/workflows/cloud-platform-release.yml
+    - .github/workflows/tenant-release.yml
+    helpers: []
+    tools: [python]
+    reuse: never
   tests/test_github_bot_merge.py:
     sources:
     - operations/github-maintenance/bot_merge.py

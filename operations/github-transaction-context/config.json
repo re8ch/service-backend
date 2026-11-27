@@ -1,0 +1,32 @@
+{
+  "organization": "re8ch",
+  "approvedProjectNumbers": [1, 2, 3, 4, 5, 6],
+  "requiredFields": [
+    "Status",
+    "Lifecycle",
+    "Work Type",
+    "Context Status",
+    "Start Date"
+  ],
+  "completionDateFields": ["Target Date", "Completed Date"],
+  "exemptions": [
+    {
+      "authors": ["app/dependabot", "dependabot", "dependabot[bot]"],
+      "headPrefix": "dependabot/",
+      "reason": "GitHub-managed dependency branch predates the assigned factor Issue"
+    },
+    {
+      "authors": [
+        "app/re8ch-domain-promoter",
+        "re8ch-domain-promoter",
+        "re8ch-domain-promoter[bot]"
+      ],
+      "headPrefix": "codex/promote-domain-",
+      "titlePrefixes": [
+        "chore(gitops): promote verified domain OCI digests",
+        "chore(gitops): promote attested domain OCI digests"
+      ],
+      "reason": "reviewed domain promotion branch predates the assigned factor Issue"
+    }
+  ]
+}

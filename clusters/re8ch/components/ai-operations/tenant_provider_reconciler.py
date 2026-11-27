@@ -184,7 +184,10 @@ class StalwartAdmin:
             raise RuntimeError("Stalwart recovery credential is unavailable")
         self.cli = cli
         self.env = {**os.environ, "STALWART_USER": username, "STALWART_PASSWORD": password,
-                    "STALWART_URL": os.getenv("STALWART_URL", "http://stalwart.mail-system.svc.cluster.local:8080")}
+                    "STALWART_URL": os.getenv("STALWART_URL", "https://stalwart-admin.service.re8ch.com"),
+                    # The reconciler has a read-only root filesystem. Keep the CLI's
+                    # transient config and cache in the pod's memory-backed /dev/shm.
+                    "HOME": "/dev/shm", "XDG_CONFIG_HOME": "/dev/shm", "XDG_CACHE_HOME": "/dev/shm"}
 
     def run(self, *args: str, stdin: str | None = None) -> str:
         result = subprocess.run([self.cli, *args], input=stdin, text=True, capture_output=True,
@@ -209,7 +212,7 @@ class StalwartAdmin:
         plan = {"@type": "upsert", "object": "Account", "matchOn": ["name", "domainId"],
                 "value": {"tenant-user": {"@type": "User", "name": local, "domainId": domain["id"],
                 "description": description, "roles": {"@type": "User"}, "permissions": {"@type": "Inherit"},
-                "quotas": {"disk": quota_bytes}, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
+                "quotas/maxDiskQuota": quota_bytes, "aliases": {}, "encryptionAtRest": {"@type": "Disabled"}}}}
         self.run("apply", "--stdin", "--json", stdin=json.dumps(plan) + "\n")
         matches = [item for item in self.rows("Account", "id,name,domainId,roles")
                    if item.get("name") == local and item.get("domainId") == domain["id"]]
@@ -281,6 +284,9 @@ def revoke_litellm(kube, instance: dict[str, Any], client: LiteLLMAdmin) -> None
     secret = kube.get("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
     key = base64.b64decode((secret.get("data") or {})["key"]).decode()
     client.block_key(key)
+    # Removal is deliberately ordered after native revocation. A later resume
+    # must mint a fresh virtual key instead of reusing the blocked material.
+    kube.delete("secrets", "litellm-" + match.group(2), "credential-broker", "api/v1")
 
 
 def managed_credential(kube, instance: dict[str, Any], provider: str, project: str, username: str, *, create_if_missing: bool = True) -> tuple[str | None, str | None]:

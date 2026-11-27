@@ -174,7 +174,7 @@ spec:
       imagePullSecrets: [{name: harbor-hyperswitch-admin}]
       containers:
         - name: payment-registry-api
-          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:f0ad980d4d4408cc321b7f921cd91a726832b627a5cd2b141d7b1e6bdc98458c
+          image: registry.re8ch.com/hyperswitch/processor-payment-registry-api@sha256:b4d03943c801323150e159750add5c4643e34361b8a8ce8e34a495bf76197d70
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           ports: [{name: http, containerPort: 8080}]
           envFrom:
@@ -185,6 +185,10 @@ spec:
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
             - {name: RE8CH_AUTH_BASE_URL, value: "http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
+            - {name: PAYPAL_BASE_URL, value: "https://api-m.paypal.com"}
+            - {name: PAYPAL_CLIENT_ID, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_CLIENT_ID}}}
+            - {name: PAYPAL_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_CLIENT_SECRET}}}
+            - {name: PAYPAL_WEBHOOK_ID, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_WEBHOOK_ID}}}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest-ro.payments.svc.cluster.local:3000"}
             - {name: BILLING_POSTGREST_RW_BASE_URL, value: "http://supabase-billing-rest.supabase-billing.svc.cluster.local:3000"}

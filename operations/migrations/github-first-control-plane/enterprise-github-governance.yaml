@@ -110,7 +110,9 @@ spec:
       implementationState: nine-domain-bootstrap-complete
   evidence:
     runnerCanaries:
-    - repository: re8ch-ai/agent-gitops
+    - repository: 8iops/agent-gitops
+      repositoryId: "1435935941"
+      repositoryOwnerId: "334604670"
       pullRequest: 15
       runner: r640-enterprise-01
     - repository: re8ch/identity-gitops

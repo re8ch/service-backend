@@ -1,0 +1,57 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "GitHubEnterpriseSecurityBaselineSummary",
+  "observedAt": "2026-11-27",
+  "enterprise": "re8ch",
+  "trackingIssue": "https://github.com/re8ch/service-backend/issues/3327",
+  "scope": {
+    "organizations": 24,
+    "repositories": 145,
+    "activeRepositories": 143,
+    "archivedRepositories": 2,
+    "activeNonForkRepositories": 141,
+    "publicRepositories": 46,
+    "privateRepositories": 98,
+    "internalRepositories": 1
+  },
+  "rulesets": {
+    "organizationsWithRulesets": 10,
+    "organizationRulesets": 20,
+    "repositoriesWithAnyEffectiveDefaultBranchRule": 80,
+    "activeNonForkRepositoriesWithoutEffectiveRules": 61,
+    "activeNonForkRepositoriesWithPullRequestAdmission": 52,
+    "activeNonForkRepositoriesWithRequiredSignatures": 52,
+    "activeNonForkRepositoriesWithRequiredStatusChecks": 35,
+    "classicBranchProtectionRepositories": 2,
+    "interpretation": "Classic protection absence is not a gap when effective Rulesets provide admission. Effective branch rules are the readback authority."
+  },
+  "security": {
+    "secretScanningEnabled": 53,
+    "secretScanningAndPushProtectionDisabledActiveNonFork": 89,
+    "publicRepositoriesWithoutSecretScanningActiveNonFork": 9,
+    "dependabotSecurityUpdatesDisabledActiveNonFork": 113,
+    "codeScanningDefaultSetupConfigured": 40,
+    "codeScanningDefaultSetupNotConfigured": 12,
+    "codeScanningUnavailableOrUnreadable": 93,
+    "interpretation": "Private and internal enablement may require licensed GitHub Secret Protection or Code Security. Cost approval precedes broad activation."
+  },
+  "actions": {
+    "workflowTokenReadOnly": 145,
+    "workflowTokenCanApprovePullRequests": 0,
+    "repositoriesAllowingAllActions": 144,
+    "repositoriesRequiringActionShaPinning": 1
+  },
+  "environments": {
+    "repositoriesWithEnvironments": 22,
+    "environments": 61,
+    "withoutProtectionRulesOrBranchPolicy": 10,
+    "allowingAdminBypass": 39
+  },
+  "safety": {
+    "repositorySettingsChanged": 0,
+    "rulesetsChanged": 0,
+    "securityProductsChanged": 0,
+    "actionsPoliciesChanged": 0,
+    "environmentsChanged": 0
+  }
+}

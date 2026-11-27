@@ -34,10 +34,11 @@ spec:
       annotations:
         prometheus.io/scrape: "false"
     spec:
-      # Public egress belongs to the edge node network. The proxy binds the
-      # Pod address used by the Service endpoint, which can differ from hostIP.
-      hostNetwork: true
-      dnsPolicy: Default
+      # Keep every replica on the Pod network. hostNetwork makes declared
+      # container ports collide as host ports when several replicas must use
+      # the same eligible node, and also weakens pod-level NetworkPolicy.
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
       priorityClassName: system-cluster-critical
       affinity:
         nodeAffinity:
@@ -46,9 +47,14 @@ spec:
               - matchExpressions:
                   - {key: kubernetes.io/hostname, operator: In, values: [overseas-kl, overseas-la, r640]}
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - topologyKey: kubernetes.io/hostname
-              labelSelector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
+          # Spread across public-egress nodes whenever they are available, but
+          # retain a working Service when only R640 is schedulable. Pod-network
+          # ports are replica-local, so safe co-location is preferable to 0/3.
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector: {matchLabels: {app.kubernetes.io/name: identity-egress}}
       tolerations: [{operator: Exists}]
       automountServiceAccountToken: false
       securityContext:

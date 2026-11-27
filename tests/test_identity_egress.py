@@ -22,8 +22,8 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert "@sha256:" in container["image"]
     assert container["securityContext"]["allowPrivilegeEscalation"] is False
     assert deployment["spec"]["template"]["spec"]["automountServiceAccountToken"] is False
-    assert deployment["spec"]["template"]["spec"]["hostNetwork"] is True
-    assert deployment["spec"]["template"]["spec"]["dnsPolicy"] == "Default"
+    assert deployment["spec"]["template"]["spec"]["hostNetwork"] is False
+    assert deployment["spec"]["template"]["spec"]["dnsPolicy"] == "ClusterFirst"
     init = deployment["spec"]["template"]["spec"]["initContainers"][0]
     assert init["env"][0]["name"] == "POD_IP"
     assert init["env"][0]["valueFrom"]["fieldRef"]["fieldPath"] == "status.podIP"
@@ -34,9 +34,17 @@ def test_identity_egress_is_ha_digest_pinned_and_gates_google_discovery():
     assert container["args"][:2] == ["-d", "/var/lib/mihomo"]
     assert any(volume["name"] == "state" and "emptyDir" in volume for volume in deployment["spec"]["template"]["spec"]["volumes"])
     affinity = deployment["spec"]["template"]["spec"]["affinity"]
-    assert "requiredDuringSchedulingIgnoredDuringExecution" in affinity["podAntiAffinity"]
+    preferred = affinity["podAntiAffinity"]["preferredDuringSchedulingIgnoredDuringExecution"]
+    assert preferred == [{
+        "weight": 100,
+        "podAffinityTerm": {
+            "topologyKey": "kubernetes.io/hostname",
+            "labelSelector": {"matchLabels": {"app.kubernetes.io/name": "identity-egress"}},
+        },
+    }]
     nodes = affinity["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"][0]["values"]
     assert nodes == ["overseas-kl", "overseas-la", "r640"]
+    assert all("hostPort" not in port for port in container["ports"])
     assert "api.github.com" in container["readinessProbe"]["httpGet"]["path"]
     assert service["spec"]["internalTrafficPolicy"] == "Cluster"
     assert "clusterIP" not in service["spec"]

@@ -181,6 +181,13 @@ def test_litellm_reconcile_stores_key_and_publishes_only_opaque_reference(monkey
     provider.reconcile_instance(kube, value, litellm_factory=lambda _kube: client)
     assert client.blocked == ["sk-opaque-provider-material"]
     assert kube.status["phase"] == "Suspended"
+    assert not any(namespace == "credential-broker" for namespace, _ in kube.secrets)
+
+    value["status"] = kube.status
+    value["spec"]["lifecycle"] = "Requested"
+    provider.reconcile_instance(kube, value, litellm_factory=lambda _kube: client)
+    assert len(client.generated) == 2
+    assert kube.status["phase"] == "Ready"
 
 
 def test_stalwart_reconcile_creates_oidc_account_then_requires_user_authorization(monkeypatch):
@@ -205,6 +212,50 @@ def test_stalwart_reconcile_creates_oidc_account_then_requires_user_authorizatio
     assert kube.status["access"]["credentialMaterialReturned"] is False
     assert client.calls == [("admin@acme.example", "RE8CH acme organization member", 5 * 1024 ** 3)]
     assert local_identity.records[0][1] == "AuthorizationRequired"
+
+
+def test_stalwart_cli_uses_memory_backed_state_on_read_only_root(monkeypatch):
+    captured = {}
+
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def run(_argv, **kwargs):
+        captured.update(kwargs["env"])
+        return Result()
+
+    monkeypatch.setattr(provider.subprocess, "run", run)
+    client = provider.StalwartAdmin("recovery", "password", cli="stalwart-cli")
+    client.run("query", "Domain", "--json")
+
+    assert captured["STALWART_URL"] == "https://stalwart-admin.service.re8ch.com"
+    assert captured["HOME"] == "/dev/shm"
+    assert captured["XDG_CONFIG_HOME"] == "/dev/shm"
+    assert captured["XDG_CACHE_HOME"] == "/dev/shm"
+
+
+def test_stalwart_account_upsert_uses_native_disk_quota_path(monkeypatch):
+    client = provider.StalwartAdmin("recovery", "password", cli="stalwart-cli")
+    queries = iter([
+        [{"id": "domain-1", "name": "acme.example"}],
+        [],
+        [{"id": "account-1", "name": "admin", "domainId": "domain-1", "roles": {"@type": "User"}}],
+    ])
+    plans = []
+    monkeypatch.setattr(client, "rows", lambda *_args: next(queries))
+
+    def run(*args, stdin=None):
+        if args[0] == "apply":
+            plans.append(json.loads(stdin))
+        return ""
+
+    monkeypatch.setattr(client, "run", run)
+    assert client.ensure_oidc_user("admin@acme.example", "member", 5 * 1024 ** 3) == "account-1"
+    value = plans[0]["value"]["tenant-user"]
+    assert value["quotas/maxDiskQuota"] == 5 * 1024 ** 3
+    assert "quotas" not in value
 
 
 def test_cubesandbox_reconcile_requires_live_endpoints_and_returns_capability(monkeypatch):
@@ -269,6 +320,11 @@ class FakeKube:
         secret["data"].update({key: base64.b64encode(item.encode()).decode()
                                for key, item in value["stringData"].items()})
         return secret
+
+    def delete(self, plural, name, namespace=None, api=None):
+        assert plural == "secrets" and namespace == "credential-broker"
+        self.secrets.pop((namespace, name), None)
+        return {}
 
     def patch_status(self, plural, name, status, namespace):
         assert plural == "tenantserviceinstances" and namespace == "acme"

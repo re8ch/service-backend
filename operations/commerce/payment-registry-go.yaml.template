@@ -24,6 +24,10 @@ spec:
             - {name: BILLING_CREDITS_ENABLED, value: "true"}
             - {name: CREDITS_DISPATCH_ENABLED, value: "false"}
             - {name: HYPERSWITCH_PROFILE_ID, value: pro_DrrIuD3GsS8AlvOkJCvo}
+            - {name: PAYPAL_BASE_URL, value: "https://api-m.paypal.com"}
+            - {name: PAYPAL_CLIENT_ID, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_CLIENT_ID}}}
+            - {name: PAYPAL_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_CLIENT_SECRET}}}
+            - {name: PAYPAL_WEBHOOK_ID, valueFrom: {secretKeyRef: {name: payment-registry-secrets, key: PAYPAL_WEBHOOK_ID}}}
             - {name: PAYMENT_POSTGREST_RW_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
             - {name: PAYMENT_POSTGREST_RO_BASE_URL, value: "http://payment-postgrest.payments.svc.cluster.local:3000"}
           readinessProbe: {httpGet: {path: /v1/readyz, port: http}, initialDelaySeconds: 5, periodSeconds: 10}

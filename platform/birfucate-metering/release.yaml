@@ -42,13 +42,15 @@ spec:
       kubernetes.io/hostname: r640
     tenantPlatform:
       enabled: true
+      invocationCredentials:
+        enabled: true
       # Keep the shared RWO state and both MCP backends on the R640 worker so
       # loss of either WSL control-plane host cannot strand public tool access.
       placement:
         nodeNames: [r640]
       tolerations:
         - {operator: Exists}
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:efc3344c17f82b49c6d5c65376e51c02160acd9ea6aeac2b02c7c22d208b3fcd
       tenantAPI:
         # Public ownership proof for the existing OpenAI Re8ch draft (not a credential).
         openAIAppsChallengeToken: "6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE"
@@ -60,9 +62,15 @@ spec:
         # the replicated in-cluster Auth Gateway instead of coupling every MCP
         # request directly to the single GoTrue Pod.
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session
+        invocationTokens:
+          issuerURL: http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens
+          jwksURL: http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json
+          expectedIssuer: https://tools.service.re8ch.com/invocation
+          credentialSecret: tenant-claim-internal-auth
+          credentialKey: TENANT_CLAIM_SERVICE_TOKEN
       provider:
         enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:efc3344c17f82b49c6d5c65376e51c02160acd9ea6aeac2b02c7c22d208b3fcd
         githubEnterpriseGovernance:
           enabled: true
         databaseBindings:

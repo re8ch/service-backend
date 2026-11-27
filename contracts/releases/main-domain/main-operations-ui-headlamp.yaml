@@ -38,6 +38,7 @@ spec:
     - headlamp-advanced-fabric-v0261-t9hc27t784
     - headlamp-among-clusters-v0324-87kcf6499d
     - headlamp-artc-kubeconfig-template
+    - headlamp-atlantic-kubeconfig-template
     - headlamp-birfucate-browser-v048-dhtf86f4bh
     - headlamp-gateway-backend
     - headlamp-gateway-proxy
@@ -50,8 +51,11 @@ spec:
     - headlamp-runtime-anatomy-v020-b97dthg9hb
     - headlamp-secretary-v030-d9c9k67m67
     allowClusterScoped: false
+    forceConflictObjects:
+    - apps/Deployment/headlamp/headlamp
+    - core/ConfigMap/headlamp/headlamp-public-edge-v033-mb4t89f2c6
   inventory:
-    digest: sha256:95ff24bc25c391b80acb8493d4a5b438b974d0319c40797e4ba77ddf9e16583e
+    digest: sha256:5d2b04a881f55e9007c5b7b75ddc7c5c7bac93bc0b152d34ef355af9d7bc9991
   lifecycle:
     prune: false
     healthTimeoutSeconds: 300

@@ -1,0 +1,46 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorBackfillRecord",
+  "capturedAt": "2026-11-26T07:38:52Z",
+  "batch": {
+    "actorKind": "dependabot",
+    "aggregationKey": "dependency-update:advanced-fabrics/core:github_actions",
+    "repository": "advanced-fabrics/core",
+    "ecosystem": "github_actions",
+    "pullRequestCount": 1
+  },
+  "primaryFactor": {
+    "repository": "re8ch/service-backend",
+    "number": 3122,
+    "url": "https://github.com/re8ch/service-backend/issues/3122",
+    "issueType": "Task",
+    "parent": "re8ch/service-backend#3121",
+    "project": "re8ch/2",
+    "workType": "Dependency",
+    "lifecycle": "Ready",
+    "contextStatus": "Ready"
+  },
+  "pullRequests": [
+    {
+      "repository": "advanced-fabrics/core",
+      "number": 112,
+      "url": "https://github.com/advanced-fabrics/core/pull/112",
+      "author": "dependabot[bot]",
+      "headRefName": "dependabot/github_actions/actions-039a2ff6db",
+      "headSha": "b5619a999f75031bb0b2860785e6cf74194e8daf",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "bodySha256Before": "d3ad6a34ad34837ac20e2d95dcd23818a3a61cec8c12933b7987bc096c8ecf68",
+      "bodySha256After": "1ef992287221b76d6f2af966325a5beb822b328cdf6d447c832667e384c99f49",
+      "appendedClosingReference": "Closes re8ch/service-backend#3122",
+      "nativeClosingReferenceReadback": true
+    }
+  ],
+  "safety": {
+    "pullRequestsClosed": 0,
+    "pullRequestsMerged": 0,
+    "existingBodyPreserved": true,
+    "crossRepositoryLinkVerified": true,
+    "credentialMaterialRecorded": false
+  }
+}

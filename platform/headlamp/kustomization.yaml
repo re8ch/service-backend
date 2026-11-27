@@ -10,6 +10,7 @@ resources:
   - availability-policy.yaml
   - qwen-kubeconfig.yaml
   - artc-kubeconfig.yaml
+  - atlantic-kubeconfig.yaml
   - controlled-cluster-relay.yaml
   - oidc-admin-rbac.yaml
   - oidc-landing.yaml
@@ -28,10 +29,18 @@ configMapGenerator:
     namespace: headlamp
     files:
       - plugin.tar.gz=assets/re8ch-headlamp-birfucate-browser-0.4.8.bundle
-  - name: headlamp-public-edge-v033
+  # Preserve the existing exact inventory identity; version and digest are explicit.
+  - name: headlamp-public-edge-v033-mb4t89f2c6
     namespace: headlamp
+    options:
+      disableNameSuffixHash: true
+      annotations:
+        public-edge.re8ch.com/plugin-version: '0.3.4'
+        public-edge.re8ch.com/plugin-sha256: c437a81e65814f4050bfcdfaf68a7354252b8d2a18db6518a7f22e3f5cb95a33
+        public-edge.re8ch.com/plugin-source: bd08745b7
+        public-edge.re8ch.com/plugin-build: https://github.com/re8ch/service-backend/actions/runs/45084324484
     files:
-      - plugin.tar.gz=assets/re8ch-headlamp-public-edge-0.3.3.bundle
+      - plugin.tar.gz=assets/re8ch-headlamp-public-edge-0.3.4.bundle
   - name: headlamp-mihomos-cluster-v013
     namespace: headlamp
     files:

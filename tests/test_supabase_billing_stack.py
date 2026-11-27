@@ -57,7 +57,8 @@ def test_billing_postgrest_has_distinct_rw_ro_contracts() -> None:
     assert rw_env["PGRST_DB_URI"]["valueFrom"]["secretKeyRef"]["key"] == "PGRST_DB_URI_RW"
     assert ro_env["PGRST_DB_URI"]["valueFrom"]["secretKeyRef"]["key"] == "PGRST_DB_URI_RO"
     assert ro_env["PGRST_DB_CHANNEL_ENABLED"]["value"] == "false"
-    assert rw_env["PGRST_DB_SCHEMAS"]["value"] == ro_env["PGRST_DB_SCHEMAS"]["value"] == "payment_api,commerce_api"
+    assert rw_env["PGRST_DB_SCHEMAS"]["value"] == "payment_api,commerce_api,bifurcate_api"
+    assert ro_env["PGRST_DB_SCHEMAS"]["value"] == "payment_api,commerce_api"
     assert rw_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert ro_env["PGRST_DB_EXTRA_SEARCH_PATH"]["value"] == "public,payment,billing,commerce"
     assert all("readinessProbe" in container and "livenessProbe" in container for container in (rw, ro))

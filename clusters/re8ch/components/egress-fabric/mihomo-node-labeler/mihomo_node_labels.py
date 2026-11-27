@@ -50,9 +50,12 @@ def desired_labels(node, inventory):
         return {}
     labels = node.get("metadata", {}).get("labels", {})
     region = labels.get("topology.kubernetes.io/region", "")
-    if not region or region.endswith("unverified"):
+    # A cn-* region is sufficient to place the node-local CN proxy. Inventory
+    # may later refine the city, but an unverified locality must not remove the
+    # node's overseas access path.
+    if not region:
         region = inventory.get(name, {}).get("region", "")
-    if not region or region.endswith("unverified"):
+    if not region:
         return {}
     desired = {"networking.re8ch.com/mihomo-node": "enabled",
                "networking.re8ch.com/geo": "cn" if region.startswith("cn-") else "global"}

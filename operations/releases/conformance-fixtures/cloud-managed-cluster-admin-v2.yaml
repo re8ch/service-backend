@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: re8ch-admin-binding-acceptance
+  namespace: default
+  labels:
+    app.kubernetes.io/part-of: managed-cluster-acceptance
+data:
+  purpose: reviewed Admin managed cluster SSA conformance
+  revision: "2"

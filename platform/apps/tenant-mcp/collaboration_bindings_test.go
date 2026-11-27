@@ -19,15 +19,15 @@ func TestCollaborationScopesAndPlanOwnership(t *testing.T) {
 	t.Setenv("STALWART_URL", "https://provider.example")
 	t.Setenv("STALWART_CLIENT_ID", "re8ch-self-service")
 	owner := identity{Tenant: "re8ch", Subject: "one"}
-	p, err := collaborationPlan(owner, []string{"mail.read", "mail.read", "files.read"})
+	p, err := collaborationPlan(owner, []string{"mail.read", "mail.send", "mail.read", "files.read"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	same, _ := collaborationPlan(owner, []string{"files.read", "mail.read"})
+	same, _ := collaborationPlan(owner, []string{"files.read", "mail.send", "mail.read"})
 	if p["planHash"] != same["planHash"] {
 		t.Fatal("scope normalization changed plan")
 	}
-	other, _ := collaborationPlan(identity{Tenant: "re8ch", Subject: "two"}, []string{"mail.read", "files.read"})
+	other, _ := collaborationPlan(identity{Tenant: "re8ch", Subject: "two"}, []string{"mail.read", "mail.send", "files.read"})
 	if p["planHash"] == other["planHash"] {
 		t.Fatal("plan transferable between users")
 	}
@@ -44,16 +44,16 @@ func TestCollaborationScopesAndPlanOwnership(t *testing.T) {
 	}
 }
 
-func TestCollaborationConnectOriginIsInternalOnly(t *testing.T) {
+func TestCollaborationConnectOriginAlwaysUsesPublicEdge(t *testing.T) {
 	t.Setenv("STALWART_CONNECT_URL", "http://stalwart.mail-system.svc.cluster.local:8080")
 	got, err := collaborationConnectOrigin("https://id.re8ch.com")
-	if err != nil || got != "http://stalwart.mail-system.svc.cluster.local:8080" {
+	if err != nil || got != "https://id.re8ch.com" {
 		t.Fatalf("unexpected connect origin %q: %v", got, err)
 	}
 	for _, origin := range []string{"http://example.com", "https://stalwart.mail-system.svc.cluster.local", "http://user:pass@stalwart.mail-system.svc.cluster.local"} {
 		t.Setenv("STALWART_CONNECT_URL", origin)
-		if _, err = collaborationConnectOrigin("https://id.re8ch.com"); err == nil {
-			t.Fatalf("accepted connect origin %s", origin)
+		if got, err = collaborationConnectOrigin("https://id.re8ch.com"); err != nil || got != "https://id.re8ch.com" {
+			t.Fatalf("legacy connect origin %s overrode PublicEdge with %q: %v", origin, got, err)
 		}
 	}
 }
@@ -82,13 +82,13 @@ func TestCollaborationUserHubSSOIsDefaultAndDeviceRemainsAvailable(t *testing.T)
 		}
 		r.ParseForm()
 		if r.Form.Get("grant_type") == "refresh_token" {
-			if r.Form.Get("refresh_token") != "auth-hub-refresh" || r.Form.Get("client_id") != "stalwart-webui" {
+			if r.Form.Get("refresh_token") != "auth-hub-refresh" || r.Form.Get("client_id") != "705c1168-43d8-4ec3-980a-0327a59c7fc6" {
 				t.Errorf("invalid Auth Hub refresh: %v", r.Form)
 			}
 			writeJSON(w, 200, map[string]any{"access_token": "auth-hub-access-renewed", "refresh_token": "auth-hub-refresh-rotated", "token_type": "Bearer", "expires_in": 900})
 			return
 		}
-		if r.Form.Get("grant_type") != "authorization_code" || r.Form.Get("code") != "approved-code" || r.Form.Get("code_verifier") == "" || r.Form.Get("client_id") != "stalwart-webui" {
+		if r.Form.Get("grant_type") != "authorization_code" || r.Form.Get("code") != "approved-code" || r.Form.Get("code_verifier") == "" || r.Form.Get("client_id") != "705c1168-43d8-4ec3-980a-0327a59c7fc6" {
 			t.Errorf("invalid Auth Hub exchange: %v", r.Form)
 		}
 		writeJSON(w, 200, map[string]any{"access_token": "auth-hub-access", "refresh_token": "auth-hub-refresh", "token_type": "Bearer", "expires_in": 900})
@@ -101,7 +101,7 @@ func TestCollaborationUserHubSSOIsDefaultAndDeviceRemainsAvailable(t *testing.T)
 	t.Setenv("COLLABORATION_ENABLED", "true")
 	t.Setenv("COLLABORATION_AUTH_MODE", "auth-hub-pkce")
 	t.Setenv("STALWART_URL", provider.URL)
-	t.Setenv("STALWART_CLIENT_ID", "stalwart-webui")
+	t.Setenv("STALWART_CLIENT_ID", "705c1168-43d8-4ec3-980a-0327a59c7fc6")
 	t.Setenv("STALWART_AUTHORIZATION_URL", auth.URL+"/authorize")
 	t.Setenv("STALWART_TOKEN_URL", auth.URL+"/token")
 	t.Setenv("STALWART_REDIRECT_URI", "https://tools.service.re8ch.com/collaboration/oauth/callback")
@@ -156,7 +156,7 @@ func TestCollaborationUserHubSSOIsDefaultAndDeviceRemainsAvailable(t *testing.T)
 	if err != nil || authorization.Host != strings.TrimPrefix(auth.URL, "https://") || authorization.Query().Get("code_challenge_method") != "S256" || authorization.Query().Get("code_challenge") == "" {
 		t.Fatalf("invalid authorization URL: %v %v", authorization, err)
 	}
-	if authorization.Query().Get("scope") != "openid profile email offline_access urn:ietf:params:oauth:scope:calendars urn:ietf:params:oauth:scope:files urn:ietf:params:oauth:scope:mail" || authorization.Query().Get("redirect_uri") != "https://tools.service.re8ch.com/collaboration/oauth/callback" {
+	if authorization.Query().Get("scope") != "openid profile email offline_access" || authorization.Query().Get("redirect_uri") != "https://tools.service.re8ch.com/collaboration/oauth/callback" {
 		t.Fatalf("invalid Auth Hub request: %v", authorization.Query())
 	}
 	pending, pendingErr := s.collaborationConnection(ctx, id, started["connectionRef"].(string))

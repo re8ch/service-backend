@@ -12,7 +12,7 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 170
+objectCount: 172
 legacyObjectCount: 54
 deferredSSAObjects: []
 remainingCapabilities:
@@ -299,7 +299,7 @@ releases:
   domain: operations-ui
   namespace: headlamp
   scope: namespaced
-  objects: 27
+  objects: 28
 - name: main-operations-ui-kube-system
   domain: operations-ui
   namespace: kube-system
@@ -319,7 +319,7 @@ releases:
   domain: tenant-runtime
   namespace: ai-operations
   scope: namespaced
-  objects: 8
+  objects: 9
 - name: main-tenant-runtime-cluster-bootstrap
   domain: tenant-runtime
   namespace: ops

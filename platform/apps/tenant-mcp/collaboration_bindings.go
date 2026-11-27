@@ -64,15 +64,12 @@ func collaborationOrigin() (string, error) {
 	return u.String(), nil
 }
 func collaborationConnectOrigin(fallback string) (string, error) {
-	raw := strings.TrimRight(strings.TrimSpace(os.Getenv("STALWART_CONNECT_URL")), "/")
-	if raw == "" {
-		return fallback, nil
-	}
-	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "http" || !strings.HasSuffix(u.Hostname(), ".svc.cluster.local") || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" {
-		return "", errors.New("reviewed internal Stalwart connect origin is required")
-	}
-	return u.String(), nil
+	// Stalwart is owned by the Atlantic cluster. Both tenant and platform
+	// callers deliberately use its PublicEdge origin so the main-cluster
+	// runtime cannot acquire a hidden dependency on cross-cluster DNS or an
+	// AmongCluster service projection. STALWART_CONNECT_URL is a retired
+	// compatibility variable and must never override the reviewed origin.
+	return fallback, nil
 }
 func collaborationHTTPSURL(name, fallback string, allowPath bool) (string, error) {
 	raw := strings.TrimSpace(os.Getenv(name))
@@ -89,10 +86,10 @@ func collaborationHTTPSURL(name, fallback string, allowPath bool) (string, error
 	return u.String(), nil
 }
 func collaborationAuthorizationURL() (string, error) {
-	return collaborationHTTPSURL("STALWART_AUTHORIZATION_URL", "https://auth.re8ch.com/authorize", true)
+	return collaborationHTTPSURL("STALWART_AUTHORIZATION_URL", "https://db-rw.re8ch.com/auth/v1/oauth/authorize", true)
 }
 func collaborationTokenURL() (string, error) {
-	return collaborationHTTPSURL("STALWART_TOKEN_URL", "https://auth.re8ch.com/token", true)
+	return collaborationHTTPSURL("STALWART_TOKEN_URL", "https://db-rw.re8ch.com/auth/v1/oauth/token", true)
 }
 func collaborationRedirectURL() (string, error) {
 	return collaborationHTTPSURL("STALWART_REDIRECT_URI", "https://tools.service.re8ch.com/collaboration/oauth/callback", true)
@@ -105,7 +102,7 @@ func collaborationRandom() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 func collaborationScopes(scopes []string) ([]string, string, error) {
-	allowed := map[string]string{"mail.read": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "contacts.read": "contacts", "files.read": "files"}
+	allowed := map[string]string{"mail.read": "mail", "mail.send": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "contacts.read": "contacts", "files.read": "files"}
 	unique, native := map[string]bool{}, map[string]bool{}
 	for _, scope := range scopes {
 		service, ok := allowed[scope]
@@ -452,7 +449,7 @@ func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, sco
 		}
 		return old.public(), nil
 	}
-	selected, providerScope, _ := collaborationScopes(scopes)
+	selected, _, _ := collaborationScopes(scopes)
 	encoded, _ := json.Marshal(selected)
 	clientID := strings.TrimSpace(os.Getenv("STALWART_CLIENT_ID"))
 	if clientID == "" {
@@ -485,7 +482,10 @@ func (s *server) startAuthHubCollaboration(ctx context.Context, id identity, sco
 	query.Set("response_type", "code")
 	query.Set("client_id", clientID)
 	query.Set("redirect_uri", redirectURI)
-	query.Set("scope", "openid profile email offline_access "+providerScope)
+	// GoTrue authenticates the user. The selected JMAP permissions remain an
+	// internal RE8CH grant and are enforced when the connection is consumed;
+	// they are not GoTrue OAuth scopes.
+	query.Set("scope", "openid profile email offline_access")
 	query.Set("state", state)
 	query.Set("code_challenge", base64.RawURLEncoding.EncodeToString(challenge[:]))
 	query.Set("code_challenge_method", "S256")
@@ -810,41 +810,48 @@ func (s *server) refreshCollaboration(ctx context.Context, id identity, c collab
 	return s.collaborationConnection(ctx, id, c.Ref)
 }
 
-func (s *server) resolveCollaboration(ctx context.Context, id identity, ref string) (*collaborationDataClient, error) {
+func (s *server) resolveCollaborationAccess(ctx context.Context, id identity, ref string) (collaborationDataAccess, string, error) {
 	if !collaborationEnabled() {
-		return nil, errors.New("collaboration is not published")
+		return collaborationDataAccess{}, "", errors.New("collaboration is not published")
 	}
 	c, err := s.collaborationConnection(ctx, id, ref)
 	if err != nil {
-		return nil, err
+		return collaborationDataAccess{}, "", err
 	}
 	if c.State == "Ready" && c.Expires <= time.Now().Unix()+60 {
 		c, err = s.refreshCollaboration(ctx, id, c)
 		if err != nil {
-			return nil, err
+			return collaborationDataAccess{}, "", err
 		}
 	}
 	if c.State != "Ready" || c.Expires <= time.Now().Unix() {
-		return nil, errors.New("collaboration binding is revoked, expired or not ready")
+		return collaborationDataAccess{}, "", errors.New("collaboration binding is revoked, expired or not ready")
 	}
 	_, data, err := collaborationSecret(ctx, id, c)
 	if err != nil {
-		return nil, err
+		return collaborationDataAccess{}, "", err
 	}
 	origin, err := collaborationOrigin()
 	if err != nil {
-		return nil, err
+		return collaborationDataAccess{}, "", err
 	}
 	if data["origin"] != origin || data["accountID"] != c.AccountID {
-		return nil, errors.New("provider binding mismatch")
+		return collaborationDataAccess{}, "", errors.New("provider binding mismatch")
 	}
 	var scopes []string
 	if json.Unmarshal([]byte(c.Scopes), &scopes) != nil {
-		return nil, errors.New("invalid binding scopes")
+		return collaborationDataAccess{}, "", errors.New("invalid binding scopes")
 	}
 	// Numeric JMAP account ids are not assumed to be DAV path ids. The adapter
 	// discovers/validates provider paths and enforces native sharing permissions.
-	return newCollaborationDataClient(id, collaborationDataAccess{Tenant: id.Tenant, Subject: id.Subject, AccountID: c.AccountID, CredentialRef: c.Ref, Bearer: data["accessToken"], Scopes: scopes, ExpiresAt: time.Unix(c.Expires, 0)}, origin)
+	return collaborationDataAccess{Tenant: id.Tenant, Subject: id.Subject, AccountID: c.AccountID, CredentialRef: c.Ref, Bearer: data["accessToken"], Scopes: scopes, ExpiresAt: time.Unix(c.Expires, 0)}, origin, nil
+}
+func (s *server) resolveCollaboration(ctx context.Context, id identity, ref string) (*collaborationDataClient, error) {
+	access, origin, err := s.resolveCollaborationAccess(ctx, id, ref)
+	if err != nil {
+		return nil, err
+	}
+	return newCollaborationDataClient(id, access, origin)
 }
 func (s *server) revokeCollaboration(ctx context.Context, id identity, ref string) (map[string]any, error) {
 	c, err := s.collaborationConnection(ctx, id, ref)

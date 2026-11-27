@@ -3644,7 +3644,9 @@ spec:
       enabled: false
     tenantPlatform:
       enabled: true
-      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+      image: registry.re8ch.com/image/re8ch-ai-operations@sha256:efc3344c17f82b49c6d5c65376e51c02160acd9ea6aeac2b02c7c22d208b3fcd
+      invocationCredentials:
+        enabled: true
       placement:
         nodeNames:
         - r640
@@ -3663,7 +3665,7 @@ spec:
         enabled: true
         githubEnterpriseGovernance:
           enabled: true
-        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:58be167ac6ea988314c7f8d4c8189f1abe228fff601593fb1ec0a64e6fa7d913
+        image: registry.re8ch.com/image/re8ch-ai-operations@sha256:efc3344c17f82b49c6d5c65376e51c02160acd9ea6aeac2b02c7c22d208b3fcd
       state:
         size: 1Gi
         storageClassName: rbd-r640
@@ -3672,6 +3674,12 @@ spec:
       tenantAPI:
         enabled: true
         image: registry.re8ch.com/image/re8ch-tenant-mcp@sha256:ee3cb1bc01d4db03e109ffaa2cdf8945daeab73a537f00ad4f4847df19319857
+        invocationTokens:
+          credentialKey: TENANT_CLAIM_SERVICE_TOKEN
+          credentialSecret: tenant-claim-internal-auth
+          expectedIssuer: https://tools.service.re8ch.com/invocation
+          issuerURL: http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens
+          jwksURL: http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json
         openAIAppsChallengeToken: 6n3O48vy3O89euYVrri4aHJMeUJ_vkofxLpzxv-6TTE
         organizationsURL: https://api.re8ch.com/auth/v2/organizations
         platformSessionURL: http://re8ch-auth-gateway.auth.svc.cluster.local:8080/auth/v2/platform/session

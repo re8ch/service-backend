@@ -4,7 +4,7 @@ begin;
 
 create table if not exists core.tenant_service_configs (
   tenant_ref text not null references core.organizations(tenant_ref) on delete restrict,
-  service_class text not null check (service_class in ('registry.harbor.v1', 'observability.grafana.v1')),
+  service_class text not null,
   instance_uid text not null,
   instance_name text not null,
   identity_user_id uuid not null references auth.users(id) on delete restrict,
@@ -23,6 +23,12 @@ create table if not exists core.tenant_service_configs (
     and not (observed_config ?| array['password', 'token', 'secret', 'apiKey'])
   )
 );
+alter table core.tenant_service_configs
+  drop constraint if exists tenant_service_configs_service_class_check;
+alter table core.tenant_service_configs
+  add constraint tenant_service_configs_service_class_check check (
+    service_class in ('registry.harbor.v1', 'observability.grafana.v1', 'collaboration.stalwart.v1')
+  );
 create index if not exists tenant_service_configs_name_idx
   on core.tenant_service_configs (tenant_ref, instance_name);
 alter table core.tenant_service_configs enable row level security;

@@ -8,6 +8,8 @@
   "properties": {
     "schemaVersion": {"const": "delivery.re8ch.com/accepted-state/v1alpha1"},
     "releaseId": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$", "maxLength": 63},
+    "clusterRef": {"type": "string", "minLength": 1},
+    "clusterBindingDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "lastOperationId": {"type": "string", "format": "uuid"},
     "requestDigest": {"$ref": "#/$defs/digest"},
     "bundleReference": {"type": "string", "pattern": "^oci://"},

@@ -34,6 +34,9 @@ func (s *server) registerBYOCTools(ms *mcp.Server) {
 					}
 				}
 				value, err := s.callBYOC(id, name, args)
+				if err == nil && name == "byoc_connection_list" && id.PlatformAdmin && id.Tenant == "admin" {
+					value, err = s.platformBYOCConnections(ctx, value)
+				}
 				return nil, value, err
 			})
 	}

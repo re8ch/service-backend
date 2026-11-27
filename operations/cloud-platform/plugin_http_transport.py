@@ -15,6 +15,20 @@ from runtime import OperationError
 MAX_BODY = 4 * 1024 * 1024
 
 
+def kubectl_prefix(kubeconfig):
+    """Keep credential/CA authority while selecting a reviewed runtime endpoint."""
+    argv = ["kubectl", "--kubeconfig", kubeconfig]
+    server = getattr(kubeconfig, "server_override", os.environ.get("KUBERNETES_SERVER_OVERRIDE", ""))
+    if server:
+        parsed = urlsplit(server)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username or
+                parsed.password or parsed.path not in ("", "/") or parsed.query or
+                parsed.fragment or any(c.isspace() for c in server)):
+            raise OperationError("INVALID_ARGUMENT", "Invalid configured Kubernetes endpoint")
+        argv += ["--server", server]
+    return argv
+
+
 class UnixConnection(http.client.HTTPConnection):
     def __init__(self, path):
         super().__init__("localhost", timeout=25)
@@ -42,7 +56,7 @@ def request(kubeconfig, method, path, body=None, content_type="application/json"
         endpoint = os.path.join(directory, "proxy.sock")
         rejected = "|".join(sorted({"GET", "POST", "PUT", "PATCH", "DELETE", "CONNECT", "OPTIONS", "HEAD", "TRACE"} - {method}))
         process = subprocess.Popen([
-            "kubectl", "--kubeconfig", kubeconfig, "proxy", "--unix-socket", endpoint,
+            *kubectl_prefix(kubeconfig), "proxy", "--unix-socket", endpoint,
             "--accept-hosts=^localhost$", "--accept-paths=^" + re.escape(target.path) + "$",
             "--reject-paths=^$", "--reject-methods=^(" + rejected + ")$",
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

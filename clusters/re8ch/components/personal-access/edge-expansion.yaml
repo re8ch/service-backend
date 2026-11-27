@@ -2,7 +2,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: personal-access-us-la, namespace: egress-fabric}
 spec:
-  replicas: 1
+  # The LA ingress runtime moved to re8ch-atlantic. Keep the Service and
+  # reviewed EndpointSlices below so the main cluster can route to that
+  # public endpoint without scheduling a duplicate host-network proxy.
+  replicas: 0
   strategy: {type: Recreate}
   selector: {matchLabels: {app.kubernetes.io/name: personal-access, access.re8ch.com/region: us-la}}
   template:

@@ -141,7 +141,9 @@ func serviceToken(token string) bool {
 	return secret != "" && subtle.ConstantTimeCompare([]byte(token), []byte(secret)) == 1
 }
 
-func (s *server) authenticate(ctx context.Context, bearer, selected string) (identity, error) {
+func (s *server) authenticate(ctx context.Context, bearer, selected string) (resolved identity, authErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "identity.resolve")
+	defer func() { finishDiagnostic(authErr) }()
 	if serviceToken(bearer) {
 		return identity{Subject: "service:litellm", Service: true}, nil
 	}
@@ -188,7 +190,7 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 	resolve.Header.Set("Content-Type", "application/json")
 	resolve.Header.Set("X-Tenant-Caller", "tenant")
 	resolve.Header.Set("X-Tenant-Service-Token", secret)
-	client := &http.Client{Timeout: 8 * time.Second}
+	client := &http.Client{Timeout: 8 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, controlURL, "identity.tenant_authorizer.http")}
 	response2, err := client.Do(resolve)
 	if err != nil {
 		return identity{}, fmt.Errorf("%w: tenant authorizer: %v", errIdentityUnavailable, err)
@@ -272,7 +274,9 @@ func (s *server) authenticateUncoalesced(ctx context.Context, bearer, selected s
 	return id, nil
 }
 
-func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, error) {
+func (s *server) verifySupabase(ctx context.Context, bearer string) (verified identity, verificationErr error) {
+	ctx, finishDiagnostic := diagnosticPhase(ctx, "identity.verify_session")
+	defer func() { finishDiagnostic(verificationErr) }()
 	if bearer == "" || len(bearer) > 16384 {
 		return identity{}, errors.New("invalid bearer token")
 	}
@@ -293,7 +297,7 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, userURL, "identity.gotrue.http")}
 	var response *http.Response
 	for attempt := 0; attempt < 2; attempt++ {
 		response, err = client.Do(req.Clone(ctx))
@@ -313,6 +317,7 @@ func (s *server) verifySupabase(ctx context.Context, bearer string) (identity, e
 		return identity{}, fmt.Errorf("%w: GoTrue user lookup failed", errIdentityUnavailable)
 	}
 	defer response.Body.Close()
+	diagnosticHTTPStatus(ctx, response.StatusCode)
 	if response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= http.StatusInternalServerError {
 		return identity{}, fmt.Errorf("%w: GoTrue returned HTTP %d", errIdentityUnavailable, response.StatusCode)
 	}
@@ -342,7 +347,7 @@ func verifyPlatformSession(ctx context.Context, endpoint, bearer string, claims 
 	}
 	req.Header.Set("Authorization", "Bearer "+bearer)
 	req.Header.Set("Accept", "application/json")
-	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	client := &http.Client{Timeout: 5 * time.Second, Transport: tracedInfrastructureTransport(http.DefaultTransport, endpoint, "identity.session_authority.http"), CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := client.Do(req)
 	if err != nil {
 		return identity{}, fmt.Errorf("%w: platform session authority request: %v", errIdentityUnavailable, err)

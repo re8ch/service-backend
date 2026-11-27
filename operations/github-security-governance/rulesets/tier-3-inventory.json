@@ -1,0 +1,62 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "GitHubRulesetTierInventory",
+  "observedAt": "2026-11-27",
+  "trackingIssue": "https://github.com/re8ch/service-backend/issues/3337",
+  "tier": 3,
+  "repositories": [
+    {
+      "repository": "re8ch/service-backend",
+      "role": "aggregate-gitops-authority",
+      "admission": "active",
+      "source": "repository-ruleset",
+      "requiredChecks": ["control-plane-validate", "tenant-go-validate", "GitHub dependency review", "transaction-context"]
+    },
+    {
+      "repository": "8iops/agent-gitops",
+      "role": "agent-runtime-authority",
+      "admission": "active",
+      "source": "repository-ruleset",
+      "requiredChecks": ["render"]
+    },
+    {
+      "repository": "strata-silica/storage-gitops",
+      "role": "storage-authority",
+      "admission": "active",
+      "source": "repository-ruleset",
+      "requiredChecks": ["authority"]
+    },
+    {
+      "repository": "re8ch/identity-gitops",
+      "role": "identity-access-authority",
+      "admission": "missing",
+      "source": "organization-delete-rule-only",
+      "provenChecks": ["render"],
+      "canary": true
+    },
+    {
+      "repository": "pillars-infra/network-gitops",
+      "role": "network-authority",
+      "admission": "missing",
+      "source": "none",
+      "provenChecks": ["render"],
+      "canary": true
+    },
+    {
+      "repository": "siren-observer/observability-gitops",
+      "role": "observability-metering-authority",
+      "admission": "missing",
+      "source": "none",
+      "provenChecks": ["render"],
+      "canary": false
+    },
+    {
+      "repository": "re8ch/delivery-products-gitops",
+      "role": "delivery-products-authority",
+      "admission": "missing",
+      "source": "organization-delete-rule-only",
+      "provenChecks": ["render"],
+      "canary": false
+    }
+  ]
+}

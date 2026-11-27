@@ -5,8 +5,8 @@ from urllib.error import HTTPError
 
 from test_ops_mcp_tool_profiles import load_profile
 
-RESOURCE = 'https://tools.service.re8ch.com/tenant-native/mcp'
-METADATA = 'https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp'
+RESOURCE = 'https://tools.service.re8ch.com/tenant-plugin/mcp'
+METADATA = 'https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp'
 ISSUER = 'https://db-rw.re8ch.com/auth/v1'
 
 
@@ -32,7 +32,7 @@ def probe(issuer=ISSUER, challenge_metadata=METADATA):
     return result
 
 
-def test_current_native_endpoint_passes_without_retired_toolhive_objects():
+def test_current_plugin_endpoint_passes_without_retired_toolhive_objects():
     assert probe()['publicationReady']
 
 

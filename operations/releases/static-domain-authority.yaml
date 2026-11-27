@@ -61,6 +61,9 @@ spec:
       source:
         organization: 8iops
         repository: 8iops/agent-gitops
+        repositoryId: "1435935941"
+        repositoryOwnerId: "334604670"
+        repositoryVisibility: public
         ref: refs/heads/main
         mappingState: verified
       execution:
@@ -69,6 +72,8 @@ spec:
         protectedEnvironment: release-executor-agent-runtime
         audience: https://kube-api.re8ch.com/release-executor-agent-runtime
         kubernetesGroup: re8ch:release-executor:agent-runtime
+        deliveryMode: github-actions-ssa
+        fluxConsumerState: retired
       shadowEvidence:
         releaseId: agent-runtime-toolhive-operator
         sourceChartDigest: sha256:4881731dd7ceaf0fefcdecdb23b1c87d16b1f60fe8aa5ee75304fd33f4fa4d22

@@ -77,13 +77,12 @@ spec:
           ports: [{name: http, containerPort: 3000}]
           env:
             - {name: NODE_ENV, value: production}
-            - {name: OIDC_ISSUER_URL, value: "https://auth.re8ch.com/application/o/toolhive-cloud-ui"}
-            - {name: OIDC_CLIENT_ID, value: re8ch-toolhive-cloud-ui}
+            - {name: OIDC_ISSUER_URL, value: "https://db-rw.re8ch.com/auth/v1"}
+            - {name: OIDC_CLIENT_ID, value: "32098a11-be0c-5dd4-9f29-ec87c30faf19"}
             - {name: BETTER_AUTH_URL, value: "https://tools.re8ch.com"}
             - {name: TRUSTED_ORIGINS, value: "https://tools.re8ch.com"}
             - {name: API_BASE_URL, value: "http://toolhive-registry-server.toolhive-system.svc.cluster.local:8080"}
             - {name: PUBLIC_CATALOG, value: "true"}
-            - {name: OIDC_CLIENT_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: oidc-client-secret}}}
             - {name: BETTER_AUTH_SECRET, valueFrom: {secretKeyRef: {name: toolhive-cloud-ui-auth, key: better-auth-secret}}}
           resources:
             requests: {cpu: 100m, memory: 128Mi}

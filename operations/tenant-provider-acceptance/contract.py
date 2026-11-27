@@ -128,7 +128,7 @@ def run_contract(url, token, tenant, publication_only=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mcp-url", default="https://tools.service.re8ch.com/tenant-native/mcp")
+    parser.add_argument("--mcp-url", default="https://tools.service.re8ch.com/tenant-plugin/mcp")
     parser.add_argument("--publication-only", action="store_true")
     args = parser.parse_args()
     token = os.getenv("TENANT_ACCESS_TOKEN", "")

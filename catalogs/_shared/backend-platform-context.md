@@ -17,25 +17,45 @@ repository 为准；集群、工作区锁定版本、工具与部署关系以本
 - plugins/：PluginDefinition 与平台工具发布声明。
 - operations/：workspace controller、Cloud Platform 等后台控制面实现与 runbook。
 
-## 集群声明在哪里
+## 多集群声明与访问边界
 
-- 集群 desired state 的主要产品仓库是
-  catalogs/platform/modules/cloud-functions/module.yaml 指向的
-  re8ch/cloud-functions，其中 manifests/k3s/ 按认证、网络、存储、可观测性、
-  AI operations、区域路由等域组织。
-- GitOps、workspace catalog、锁定 revision、基础设施 inventory 和工具发布声明由
-  catalogs/platform/modules/service-backend/module.yaml 指向的本仓库维护。
-- 网络控制面参考 advanced-fabric 与 mihomos-cluster；插件/MCP 分发参考
-  codex-admin-plugins、tool-distribution 与 mcp-registry。
-- 对集群做变更前，先读取目标 repository 的 AGENTS.md，观察线上状态，使用
-  Cloud Platform MCP；正式 GitOps 变更需签名提交、CI、MR/PR 与 Flux 校验。
+唯一权威契约是
+[`operations/network/docs/multicluster-federation-contract.md`](../../operations/network/docs/multicluster-federation-contract.md)。
+任何设计和故障记录都必须明确是集群控制 federation、PublicEdge 公共服务
+federation、AmongCluster 私有服务 federation，还是应用 federation；不得用未限定的
+“federation”混合不同层次的成功信号。
+
+- `re8ch` 主集群和 `re8ch-atlantic` 等子集群是独立 Kubernetes 权威。每个集群
+  分别拥有 API 入口、CA、OIDC audience、GitHub Environment、RBAC、SSA 状态和
+  故障域；ReleaseContract 的 `target.cluster` 必须选择对应执行 profile。
+- 主集群 Cloud SSA 优先使用多入口 `kube-api.service.re8ch.com`；
+  `kube-api.re8ch.com` 仅作临时回退。Atlantic 使用自己的 API 入口，不经主集群
+  API，也不把主集群入口当成跨集群代理。Atlantic 的规范入口是
+  `kube-api.atlantic.service.re8ch.com`；后续集群遵循
+  `kube-api.<cluster>.service.re8ch.com`。
+- AmongCluster 只交换有界的服务身份、端点、健康、容量与路径事实。它不分发
+  Kubernetes 对象、kubeconfig、Secret 或集群管理员权限，也不替目标集群执行 SSA。
+- 应用部署在实际承载它的目标集群。跨集群消费优先走服务的 PublicEdge 域名；
+  只有服务契约明确要求时才使用 AmongCluster 的有界私网路径。内部调用同样默认
+  使用 PublicEdge，以减少对集群内部拓扑的耦合。
+- 跨集群应用拆分必须使用应用自己拥有的版本化 API、事件、复制或数据契约；共享
+  数据库、文件系统、集群 DNS 和未声明的身份状态不是 federation。认证发现、授权、
+  token、账号映射和服务端接纳必须与网络通路分别验收。
+- `Grant Active` 只表示控制器接受了授权意图，绝不表示目标集群、RBAC 投影、SPIFFE
+  会话、服务流或应用可用。必须从真实消费者身份验证正确集群、精确权限、实际通路
+  和端到端功能；禁止用扩大 RBAC、通配 grant 或错误集群入口补偿网络/会话故障。
+- GitHub PR、签名制品和 bounded Cloud SSA 是正式写入路径。Kubernetes 是运行态
+  权威；本地 Flux writer 已退役，保留的 Flux 声明仅作历史或迁移输入。
+- 网络控制面参考 advanced-fabric、AmongCluster、PublicEdge 与 mihomos-cluster；
+  插件/MCP 分发参考 codex-admin-plugins、tool-distribution 与 mcp-registry。
 
 ## 目录工作方式
 
 1. 从当前模块 module.yaml 确认 repo、ownership、write policy 和 dependencies。
 2. 阅读当前 catalog 的 knowledge/overview.md 与 knowledge/resources.yaml。
 3. 产品功能改到对应 GitHub repo；跨项目背景、锁和平台声明改到本控制面仓库。
-4. Mac mini 是首选构建机；R640 使用锁定 SHA 的任务 worktree，禁止移动
+4. GitHub-hosted Enterprise runner 是首选 CI/构建执行器；Mac mini 处理本机挂载审计。
+   R640 使用锁定 SHA 的任务 worktree，禁止移动
    workspace/modules/ 下的本机链接。
 5. 凭据、解密后的 SOPS、runner token、kubeconfig 与本机 symlink 不得提交。
 
@@ -49,3 +69,13 @@ repository 为准；集群、工作区锁定版本、工具与部署关系以本
 
 Linear 项目应在摘要中显示上述分类，并在描述中列出每个 catalog module 对应的
 GitHub repository；catalog/module.yaml 始终是 repo 映射的机器可读事实来源。
+
+## Admin/BYOC 工具链恢复上下文
+
+- 最新有界恢复记录及未完成验收：[Issue3002](https://github.com/re8ch/service-backend/issues/3002)。
+- 可重复执行的验收步骤：[工具链运行验收](../../operations/releases/toolchain-runtime-verification.md)。
+- 发布成功、旧副本 Ready、Connected Accounts、SDK capture ID 均不能单独作为恢复证明。
+  同一 Admin 会话对 self/Atlantic 的读写、SSA、AF 观测和变更收敛需分别验收。
+- AMD 故障先暂缓，优先跑通核心功能；DNS 服务恢复不等于该故障域已修复。
+- 用户偏好架构完整的修复和充足的实验容量/时限，避免小配额反复阻断；
+  实验仍须保留目标归属、凭据边界、审查和真实运行验收。

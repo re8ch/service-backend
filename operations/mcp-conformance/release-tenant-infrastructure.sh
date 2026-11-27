@@ -93,17 +93,35 @@ else
   printf '%s' "$registry_password" | docker login "${TENANT_IMAGE_REPOSITORY%%/*}" --username "$registry_username" --password-stdin >/dev/null
 fi
 
+# The opt-in Engine path retains attestations only with the containerd store.
+# Never silently downgrade this mode to the legacy classic-store publisher.
+require_attestations="${TENANT_IMAGE_REQUIRE_ATTESTATIONS:-0}"
+if [[ "$require_attestations" == "1" ]]; then
+  [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]] || { echo "Attested Engine publication requires TENANT_IMAGE_DOCKER_PUSH=1" >&2; exit 2; }
+  run_with_release_timeout 30s docker info --format '{{json .DriverStatus}}' | python3 -c '
+import json, sys
+if ["driver-type", "io.containerd.snapshotter.v1"] not in json.load(sys.stdin):
+    sys.exit("Attested Engine publication requires the containerd image store")
+'
+fi
+
 sbom_generator="${BUILDKIT_SBOM_GENERATOR:-docker.1ms.run/docker/buildkit-syft-scanner:stable-1}"
 push_attempt=1
 push_attempts="${TENANT_IMAGE_PUSH_ATTEMPTS:-3}"
 while true; do
   if [[ "${TENANT_IMAGE_DOCKER_PUSH:-0}" == "1" ]]; then
     # Harbor's BuildKit registry exporter can stall indefinitely on layer
-    # uploads. The Docker Engine uses a distinct, proven HTTP/1.1 upload path.
-    # GitHub's finalize job attests the immutable Harbor digest after this step.
+    # uploads. Use Docker Engine's separate publication API; do not assume
+    # the containerd transport has the classic store's HTTP implementation.
+    # Classic callers retain their existing explicit provenance opt-out.
+    # Opt-in containerd callers load and push the entire attested index.
+    attestation_args=(--provenance=false)
+    if [[ "$require_attestations" == "1" ]]; then
+      attestation_args=(--provenance=mode=max --attest "type=sbom,generator=${sbom_generator}")
+    fi
     if run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" \
          docker buildx build --builder "$TENANT_IMAGE_BUILDER" --platform linux/amd64 \
-           --provenance=false --progress plain --load -f "$dockerfile" -t "$image" . \
+           "${attestation_args[@]}" --progress plain --load -f "$dockerfile" -t "$image" . \
        && run_with_release_timeout "${TENANT_IMAGE_PUSH_TIMEOUT_SECONDS}s" docker push "$image" \
        && run_with_release_timeout 60s docker buildx imagetools inspect "$image" \
             --format '{{json .Manifest}}' > "$metadata"; then
@@ -135,6 +153,13 @@ print(value.get("containerimage.digest") or value["digest"])
 PY
 )
 immutable="${TENANT_IMAGE_REPOSITORY}@${digest}"
+if [[ "$require_attestations" == "1" ]]; then
+  # Read back the published immutable index, not the mutable tag or local cache.
+  run_with_release_timeout 120s docker buildx imagetools inspect "$immutable" --raw > "${TENANT_IMAGE_ARTIFACT_NAME}.index.json"
+  run_with_release_timeout 120s docker buildx imagetools inspect "$immutable" --format '{{json .Provenance}}' > "${TENANT_IMAGE_ARTIFACT_NAME}.provenance.json"
+  run_with_release_timeout 120s docker buildx imagetools inspect "$immutable" --format '{{json .SBOM}}' > "${TENANT_IMAGE_ARTIFACT_NAME}.sbom.json"
+  python3 "$(dirname "${BASH_SOURCE[0]}")/verify-image-evidence.py" evidence "$TENANT_IMAGE_ARTIFACT_NAME" "$digest" "${GITHUB_SHA:-}"
+fi
 printf '%s\n' "$immutable" | tee "${TENANT_IMAGE_ARTIFACT_NAME}.image"
 if [[ "${TENANT_IMAGE_SKIP_FINALIZE:-}" == "1" ]]; then
   echo "Image published; SBOM and signing delegated to the hosted finalize job"

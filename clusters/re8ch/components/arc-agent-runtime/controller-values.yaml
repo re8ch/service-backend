@@ -1,0 +1,29 @@
+replicaCount: 1
+
+flags:
+  logLevel: info
+  logFormat: json
+  watchSingleNamespace: re8ch-arc-runners
+  terminatedRunnerPodGracePeriodSeconds: 0
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: [ALL]
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: 500m, memory: 512Mi}
+
+nodeSelector:
+  scheduling.re8ch.com/agent-runtime: "true"
+
+tolerations:
+- key: dedicated
+  operator: Equal
+  value: pg-re8ch
+  effect: NoSchedule
+

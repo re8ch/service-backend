@@ -1,0 +1,58 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "GitHubActionsAndEnvironmentsBaseline",
+  "observedAt": "2026-11-27",
+  "trackingIssue": "https://github.com/re8ch/service-backend/issues/3338",
+  "actions": {
+    "repositories": 145,
+    "workflowTokenReadOnly": 145,
+    "workflowTokenCanApprovePullRequests": 0,
+    "allowAllActions": 144,
+    "shaPinningRequiredBeforeCanary": 1,
+    "activeRepositoriesAuditedForWorkflowReferences": 143,
+    "repositoriesWithWorkflows": 74,
+    "workflowFiles": 232,
+    "usesReferences": 1135,
+    "immutableReferences": 873,
+    "localReferences": 12,
+    "mutableReferences": 250,
+    "repositoriesWithMutableReferences": 33,
+    "repositoriesReadyForShaPinning": 41
+  },
+  "serviceBackendRunnerPlacement": {
+    "githubHostedJobs": 56,
+    "selfHostedJobs": 39,
+    "dynamicHostedOrSelfHostedJobs": 2,
+    "interpretation": "Self-hosted jobs require individual host-bound justification; the legacy gate currently encodes a self-hosted preference and must be migrated separately."
+  },
+  "environments": {
+    "repositoriesWithEnvironments": 22,
+    "total": 61,
+    "branchPolicyRules": 51,
+    "requiredReviewerRules": 21,
+    "customBranchPolicies": 46,
+    "protectedBranchPolicies": 5,
+    "withoutProtectionRulesOrBranchPolicy": 10,
+    "adminBypassAllowed": 39
+  },
+  "canary": {
+    "class": "private docs/assets repository",
+    "precondition": "one workflow; one immutable external action; no Environment",
+    "setting": "sha_pinning_required",
+    "before": false,
+    "after": true,
+    "allowedActionsBeforeAndAfter": "all",
+    "workflowTokenBeforeAndAfter": "read",
+    "workflowRun": "https://github.com/8iops/product-assets/actions/runs/45901459188",
+    "workflowConclusion": "success",
+    "effectiveStateReadback": true,
+    "rollback": "Restore sha_pinning_required=false while preserving enabled=true and allowed_actions=all."
+  },
+  "safety": {
+    "globalActionsRestrictionApplied": false,
+    "environmentProtectionChanged": false,
+    "workflowTokenPermissionsChanged": false,
+    "rulesetsChanged": false,
+    "securityProductsChanged": false
+  }
+}

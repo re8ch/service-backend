@@ -1,0 +1,59 @@
+name: Copilot BYOK ARC smoke
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - .github/workflows/copilot-byok-arc-smoke.yml
+      - clusters/re8ch/components/arc-agent-runtime/**
+      - operations/agent-runtime/**
+
+permissions:
+  contents: read
+
+jobs:
+  byok-model:
+    runs-on:
+      group: RE8CH Self-Hosted
+      labels: re8ch-self-hosted-ephemeral
+    environment: copilot-byok
+    timeout-minutes: 10
+    container:
+      image: node:22-bookworm-slim@sha256:d20a7b8b4184bf74fe77499b5460a3d69e582bc733d50287e40c3fe791764851
+    env:
+      COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+      COPILOT_PROVIDER_BASE_URL: https://litellm.service.re8ch.com/v1
+      COPILOT_PROVIDER_TYPE: openai
+      COPILOT_PROVIDER_WIRE_API: completions
+      COPILOT_PROVIDER_MODEL_ID: deepseek-v4-flash
+      COPILOT_PROVIDER_WIRE_MODEL: deepseek-v4-flash
+      COPILOT_PROVIDER_MAX_PROMPT_TOKENS: "120000"
+      COPILOT_PROVIDER_MAX_OUTPUT_TOKENS: "8192"
+      COPILOT_MODEL: deepseek-v4-flash
+      COPILOT_OFFLINE: "true"
+      COPILOT_AUTO_UPDATE: "false"
+      SSL_CERT_FILE: /tmp/node-root-certificates.pem
+    steps:
+      - name: Install pinned Copilot CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'require("fs").writeFileSync(process.env.SSL_CERT_FILE, require("tls").rootCertificates.join("\n"))'
+          test -s "$SSL_CERT_FILE"
+          npm install --global @github/copilot@1.0.116 \
+            --ignore-scripts=false --no-audit --no-fund
+          test "$(copilot --version | head -n1)" = "GitHub Copilot CLI 1.0.116."
+
+      - name: Verify LiteLLM BYOK inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${COPILOT_PROVIDER_API_KEY:-}"
+          response="$(copilot \
+            --prompt 'Reply with exactly: RE8CH_BYOK_OK' \
+            --silent \
+            --no-auto-update \
+            --no-ask-user \
+            --secret-env-vars=COPILOT_PROVIDER_API_KEY)"
+          test "$response" = "RE8CH_BYOK_OK"
+          printf '%s\n' "$response"

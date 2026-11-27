@@ -1,0 +1,791 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "RepositoryTransactionContextInventory",
+  "source": {
+    "catalog": "indexes/developer-context.json",
+    "gitopsAuthorities": "clusters/re8ch/components/gitops-events/repositories.json"
+  },
+  "semantics": "minimum machine-readable relationships; presentation remains repository-local",
+  "developerWorkflow": {
+    "entryPoint": "create or select one Issue",
+    "humanInputs": [
+      "observable outcome",
+      "ownership only when automation cannot resolve it",
+      "acceptance decision and runtime evidence"
+    ],
+    "automationOwns": [
+      "Project enrollment and default fields",
+      "branch and pull-request Issue identity",
+      "closing relationship and status transitions",
+      "check, revision and evidence back-links"
+    ],
+    "inventoryAudience": "governance automation and maintainers; not a developer checklist"
+  },
+  "repositories": [
+    {
+      "repository": "8iops/agent-gitops",
+      "localAuthority": "repository AGENTS.md and .github creation scaffolding",
+      "approvedProject": "declared by repository-local Issue/PR context",
+      "relationships": "partial",
+      "enforcement": "blocked",
+      "capabilities": {
+        "issueContext": "available",
+        "pullRequestContext": "available",
+        "projectContext": "available",
+        "immutableRevision": "available",
+        "runtimeEvidenceLink": "available"
+      },
+      "evidence": "8iops/agent-gitops#329; required check waits for approved cross-organization Project-read identity"
+    },
+    {
+      "repository": "Woomou/2woodblog",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "Woomou/career-ops",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "Woomou/network-decomplexer-ios",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "advanced-fabrics/core",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "advanced-fabrics/headlamp-advanced-fabric",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "among-clusters/among-clusters",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "among-clusters/connectool",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "among-clusters/headlamp-birfucate",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "bifurcate-systems/bifurcate",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "biziops/brand-assets",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "biziops/re8ch-corporate-site",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "compocv/compocv",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "pillars-infra/network-gitops",
+      "localAuthority": "repository AGENTS.md and .github creation scaffolding",
+      "approvedProject": "declared by repository-local Issue/PR context",
+      "relationships": "partial",
+      "enforcement": "blocked",
+      "capabilities": {
+        "issueContext": "available",
+        "pullRequestContext": "available",
+        "projectContext": "available",
+        "immutableRevision": "available",
+        "runtimeEvidenceLink": "available"
+      },
+      "evidence": "pillars-infra/network-gitops#320; required check waits for approved cross-organization Project-read identity"
+    },
+    {
+      "repository": "public-edge/mihomos-cluster",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch-ai/codex-admin-plugins",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch-business/catalog",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch-cloud/cluster-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch-image/image-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch-image/registry-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch-observability/observable-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/Anycam",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/AnycamIOS",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/aesthete",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/anycam-backend",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/anycam-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/anysiteonearth",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/anysiteonearth-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/baozou-ppt-studio",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/cloud-functions",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/director-engines",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/farseer",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/garageband-mcp",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/garageband-mcp-site",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/identity-gitops",
+      "localAuthority": "repository AGENTS.md and .github creation scaffolding",
+      "approvedProject": "declared by repository-local Issue/PR context",
+      "relationships": "partial",
+      "enforcement": "blocked",
+      "capabilities": {
+        "issueContext": "available",
+        "pullRequestContext": "available",
+        "projectContext": "available",
+        "immutableRevision": "available",
+        "runtimeEvidenceLink": "available"
+      },
+      "evidence": "re8ch/identity-gitops#99; required check waits for approved cross-organization Project-read identity"
+    },
+    {
+      "repository": "re8ch/jjklive",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/ledger",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/ledger-dashboard",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/ledger-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/motor-muscle-sim",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/phonaid-android",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/phonaid-service",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/phonaid-website",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/product-public-data",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/service-backend",
+      "localAuthority": "AGENTS.md and operations/github-transaction-context/README.md",
+      "approvedProject": "re8ch Project 2; fallback: Others",
+      "relationships": "complete",
+      "enforcement": "required",
+      "capabilities": {
+        "issueContext": "available",
+        "pullRequestContext": "available",
+        "projectContext": "available",
+        "immutableRevision": "available",
+        "runtimeEvidenceLink": "available"
+      },
+      "evidence": "re8ch/service-backend#3096, #3101; Ruleset 23148035 readback"
+    },
+    {
+      "repository": "re8ch/space-mining-stage",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/thiking-machine",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/tool-distribution",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "re8ch/user-hub",
+      "localAuthority": "gap: repository authority not yet audited",
+      "approvedProject": "gap: approved Project and fallback not yet declared",
+      "relationships": "missing",
+      "enforcement": "not-installed",
+      "capabilities": {
+        "issueContext": "missing",
+        "pullRequestContext": "missing",
+        "projectContext": "missing",
+        "immutableRevision": "missing",
+        "runtimeEvidenceLink": "missing"
+      },
+      "evidence": "catalog membership only; live repository audit pending"
+    },
+    {
+      "repository": "siren-observer/observability-gitops",
+      "localAuthority": "repository AGENTS.md and .github creation scaffolding",
+      "approvedProject": "declared by repository-local Issue/PR context",
+      "relationships": "partial",
+      "enforcement": "blocked",
+      "capabilities": {
+        "issueContext": "available",
+        "pullRequestContext": "available",
+        "projectContext": "available",
+        "immutableRevision": "available",
+        "runtimeEvidenceLink": "available"
+      },
+      "evidence": "siren-observer/observability-gitops#114; required check waits for approved cross-organization Project-read identity"
+    },
+    {
+      "repository": "strata-silica/storage-gitops",
+      "localAuthority": "repository AGENTS.md and .github creation scaffolding",
+      "approvedProject": "declared by repository-local Issue/PR context",
+      "relationships": "partial",
+      "enforcement": "blocked",
+      "capabilities": {
+        "issueContext": "available",
+        "pullRequestContext": "available",
+        "projectContext": "available",
+        "immutableRevision": "available",
+        "runtimeEvidenceLink": "available"
+      },
+      "evidence": "strata-silica/storage-gitops#61; required check waits for approved cross-organization Project-read identity"
+    }
+  ]
+}

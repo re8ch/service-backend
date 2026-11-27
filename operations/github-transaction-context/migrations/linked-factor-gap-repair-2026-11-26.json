@@ -1,0 +1,106 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorBackfill",
+  "issue": "re8ch/service-backend#3119",
+  "parent": "re8ch/service-backend#3112",
+  "capturedAt": "2026-11-26T10:30:00+08:00",
+  "scope": {
+    "openPullRequestsWithClosingIssues": 14,
+    "factorContextIncompleteBefore": 10,
+    "factorContextIncompleteAfter": 0,
+    "branchIdentityRepairIncluded": false
+  },
+  "invariants": {
+    "existingValuesPreserved": true,
+    "pullRequestBodiesChanged": false,
+    "pullRequestsClosed": false,
+    "branchesRenamed": false
+  },
+  "safety": {
+    "closedPullRequests": 0,
+    "preservedOriginalBodies": true
+  },
+  "transactions": [
+    {"pullRequest": "8iops/agent-gitops#225", "primaryFactor": "8iops/agent-gitops#224", "project": "8iops/5", "result": "complete"},
+    {"pullRequest": "8iops/agent-gitops#230", "primaryFactor": "8iops/agent-gitops#229", "project": "8iops/5", "result": "complete"},
+    {"pullRequest": "compocv/compocv#8", "primaryFactor": "compocv/compocv#7", "project": "compocv/1", "result": "complete"},
+    {"pullRequest": "pillars-infra/network-gitops#105", "primaryFactor": "pillars-infra/network-gitops#104", "project": "pillars-infra/1", "result": "complete"},
+    {"pullRequest": "pillars-infra/network-gitops#228", "primaryFactor": "pillars-infra/network-gitops#227", "project": "pillars-infra/1", "result": "complete"},
+    {"pullRequest": "re8ch/identity-gitops#87", "primaryFactor": "re8ch/identity-gitops#86", "project": "re8ch/1", "result": "complete"},
+    {"pullRequest": "re8ch/service-backend#2911", "primaryFactor": "re8ch/service-backend#2909", "project": "re8ch/2", "result": "complete"},
+    {"pullRequest": "re8ch/service-backend#2995", "primaryFactor": "re8ch/service-backend#2994", "project": "re8ch/2", "result": "complete"},
+    {"pullRequest": "re8ch/service-backend#3052", "primaryFactor": "re8ch/service-backend#3051", "project": "re8ch/2", "result": "complete"},
+    {"pullRequest": "siren-observer/observability-gitops#108", "primaryFactor": "siren-observer/observability-gitops#107", "project": "siren-observer/1", "result": "complete"}
+  ],
+  "targets": [
+    {
+      "pullRequest": "8iops/agent-gitops#225",
+      "primaryFactor": "8iops/agent-gitops#224",
+      "repairs": ["root-declaration"]
+    },
+    {
+      "pullRequest": "8iops/agent-gitops#230",
+      "primaryFactor": "8iops/agent-gitops#229",
+      "repairs": ["root-declaration"]
+    },
+    {
+      "pullRequest": "compocv/compocv#8",
+      "primaryFactor": "compocv/compocv#7",
+      "repairs": ["issue-type", "root-declaration", "project-fields"]
+    },
+    {
+      "pullRequest": "pillars-infra/network-gitops#105",
+      "primaryFactor": "pillars-infra/network-gitops#104",
+      "repairs": ["root-declaration"]
+    },
+    {
+      "pullRequest": "pillars-infra/network-gitops#228",
+      "primaryFactor": "pillars-infra/network-gitops#227",
+      "repairs": ["root-declaration"]
+    },
+    {
+      "pullRequest": "re8ch/identity-gitops#87",
+      "primaryFactor": "re8ch/identity-gitops#86",
+      "repairs": ["root-declaration"]
+    },
+    {
+      "pullRequest": "re8ch/service-backend#2911",
+      "primaryFactor": "re8ch/service-backend#2909",
+      "repairs": ["issue-type", "root-declaration", "project-membership", "project-fields"]
+    },
+    {
+      "pullRequest": "re8ch/service-backend#2995",
+      "primaryFactor": "re8ch/service-backend#2994",
+      "repairs": ["project-membership", "project-fields"]
+    },
+    {
+      "pullRequest": "re8ch/service-backend#3052",
+      "primaryFactor": "re8ch/service-backend#3051",
+      "repairs": ["issue-type", "root-declaration", "project-membership", "project-fields"]
+    },
+    {
+      "pullRequest": "siren-observer/observability-gitops#108",
+      "primaryFactor": "siren-observer/observability-gitops#107",
+      "repairs": ["root-declaration"]
+    }
+  ],
+  "projectSchemaChanges": [
+    {
+      "project": "compocv/1",
+      "addedFields": [
+        "Lifecycle",
+        "Work Type",
+        "Context Status",
+        "Start Date",
+        "Target Date",
+        "Completed Date"
+      ]
+    }
+  ],
+  "readback": {
+    "tool": "operations/github-transaction-context/audit_open_prs.py",
+    "repositoryErrors": 0,
+    "factorContextIncomplete": 0,
+    "note": "Historical branch names without Issue identity remain a separate migration concern."
+  }
+}

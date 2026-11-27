@@ -1,0 +1,25 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorModel",
+  "primary": {
+    "cardinality": 1,
+    "relationship": "closes",
+    "requirements": ["nativeIssueType", "parentOrExplicitRoot", "completeLifecycleProject", "issueIdentityInBranch"]
+  },
+  "secondary": {
+    "cardinality": "zero-or-more",
+    "relationships": ["contributes_to", "depends_on", "blocks", "observes"],
+    "crossRepository": true,
+    "crossOrganization": true,
+    "crossProject": true
+  },
+  "requiredProjectFields": ["Status", "Lifecycle", "Work Type", "Context Status", "Start Date"],
+  "completionDateFields": ["Target Date", "Completed Date"],
+  "invariants": [
+    "The primary factor owns delivery lifecycle and PR closure.",
+    "Secondary factors preserve causal context and never replace lifecycle ownership.",
+    "A factor may participate in multiple Projects without changing its identity.",
+    "Cross-organization references are first-class and must use owner/repository#number.",
+    "Repository-local governance may add requirements but may not weaken the primary factor contract."
+  ]
+}

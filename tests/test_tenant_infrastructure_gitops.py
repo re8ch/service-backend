@@ -15,6 +15,36 @@ def documents(path):
     return [item for item in yaml.load_all(path.read_text(), Loader=YAML_SAFE_LOADER) if item]
 
 
+def test_stalwart_provider_can_read_only_the_existing_recovery_credential():
+    docs = documents(ROOT / "platform/stalwart/mailbox-provisioner.yaml")
+    binding = next(
+        item for item in docs
+        if item["kind"] == "RoleBinding"
+        and item["metadata"]["name"] == "tenant-provider-stalwart-recovery-read"
+    )
+    assert binding["roleRef"] == {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "Role",
+        "name": "tenant-provider-stalwart-recovery-read",
+    }
+    assert binding["subjects"] == [{
+        "kind": "ServiceAccount",
+        "name": "tenant-provider-reconciler",
+        "namespace": "tenant-infrastructure",
+    }]
+    role = next(
+        item for item in docs
+        if item["kind"] == "Role"
+        and item["metadata"]["name"] == "tenant-provider-stalwart-recovery-read"
+    )
+    assert role["rules"] == [{
+        "apiGroups": [""],
+        "resources": ["secrets"],
+        "resourceNames": ["stalwart-recovery-admin"],
+        "verbs": ["get"],
+    }]
+
+
 def tenant_chart_documents(provider_enabled=False, tenant_go_enabled=False, postgresql_provider_enabled=False, extra_values=None):
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     image = "registry.re8ch.com/image/re8ch-ai-operations@sha256:2bc3b066876bc6f866b616f713d3413d8207161459749a9fde6d0787978de0a6"
@@ -46,6 +76,17 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     admin_env = {v["name"]: v.get("value") for v in admin["env"]}
     assert tenant_env["AUTH_DISCOVERY_URL"] == "http://supabase-identity-auth.supabase-identity.svc:9999/.well-known/oauth-authorization-server"
     assert tenant_env["SUPABASE_USER_URL"] == "http://supabase-identity-auth.supabase-identity.svc:9999/user"
+    assert tenant_env["INVOCATION_TOKEN_ISSUER_URL"] == "http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens"
+    assert tenant_env["INVOCATION_TOKEN_JWKS_URL"] == "http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json"
+    assert tenant_env["INVOCATION_TOKEN_ISSUER"] == "https://tools.service.re8ch.com/invocation"
+    assert tenant_env["STALWART_CLIENT_ID"] == "705c1168-43d8-4ec3-980a-0327a59c7fc6"
+    assert tenant_env["STALWART_AUTHORIZATION_URL"] == "https://db-rw.re8ch.com/auth/v1/oauth/authorize"
+    assert tenant_env["STALWART_TOKEN_URL"] == "https://db-rw.re8ch.com/auth/v1/oauth/token"
+    assert "STALWART_CONNECT_URL" not in tenant_env
+    invocation_credential = next(item for item in tenant["env"] if item["name"] == "TENANT_CLAIM_SERVICE_TOKEN")
+    assert invocation_credential["valueFrom"]["secretKeyRef"] == {
+        "name": "tenant-claim-internal-auth", "key": "TENANT_CLAIM_SERVICE_TOKEN", "optional": False,
+    }
     assert admin_env["AUTH_DISCOVERY_URL"] == "https://api.re8ch.com/auth/.well-known/openid-configuration"
     for env in (tenant_env, admin_env):
         assert env["DEX_USERINFO_URL"] == "https://api.re8ch.com/auth/userinfo"
@@ -60,6 +101,19 @@ def test_go_tenant_api_requires_verified_image_and_isolates_admin_port():
     assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
 
 
+def test_release_wires_fail_closed_invocation_authority_without_secret_values():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    config = release["spec"]["values"]["tenantPlatform"]["tenantAPI"]["invocationTokens"]
+    assert config == {
+        "issuerURL": "http://tenant-control-controller.tenant-infrastructure.svc/v1/invocation-tokens",
+        "jwksURL": "http://tenant-control-controller.tenant-infrastructure.svc/.well-known/invocation-jwks.json",
+        "expectedIssuer": "https://tools.service.re8ch.com/invocation",
+        "credentialSecret": "tenant-claim-internal-auth",
+        "credentialKey": "TENANT_CLAIM_SERVICE_TOKEN",
+    }
+    assert not any(key.lower().endswith(("token", "password", "privatekey")) for key in config)
+
+
 def test_provider_worker_requires_explicit_signed_image_rollout():
     assert not any(item.get("metadata", {}).get("name") == "tenant-provider-reconciler" for item in tenant_chart_documents())
     docs = tenant_chart_documents(provider_enabled=True)
@@ -67,6 +121,7 @@ def test_provider_worker_requires_explicit_signed_image_rollout():
     container = worker["spec"]["template"]["spec"]["containers"][0]
     assert container["image"] == "registry.re8ch.com/image/re8ch-ai-operations@sha256:" + "3" * 64
     assert container["env"][1]["valueFrom"]["secretKeyRef"] == {"name": "tenant-provider-identity", "key": "service-role-key"}
+    assert {item["name"]: item.get("value") for item in container["env"]}["STALWART_URL"] == "https://stalwart-admin.service.re8ch.com"
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     invalid = subprocess.run(["helm", "template", "birfucate", str(chart), "--set", "tenantPlatform.enabled=true", "--set", "tenantPlatform.provider.enabled=true"], capture_output=True, text=True)
     assert invalid.returncode != 0 and "must be pinned" in invalid.stderr
@@ -163,19 +218,22 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp",
     }
     tenant_env = {item["name"]: item.get("value") for item in deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
-    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
+    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-plugin/mcp"
     native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
     native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
     assert native_paths == {
         "/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp",
+        "/tenant-plugin/mcp", "/.well-known/oauth-protected-resource/tenant-plugin/mcp",
         "/tenant-self-service/mcp", "/.well-known/oauth-protected-resource/tenant-self-service/mcp",
         "/.well-known/openai-apps-challenge",
     }
     plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-native/mcp")
     assert plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
+    canonical_plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-plugin/mcp")
+    assert canonical_plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
     assert tenant_env["OPENAI_APPS_CHALLENGE_TOKEN"] == ""
     challenge_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/.well-known/openai-apps-challenge")
     assert challenge_rule["backendRefs"] == [{"name": "tenant-api", "port": 80}]
@@ -697,50 +755,12 @@ def test_shared_personal_runtime_class_has_owner_resource_policy():
     assert shared["namespacePolicy"]["bootstrapNamespaces"] == ["personal-standard-default"]
 
 
-def test_model_gateway_defaults_do_not_expose_inference_credentials():
-    values = yaml.load(
-        (ROOT / "clusters/re8ch/charts/birfucate-metering/values.yaml").read_text(),
-        Loader=YAML_SAFE_LOADER,
-    )
-    gateway = values["tenantPlatform"]["tenantAPI"]["modelGateway"]
-    assert gateway == {"enabled": False, "gatewayURL": "", "credentialsSecret": "", "bindings": {}}
-    for item in tenant_chart_documents(tenant_go_enabled=True):
-        if item["kind"] == "Deployment":
-            for container in item["spec"]["template"]["spec"]["containers"]:
-                assert not any(env["name"].startswith("LITELLM_") for env in container.get("env", []))
-
-
-def test_model_gateway_injects_only_explicit_tenant_secret_keys():
-    bindings = {"research-fixture": {"tokenEnv": "LITELLM_TENANT_RESEARCH_FIXTURE_KEY", "models": ["fixture-model"]}}
-    gateway = {"enabled": True, "gatewayURL": "http://litellm.llm-gateway.svc.cluster.local:4000", "credentialsSecret": "research-fixture-credentials", "bindings": bindings}
-    docs = tenant_chart_documents(tenant_go_enabled=True, extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": gateway}}})
+def test_model_gateway_uses_public_endpoint_and_broker_credentials_only():
+    docs = tenant_chart_documents(tenant_go_enabled=True)
     deployments = {item["metadata"]["name"]: item for item in docs if item["kind"] == "Deployment"}
     tenant = deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]
     admin = deployments["admin-api"]["spec"]["template"]["spec"]["containers"][0]
     env = {item["name"]: item for item in tenant["env"]}
-    assert env["LITELLM_GATEWAY_URL"]["value"] == gateway["gatewayURL"]
-    assert json.loads(env["LITELLM_TENANT_BINDINGS_JSON"]["value"]) == bindings
-    assert env[bindings["research-fixture"]["tokenEnv"]]["valueFrom"]["secretKeyRef"] == {
-        "name": gateway["credentialsSecret"], "key": "LITELLM_TENANT_RESEARCH_FIXTURE_KEY", "optional": False}
+    assert env["LITELLM_GATEWAY_URL"]["value"] == "https://litellm.service.re8ch.com/v1"
+    assert not any(name == "LITELLM_TENANT_BINDINGS_JSON" or name.startswith("LITELLM_TENANT_") for name in env)
     assert not any(item["name"].startswith("LITELLM_") for item in admin["env"])
-    for container in (tenant, admin):
-        assert not any(item.get("secretRef", {}).get("name") == gateway["credentialsSecret"] for item in container.get("envFrom", []))
-    assert not any(item["kind"] == "Secret" and item["metadata"]["name"] == gateway["credentialsSecret"] for item in docs)
-
-
-def test_model_gateway_rejects_incomplete_or_shared_credentials():
-    import pytest
-    base = {"enabled": True, "gatewayURL": "https://gateway.example.test", "credentialsSecret": "fixture-credentials"}
-    cases = [
-        ({}, "non-empty bindings"),
-        ({"a": {"tokenEnv": "SERVICE_API_TOKEN", "models": ["m"]}}, "dedicated LITELLM_TENANT"),
-        ({"a": {"tokenEnv": "LITELLM_TENANT_A_KEY", "models": []}}, "non-empty approved model ceiling"),
-        ({name: {"tokenEnv": "LITELLM_TENANT_SHARED_KEY", "models": ["m"]} for name in ("a", "b")}, "must not share"),
-    ]
-    for bindings, message in cases:
-        with pytest.raises(subprocess.CalledProcessError) as error:
-            tenant_chart_documents(tenant_go_enabled=True, extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": {**base, "bindings": bindings}}}})
-        assert message in error.value.stderr
-    with pytest.raises(subprocess.CalledProcessError) as error:
-        tenant_chart_documents(extra_values={"tenantPlatform": {"tenantAPI": {"modelGateway": base}}})
-    assert "requires tenantPlatform.tenantAPI.enabled" in error.value.stderr
