@@ -102,7 +102,7 @@ func collaborationRandom() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 func collaborationScopes(scopes []string) ([]string, string, error) {
-	allowed := map[string]string{"mail.read": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "contacts.read": "contacts", "files.read": "files"}
+	allowed := map[string]string{"mail.read": "mail", "mail.send": "mail", "calendar.read": "calendars", "calendar.respond": "calendars", "contacts.read": "contacts", "files.read": "files"}
 	unique, native := map[string]bool{}, map[string]bool{}
 	for _, scope := range scopes {
 		service, ok := allowed[scope]
@@ -810,41 +810,48 @@ func (s *server) refreshCollaboration(ctx context.Context, id identity, c collab
 	return s.collaborationConnection(ctx, id, c.Ref)
 }
 
-func (s *server) resolveCollaboration(ctx context.Context, id identity, ref string) (*collaborationDataClient, error) {
+func (s *server) resolveCollaborationAccess(ctx context.Context, id identity, ref string) (collaborationDataAccess, string, error) {
 	if !collaborationEnabled() {
-		return nil, errors.New("collaboration is not published")
+		return collaborationDataAccess{}, "", errors.New("collaboration is not published")
 	}
 	c, err := s.collaborationConnection(ctx, id, ref)
 	if err != nil {
-		return nil, err
+		return collaborationDataAccess{}, "", err
 	}
 	if c.State == "Ready" && c.Expires <= time.Now().Unix()+60 {
 		c, err = s.refreshCollaboration(ctx, id, c)
 		if err != nil {
-			return nil, err
+			return collaborationDataAccess{}, "", err
 		}
 	}
 	if c.State != "Ready" || c.Expires <= time.Now().Unix() {
-		return nil, errors.New("collaboration binding is revoked, expired or not ready")
+		return collaborationDataAccess{}, "", errors.New("collaboration binding is revoked, expired or not ready")
 	}
 	_, data, err := collaborationSecret(ctx, id, c)
 	if err != nil {
-		return nil, err
+		return collaborationDataAccess{}, "", err
 	}
 	origin, err := collaborationOrigin()
 	if err != nil {
-		return nil, err
+		return collaborationDataAccess{}, "", err
 	}
 	if data["origin"] != origin || data["accountID"] != c.AccountID {
-		return nil, errors.New("provider binding mismatch")
+		return collaborationDataAccess{}, "", errors.New("provider binding mismatch")
 	}
 	var scopes []string
 	if json.Unmarshal([]byte(c.Scopes), &scopes) != nil {
-		return nil, errors.New("invalid binding scopes")
+		return collaborationDataAccess{}, "", errors.New("invalid binding scopes")
 	}
 	// Numeric JMAP account ids are not assumed to be DAV path ids. The adapter
 	// discovers/validates provider paths and enforces native sharing permissions.
-	return newCollaborationDataClient(id, collaborationDataAccess{Tenant: id.Tenant, Subject: id.Subject, AccountID: c.AccountID, CredentialRef: c.Ref, Bearer: data["accessToken"], Scopes: scopes, ExpiresAt: time.Unix(c.Expires, 0)}, origin)
+	return collaborationDataAccess{Tenant: id.Tenant, Subject: id.Subject, AccountID: c.AccountID, CredentialRef: c.Ref, Bearer: data["accessToken"], Scopes: scopes, ExpiresAt: time.Unix(c.Expires, 0)}, origin, nil
+}
+func (s *server) resolveCollaboration(ctx context.Context, id identity, ref string) (*collaborationDataClient, error) {
+	access, origin, err := s.resolveCollaborationAccess(ctx, id, ref)
+	if err != nil {
+		return nil, err
+	}
+	return newCollaborationDataClient(id, access, origin)
 }
 func (s *server) revokeCollaboration(ctx context.Context, id identity, ref string) (map[string]any, error) {
 	c, err := s.collaborationConnection(ctx, id, ref)
