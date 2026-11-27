@@ -19,15 +19,15 @@ func TestCollaborationScopesAndPlanOwnership(t *testing.T) {
 	t.Setenv("STALWART_URL", "https://provider.example")
 	t.Setenv("STALWART_CLIENT_ID", "re8ch-self-service")
 	owner := identity{Tenant: "re8ch", Subject: "one"}
-	p, err := collaborationPlan(owner, []string{"mail.read", "mail.read", "files.read"})
+	p, err := collaborationPlan(owner, []string{"mail.read", "mail.send", "mail.read", "files.read"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	same, _ := collaborationPlan(owner, []string{"files.read", "mail.read"})
+	same, _ := collaborationPlan(owner, []string{"files.read", "mail.send", "mail.read"})
 	if p["planHash"] != same["planHash"] {
 		t.Fatal("scope normalization changed plan")
 	}
-	other, _ := collaborationPlan(identity{Tenant: "re8ch", Subject: "two"}, []string{"mail.read", "files.read"})
+	other, _ := collaborationPlan(identity{Tenant: "re8ch", Subject: "two"}, []string{"mail.read", "mail.send", "files.read"})
 	if p["planHash"] == other["planHash"] {
 		t.Fatal("plan transferable between users")
 	}

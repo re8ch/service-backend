@@ -420,6 +420,7 @@ func (s *server) handler() http.Handler {
 	})
 	mux.HandleFunc("GET /self-service/capabilities", s.selfServiceCapabilitiesHTTP)
 	mux.HandleFunc("POST /internal/usage-events", s.receiveUsageHTTP)
+	mux.HandleFunc("POST /v1/collaboration/resolve", s.collaborationBrokerResolveHTTP)
 	mux.Handle("GET /internal/mcp/catalog", s.diagnostics().http(http.HandlerFunc(s.mcpCatalogHTTP)))
 	mux.HandleFunc("GET /internal/mcp/catalog/events", s.mcpCatalogEventsHTTP)
 	mux.HandleFunc("GET /credentials/redeem", func(w http.ResponseWriter, _ *http.Request) { credentialPage(w, redeemPage) })

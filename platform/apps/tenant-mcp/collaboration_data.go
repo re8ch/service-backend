@@ -72,7 +72,7 @@ func newCollaborationDataClient(id identity, access collaborationDataAccess, con
 	}
 	connect, _ := url.Parse(connectOrigin)
 	for _, scope := range access.Scopes {
-		if scope != "mail.read" && scope != "calendar.read" && scope != "calendar.respond" && scope != "contacts.read" && scope != "files.read" {
+		if scope != "mail.read" && scope != "mail.send" && scope != "calendar.read" && scope != "calendar.respond" && scope != "contacts.read" && scope != "files.read" {
 			return nil, errors.New("unsupported collaboration scope")
 		}
 	}

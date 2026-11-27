@@ -12,7 +12,7 @@ import (
 type collaborationConnectionInput struct {
 	Action            string   `json:"action" jsonschema:"plan, start, complete, status, list, or revoke"`
 	ConnectionRef     string   `json:"connectionRef,omitempty" jsonschema:"Opaque connection reference returned by this tool"`
-	Scopes            []string `json:"scopes,omitempty" jsonschema:"Explicit mail.read, calendar.read, calendar.respond, contacts.read, files.read permissions"`
+	Scopes            []string `json:"scopes,omitempty" jsonschema:"Explicit mail.read, mail.send, calendar.read, calendar.respond, contacts.read, files.read permissions"`
 	AuthorizationMode string   `json:"authorizationMode,omitempty" jsonschema:"userhub (default when published) or device"`
 	PlanHash          string   `json:"planHash,omitempty" jsonschema:"Exact current plan hash for start"`
 	IdempotencyKey    string   `json:"idempotencyKey,omitempty" jsonschema:"Stable unique key for start; use a new key to reconnect"`
