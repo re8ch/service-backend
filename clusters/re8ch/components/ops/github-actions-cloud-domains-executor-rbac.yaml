@@ -1008,6 +1008,7 @@ rules:
   - plugin-public-edge
   - plugin-rook-ceph
   - re8ch-plugin-runtime
+  - stalwart-agent-tools
   verbs:
   - get
   - patch
@@ -1030,6 +1031,7 @@ rules:
   resourceNames:
   - admin-tools-public
   - connectool-cloud-mcp
+  - tenant-mcp
   - toolhive-cloud-ui
   verbs:
   - get
@@ -1054,6 +1056,7 @@ rules:
   - networkpolicies
   resourceNames:
   - re8ch-plugin-runtime
+  - stalwart-agent-tools-shadow
   - vmcp-internal-backends
   verbs:
   - get
@@ -1086,9 +1089,20 @@ rules:
   resources:
   - mcpgroups
   resourceNames:
+  - collaboration-user-shadow
   - platform-admin-public
   - platform-operate-public
   - platform-tools-public
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - toolhive.stacklok.dev
+  resources:
+  - mcpservers
+  resourceNames:
+  - stalwart-agent-tools-shadow
   verbs:
   - get
   - patch
