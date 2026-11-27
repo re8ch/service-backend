@@ -13,7 +13,7 @@
         "remotes": [
           {
             "type": "streamable-http",
-            "url": "https://tools.service.re8ch.com/tenant-native/mcp"
+            "url": "https://tools.service.re8ch.com/tenant-plugin/mcp"
           }
         ],
         "websiteUrl": "https://re8ch.com",
