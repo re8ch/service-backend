@@ -125,7 +125,7 @@ def main() -> None:
     byok_smoke = BYOK_SMOKE.read_text()
     require("labels: re8ch-self-hosted-ephemeral" in byok_smoke,
             "BYOK smoke must use the ARC scale-set label")
-    require("node:22-bookworm-slim@sha256:" in byok_smoke,
+    require("node:22-bookworm@sha256:" in byok_smoke,
             "BYOK job image must be digest pinned")
     require("@github/copilot@1.0.116" in byok_smoke,
             "Copilot CLI version must be pinned")

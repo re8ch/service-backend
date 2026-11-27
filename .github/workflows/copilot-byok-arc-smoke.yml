@@ -18,7 +18,7 @@ jobs:
       labels: re8ch-self-hosted-ephemeral
     timeout-minutes: 10
     container:
-      image: node:22-bookworm-slim@sha256:d20a7b8b4184bf74fe77499b5460a3d69e582bc733d50287e40c3fe791764851
+      image: node:22-bookworm@sha256:81ad3f93f122008a146891525948c689cfd8e9ff9f8cb8445cc95991d7a0251c
     env:
       COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
       COPILOT_PROVIDER_BASE_URL: https://litellm.service.re8ch.com/v1
@@ -36,9 +36,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          apt-get update
-          apt-get install --yes --no-install-recommends ca-certificates
-          rm -rf /var/lib/apt/lists/*
           npm install --global @github/copilot@1.0.116 \
             --ignore-scripts=false --no-audit --no-fund
           test "$(copilot --version | head -n1)" = "GitHub Copilot CLI 1.0.116."
