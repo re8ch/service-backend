@@ -48,8 +48,9 @@ toolhive:
     enabled: true
     name: approved
     sources:
-      - {name: managed-workloads, kubernetes: {namespaces: [toolhive-system]}}
-      - {name: re8ch-managed, managed: {}}
+      - name: re8ch-unified
+        file: {path: /etc/re8ch-approved-catalog/registry.json}
+        syncPolicy: {interval: 1m}
   sessionStorage:
     provider: memory
     sessionAffinity: ClientIP

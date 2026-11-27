@@ -1,27 +1,22 @@
-# Apply in a separate signed GitOps promotion after the matching Cloud Platform
-# image has passed authenticated tools/list and operation acceptance.
-# Merge into platform/connectool/release.yaml spec.values.toolhive.registry.
-# Existing managed sources and registry membership are deliberately retained.
+# Reference values for the reviewed ToolHive directory promotion. The directory
+# exposes one RE8CH entry; tenant-native resolves the authenticated organization,
+# membership and grants before publishing its capability schema.
 sources:
-  - name: re8ch-plugin-operations
-    file: {path: /etc/re8ch-plugin-catalog/registry.json}
+  - name: re8ch-unified
+    file: {path: /etc/re8ch-approved-catalog/registry.json}
     syncPolicy: {interval: 1m}
-  - {name: managed-workloads, kubernetes: {namespaces: [toolhive-system]}}
-  - {name: re8ch-managed, managed: {}}
 release:
   values:
     extraVolumes:
-      - name: re8ch-plugin-catalog
-        configMap: {name: re8ch-plugin-operation-catalog}
+      - name: re8ch-approved-catalog
+        configMap: {name: re8ch-approved-tool-catalog}
     extraVolumeMounts:
-      - {name: re8ch-plugin-catalog, mountPath: /etc/re8ch-plugin-catalog, readOnly: true}
+      - {name: re8ch-approved-catalog, mountPath: /etc/re8ch-approved-catalog, readOnly: true}
     config:
       sources:
-        - name: re8ch-plugin-operations
-          file: {path: /etc/re8ch-plugin-catalog/registry.json}
+        - name: re8ch-unified
+          file: {path: /etc/re8ch-approved-catalog/registry.json}
           syncPolicy: {interval: 1m}
-        - {name: managed-workloads, kubernetes: {namespaces: [toolhive-system]}}
-        - {name: re8ch-managed, managed: {}}
       registries:
         - name: approved
-          sources: [re8ch-plugin-operations, managed-workloads, re8ch-managed]
+          sources: [re8ch-unified]
