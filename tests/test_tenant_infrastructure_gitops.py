@@ -218,22 +218,19 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp",
     }
     tenant_env = {item["name"]: item.get("value") for item in deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
-    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-plugin/mcp"
+    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
     native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
     native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
     assert native_paths == {
         "/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp",
-        "/tenant-plugin/mcp", "/.well-known/oauth-protected-resource/tenant-plugin/mcp",
         "/tenant-self-service/mcp", "/.well-known/oauth-protected-resource/tenant-self-service/mcp",
         "/.well-known/openai-apps-challenge",
     }
     plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-native/mcp")
     assert plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
-    canonical_plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-plugin/mcp")
-    assert canonical_plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
     assert tenant_env["OPENAI_APPS_CHALLENGE_TOKEN"] == ""
     challenge_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/.well-known/openai-apps-challenge")
     assert challenge_rule["backendRefs"] == [{"name": "tenant-api", "port": 80}]

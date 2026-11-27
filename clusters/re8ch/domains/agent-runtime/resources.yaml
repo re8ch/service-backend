@@ -52374,7 +52374,7 @@ data:
 
     def get_external_publication_readiness():
         mcp_origin = os.getenv("EXTERNAL_TOOLS_ORIGIN", "https://tools.service.re8ch.com").rstrip("/")
-        mcp_resource = os.getenv("EXTERNAL_MCP_RESOURCE", mcp_origin + "/tenant-plugin/mcp").rstrip("/")
+        mcp_resource = os.getenv("EXTERNAL_MCP_RESOURCE", mcp_origin + "/tenant-native/mcp").rstrip("/")
         metadata_url = os.getenv("EXTERNAL_RESOURCE_METADATA_URL", mcp_origin + "/.well-known/oauth-protected-resource" + urllib.parse.urlparse(mcp_resource).path)
         auth_origin = os.getenv("EXTERNAL_AUTH_ORIGIN", "https://db-rw.re8ch.com/auth/v1").rstrip("/")
         upstream_auth_origin = os.getenv("UPSTREAM_AUTH_ORIGIN", "https://auth.re8ch.com").rstrip("/")
@@ -55078,7 +55078,7 @@ data:
             "remotes": [
               {
                 "type": "streamable-http",
-                "url": "https://tools.service.re8ch.com/tenant-plugin/mcp"
+                "url": "https://tools.service.re8ch.com/tenant-native/mcp"
               }
             ],
             "websiteUrl": "https://re8ch.com",
@@ -59651,9 +59651,9 @@ spec:
   - name: EXTERNAL_TOOLS_ORIGIN
     value: https://tools.service.re8ch.com
   - name: EXTERNAL_MCP_RESOURCE
-    value: https://tools.service.re8ch.com/tenant-plugin/mcp
+    value: https://tools.service.re8ch.com/tenant-native/mcp
   - name: EXTERNAL_RESOURCE_METADATA_URL
-    value: https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp
+    value: https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp
   - name: EXTERNAL_AUTH_ORIGIN
     value: https://db-rw.re8ch.com/auth/v1
   - name: TRUST_PROXY_CIDRS

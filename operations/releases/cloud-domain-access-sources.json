@@ -2,7 +2,7 @@
   "sources": [
     {
       "repository": "8iops/agent-gitops",
-      "revision": "36bc91c76098d267d192c569630c70dd049fd7b6",
+      "revision": "76414900f16c09fec1a21da3eca7d88f3be4e34f",
       "path": "operations/releases/domain-access.yaml",
       "sha256": "e148d3c199f1eae5c51888190646a557dd639815b634460aa592f75fecba25ec"
     },
