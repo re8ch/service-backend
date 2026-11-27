@@ -228,9 +228,9 @@ separate public-read surface and all identity gates are proven.
 
 ### Current public Re8ch readiness
 
-The public plugin endpoint is `https://tools.service.re8ch.com/tenant-plugin/mcp`
+The public RE8CH tool endpoint is `https://tools.service.re8ch.com/tenant-native/mcp`
 on standard HTTPS 443. Its protected-resource document is
-`https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp`;
+`https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp`;
 the declared issuer is `https://db-rw.re8ch.com/auth/v1`. The readiness tool and
 shell probe check that resource, issuer, PKCE S256, TLS and the unauthenticated
 MCP challenge agree. The retired `tools.re8ch.com:8443/mcp` / embedded OAuth /

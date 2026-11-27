@@ -2,10 +2,10 @@
 set -u
 
 : "${MCP_ORIGIN:=https://tools.service.re8ch.com}"
-: "${MCP_RESOURCE:=$MCP_ORIGIN/tenant-plugin/mcp}"
+: "${MCP_RESOURCE:=$MCP_ORIGIN/tenant-native/mcp}"
 : "${AUTH_ORIGIN:=https://auth.re8ch.com}"
 : "${AUTH_ISSUER:=https://db-rw.re8ch.com/auth/v1}"
-: "${RESOURCE_METADATA_URL:=$MCP_ORIGIN/.well-known/oauth-protected-resource/tenant-plugin/mcp}"
+: "${RESOURCE_METADATA_URL:=$MCP_ORIGIN/.well-known/oauth-protected-resource/tenant-native/mcp}"
 
 failures=0
 

@@ -1,27 +1,6 @@
 {
   "version": 1,
   "backends": {
-    "cloud": {
-      "namespace": "toolhive-system",
-      "secret": "ops-mcp-observe-upstream",
-      "secretKey": "x-ops-token",
-      "header": "X-Ops-Token",
-      "url": "http://mcp-ops-observe-vmcp-internal.toolhive-system.svc.cluster.local:8088/mcp"
-    },
-    "infra": {
-      "namespace": "toolhive-system",
-      "secret": "ops-mcp-admin-upstream",
-      "secretKey": "x-ops-token",
-      "header": "X-Ops-Token",
-      "url": "http://mcp-ops-operate-vmcp-internal.toolhive-system.svc.cluster.local:8088/mcp"
-    },
-    "admin": {
-      "namespace": "toolhive-system",
-      "secret": "ops-mcp-admin-upstream",
-      "secretKey": "x-ops-token",
-      "header": "X-Ops-Token",
-      "url": "http://mcp-ops-admin-vmcp-internal.toolhive-system.svc.cluster.local:8088/mcp"
-    },
     "native": {
       "namespace": "ai-operations",
       "secret": "cluster-infra-service-auth",

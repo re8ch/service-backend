@@ -50,7 +50,6 @@ def test_storage_scrape_and_alerts_use_ready_nodes_only():
 
 
 def test_storage_tools_are_published_on_read_only_cluster_plane():
-    publication = next(item for item in docs("clusters/re8ch/components/toolhive/external-observe-publication.yaml")
-                       if item["kind"] == "MCPToolConfig" and item["metadata"]["name"] == "ops-public-read-tools")
-    tools = set(publication["spec"]["toolsFilter"])
-    assert {"get_ceph_storage_status", "get_ready_node_storage_inventory"} <= tools
+    registry = __import__("json").loads((ROOT / "platform/apps/tenant-mcp/platform-modules.json").read_text())
+    assert registry["backends"]["native"]["url"].endswith(":19443/mcp")
+    assert not (ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml").exists()

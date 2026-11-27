@@ -5,7 +5,7 @@ ROOT = Path(__file__).parents[1]
 
 
 def test_directory_public_origin_matches_routes_and_oauth_callback():
-    documents = list(yaml.safe_load_all((ROOT / 'clusters/re8ch/components/toolhive/external-observe-publication.yaml').read_text()))
+    documents = list(yaml.safe_load_all((ROOT / 'clusters/re8ch/components/toolhive/directory.yaml').read_text()))
     deployment = next(doc for doc in documents if doc.get('kind') == 'Deployment' and doc['metadata']['name'] == 'toolhive-cloud-ui')
     env_items = deployment['spec']['template']['spec']['containers'][0]['env']
     env = {item['name']: item.get('value') for item in env_items}
@@ -22,21 +22,10 @@ def test_directory_public_origin_matches_routes_and_oauth_callback():
     assert "'public'" in oauth and "'none'" in oauth
     assert env['OIDC_CLIENT_ID'] in oauth
 
-
-def test_toolhive_stateless_frontends_are_colocated_on_r640():
-    sources = (
-        ROOT / 'clusters/re8ch/components/toolhive/external-observe-publication.yaml',
-        ROOT / 'clusters/re8ch/components/plugin-runtime/runtime.yaml',
-    )
-    deployments = [
-        doc
-        for source in sources
-        for doc in yaml.safe_load_all(source.read_text())
-        if doc and doc.get('kind') == 'Deployment'
-    ]
-    for name in ('toolhive-cloud-ui', 're8ch-plugin-runtime'):
-        deployment = next(item for item in deployments if item['metadata']['name'] == name)
-        assert deployment['spec']['replicas'] == 1
-        pod_spec = deployment['spec']['template']['spec']
-        assert pod_spec['nodeSelector'] == {'kubernetes.io/hostname': 'r640'}
-        assert 'podAntiAffinity' not in pod_spec.get('affinity', {})
+def test_toolhive_directory_is_colocated_on_r640():
+    source = ROOT / "clusters/re8ch/components/toolhive/directory.yaml"
+    deployments = [doc for doc in yaml.safe_load_all(source.read_text()) if doc and doc.get("kind") == "Deployment"]
+    assert [item["metadata"]["name"] for item in deployments] == ["toolhive-cloud-ui"]
+    deployment = deployments[0]
+    assert deployment["spec"]["replicas"] == 1
+    assert deployment["spec"]["template"]["spec"]["nodeSelector"] == {"kubernetes.io/hostname": "r640"}

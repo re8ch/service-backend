@@ -3,6 +3,12 @@ on:
   workflow_dispatch:
     inputs:
       bundle_digest: {description: Signed agent-runtime tenant-infrastructure bundle digest, required: true, type: string}
+      target:
+        description: Exact bootstrap inventory
+        required: true
+        type: choice
+        default: tenant-infrastructure
+        options: [tenant-infrastructure, toolhive-catalog]
       execute: {description: Create or update the reviewed bootstrap inventory, default: false, type: boolean}
 permissions: {contents: read}
 concurrency: {group: tenant-platform-bootstrap, cancel-in-progress: false}
@@ -15,7 +21,7 @@ jobs:
     permissions: {contents: read, id-token: write, packages: read}
     env:
       EXECUTOR_AUDIENCE: https://kube-api.re8ch.com/release-executor-tenant-runtime
-      BUNDLE_REFERENCE: ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure
+      BUNDLE_REFERENCE: ${{ inputs.target == 'toolhive-catalog' && 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-toolhive-system' || 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure' }}
       BUNDLE_DIGEST: '${{ inputs.bundle_digest }}'
     steps:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -42,8 +48,15 @@ jobs:
         oras blob fetch --output "$layer" "$BUNDLE_REFERENCE@$layer_digest"
         install -d "$RUNNER_TEMP/bundle"
         tar -xzf "$layer" -C "$RUNNER_TEMP/bundle" release.bundle
-        python operations/releases/tenant_platform_bootstrap.py \
-          --bundle "$RUNNER_TEMP/bundle/release.bundle" --output "$RUNNER_TEMP/bootstrap.yaml"
+        if [[ '${{ inputs.target }}' == toolhive-catalog ]]; then
+          python operations/releases/toolhive_catalog_bootstrap.py \
+            --bundle "$RUNNER_TEMP/bundle/release.bundle" \
+            --access clusters/re8ch/components/ops/github-actions-cloud-domains-executor-rbac.yaml \
+            --output "$RUNNER_TEMP/bootstrap.yaml"
+        else
+          python operations/releases/tenant_platform_bootstrap.py \
+            --bundle "$RUNNER_TEMP/bundle/release.bundle" --output "$RUNNER_TEMP/bootstrap.yaml"
+        fi
     - name: Acquire exact GitHub OIDC identity
       env: {KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'}
       run: |
@@ -70,11 +83,18 @@ jobs:
     - name: Prove bootstrap boundaries
       run: |
         set -euo pipefail
-        ns=tenant-infrastructure
-        test "$(kubectl auth can-i create deployments -n "$ns")" = yes
-        test "$(kubectl auth can-i get role/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
-        test "$(kubectl auth can-i get rolebinding/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
-        test "$(kubectl auth can-i get configmap/ssa-state-agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+        if [[ '${{ inputs.target }}' == toolhive-catalog ]]; then
+          ns=toolhive-system
+          test "$(kubectl auth can-i update role/agent-runtime-domain-toolhive-system -n "$ns")" = yes
+          test "$(kubectl auth can-i create configmaps -n "$ns")" = yes
+          test "$(kubectl auth can-i get configmap/re8ch-approved-tool-catalog -n "$ns")" = yes
+        else
+          ns=tenant-infrastructure
+          test "$(kubectl auth can-i create deployments -n "$ns")" = yes
+          test "$(kubectl auth can-i get role/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+          test "$(kubectl auth can-i get rolebinding/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+          test "$(kubectl auth can-i get configmap/ssa-state-agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+        fi
         for denied in "get secrets -n $ns" "create secrets -n $ns" "create deployments -n default" \
           "create roles -n $ns" "create rolebindings -n $ns" "create clusterroles" "impersonate users"; do
           read -r -a request <<<"$denied"; test "$(kubectl auth can-i "${request[@]}")" = no

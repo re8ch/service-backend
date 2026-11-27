@@ -311,6 +311,7 @@ domains:
       - tests/test_headlamp_birfucate_browser.py
       - tests/test_headlamp_plugin_catalog.py
       - tests/test_incidentrelay_gitops.py
+      - tests/test_stalwart_public_mail.py
 
   metering:
     theme: currents

@@ -168,3 +168,19 @@ def test_litellm_adoption_has_only_five_runtime_objects_plus_state():
     assert names == {('deployments', 'litellm'), ('deployments', 'litellm-postgresql'),
                      ('configmaps', 'litellm-config'), ('configmaps', 'ssa-state-agent-runtime-domain-llm-gateway'),
                      ('services', 'litellm'), ('services', 'litellm-postgresql')}
+
+
+def test_toolhive_executor_matches_locked_collaboration_inventory():
+    docs = list(yaml.safe_load_all(PATH.read_text()))
+    role = next(d for d in docs if d['kind'] == 'Role'
+                and d['metadata']['name'] == 'agent-runtime-domain-toolhive-system')
+    names = {(group, resource, name) for rule in role['rules']
+             for group in rule['apiGroups'] for resource in rule['resources']
+             for name in rule['resourceNames']}
+    assert {
+        ('', 'serviceaccounts', 'stalwart-agent-tools'),
+        ('gateway.networking.k8s.io', 'httproutes', 'tenant-mcp'),
+        ('networking.k8s.io', 'networkpolicies', 'stalwart-agent-tools-shadow'),
+        ('toolhive.stacklok.dev', 'mcpgroups', 'collaboration-user-shadow'),
+        ('toolhive.stacklok.dev', 'mcpservers', 'stalwart-agent-tools-shadow'),
+    } <= names

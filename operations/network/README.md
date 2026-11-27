@@ -33,6 +33,13 @@ authority inventory, controller lifecycle, bounded cluster RBAC, and
 cross-domain policy boundary. Retained Flux objects are migration inputs, not
 authorization to restore a local writer or create a second Cilium owner.
 
+Files under `operations/network/manifests/cilium` are retained bootstrap and
+migration material, not current Gateway runtime authority. Do not diagnose
+listener presence from those files. Repository validation of the imported
+networking source uses
+`clusters/re8ch/components/cilium/gateway-api-canary.yaml`; effective runtime
+state must still be read from the explicitly selected target cluster.
+
 R640 retains native XDP and uses eBPF masquerading on `eno2np1`. Its node
 configuration must explicitly clear the chart-wide legacy
 `egress-masquerade-interfaces` value; omission inherits `eth0` and makes the

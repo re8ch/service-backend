@@ -46,71 +46,18 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         },
     ]
     publications = release["spec"]["values"]["toolhive"]["publications"]
-    assert {item["name"] for item in publications} == {"re8ch-tools-vmcp", "re8ch-operate-vmcp", "re8ch-admin-vmcp", "tenant-vmcp"}
-    assert {item["name"]: item["replicas"] for item in publications} == {
-        "re8ch-tools-vmcp": 1,
-        "re8ch-operate-vmcp": 1,
-        "re8ch-admin-vmcp": 1,
-        "tenant-vmcp": 1,
-    }
-    assert all(item.get("allowSingleReplicaWhenCapacityLimited") is True for item in publications)
-    by_name = {item["name"]: item for item in publications}
-    assert by_name["re8ch-tools-vmcp"]["allowSingleReplicaWhenCapacityLimited"] is True
-    assert by_name["re8ch-tools-vmcp"]["workloads"] == [
-        {"name": "ops-observe-vmcp-internal", "toolConfigRef": "ops-public-read-tools"},
-    ]
-    assert by_name["re8ch-operate-vmcp"]["workloads"] == [
-        {"name": "ops-operate-vmcp-internal", "toolConfigRef": "ops-operate-tools"},
-    ]
-    assert by_name["re8ch-operate-vmcp"]["group"] == "platform-operate-public"
-    assert by_name["re8ch-operate-vmcp"]["resourceUrl"] == "https://operate.tools.re8ch.com/mcp"
-    assert by_name["re8ch-admin-vmcp"]["workloads"] == [
-        {"name": "ops-admin-vmcp-internal", "toolConfigRef": "ops-admin-tools"},
-        {"name": "admin-api-backend"},
-        {"name": "cloud-disk-mcp"},
-    ]
-    assert by_name["re8ch-tools-vmcp"]["outgoingAuth"]["default"] == {
-        "type": "externalAuthConfigRef",
-        "externalAuthConfigRef": {"name": "vmcp-observe-backend-auth"},
-    }
-    assert by_name["re8ch-tools-vmcp"]["outgoingAuth"]["backends"] == {
-        "ops-observe-vmcp-internal": {
-            "type": "externalAuthConfigRef",
-            "externalAuthConfigRef": {"name": "vmcp-observe-backend-auth"},
-        },
-    }
-    assert by_name["re8ch-operate-vmcp"]["outgoingAuth"]["backends"] == {
-        "ops-operate-vmcp-internal": {
-            "type": "externalAuthConfigRef",
-            "externalAuthConfigRef": {"name": "vmcp-admin-backend-auth"},
-        },
-    }
-    assert by_name["re8ch-admin-vmcp"]["outgoingAuth"]["default"] == {
-        "type": "externalAuthConfigRef",
-        "externalAuthConfigRef": {"name": "vmcp-admin-backend-auth"},
-    }
-    assert by_name["re8ch-admin-vmcp"]["outgoingAuth"]["backends"]["admin-api-backend"] == {
-        "type": "externalAuthConfigRef",
-        "externalAuthConfigRef": {"name": "admin-vmcp-backend-auth"},
-    }
-    assert by_name["tenant-vmcp"]["outgoingAuth"]["default"] == {
+    assert [item["name"] for item in publications] == ["re8ch-native"]
+    native = publications[0]
+    assert native["replicas"] == 1
+    assert native["allowSingleReplicaWhenCapacityLimited"] is True
+    assert native["resourceUrl"] == "https://tools.service.re8ch.com/tenant-native/mcp"
+    assert native["workloads"] == [{"name": "tenant-api-backend"}]
+    assert native["outgoingAuth"]["default"] == {
         "type": "externalAuthConfigRef",
         "externalAuthConfigRef": {"name": "tenant-vmcp-backend-auth"},
     }
-    assert by_name["tenant-vmcp"]["operational"]["listChanged"] == {
-        "disabledWorkloads": ["tenant-api-backend"],
-    }
-    assert by_name["tenant-vmcp"]["operational"]["failureHandling"]["circuitBreaker"]["enabled"] is False
-    assert all(
-        by_name[name]["operational"]["failureHandling"]["circuitBreaker"]["enabled"] is True
-        for name in ("re8ch-tools-vmcp", "re8ch-operate-vmcp", "re8ch-admin-vmcp")
-    )
-    assert "listChanged" not in by_name["re8ch-tools-vmcp"]["operational"]
-    assert "listChanged" not in by_name["re8ch-admin-vmcp"]["operational"]
-    assert all(
-        item["operational"]["failureHandling"]["partialFailureMode"] == "best_effort"
-        for item in publications
-    )
+    assert native["operational"]["listChanged"] == {"disabledWorkloads": ["tenant-api-backend"]}
+    assert native["operational"]["failureHandling"]["circuitBreaker"]["enabled"] is False
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["sessionStorage"] == {"provider": "memory", "sessionAffinity": "ClientIP"}
     assert toolhive["sessionRouting"] == {
@@ -138,9 +85,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "hostnames": ["id.re8ch.com", "auth.re8ch.com"],
     }]
     plugins = release["spec"]["values"]["codex"]["plugins"]
-    tenant_admin = next(item for item in plugins if item["name"] == "re8ch-tenant-admin")
-    assert tenant_admin["publication"] == "re8ch-admin-vmcp"
-    assert tenant_admin["mcpOwner"] is False
+    assert plugins == [{"name": "re8ch", "publication": "re8ch-native", "category": "Productivity", "mcpOwner": True, "skills": []}]
 
 
 def test_standalone_platform_marketplace_is_retired_into_tenant_self_service():
@@ -148,8 +93,8 @@ def test_standalone_platform_marketplace_is_retired_into_tenant_self_service():
     assert not (ROOT / "platform/plugins/re8ch-platform-observe/.codex-plugin/plugin.json").exists()
     assert not (ROOT / "platform/plugins/re8ch-platform-operate/.codex-plugin/plugin.json").exists()
     registry = __import__("json").loads((ROOT / "platform/apps/tenant-mcp/platform-modules.json").read_text())
-    assert registry["backends"]["cloud"]["url"]
-    assert registry["backends"]["infra"]["url"]
+    assert not {"cloud", "infra", "admin"} & registry["backends"].keys()
+    assert registry["backends"]["native"]["url"].endswith(":19443/mcp")
     assert all("allowed" not in backend for backend in registry["backends"].values())
 
 
@@ -168,33 +113,13 @@ def test_release_is_digest_signed_and_verified():
 
 def test_public_and_internal_mcp_clients_use_declared_frontends():
     route_files = [
-        ROOT / "platform/connectool/cloud-route.yaml",
-        ROOT / "clusters/re8ch/components/regional-routing/migrated-public-http-routes.yaml",
-        ROOT / "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
-        ROOT / "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
+        ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml",
         ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml",
     ]
     rendered_routes = "\n".join(path.read_text() for path in route_files)
-    # The privileged Tools publication is a singleton on R640 during the
-    # A1/B1 fabric incident, so its public route can safely target vMCP
-    # directly. The singleton tenant publication also bypasses its router;
-    # only the multi-replica admin publication requires session routing here.
-    assert "vmcp-re8ch-tools-vmcp" in rendered_routes
-    assert "vmcp-re8ch-admin-vmcp" not in rendered_routes
-    assert "re8ch-tools-vmcp-session-router" in rendered_routes
-    assert "re8ch-admin-vmcp-session-router" in rendered_routes
-    assert "re8ch-operate-vmcp-session-router" in rendered_routes
-    dns = yaml.safe_load((ROOT / "clusters/re8ch/components/public-exposure/operate-tools-dns-authority.yaml").read_text())
-    assert dns["metadata"]["labels"]["networking.re8ch.com/dns-authority"] == "public-edge"
-    assert dns["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == "223.159.210.222"
-    assert "backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]" in rendered_routes
-    toolhive_ingresses = "\n".join(
-        (ROOT / path).read_text()
-        for path in (
-            "clusters/re8ch/components/toolhive/external-observe-publication.yaml",
-            "clusters/re8ch/components/toolhive/external-privileged-publication.yaml",
-        )
-    )
-    assert "ingressClassName: traefik" not in toolhive_ingresses
+    assert "value: /tenant-native/mcp" in rendered_routes
+    assert "backendRefs: [{name: tenant-api, port: 80}]" in rendered_routes
+    for legacy in ("vmcp-re8ch-tools-vmcp", "vmcp-re8ch-admin-vmcp", "vmcp-tenant-vmcp"):
+        assert legacy not in rendered_routes
     litellm = (ROOT / "clusters/re8ch/components/llm-gateway/litellm.yaml").read_text()
-    assert "http://re8ch-tools-vmcp-session-router.toolhive-system.svc.cluster.local:4483/mcp" in litellm
+    assert "http://vmcp-re8ch-native.toolhive-system.svc.cluster.local:4483/mcp" in litellm
