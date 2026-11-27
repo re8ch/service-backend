@@ -106,7 +106,10 @@ def test_confidential_secret_is_hashed_and_returned_only_once(oauth_db):
     sql, _, _ = oauth_db
     secret = call(sql, ALICE, "api.create_oauth_application('Server','[\"https://server.example/cb\"]','req-secret',null,'confidential')->>'clientSecret'")
     assert secret and len(secret) >= 40
-    assert sql(f"select client_secret_hash <> '{secret}' and public.crypt('{secret}',client_secret_hash)=client_secret_hash from auth.oauth_clients") == "t"
+    expected_hash = sql(
+        f"select rtrim(translate(encode(public.digest('{secret}','sha256'),'base64'),'+/','-_'),'=')"
+    )
+    assert sql("select client_secret_hash from auth.oauth_clients") == expected_hash
     replay = call(sql, ALICE, "api.create_oauth_application('Server','[\"https://server.example/cb\"]','req-secret',null,'confidential')")
     assert '"idempotentReplay": true' in replay
     assert "clientSecret\"" not in replay
