@@ -1,0 +1,48 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "EnterprisePullRequestContextBackfillRecord",
+  "capturedAt": "2026-11-26T17:10:00+08:00",
+  "issue": "re8ch/service-backend#3274",
+  "source": "/tmp/reachieve-enterprise-pr-context.json",
+  "scope": {
+    "detachedSnapshotRows": 36,
+    "trueDetachedPullRequests": 26,
+    "humanPullRequests": 18,
+    "automationPullRequests": 8,
+    "factorGroups": 23,
+    "boundedExceptions": 10
+  },
+  "result": {
+    "attempted": 26,
+    "succeeded": 26,
+    "failed": 0,
+    "skipped": 0,
+    "nativeClosingRelationshipsVerified": 26,
+    "openPullRequestsVerified": 26
+  },
+  "projectReadback": {
+    "method": "re8ch Project 2 items union",
+    "factorItemsFound": 23,
+    "factorItemsComplete": 23,
+    "nativeParentRelationshipsVerified": 23
+  },
+  "safety": {
+    "dryRunComment": "https://github.com/re8ch/service-backend/issues/3274#issuecomment-7186962137",
+    "pullRequestsClosed": 0,
+    "pullRequestsMerged": 0,
+    "pullRequestBasesChanged": 0,
+    "existingBodiesPreserved": true
+  },
+  "boundedExceptions": [
+    {"pullRequest": "among-clusters/among-clusters#63", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "re8ch/service-backend#3133"},
+    {"pullRequest": "among-clusters/among-clusters#70", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#111"},
+    {"pullRequest": "among-clusters/among-clusters#71", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#111"},
+    {"pullRequest": "among-clusters/among-clusters#73", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#108"},
+    {"pullRequest": "among-clusters/among-clusters#74", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#110"},
+    {"pullRequest": "among-clusters/among-clusters#75", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#110"},
+    {"pullRequest": "among-clusters/among-clusters#76", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#111"},
+    {"pullRequest": "among-clusters/among-clusters#77", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#110"},
+    {"pullRequest": "among-clusters/among-clusters#78", "base": "codex/standalone-control-plane", "defaultBranch": "main", "factor": "among-clusters/among-clusters#109"},
+    {"pullRequest": "re8ch/cloud-functions#47", "base": "codex/access-anytls-public-edge", "defaultBranch": "master", "factor": "re8ch/service-backend#3172"}
+  ]
+}

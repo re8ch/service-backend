@@ -15,7 +15,8 @@ var providerBacked = map[string]bool{
 	"registry.harbor.v1": true, "registry.oci.harbor.v1": true,
 	"observability.grafana.v1": true, "observability.stack.v1": true,
 	"integration.mcp.managed.v1": true, "integration.mcp.byoc.v1": true,
-	"application.ledger.v1": true, "integration.github.enterprise-governance.v1": true,
+	"integration.oauth.application.v1": true,
+	"application.ledger.v1":            true, "integration.github.enterprise-governance.v1": true,
 	"infrastructure.ssh-broker.v1": true,
 	"ai.model-gateway.v1":          true, "collaboration.stalwart.v1": true,
 	"sandbox.runtime.v1": true,
@@ -209,6 +210,34 @@ func requireOperator(id identity) error {
 	return nil
 }
 
+// Stalwart's default member workflow provisions the mailbox for the verified
+// caller. Keep the subject server-owned so self-service clients do not need to
+// discover, copy, or guess an identity UUID. Organization operators may still
+// provide an explicit identityUserRef when provisioning another active member.
+func bindStalwartSelfIdentity(id identity, spec map[string]any) (map[string]any, error) {
+	if asString(spec, "serviceClass") != "collaboration.stalwart.v1" {
+		return spec, nil
+	}
+	parameters := object(spec["parameters"])
+	if asString(parameters, "identityUserRef") != "" {
+		return spec, nil
+	}
+	if id.Subject == "" || id.Service {
+		return nil, errors.New("an authenticated organization member is required for Stalwart self-service")
+	}
+	boundParameters := make(map[string]any, len(parameters)+1)
+	for key, value := range parameters {
+		boundParameters[key] = value
+	}
+	boundParameters["identityUserRef"] = id.Subject
+	boundSpec := make(map[string]any, len(spec))
+	for key, value := range spec {
+		boundSpec[key] = value
+	}
+	boundSpec["parameters"] = boundParameters
+	return boundSpec, nil
+}
+
 func (s *server) registerServiceTools(ms *mcp.Server) {
 	definitions, err := legacyDefinitions()
 	if err != nil {
@@ -224,6 +253,11 @@ func (s *server) registerServiceTools(ms *mcp.Server) {
 				id, err := identityFrom(ctx)
 				if err != nil {
 					return nil, nil, err
+				}
+				if name == "service_instance_list" || name == "service_binding_list" {
+					if err := requireActiveOrganization(ctx, id); err != nil {
+						return nil, nil, err
+					}
 				}
 				value, err := s.callService(ctx, id, name, args)
 				return nil, value, err
@@ -250,6 +284,13 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			return nil, err
 		}
 		services := activeGrantedServices(liveServiceOnly(catalog, tenant), grants)
+		managed, err := managedToolInstallations(ctx, tenant)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range managed {
+			services = append(services, item.catalogProjection())
+		}
 		if tenant == "artchais" {
 			if _, err = controlRequest(ctx, tenant, "/v1/services/catalog"); err != nil {
 				var denied controlHTTPError
@@ -277,6 +318,11 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			if err := requireOperator(id); err != nil {
 				return nil, err
 			}
+			boundSpec, bindErr := bindStalwartSelfIdentity(id, spec)
+			if bindErr != nil {
+				return nil, bindErr
+			}
+			spec = boundSpec
 			payload := map[string]any{"name": args["name"], "spec": spec}
 			path := "/v1/services/plan"
 			if name == "service_instance_create" {
@@ -318,6 +364,13 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 			combined = append(combined, legacyIntentOnly(item))
 		}
 		combined = append(combined, slice(controlled["items"])...)
+		managed, err := managedToolInstallations(ctx, tenant)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range managed {
+			combined = append(combined, item.instanceProjection(tenant))
+		}
 		return map[string]any{"tenantRef": tenant, "instances": combined}, nil
 	case "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete":
 		if err := requireOperator(id); err != nil {
@@ -365,6 +418,15 @@ func (s *server) callService(ctx context.Context, id identity, name string, args
 		items, err := s.serviceBindings(ctx, tenant, ref)
 		if err != nil {
 			return nil, err
+		}
+		managed, err := managedToolInstallations(ctx, tenant)
+		if err != nil {
+			return nil, err
+		}
+		for _, item := range managed {
+			if ref == "" || ref == item.ServiceInstanceRef {
+				items = append(items, item.bindingProjection(tenant))
+			}
 		}
 		return map[string]any{"tenantRef": tenant, "bindings": items}, nil
 	case "service_binding_revoke":

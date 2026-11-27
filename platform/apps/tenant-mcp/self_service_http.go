@@ -55,6 +55,14 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 		return nil, err
 	}
 	result := selfServiceCapabilitiesFromState(id, namespaces, grants)
+	for _, capability := range result["capabilities"].([]map[string]any) {
+		if capability["id"] == "model-gateway" {
+			configured := modelGatewayConfigured(ctx, id.Tenant)
+			capability["configured"] = configured
+			capability["providerState"] = map[bool]string{true: "Ready", false: "unavailable"}[configured]
+			capability["canRequest"] = configured && hasRequestableGrant(grants, modelGatewayCapability)
+		}
+	}
 	if id.PlatformAdmin && id.Tenant == "admin" {
 		systemAccess, accessErr := tenantSystemAccess(ctx, id.Tenant)
 		if accessErr != nil {
@@ -82,7 +90,7 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 		"tenantRef": id.Tenant, "role": id.Role, "readyNamespaces": ready, "grantedConsumables": grants,
 		"hostingMode": id.HostingMode, "byocAllowed": id.BYOCAllowed, "nativeAccess": id.NativeAccess,
 		"capabilities": []map[string]any{
-			{"id": "model-gateway", "kinds": []string{}, "tools": []string{"model_gateway_catalog", "model_gateway_chat"}, "requiredConsumable": modelGatewayCapability, "configured": modelGatewayConfigured(id.Tenant), "providerState": "unverified", "canRequest": modelGatewayConfigured(id.Tenant) && hasRequestableGrant(grants, modelGatewayCapability), "canWrite": false, "consumesQuota": true},
+			{"id": "model-gateway", "kinds": []string{}, "tools": []string{"model_gateway_catalog", "model_gateway_chat"}, "requiredConsumable": modelGatewayCapability, "configured": false, "providerState": "discover-with-model_gateway_catalog", "canRequest": hasRequestableGrant(grants, modelGatewayCapability), "canWrite": false, "consumesQuota": true},
 			{"id": "namespace", "kinds": []string{"Namespace"}, "tools": []string{"tenant_namespace_list", "tenant_namespace_create", "tenant_namespace_delete"}, "canWrite": canWrite && id.NativeAccess},
 			{"id": "workload", "kinds": []string{"Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
 			{"id": "configmap", "kinds": []string{"ConfigMap"}, "tools": kubernetesTools, "canWrite": namespacedWrite},
@@ -99,15 +107,17 @@ func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, gr
 	if collaborationEnabled() {
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
 			"id": "collaboration", "requiredConsumable": "collaboration.stalwart.v1",
-			"tools":      []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "contacts_query", "files_list", "files_read"},
+			"tools":      []string{"collaboration_connection", "mail_query", "mail_read", "calendar_query", "calendar_respond", "contacts_query", "files_list", "files_read", "stalwart_capabilities", "stalwart_mail_query", "stalwart_mail_read", "stalwart_mail_send", "stalwart_calendar_query", "stalwart_calendar_respond", "stalwart_contacts_query", "stalwart_files_list", "stalwart_files_read"},
 			"canConnect": hasPersonalCollaborationGrant(grants, id.Role), "providerState": "unverified", "ownership": "organization-and-user",
 		})
 	}
 	if id.PlatformAdmin && id.Tenant == "admin" {
 		result["metaTenant"] = true
+		result["platformClusterBindings"] = map[string]any{"discoveryTool": "byoc_connection_list", "registrationPolicyIndependent": true, "defaultClusterRef": "re8ch"}
 		result["capabilities"] = append(result["capabilities"].([]map[string]any), map[string]any{
-			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "direct", "scope": "cluster", "namespaceSelector": "*", "grantIndependent": true,
-			"tools":                 []string{"tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "reconcile_control_plane_authentication_config"},
+			"id": "platform-cluster", "ownership": "re8ch-admin", "connection": "managed-byoc", "scope": "cluster", "namespaceSelector": "*", "grantIndependent": true,
+			"targetSelection":       map[string]any{"parameter": "clusterRef", "discoveryTool": "byoc_connection_list", "kubectlContextFlag": "--context", "kubectlTool": "platform_kubectl_exec", "default": "re8ch", "adapters": []string{"local", "among-broker"}},
+			"tools":                 []string{"byoc_connection_list", "platform_cluster_bindings_list", "tenant_kubernetes_get", "tenant_kubernetes_apply", "tenant_kubernetes_delete", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_kubectl_exec", "platform_nodes_list", "platform_nodes_get", "reconcile_control_plane_authentication_config"},
 			"existingToolInterface": true,
 			"canRead":               true, "canWrite": true, "secretValuesReadable": false,
 		})

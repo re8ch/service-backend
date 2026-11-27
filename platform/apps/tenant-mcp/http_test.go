@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -397,6 +396,19 @@ func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
 	if _, err := s.bindingRevoke(second, firstBinding); err == nil {
 		t.Fatal("second Personal owner revoked first owner's binding")
 	}
+	contexts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, err := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+		if err != nil || r.URL.Path != "/rpc/my_tenant_runtime_contexts" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		owner := first
+		if claims.Subject == "user-2" {
+			owner = second
+		}
+		writeJSON(w, http.StatusOK, []organizationContext{{TenantRef: owner, Active: true}})
+	}))
+	defer contexts.Close()
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, err := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 		if err != nil {
@@ -426,6 +438,7 @@ func TestMCPSharedPersonalResourcesStayWithVerifiedOwner(t *testing.T) {
 	}))
 	defer control.Close()
 	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("IDENTITY_REST_URL", contexts.URL)
 	t.Setenv("TENANT_CONTROL_URL", control.URL)
 	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
 	for _, item := range []struct{ subject, own, other string }{{"user-1", "first-db", "second-db"}, {"user-2", "second-db", "first-db"}} {
@@ -475,18 +488,29 @@ func TestMCPSharedPersonalViewerCannotMutateResourceFamilies(t *testing.T) {
 	}
 }
 
-func TestTokenExchangePreservesUserJWT(t *testing.T) {
+func TestTokenExchangeReturnsDownscopedInvocationJWT(t *testing.T) {
 	s := testServer(t)
+	s.invocationIssuer = testInvocationIssuer(t)
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, 200, map[string]string{"id": "user-1"}) }))
 	defer goTrue.Close()
+	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, 200, map[string]string{"tenantRef": "acme", "role": "operator", "defaultNamespace": "acme"})
+	}))
+	defer control.Close()
+	memberships := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, 200, []any{}) }))
+	defer memberships.Close()
 	t.Setenv("SUPABASE_USER_URL", goTrue.URL)
+	t.Setenv("TENANT_CONTROL_URL", control.URL)
+	t.Setenv("TENANT_CLAIM_SERVICE_TOKEN", "claim-secret")
+	t.Setenv("PLATFORM_MEMBERSHIP_URL", memberships.URL)
 	t.Setenv("RE8CH_TOOL_AUDIENCE", "re8ch-tenant")
-	form := url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:token-exchange"}, "subject_token_type": {"urn:ietf:params:oauth:token-type:access_token"}, "audience": {"re8ch-tenant"}, "subject_token": {fixtureToken()}}
+	form := url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:token-exchange"}, "subject_token_type": {"urn:ietf:params:oauth:token-type:access_token"}, "audience": {"re8ch-tenant"}, "subject_token": {fixtureToken()}, "tool_ref": {"tool://publisher/search"}, "binding_ref": {"binding://acme/one"}, "scope": {"tools:invoke usage:write"}, "active_org_ref": {"attacker"}}
 	req := httptest.NewRequest("POST", "/oauth/token", strings.NewReader(form.Encode()))
+	req.Header.Set("X-RE8CH-Tenant", "attacker")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	response := httptest.NewRecorder()
 	s.handler().ServeHTTP(response, req)
-	if response.Code != 200 || !strings.Contains(response.Body.String(), fmt.Sprintf(`"access_token":"%s"`, fixtureToken())) {
+	if response.Code != 200 || strings.Contains(response.Body.String(), fixtureToken()) || !strings.Contains(response.Body.String(), `"scope":"tools:invoke usage:write"`) {
 		t.Fatalf("exchange failed: %d %s", response.Code, response.Body.String())
 	}
 }
@@ -572,7 +596,7 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 			t.Errorf("missing tenant tool %s", name)
 		}
 	}
-	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "platform_postgres_admin_sql", "platform_observability_status", "platform_stalwart_status", "platform_stalwart_admin", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "ssh_broker_targets_list", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
+	for _, name := range []string{"tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_organization_context_select", "tenant_self_service_capabilities", "dynamic_skill_search", "dynamic_skill_load", "dynamic_skill_submit", "oauth_application_register_litellm", "platform_litellm_openoauth_credential_project", "platform_postgres_admin_sql", "platform_observability_status", "platform_stalwart_status", "platform_stalwart_admin", "platform_kubernetes_resource_read", "platform_kubernetes_resource_apply", "platform_kubernetes_resource_delete", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "platform_node_ssh_exec", "ssh_broker_targets_list", "platform_kubectl_exec", "reconcile_control_plane_authentication_config"} {
 		if !names[name] {
 			t.Errorf("missing dynamic skill tool %s", name)
 		}
@@ -580,8 +604,11 @@ func TestPublishedToolCatalogParity(t *testing.T) {
 	if strings.Contains(response.Body.String(), `"name":"github_governance"`) {
 		t.Fatal("GitHub governance leaked as a separately registered MCP tool")
 	}
-	if len(names) != len(legacy)-hiddenAliases+19 {
-		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+19)
+	if !names["platform_cluster_bindings_list"] {
+		t.Fatal("missing callable cluster binding directory")
+	}
+	if len(names) != len(legacy)-hiddenAliases+22 {
+		t.Fatalf("published %d tools, expected %d", len(names), len(legacy)-hiddenAliases+22)
 	}
 }
 

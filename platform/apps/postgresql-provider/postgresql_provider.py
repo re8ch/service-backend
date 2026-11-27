@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import json
 import logging
 import os
 import re
@@ -13,7 +12,6 @@ import secrets
 import threading
 import time
 import urllib.error
-import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -21,7 +19,6 @@ import tenant_control_controller as control
 
 LOG = logging.getLogger("postgresql-provider")
 SERVICE_CLASS = "database.postgresql.shared.v1"
-PROVIDER_NAME = "postgresql-provider"
 PROTECTED_AUTHORITIES = ("pg-identity", "pg-billing", "pg-re8ch")
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
 EXTENSIONS = {"citext", "pg_trgm", "pgcrypto", "uuid-ossp", "vector"}
@@ -203,25 +200,6 @@ def run_once(kube: control.Kubernetes) -> None:
             }, meta["namespace"])
 
 
-def register() -> None:
-    token = os.getenv("MCP_CATALOG_ADMIN_TOKEN") or os.getenv("DYNAMIC_SKILL_ADMIN_TOKEN", "")
-    if not token:
-        raise RuntimeError("MCP catalog registration token is unavailable")
-    payload = {"action": "apply", "tenantRef": "*", "operationKey": "postgresql-provider-v1", "definition": {
-        "serviceName": PROVIDER_NAME, "class": SERVICE_CLASS,
-        "endpoint": os.getenv("MCP_ENDPOINT", "http://postgresql-provider.tenant-infrastructure.svc:8080/mcp"),
-        "authMode": "oauth-forward", "health": "ready", "shared": True,
-        "tools": [{"name": "postgresql_provider_status", "description": "Read the shared Pigsty PostgreSQL provider health and authority boundary.",
-                   "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}}],
-    }}
-    request = urllib.request.Request(os.getenv("MCP_CATALOG_ADMIN_URL", "http://tenant-api.tenant-infrastructure.svc:19450/internal/mcp/catalog"),
-        data=json.dumps(payload, separators=(",", ":")).encode(), method="POST",
-        headers={"Authorization": f"Bearer {token}", "X-RE8CH-Admin-Subject": "system:postgresql-provider", "Content-Type": "application/json"})
-    with urllib.request.urlopen(request, timeout=20) as response:
-        if response.status != 200:
-            raise RuntimeError("tenant-core rejected PostgreSQL provider registration")
-
-
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path in {"/livez", "/readyz"}:
@@ -229,34 +207,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_POST(self) -> None:
-        if self.path != "/mcp":
-            self.send_error(404); return
-        try:
-            request = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length", "0")), 1 << 20)))
-            method, rpc_id = request.get("method"), request.get("id")
-            if method == "initialize":
-                result = {"protocolVersion": "2025-03-26", "capabilities": {"tools": {}},
-                          "serverInfo": {"name": PROVIDER_NAME, "version": "1.0.0"}}
-            elif method == "notifications/initialized":
-                self.send_response(202); self.end_headers(); return
-            elif method == "tools/list":
-                result = {"tools": [{"name": "postgresql_provider_status",
-                    "description": "Read the shared Pigsty PostgreSQL provider health and authority boundary.",
-                    "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}}]}
-            elif method == "tools/call" and (request.get("params") or {}).get("name") == "postgresql_provider_status":
-                result = {"content": [{"type": "text", "text": json.dumps({"state": "Ready", "serviceClass": SERVICE_CLASS,
-                    "pigstyAuthority": "pg-re8ch", "adminAuthorities": PROTECTED_AUTHORITIES,
-                    "credentialMaterialReturned": False}, separators=(",", ":"))}], "isError": False}
-            else:
-                self._json({"jsonrpc": "2.0", "id": rpc_id, "error": {"code": -32601, "message": "method not found"}}); return
-            self._json({"jsonrpc": "2.0", "id": rpc_id, "result": result})
-        except Exception:
-            self._json({"jsonrpc": "2.0", "id": None, "error": {"code": -32603, "message": "internal error"}})
-
-    def _json(self, value: dict[str, Any]) -> None:
-        body = json.dumps(value, separators=(",", ":")).encode()
-        self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body)))
-        self.end_headers(); self.wfile.write(body)
+        self.send_error(404)
 
     def log_message(self, fmt: str, *args: Any) -> None:
         LOG.info(fmt, *args)
@@ -265,7 +216,6 @@ class Handler(BaseHTTPRequestHandler):
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
     kube = control.Kubernetes()
-    register()
     threading.Thread(target=lambda: _loop(kube), daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", int(os.getenv("LISTEN_PORT", "8080"))), Handler).serve_forever()
 

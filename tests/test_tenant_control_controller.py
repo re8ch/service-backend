@@ -276,9 +276,10 @@ def test_ssh_broker_is_admin_only_parameterless_singleton():
         controller.provider_service_spec("admin", "ssh-broker", request)
 
 
-def test_postgresql_adoption_is_admin_only_parameterless_singleton():
+def test_postgresql_adoption_is_admin_only_parameterless_native_instances():
     request = {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "parameters": {}}
-    assert controller.provider_service_spec("admin", "postgresql-shared", request) == {}
+    for name in ("pg-re8ch", "pg-identity", "pg-billing"):
+        assert controller.provider_service_spec("admin", name, request) == {}
     with pytest.raises(PermissionError, match="storageGiB"):
         controller.provider_service_spec("re8ch", "postgresql-shared", request)
     tenant_request = {**request, "parameters": {"storageGiB": 20, "extensions": ["pgcrypto"]}}
@@ -293,7 +294,7 @@ def test_postgresql_adoption_is_admin_only_parameterless_singleton():
         controller.provider_service_spec("admin", "another-name", request)
     request["parameters"] = {"storageGiB": 10}
     with pytest.raises(PermissionError, match="parameterless"):
-        controller.provider_service_spec("admin", "postgresql-shared", request)
+        controller.provider_service_spec("admin", "pg-re8ch", request)
 
 
 def test_harbor_build_plan_can_be_tenant_owned_without_human_identity(monkeypatch):

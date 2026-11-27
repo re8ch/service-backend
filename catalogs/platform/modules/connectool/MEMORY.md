@@ -21,28 +21,29 @@ Read the repository-root AGENTS.md first when present, then README and declared 
 
 - Catalog index: catalogs/platform/knowledge/resources.yaml
 - Catalog overview: Platform Cluster desired state, operations tooling, networking, storage and developer tooling.
-- Shared backend context: RE8CH 后台与集群上下文 本文件是所有 workspace catalog 模块共享的后台背景入口。产品源码仍以各自 GitHub repository 为准；集群、工作区锁定版本、工具与部署关系以本 service-backend 控制面仓库为准。 权威边界 - catalogs/<catalog>/catalog.yaml：项目组身份、所有权与知识入口。 - catalogs/<catalog>/modules/<module>/module.yaml：GitHub repo、默认分支、模块类型、 本机/R640 路径、工具、依赖和部署目标。 - catalogs/<catalog>/modules/<module>/MEMORY.md：注入隔离工作区的 Agent 背景； 它是生成文件，不替代产品 repository 根目录的 AGENTS.md。 - workspace/workspace.lock.yaml：R640 物化任务工作区必须使用的锁定 commit。 - indexes/*.json：跨 catalog 的项目、知识、工具与部署反向索引。 - inventory/：节点和基础设施清单；不得把清单地址当成凭据或直接写入目标。 - plugins/：PluginDefinition 与平台工具发布声明。 - operations/：workspace controller、Cloud Platform 等后台控制面实现与 runbook。 集群声明在哪里 - 集群 desired state 的主要产品仓库是 catalogs/platform/modules/cloud-functions/module.yaml 指向的 re8ch/cloud-functions，其中 manifests/k3s/ 按认证、网络、存储、可观测性、 AI operations、区域路由等域组织。 - GitOps、workspace catalog、锁定 revision、基础设施 inventory 和工具发布声明由 catalogs/platform/modules/service-backend/module.yaml 指向的本仓库维护。
+- Shared backend context: RE8CH 后台与集群上下文 本文件是所有 workspace catalog 模块共享的后台背景入口。产品源码仍以各自 GitHub repository 为准；集群、工作区锁定版本、工具与部署关系以本 service-backend 控制面仓库为准。 权威边界 - catalogs/<catalog>/catalog.yaml：项目组身份、所有权与知识入口。 - catalogs/<catalog>/modules/<module>/module.yaml：GitHub repo、默认分支、模块类型、 本机/R640 路径、工具、依赖和部署目标。 - catalogs/<catalog>/modules/<module>/MEMORY.md：注入隔离工作区的 Agent 背景； 它是生成文件，不替代产品 repository 根目录的 AGENTS.md。 - workspace/workspace.lock.yaml：R640 物化任务工作区必须使用的锁定 commit。 - indexes/*.json：跨 catalog 的项目、知识、工具与部署反向索引。 - inventory/：节点和基础设施清单；不得把清单地址当成凭据或直接写入目标。 - plugins/：PluginDefinition 与平台工具发布声明。 - operations/：workspace controller、Cloud Platform 等后台控制面实现与 runbook。 多集群声明与访问边界 唯一权威契约是 [`operations/network/docs/multicluster-federation-contract.md`](../../operations/network/docs/multicluster-federation-contract.md)。 任何设计和故障记录都必须明确是集群控制 federation、PublicEdge 公共服务 federation、AmongCluster 私有服务 federation，还是应用 federation；不得用未限定的 “federation”混合不同层次的成功信号。
 
 ## Repository synopsis
 
 ConnecTool ConnecTool is a provider-neutral control contract for distributing AI tools through OIDC, ToolHive MCP workloads, and Codex-compatible plugin marketplaces. It turns the full chain into reviewable, values-controlled Kubernetes resources without embedding one organization's endpoints, policies, identities, or registry. Install Start with [`charts/connectool/examples/example-values.yaml`](charts/connectool/examples/example-values.yaml). What it standardizes - public PKCE client contracts for an OIDC provider; - ToolHive Registry sources and optional registry-server release settings; - MCP groups, OIDC configuration, virtual MCP aggregation, and authorization; - Codex marketplace metadata, MCP ownership, and reusable skill-only plugins; - validation that each publication has exactly one MCP-owning plugin. ConnecTool stores no OAuth tokens or identity-provider secrets and installs no desktop plugins. See [the architecture boundary](docs/architecture.md).
 
-## Delivery runbook
-
-Use [`operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md`](../../../../operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md)
-for GitHub-hosted runner gates, signed image publication, digest promotion,
-bounded runtime apply, plugin verification and rollback. Dynamic catalog failure
-must not remove tenant-core tools from the model-callable directory.
-
-## Current tenant-aware gateway contract
-
-ConnecTool v0.6.9 is live behind the unchanged `tools.service.re8ch.com` OAuth surface. It resolves visibility from the OAuth-authoritative `tenantRef`, merges tenant-core lifecycle tools with only the providers registered for that tenant, and forwards Streamable HTTP content negotiation plus MCP protocol, method and session metadata. The installed Re8ch plugin has successfully called organization context, self-service capabilities and the service catalog through this path.
-
-`platform_tool_call` and raw `kubectl.exec`-style execution are outside the supported tenant gateway contract. Provider presence is runtime evidence, not a static tool-name promise. The Admin catalog currently proves GitHub Enterprise Governance only. PostgreSQL, Registry and Observability remain pending independent-provider releases under `database.postgresql.shared.v1`, `registry.oci.harbor.v1` and `observability.stack.v1`.
-
-Before marking a provider live, verify its catalog registration, health, tenant isolation, instance lifecycle, opaque bindings, absence of credential disclosure and Bifurcate `UsageEvent` output with an authenticated plugin call. A merged PR, published image or Ready Pod alone is insufficient.
-
 Existing repository AGENTS: `no`
+
+## Multi-cluster delivery context
+
+Treat `re8ch` and `re8ch-atlantic` as independent Kubernetes authorities.
+A ReleaseContract targets one cluster-specific API, CA, OIDC audience, GitHub Environment,
+RBAC identity and SSA state; AmongCluster never proxies Kubernetes writes.
+The main cluster uses `kube-api.service.re8ch.com`; Atlantic uses
+`kube-api.atlantic.service.re8ch.com`. PublicEdge is the default service path for external
+and internal consumers. AmongCluster is only a reviewed, SPIFFE-bound private service path.
+Application federation requires an explicit versioned API, event, replication or data contract.
+`Grant Active` is authorization intent, not health: verify exact target/RBAC, peer/session or
+PublicEdge transport, and a functional probe from the real consumer identity before acceptance.
+Never widen RBAC or grants to compensate for endpoint, transport or session failure.
+Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor
+is the only runtime writer after signed PR and CI review.
+Normative contract: `operations/network/docs/multicluster-federation-contract.md`.
 
 ## R640 public network authority
 

@@ -205,6 +205,32 @@ func checkedSpec(spec, previous map[string]any) (map[string]any, error) {
 		if parameters["destinationClusterRefs"] == nil {
 			return nil, errors.New("AmongClusters requires destinationClusterRefs")
 		}
+	case "integration.oauth.application.v1", "integration.mcp.managed.v1":
+		if err := validateAudienceOrgRefs(parameters["audienceOrgRefs"]); err != nil {
+			return nil, err
+		}
+		if serviceClass == "integration.oauth.application.v1" {
+			redirects, redirectOK := parameters["redirectUris"].([]any)
+			scopes, scopeOK := parameters["scopes"].([]any)
+			if asString(parameters, "clientName") == "" || !redirectOK || len(redirects) < 1 || len(redirects) > 20 {
+				return nil, errors.New("OAuth application requires clientName and 1 to 20 redirectUris")
+			}
+			if !scopeOK || len(scopes) < 1 || len(scopes) > 32 {
+				return nil, errors.New("OAuth application requires 1 to 32 scopes")
+			}
+		} else {
+			tools, toolsOK := parameters["tools"].([]any)
+			meters, metersOK := parameters["meters"].(map[string]any)
+			if !mcpServiceName.MatchString(asString(parameters, "serviceName")) {
+				return nil, errors.New("managed MCP requires a valid serviceName")
+			}
+			if !toolsOK || len(tools) < 1 || len(tools) > 256 {
+				return nil, errors.New("managed MCP requires 1 to 256 tool contracts")
+			}
+			if !metersOK || len(meters) < 1 || len(meters) > 32 {
+				return nil, errors.New("managed MCP requires 1 to 32 unpriced meter contracts")
+			}
+		}
 	}
 	copySpec := map[string]any{}
 	for key, value := range spec {
@@ -215,6 +241,22 @@ func checkedSpec(spec, previous map[string]any) (map[string]any, error) {
 		copySpec["labels"] = map[string]any{}
 	}
 	return copySpec, nil
+}
+
+func validateAudienceOrgRefs(raw any) error {
+	values, ok := raw.([]any)
+	if !ok || len(values) < 1 || len(values) > 64 {
+		return errors.New("audienceOrgRefs must be 1 to 64 unique non-admin organization references")
+	}
+	seen := map[string]bool{}
+	for _, rawValue := range values {
+		value, ok := rawValue.(string)
+		if !ok || value == "admin" || !tenantName.MatchString(value) || seen[value] {
+			return errors.New("audienceOrgRefs must be 1 to 64 unique non-admin organization references")
+		}
+		seen[value] = true
+	}
+	return nil
 }
 
 func provisioningIntent(tenant, name string, spec map[string]any) (map[string]any, error) {

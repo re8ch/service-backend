@@ -2,28 +2,6 @@
 {{- if and .Values.tenantPlatform.tenantAPI.enabled (not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" .Values.tenantPlatform.tenantAPI.image)) }}
 {{- fail "tenantPlatform.tenantAPI.image must be pinned to a verified sha256 digest" }}
 {{- end }}
-{{- $modelGateway := .Values.tenantPlatform.tenantAPI.modelGateway | default dict }}
-{{- if $modelGateway.enabled }}
-{{- if not .Values.tenantPlatform.tenantAPI.enabled }}
-{{- fail "modelGateway requires tenantPlatform.tenantAPI.enabled" }}
-{{- end }}
-{{- if or (not $modelGateway.gatewayURL) (not $modelGateway.credentialsSecret) (not $modelGateway.bindings) }}
-{{- fail "modelGateway requires gatewayURL, credentialsSecret and non-empty bindings" }}
-{{- end }}
-{{- $keyEnvs := dict }}
-{{- range $tenant, $binding := $modelGateway.bindings }}
-{{- if not (regexMatch "^LITELLM_TENANT_[A-Z0-9_]+_KEY$" ($binding.tokenEnv | default "")) }}
-{{- fail "modelGateway binding tokenEnv must be a dedicated LITELLM_TENANT_*_KEY environment name" }}
-{{- end }}
-{{- if hasKey $keyEnvs $binding.tokenEnv }}
-{{- fail "modelGateway bindings must not share a tokenEnv" }}
-{{- end }}
-{{- $_ := set $keyEnvs $binding.tokenEnv true }}
-{{- if not $binding.models }}
-{{- fail "modelGateway bindings require a non-empty approved model ceiling" }}
-{{- end }}
-{{- end }}
-{{- end }}
 {{- if .Values.tenantPlatform.tenantAPI.enabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -193,26 +171,24 @@ spec:
           env:
             - {name: RE8CH_TOOL_PROFILE, value: tenant}
             - {name: RE8CH_TOOL_AUDIENCE, value: re8ch-tenant}
+            - {name: INVOCATION_TOKEN_ISSUER_URL, value: {{ .Values.tenantPlatform.tenantAPI.invocationTokens.issuerURL | quote }} }
+            - {name: INVOCATION_TOKEN_JWKS_URL, value: {{ .Values.tenantPlatform.tenantAPI.invocationTokens.jwksURL | quote }} }
+            - {name: INVOCATION_TOKEN_ISSUER, value: {{ .Values.tenantPlatform.tenantAPI.invocationTokens.expectedIssuer | quote }} }
+            - name: TENANT_CLAIM_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.tenantPlatform.tenantAPI.invocationTokens.credentialSecret | quote }}
+                  key: {{ .Values.tenantPlatform.tenantAPI.invocationTokens.credentialKey | quote }}
+                  optional: false
             - {name: MCP_CATALOG_INTERNAL_TOKEN, valueFrom: {secretKeyRef: {name: tenant-claim-internal-auth, key: TENANT_CLAIM_SERVICE_TOKEN}}}
             - {name: SERVICE_API_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ALLOW_AUTHENTICATED_DEX, value: "true"}
             - {name: LISTEN_PORT, value: "19448"}
-            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-native/mcp"}
+            - {name: PUBLIC_MCP_URL, value: "https://tools.service.re8ch.com/tenant-plugin/mcp"}
             - {name: OPENAI_APPS_CHALLENGE_TOKEN, value: {{ .Values.tenantPlatform.tenantAPI.openAIAppsChallengeToken | default "" | quote }}}
-            {{- if $modelGateway.enabled }}
-            - {name: LITELLM_GATEWAY_URL, value: {{ $modelGateway.gatewayURL | quote }}}
-            - {name: LITELLM_TENANT_BINDINGS_JSON, value: {{ $modelGateway.bindings | toJson | quote }}}
-            {{- range $tenant, $binding := $modelGateway.bindings }}
-            - name: {{ $binding.tokenEnv | quote }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ $modelGateway.credentialsSecret | quote }}
-                  key: {{ $binding.tokenEnv | quote }}
-                  optional: false
-            {{- end }}
-            {{- end }}
+            - {name: LITELLM_GATEWAY_URL, value: "https://litellm.service.re8ch.com/v1"}
             - {name: PUBLIC_ORIGIN, value: "https://tools.service.re8ch.com"}
-            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp"}
+            - {name: PUBLIC_RESOURCE_METADATA_URL, value: "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp"}
             - {name: TENANT_CONTROL_URL, value: "http://tenant-control-controller.tenant-infrastructure.svc"}
             - {name: AUTH_DISCOVERY_URL, value: "http://supabase-identity-auth.supabase-identity.svc:9999/.well-known/oauth-authorization-server"}
             - {name: DEX_USERINFO_URL, value: "https://api.re8ch.com/auth/userinfo"}
@@ -222,6 +198,12 @@ spec:
             - {name: TENANT_SERVICE_DB, value: /var/lib/tenant-platform/tenant-services.db}
             - {name: TENANT_USAGE_CLIENT, value: 'system:serviceaccount:{{ .Release.Namespace }}:{{ include "birfucate-metering.fullname" . }}'}
             - {name: DEVICE_REGISTRY_PATH, value: /var/lib/tenant-platform/tenant-devices.db}
+            # Use the existing public GoTrue PKCE client and reach the
+            # Atlantic-owned Stalwart through its public HTTPS origin.
+            - {name: COLLABORATION_AUTH_MODE, value: auth-hub-pkce}
+            - {name: STALWART_CLIENT_ID, value: 705c1168-43d8-4ec3-980a-0327a59c7fc6}
+            - {name: STALWART_AUTHORIZATION_URL, value: https://db-rw.re8ch.com/auth/v1/oauth/authorize}
+            - {name: STALWART_TOKEN_URL, value: https://db-rw.re8ch.com/auth/v1/oauth/token}
             {{- if .Values.tenantPlatform.provider.githubEnterpriseGovernance.enabled }}
             - {name: GITHUB_GOVERNANCE_APP_ID, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: app-id}}}
             - {name: GITHUB_GOVERNANCE_PRIVATE_KEY, valueFrom: {secretKeyRef: {name: github-enterprise-governance-app, key: private-key}}}
@@ -249,6 +231,7 @@ spec:
             - {name: PLATFORM_ORGANIZATIONS_URL, value: {{ .Values.tenantPlatform.tenantAPI.organizationsURL | quote }}}
             {{- end }}
             - {name: PLATFORM_MODULE_REGISTRY, value: /etc/re8ch/modules/modules.json}
+            - {name: NATIVE_SERVICE_MCP_ENABLED, value: "true"}
             - {name: DYNAMIC_SKILL_DB, value: /var/lib/tenant-platform/dynamic-skills.db}
             - {name: DYNAMIC_SKILL_ADMIN_TOKEN, valueFrom: {secretKeyRef: {name: admin-vmcp-backend-auth, key: token}}}
             - {name: ADMIN_LISTEN_PORT, value: "19450"}
@@ -318,12 +301,19 @@ spec:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /plugin/mcp}}
       backendRefs: [{name: tenant-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /tenant-plugin/mcp}}]
+      filters:
+        - type: URLRewrite
+          urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /plugin/mcp}}
+      backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /tenant-self-service/mcp}}]
       filters:
         - type: URLRewrite
           urlRewrite: {path: {type: ReplaceFullPath, replaceFullPath: /self-service/mcp}}
       backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-native/mcp}}]
+      backendRefs: [{name: tenant-api, port: 80}]
+    - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-plugin/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
     - matches: [{path: {type: Exact, value: /.well-known/oauth-protected-resource/tenant-self-service/mcp}}]
       backendRefs: [{name: tenant-api, port: 80}]
@@ -417,9 +407,6 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Release.Namespace }}}}
           podSelector: {matchLabels: {app.kubernetes.io/name: {{ include "birfucate-metering.name" . }}, app.kubernetes.io/instance: {{ .Release.Name }}}}
       ports: [{protocol: TCP, port: 19448}]
-    - from:
-        - podSelector: {matchLabels: {app: postgresql-provider}}
-      ports: [{protocol: TCP, port: 19450}]
     {{- if .Values.tenantPlatform.tenantAPI.enabled }}
     - from:
         - podSelector: {matchLabels: {app: admin-api}}

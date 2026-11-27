@@ -279,7 +279,7 @@ releases:
       namespace: flux-system
   values:
     inlinePresent: true
-    inlineSha256: sha256:0d8aed31ef1fd500517d5498f35addfed545e5601e811ba1423f29cd5fab5669
+    inlineSha256: sha256:4a96f9234f62f57131e2c4b7070c2ce4d64ba6c4cdecd7e152f2d9ebf73dfdd4
     references: []
   lifecycle:
     install:
@@ -299,10 +299,10 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:e6385002469d240ea75ebf567342a5fb253f89f978d08f68f5218f38762031d8
+  declarationSha256: sha256:070627bea11ad6dbc9ed05b1ca8effb494f41b7621d3067f2910bcc51c32be80
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 83
+    document: 85
   - file: platform/birfucate-metering/release.yaml
     document: 1
   classification:
@@ -493,7 +493,7 @@ releases:
   declarationSha256: sha256:0af325dc8b7281fea58e7d890cbbfba980ee9e8f96f97b5d03ee582e7fa2b769
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 84
+    document: 86
   - file: platform/incidentrelay/release.yaml
     document: 2
   classification:
@@ -659,7 +659,7 @@ releases:
     namespace: null
   values:
     inlinePresent: true
-    inlineSha256: sha256:86efe807888b812e7c470577da7dccc9f945e4f9cb29085061f1217f87fdc904
+    inlineSha256: sha256:a5f01d509ef883cf4e0861bc434d3b5a3acfd7d71cf2983a0e05b91ea957ddc5
     references: []
   lifecycle:
     install:
@@ -679,7 +679,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:2ea96f216b4bd081e14469dce17e8bb2499d67aa4329f0e5833192e0fe1b57f7
+  declarationSha256: sha256:d825ec26ed3098892b0bc2e3be3e51aa74416d040bcd3a47191ded9e544f02a0
   occurrences:
   - file: clusters/re8ch/domains/networking/resources.yaml
     document: 289
@@ -732,7 +732,7 @@ releases:
   declarationSha256: sha256:996649046f6bd55163f56d4dce965d2f41eb04b6942a7550cd18365a12571a9d
   occurrences:
   - file: clusters/re8ch/domains/tenant-runtime/resources.yaml
-    document: 34
+    document: 35
   - file: platform/runtime-anatomy/release.yaml
     document: 1
   classification:
@@ -781,7 +781,7 @@ releases:
   - file: clusters/re8ch/components/toolhive/operator-release.yaml
     document: 2
   - file: clusters/re8ch/domains/agent-runtime/resources.yaml
-    document: 281
+    document: 303
   classification:
     id: helmrelease:flux-system:toolhive-operator
     disposition: retain-helm-lifecycle
@@ -828,7 +828,7 @@ releases:
   declarationSha256: sha256:5d0f7be5880c918f9c128a1fc91c48ec85edd3b99c87b9f8dc3b0f043631032d
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 85
+    document: 87
   - file: platform/observability/bootstrap/kube-state-metrics.yaml
     document: 2
   classification:
@@ -877,7 +877,7 @@ releases:
   declarationSha256: sha256:931a1a35ba69f4f38df730bc522e882c8e1ca5749f84b8ffb4d8f9369b6515b6
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 86
+    document: 88
   - file: platform/observability/bootstrap/opentelemetry-operator.yaml
     document: 2
   classification:
@@ -926,7 +926,7 @@ releases:
   declarationSha256: sha256:98f21c5ab3c45598e956a5d31c1004be30f597ec6315096b23f50a685eaaa4e3
   occurrences:
   - file: clusters/re8ch/domains/observability-metering/resources.yaml
-    document: 87
+    document: 89
   - file: platform/observability/bootstrap/victoria-metrics-operator.yaml
     document: 2
   classification:

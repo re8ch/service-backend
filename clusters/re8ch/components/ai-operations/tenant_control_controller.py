@@ -27,6 +27,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import re8ch_observability as observation
 
 try:
     from tenant_claim_contracts import ContractError, normalize_claim, plan, validate_update
@@ -53,6 +54,7 @@ CLAIM_SERVICE_TOKEN = os.getenv("TENANT_CLAIM_SERVICE_TOKEN", "")
 IDENTITY_REST_URL = os.getenv("IDENTITY_REST_URL", "http://supabase-identity-rest.supabase-identity.svc:3000").rstrip("/")
 ALLOWED_CALLERS = {"admin", "tenant"}
 CLAIM_MUTATION_LOCK = threading.Lock()
+INVOCATION_ISSUER = None
 LOG = logging.getLogger("tenant-control-controller")
 RESERVED_NAMESPACES = {"default", "kube-system", "kube-public", "kube-node-lease", "flux-system", "tenant-infrastructure", "toolhive-system"}
 TENANT_NAME_RE = re.compile(r"^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$")
@@ -69,6 +71,7 @@ class Kubernetes:
         self.token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read().strip()
         self.ssl = ssl.create_default_context(cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 
+    @observation.observed_phase("tenant.kubernetes", service="tenant-control")
     def request(self, method, path, body=None, content_type="application/json"):
         payload = json.dumps(body).encode() if body is not None else None
         last_error = None
@@ -77,6 +80,7 @@ class Kubernetes:
                 self.base + path, data=payload, method=method,
                 headers={"Authorization": f"Bearer {self.token}", "Accept": "application/json", "Content-Type": content_type},
             )
+            req.headers.update(observation.headers())
             try:
                 with urllib.request.urlopen(req, context=self.ssl, timeout=10) as response:
                     return json.load(response)
@@ -199,6 +203,15 @@ def kube():
     return KUBE
 
 
+def invocation_issuer():
+    """Load signer dependencies only in the tenant-control runtime image."""
+    global INVOCATION_ISSUER
+    if INVOCATION_ISSUER is None:
+        from invocation_token_issuer import from_environment
+        INVOCATION_ISSUER = from_environment()
+    return INVOCATION_ISSUER
+
+
 def condition(kind, ok, reason, message=""):
     return {"type": kind, "status": "True" if ok else "False", "reason": reason,
             "message": message[:1024], "lastTransitionTime": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
@@ -207,6 +220,7 @@ def condition(kind, ok, reason, message=""):
 ROLE_ORDER = {"viewer": 1, "operator": 2, "admin": 3}
 
 
+@observation.observed_phase("tenant.resolve")
 def resolve(issuer, subject_hash, groups=None, caller="tenant", requested_tenant=None, default_tenant=None):
     subject_matches = []
     group_matches = []
@@ -259,6 +273,7 @@ def resolve(issuer, subject_hash, groups=None, caller="tenant", requested_tenant
     }
 
 
+@observation.observed_phase("tenant.resolve")
 def resolve_supabase_membership(access_token, requested_tenant):
     """Resolve a GoTrue user from the authenticated identity database, not browser claims."""
     if not isinstance(access_token, str) or not access_token or len(access_token) > 16384:
@@ -270,6 +285,7 @@ def resolve_supabase_membership(access_token, requested_tenant):
         data=b"{}", method="POST",
         headers={"Authorization": "Bearer " + access_token, "Content-Type": "application/json", "Accept": "application/json"},
     )
+    request.headers.update(observation.headers())
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             memberships = json.load(response)
@@ -577,6 +593,7 @@ def reconcile_exposure_policies(tenant_ref, namespace, granted):
             kube().delete("ciliumnetworkpolicies", name, namespace, "apis/cilium.io/v2")
 
 
+@observation.observed_phase("tenant.reconcile", service="tenant-control")
 def reconcile_tenant_namespace(resource, tenants):
     meta, spec = resource["metadata"], resource["spec"]
     tenant_ref, namespace = spec["tenantRef"], spec["namespaceName"]
@@ -641,6 +658,7 @@ def harbor_project(tenant_ref):
 
 PROVIDER_SERVICE_CLASSES = {"database.postgresql.shared.v1", "registry.harbor.v1", "observability.grafana.v1", "application.ledger.v1", "integration.github.enterprise-governance.v1", "infrastructure.ssh-broker.v1", "ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
 MULTI_INSTANCE_PROVIDER_CLASSES = {"ai.model-gateway.v1", "collaboration.stalwart.v1", "sandbox.runtime.v1"}
+ADMIN_POSTGRESQL_INSTANCES = {"pg-re8ch", "pg-identity", "pg-billing"}
 
 
 def provider_service_spec(tenant_ref, name, request):
@@ -661,7 +679,7 @@ def provider_service_spec(tenant_ref, name, request):
     if service_class == "database.postgresql.shared.v1":
         if request.get("planRef") != "standard":
             raise PermissionError("PostgreSQL publishes only the standard plan")
-        if tenant_ref == "admin" and name == "postgresql-shared":
+        if tenant_ref == "admin" and name in ADMIN_POSTGRESQL_INSTANCES:
             if parameters:
                 raise PermissionError("Admin PostgreSQL authority adoption is parameterless")
             return {}
@@ -854,6 +872,7 @@ def among_clusters_policy(instance):
     }
 
 
+@observation.observed_phase("tenant.reconcile", service="tenant-control")
 def reconcile_among_clusters_instance(instance):
     meta, spec = instance["metadata"], instance["spec"]
     namespace = meta["namespace"]
@@ -954,6 +973,7 @@ def verify_image_policy(image):
     if not IMAGE_POLICY_URL or not IMAGE_POLICY_TOKEN:
         raise PermissionError("image policy verifier is unavailable")
     request = urllib.request.Request(IMAGE_POLICY_URL + "/v1/verify", data=json.dumps({"imageDigest": image}).encode(), method="POST", headers={"Authorization": f"Bearer {IMAGE_POLICY_TOKEN}", "Content-Type": "application/json", "Accept": "application/json"})
+    request.headers.update(observation.headers())
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
             result = json.load(response)
@@ -1033,6 +1053,7 @@ def volume_observation(claim, namespace, released=False):
             "persistentVolume": pvc.get("spec", {}).get("volumeName") if bound else None}
 
 
+@observation.observed_phase("tenant.reconcile", service="tenant-control")
 def reconcile_claim(claim):
     meta, spec = claim["metadata"], claim["spec"]
     namespace = meta["namespace"]
@@ -1162,6 +1183,7 @@ def organization_dependencies(tenant_ref, authorization):
     request = urllib.request.Request(
         IDENTITY_REST_URL + "/rpc/platform_session_entitlement", data=b"{}", method="POST",
         headers={"Authorization": authorization, "Content-Type": "application/json"})
+    request.headers.update(observation.headers())
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             grant = json.load(response)
@@ -1194,13 +1216,52 @@ def organization_dependencies(tenant_ref, authorization):
     return {"tenantRef": tenant_ref, "canArchive": tenant_ref != "admin" and not counts, "dependencies": counts}
 
 
+@observation.observed_phase("tenant.auth")
+def service_token_matches(actual, expected):
+    matched = hmac.compare_digest(actual, expected)
+    if not matched:
+        observation.failure(error_category="authorization")
+    return matched
+
+
+@observation.observed_phase("tenant.auth")
+def post_caller(handler, path):
+    caller = handler.headers.get("X-Tenant-Caller", "")
+    if caller not in ALLOWED_CALLERS:
+        handler.send_json(401, {"error": "unauthorized"}); return None
+    if path != "/v1/resolve" and caller != "tenant":
+        handler.send_json(404, {"error": "not_found"}); return None
+    if path != "/v1/resolve" and (not CLAIM_SERVICE_TOKEN or not service_token_matches(handler.headers.get("X-Tenant-Service-Token", ""), CLAIM_SERVICE_TOKEN)):
+        handler.send_json(401, {"error": "unauthorized"}); return None
+    return caller
+
+
 class Handler(BaseHTTPRequestHandler):
     def send_json(self, status, value):
+        observation.status(status)
         body = json.dumps(value, separators=(",", ":")).encode()
-        self.send_response(status); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        if operation_id := observation.headers().get("X-Re8ch-Operation-Id"):
+            self.send_header("X-Re8ch-Operation-Id", operation_id)
+        self.end_headers()
+        self.wfile.write(body)
 
+    @observation.observed_http("tenant-control")
     def do_GET(self):
+        if self.path == "/metrics":
+            payload, content_type, status = observation.metrics(self.headers.get("Accept", ""))
+            observation.status(status)
+            self.send_response(status); self.send_header("Content-Type", content_type); self.send_header("Content-Length", str(len(payload))); self.end_headers(); self.wfile.write(payload)
+            return
         path = urllib.parse.urlparse(self.path).path
+        if path == "/.well-known/invocation-jwks.json":
+            try:
+                self.send_json(200, invocation_issuer().key_ring.jwks())
+            except Exception:
+                self.send_json(503, {"error": "signing_keys_unavailable"})
+            return
         if path == "/livez": self.send_json(200, {"status": "ok"}); return
         if path == "/readyz":
             try:
@@ -1223,7 +1284,7 @@ class Handler(BaseHTTPRequestHandler):
         service_token = self.headers.get("X-Tenant-Service-Token", "")
         caller = self.headers.get("X-Tenant-Caller", "")
         if path == "/v1/tenants":
-            if caller != "admin" or self.headers.get("X-Tenant-Ref", "") != "admin" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+            if caller != "admin" or self.headers.get("X-Tenant-Ref", "") != "admin" or not CLAIM_SERVICE_TOKEN or not service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
                 self.send_json(403, {"error": "protected admin tenant is required"}); return
             try:
                 items = []
@@ -1243,11 +1304,11 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 LOG.exception("tenant inventory read failed: %s", exc)
                 self.send_json(503, {"error": "tenant inventory is unavailable"}); return
-        if caller == "tenant" and path == "/v1/namespaces" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path == "/v1/namespaces" and CLAIM_SERVICE_TOKEN and service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             tenant = self.headers.get("X-Tenant-Ref", "")
             items = [item for item in kube().list("tenantnamespaces") if item.get("spec", {}).get("tenantRef") == tenant]
             self.send_json(200, {"items": items}); return
-        if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path == "/v1/capabilities" and CLAIM_SERVICE_TOKEN and service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             tenant = self.headers.get("X-Tenant-Ref", "")
             try:
                 response = {"tenantRef": tenant, "grants": tenant_grant_projection(tenant)}
@@ -1256,7 +1317,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, response); return
             except PermissionError as exc:
                 self.send_json(403, {"error": str(exc)}); return
-        if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if caller == "tenant" and path.startswith("/v1/services") and CLAIM_SERVICE_TOKEN and service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             try:
                 tenant = self.headers["X-Tenant-Ref"]
                 namespace = runtime_namespace(tenant)
@@ -1275,7 +1336,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(403, {"error": str(exc)}); return
             except Exception as exc:
                 self.send_json(400, {"error": str(exc)}); return
-        if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if not path.startswith("/v1/claims") or caller != "tenant" or not CLAIM_SERVICE_TOKEN or not service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
             tenant = self.headers["X-Tenant-Ref"]
@@ -1306,15 +1367,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": str(exc)})
         return
 
+    @observation.observed_http("tenant-control")
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        caller = self.headers.get("X-Tenant-Caller", "")
-        if caller not in ALLOWED_CALLERS:
-            self.send_json(401, {"error": "unauthorized"}); return
-        if path != "/v1/resolve" and caller != "tenant":
-            self.send_json(404, {"error": "not_found"}); return
-        if path != "/v1/resolve" and (not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(self.headers.get("X-Tenant-Service-Token", ""), CLAIM_SERVICE_TOKEN)):
-            self.send_json(401, {"error": "unauthorized"}); return
+        caller = post_caller(self, path)
+        if caller is None:
+            return
         mutation_locked = (path.startswith("/v1/claims") and path != "/v1/claims/plan") or (path.startswith("/v1/services") and path != "/v1/services/plan")
         if mutation_locked:
             CLAIM_MUTATION_LOCK.acquire()
@@ -1335,6 +1393,22 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/v1/resolve-supabase":
                 self.send_json(200, resolve_supabase_membership(body.get("accessToken"), body.get("tenantRef")))
+                return
+            if path == "/v1/invocation-tokens":
+                try:
+                    issued = invocation_issuer().issue(body)
+                    LOG.info("invocation token issued jti=%s binding=%s active_org=%s owner_org=%s",
+                             issued["claims"]["jti"], issued["claims"]["binding_ref"],
+                             issued["claims"]["active_org_ref"], issued["claims"]["owner_org_ref"])
+                    issued.pop("claims", None)
+                    self.send_json(200, issued)
+                except PermissionError:
+                    self.send_json(403, {"error": "invocation_not_authorized"})
+                except ValueError:
+                    self.send_json(400, {"error": "invalid_invocation_request"})
+                except Exception:
+                    LOG.exception("invocation authority unavailable")
+                    self.send_json(503, {"error": "invocation_authority_unavailable"})
                 return
             tenant = self.headers["X-Tenant-Ref"]
             namespace = runtime_namespace(tenant)
@@ -1397,7 +1471,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not 8 <= len(key) <= 128:
                     raise PermissionError("idempotencyKey must contain 8 to 128 characters")
                 namespace = runtime_namespace(tenant)
-                if service_class in PROVIDER_SERVICE_CLASSES and service_class not in MULTI_INSTANCE_PROVIDER_CLASSES:
+                admin_postgresql = tenant == "admin" and service_class == "database.postgresql.shared.v1" and name in ADMIN_POSTGRESQL_INSTANCES
+                if service_class in PROVIDER_SERVICE_CLASSES and service_class not in MULTI_INSTANCE_PROVIDER_CLASSES and not admin_postgresql:
                     existing = [item for item in kube().list("tenantserviceinstances", namespace) if item.get("spec", {}).get("tenantRef") == tenant and item.get("spec", {}).get("serviceClass") == service_class and item.get("metadata", {}).get("name") != name and item.get("status", {}).get("phase") != "Deleted"]
                     if existing:
                         raise PermissionError("one active provider service instance per tenant and class is allowed")
@@ -1529,10 +1604,11 @@ class Handler(BaseHTTPRequestHandler):
             if mutation_locked:
                 CLAIM_MUTATION_LOCK.release()
 
+    @observation.observed_http("tenant-control")
     def do_DELETE(self):
         path = urllib.parse.urlparse(self.path).path
         service_token = self.headers.get("X-Tenant-Service-Token", "")
-        if not path.startswith("/v1/namespaces/") or self.headers.get("X-Tenant-Caller") != "tenant" or not CLAIM_SERVICE_TOKEN or not hmac.compare_digest(service_token, CLAIM_SERVICE_TOKEN):
+        if not path.startswith("/v1/namespaces/") or self.headers.get("X-Tenant-Caller") != "tenant" or not CLAIM_SERVICE_TOKEN or not service_token_matches(service_token, CLAIM_SERVICE_TOKEN):
             self.send_json(404, {"error": "not_found"}); return
         try:
             tenant = self.headers["X-Tenant-Ref"]
@@ -1559,6 +1635,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    observation.initialize("tenant-control")
     KUBE = Kubernetes()
     threading.Thread(target=reconcile_loop, daemon=True).start()
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

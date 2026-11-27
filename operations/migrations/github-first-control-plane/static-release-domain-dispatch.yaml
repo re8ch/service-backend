@@ -61,7 +61,8 @@ dispatches:
   recommendedCanary: toolhive-operator
   dependencies: []
   notes:
-  - Static shadow workflow merged in re8ch-ai/agent-gitops PR 16; Flux CLI annotation correction merged in PR 17.
+  - Static shadow and Flux CLI correction were established in the predecessor repository before the active authority moved to 8iops/agent-gitops.
+  - The Flux consumer is retired; 8iops/agent-gitops GitHub Actions Cloud SSA is the sole delivery authority.
   - Run 40115419539 compiled, published, signed and verified bundle sha256:bc8e35a4c7f16c526fc0a65b87e5b2c6ad3e76b647bb68d885ce398815cc0e90 on the enterprise R640 pool.
   - Shadow mode performs no cluster apply and does not transfer ownership from the live HelmRelease.
   gates: *sharedGates

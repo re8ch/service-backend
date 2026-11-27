@@ -16,6 +16,10 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: supabase-billing}}
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: payments}}
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: tenant-infrastructure}}
+          podSelector: {matchLabels: {app: tenant-api}}
+      ports: [{protocol: TCP, port: 3000}]
   egress:
     - to:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: supabase-billing}}

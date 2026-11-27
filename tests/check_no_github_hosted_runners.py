@@ -13,6 +13,7 @@ ROOTS = (
 )
 
 CLOUD_JOBS = {
+    ".github/workflows/headlamp-public-edge-check.yml": {"model-and-build"},
     ".github/workflows/main-unit-baseline.yml": {"unit"},
     ".github/workflows/gitops-maintenance-summary.yml": {"summarize"},
     ".github/workflows/gitops-observation.yml": {"record", "summarize"},
@@ -26,6 +27,9 @@ CLOUD_JOBS = {
         "tenant-select", "tenant-contract", "control-plane-validate",
     },
     ".github/workflows/github-security-checks.yml": {"dependency-review"},
+    ".github/workflows/transaction-context.yml": {"validate"},
+    ".github/workflows/transaction-context-intake.yml": {"reconcile"},
+    ".github/workflows/gitops-transaction-context-intake.yml": {"reconcile"},
     ".github/workflows/tenant-go-release.yml": {"tenant-go-validate", "release", "finalize"},
     ".github/workflows/postgresql-provider-release.yml": {"validate", "release"},
     ".github/workflows/release-compat-controller.yml": {"release"},
@@ -43,7 +47,7 @@ CLOUD_JOBS = {
     ".github/workflows/headlamp-runtime-release.yml": {"mirror"},
     ".github/workflows/tenant-provider-contracts.yml": {"tenant-ci"},
     ".github/workflows/tenant-platform-bootstrap.yml": {"bootstrap"},
-    ".github/workflows/cloud-platform-release.yml": {"release", "finalize"},
+    ".github/workflows/cloud-platform-release.yml": {"validate", "release", "finalize"},
     ".github/workflows/tenant-release.yml": {"release", "finalize", "canary"},
     ".github/workflows/payment-registry-release.yml": {"finalize"},
     ".github/workflows/studio-toolkit-release.yml": {"publish"},
@@ -69,6 +73,9 @@ def labels(value: object) -> set[str]:
         return {value}
     if isinstance(value, list) and all(isinstance(item, str) for item in value):
         return set(value)
+    if (isinstance(value, dict) and isinstance(value.get('group'), str)
+            and isinstance(value.get('labels'), str)):
+        return {value['labels']}
     raise AssertionError(f"unsupported runs-on declaration: {value!r}")
 
 
@@ -88,6 +95,30 @@ def isolated_private_docs(path: Path, job_name: str, document: dict, job: dict) 
     )
 
 
+def arc_scale_set_smoke(path: Path, job_name: str, document: dict, job: dict) -> bool:
+    triggers = document.get('on', document.get(True))
+    byok_smoke = (
+        path == Path('.github/workflows/copilot-byok-arc-smoke.yml')
+        and job_name == 'byok-model'
+        and isinstance(triggers, dict)
+        and set(triggers) == {'pull_request', 'workflow_dispatch'}
+        and job.get('environment') == 'copilot-byok'
+    )
+    return (
+        (path == Path('.github/workflows/arc-agent-runtime-smoke.yml')
+         and job_name == 'ephemeral-boundary'
+         and isinstance(triggers, dict) and set(triggers) == {'workflow_dispatch'})
+        or byok_smoke
+    ) and (
+        job.get('runs-on') == {
+            'group': 'RE8CH Self-Hosted',
+            'labels': 're8ch-self-hosted-ephemeral',
+        }
+        and document.get('permissions') == {'contents': 'read'}
+        and job.get('permissions', {'contents': 'read'}) == {'contents': 'read'}
+    )
+
+
 def main() -> None:
     failures: list[str] = []
     for root in ROOTS:
@@ -103,6 +134,7 @@ def main() -> None:
                     continue
                 if ("self-hosted" not in runner_labels
                         and not isolated_private_docs(path, job_name, document, job)
+                        and not arc_scale_set_smoke(path, job_name, document, job)
                         and not reviewed_cloud_job(path, job_name, job)):
                     failures.append(
                         f"{path}:{job_name}: must target a self-hosted runner, got "

@@ -13,6 +13,13 @@
       "properties": {
         "enabled": {"type": "boolean"},
         "image": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$|IMAGE_REQUIRES_VERIFIED_DIGEST$"},
+        "invocationCredentials": {
+          "type": "object", "additionalProperties": false, "required": ["enabled", "schedule"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "schedule": {"type": "string", "minLength": 9, "maxLength": 64}
+          }
+        },
         "tenantAPI": {
           "type": "object", "additionalProperties": false, "required": ["enabled", "image"],
           "properties": {
@@ -21,6 +28,17 @@
             "usersURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "organizationsURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
             "platformSessionURL": {"type": "string", "pattern": "^$|^https?://[^ ]+$"},
+            "invocationTokens": {
+              "type": "object", "additionalProperties": false,
+              "required": ["issuerURL", "jwksURL", "expectedIssuer", "credentialSecret", "credentialKey"],
+              "properties": {
+                "issuerURL": {"type": "string", "pattern": "^https?://[^ ]+/v1/invocation-tokens$"},
+                "jwksURL": {"type": "string", "pattern": "^https?://[^ ]+/.well-known/invocation-jwks.json$"},
+                "expectedIssuer": {"type": "string", "pattern": "^https://[^ ]+$"},
+                "credentialSecret": {"type": "string", "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"},
+                "credentialKey": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]+$"}
+              }
+            },
             "modelGateway": {
               "type": "object", "additionalProperties": false,
               "properties": {
@@ -99,6 +117,21 @@
     "serviceInstanceRuntime": {
       "type": "object", "additionalProperties": false, "required": ["enabled", "serviceClasses"],
       "properties": {"enabled": {"type": "boolean"}, "serviceClasses": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}}
+    },
+    "adoptedResources": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "object", "additionalProperties": false,
+        "required": ["tenantRef", "resourceRef", "serviceClass", "resourceType", "purpose", "sourceRef", "dependencyRefs", "availabilityQuery"],
+        "properties": {
+          "tenantRef": {"type": "string", "minLength": 1},
+          "resourceRef": {"type": "string", "pattern": "^service://[^/]+/.+"},
+          "serviceClass": {"type": "string", "minLength": 1},
+          "resourceType": {"type": "string", "minLength": 1},
+          "purpose": {"type": "string", "minLength": 1},
+          "sourceRef": {"type": "string", "minLength": 1},
+          "dependencyRefs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "availabilityQuery": {"type": "string", "minLength": 1}
+        }}
     },
     "pricing": {
       "type": "object", "additionalProperties": false, "required": ["enabled", "currency", "rateCardRef"],

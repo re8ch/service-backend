@@ -180,6 +180,21 @@ class Executor:
         self.apply_only = False
         self._kube_token: str | None = None
         self._kube_token_refresh_at = 0.0
+        self.cluster_target = None
+        self.cluster_release_id = None
+        self._self_binding_verified = False
+
+    def bind_cluster_target(self, contract):
+        validate_schema(contract, "release-contract.schema.json")
+        target = contract["spec"]["target"]
+        self.cluster_release_id = contract["metadata"]["name"]
+        self._self_binding_verified = False
+        if target["cluster"] != "re8ch":
+            if not target.get("clusterBindingDigest"):
+                raise Rejected("remote execution requires the reviewed cluster binding digest")
+            self.cluster_target = target
+        else:
+            self.cluster_target = target if target.get("clusterBindingDigest") else None
 
     def actions_kube_token(self) -> str | None:
         request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
@@ -216,6 +231,25 @@ class Executor:
 
     def command(self, argv: list[str], stdin: str | None = None, timeout: int = 60) -> subprocess.CompletedProcess[str]:
         effective = list(argv)
+        if effective and effective[0] == "kubectl" and self.cluster_target:
+            from cluster_transport import transport
+            if self.cluster_target["cluster"] == "re8ch" and not self._self_binding_verified:
+                from cluster_transport import verify_self
+                try:
+                    verify_self(self.cluster_target["clusterBindingDigest"], self.actions_kube_token)
+                except ValueError:
+                    raise Rejected("self cluster binding verification failed") from None
+                self._self_binding_verified = True
+            with transport(self.cluster_target["cluster"], self.cluster_target["clusterBindingDigest"], self.actions_kube_token,
+                           release_id=self.cluster_release_id) as kubeconfig:
+                try:
+                    result = self.runner(["kubectl", "--kubeconfig", kubeconfig, *effective[1:]], input=stdin, text=True,
+                                         capture_output=True, timeout=timeout, check=False)
+                except subprocess.TimeoutExpired as error:
+                    raise subprocess.TimeoutExpired(["kubectl"], error.timeout) from None
+            if result.returncode:
+                raise Rejected((result.stderr or result.stdout or "managed cluster command failed")[-2048:])
+            return result
         if effective and effective[0] == "kubectl":
             token = self.actions_kube_token()
             if token:
@@ -255,6 +289,8 @@ class Executor:
         if operation["releaseId"] != contract["metadata"]["name"]:
             raise Rejected("release ID mismatch")
         target = contract["spec"]["target"]
+        if state and state.get("clusterRef", "re8ch") != target["cluster"]:
+            raise Rejected("accepted state belongs to another cluster target")
         if operation["target"] != f"{target['cluster']}/{target['namespace']}":
             raise Rejected("target mismatch")
         contract_digest = digest(canonical(contract))
@@ -343,7 +379,7 @@ class Executor:
                     break
                 except Rejected as error:
                     if not require_existing or attempt == 2 or not resource_version_conflict(str(error)):
-                        raise
+                        raise Rejected(f"{object_identity(item)}: {error}") from error
 
     @staticmethod
     def pointer(value: object, pointer: str) -> object:
@@ -535,6 +571,7 @@ class Executor:
                   current_bundle_path: Path | None = None, rollback_stages: set[str] | None = None,
                   observe_only: bool = False) -> dict:
         started = self.now()
+        self.bind_cluster_target(contract)
         validate_schema(operation, "release-operation.schema.json")
         store = Store(state_root, operation["releaseId"])
         with store.lock():
@@ -682,7 +719,7 @@ class Executor:
                     previous, manifest, selected_objects, contract, operation, manager, store, reason)
                 outcome, healthy = "rolled-back", True
             except Rejected as error:
-                blocked = {**previous, "blocked": True, "blockedReason": f"rollback failed: {error}", "updatedAt": self.now().isoformat()}
+                blocked = {**previous, "blocked": True, "blockedReason": f"{reason}; rollback failed: {error}", "updatedAt": self.now().isoformat()}
                 store.accept(blocked)
                 raise Rejected(blocked["blockedReason"]) from error
         elif finalize:
@@ -695,6 +732,7 @@ class Executor:
             history = list({item["appliedDigest"]: item for item in history}.values())[-10:]
             state = {
                 "schemaVersion": "delivery.re8ch.com/accepted-state/v1alpha1",
+                "clusterRef": contract["spec"]["target"]["cluster"],
                 "releaseId": operation["releaseId"], "lastOperationId": operation["operationId"],
                 "requestDigest": request_digest, "bundleReference": operation["bundle"]["reference"],
                 "payloadDigest": operation["bundle"]["payloadDigest"],
@@ -704,6 +742,8 @@ class Executor:
                 "history": history, "sequence": operation["sequence"],
                 "updatedAt": self.now().isoformat(), "blocked": False,
             }
+            if self.cluster_target:
+                state["clusterBindingDigest"] = self.cluster_target["clusterBindingDigest"]
             if self.apply_only:
                 state["acceptedDigest"] = operation["bundle"]["digest"]
                 state.pop("healthyDigest", None)

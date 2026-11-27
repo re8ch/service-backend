@@ -14,6 +14,7 @@ resources:
   - grafana-secrets.sops.yaml
   - grafana-database.yaml
   - grafana.yaml
+  - grafana-mcp.yaml
 configMapGenerator:
   - name: re8ch-observability-dashboards
     namespace: observability-system

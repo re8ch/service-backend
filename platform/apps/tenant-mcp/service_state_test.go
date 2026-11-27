@@ -43,3 +43,22 @@ func TestServiceStateParityAndIdempotency(t *testing.T) {
 		t.Fatal("volume shrink accepted")
 	}
 }
+
+func TestIntegrationCompatibilitySpecs(t *testing.T) {
+	oauth := map[string]any{"serviceClass": "integration.oauth.application.v1", "planRef": "public-pkce", "regionRef": "global", "parameters": map[string]any{
+		"clientName": "Acme tools", "redirectUris": []any{"https://acme.example/callback"}, "scopes": []any{"openid"}, "audienceOrgRefs": []any{"acme"},
+	}}
+	if _, err := checkedSpec(oauth, nil); err != nil {
+		t.Fatal(err)
+	}
+	mcp := map[string]any{"serviceClass": "integration.mcp.managed.v1", "planRef": "signed-image", "regionRef": "global", "parameters": map[string]any{
+		"serviceName": "acme-tools", "audienceOrgRefs": []any{"acme", "personal-harry"}, "tools": []any{map[string]any{"name": "acme_tools_query"}}, "meters": map[string]any{"requests": "request"},
+	}}
+	if _, err := checkedSpec(mcp, nil); err != nil {
+		t.Fatal(err)
+	}
+	object(mcp["parameters"])["audienceOrgRefs"] = []any{"admin"}
+	if _, err := checkedSpec(mcp, nil); err == nil {
+		t.Fatal("admin audience must be rejected")
+	}
+}

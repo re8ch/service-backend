@@ -132,10 +132,7 @@ func (e grafanaHTTPError) Error() string {
 func tenantGrafana(ctx context.Context, tenant string, admin bool) (*grafanaClient, error) {
 	binding, err := tenantGrafanaBinding(tenant)
 	if err != nil {
-		if !strings.HasPrefix(tenant, "personal-") {
-			return nil, err
-		}
-		return personalGrafana(ctx, tenant)
+		return providerGrafana(ctx, tenant, admin)
 	}
 	var authorization string
 	if admin {
@@ -171,33 +168,50 @@ func tenantGrafana(ctx context.Context, tenant string, admin bool) (*grafanaClie
 	return &grafanaClient{base: base, authorization: authorization, orgID: binding.OrgID}, nil
 }
 
-// Personal organizations use provider-provisioned Grafana organizations and
-// the matching human credential, avoiding a static binding to the shared class.
-func personalGrafana(ctx context.Context, owner string) (*grafanaClient, error) {
+// Provider-managed organizations resolve the Ready service instance and its
+// opaque credential at request time. This keeps monitoring aligned with the
+// service controller instead of requiring a second static tenant binding.
+func providerGrafana(ctx context.Context, owner string, admin bool) (*grafanaClient, error) {
 	result, err := controlRequest(ctx, owner, "/v1/services")
 	if err != nil {
 		return nil, err
 	}
-	orgID, reference, err := personalGrafanaAccess(owner, slice(result["items"]))
+	orgID, reference, err := providerGrafanaAccess(owner, slice(result["items"]))
 	if err != nil {
 		return nil, err
 	}
-	provider, material, err := credentialMaterial(ctx, owner, reference)
-	if err != nil {
-		return nil, err
-	}
-	if provider != "grafana" || material["project"] != strconv.Itoa(orgID) || material["username"] == "" || material["password"] == "" {
-		return nil, errors.New("Personal Grafana credential does not match its organization")
+	var authorization string
+	if admin {
+		username, password := os.Getenv("GRAFANA_ADMIN_USERNAME"), os.Getenv("GRAFANA_ADMIN_PASSWORD")
+		if username == "" || password == "" {
+			username, err = kubeSecretValue(ctx, "qianwen-ops", "panel-grafana-admin-recovery", "username")
+			if err != nil {
+				return nil, err
+			}
+			password, err = kubeSecretValue(ctx, "qianwen-ops", "panel-grafana-admin-recovery", "password")
+			if err != nil {
+				return nil, err
+			}
+		}
+		authorization = "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+password))
+	} else {
+		provider, material, materialErr := credentialMaterial(ctx, owner, reference)
+		if materialErr != nil {
+			return nil, materialErr
+		}
+		if provider != "grafana" || material["project"] != strconv.Itoa(orgID) || material["username"] == "" || material["password"] == "" {
+			return nil, errors.New("Grafana credential does not match its provider organization")
+		}
+		authorization = "Basic " + base64.StdEncoding.EncodeToString([]byte(material["username"]+":"+material["password"]))
 	}
 	base := strings.TrimRight(os.Getenv("GRAFANA_URL"), "/")
 	if base == "" {
 		base = "https://grafana.service.re8ch.com/grafana"
 	}
-	authorization := "Basic " + base64.StdEncoding.EncodeToString([]byte(material["username"]+":"+material["password"]))
 	return &grafanaClient{base: base, authorization: authorization, orgID: orgID}, nil
 }
 
-func personalGrafanaAccess(owner string, items []any) (int, string, error) {
+func providerGrafanaAccess(owner string, items []any) (int, string, error) {
 	for _, raw := range items {
 		instance := object(raw)
 		spec, status := object(instance["spec"]), object(instance["status"])
@@ -207,11 +221,11 @@ func personalGrafanaAccess(owner string, items []any) (int, string, error) {
 		orgID := intValue(object(status["access"])["organizationId"])
 		reference := asString(status, "humanCredentialRef")
 		if orgID <= 1 || reference == "" {
-			return 0, "", errors.New("Personal Grafana binding is incomplete")
+			return 0, "", errors.New("Provider Grafana binding is incomplete")
 		}
 		return orgID, reference, nil
 	}
-	return 0, "", errors.New("Personal organization has no ready Grafana service instance")
+	return 0, "", errors.New("Organization has no ready Grafana service instance")
 }
 
 func (c *grafanaClient) request(ctx context.Context, method, path string, payload any, timeout time.Duration, raw bool) (any, error) {

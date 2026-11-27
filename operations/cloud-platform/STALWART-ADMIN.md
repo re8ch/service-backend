@@ -32,7 +32,7 @@ Provision through the existing credential and signed release paths:
 
 | Variable | Contract |
 | --- | --- |
-| `STALWART_ADMIN_ORIGIN` | One fixed HTTPS provider origin, no user info, path, query or fragment |
+| `STALWART_ADMIN_ORIGIN` | One fixed HTTPS PublicEdge provider origin, no user info, path, query or fragment |
 | `STALWART_ADMIN_TOKEN_FILE` | Read-only mounted dedicated management API token; never an MCP argument |
 | `STALWART_APPROVED_PLANS_DIR` | Read-only directory of plans installed by the existing reviewed delivery pipeline |
 
@@ -118,10 +118,17 @@ Official references:
 The owned `platform/cloud-platform/runtime.yaml` projects optional read-only
 mounts. Before publishing the admin allowlist, platform-authorized credential
 provisioning must create `ai-operations/stalwart-self-service-admin` Secret with
-key `token` using a dedicated Account/Domain management identity. Provision
-`stalwart-admin-runtime` ConfigMap key `origin` with the reviewed HTTPS origin;
-changing that environment value requires a reviewed rollout. Neither value is
+key `token` using a dedicated Account/Domain management identity. The reviewed
+Deployment sets `STALWART_ADMIN_ORIGIN` to the fixed HTTPS origin; changing that
+environment value requires a reviewed rollout. Neither value is
 accepted from callers. Recovery-administrator credentials must not be reused.
+
+The reviewed origin is `https://stalwart-admin.service.re8ch.com`. Stalwart's
+authenticated session advertises its canonical API as
+`https://id.re8ch.com/jmap/`; the client permits only that exact cross-origin
+transition. All plaintext, arbitrary redirect, alternate path, query and
+caller-provided origins remain rejected. PublicEdge is the default application
+service path; the AmongCluster management export is not a runtime dependency.
 
 Reviewed signed delivery owns `stalwart-admin-approved-plans` ConfigMap in the
 same namespace. Its data keys are approved `<planHash>.json` records described

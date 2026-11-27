@@ -1,0 +1,301 @@
+---
+# Source: gha-runner-scale-set/templates/kube_mode_serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+  labels:
+    re8ch.com/execution-lifecycle: "single-job"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+
+  finalizers:
+    - actions.github.com/cleanup-protection
+
+---
+# Source: gha-runner-scale-set/templates/kube_mode_role.yaml
+# default permission for runner pod service account in kubernetes mode (container hook)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+  labels:
+    re8ch.com/execution-lifecycle: "single-job"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+  annotations:
+  finalizers:
+    - actions.github.com/cleanup-protection
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["get", "create"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch",]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "delete"]
+
+---
+# Source: gha-runner-scale-set/templates/manager_role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: re8ch-self-hosted-ephemeral-gha-rs-manager
+  namespace: re8ch-arc-runners
+  labels:
+    re8ch.com/execution-lifecycle: "single-job"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/component: manager-role
+  annotations:
+  finalizers:
+    - actions.github.com/cleanup-protection
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
+
+---
+# Source: gha-runner-scale-set/templates/kube_mode_role_binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+  labels:
+    re8ch.com/execution-lifecycle: "single-job"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+
+  annotations:
+  finalizers:
+    - actions.github.com/cleanup-protection
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+subjects:
+- kind: ServiceAccount
+  name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+  namespace: re8ch-arc-runners
+
+---
+# Source: gha-runner-scale-set/templates/manager_role_binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: re8ch-self-hosted-ephemeral-gha-rs-manager
+  namespace: re8ch-arc-runners
+  labels:
+    re8ch.com/execution-lifecycle: "single-job"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+    app.kubernetes.io/component: manager-role-binding
+  annotations:
+  finalizers:
+    - actions.github.com/cleanup-protection
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: re8ch-self-hosted-ephemeral-gha-rs-manager
+subjects:
+- kind: ServiceAccount
+  name: 
+    arc-controller-gha-rs-controller
+  namespace: 
+    arc-systems
+
+---
+# Source: gha-runner-scale-set/templates/autoscalingrunnerset.yaml
+apiVersion: actions.github.com/v1alpha1
+kind: AutoscalingRunnerSet
+metadata:
+  name: re8ch-self-hosted-ephemeral
+  namespace: re8ch-arc-runners
+  labels:
+    re8ch.com/execution-lifecycle: "single-job"
+    app.kubernetes.io/component: "autoscaling-runner-set"
+    helm.sh/chart: gha-rs-0.15.1
+    app.kubernetes.io/name: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/instance: re8ch-self-hosted-ephemeral
+    app.kubernetes.io/version: "0.15.1"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: gha-rs
+    actions.github.com/scale-set-name: re8ch-self-hosted-ephemeral
+    actions.github.com/scale-set-namespace: re8ch-arc-runners
+  annotations:
+    actions.github.com/values-hash: b74ce7c11b9c02976bdf0928daa0d295926e3bbf7c3c248a711f68b3215d48c
+    actions.github.com/cleanup-manager-role-binding: re8ch-self-hosted-ephemeral-gha-rs-manager
+    actions.github.com/cleanup-manager-role-name: re8ch-self-hosted-ephemeral-gha-rs-manager
+    actions.github.com/cleanup-kubernetes-mode-role-binding-name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+    actions.github.com/cleanup-kubernetes-mode-role-name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+    actions.github.com/cleanup-kubernetes-mode-service-account-name: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+
+spec:
+  githubConfigUrl: https://github.com/re8ch
+  githubConfigSecret: arc-re8ch-agent-github-app
+  runnerGroup: RE8CH Self-Hosted
+  runnerScaleSetName: re8ch-self-hosted-ephemeral
+  maxRunners: 16
+  minRunners: 0
+  listenerTemplate:
+    spec:
+      containers:
+      - name: listener
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+      nodeSelector:
+        scheduling.re8ch.com/agent-runtime: "true"
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: pg-re8ch
+  listenerConfig:
+    scaler:
+      burst: 100
+      qps: 50
+
+  template:
+    spec:
+      nodeSelector: 
+        scheduling.re8ch.com/agent-runtime: "true"
+      tolerations: 
+        - effect: NoSchedule
+          key: dedicated
+          operator: Equal
+          value: pg-re8ch
+      restartPolicy: Never
+      serviceAccountName: re8ch-self-hosted-ephemeral-gha-rs-kube-mode
+      containers:
+      - name: runner
+        
+        command: 
+          - /home/runner/run.sh
+        image: 
+          ghcr.io/actions/actions-runner@sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690
+        resources: 
+          limits:
+            cpu: "2"
+            memory: 4Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        securityContext: 
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+        env:
+          - name: ACTIONS_RUNNER_CONTAINER_HOOKS
+            value: /home/runner/k8s-novolume/index.js
+          - name: ACTIONS_RUNNER_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
+            value: "true"
+          - name: ACTIONS_RUNNER_IMAGE
+            value: "ghcr.io/actions/actions-runner@sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690"
+        volumeMounts: []
+      
+      volumes: []

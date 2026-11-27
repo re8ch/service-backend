@@ -1,12 +1,10 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -47,6 +45,13 @@ func openLedger(path string) (*sql.DB, error) {
 		CREATE TABLE IF NOT EXISTS mcp_catalog_heads (
 			tenant_ref TEXT NOT NULL, service_name TEXT NOT NULL, revision TEXT NOT NULL,
 			PRIMARY KEY(tenant_ref,service_name), FOREIGN KEY(revision) REFERENCES mcp_catalog_revisions(revision));`); err != nil {
+		db.Close()
+		return nil, err
+	}
+	// This legacy provider advertised a health-only tool that duplicated the
+	// TenantServiceInstance surface. Keep its audit revisions, but remove the
+	// active catalog head so a rollout deterministically withdraws the tool.
+	if _, err = db.Exec(`DELETE FROM mcp_catalog_heads WHERE service_name='postgresql-provider'`); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -249,30 +254,19 @@ func usageCollectorAuthenticated(r *http.Request) (bool, error) {
 	if host == "" {
 		return false, nil
 	}
-	serviceToken, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	client, base, serviceToken, err := kubeClient()
 	if err != nil {
 		return false, err
 	}
-	ca, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
-	if err != nil {
-		return false, err
-	}
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(ca) {
-		return false, errors.New("invalid Kubernetes CA")
-	}
-	port := os.Getenv("KUBERNETES_SERVICE_PORT")
-	if port == "" {
-		port = "443"
-	}
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
 	payload, _ := json.Marshal(map[string]any{"apiVersion": "authentication.k8s.io/v1", "kind": "TokenReview", "spec": map[string]any{"token": strings.TrimPrefix(header, "Bearer "), "audiences": []string{"re8ch-usage"}}})
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, fmt.Sprintf("https://%s:%s/apis/authentication.k8s.io/v1/tokenreviews", host, port), strings.NewReader(string(payload)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/apis/authentication.k8s.io/v1/tokenreviews", strings.NewReader(string(payload)))
 	if err != nil {
 		return false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+strings.TrimSpace(string(serviceToken)))
-	client := &http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}}}
+	req.Header.Set("Authorization", "Bearer "+serviceToken)
 	response, err := client.Do(req)
 	if err != nil {
 		return false, err

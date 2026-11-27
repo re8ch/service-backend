@@ -7,6 +7,7 @@ references to server-side executors and returns an operation/audit envelope.
 from __future__ import annotations
 
 import hashlib
+import contextlib
 import json
 import os
 import re
@@ -14,6 +15,7 @@ import secrets
 import shlex
 import subprocess
 import time
+import tempfile
 import urllib.request
 import uuid
 from dataclasses import dataclass
@@ -21,12 +23,14 @@ from pathlib import Path
 from typing import Any, Callable
 
 import yaml
+import re8ch_observability as observation
 
 SECRET_KEYS = {"data", "stringData", "token", "password", "privateKey", "clientSecret"}
 READ_ONLY_KUBE_VERBS = {"get", "list", "watch", "logs", "events", "auth-can-i"}
 AUTH_CONFIG_PATH = "clusters/re8ch/components/ops/dex-dual-issuer-authentication.yaml"
 AUTH_RECONCILER_PATH = "clusters/re8ch/components/ops/authentication-config-reconciler.yaml"
 COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
+OPEN_OAUTH_REF = re.compile(r"^credential://open-oauth/re8ch/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$")
 
 
 class OperationError(RuntimeError):
@@ -58,7 +62,10 @@ class OperationRunner:
         operation_id = f"op_{uuid.uuid4().hex}"
         started = time.time()
         try:
-            result = self.executor(argv, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+            with observation.phase("cloud.operation", backend_operation_id=operation_id):
+                result = self.executor(argv, input=stdin, text=True, capture_output=True, timeout=timeout, check=False)
+                if result.returncode:
+                    observation.failure(error_category="command_exit")
         except subprocess.TimeoutExpired as exc:
             raise OperationError("BACKEND_TIMEOUT", f"{target} timed out", retryable=True) from exc
         return {
@@ -91,19 +98,48 @@ class Inventory:
 
 
 class CloudPlatform:
-    def __init__(self, inventory: Inventory, runner: OperationRunner, *, kubeconfig: str, ssh_config: str):
+    def __init__(self, inventory: Inventory, runner: OperationRunner, *, kubeconfig: str, ssh_config: str, cluster_ref: str = "re8ch"):
         self.inventory = inventory
         self.runner = runner
         self.kubeconfig = kubeconfig
         self.ssh_config = ssh_config
+        self.cluster_ref = cluster_ref
+
+    def cluster_bindings(self):
+        from cluster_bindings import ClusterBindings, ProjectedMetadataReader
+        return ClusterBindings.load(os.getenv("CLUSTER_BINDINGS_FILE", "/etc/re8ch-cluster-bindings/cluster-bindings.json"), ProjectedMetadataReader())
+
+    @contextlib.contextmanager
+    def for_cluster(self, cluster_ref, expected_digest=None):
+        from cluster_bindings import BoundKubeconfig
+        with observation.phase("cloud.binding"):
+            binding = self.cluster_bindings().resolve(cluster_ref)
+        if expected_digest and expected_digest != binding["bindingDigest"]:
+            raise OperationError("CLUSTER_BINDING_CHANGED", "review the current cluster binding before execution")
+        if binding["adapter"] == "local":
+            ref = binding["apiServiceRef"]
+            actual = self._kubectl(["get", "service", ref["name"], "--namespace", ref["namespace"], "-o", "json"])
+            if actual["exitCode"] or self._json_stdout(actual).get("metadata", {}).get("uid") != ref["uid"]:
+                raise OperationError("CLUSTER_BINDING_UNAVAILABLE", "native execution API differs from the reviewed self identity")
+            yield self, binding
+            return
+        # kubectl intentionally omits bearer AuthInfo for an HTTP server. The
+        # request-local relay adds this Pod's projected identity to the fixed
+        # reviewed broker, whose existing TokenReview/grant checks still apply.
+        from cluster_execution_proxy import interactive_transport
+        trace_context = observation.current_carrier()
+        trace_options = {"trace_context": trace_context} if trace_context is not None else {}
+        with interactive_transport(binding, **trace_options) as config:
+            yield CloudPlatform(self.inventory, self.runner, kubeconfig=BoundKubeconfig(config),
+                                ssh_config=self.ssh_config, cluster_ref=cluster_ref), binding
 
     def nodes_list(self) -> dict[str, Any]:
-        desired = [target for target in self.inventory.list() if "k3s-" in " ".join(target["spec"]["capabilities"])]
+        desired = [target for target in self.inventory.list() if "k3s-" in " ".join(target["spec"]["capabilities"])] if self.cluster_ref == "re8ch" else []
         live = self._kubectl(["get", "nodes", "-o", "json"])
         return {"desired": desired, "live": self._json_stdout(live), "operation": live}
 
     def nodes_get(self, name: str) -> dict[str, Any]:
-        desired = self.inventory.get(name)
+        desired = self.inventory.get(name) if self.cluster_ref == "re8ch" else None
         live = self._kubectl(["get", "node", name, "-o", "json"])
         return {"desired": desired, "live": self._json_stdout(live), "operation": live}
 
@@ -120,7 +156,8 @@ class CloudPlatform:
     def kubectl_exec(self, argv: list[str], *, stdin: str | None = None, timeout: int = 30) -> dict[str, Any]:
         if not argv:
             raise OperationError("INVALID_ARGUMENT", "argv must not be empty")
-        return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", timeout=timeout, stdin=stdin)
+        from plugin_http_transport import kubectl_prefix
+        return self.runner.run([*kubectl_prefix(self.kubeconfig), *argv], target="re8ch-k3s" if self.cluster_ref == "re8ch" else self.cluster_ref, timeout=timeout, stdin=stdin)
 
     @staticmethod
     def _github_read(url: str, *, json_body: bool = False, limit: int = 1_048_576) -> Any:
@@ -274,7 +311,67 @@ class CloudPlatform:
             argv += [f"--resource-version={resource_version}"]
         if verb in {"get", "list"}:
             argv += ["-o", "json"]
-        return self._kubectl(argv, stdin=stdin)
+        if verb == "delete":
+            # Deletion acceptance is distinct from finalizer/grace completion.
+            # Waiting here races the runner deadline after a successful DELETE,
+            # incorrectly inviting callers to replay an already accepted write.
+            argv += ["--wait=false"]
+        result = self._kubectl(argv, stdin=stdin)
+        if verb == "delete" and result.get("exitCode") == 0:
+            result.update(deletionAccepted=True, completionObserved=False)
+        return result
+
+    def project_litellm_openoauth_credential(self, credential_ref: str, *, apply: bool = False,
+                                             plan_hash: str = "") -> dict[str, Any]:
+        """Project one brokered OpenOAuth credential to the fixed LiteLLM Secret."""
+        matched = OPEN_OAUTH_REF.fullmatch(credential_ref)
+        if not matched:
+            raise OperationError("INVALID_CREDENTIAL_REFERENCE", "reviewed OpenOAuth credential reference required")
+        client_id = matched.group(1)
+        plan = {
+            "credentialRef": credential_ref,
+            "target": "llm-gateway/litellm-gotrue-sso",
+            "fieldManager": "re8ch-release/litellm-openoauth-credential",
+        }
+        expected = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        if apply and plan_hash != expected:
+            raise OperationError("PLAN_HASH_REQUIRED", "apply requires the exact preview planHash")
+
+        source_name = f"oauth-litellm-{client_id}"
+        source_result = self._kubectl(["get", "secret", source_name, "--namespace", "credential-broker", "-o", "json"])
+        if source_result["exitCode"]:
+            raise OperationError("CREDENTIAL_UNAVAILABLE", "brokered OpenOAuth credential is unavailable")
+        try:
+            source = json.loads(source_result["stdout"])
+            labels = source["metadata"]["labels"]
+            data = source["data"]
+            if labels != {
+                "credentials.re8ch.com/provider": "open-oauth",
+                "credentials.re8ch.com/tenant": "re8ch",
+                "credentials.re8ch.com/projection": "litellm-gotrue-sso",
+            } or set(data) != {"client-id", "client-secret"}:
+                raise ValueError
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise OperationError("CREDENTIAL_INVALID", "brokered OpenOAuth credential contract is invalid") from exc
+
+        result = {"applied": False, "planHash": expected, **plan}
+        if not apply:
+            return result
+        manifest = {
+            "apiVersion": "v1", "kind": "Secret", "type": "Opaque",
+            "metadata": {
+                "name": "litellm-gotrue-sso", "namespace": "llm-gateway",
+                "annotations": {"credentials.re8ch.com/content-ref": credential_ref},
+            },
+            "data": {"client-id": data["client-id"], "client-secret": data["client-secret"]},
+        }
+        operation = self._kubectl([
+            "apply", "--server-side", "--field-manager=re8ch-release/litellm-openoauth-credential",
+            "--namespace", "llm-gateway", "-f", "-",
+        ], stdin=json.dumps(manifest))
+        if operation["exitCode"]:
+            raise OperationError("CREDENTIAL_PROJECTION_FAILED", "LiteLLM OpenOAuth credential projection failed")
+        return {**result, "applied": True, "operation": operation}
 
     def ensure_webmail_session_secret(self, *, apply: bool = False) -> dict[str, Any]:
         """Create the reviewed system credential without accepting or returning values."""
@@ -340,7 +437,7 @@ class CloudPlatform:
         return request(self.kubeconfig, method, path, body, content_type)
 
     def _kubectl(self, argv: list[str], stdin: str | None = None) -> dict[str, Any]:
-        return self.runner.run(["kubectl", "--kubeconfig", self.kubeconfig, *argv], target="re8ch-k3s", stdin=stdin)
+        return self.kubectl_exec(argv, stdin=stdin)
 
     def _ssh_argv(self, target: str, remote_argv: list[str]) -> list[str]:
         spec = self.inventory.get(target)["spec"]

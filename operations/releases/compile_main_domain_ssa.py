@@ -255,11 +255,15 @@ def compile_outputs() -> dict[Path, str]:
         }
         reviewed_takeovers = {
             "main-data-storage-ops": "apps/Deployment/ops/cloudbeaver",
+            "main-operations-ui-headlamp": "apps/Deployment/headlamp/headlamp",
             "main-tenant-runtime-ai-operations": "apps/Deployment/ai-operations/re8ch-cloud-platform",
             "main-tenant-runtime-scheduling-system": "apps/Deployment/scheduling-system/penrose-controller",
         }
         if name in reviewed_takeovers:
             contract["spec"]["authorization"]["forceConflictObjects"] = [reviewed_takeovers[name]]
+            if name == "main-operations-ui-headlamp":
+                contract["spec"]["authorization"]["forceConflictObjects"].append(
+                    "core/ConfigMap/headlamp/headlamp-public-edge-v033-mb4t89f2c6")
         if cluster:
             contract["spec"]["authorization"]["requireExisting"] = True
         files[CONTRACTS / f"{name}.yaml"] = yaml.safe_dump(contract, sort_keys=False)

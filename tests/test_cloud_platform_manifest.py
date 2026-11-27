@@ -68,7 +68,8 @@ def test_ssh_credentials_are_isolated_in_the_independent_broker():
     assert broker["hostNetwork"] is True
     assert broker["dnsPolicy"] == "ClusterFirstWithHostNet"
     expressions = broker["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-    assert {"key": "kubernetes.io/hostname", "operator": "In", "values": ["r640"]} in expressions
+    assert {"key": "scheduling.re8ch.com/service-plane", "operator": "In", "values": ["core"]} in expressions
+    assert not any(item["key"] == "kubernetes.io/hostname" for item in expressions)
     env = {item["name"]: item for item in broker["containers"][0]["env"]}
     assert env["SSH_ROUTE_OVERRIDES"]["value"] == '{"amdwsl-zt":"172.31.92.2"}'
     mounts = {m["mountPath"]: m for m in broker["containers"][0]["volumeMounts"]}
@@ -90,8 +91,7 @@ def test_stalwart_management_uses_optional_dedicated_readonly_mounts():
     pod = deployment["spec"]["template"]["spec"]
     container = pod["containers"][0]
     env = {entry["name"]: entry for entry in container["env"]}
-    assert env["STALWART_ADMIN_ORIGIN"]["valueFrom"]["configMapKeyRef"] == {
-        "name": "stalwart-admin-runtime", "key": "origin", "optional": True}
+    assert env["STALWART_ADMIN_ORIGIN"]["value"] == "https://stalwart-admin.service.re8ch.com"
     mounts = {m["mountPath"]: m for m in container["volumeMounts"]}
     volumes = {v["name"]: v for v in pod["volumes"]}
     token_path = env["STALWART_ADMIN_TOKEN_FILE"]["value"]

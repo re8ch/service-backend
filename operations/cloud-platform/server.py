@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime import CloudPlatform, Identity, Inventory, OperationError, OperationRunner
+import re8ch_observability as observation
 
 HOST = os.getenv("LISTEN_HOST", "0.0.0.0")
 PORT = int(os.getenv("LISTEN_PORT", "19443"))
@@ -26,9 +27,12 @@ ROOT = Path(os.getenv("CONFIG_ROOT", "/etc/re8ch-platform"))
 WORKSPACE_ROOT = Path(os.getenv("WORKSPACE_ROOT", "/srv/service-backend"))
 
 SCHEMAS: dict[str, dict[str, Any]] = {
+    "clusters.list": {},
+    "clusters.resolve": {"clusterRef": {"type": "string"}},
     "credentials.stalwart.authority.ensure": {"action": {"type": "string", "enum": ["discover", "seed", "revoke"], "default": "seed"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.stalwart.ensure": {"apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "credentials.webmail-session.ensure": {"apply": {"type": "boolean", "default": False}},
+    "credentials.litellm-openoauth.project": {"credentialRef": {"type": "string", "pattern": r"^credential://open-oauth/re8ch/[0-9a-f-]{36}$"}, "apply": {"type": "boolean", "default": False}, "planHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
     "plugin.capabilities.list": {},
     "plugin.operations.list": {"groupVersion": {"type": "string"}},
     "plugin.operation.read": {"groupVersion": {"type": "string"}, "operationId": {"type": "string"}, "schemaHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "parameters": {"type": "object"}},
@@ -54,6 +58,11 @@ SCHEMAS: dict[str, dict[str, Any]] = {
     "workspace.memory-audit": {},
 }
 
+CLUSTER_TOOLS = {name for name in SCHEMAS if name.startswith("kube.")} | {"kubectl.exec", "nodes.list", "nodes.get", "credentials.litellm-openoauth.project"}
+for cluster_tool in CLUSTER_TOOLS:
+    SCHEMAS[cluster_tool] = {**SCHEMAS[cluster_tool], "clusterRef": {"type": "string"},
+                            "clusterBindingDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+
 from mihomos_capabilities import TOOLS as MIHOMOS_TOOLS
 MIHOMOS_BY_NAME = {tool["name"]: tool for tool in MIHOMOS_TOOLS}
 from anatomy_diff_operation import TOOL as ANATOMY_DIFF_TOOL, DELETE_TOOL as ANATOMY_DIFF_DELETE_TOOL
@@ -68,15 +77,19 @@ GENERATED_PLUGIN_TOOLS = {
 }
 PRIVILEGED_TOOLS = {*STALWART_ADMIN_BY_NAME, *MIHOMOS_BY_NAME, ANATOMY_DIFF_TOOL["name"], ANATOMY_DIFF_DELETE_TOOL["name"], CILIUM_CIDR_TOOL["name"], CILIUM_CIDR_DELETE_TOOL["name"], *NETWORK_MUTATIONS, "plugin.operation.read", "plugin.operation.http-check", *GENERATED_PLUGIN_TOOLS}
 
-WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "node.ssh.exec", "kubectl.exec", "reconcile_control_plane_authentication_config", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
+WRITE_TOOLS = {"credentials.stalwart.authority.ensure", "credentials.stalwart.ensure", "credentials.webmail-session.ensure", "credentials.litellm-openoauth.project", "node.ssh.exec", "kubectl.exec", "reconcile_control_plane_authentication_config", "kube.resource.apply", "kube.resource.patch", "kube.resource.delete", "workspace.index", "workspace.sync"}
 
+
+PRIVILEGED_TOOLS |= {"clusters.list", "clusters.resolve"}
 
 REQUIRED = {
+    "clusters.resolve": ["clusterRef"],
     "plugin.operations.list": ["groupVersion"],
     "plugin.operation.read": ["groupVersion", "operationId", "schemaHash"],
     "plugin.operation.http-check": ["groupVersion", "operationId", "schemaHash"],
     "plugin.openapi.get": ["groupVersion"],
     "nodes.get": ["name"], "nodes.reachability": ["name"], "node.ssh.exec": ["name", "argv"], "kubectl.exec": ["argv"], "reconcile_control_plane_authentication_config": ["commitSha"],
+    "credentials.litellm-openoauth.project": ["credentialRef"],
     **{f"kube.resource.{verb}": ["resource"] for verb in ("get", "list", "watch", "apply", "patch", "delete")},
 }
 
@@ -104,6 +117,7 @@ def tool_list(identity: Identity) -> list[dict[str, Any]]:
     return result
 
 
+@observation.observed_phase("cloud.auth")
 def authenticate(header: str) -> Identity | None:
     if not header.startswith("Bearer "):
         return None
@@ -132,9 +146,30 @@ def authenticate(header: str) -> Identity | None:
         return None
 
 
-def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity) -> Any:
+@observation.observed_phase("cloud.dispatch")
+def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: Identity, *, _bound=False) -> Any:
     if name in WRITE_TOOLS | PRIVILEGED_TOOLS and ADMIN_GROUP not in identity.groups:
         raise OperationError("AUTHORIZATION_DENIED", name)
+    if name == "clusters.list":
+        return service.cluster_bindings().list()
+    if name == "clusters.resolve":
+        binding = service.cluster_bindings().resolve(args["clusterRef"])
+        return {key: value for key, value in binding.items() if key != "brokerURL"}
+    if name in CLUSTER_TOOLS and not _bound:
+        if ADMIN_GROUP not in identity.groups:
+            raise OperationError("AUTHORIZATION_DENIED", "managed cluster access requires platform administration")
+        arguments = dict(args)
+        ref = arguments.pop("clusterRef", "re8ch")
+        expected = arguments.pop("clusterBindingDigest", None)
+        if name == "kubectl.exec":
+            target_flags = ("--server", "--kubeconfig", "--context", "--cluster", "--user", "--token", "--client-certificate", "--client-key", "--certificate-authority", "--insecure-skip-tls-verify", "--as", "--as-group", "--as-uid")
+            if any(arg.split("=", 1)[0] in target_flags for arg in arguments.get("argv", [])):
+                raise OperationError("INVALID_ARGUMENT", "kubectl cannot override a reviewed cluster target or identity")
+        with service.for_cluster(ref, expected) as (bound, binding):
+            result = dispatch(bound, name, arguments, identity, _bound=True)
+            if isinstance(result, dict):
+                result = {**result, "clusterRef": ref, "clusterBindingDigest": binding["bindingDigest"]}
+            return result
     if name in STALWART_ADMIN_BY_NAME:
         from stalwart_admin import call
         return call(name, args, identity.subject)
@@ -148,6 +183,11 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
         if set(args) - {"apply"} or not isinstance(args.get("apply", False), bool):
             raise OperationError("INVALID_ARGUMENT", "only boolean apply is accepted")
         return service.ensure_webmail_session_secret(apply=args.get("apply", False))
+    if name == "credentials.litellm-openoauth.project":
+        if set(args) - {"credentialRef", "apply", "planHash"}:
+            raise OperationError("INVALID_ARGUMENT", "target overrides are forbidden")
+        return service.project_litellm_openoauth_credential(
+            args.get("credentialRef", ""), apply=args.get("apply", False), plan_hash=args.get("planHash", ""))
     if name == "plugin.operation.http-check":
         from plugin_http_conformance import conformance
         return conformance(service, args.get("groupVersion"), args.get("operationId"), args.get("schemaHash"), args.get("parameters"))
@@ -229,7 +269,74 @@ def dispatch(service: CloudPlatform, name: str, args: dict[str, Any], identity: 
 class Handler(BaseHTTPRequestHandler):
     server_version = "re8ch-cloud-platform/0.1"
 
+    def managed_cluster_proxy(self):
+        from cluster_execution_proxy import proxy_request, caller_identity, PROOF_HEADER
+        from plugin_http_transport import MAX_BODY
+        from http_stream import copy_response
+        try:
+            identity = caller_identity(self.headers.get(PROOF_HEADER, ""))
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 0 or length > MAX_BODY:
+                return self.reply(413, {"error": "KUBERNETES_BODY_TOO_LARGE"})
+            body = self.rfile.read(length) if length else None
+            response, audit = proxy_request(self.server.service, self.command, self.path, self.headers, body,
+                                           authenticate=lambda _: identity)
+            with response:
+                observation.status(response.status)
+                self.send_response(response.status)
+                for key in ("Content-Type", "Content-Encoding", "Warning", "Audit-Id"):
+                    for value in response.headers.get_all(key, []):
+                        self.send_header(key, value)
+                self.send_header("Connection", "close")
+                self.end_headers()
+                with observation.phase("http.response"):
+                    copy_response(response, self.connection, self.wfile)
+            print(json.dumps({"event": "managed-cluster-request", **audit}))
+        except OperationError as error:
+            observation.failure(error)
+            self.reply(403 if error.code in {"AUTHENTICATION_REQUIRED", "AUTHORIZATION_DENIED"} else 409,
+                       {"error": error.code, "message": str(error)})
+        except (BrokenPipeError, ConnectionResetError) as error:
+            observation.failure(error)
+        except (OSError, ValueError) as error:
+            observation.failure(error)
+            self.reply(502, {"error": "CLUSTER_TRANSPORT_UNAVAILABLE"})
+        self.close_connection = True
+
+    @observation.observed_http("cloud-platform")
+    def do_PUT(self):
+        return self.managed_cluster_proxy() if self.path.startswith("/k8s/") else self.reply(404, {"error": "not_found"})
+
+    do_PATCH = do_PUT
+    do_DELETE = do_PUT
+
+    @observation.observed_http("cloud-platform")
     def do_GET(self) -> None:
+        if self.path == "/metrics":
+            payload, content_type, status = observation.metrics(self.headers.get("Accept", ""))
+            observation.status(status)
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        if self.path.startswith("/cluster-bindings/"):
+            from cluster_execution_proxy import caller_identity, PROOF_HEADER, BINDING_HEADER
+            try:
+                identity = caller_identity(self.headers.get(PROOF_HEADER, ""))
+                ref = self.path.removeprefix("/cluster-bindings/")
+                with observation.phase("cloud.binding"):
+                    binding = self.server.service.cluster_bindings().resolve(ref)
+                if binding["adapter"] != "local" or self.headers.get(BINDING_HEADER) != binding["bindingDigest"]:
+                    raise OperationError("CLUSTER_BINDING_CHANGED", "self execution binding differs from reviewed identity")
+                print(json.dumps({"event":"managed-cluster-binding", "clusterRef":ref, "bindingDigest":binding["bindingDigest"], "caller":identity["username"]}))
+                return self.reply(200, binding)
+            except OperationError as error:
+                observation.failure(error)
+                return self.reply(403, {"error":error.code, "message":str(error)})
+        if self.path.startswith("/k8s/"):
+            return self.managed_cluster_proxy()
         if self.path in {"/healthz", "/readyz"}:
             self.reply(200, {"status": "ok"})
         elif self.path == "/.well-known/oauth-protected-resource/cloud/mcp":
@@ -237,11 +344,15 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.reply(404, {"error": "not_found"})
 
+    @observation.observed_http("cloud-platform")
     def do_POST(self) -> None:
+        if self.path.startswith("/k8s/"):
+            return self.managed_cluster_proxy()
         if self.path != "/mcp":
             return self.reply(404, {"error": "not_found"})
         identity = authenticate(self.headers.get("Authorization", ""))
         if identity is None:
+            observation.failure(error_category="authorization", phase_name="cloud.auth")
             challenge = f'Bearer realm="https://auth.re8ch.com", resource_metadata="{RESOURCE_METADATA_URL}", scope="openid profile email groups offline_access"'
             return self.reply(401, {"error": "unauthenticated"}, {"WWW-Authenticate": challenge})
         try:
@@ -261,19 +372,24 @@ class Handler(BaseHTTPRequestHandler):
                 raise OperationError("METHOD_NOT_FOUND", str(method))
             self.reply(200, {"jsonrpc": "2.0", "id": request.get("id"), "result": result})
         except OperationError as exc:
+            observation.failure(exc)
             self.reply(200, {"jsonrpc": "2.0", "id": request.get("id"), "error": {"code": -32000, "message": str(exc), "data": {"code": exc.code, "retryable": exc.retryable}}})
         except Exception as exc:
+            observation.failure(exc)
             self.reply(400, {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": type(exc).__name__}})
 
     def log_message(self, fmt: str, *args: Any) -> None:
-        # Never log request bodies. Reverse proxies provide request metadata.
-        print(json.dumps({"event": "http", "remote": self.client_address[0], "message": fmt % args}))
+        # The request boundary emits only fixed classifications and opaque IDs.
+        pass
 
     def reply(self, status: int, body: dict[str, Any], headers: dict[str, str] | None = None) -> None:
+        observation.status(status)
         payload = json.dumps(body).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(payload)))
+        if operation_id := observation.headers().get("X-Re8ch-Operation-Id"):
+            self.send_header("X-Re8ch-Operation-Id", operation_id)
         for name, value in (headers or {}).items():
             self.send_header(name, value)
         self.end_headers()
@@ -281,6 +397,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    observation.initialize("cloud-platform")
     confidential_nodes = Path(os.getenv("NODE_INVENTORY_PATH", "/etc/re8ch-platform/infrastructure/compat-nodes.yaml"))
     inventory = Inventory([confidential_nodes, ROOT / "inventory/devices.yaml", ROOT / "inventory/cloud-providers.yaml"])
     service = CloudPlatform(inventory, OperationRunner(), kubeconfig=os.getenv("KUBECONFIG", "/etc/re8ch-platform/kubeconfig"), ssh_config=os.getenv("SSH_CONFIG", "/etc/re8ch-platform/ssh_config"))

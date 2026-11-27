@@ -35,6 +35,23 @@ def jwt(subject="user-1"):
     return part({"alg": "none"}) + "." + part({"iss": "https://db-rw.re8ch.com/auth/v1", "aud": "authenticated", "sub": subject, "exp": int(time.time()) + 3600}) + ".signature"
 
 
+def b64url(raw):
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def signed_invocation(request):
+    header = b64url(json.dumps({"alg": "RS256", "kid": "fixture", "typ": "JWT"}, separators=(",", ":")).encode())
+    claims = {"iss": INVOCATION_ISSUER, "aud": request["audience"], "sub": request["subject"],
+              "exp": int(time.time()) + 120, "jti": "fixture-invocation", "active_org_ref": request["activeOrgRef"],
+              "owner_org_ref": "publisher", "tool_ref": request["toolRef"], "binding_ref": request["bindingRef"],
+              "scopes": request["scopes"]}
+    payload = b64url(json.dumps(claims, separators=(",", ":")).encode())
+    signing_input = f"{header}.{payload}".encode()
+    signature = subprocess.run(["openssl", "dgst", "-sha256", "-sign", str(SIGNING_KEY)], input=signing_input,
+                               check=True, capture_output=True).stdout
+    return f"{header}.{payload}.{b64url(signature)}"
+
+
 class FixtureAPI(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/user":
@@ -53,20 +70,28 @@ class FixtureAPI(BaseHTTPRequestHandler):
             ]})
         elif self.path in ("/readyz", "/healthz", "/.well-known/openid-configuration"):
             self.reply(200, {"status": "ready"})
+        elif self.path == "/.well-known/invocation-jwks.json":
+            self.reply(200, INVOCATION_JWKS)
         else:
             self.reply(404, {"error": "not_found"})
 
     def do_POST(self):
-        if self.path == "/v1/services/plan":
+        if self.path == "/rpc/my_tenant_runtime_contexts":
+            self.reply(200, [{"tenant_ref": "acme", "tenant_role": "operator", "tenant_kind": "enterprise",
+                              "display_name": "Acme", "parent_ref": "", "is_active": True}])
+        elif self.path == "/v1/services/plan":
             self.reply(200, {"operation": "plan", "accepted": True})
         elif self.path == "/v1/services":
             self.reply(201, {"metadata": {"name": "proposed"}, "status": {"phase": "Pending"}})
         elif self.path == "/v1/resolve-supabase":
             body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
-            if body.get("tenantRef") == "acme" and body.get("accessToken") == TOKEN:
+            if body.get("tenantRef") in (None, "", "acme") and body.get("accessToken") == TOKEN:
                 self.reply(200, {"tenantRef": "acme", "role": "operator", "defaultNamespace": "acme"})
             else:
                 self.reply(403, {"error": "forbidden"})
+        elif self.path == "/v1/invocation-tokens":
+            body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+            self.reply(200, {"accessToken": signed_invocation(body), "expiresIn": 120, "scopes": body["scopes"]})
         else:
             self.reply(404, {"error": "not_found"})
 
@@ -95,7 +120,7 @@ def request(url, method="GET", body=None, headers=None):
 
 
 def token_exchange(base):
-    data = urlencode({"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange", "subject_token_type": "urn:ietf:params:oauth:token-type:access_token", "subject_token": TOKEN, "audience": "re8ch-tenant"}).encode()
+    data = urlencode({"grant_type": "urn:ietf:params:oauth:grant-type:token-exchange", "subject_token_type": "urn:ietf:params:oauth:token-type:access_token", "subject_token": TOKEN, "audience": "re8ch-tenant", "tool_ref": "tool://publisher/search", "binding_ref": "binding://acme/search", "scope": "tools:invoke usage:write"}).encode()
     req = Request(base + "/oauth/token", data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
     with urlopen(req, timeout=10) as response:
         return json.load(response)
@@ -132,16 +157,21 @@ def seed(path, module):
 
 
 def main():
-    global TOKEN
+    global TOKEN, SIGNING_KEY, INVOCATION_JWKS, INVOCATION_ISSUER
     TOKEN = jwt()
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
+        SIGNING_KEY = root / "invocation-signing-key.pem"
+        subprocess.run(["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(SIGNING_KEY)], check=True, capture_output=True)
+        modulus = subprocess.run(["openssl", "rsa", "-in", str(SIGNING_KEY), "-noout", "-modulus"], check=True, capture_output=True, text=True).stdout.strip().split("=", 1)[1]
+        INVOCATION_JWKS = {"keys": [{"kty": "RSA", "kid": "fixture", "alg": "RS256", "use": "sig", "n": b64url(bytes.fromhex(modulus)), "e": "AQAB"}]}
+        INVOCATION_ISSUER = "https://fixture.issuer.re8ch.test"
         fixture = ThreadingHTTPServer(("127.0.0.1", 0), FixtureAPI)
         fixture_thread = threading.Thread(target=fixture.serve_forever, daemon=True)
         fixture_thread.start()
         fixture_url = f"http://127.0.0.1:{fixture.server_port}"
         python_db, go_db = root / "python.db", root / "go.db"
-        common_env = {**os.environ, "RE8CH_TOOL_PROFILE": "tenant", "RE8CH_TOOL_AUDIENCE": "re8ch-tenant", "TENANT_CLAIM_SERVICE_TOKEN": "fixture-secret", "SUPABASE_USER_URL": fixture_url + "/user", "TENANT_CONTROL_URL": fixture_url, "AUTH_DISCOVERY_URL": fixture_url + "/.well-known/openid-configuration", "HARBOR_SUPPLY_CHAIN_URL": fixture_url, "SERVICE_API_TOKEN": "fixture-service-token"}
+        common_env = {**os.environ, "RE8CH_TOOL_PROFILE": "tenant", "RE8CH_TOOL_AUDIENCE": "re8ch-tenant", "TENANT_CLAIM_SERVICE_TOKEN": "fixture-secret", "SUPABASE_USER_URL": fixture_url + "/user", "IDENTITY_REST_URL": fixture_url, "TENANT_CONTROL_URL": fixture_url, "AUTH_DISCOVERY_URL": fixture_url + "/.well-known/openid-configuration", "HARBOR_SUPPLY_CHAIN_URL": fixture_url, "SERVICE_API_TOKEN": "fixture-service-token", "INVOCATION_TOKEN_ISSUER_URL": fixture_url + "/v1/invocation-tokens", "INVOCATION_TOKEN_ISSUER": INVOCATION_ISSUER, "INVOCATION_TOKEN_JWKS_URL": fixture_url + "/.well-known/invocation-jwks.json"}
         os.environ.update(common_env)
         os.environ["TENANT_SERVICE_DB"] = str(python_db)
         os.environ["DEVICE_REGISTRY_PATH"] = str(root / "python-devices.db")
@@ -220,13 +250,13 @@ def main():
             assert capability_tools <= {"monitoring_query", "monitoring_analyze", "monitoring_dashboard"}, "capability resource advertises legacy Grafana tools"
             for path in ["/billing/usage?from=2026-09-30T00:00:00Z&to=2026-10-01T00:00:00Z", "/.well-known/oauth-protected-resource/mcp"]:
                 equivalent("HTTP " + path, request(python_url + path), request(go_url + path))
-            exchanged = [token_exchange(base) for base in (python_url, go_url)]
-            for value in exchanged:
-                equivalent("OAuth preserves user token", value["access_token"], TOKEN)
-            equivalent("OAuth response fields", {k: v for k, v in exchanged[0].items() if k != "expires_in"}, {k: v for k, v in exchanged[1].items() if k != "expires_in"})
-            if abs(exchanged[0]["expires_in"] - exchanged[1]["expires_in"]) > 1:
-                raise AssertionError("OAuth token lifetime differs")
-            print("PASS OAuth token lifetime")
+            python_exchange, go_exchange = token_exchange(python_url), token_exchange(go_url)
+            equivalent("legacy Python OAuth preserves user token", python_exchange["access_token"], TOKEN)
+            assert go_exchange["access_token"] != TOKEN, "Go exchange leaked the user token"
+            claims = json.loads(base64.urlsafe_b64decode(go_exchange["access_token"].split(".")[1] + "=="))
+            equivalent("Go OAuth active organization", claims["active_org_ref"], "acme")
+            equivalent("Go OAuth binding", claims["binding_ref"], "binding://acme/search")
+            equivalent("Go OAuth scopes", claims["scopes"], ["tools:invoke", "usage:write"])
             postgres = {"name": "proposed", "spec": {"serviceClass": "database.postgresql.shared.v1", "planRef": "standard", "regionRef": "loudi"}}
             for name, args in [("service_instance_plan", postgres), ("service_instance_create", {**postgres, "idempotency_key": "fixture-create-1"})]:
                 p = content(mcp(python_url, "tools/call", {"name": name, "arguments": args}))

@@ -133,13 +133,19 @@ func TestPlatformStalwartAdminRoutesOnlyBoundedOperations(t *testing.T) {
 
 func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	s := testServer(t)
+	var ledgerErr error
+	s.ledger, ledgerErr = openLedger(t.TempDir() + "/ledger.db")
+	if ledgerErr != nil {
+		t.Fatal(ledgerErr)
+	}
+	t.Cleanup(func() { s.ledger.Close() })
 	goTrue := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, _ := decodeClaims(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 		writeJSON(w, 200, map[string]string{"id": claims.Subject})
 	}))
 	defer goTrue.Close()
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, 200, map[string]string{"tenantRef": "admin", "role": "admin", "defaultNamespace": "admin-default"})
+		writeJSON(w, 200, map[string]any{"tenantRef": "admin", "role": "admin", "defaultNamespace": "admin-default", "byocAllowed": false, "nativeAccess": true, "hostingMode": "platform-managed"})
 	}))
 	defer control.Close()
 	active := true
@@ -165,18 +171,49 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	var authenticationInput controlPlaneAuthenticationInput
 	var kubectlArgv []string
 	var kubectlTimeout int
+	var kubectlCalls int
 	var nativeOperation string
+	var nativeApplyHasOwnedFields bool
+	var kubectlCluster, kubectlBinding string
+	currentBinding := strings.Repeat("a", 64)
+	mcp.AddTool(backend, &mcp.Tool{Name: "clusters.resolve"}, func(_ context.Context, _ *mcp.CallToolRequest, input struct {
+		ClusterRef string `json:"clusterRef"`
+	}) (*mcp.CallToolResult, any, error) {
+		if input.ClusterRef != "re8ch" && input.ClusterRef != "re8ch-atlantic" {
+			return &mcp.CallToolResult{IsError: true}, nil, nil
+		}
+		return nil, map[string]any{"clusterRef": input.ClusterRef, "bindingDigest": currentBinding}, nil
+	})
+	mcp.AddTool(backend, &mcp.Tool{Name: "clusters.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+		return nil, map[string]any{"clusters": []map[string]any{{"clusterRef": "re8ch", "bindingDigest": currentBinding, "state": "Ready", "adapter": "local", "clusterIdentityRef": map[string]any{"namespace": "pilot", "name": "re8ch", "uid": "fixture-self"}}, {"clusterRef": "re8ch-atlantic", "bindingDigest": currentBinding, "state": "Ready", "adapter": "among-broker", "serviceIdentity": "spiffe://fixture/ns/default/service/kubernetes"}}}, nil
+	})
 	mcp.AddTool(backend, &mcp.Tool{Name: "kubectl.exec"}, func(_ context.Context, _ *mcp.CallToolRequest, input platformKubectlInput) (*mcp.CallToolResult, any, error) {
+		kubectlCalls++
 		kubectlArgv, kubectlTimeout = input.Argv, input.Timeout
+		kubectlCluster, kubectlBinding = input.ClusterRef, input.ClusterBindingDigest
+		// The native writer owns fields after the first apply. Reproduce the
+		// real API's conflict on a subsequent preview under another SSA owner.
+		if nativeApplyHasOwnedFields && len(input.Argv) > 0 && input.Argv[0] == "apply" {
+			joined := " " + strings.Join(input.Argv, " ") + " "
+			if !strings.Contains(joined, " --field-manager=re8ch-cloud-platform ") || strings.Contains(joined, "--force-conflicts") {
+				return &mcp.CallToolResult{IsError: true, Content: []mcp.Content{&mcp.TextContent{Text: "conflict with re8ch-cloud-platform: .data.status"}}}, nil, nil
+			}
+		}
 		return nil, map[string]any{"exitCode": 0, "stdout": "ok", "auditRef": "audit://kubectl/test"}, nil
 	})
-	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+	mcp.AddTool(backend, &mcp.Tool{Name: "nodes.list"}, func(_ context.Context, _ *mcp.CallToolRequest, _ struct {
+		ClusterRef           string `json:"clusterRef,omitempty"`
+		ClusterBindingDigest string `json:"clusterBindingDigest,omitempty"`
+	}) (*mcp.CallToolResult, any, error) {
 		return nil, map[string]any{"nodes": []string{"r640"}}, nil
 	})
 	for _, name := range []string{"kube.resource.apply", "kube.resource.delete"} {
 		name := name
 		mcp.AddTool(backend, &mcp.Tool{Name: name}, func(_ context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
 			nativeOperation = name
+			if name == "kube.resource.apply" {
+				nativeApplyHasOwnedFields = true
+			}
 			return nil, map[string]any{"operation": name, "arguments": input, "auditRef": "audit://kube/test"}, nil
 		})
 	}
@@ -240,11 +277,92 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	if pluginKubectl["error"] != nil || pluginKubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/version" {
 		t.Fatalf("plugin kubectl argv was not routed: %#v; argv=%v", pluginKubectl, kubectlArgv)
 	}
+
+	// Use only the old published argv/timeout schema, including actual SSA verbs.
+	for _, ref := range []string{"re8ch", "re8ch-atlantic"} {
+		for _, dryRun := range []bool{true, false} {
+			argv := []string{"--context=" + ref, "apply", "--server-side", "--field-manager=fixture-acceptance", "-f", "https://example.invalid/reviewed/fixture.yaml"}
+			expected := append([]string{}, argv[1:]...)
+			if dryRun {
+				argv = append(argv, "--dry-run=server")
+				expected = append(expected, "--dry-run=server")
+			}
+			reply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": argv, "timeout": 20}})
+			if reply["error"] != nil || reply["result"].(map[string]any)["isError"] == true || kubectlCluster != ref || kubectlBinding != currentBinding || strings.Join(kubectlArgv, " ") != strings.Join(expected, " ") {
+				t.Fatalf("argv-only SSA lost binding or forwarded selector: %#v target=%s binding=%s argv=%v", reply, kubectlCluster, kubectlBinding, kubectlArgv)
+			}
+		}
+	}
+	for _, args := range []map[string]any{
+		{"argv": []string{"--context=unknown", "get", "pods"}},
+		{"argv": []string{"--context=re8ch", "--context=re8ch-atlantic", "get", "pods"}},
+		{"argv": []string{"--context=re8ch-atlantic", "get", "pods"}, "clusterRef": "re8ch"},
+		{"argv": []string{"--context", "get"}},
+	} {
+		before := kubectlCalls
+		denied := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": args})
+		if denied["error"] == nil && denied["result"].(map[string]any)["isError"] != true || kubectlCalls != before {
+			t.Fatalf("invalid/unknown context reached business command: %#v calls=%d before=%d", denied, kubectlCalls, before)
+		}
+	}
 	pluginResources := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover"}})
 	if pluginResources["error"] != nil || pluginResources["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "api-resources -o wide" || kubectlTimeout != 120 {
 		t.Fatalf("platform resource discovery was not routed: %#v; argv=%v timeout=%d", pluginResources, kubectlArgv, kubectlTimeout)
 	}
 	manifest := map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "metadata": map[string]any{"name": "meta-probe", "namespace": "ops"}, "data": map[string]any{"status": "ready"}}
+	bindings := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_cluster_bindings_list", "arguments": map[string]any{}})
+	if bindings["error"] != nil || bindings["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("cluster directory unavailable: %#v", bindings)
+	}
+	byoc := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "byoc_connection_list", "arguments": map[string]any{}})
+	if byoc["error"] != nil || byoc["result"].(map[string]any)["isError"] == true {
+		t.Fatalf("Admin BYOC view unavailable: %#v", byoc)
+	}
+	encoded, _ := json.Marshal(byoc)
+	if !strings.Contains(string(encoded), "managed-cluster://admin/re8ch-atlantic") || !strings.Contains(string(encoded), "managed-cluster://admin/re8ch") {
+		t.Fatalf("Admin BYOC directory omitted managed targets: %s", encoded)
+	}
+
+	// Execute the existing directory's exact examples without any new input key.
+	connectionView := byoc["result"].(map[string]any)["structuredContent"].(map[string]any)
+	for _, raw := range connectionView["connections"].([]any) {
+		connection := raw.(map[string]any)
+		if connection["discovery_tool"] != "byoc_connection_list" {
+			t.Fatalf("directory references unrefreshed tool: %#v", connection)
+		}
+		operation := connection["kubectl"].(map[string]any)
+		reply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": operation["tool"], "arguments": operation["arguments"]})
+		if reply["error"] != nil || reply["result"].(map[string]any)["isError"] == true || kubectlCluster != connection["cluster_ref"] || kubectlBinding != currentBinding || strings.Join(kubectlArgv, " ") != "get --raw=/version" {
+			t.Fatalf("directory example did not resolve exactly its target: %#v %#v", connection, reply)
+		}
+	}
+	var registrations int
+	if err := s.ledger.QueryRow("SELECT COUNT(*) FROM cluster_registrations").Scan(&registrations); err != nil || registrations != 0 {
+		t.Fatalf("managed view created duplicate registrations: %d %v", registrations, err)
+	}
+	for _, ref := range []string{"re8ch", "re8ch-atlantic"} {
+		read := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_read", "arguments": map[string]any{"action": "discover", "clusterRef": ref}})
+		if read["error"] != nil || read["result"].(map[string]any)["isError"] == true || kubectlCluster != ref || kubectlBinding != currentBinding {
+			t.Fatalf("target read did not preserve binding: %#v %s %s", read, kubectlCluster, kubectlBinding)
+		}
+	}
+	remotePreview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest, "clusterRef": "re8ch-atlantic"}})
+	if remotePreview["error"] != nil || remotePreview["result"].(map[string]any)["isError"] == true || kubectlCluster != "re8ch-atlantic" {
+		t.Fatalf("remote preview failed: %#v", remotePreview)
+	}
+	remotePlan, _ := platformMutationPlan("apply", map[string]any{"manifest": manifest, "cluster": map[string]any{"clusterRef": "re8ch-atlantic", "clusterBindingDigest": currentBinding}})
+	for _, ref := range []string{"re8ch", "unknown"} {
+		before := nativeOperation
+		denied := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest, "clusterRef": ref, "apply": true, "planHash": remotePlan}})
+		if denied["error"] == nil && denied["result"].(map[string]any)["isError"] != true || nativeOperation != before {
+			t.Fatalf("cross-target plan reached apply: %#v", denied)
+		}
+	}
+	currentBinding = strings.Repeat("b", 64)
+	stale := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest, "clusterRef": "re8ch-atlantic", "apply": true, "planHash": remotePlan}})
+	if stale["error"] == nil && stale["result"].(map[string]any)["isError"] != true {
+		t.Fatalf("stale binding plan accepted: %#v", stale)
+	}
 	preview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubernetes_resource_apply", "arguments": map[string]any{"manifest": manifest}})
 	if preview["error"] != nil || preview["result"].(map[string]any)["isError"] == true || !strings.Contains(strings.Join(kubectlArgv, " "), "--dry-run=server") {
 		t.Fatalf("platform resource apply preview was not server validated: %#v; argv=%v", preview, kubectlArgv)
@@ -256,6 +374,19 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	legacyApply := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_apply", "arguments": map[string]any{"object": manifest, "apply": true}})
 	if legacyApply["error"] != nil || legacyApply["result"].(map[string]any)["isError"] == true || nativeOperation != "kube.resource.apply" {
 		t.Fatalf("existing Kubernetes apply interface did not use the native Meta backend: %#v; operation=%s", legacyApply, nativeOperation)
+	}
+	manifest["data"] = map[string]any{"status": "updated"}
+	for _, input := range []struct {
+		name      string
+		arguments map[string]any
+	}{
+		{"platform_kubernetes_resource_apply", map[string]any{"manifest": manifest}},
+		{"tenant_kubernetes_apply", map[string]any{"object": manifest}},
+	} {
+		updatedPreview := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": input.name, "arguments": input.arguments})
+		if updatedPreview["error"] != nil || updatedPreview["result"].(map[string]any)["isError"] == true {
+			t.Fatalf("%s could not preview an update to its own fields: %#v", input.name, updatedPreview)
+		}
 	}
 	legacyDelete := callPath("/plugin/mcp", "admin-user", "session-1", "tools/call", map[string]any{"name": "tenant_kubernetes_delete", "arguments": map[string]any{"kind": "configmaps", "name": "meta-probe", "namespace": "ops", "apply": true}})
 	if legacyDelete["error"] != nil || legacyDelete["result"].(map[string]any)["isError"] == true || nativeOperation != "kube.resource.delete" {
@@ -291,7 +422,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 	}
 	assertPlatformStatus("admin-user", "session-1", true)
 	kubectl := call("admin-user", "session-1", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "--raw=/readyz"}}})
-	if kubectl["error"] != nil || kubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/readyz" || kubectlTimeout != 30 {
+	if kubectl["error"] != nil || kubectl["result"].(map[string]any)["isError"] == true || strings.Join(kubectlArgv, " ") != "get --raw=/readyz" || kubectlTimeout != 600 {
 		t.Fatalf("explicit kubectl argv was not routed unchanged: %#v; argv=%v timeout=%d", kubectl, kubectlArgv, kubectlTimeout)
 	}
 	direct := call("admin-user", "session-1", "tools/call", map[string]any{"name": "reconcile_control_plane_authentication_config", "arguments": map[string]any{"commitSha": strings.Repeat("a", 40), "apply": true, "planHash": strings.Repeat("b", 64)}})
@@ -309,7 +440,7 @@ func TestExplicitPlatformToolsAreIdentityScoped(t *testing.T) {
 		t.Fatal("platform entry point missing from stable tool list")
 	}
 	assertPlatformStatus("ordinary-user", "session-2", false)
-	deniedKubectl := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"get", "pods"}}})
+	deniedKubectl := call("ordinary-user", "session-2", "tools/call", map[string]any{"name": "platform_kubectl_exec", "arguments": map[string]any{"argv": []string{"--context=re8ch-atlantic", "get", "pods"}}})
 	if deniedKubectl["error"] == nil && deniedKubectl["result"].(map[string]any)["isError"] != true {
 		t.Fatal("ordinary user called explicit kubectl tool")
 	}

@@ -18,3 +18,6 @@ spec:
       - ../../platform/modules/codex-admin-plugins/module.yaml
       - ../../platform/modules/tool-distribution/module.yaml
       - ../../platform/modules/mcp-registry/module.yaml
+  recoveryContext:
+    verification: ../../../operations/releases/toolchain-runtime-verification.md
+    baseline: https://github.com/re8ch/service-backend/issues/3002

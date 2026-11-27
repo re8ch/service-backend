@@ -1,3 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: stalwart-webmail-tls-proxy, namespace: mail-system}
+data:
+  nginx.conf: |
+    events {}
+    http {
+      server {
+        listen 8443 ssl;
+        server_name mail.re8ch.com;
+        ssl_certificate /var/run/stalwart-tls/tls.crt;
+        ssl_certificate_key /var/run/stalwart-tls/tls.key;
+        location / {
+          proxy_pass http://127.0.0.1:3000;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+      }
+    }
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,9 +58,9 @@ spec:
                   name: stalwart-webmail-session
                   key: session-secret
             - {name: OAUTH_ENABLED, value: "true"}
-            - {name: OAUTH_ONLY, value: "false"}
-            - {name: OAUTH_CLIENT_ID, value: stalwart-webui}
-            - {name: OAUTH_ISSUER_URL, value: https://auth.re8ch.com}
+            - {name: OAUTH_ONLY, value: "true"}
+            - {name: OAUTH_CLIENT_ID, value: 705c1168-43d8-4ec3-980a-0327a59c7fc6}
+            - {name: OAUTH_ISSUER_URL, value: https://db-rw.re8ch.com/auth/v1}
             - {name: APP_NAME, value: RE8CH Mail}
             - {name: APP_SHORT_NAME, value: Mail}
             - {name: LOGIN_COMPANY_NAME, value: RE8CH}
@@ -66,16 +87,46 @@ spec:
           volumeMounts:
             - {name: data, mountPath: /app/data}
             - {name: tmp, mountPath: /tmp}
+        - name: tls-proxy
+          image: nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de
+          imagePullPolicy: IfNotPresent
+          ports: [{name: https, containerPort: 8443}]
+          readinessProbe:
+            tcpSocket: {port: https}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: {port: https}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tls-proxy-config, mountPath: /etc/nginx/nginx.conf, subPath: nginx.conf, readOnly: true}
+            - {name: mail-tls, mountPath: /var/run/stalwart-tls, readOnly: true}
+            - {name: nginx-cache, mountPath: /var/cache/nginx}
+            - {name: nginx-run, mountPath: /var/run}
       volumes:
         - {name: data, emptyDir: {}}
         - {name: tmp, emptyDir: {}}
+        - {name: tls-proxy-config, configMap: {name: stalwart-webmail-tls-proxy}}
+        - {name: mail-tls, secret: {secretName: stalwart-mail-re8ch-tls}}
+        - {name: nginx-cache, emptyDir: {}}
+        - {name: nginx-run, emptyDir: {}}
 ---
 apiVersion: v1
 kind: Service
 metadata: {name: stalwart-webmail, namespace: mail-system}
 spec:
   selector: {app.kubernetes.io/name: stalwart-webmail}
-  ports: [{name: http, port: 80, targetPort: http}]
+  ports:
+    - {name: http, port: 80, targetPort: http}
+    - {name: https, port: 443, targetPort: https}
 ---
 # DNS authority only. Cilium Gateway remains the Webmail request path; this
 # same-name Ingress is the publication object expected by Public Edge Manager.

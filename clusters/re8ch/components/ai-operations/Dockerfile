@@ -1,6 +1,10 @@
 FROM alpine:3.22
 
-RUN apk add --no-cache python3 kubectl helm cosign openssh-client ca-certificates curl github-cli
+RUN apk add --no-cache python3 py3-pip kubectl helm cosign openssh-client ca-certificates curl github-cli
+COPY operations/cloud-platform/requirements-observability.txt /tmp/requirements-observability.txt
+RUN pip3 install --no-cache-dir --target=/app/python -r /tmp/requirements-observability.txt
+ENV PYTHONPATH=/app/python
+COPY operations/cloud-platform/re8ch_observability.py /app/re8ch_observability.py
 COPY clusters/re8ch/components/ai-operations/ai_operations_mcp.py /app/ai_operations_mcp.py
 COPY clusters/re8ch/components/ai-operations/grafana_exploration.py /app/grafana_exploration.py
 COPY clusters/re8ch/components/ai-operations/grafana_capabilities.json /app/grafana_capabilities.json
@@ -8,6 +12,7 @@ COPY clusters/re8ch/components/ai-operations/harbor_integration.py /app/harbor_i
 COPY clusters/re8ch/components/ai-operations/harbor_supply_chain.py /app/harbor_supply_chain.py
 COPY clusters/re8ch/components/ai-operations/tenant_infrastructure.py /app/tenant_infrastructure.py
 COPY clusters/re8ch/components/ai-operations/tenant_control_controller.py /app/tenant_control_controller.py
+COPY clusters/re8ch/components/ai-operations/invocation_token_issuer.py /app/invocation_token_issuer.py
 COPY clusters/re8ch/components/ai-operations/tenant_provider_reconciler.py /app/tenant_provider_reconciler.py
 COPY clusters/re8ch/components/ai-operations/tenant_claims.py /app/tenant_claims.py
 COPY operations/tenant-broker/contracts.py /app/tenant_claim_contracts.py

@@ -24,38 +24,14 @@ data:
       - {name: OVERSEAS-LA, type: socks5, server: mihomo-egress-overseas-la.egress-fabric.svc.cluster.local, port: 1080, udp: true}
       - {name: OVERSEAS-LA-2, type: socks5, server: mihomo-egress-overseas-la-2.egress-fabric.svc.cluster.local, port: 1080, udp: true}
       - {name: OVERSEAS-FLK, type: socks5, server: mihomo-egress-overseas-flk.egress-fabric.svc.cluster.local, port: 1080, udp: true}
-    proxy-providers:
-      external-paths:
-        type: file
-        path: /etc/mihomo/paths.yaml
-        health-check:
-          enable: true
-          url: https://www.gstatic.com/generate_204
-          interval: 30
-          timeout: 5000
-          lazy: false
     proxy-groups:
       - name: stable-egress
         type: fallback
         proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
         url: https://www.gstatic.com/generate_204
-        interval: 30
+        interval: 600
         timeout: 5000
-        lazy: false
-      - name: github-egress
-        type: fallback
-        proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
-        url: https://github.com/login/oauth/access_token
-        interval: 30
-        timeout: 5000
-        lazy: false
-      - name: ghcr-egress
-        type: fallback
-        proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]
-        url: https://ghcr.io/v2/
-        interval: 30
-        timeout: 5000
-        lazy: false
+        lazy: true
     rule-providers:
       cn-ip:
         type: file
@@ -66,13 +42,21 @@ data:
       - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
       - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
       - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+      # Never send an exit's own public listener back through the exit pool.
+      # PublicEdge probes and AmongCluster control traffic must observe the
+      # physical endpoint, otherwise the selected proxy forms an egress loop.
+      - IP-CIDR,179.255.126.104/32,DIRECT,no-resolve
+      - IP-CIDR,179.253.231.159/32,DIRECT,no-resolve
+      - IP-CIDR,2.28.106.230/32,DIRECT,no-resolve
+      - IP-CIDR,2.29.219.31/32,DIRECT,no-resolve
+      - IP-CIDR,198.20.153.89/32,DIRECT,no-resolve
       # Probe/control destinations must reveal the physical direct path.
       - DOMAIN,ipinfo.io,DIRECT
       - DOMAIN-SUFFIX,ipinfo.io,DIRECT
-      - DOMAIN-SUFFIX,ghcr.io,ghcr-egress
-      - DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,ghcr-egress
-      - DOMAIN-SUFFIX,github.com,github-egress
-      - DOMAIN-SUFFIX,githubusercontent.com,github-egress
+      - DOMAIN-SUFFIX,ghcr.io,stable-egress
+      - DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,stable-egress
+      - DOMAIN-SUFFIX,github.com,stable-egress
+      - DOMAIN-SUFFIX,githubusercontent.com,stable-egress
       - DOMAIN-SUFFIX,cn,DIRECT
       - RULE-SET,cn-ip,DIRECT
       - MATCH,stable-egress
@@ -96,7 +80,7 @@ data:
     proxies:
       - {name: CN-FABRIC, type: socks5, server: mihomo-egress-cn-headless.egress-fabric.svc.cluster.local, port: 1080, udp: true}
     proxy-groups:
-      - {name: stable-cn-egress, type: fallback, proxies: [CN-FABRIC], url: "https://connectivitycheck.gstatic.com/generate_204", interval: 30, timeout: 5000, lazy: false}
+      - {name: stable-cn-egress, type: fallback, proxies: [CN-FABRIC], url: "https://connect.rom.miui.com/generate_204", interval: 600, timeout: 5000, lazy: true}
     rule-providers:
       cn-ip: {type: file, behavior: classical, path: /etc/mihomo/rules/cn-ip-rules.yaml}
     rules:

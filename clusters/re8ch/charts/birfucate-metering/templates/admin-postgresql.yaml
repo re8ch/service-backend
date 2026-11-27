@@ -2,17 +2,35 @@
 apiVersion: tenancy.re8ch.com/v1alpha1
 kind: TenantServiceInstance
 metadata:
-  name: postgresql-shared
+  name: pg-re8ch
   namespace: tenant-infrastructure
   labels:
     app.kubernetes.io/part-of: birfucate-metering
     tenancy.re8ch.com/tenant: admin
   annotations:
-    tenancy.re8ch.com/idempotency-key: admin-postgresql-adoption-v1
+    tenancy.re8ch.com/idempotency-key: admin-pg-re8ch-native-mcp-v1
 spec:
   tenantRef: admin
   serviceClass: database.postgresql.shared.v1
   plan: standard
   lifecycle: Requested
   parameters: {}
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantServiceInstance
+metadata:
+  name: pg-identity
+  namespace: tenant-infrastructure
+  labels: {app.kubernetes.io/part-of: birfucate-metering, tenancy.re8ch.com/tenant: admin}
+  annotations: {tenancy.re8ch.com/idempotency-key: admin-pg-identity-native-mcp-v1}
+spec: {tenantRef: admin, serviceClass: database.postgresql.shared.v1, plan: standard, lifecycle: Requested, parameters: {}}
+---
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantServiceInstance
+metadata:
+  name: pg-billing
+  namespace: tenant-infrastructure
+  labels: {app.kubernetes.io/part-of: birfucate-metering, tenancy.re8ch.com/tenant: admin}
+  annotations: {tenancy.re8ch.com/idempotency-key: admin-pg-billing-native-mcp-v1}
+spec: {tenantRef: admin, serviceClass: database.postgresql.shared.v1, plan: standard, lifecycle: Requested, parameters: {}}
 {{- end }}

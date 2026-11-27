@@ -26,11 +26,16 @@ spec:
     spec:
       serviceAccountName: headlamp
       priorityClassName: system-cluster-critical
-      # Resolve the Supabase issuer through the in-cluster Cilium Gateway.
+      # Use the declared R640 public authority for control-plane dependencies.
+      # The advanced-fabric DNS service can briefly fail external lookups, and
+      # the local 10.251.0.4 VIP also hairpins Headlamp through the A1 Envoy and
+      # the intermittently unhealthy A1-to-R640 Pod tunnel. RouterOS owns
+      # 223.159.210.222 and delivers it to the authoritative Gateway.
       hostAliases:
-        - ip: "10.251.0.4"
+        - ip: "223.159.210.222"
           hostnames:
             - db-rw.re8ch.com
+            - among-clusters.service.re8ch.com
       nodeSelector:
         node-role.kubernetes.io/control-plane: "true"
       affinity:
@@ -57,6 +62,8 @@ spec:
       initContainers:
         - name: install-flux-static-github-ops
           image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          env:
+            - {name: https_proxy, value: "http://mihomos-global-exit-atlantic.egress-fabric.svc.cluster.local:1080"}
           command: [/bin/sh, -ec]
           args:
             - |
@@ -193,10 +200,10 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              target=/headlamp/plugins/public-edge-0.3.3
+              target=/headlamp/plugins/public-edge-0.3.4
               archive=/tmp/plugin.tar.gz
               cp /plugin/plugin.tar.gz "$archive"
-              echo 'f341ec73750f662549f7dce665c4f05940ec0be3cc0de76662aa2d2b720b1196  /tmp/plugin.tar.gz' | sha256sum -c -
+              echo 'c437a81e65814f4050bfcdfaf68a7354252b8d2a18db6518a7f22e3f5cb95a33  /tmp/plugin.tar.gz' | sha256sum -c -
               rm -rf "$target.new"
               mkdir -p "$target.new"
               tar -xzf "$archive" -C "$target.new" --strip-components=1
@@ -276,6 +283,19 @@ spec:
               readOnly: true
             - name: artc-kubeconfig
               mountPath: /work
+        - name: render-atlantic-kubeconfig
+          image: registry.re8ch.com/functions-shared/headlamp@sha256:5227bf50d917734c1903aa3cefd22569eb477904ea791530b42a5c223519f121
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              umask 077
+              cp /template/atlantic.kubeconfig.template /work/atlantic.kubeconfig
+          volumeMounts:
+            - name: atlantic-kubeconfig-template
+              mountPath: /template
+              readOnly: true
+            - name: atlantic-kubeconfig
+              mountPath: /work
       containers:
         - name: headlamp
           # v0.42 panics when an OIDC refresh response omits id_token. v0.45
@@ -287,7 +307,7 @@ spec:
             - -in-cluster
             - -in-cluster-context-name=re8ch-k3s
             - -enable-dynamic-clusters
-            - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig
+            - -kubeconfig=/etc/headlamp/qwen/qwen.kubeconfig:/etc/headlamp/artc/artc.kubeconfig:/etc/headlamp/atlantic/atlantic.kubeconfig
             - -oidc-client-id=ed4e0331-7522-59f8-8a72-2d558844dc24
             # Headlamp v0.45 verifies whichever token it forwards. GoTrue's
             # access token audience is the authenticated API role, while the
@@ -334,6 +354,9 @@ spec:
             - name: artc-kubeconfig
               mountPath: /etc/headlamp/artc
               readOnly: true
+            - name: atlantic-kubeconfig
+              mountPath: /etc/headlamp/atlantic
+              readOnly: true
         # Headlamp v0.42 completes OIDC through a popup-local storage event.
         # Mobile Safari can suppress that event after the backend has already
         # set the token cookie. This helper provides a same-origin fallback.
@@ -373,7 +396,7 @@ spec:
             name: headlamp-among-clusters-v0324
         - name: public-edge-plugin
           configMap:
-            name: headlamp-public-edge-v033
+            name: headlamp-public-edge-v033-mb4t89f2c6
         - name: mihomos-cluster-plugin
           configMap:
             name: headlamp-mihomos-cluster-v013
@@ -392,6 +415,11 @@ spec:
           configMap:
             name: headlamp-artc-kubeconfig-template
         - name: artc-kubeconfig
+          emptyDir: {}
+        - name: atlantic-kubeconfig-template
+          configMap:
+            name: headlamp-atlantic-kubeconfig-template
+        - name: atlantic-kubeconfig
           emptyDir: {}
         - name: oidc-landing
           configMap:

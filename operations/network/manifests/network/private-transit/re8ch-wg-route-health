@@ -5,14 +5,49 @@ WG_INTERFACE=${WG_INTERFACE:?WG_INTERFACE is required}
 LOCAL_NODE_IP=${LOCAL_NODE_IP:?LOCAL_NODE_IP is required}
 HANDSHAKE_MAX_AGE=${HANDSHAKE_MAX_AGE:-180}
 ROUTE_TARGETS=${ROUTE_TARGETS:-}
+RECOVERY_TARGETS=${RECOVERY_TARGETS:-}
+RECOVERY_COOLDOWN=${RECOVERY_COOLDOWN:-300}
+RECOVERY_STATE=${RECOVERY_STATE:-/run/re8ch-wg-route-health-recovery}
 
 now=$(date +%s)
+
+is_recovery_target() {
+    wanted=$1
+    for candidate in $RECOVERY_TARGETS; do
+        [ "$candidate" = "$wanted" ] && return 0
+    done
+    return 1
+}
+
+recover_interface() {
+    target=$1
+    last=0
+    [ -f "$RECOVERY_STATE" ] && last=$(cat "$RECOVERY_STATE" 2>/dev/null || printf '0')
+    [ $((now - last)) -lt "$RECOVERY_COOLDOWN" ] && return 0
+
+    logger -t re8ch-wg-route-health \
+        "target=$target action=restart interface=$WG_INTERFACE reason=stale_handshake"
+    systemctl restart "wg-quick@${WG_INTERFACE}.service"
+    printf '%s\n' "$now" >"$RECOVERY_STATE"
+    # Generate traffic immediately instead of waiting for the next consumer.
+    ping -c 1 -W 2 "$target" >/dev/null 2>&1 || true
+    sleep 2
+}
 
 for target in $ROUTE_TARGETS; do
     peer=$(wg show "$WG_INTERFACE" allowed-ips 2>/dev/null |
         awk -v ip="$target/32" '$0 ~ ip {print $1; exit}')
     handshake=0
     if [ -n "$peer" ]; then
+        handshake=$(wg show "$WG_INTERFACE" latest-handshakes 2>/dev/null |
+            awk -v p="$peer" '$1 == p {print $2; exit}')
+        handshake=${handshake:-0}
+    fi
+
+    if { [ "$handshake" -eq 0 ] || [ $((now - handshake)) -gt "$HANDSHAKE_MAX_AGE" ]; } && \
+        is_recovery_target "$target"; then
+        recover_interface "$target"
+        now=$(date +%s)
         handshake=$(wg show "$WG_INTERFACE" latest-handshakes 2>/dev/null |
             awk -v p="$peer" '$1 == p {print $2; exit}')
         handshake=${handshake:-0}

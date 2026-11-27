@@ -179,6 +179,36 @@ def test_ready_ledger_instance_emits_billable_runtime(tmp_path, monkeypatch):
     assert (event["meter"], event["quantity"], event["unit"]) == ("usage.instance_runtime", 60, "second")
 
 
+def test_adopted_platform_resource_emits_unpriced_dependency_fact(tmp_path, monkeypatch):
+    config = {
+        "prometheus": {"baseURL": "http://metrics", "timeoutSeconds": 1},
+        "opencost": {"enabled": False}, "usageSink": {"allowedTenants": ["admin"]},
+        "tenantLabels": {"tenant": "tenant", "resource": "resource_ref"}, "meters": {},
+        "adoptedResources": [{"tenantRef": "admin", "resourceRef": "service://admin/pg-identity",
+            "serviceClass": "database.postgresql.shared.v1", "resourceType": "logical-database",
+            "purpose": "identity-database", "sourceRef": "identity-gitops",
+            "dependencyRefs": ["service://admin/pg-re8ch"], "availabilityQuery": "pg_up"}],
+    }
+    monkeypatch.setattr(collector, "ready_service_instances", lambda _config: [])
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_args: [{"metric": {}, "value": [0, "1"]}])
+    monkeypatch.setattr(collector, "collect_node_cost_allocation", lambda *_args: None)
+    outbox = collector.Outbox(tmp_path / "outbox.db")
+    collector.collect_once(config, outbox, 100, 160)
+    event = outbox.pending()[0][1]
+    assert event["resourceRef"] == "service://admin/pg-identity"
+    assert event["dimensions"]["dependencyRefs"] == ["service://admin/pg-re8ch"]
+    assert event["dimensions"]["billingEligible"] is False
+    assert event["pricingApplied"] is False and event["accountingPosted"] is False
+
+    monkeypatch.setattr(collector, "prometheus_query", lambda *_args: [{"metric": {}, "value": [0, "0"]}])
+    unavailable = collector.Outbox(tmp_path / "unavailable.db")
+    collector.collect_once(config, unavailable, 160, 220)
+    observation = unavailable.pending()[0][1]
+    assert observation["meter"] == "observation.resource_availability"
+    assert observation["dimensions"]["available"] is False
+    assert observation["dimensions"]["billingEligible"] is False
+
+
 def test_release_enables_ledger_billing_path():
     release = yaml.safe_load((ROOT / "platform/birfucate-metering/release.yaml").read_text())
     values = release["spec"]["values"]
@@ -191,6 +221,11 @@ def test_release_enables_ledger_billing_path():
         "mappings": [{"serviceClass": "application.ledger.v1", "meter": "usage.instance_runtime",
                       "serviceRef": "platform/application.ledger.v1", "meterCode": "instance_runtime"}],
     }
+    adopted = {item["resourceRef"]: item for item in values["adoptedResources"]}
+    assert set(adopted) == {"service://admin/pg-re8ch", "service://admin/pg-identity",
+                            "service://admin/pg-billing", "service://admin/grafana",
+                            "service://admin/kube-metrics", "service://admin/harbor-registry"}
+    assert adopted["service://admin/pg-identity"]["dependencyRefs"] == ["service://admin/pg-re8ch"]
 
 
 def test_crds_use_status_subresources_cel_and_selectable_fields():
