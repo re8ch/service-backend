@@ -988,6 +988,7 @@ rules:
   - configmaps
   resourceNames:
   - ops-mcp-server-code
+  - re8ch-approved-tool-catalog
   - re8ch-plugin-definitions
   - re8ch-plugin-operation-catalog
   - ssa-state-agent-runtime-domain-toolhive-system

@@ -32,6 +32,13 @@ Admin 身份、恢复管理员或平台 Secret 暴露给租户。
 创建账户与使用账户是两个独立授权面：创建需要服务实例权限；读取邮件、日历、联系人、
 文件或执行用户操作需要用户自己的 connection 和 scope。
 
+实例消费使用两个长期稳定的 Re8ch 工具：`service_instance_capabilities` 根据
+ServiceInstance 的 service class 和当前用户的 Ready binding 实时返回 provider 操作及
+输入 schema；`service_instance_invoke` 调用其中一个精确操作。调用方不能选择 provider
+origin、替换 binding 或取得 credential，tenant-mcp 在服务端绑定 tenant、subject、实例、
+binding 和已授予 scope。Stalwart 新增正式接口时只需由 provider 发布能力，无需为每个接口
+增加 Re8ch 顶层工具或修改 GitOps；现有显式 Stalwart 工具作为兼容入口保留。
+
 ## Agent 工具源码和交付边界
 
 Stalwart 的 JMAP、CalDAV、CardDAV、WebDAV、Sieve 和管理 API 适配源码及兼容性

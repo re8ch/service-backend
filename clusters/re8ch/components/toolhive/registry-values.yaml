@@ -35,14 +35,14 @@ rbac:
 
 config:
   sources:
-    - name: managed-workloads
-      kubernetes:
-        namespaces: [toolhive-system]
-    - name: re8ch-managed
-      managed: {}
+    - name: re8ch-unified
+      file:
+        path: /etc/re8ch-approved-catalog/registry.json
+      syncPolicy:
+        interval: 1m
   registries:
     - name: approved
-      sources: [managed-workloads, re8ch-managed]
+      sources: [re8ch-unified]
   database:
     host: postgresql.mcp-registry.svc.cluster.local
     port: 5432
@@ -78,3 +78,13 @@ extraEnv:
       secretKeyRef:
         name: toolhive-registry-database
         key: migration-password
+
+extraVolumes:
+  - name: re8ch-approved-catalog
+    configMap:
+      name: re8ch-approved-tool-catalog
+
+extraVolumeMounts:
+  - name: re8ch-approved-catalog
+    mountPath: /etc/re8ch-approved-catalog
+    readOnly: true

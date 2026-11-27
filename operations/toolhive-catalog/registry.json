@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "meta": {
+    "last_updated": "2026-11-27T00:00:00Z"
+  },
+  "data": {
+    "servers": [
+      {
+        "name": "com.re8ch/re8ch",
+        "title": "RE8CH",
+        "description": "Unified RE8CH tools, selected by the authenticated organization, membership and grants.",
+        "version": "1.0.0",
+        "remotes": [
+          {
+            "type": "streamable-http",
+            "url": "https://tools.service.re8ch.com/tenant-native/mcp"
+          }
+        ],
+        "websiteUrl": "https://re8ch.com",
+        "_meta": {
+          "io.modelcontextprotocol.registry/publisher-provided": {
+            "io.github.stacklok": {
+              "streamable-http": {
+                "status": "active"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
