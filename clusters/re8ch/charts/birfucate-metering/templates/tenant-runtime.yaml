@@ -367,7 +367,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: tenant-api-credential-read, namespace: credential-broker}
 rules:
-  - {apiGroups: [""], resources: [secrets], verbs: [get]}
+  - {apiGroups: [""], resources: [secrets], verbs: [get, create]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

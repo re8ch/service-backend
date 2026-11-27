@@ -204,7 +204,7 @@ data:
         token_endpoint_auth_method, redirect_uris, grant_types,
         client_name, client_uri
       ) values (
-        v_id, v_hash, 'dynamic', p_client_type,
+        v_id, v_hash, 'dynamic', p_client_type::auth.oauth_client_type,
         case when p_client_type = 'public' then 'none' else 'client_secret_basic' end,
         v_redirects, 'authorization_code,refresh_token', btrim(p_name), p_client_uri
       );

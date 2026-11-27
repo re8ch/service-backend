@@ -46,10 +46,11 @@ def oauth_db(postgres):
         grant supabase_auth_admin to supabase_admin; create role service_role;
         create role authenticated; create role anon;
         create schema auth; create schema core; create schema api;
+        create type auth.oauth_client_type as enum ('public', 'confidential');
         create table auth.users (id uuid primary key, deleted_at timestamptz);
         create table auth.oauth_clients (
           id uuid primary key, client_secret_hash text not null,
-          registration_type text, client_type text, token_endpoint_auth_method text,
+          registration_type text, client_type auth.oauth_client_type, token_endpoint_auth_method text,
           redirect_uris text, grant_types text, client_name text, client_uri text,
           deleted_at timestamptz, updated_at timestamptz default now());
         alter schema auth owner to supabase_auth_admin;
