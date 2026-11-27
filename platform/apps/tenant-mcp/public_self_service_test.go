@@ -49,7 +49,7 @@ func TestPublicSelfServiceEndpointPublishesReviewedCapabilities(t *testing.T) {
 	for _, tool := range listed.Result.Tools {
 		names[tool.Name] = true
 	}
-	for _, name := range []string{"tenant_namespace_list", "tenant_claim_plan", "runtime_image_catalog", "monitoring_query", "model_gateway_catalog", "model_gateway_chat"} {
+	for _, name := range []string{"tenant_namespace_list", "tenant_claim_plan", "runtime_image_catalog", "monitoring_query", "model_gateway_catalog", "model_gateway_chat", "service_instance_capabilities", "service_instance_invoke"} {
 		if !names[name] {
 			t.Errorf("missing public tool %s", name)
 		}
@@ -59,7 +59,7 @@ func TestPublicSelfServiceEndpointPublishesReviewedCapabilities(t *testing.T) {
 			t.Errorf("unexpected public tool %s", name)
 		}
 	}
-	if len(names) != 19 {
+	if len(names) != 21 {
 		t.Errorf("unexpected public tool count: %d", len(names))
 	}
 	if status, body = call("/self-service/mcp", "tools/call", `{"name":"byoc_cluster_register","arguments":{}}`); status != 200 || !strings.Contains(body, "unknown tool") {

@@ -132,8 +132,14 @@ authorization using `auth.uid()`. Results are Credits units, not currency or
 unpriced usage totals.
 
 The Re8ch plugin's public `/tenant-native/mcp` route maps to `/plugin/mcp`.
-Platform operations are published as explicit tools with reviewable input
-schemas; the tenant MCP does not publish a generic catalog-and-dispatch bridge.
+Platform-administration operations are published as explicit tools with
+reviewable input schemas. Tenant-owned service instances additionally expose
+the stable `service_instance_capabilities` and `service_instance_invoke`
+contract: capabilities are discovered live from the provider selected by the
+instance's service class, while invocation is bound server-side to the exact
+tenant, subject, instance, Ready binding and granted scopes. This is a bounded
+ServiceInstance dispatch path, not a platform-wide backend catalog, and it
+never returns provider credentials or permits caller-selected origins.
 Calls require a verified user with a current
 `owner` or `admin` membership in the hidden `admin` organization. Listing an
 entry point does not grant access to any backend tool.
