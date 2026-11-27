@@ -330,6 +330,7 @@ def test_generator_is_byte_stable_when_a_new_mihomos_tool_is_added(tmp_path, mon
         target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(root / relative, target)
+    (tmp_path / "operations/toolhive-catalog").mkdir(parents=True, exist_ok=True)
     shutil.copytree(root / "operations/plugin-capabilities/openapi", tmp_path / "operations/plugin-capabilities/openapi")
     monkeypatch.setattr(generator, "ROOT", tmp_path)
     added = {"name": "mihomos.fixture.new", "description": "fixture", "inputSchema": {"type": "object"}}

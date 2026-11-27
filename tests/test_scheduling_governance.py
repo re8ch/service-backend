@@ -332,7 +332,7 @@ def test_first_unready_cohort_uses_only_reviewed_classes():
         for item in docs(ROOT / "platform/scheduling-fabric/resources/placement.yaml")
     }
     workloads = cohort["spec"]["workloads"]
-    assert len(workloads) == 40
+    assert len(workloads) == 34
     assert {item["placementClass"] for item in workloads} <= classes
     assert cohort["spec"]["enforcement"] == "Audit"
 

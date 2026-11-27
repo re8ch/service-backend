@@ -92,8 +92,8 @@ spec:
       tier: high
       workloadClass: mixed
       status: contract-required
-      workloads: [toolhive-operator, toolhive-cloud-ui, toolhive-registry-server, re8ch-admin-vmcp, re8ch-tools-vmcp, re8ch-plugin-runtime, toolhive-auth-redis, toolhive-auth-redis-ab, cluster-infra-plugins-runtime, ops-admin-external, ops-admin-managed, ops-observe-external, ops-observe-managed, ops-operate-external, ops-operate-managed]
-      services: [toolhive-cloud-ui, toolhive-registry-server, toolhive-auth-redis, re8ch-plugin-runtime, vmcp-re8ch-admin-vmcp, vmcp-re8ch-tools-vmcp, mcp-cluster-infra-plugins-runtime, mcp-ops-admin-external, mcp-ops-admin-managed, mcp-ops-observe-external, mcp-ops-observe-managed, mcp-ops-operate-external, mcp-ops-operate-managed]
+      workloads: [toolhive-operator, toolhive-cloud-ui, toolhive-registry-server, re8ch-native, re8ch-native-session-router]
+      services: [toolhive-cloud-ui, toolhive-registry-server, vmcp-re8ch-native, re8ch-native-session-router]
       requiredMetrics: [mcp-request-red, tool-call-outcomes, authorization-denials, runtime-restarts, redis-health]
     - namespace: auth
       owner: re8ch/auth

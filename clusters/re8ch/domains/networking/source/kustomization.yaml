@@ -27,8 +27,6 @@ resources:
 - ../../../components/public-exposure/external-dns-advfab.yaml
 - ../../../components/public-exposure/gateway-dns-authorities.yaml
 - ../../../components/public-exposure/grafana-dns-authority.yaml
-- ../../../components/public-exposure/operate-tools-dns-authority.yaml
-- ../../../components/public-exposure/operate-tools-http-route.yaml
 - ../../../components/public-exposure/legacy-special-http-routes.yaml
 - ../../../components/regional-routing/cert-manager-bootstrap.yaml
 - ../../../components/regional-routing/service-http01-issuer.yaml

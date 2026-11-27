@@ -6,21 +6,23 @@ spec:
   failurePolicy: Fail
   matchConstraints:
     resourceRules:
-    - apiGroups: ["", apps, policy, networking.k8s.io, gateway.networking.k8s.io, cilium.io]
+    - apiGroups: ["", apps, policy, networking.k8s.io, gateway.networking.k8s.io, cilium.io, rbac.authorization.k8s.io]
       apiVersions: ["*"]
       operations: [CREATE, UPDATE]
-      resources: [configmaps, persistentvolumeclaims, serviceaccounts, services, deployments, daemonsets, poddisruptionbudgets, networkpolicies, httproutes, ciliumnetworkpolicies]
+      resources: [configmaps, persistentvolumeclaims, serviceaccounts, services, deployments, daemonsets, poddisruptionbudgets, networkpolicies, httproutes, ciliumnetworkpolicies, roles]
   matchConditions:
   - name: bootstrap-group
     expression: "'re8ch:platform-bootstrap:tenant-infrastructure' in request.userInfo.groups"
   validations:
   - expression: >-
-      object.metadata.namespace == 'tenant-infrastructure' && object.metadata.name in [
+      (object.metadata.namespace == 'tenant-infrastructure' && object.metadata.name in [
       'tenant-runtime-image-cache','admin-api','tenant-api','tenant-control-controller','tenant-provider-reconciler',
       'tenant-api-gateway','tenant-platform-modules','tenant-platform-state','tenant-infrastructure',
       'tenant-billing-auth-center','tenant-billing-read','tenant-credential-redemption','tenant-native-mcp',
-      'tenant-self-service-capabilities']
-    message: platform bootstrap may write only the reviewed tenant-infrastructure inventory
+      'tenant-self-service-capabilities']) ||
+      (object.metadata.namespace == 'toolhive-system' && object.metadata.name in [
+      'agent-runtime-domain-toolhive-system','re8ch-approved-tool-catalog'])
+    message: platform bootstrap may write only the reviewed exact inventory
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
@@ -65,5 +67,32 @@ metadata:
   name: github-tenant-platform-bootstrap
   namespace: tenant-infrastructure
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: github-tenant-platform-bootstrap}
+subjects:
+- {apiGroup: rbac.authorization.k8s.io, kind: Group, name: 're8ch:platform-bootstrap:tenant-infrastructure'}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-toolhive-catalog-bootstrap
+  namespace: toolhive-system
+rules:
+- apiGroups: [""]
+  resources: [configmaps]
+  resourceNames: [re8ch-approved-tool-catalog]
+  verbs: [get, patch, update]
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [create]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [roles]
+  resourceNames: [agent-runtime-domain-toolhive-system]
+  verbs: [get, patch, update, escalate]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-toolhive-catalog-bootstrap
+  namespace: toolhive-system
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: github-toolhive-catalog-bootstrap}
 subjects:
 - {apiGroup: rbac.authorization.k8s.io, kind: Group, name: 're8ch:platform-bootstrap:tenant-infrastructure'}

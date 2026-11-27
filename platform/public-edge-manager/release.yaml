@@ -250,7 +250,7 @@ spec:
       phonycenter.service.re8ch.com.: {service: phonycenter-service, class: service-pilot, probePath: /}
       litellm.service.re8ch.com.: {service: litellm-service, class: service-pilot, probePath: /health/readiness}
       # The primary Tenant entry must survive an optional Cloud vMCP outage.
-      tools.service.re8ch.com.: {service: tools-service, class: service-pilot, probePath: /.well-known/oauth-protected-resource/tenant-plugin/mcp, acceptedStatuses: [200]}
+      tools.service.re8ch.com.: {service: tools-service, class: service-pilot, probePath: /.well-known/oauth-protected-resource/tenant-native/mcp, acceptedStatuses: [200]}
       dbgui.service.re8ch.com.: {service: dbgui-service, class: service-pilot, probePath: /}
       admin.service.re8ch.com.: {service: admin-service, class: service-pilot, probePath: /mcp, acceptedStatuses: [200, 400, 401, 405, 406]}
       agent.service.re8ch.com.: {service: agent-service, class: service-pilot, probePath: /v1/mobile/control, acceptedStatuses: [200, 400, 401, 403, 405]}

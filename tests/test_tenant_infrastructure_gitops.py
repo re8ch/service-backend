@@ -218,22 +218,19 @@ def test_tenant_runtime_has_only_admin_and_tenant_audiences_and_digest_gate():
     assert profiles == {"admin": "re8ch-platform-admin", "tenant": "re8ch-tenant"}
     assert metadata_urls == {
         "admin": "https://admin.re8ch.com:8443/.well-known/oauth-protected-resource/mcp",
-        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-plugin/mcp",
+        "tenant": "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-native/mcp",
     }
     tenant_env = {item["name"]: item.get("value") for item in deployments["tenant-api"]["spec"]["template"]["spec"]["containers"][0]["env"] if "value" in item}
-    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-plugin/mcp"
+    assert tenant_env["PUBLIC_MCP_URL"] == "https://tools.service.re8ch.com/tenant-native/mcp"
     native_route = next(item for item in docs if item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tenant-native-mcp")
     native_paths = {match["path"]["value"] for rule in native_route["spec"]["rules"] for match in rule["matches"]}
     assert native_paths == {
         "/tenant-native/mcp", "/.well-known/oauth-protected-resource/tenant-native/mcp",
-        "/tenant-plugin/mcp", "/.well-known/oauth-protected-resource/tenant-plugin/mcp",
         "/tenant-self-service/mcp", "/.well-known/oauth-protected-resource/tenant-self-service/mcp",
         "/.well-known/openai-apps-challenge",
     }
     plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-native/mcp")
     assert plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
-    canonical_plugin_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/tenant-plugin/mcp")
-    assert canonical_plugin_rule["filters"][0]["urlRewrite"]["path"]["replaceFullPath"] == "/plugin/mcp"
     assert tenant_env["OPENAI_APPS_CHALLENGE_TOKEN"] == ""
     challenge_rule = next(rule for rule in native_route["spec"]["rules"] if rule["matches"][0]["path"]["value"] == "/.well-known/openai-apps-challenge")
     assert challenge_rule["backendRefs"] == [{"name": "tenant-api", "port": 80}]
@@ -365,7 +362,7 @@ def test_admin_vmcp_uses_one_user_boundary_and_private_service_auth():
     assert tenant_service_token["valueFrom"]["secretKeyRef"] == {"name": "admin-vmcp-backend-auth", "key": "token"}
     policy = next(item for item in docs if item["kind"] == "NetworkPolicy" and item["metadata"]["name"] == "admin-api")
     source = policy["spec"]["ingress"][0]["from"][0]
-    assert source["podSelector"]["matchLabels"] == {"app": "virtualmcpserver", "toolhive-name": "re8ch-admin-vmcp"}
+    assert source["podSelector"]["matchLabels"] == {"app": "tenant-api"}
 
     encrypted_paths = [
         ROOT / "clusters/re8ch/secrets/admin-vmcp-backend-auth-toolhive.sops.yaml",
@@ -483,26 +480,22 @@ def test_tenant_ci_can_request_harbor_from_its_declared_catalog_project():
     assert all("tenant-ci" in json.loads(item["data"]["harbor-tenants.json"])["tenants"] for item in catalogs)
 
 
-def test_connectool_has_one_generic_tenant_publication():
+def test_connectool_has_one_native_re8ch_publication():
     release = documents(ROOT / "platform/connectool/release.yaml")[1]
     publications = release["spec"]["values"]["toolhive"]["publications"]
-    tenant = next(item for item in publications if item["name"] == "tenant-vmcp")
+    assert [item["name"] for item in publications] == ["re8ch-native"]
+    tenant = publications[0]
     assert tenant["clientId"] == "2981225a-da08-5aaa-9e84-8fd151696113"
-    assert tenant["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
+    assert tenant["resourceUrl"] == "https://tools.service.re8ch.com/tenant-native/mcp"
     assert tenant["workloads"] == [{"name": "tenant-api-backend"}]
     serialized = json.dumps(publications)
     for legacy in ("tenant-admin", "tenant-registry", "tenant-observability", "tenant-byoc", "tenant-artchais"):
         assert legacy not in serialized
 
 
-def test_single_replica_tenant_public_route_bypasses_session_router():
+def test_native_toolhive_instance_does_not_publish_a_second_public_route():
     docs = tenant_chart_documents()
-    route = next(item for item in docs if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "tenant-mcp")
-    backends = [rule["backendRefs"][0] for rule in route["spec"]["rules"]]
-    assert backends == [
-        {"name": "vmcp-tenant-vmcp", "port": 4483},
-        {"name": "vmcp-tenant-vmcp", "port": 4483},
-    ]
+    assert not any(item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "tenant-mcp" for item in docs)
     assert not any(item["kind"] == "ReferenceGrant" and item["metadata"]["name"] == "tenant-mcp-publicedge" for item in docs)
     assert not any(item["kind"] == "CiliumNetworkPolicy" and item["metadata"]["name"] == "tenant-api-publicedge" for item in docs)
     backend = next(item for item in docs if item["kind"] == "MCPServerEntry" and item["metadata"]["name"] == "tenant-api-backend")
@@ -561,7 +554,7 @@ def test_generic_tenant_runtime_has_only_admin_and_tenant_profiles():
     rendered = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
     tenant_publication = next(
         item for item in documents(ROOT / "platform/connectool/release.yaml")[1]["spec"]["values"]["toolhive"]["publications"]
-        if item["name"] == "tenant-vmcp"
+        if item["name"] == "re8ch-native"
     )
     assert "qwen" not in rendered.lower() + json.dumps(tenant_publication).lower()
     assert "tenant-resource" not in rendered
@@ -695,8 +688,8 @@ def test_tenant_module_registry_projection_matches_gateway_defaults():
     chart = ROOT / "clusters/re8ch/charts/birfucate-metering"
     registry = json.loads((chart / "files/tenant-platform-modules.json").read_text())
     assert registry == json.loads((ROOT / "platform/apps/tenant-mcp/platform-modules.json").read_text())
-    for name in ("cloud", "infra", "admin"):
-        assert ":8088/mcp" in registry["backends"][name]["url"]
+    assert not {"cloud", "infra", "admin"} & registry["backends"].keys()
+    assert registry["backends"]["native"]["url"].endswith(":19443/mcp")
     runtime = (chart / "templates/tenant-runtime.yaml").read_text()
     assert "PLATFORM_MODULE_REGISTRY" in runtime
     assert "mountPath: /etc/re8ch/modules, readOnly: true" in runtime

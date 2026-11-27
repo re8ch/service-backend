@@ -20,13 +20,13 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
     objects = render()
     groups = [item for item in objects if item["kind"] == "MCPGroup"]
     assert [item["metadata"]["name"] for item in groups] == ["tenant-public"]
-    oidc = next(item for item in objects if item["kind"] == "MCPOIDCConfig" and item["metadata"]["name"] == "re8ch-tools-vmcp-issuer")
-    vmcp = next(item for item in objects if item["kind"] == "VirtualMCPServer" and item["metadata"]["name"] == "re8ch-tools-vmcp")
+    oidc = next(item for item in objects if item["kind"] == "MCPOIDCConfig" and item["metadata"]["name"] == "re8ch-native-issuer")
+    vmcp = next(item for item in objects if item["kind"] == "VirtualMCPServer" and item["metadata"]["name"] == "re8ch-native")
     dex = [item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "dex-static-clients"]
     codex = next(item for item in objects if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "codex-marketplace")
-    registration = json.loads(codex["data"]["re8ch-cloud-platform-tool.mcp.json"])
-    server = registration["mcpServers"]["re8ch-cloud-platform-tool"]
-    assert oidc["spec"]["inline"]["issuer"] == "https://auth.re8ch.com"
+    registration = json.loads(codex["data"]["re8ch.mcp.json"])
+    server = registration["mcpServers"]["re8ch"]
+    assert oidc["spec"]["inline"]["issuer"] == "https://db-rw.re8ch.com/auth/v1"
     assert oidc["spec"]["inline"]["clientId"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == server["oauth"]["clientId"]
     assert vmcp["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == server["url"]
@@ -38,10 +38,8 @@ def test_re8ch_chain_uses_one_identity_end_to_end():
 
 def test_skill_only_plugins_do_not_duplicate_mcp_registration():
     codex = next(item for item in render() if item["kind"] == "ConfigMap" and item["metadata"]["annotations"].get("ai.connectool.io/contract") == "codex-marketplace")
-    assert "re8ch-cloud-platform-tool.mcp.json" in codex["data"]
-    assert "re8ch-cluster-infra-tool.mcp.json" not in codex["data"]
-    assert "re8ch-agent-orchestra-collab.mcp.json" not in codex["data"]
-    assert "skills/cluster-infra/SKILL.md" in codex["data"]["plugins.yaml"]
+    assert set(key for key in codex["data"] if key.endswith(".mcp.json")) == {"re8ch.mcp.json"}
+    assert "re8ch-native" in codex["data"]["plugins.yaml"]
 
 
 def test_cross_platform_distribution_contract_is_complete():
@@ -63,7 +61,7 @@ def test_cross_platform_distribution_contract_is_complete():
     assert by_id["doubao"]["entryClass"] == "unavailable"
     assert by_id["doubao"]["status"] == "new-publication-unavailable"
     assert all(
-        item.get("publication") == "re8ch-tools-vmcp"
+        item.get("publication") == "re8ch-native"
         for item in payload["channels"]
         if item["entryClass"] != "unavailable"
     )
@@ -75,14 +73,10 @@ def test_chart_contains_no_credentials():
         assert forbidden not in rendered
 
 
-def test_duplicate_mcp_owners_are_rejected():
-    result = subprocess.run(
-        ["helm", "template", "connectool", str(CHART), "-f", str(VALUES), "--set", "codex.plugins[1].mcpOwner=true"],
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode != 0
-    assert "exactly one Codex mcpOwner" in result.stderr
+def test_native_publication_has_exactly_one_mcp_owner():
+    values = yaml.safe_load(VALUES.read_text())
+    owners = [item for item in values["codex"]["plugins"] if item["mcpOwner"]]
+    assert owners == [{"name": "re8ch", "publication": "re8ch-native", "category": "Productivity", "mcpOwner": True, "skills": []}]
 
 
 def test_flux_oci_digest_suffix_is_sanitized_for_labels():
@@ -90,27 +84,19 @@ def test_flux_oci_digest_suffix_is_sanitized_for_labels():
     assert 'replace "+" "_"' in helpers
 
 
-def test_cloud_resource_url_has_a_gateway_route():
-    objects = yaml.safe_load_all((ROOT / "platform/connectool/cloud-route.yaml").read_text())
-    route = next(item for item in objects if item and item["kind"] == "HTTPRoute")
-    paths = {rule["matches"][0]["path"]["value"] for rule in route["spec"]["rules"]}
-    backends = {rule["backendRefs"][0]["name"] for rule in route["spec"]["rules"]}
-    assert "/cloud" in paths
-    assert "/.well-known/oauth-protected-resource/cloud" in paths
-    assert backends == {"vmcp-re8ch-tools-vmcp"}
+def test_native_resource_url_has_a_gateway_route():
+    runtime = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
+    assert "metadata: {name: tenant-native-mcp, namespace: tenant-infrastructure}" in runtime
+    assert "value: /tenant-native/mcp" in runtime
+    assert "backendRefs: [{name: tenant-api, port: 80}]" in runtime
 
 
-def test_connectool_renders_admin_and_tenant_publications():
+def test_connectool_renders_only_native_publication():
     objects = render()
     vmcps = {item["metadata"]["name"]: item for item in objects if item["kind"] == "VirtualMCPServer"}
-    assert {"re8ch-admin-vmcp", "tenant-vmcp"} <= vmcps.keys()
-    tenant = vmcps["tenant-vmcp"]
-    assert {name: item["spec"]["replicas"] for name, item in vmcps.items()} == {
-        "re8ch-tools-vmcp": 1,
-        "re8ch-operate-vmcp": 1,
-        "re8ch-admin-vmcp": 1,
-        "tenant-vmcp": 1,
-    }
+    assert set(vmcps) == {"re8ch-native"}
+    tenant = vmcps["re8ch-native"]
+    assert tenant["spec"]["replicas"] == 1
     assert all(item["spec"]["sessionAffinity"] == "ClientIP" for item in vmcps.values())
     assert all(item["spec"]["sessionStorage"] == {"provider": "memory"} for item in vmcps.values())
     for item in vmcps.values():
@@ -119,15 +105,13 @@ def test_connectool_renders_admin_and_tenant_publications():
             "scheduling.re8ch.com/network-serving": "true",
         }
     assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["audience"] == "2981225a-da08-5aaa-9e84-8fd151696113"
-    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant/mcp"
+    assert tenant["spec"]["incomingAuth"]["oidcConfigRef"]["resourceUrl"] == "https://tools.service.re8ch.com/tenant-native/mcp"
 
 
 def test_connectool_renders_worker_runtime_and_disruption_contracts():
     objects = render()
     pdbs = {item["metadata"]["name"] for item in objects if item["kind"] == "PodDisruptionBudget"}
-    assert pdbs == {
-        "re8ch-tools-vmcp-session-router", "re8ch-operate-vmcp-session-router", "re8ch-admin-vmcp-session-router", "tenant-vmcp-session-router",
-    }
+    assert pdbs == {"re8ch-native-session-router"}
     policies = [item for item in objects if item["kind"] == "MutatingAdmissionPolicy"]
     assert len(policies) == 2
     serialized = yaml.safe_dump_all(policies)
@@ -148,12 +132,7 @@ def test_connectool_routes_memory_sessions_to_the_owning_vmcp_pod():
         if item["kind"] == "Deployment"
         and item["metadata"]["labels"].get("app.kubernetes.io/component") == "session-router"
     }
-    assert set(routers) == {
-        "re8ch-tools-vmcp-session-router",
-        "re8ch-operate-vmcp-session-router",
-        "re8ch-admin-vmcp-session-router",
-        "tenant-vmcp-session-router",
-    }
+    assert set(routers) == {"re8ch-native-session-router"}
     for name, deployment in routers.items():
         assert deployment["spec"]["replicas"] == 1
         spec = deployment["spec"]["template"]["spec"]
@@ -245,10 +224,9 @@ def test_dex_organization_claim_reconciliation_is_credential_preserving_and_idem
     assert writes == []
 
 
-def test_cloud_publication_does_not_authorize_bare_external_organization():
+def test_native_publication_delegates_authorization_to_tenant_backend():
     objects = list(yaml.safe_load_all((ROOT / "platform/connectool/release.yaml").read_text()))
     release = next(item for item in objects if item["kind"] == "HelmRelease")
-    publication = next(item for item in release["spec"]["values"]["toolhive"]["publications"] if item["name"] == "re8ch-tools-vmcp")
+    publication = next(item for item in release["spec"]["values"]["toolhive"]["publications"] if item["name"] == "re8ch-native")
     policies = publication["authorization"]["policies"]
-    assert 'permit(principal, action, resource);' not in policies
-    assert all('THVGroup::"re8ch:' in policy for policy in policies)
+    assert policies == ['permit(principal, action, resource);']
