@@ -18,6 +18,10 @@ on:
         description: Existing successful release run whose immutable image needs finalization
         required: false
         type: string
+      promotion_issue:
+        description: Issue that owns the image promotion transaction
+        required: false
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -214,6 +218,24 @@ jobs:
           repositories: service-backend
           permission-contents: write
           permission-pull-requests: write
+      - name: Resolve promotion transaction
+        id: transaction
+        env:
+          GH_TOKEN: ${{ steps.promoter.outputs.token }}
+          REQUESTED_ISSUE: ${{ inputs.promotion_issue }}
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          issue="$REQUESTED_ISSUE"
+          if [[ -z "$issue" ]]; then
+            pr="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE_SHA/pulls" --jq '.[0].number')"
+            issue="$(gh pr view "$pr" --repo "$GITHUB_REPOSITORY" --json closingIssuesReferences --jq '.closingIssuesReferences[0].number')"
+          fi
+          if [[ ! "$issue" =~ ^[1-9][0-9]*$ ]]; then
+            echo 'A numeric promotion Issue is required.' >&2
+            exit 1
+          fi
+          gh issue view "$issue" --repo "$GITHUB_REPOSITORY" >/dev/null
+          echo "issue=$issue" >> "$GITHUB_OUTPUT"
       - name: Check out current desired state
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -241,7 +263,7 @@ jobs:
           token: ${{ steps.promoter.outputs.token }}
           path: desired-state
           base: main
-          branch: codex/tenant-mcp-image
+          branch: codex/${{ steps.transaction.outputs.issue }}-tenant-mcp-image
           sign-commits: true
           add-paths: clusters/re8ch/tenant-mcp-image/image.yaml
           commit-message: 'chore(tenant-mcp): advance verified image reference'
@@ -252,6 +274,8 @@ jobs:
             GitHub attestation: ${{ steps.attest.outputs.attestation-url }}
             Build run: https://github.com/${{ github.repository }}/actions/runs/${{ steps.source.outputs.build_run }}
             Flux syncs this reference to the active observability HelmRelease. No domain bundle is published.
+
+            Closes #${{ steps.transaction.outputs.issue }}
       - name: Request merge through repository rules
         if: steps.image-pr.outputs.pull-request-number != ''
         env:
