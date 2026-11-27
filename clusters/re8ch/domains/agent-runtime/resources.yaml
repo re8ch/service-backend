@@ -55097,6 +55097,8 @@ data:
     }
 kind: ConfigMap
 metadata:
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: IfNotPresent
   name: re8ch-approved-tool-catalog
   namespace: toolhive-system
 ---
