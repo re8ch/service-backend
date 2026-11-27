@@ -110,6 +110,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerNamespaceTools(ms)
 	s.registerBYOCTools(ms)
 	s.registerServiceTools(ms)
+	s.registerServiceInstanceInvocationTools(ms)
 	s.registerModelGatewayTools(ms)
 	s.registerOpenOAuthTools(ms)
 	s.registerHarborTools(ms, false)
@@ -168,6 +169,7 @@ func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms, true)
 	s.registerGrafanaTools(ms)
 	s.registerCollaborationTools(ms)
+	s.registerServiceInstanceInvocationTools(ms)
 	s.registerStalwartRelayTools(ms)
 	s.registerModelGatewayTools(ms)
 	return ms

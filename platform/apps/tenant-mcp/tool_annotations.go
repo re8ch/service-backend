@@ -11,6 +11,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 	case "mail_query", "mail_read", "calendar_query", "contacts_query", "files_list", "files_read", "stalwart_capabilities", "stalwart_mail_query", "stalwart_mail_read", "stalwart_calendar_query", "stalwart_contacts_query", "stalwart_files_list", "stalwart_files_read", "tenant_access_status", "tenant_credits_wallets_list", "tenant_organization_context_list", "tenant_self_service_capabilities", "tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_get", "tenant_claim_list", "tenant_usage_summary_get",
 		"tenant_namespace_list", "byoc_registration_list", "byoc_connection_list",
 		"service_catalog_list", "service_instance_plan", "service_instance_get", "service_instance_list", "service_binding_list",
+		"service_instance_capabilities",
 		"usage_summary_get", "usage_events_list", "operation_get", "dynamic_skill_search", "dynamic_skill_load",
 		"harbor_project_get", "harbor_repository_list", "harbor_artifact_list", "harbor_artifact_get", "harbor_vulnerability_report_get",
 		"harbor_sbom_get", "harbor_accessory_list", "harbor_audit_log_list", "harbor_build_get", "harbor_build_list",
@@ -25,7 +26,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		readOnly = true
 	case "byoc_cluster_register", "tenant_namespace_create", "service_binding_create", "tenant_human_access_issue", "harbor_artifact_scan_start", "harbor_tag_create", "oauth_application_register_litellm":
 		// Additive operations against the configured tenant platform.
-	case "collaboration_connection", "calendar_respond", "stalwart_mail_send", "stalwart_calendar_respond":
+	case "collaboration_connection", "calendar_respond", "stalwart_mail_send", "stalwart_calendar_respond", "service_instance_invoke":
 		destructive, openWorld = true, true
 	case "tenant_secret_upsert":
 		// Replaces existing write-only Secret data and cannot restore prior values.
