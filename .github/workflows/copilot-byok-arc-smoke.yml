@@ -36,6 +36,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          apt-get update
+          apt-get install --yes --no-install-recommends ca-certificates
+          rm -rf /var/lib/apt/lists/*
           npm install --global @github/copilot@1.0.116 \
             --ignore-scripts=false --no-audit --no-fund
           test "$(copilot --version | head -n1)" = "GitHub Copilot CLI 1.0.116."
