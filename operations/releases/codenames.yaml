@@ -631,6 +631,8 @@ modules:
       digest: sha256:fff8628130bef7eb8cfede83ad26350bec80c719c69e4bd2271314c7930851b4
     - codename: delta-pearl
       digest: sha256:dd5e0afce6c2e06817a42eac5b1dd024c6aa2e37e053d032655c5b7011b479f4
+    - codename: grove-pearl
+      digest: sha256:1ac403a655c4ee95367eb284f2090db8c59aff795bb7afee3f6831193854c6a3
   platform/advanced-fabric:
     releases:
     - codename: bora

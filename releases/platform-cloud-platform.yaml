@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/cloud-platform
-codename: delta-pearl
+codename: grove-pearl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
-  digest: sha256:dd5e0afce6c2e06817a42eac5b1dd024c6aa2e37e053d032655c5b7011b479f4
+  digest: sha256:1ac403a655c4ee95367eb284f2090db8c59aff795bb7afee3f6831193854c6a3
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
