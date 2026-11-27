@@ -1,15 +1,17 @@
 {
   "servers": [
     {
-      "name": "com.re8ch/cluster-plugin-operations",
-      "version": "0.1.0",
-      "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
+      "name": "com.re8ch/re8ch",
+      "title": "RE8CH",
+      "version": "1.0.0",
+      "description": "Unified RE8CH tools selected by organization, membership, grants and implementation state.",
       "remotes": [
         {
           "type": "streamable-http",
-          "url": "https://operate.tools.re8ch.com/cloud/mcp"
+          "url": "https://tools.service.re8ch.com/tenant-native/mcp"
         }
       ],
+      "websiteUrl": "https://re8ch.com",
       "_meta": {
         "io.modelcontextprotocol.registry/publisher-provided": {
           "io.github.stacklok": {

@@ -20,7 +20,13 @@ def test_approved_catalog_is_the_authenticated_re8ch_entry():
         "type": "streamable-http",
         "url": "https://tools.service.re8ch.com/tenant-native/mcp",
     }]
-    assert "organization, membership and grants" in server["description"]
+    assert "organization, membership, grants" in server["description"]
+    stream = server["_meta"]["io.modelcontextprotocol.registry/publisher-provided"]["io.github.stacklok"]["streamable-http"]
+    assert len(stream["re8ch_capabilities"]["operations"]) == 893
+    assert stream["tool_definitions"]
+    serialized = json.dumps(catalog)
+    assert "cluster-plugin-operations" not in serialized
+    assert "operate.tools.re8ch.com" not in serialized
 
 
 def test_approved_catalog_matches_the_pinned_toolhive_file_source_schema():

@@ -502,50 +502,6 @@ spec:
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
-metadata: {name: tools-service-vmcp, namespace: toolhive-system}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [tools.service.re8ch.com]
-  rules:
-    - matches: [{path: {type: PathPrefix, value: /mcp}}]
-      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
-    - matches: [{path: {type: PathPrefix, value: /.well-known}}]
-      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
-    - matches: [{path: {type: PathPrefix, value: /oauth}}]
-      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: tools-service-cloud-mcp, namespace: toolhive-system}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [tools.service.re8ch.com]
-  rules:
-    - matches: [{path: {type: PathPrefix, value: /cloud}}]
-      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
-    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/cloud}}]
-      backendRefs: [{name: vmcp-re8ch-tools-vmcp, port: 4483}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata: {name: tools-service-tenant-mcp, namespace: toolhive-system}
-spec:
-  parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]
-  hostnames: [tools.service.re8ch.com]
-  rules:
-    - matches: [{path: {type: PathPrefix, value: /tenant}}]
-      # tenant-vmcp currently has one publication replica. Route directly to
-      # the publication so the initial unauthenticated MCP probe always returns
-      # its OAuth challenge instead of alternating across router replicas.
-      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
-    - matches: [{path: {type: PathPrefix, value: /.well-known/oauth-protected-resource/tenant}}]
-      # OAuth discovery is stateless and precedes MCP session creation. Send it
-      # directly to the publication so an unhealthy session-router replica
-      # cannot make client login discovery alternate between 200 and 503.
-      backendRefs: [{name: vmcp-tenant-vmcp, port: 4483}]
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
 metadata: {name: tools-service-secretary-webhooks, namespace: re8ch-secretary}
 spec:
   parentRefs: [{name: re8ch-gateway-canary, namespace: kube-system, sectionName: service-wildcard-https}]

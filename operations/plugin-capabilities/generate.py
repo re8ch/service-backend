@@ -112,9 +112,10 @@ def generate():
     definitions = sorted([*tools.values(), ANATOMY_DIFF_TOOL, ANATOMY_DIFF_DELETE_TOOL, CILIUM_CIDR_TOOL, CILIUM_CIDR_DELETE_TOOL, *network_tools], key=lambda tool: tool["name"])
     generated = {"version": 1, "cluster": matrix["cluster"], "tools": definitions}
     (ROOT / "operations/cloud-platform/plugin-operation-tools.json").write_text(json.dumps(generated, indent=2) + "\n")
-    registry = {"servers": [{"name": "com.re8ch/cluster-plugin-operations", "version": "0.1.0",
-        "description": "Admin tools for RE8CH cluster plugins. Read operations available; full coverage in progress.",
-        "remotes": [{"type": "streamable-http", "url": "https://operate.tools.re8ch.com/cloud/mcp"}],
+    registry = {"servers": [{"name": "com.re8ch/re8ch", "title": "RE8CH", "version": "1.0.0",
+        "description": "Unified RE8CH tools selected by organization, membership, grants and implementation state.",
+        "remotes": [{"type": "streamable-http", "url": "https://tools.service.re8ch.com/tenant-native/mcp"}],
+        "websiteUrl": "https://re8ch.com",
         "_meta": {"io.modelcontextprotocol.registry/publisher-provided": {"io.github.stacklok": {
             "streamable-http": {"status": "active", "re8ch_capabilities": capability_inventory(matrix, definitions), "tool_definitions": [{key: tool[key] for key in ("name", "description", "inputSchema", "_meta")} for tool in definitions] + MIHOMOS_TOOLS}}}}}]}
     (ROOT / "operations/plugin-capabilities/registry.json").write_text(json.dumps(registry, indent=2) + "\n")
@@ -122,6 +123,11 @@ def generate():
     # bare servers response. Keep the readable payload used by UI tooling.
     runtime_registry = {"version": "1.0.0", "meta": {"last_updated": "2026-10-04T00:00:00Z"}, "data": registry}
     (ROOT / "operations/plugin-capabilities/registry.runtime.json").write_text(json.dumps(runtime_registry, separators=(",", ":")) + "\n")
+    # ToolHive consumes one approved catalog. Keep the complete capability
+    # inventory and callable definitions on the same native RE8CH entry so the
+    # panel cannot drift back to a separate historical cluster-operations item.
+    runtime_registry["meta"]["last_updated"] = "2026-11-28T00:00:00Z"
+    (ROOT / "operations/toolhive-catalog/registry.json").write_text(json.dumps(runtime_registry, separators=(",", ":")) + "\n")
     return len(tools)
 
 

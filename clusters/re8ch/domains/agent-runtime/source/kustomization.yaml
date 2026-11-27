@@ -15,38 +15,18 @@ resources:
 - ../../../components/codex-conversation-archive/storage.yaml
 - ../../../components/arc-agent-runtime
 - ../../../components/mcp-registry/registry.yaml
-- ../../../components/toolhive/external-observe-publication.yaml
-- ../../../components/toolhive/external-observe-rbac.yaml
-- ../../../components/toolhive/external-privileged-publication.yaml
-- ../../../components/toolhive/platform-restart-rbac.yaml
-- ../../../components/toolhive/ops-admin-postgres-rbac.yaml
-- ../../../components/toolhive/vmcp-external-publication.yaml
+- ../../../components/toolhive/directory.yaml
 - ../../../components/toolhive/runtime-child-tolerations.yaml
 - ../../../components/toolhive/retire-legacy-session-redis.yaml
 - ../../../components/toolhive/registry.yaml
 - ../../../components/toolhive/operator-release.yaml
 - ../../../components/ops/github-actions-agent-runtime-executor-rbac.yaml
-- ../../../components/plugin-runtime/runtime.yaml
-- ../../../components/plugin-runtime/rbac.yaml
 - ../../../../../operations/api-conformance
 - ../../../../../platform/connectool
 - ../../../../../platform/workspace-controller
 - ../../../../../platform/git-workspaces
 patchesStrategicMerge:
 - ../../../retire-legacy-mcp.patch.yaml
-configMapGenerator:
-- name: ops-mcp-server-code
-  namespace: toolhive-system
-  files: [app.py=../../../components/ops/ops-mcp-server-app.py]
-- name: re8ch-plugin-definitions
-  namespace: toolhive-system
-  files:
-  - advanced-fabrics.json=../../../components/plugin-runtime/plugins/advanced-fabrics.json
-  - cilium.json=../../../components/plugin-runtime/plugins/cilium.json
-  - mihomos-cluster.json=../../../components/plugin-runtime/plugins/mihomos-cluster.json
-  - public-edge.json=../../../components/plugin-runtime/plugins/public-edge.json
-  - rook-ceph.json=../../../components/plugin-runtime/plugins/rook-ceph.json
-generatorOptions: {disableNameSuffixHash: true}
 patches:
   - target: {group: source.toolkit.fluxcd.io, version: v1, kind: OCIRepository, name: connectool, namespace: flux-system}
     patch: |-

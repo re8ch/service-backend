@@ -51,23 +51,11 @@ def test_auth_host_routes_prefixed_login_actions_to_the_broker():
     assert ("PathPrefix", "/callback") in matches
 
 
-def test_single_replica_tenant_route_bypasses_the_mcp_session_router():
-    resources = documents(
-        ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml"
-    )
-    route = next(
-        item for item in resources
-        if item["kind"] == "HTTPRoute"
-        and item["metadata"]["name"] == "tools-service-tenant-mcp"
-    )
-    session_rule, discovery_rule = route["spec"]["rules"]
-    assert session_rule["backendRefs"] == [
-        {"name": "vmcp-tenant-vmcp", "port": 4483}
-    ]
-    assert discovery_rule["backendRefs"] == [
-        {"name": "vmcp-tenant-vmcp", "port": 4483}
-    ]
-
+def test_single_native_route_bypasses_the_mcp_session_router():
+    runtime = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
+    assert "metadata: {name: tenant-native-mcp, namespace: tenant-infrastructure}" in runtime
+    assert "value: /tenant-native/mcp" in runtime
+    assert "backendRefs: [{name: tenant-api, port: 80}]" in runtime
 
 def test_live_nodes_receive_optional_mihomos_placement():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
@@ -102,15 +90,10 @@ def test_control_plane_proxy_uses_the_r640_node_local_endpoint():
 
 
 
-def test_retired_kagent_namespace_is_not_referenced_by_active_gitops_resources():
+def test_retired_kagent_namespace_and_legacy_restart_rbac_are_absent():
     root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
     assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
-    restart_rbac = documents(
-        ROOT / "clusters/re8ch/components/toolhive/platform-restart-rbac.yaml"
-    )
-    assert all(item["metadata"].get("namespace") != "kagent" for item in restart_rbac)
-
-
+    assert not (ROOT / "clusters/re8ch/components/toolhive/platform-restart-rbac.yaml").exists()
 def test_external_dns_is_only_a_public_edge_execution_layer():
     resources = documents(
         ROOT / "clusters/re8ch/components/public-exposure/external-dns-cloudflare.yaml"
@@ -191,265 +174,33 @@ def test_catalog_dns_targets_edgeone_without_cloudflare_proxying():
     )
 
 
-def test_tools_dns_writer_remains_active_for_legacy_mcp_clients():
-    platform = documents(ROOT / "clusters/re8ch/components/ai-operations/platform.yaml")
-    route = next(
-        item
-        for item in platform
-        if item["kind"] == "HTTPRoute" and item["metadata"]["name"] == "cloud-platform-tool"
-    )
-    metadata = route["metadata"]
-    assert metadata.get("labels", {}).get("public.re8ch.com/external-dns") is None
-    assert not any(key.startswith("external-dns.alpha.kubernetes.io/") for key in metadata["annotations"])
-    assert metadata["annotations"]["networking.re8ch.com/dns-authority"] == (
-        "toolhive-system/tools-re8ch-com"
-    )
-
-    gateways = documents(ROOT / "clusters/re8ch/components/cilium/gateway-api-canary.yaml")
-    gateway = next(
-        item
-        for item in gateways
-        if item["kind"] == "Gateway" and item["metadata"]["name"] == "re8ch-gateway-canary"
-    )
-    assert not any(
-        key.startswith("external-dns.alpha.kubernetes.io/")
-        for key in gateway["metadata"].get("annotations", {})
-    )
-
-    publications = documents(ROOT / "platform/connectool/cloud-route.yaml")
-    authority = next(
-        item
-        for item in publications
-        if item["kind"] == "Ingress" and item["metadata"]["name"] == "connectool-tools-re8ch-com"
-    )
-    assert authority["metadata"]["labels"] == {
-        "networking.re8ch.com/dns-authority": "public-edge"
-    }
-    assert authority["metadata"]["annotations"]["networking.re8ch.com/provider"] == (
-        "public-edge-manager"
-    )
-    assert authority["metadata"]["annotations"]["external-dns.alpha.kubernetes.io/target"] == (
-        "223.159.210.222"
-    )
-
-
+def test_tools_dns_and_native_route_are_single_authorities():
+    runtime = (ROOT / "clusters/re8ch/charts/birfucate-metering/templates/tenant-runtime.yaml").read_text()
+    assert "hostnames: [tools.service.re8ch.com]" in runtime
+    assert runtime.count("value: /tenant-native/mcp") == 1
+    networking = documents(ROOT / "clusters/re8ch/domains/networking/resources.yaml")
+    assert not any(item.get("kind") == "HTTPRoute" and item["metadata"]["name"] == "tools-service-native-mcp" for item in networking)
+    assert not (ROOT / "platform/connectool/cloud-route.yaml").exists()
 def test_toolhive_mcp_workloads_match_capacity_and_node_local_policy():
-    release = next(
-        item
-        for item in documents(ROOT / "platform/connectool/release.yaml")
-        if item["kind"] == "HelmRelease"
-    )
+    release = next(item for item in documents(ROOT / "platform/connectool/release.yaml") if item["kind"] == "HelmRelease")
     publications = release["spec"]["values"]["toolhive"]["publications"]
-    assert {item["name"]: item["replicas"] for item in publications} == {
-        "re8ch-tools-vmcp": 1,
-        "re8ch-operate-vmcp": 1,
-        "re8ch-admin-vmcp": 1,
-        "tenant-vmcp": 1,
-    }
+    assert {item["name"]: item["replicas"] for item in publications} == {"re8ch-native": 1}
+    native = publications[0]
+    assert native["resourceUrl"] == "https://tools.service.re8ch.com/tenant-native/mcp"
+    assert native["workloads"] == [{"name": "tenant-api-backend"}]
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["placement"]["nodeSelector"] == {
         "scheduling.re8ch.com/pool-service-core-r640": "true",
         "scheduling.re8ch.com/network-serving": "true",
     }
     assert toolhive["runtimePolicy"]["nodeNames"] == ["r640"]
-    assert toolhive["runtimePolicy"]["trafficDistribution"] == "PreferSameNode"
-    assert toolhive["runtimePolicy"]["backendSessionAffinity"] == "None"
-
-    internal = documents(ROOT / "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml")
-    assert not any(item["kind"] in {"VirtualMCPServer", "MCPOIDCConfig", "MCPServerEntry"} for item in internal)
-    servers = [item for item in internal if item["kind"] == "MCPServer"]
-    assert {item["metadata"]["name"] for item in servers} == {
-        "ops-admin-vmcp-internal",
-        "ops-observe-vmcp-internal",
-        "ops-operate-vmcp-internal",
-    }
-    for server in servers:
-        spec = server["spec"]
-        assert spec["replicas"] == 1
-        assert spec["backendReplicas"] == 1
-        assert spec["sessionAffinity"] == "ClientIP"
-        assert spec["sessionStorage"] == {"provider": "memory"}
-        assert next(
-            item["value"] for item in spec["env"] if item["name"] == "TRUST_PROXY_CIDRS"
-        ) == "10.42.0.0/16"
-        expected_generation = (
-            "admin-postgres-sql-2026-10-10"
-            if server["metadata"]["name"] == "ops-admin-vmcp-internal"
-            else "r640-fallback-2026-09-24"
-        )
-        assert server["metadata"]["annotations"]["re8ch.com/reconcile-generation"] == expected_generation
-        pod_spec = spec["podTemplateSpec"]["spec"]
-        expected_annotations = {
-            "scheduling.re8ch.com/placement-class": "service-core-r640",
-            "scheduling.re8ch.com/placement-revision": "workload-contract-v1",
-                "re8ch.com/code-revision": "flux-self-service-2026-10-18",
-        }
-        if server["metadata"]["name"] == "ops-observe-vmcp-internal":
-            expected_annotations["observability.re8ch.com/probe-revision"] = "shared-observability-v1"
-        assert spec["podTemplateSpec"]["metadata"]["annotations"] == expected_annotations
-        assert pod_spec["nodeSelector"] == {
-            "scheduling.re8ch.com/pool-service-core-r640": "true",
-            "scheduling.re8ch.com/network-serving": "true",
-        }
-        # The generated proxy and backend StatefulSet share toolhive-name and
-        # have only one eligible node. Any same-label affinity rule can
-        # deadlock the pair and remove the public vMCP backend endpoints.
-        assert "affinity" not in pod_spec
-
-    auth = {item["metadata"]["name"]: item for item in internal if item["kind"] == "MCPExternalAuthConfig"}
-    assert auth["vmcp-observe-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {
-        "name": "ops-mcp-observe-upstream", "key": "x-ops-token"
-    }
-    assert auth["vmcp-admin-backend-auth"]["spec"]["headerInjection"]["valueSecretRef"] == {
-        "name": "ops-mcp-admin-upstream", "key": "x-ops-token"
-    }
-    observe = next(item for item in servers if item["metadata"]["name"] == "ops-observe-vmcp-internal")
-    metrics = next(item["value"] for item in observe["spec"]["env"] if item["name"] == "METRICS_URL")
-    assert metrics == "http://vmselect-re8ch-metrics.observability-system.svc.cluster.local:8481/select/0/prometheus"
-    tool_configs = {item["metadata"]["name"] for item in internal if item["kind"] == "MCPToolConfig"}
-    assert tool_configs == {"ops-operate-tools", "ops-admin-tools"}
-    telemetry = next(item for item in internal if item["kind"] == "MCPTelemetryConfig")
-    assert telemetry["spec"] == {"openTelemetry": {"enabled": False}, "prometheus": {"enabled": True}}
-    backend_policy = next(item for item in internal if item["kind"] == "NetworkPolicy")
-    selectors = backend_policy["spec"]["podSelector"]["matchExpressions"]
-    assert {selector["key"] for selector in selectors} == {"toolhive-name", "app"}
-    assert "mcpserver" not in next(selector["values"] for selector in selectors if selector["key"] == "app")
-
-    root = yaml.safe_load((ROOT / "clusters/re8ch/kustomization.yaml").read_text())
-    assert "components/toolhive/proxy-scheduling-policy.yaml" not in root["resources"]
-    assert "components/toolhive/legacy-session-redis.yaml" not in root["resources"]
-    assert "../../../components/toolhive/retire-legacy-session-redis.yaml" in domain_resources("agent-runtime")
-    assert "../../../components/toolhive/vmcp-external-publication.yaml" in domain_resources("agent-runtime")
-    assert "../../../components/toolhive/external-observe-publication.yaml" in domain_resources("agent-runtime")
-    assert "../../../components/toolhive/external-privileged-publication.yaml" in domain_resources("agent-runtime")
-    assert "components/toolhive/retire-kagent-legacy-mcp.yaml" not in root["resources"]
-    assert "../../../components/toolhive/operator-release.yaml" in domain_resources("agent-runtime")
-    assert "../../../components/plugin-runtime/runtime.yaml" in domain_resources("agent-runtime")
-    assert "../../../components/plugin-runtime/rbac.yaml" in domain_resources("agent-runtime")
-
-    redis_retirement = (ROOT / "clusters/re8ch/components/toolhive/retire-legacy-session-redis.yaml").read_text()
-    assert "retire-toolhive-session-redis-v3" in redis_retirement
-    assert "--wait=false" in redis_retirement
-    assert "toolhive-auth-redis-ab" in redis_retirement
-    assert "data-toolhive-auth-redis-ab-0" in redis_retirement
-
-
-def test_mcp_registry_database_is_ab_only():
-    resources = documents(ROOT / "clusters/re8ch/components/mcp-registry/registry.yaml")
-    database = next(
-        item
-        for item in resources
-        if item["kind"] == "Deployment"
-        and item["metadata"]["name"] == "mcp-registry-postgresql"
-    )
-    expression = database["spec"]["template"]["spec"]["affinity"]["nodeAffinity"][
-        "requiredDuringSchedulingIgnoredDuringExecution"
-    ]["nodeSelectorTerms"][0]["matchExpressions"][0]
-    assert expression == {
-        "key": "kubernetes.io/hostname",
-        "operator": "In",
-        "values": ["a1-wsl-zt", "b1-wsl-zt"],
-    }
-    claim = database["spec"]["template"]["spec"]["volumes"][0][
-        "persistentVolumeClaim"
-    ]["claimName"]
-    assert claim == "mcp-registry-postgresql-ab"
-
-    registry = next(
-        item
-        for item in resources
-        if item["kind"] == "Deployment"
-        and item["metadata"]["name"] == "mcp-registry"
-    )
-    assert registry["spec"]["replicas"] == 2
-    assert registry["spec"]["progressDeadlineSeconds"] == 180
-    assert registry["spec"]["strategy"]["rollingUpdate"] == {
-        "maxUnavailable": 1,
-        "maxSurge": 0,
-    }
-    registry_expression = registry["spec"]["template"]["spec"]["affinity"][
-        "nodeAffinity"
-    ]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0][
-        "matchExpressions"
-    ][0]
-    assert registry_expression == {
-        "key": "scheduling.re8ch.com/service-plane",
-        "operator": "In",
-        "values": ["core"],
-    }
-    service = next(
-        item
-        for item in resources
-        if item["kind"] == "Service" and item["metadata"]["name"] == "mcp-registry"
-    )
-    assert service["spec"]["trafficDistribution"] == "PreferSameNode"
-    pdb = next(
-        item
-        for item in resources
-        if item["kind"] == "PodDisruptionBudget"
-        and item["metadata"]["name"] == "mcp-registry"
-    )
-    assert pdb["spec"]["minAvailable"] == 1
-
-
-def test_toolhive_controls_and_plugin_runtime_are_r640_local():
+def test_toolhive_controls_are_r640_local_and_plugin_runtime_is_retired():
     operator = documents(ROOT / "clusters/re8ch/components/toolhive/operator-release.yaml")
-    source = next(item for item in operator if item["kind"] == "OCIRepository")
     release = next(item for item in operator if item["kind"] == "HelmRelease")
-    assert source["spec"]["ref"] == {"digest": "sha256:4881731dd7ceaf0fefcdecdb23b1c87d16b1f60fe8aa5ee75304fd33f4fa4d22"}
     values = release["spec"]["values"]["operator"]
     assert values["replicaCount"] == 1
-    assert values["image"] == "ghcr.io/stacklok/toolhive/operator@sha256:7998095e6b998d2ae50f93393fa8c969d41a1422457d1775aef81c81dfa24b67"
-    assert values["toolhiveRunnerImage"] == "ghcr.io/stacklok/toolhive/proxyrunner@sha256:1ee5a4d66763180fdfdb95c4da9afb7112946e90531516fb9a1fd279f2c9cd29"
-    assert values["vmcpImage"] == "ghcr.io/stacklok/toolhive/vmcp@sha256:22b6bb5c642c45e913afef0ea0ca696b1f12cd7dd26d74a8e8cb0b794cd2774c"
     assert values["nodeSelector"] == {"kubernetes.io/hostname": "r640"}
-    env = {item["name"]: item["value"] for item in values["env"]}
-    assert env["KUBERNETES_SERVICE_HOST"] == "10.250.0.128"
-    assert env["KUBERNETES_SERVICE_PORT"] == "6443"
-    expressions = values["affinity"]["nodeAffinity"]["requiredDuringSchedulingIgnoredDuringExecution"]["nodeSelectorTerms"][0]["matchExpressions"]
-    assert expressions == [
-        {
-            "key": "scheduling.re8ch.com/service-plane",
-            "operator": "In",
-            "values": ["core"],
-        }
-    ]
-    pod_anti_affinity = values["affinity"]["podAntiAffinity"]
-    assert pod_anti_affinity["requiredDuringSchedulingIgnoredDuringExecution"] == [
-        {
-            "labelSelector": {
-                "matchLabels": {"app.kubernetes.io/name": "toolhive-operator"},
-            },
-            "topologyKey": "kubernetes.io/hostname",
-        }
-    ]
-    assert release["spec"]["postRenderers"] == [
-        {
-            "kustomize": {
-                "patches": [
-                    {
-                        "target": {
-                            "version": "v1",
-                            "kind": "Deployment",
-                            "name": "toolhive-operator",
-                        },
-                        "patch": "- op: add\n  path: /spec/strategy\n  value:\n    type: RollingUpdate\n    rollingUpdate: {maxUnavailable: 1, maxSurge: 0}",
-                    }
-                ]
-            }
-        }
-    ]
-
-    runtime = documents(ROOT / "clusters/re8ch/components/plugin-runtime/runtime.yaml")
-    deployment = next(item for item in runtime if item["kind"] == "Deployment")
-    service = next(item for item in runtime if item["kind"] == "Service")
-    pdb = next(item for item in runtime if item["kind"] == "PodDisruptionBudget")
-    assert deployment["spec"]["replicas"] == 1
-    assert deployment["spec"]["progressDeadlineSeconds"] == 180
-    assert service["spec"]["trafficDistribution"] == "PreferSameNode"
-    assert pdb["spec"]["minAvailable"] == 1
-
-
+    assert not (ROOT / "clusters/re8ch/components/plugin-runtime/runtime.yaml").exists()
 def test_embedded_workspace_controller_is_valid_python():
     config_map = next(
         item

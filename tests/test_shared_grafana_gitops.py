@@ -74,10 +74,8 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
 
     def test_grafana_is_a_named_recovery_target(self):
         app = (ROOT / "clusters/re8ch/components/ops/ops-mcp-server-app.py").read_text()
-        rbac = (ROOT / "clusters/re8ch/components/toolhive/platform-restart-rbac.yaml").read_text()
         self.assertIn('(\"observability-system\", \"re8ch-grafana\")', app)
-        self.assertIn("namespace: observability-system", rbac)
-        self.assertIn("resourceNames: [re8ch-grafana]", rbac)
+        self.assertFalse((ROOT / "clusters/re8ch/components/toolhive/platform-restart-rbac.yaml").exists())
 
     def test_legacy_qwen_grafana_publication_is_retired_without_deleting_backups(self):
         root = (ROOT / "clusters/re8ch/domains/observability-metering/source/kustomization.yaml").read_text()
@@ -110,7 +108,6 @@ class SharedGrafanaGitOpsTests(unittest.TestCase):
 
     def test_cost_and_observe_paths_use_the_shared_metrics_plane(self):
         paths = [
-            "clusters/re8ch/components/toolhive/vmcp-external-publication.yaml",
             "clusters/re8ch/components/network/public-mesh/network-economics.yaml",
             "operations/network/manifests/network/public-mesh/network-economics.yaml",
             "operations/network/manifests/network/public-mesh/opencost-values.yaml",

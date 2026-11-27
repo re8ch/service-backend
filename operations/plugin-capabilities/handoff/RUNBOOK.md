@@ -173,6 +173,6 @@ Python 依赖包括 PyYAML、jsonschema、pytest、Schemathesis 4.29.1；本机�
 5. **清理与工作树**：临时 RuntimeDiff 已确认删除；本次 GET 无新增资源。#1367/#1372 任务工作树已归档并删除。旧 #1369/#1371 工作树可能仍在 `/Volumes/A1/worktrees/cloud-platform-rollout-availability`、`plugin-api-acceptance-cases`，必须检查 dirty 状态、归档后再移除，不能盲删。
 
 管理面目录：
-https://tools.re8ch.com/catalog/com.re8ch/cluster-plugin-operations/0.1.0?registryName=approved
+https://tools.re8ch.com/catalog/com.re8ch/re8ch/1.0.0?registryName=approved
 
 每批交付必须分别给出注册、部署可用、HTTP 合约、业务语义、UI 语义、清理状态。所需项全部通过且无残留才算该批完成。鉴权错误、无样本、缺配置、控制器不支持都应显式记录，不允许用空测试、CLI 成功或目录存在替代验收。
