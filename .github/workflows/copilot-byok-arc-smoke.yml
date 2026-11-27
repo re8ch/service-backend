@@ -15,7 +15,9 @@ jobs:
   byok-model:
     runs-on:
       group: RE8CH Self-Hosted
-      labels: re8ch-self-hosted-ephemeral
+      labels:
+        - self-hosted
+        - re8ch-self-hosted-ephemeral
     timeout-minutes: 10
     container:
       image: node:22-bookworm-slim@sha256:d20a7b8b4184bf74fe77499b5460a3d69e582bc733d50287e40c3fe791764851
