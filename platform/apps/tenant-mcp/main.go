@@ -115,6 +115,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms, false)
 	s.registerGrafanaTools(ms)
 	s.registerCollaborationTools(ms)
+	s.registerStalwartRelayTools(ms)
 	s.registerKubernetesTools(ms)
 	s.registerSecretTools(ms)
 	s.registerExposureTools(ms)
@@ -167,6 +168,7 @@ func (s *server) publicSelfServiceMCP(id identity) *mcp.Server {
 	s.registerHarborTools(ms, true)
 	s.registerGrafanaTools(ms)
 	s.registerCollaborationTools(ms)
+	s.registerStalwartRelayTools(ms)
 	s.registerModelGatewayTools(ms)
 	return ms
 }
