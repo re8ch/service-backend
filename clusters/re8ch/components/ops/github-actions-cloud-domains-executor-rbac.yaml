@@ -2371,6 +2371,7 @@ rules:
   - supabase-multi-organization-memberships-v1
   - supabase-oauth-application-runtime-v1
   - supabase-oauth-client-tenant-mcp-v1
+  - supabase-oauth-client-toolhive-v1
   - supabase-oauth-clients-access-subscription-v1
   - supabase-oauth-clients-anycam-v1
   - supabase-oauth-clients-catalog-v1

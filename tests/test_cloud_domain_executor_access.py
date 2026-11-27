@@ -124,9 +124,9 @@ def test_open_oauth_release_has_exact_configmap_and_route_access():
     identity = next(item for item in ledger['sources'] if item['repository'] == 're8ch/identity-gitops')
     assert identity == {
         'repository': 're8ch/identity-gitops',
-        'revision': '5765c15e68f94b048f4731042feffa461d23a1f9',
+        'revision': '35af58117fed3946d9827b8886329a85d8148632',
         'path': 'operations/releases/domain-access.yaml',
-        'sha256': '2c3b3d55645d7102f4cc0744e78684e7475fb44d8dc1b46a0490318602ba2031',
+        'sha256': 'bdbd236e054b4bbe9af0fb341b84c7a8b4e5d1bdcebe7484d7c451d3d41eb801',
     }
 
 
