@@ -5,17 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: grove-violet
+    delivery.re8ch.com/codename: tundra-violet
+    delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-scheduling-fabric
   ref:
-    digest: sha256:ad7adb587a6028ff61d7af401e88c86fcd13ffa1e9216e4b4b96e680a716065c
-  verify:
-    provider: cosign
-    matchOIDCIdentity:
-    - issuer: ^https://token\.actions\.githubusercontent\.com$
-      subject: ^https://github\.com/re8ch/service\-backend/\.github/workflows/domain\-oci\-release\.yml@refs/heads/main$
+    digest: sha256:afb58afd96e4bab911dd1914da7dc1f369f7253e5ae86baf619338c3c9ad4cc1
   secretRef:
     name: gitops-oci-reader
 ---
@@ -26,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/scheduling-fabric
-    delivery.re8ch.com/codename: grove-violet
+    delivery.re8ch.com/codename: tundra-violet
 spec:
   interval: 1m
   retryInterval: 1m
