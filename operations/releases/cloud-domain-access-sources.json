@@ -2,9 +2,9 @@
   "sources": [
     {
       "repository": "8iops/agent-gitops",
-      "revision": "a9c33ee1f732a7aff115799aa28e9271a26149c7",
+      "revision": "36bc91c76098d267d192c569630c70dd049fd7b6",
       "path": "operations/releases/domain-access.yaml",
-      "sha256": "4fb4f9f179b0a2dbaefd6214817838ad30f1d457911dc5b888dc9bf7b29a4901"
+      "sha256": "e148d3c199f1eae5c51888190646a557dd639815b634460aa592f75fecba25ec"
     },
     {
       "repository": "re8ch/identity-gitops",
