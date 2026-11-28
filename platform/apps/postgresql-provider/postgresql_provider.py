@@ -19,6 +19,7 @@ from typing import Any
 import tenant_control_controller as control
 
 LOG = logging.getLogger("postgresql-provider")
+PROVIDER_NAME = "re8ch-postgresql-provider"
 SERVICE_CLASS = "database.postgresql.shared.v1"
 CATALOG_RUNTIME_PROFILE = "mcp-catalog-runtime-v1"
 PROTECTED_AUTHORITIES = ("pg-identity", "pg-billing", "pg-re8ch")

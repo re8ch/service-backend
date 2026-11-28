@@ -147,6 +147,27 @@ def test_catalog_runtime_sql_profile_cannot_mutate_catalog_authority():
     assert "NOINHERIT" in source and "CONNECTION LIMIT 20" in source
 
 
+def test_pigsty_connection_uses_stable_application_name(monkeypatch):
+    calls = []
+
+    class Connection:
+        autocommit = False
+
+    connection = Connection()
+    monkeypatch.setitem(sys.modules, "psycopg", types.SimpleNamespace(
+        connect=lambda **kwargs: calls.append(kwargs) or connection,
+    ))
+    pigsty = provider.Pigsty.__new__(provider.Pigsty)
+    pigsty.host, pigsty.port, pigsty.user, pigsty.password = "db", "5432", "role", "password"
+    assert pigsty.connect("re8ch_billing") is connection
+    assert connection.autocommit is True
+    assert calls == [{
+        "host": "db", "port": "5432", "user": "role", "password": "password",
+        "dbname": "re8ch_billing", "connect_timeout": 10,
+        "application_name": "re8ch-postgresql-provider",
+    }]
+
+
 def test_parameter_and_identity_guards():
     assert provider.validate_parameters({"storageGiB": 20, "extensions": ["pgcrypto"]})["backupClass"] == "pigsty-pitr"
     for value in ({"storageGiB": 0}, {"storageGiB": 20, "extensions": ["file_fdw"]}, {"storageGiB": 20, "password": "x"}):
