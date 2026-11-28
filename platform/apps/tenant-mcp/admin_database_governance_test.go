@@ -22,7 +22,7 @@ func TestAdminDatabaseGovernanceIsOrganizationBoundInventoryFirstAndIdempotent(t
 	upstream := httptest.NewServer(mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server { return admin }, &mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true}))
 	defer upstream.Close()
 	path := filepath.Join(t.TempDir(), "modules.json")
-	writeRegistry(t, path, map[string]platformBackend{"admin": {URL: upstream.URL, AuthMode: "none"}})
+	writeRegistry(t, path, map[string]platformBackend{"tenant_admin": {URL: upstream.URL, AuthMode: "none"}})
 	t.Setenv("PLATFORM_MODULE_REGISTRY", path)
 	s := &server{}
 	var err error

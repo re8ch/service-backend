@@ -29,8 +29,8 @@ func TestPostgresSQLUsesAdminModuleAndRetainsCallerAndDatabaseGuards(t *testing.
 	defer native.Close()
 	path := filepath.Join(t.TempDir(), "modules.json")
 	writeRegistry(t, path, map[string]platformBackend{
-		"admin":  {URL: upstream.URL, AuthMode: "none"},
-		"native": {URL: native.URL, AuthMode: "none"},
+		"tenant_admin": {URL: upstream.URL, AuthMode: "none"},
+		"native":       {URL: native.URL, AuthMode: "none"},
 	})
 	t.Setenv("PLATFORM_MODULE_REGISTRY", path)
 	for _, tc := range []struct {

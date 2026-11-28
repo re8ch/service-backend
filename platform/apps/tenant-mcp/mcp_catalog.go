@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 var mcpServiceName = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
@@ -24,9 +26,10 @@ var mcpToolName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,127}$`)
 var standardMCPPrefixes = map[string]bool{"postgresql": true, "registry": true, "observability": true}
 
 type mcpCatalogTool struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description,omitempty"`
-	InputSchema map[string]any `json:"inputSchema,omitempty"`
+	Name        string               `json:"name"`
+	Description string               `json:"description,omitempty"`
+	InputSchema map[string]any       `json:"inputSchema,omitempty"`
+	Annotations *mcp.ToolAnnotations `json:"annotations,omitempty"`
 }
 
 type mcpCatalogDefinition struct {
@@ -54,6 +57,17 @@ type mcpCatalogEntry struct {
 	Revision   string               `json:"revision"`
 	State      string               `json:"state"`
 	Definition mcpCatalogDefinition `json:"definition"`
+}
+
+type mcpCatalogEvent struct {
+	Sequence         int64                `json:"sequence"`
+	EventID          string               `json:"eventId"`
+	TenantRef        string               `json:"tenantRef"`
+	ServiceName      string               `json:"serviceName"`
+	Revision         string               `json:"revision"`
+	PreviousRevision string               `json:"previousRevision,omitempty"`
+	State            string               `json:"state"`
+	Definition       mcpCatalogDefinition `json:"definition"`
 }
 
 func validateMCPDefinition(tenant string, d mcpCatalogDefinition) error {
@@ -146,12 +160,6 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 	}
 	var definition mcpCatalogDefinition
 	var previous sql.NullString
-	_ = tx.QueryRowContext(ctx, `SELECT revision FROM mcp_catalog_heads WHERE tenant_ref=? AND service_name=?`, cmd.TenantRef, func() string {
-		if cmd.Definition != nil {
-			return cmd.Definition.ServiceName
-		}
-		return ""
-	}()).Scan(&previous)
 	state := "active"
 	switch cmd.Action {
 	case "plan", "apply":
@@ -165,7 +173,7 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 		if cmd.Action == "plan" {
 			return map[string]any{"valid": true, "tenantRef": cmd.TenantRef, "serviceName": definition.ServiceName}, nil
 		}
-	case "pause", "rollback":
+	case "pause", "withdraw", "rollback":
 		if cmd.Revision == "" {
 			return nil, errors.New("revision is required")
 		}
@@ -176,12 +184,13 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 		if err = json.Unmarshal([]byte(raw), &definition); err != nil {
 			return nil, err
 		}
-		if cmd.Action == "pause" {
+		if cmd.Action == "pause" || cmd.Action == "withdraw" {
 			state = "paused"
 		}
 	default:
 		return nil, errors.New("unknown action")
 	}
+	_ = tx.QueryRowContext(ctx, `SELECT revision FROM mcp_catalog_heads WHERE tenant_ref=? AND service_name=?`, cmd.TenantRef, definition.ServiceName).Scan(&previous)
 	revision := catalogRevision(cmd.TenantRef, definition, cmd.OperationKey)
 	raw, _ := json.Marshal(definition)
 	if _, err = tx.ExecContext(ctx, `INSERT INTO mcp_catalog_revisions(revision,tenant_ref,service_name,definition_json,state,previous_revision,operation_key,actor,created_at) VALUES(?,?,?,?,?,?,?,?,?)`, revision, cmd.TenantRef, definition.ServiceName, raw, state, previous, cmd.OperationKey, actor, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
@@ -190,8 +199,17 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 	if _, err = tx.ExecContext(ctx, `INSERT INTO mcp_catalog_heads(tenant_ref,service_name,revision) VALUES(?,?,?) ON CONFLICT(tenant_ref,service_name) DO UPDATE SET revision=excluded.revision`, cmd.TenantRef, definition.ServiceName, revision); err != nil {
 		return nil, err
 	}
+	eventID := "mcpevt_" + strings.TrimPrefix(revision, "mcp_")
+	event := mcpCatalogEvent{EventID: eventID, TenantRef: cmd.TenantRef, ServiceName: definition.ServiceName, Revision: revision, PreviousRevision: previous.String, State: state, Definition: definition}
+	eventJSON, _ := json.Marshal(event)
+	if _, err = tx.ExecContext(ctx, `INSERT INTO mcp_catalog_outbox(event_id,tenant_ref,service_name,revision,event_json,created_at) VALUES(?,?,?,?,?,?)`, eventID, cmd.TenantRef, definition.ServiceName, revision, eventJSON, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		return nil, err
+	}
 	if err = tx.Commit(); err != nil {
 		return nil, err
+	}
+	if s.catalogServers != nil {
+		s.catalogServers.refreshCatalog(s, cmd.TenantRef)
 	}
 	return map[string]any{"revision": revision, "previousRevision": previous.String, "state": state}, nil
 }
@@ -277,18 +295,42 @@ func (s *server) mcpCatalogEventsHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("X-Accel-Buffering", "no")
-	last := ""
+	var after int64
+	if raw := strings.TrimSpace(r.Header.Get("Last-Event-ID")); raw != "" {
+		if _, err := fmt.Sscan(raw, &after); err != nil || after < 0 {
+			writeJSON(w, 400, map[string]string{"error": "invalid Last-Event-ID"})
+			return
+		}
+	}
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
-		_, revision, err := s.mcpCatalog(r.Context(), tenant)
+		rows, err := s.ledger.QueryContext(r.Context(), `SELECT sequence,event_json FROM mcp_catalog_outbox WHERE tenant_ref IN ('*',?) AND sequence>? ORDER BY sequence LIMIT 256`, tenant, after)
 		if err != nil {
 			return
 		}
-		if revision != last {
-			fmt.Fprintf(w, "event: revision\ndata: %s\n\n", revision)
+		sent := false
+		for rows.Next() {
+			var sequence int64
+			var raw string
+			if rows.Scan(&sequence, &raw) != nil {
+				rows.Close()
+				return
+			}
+			var event map[string]any
+			if json.Unmarshal([]byte(raw), &event) != nil {
+				rows.Close()
+				return
+			}
+			event["sequence"] = sequence
+			encoded, _ := json.Marshal(event)
+			fmt.Fprintf(w, "id: %d\nevent: catalog-projection\ndata: %s\n\n", sequence, encoded)
 			flusher.Flush()
-			last = revision
+			after, sent = sequence, true
+		}
+		rows.Close()
+		if sent {
+			continue
 		}
 		select {
 		case <-r.Context().Done():
