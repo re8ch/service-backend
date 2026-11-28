@@ -11,8 +11,8 @@ python3 operations/network/fabric/fabric_model.py host-plan --node mubao-wsl
 python3 operations/network/fabric/fabric_model.py check
 ```
 
-Flux publishes the compiled document as `kube-system/host-network-contract`
-through the existing network PodCIDR OCI domain. The current release enables the single scoped canary described below. Other
+Cloud SSA applies the compiled document as `kube-system/host-network-contract`
+through the Network delivery domain. The current release enables the single scoped canary described below. Other
 host plans remain inventory-only. CI rejects fleet-wide adoption.
 
 ## Ownership
@@ -68,7 +68,7 @@ existing owners. The compiler combines public identities and PodCIDR ownership
 before emitting each complete peer prefix set. The old PodCIDR reconciler checks
 the local adoption manifest and yields these exact peers to the new assembler.
 
-Flux delivers a hashed ConfigMap through the existing signed PodCIDR OCI domain.
+Cloud SSA delivers a hashed ConfigMap through the accepted Network bundle.
 The installer starts host systemd recovery/watchdog services before the forward
 timer. Node-local immutable desired digests, durable pre-write journals,
 three consecutive successful health rounds, bounded workers, reboot recovery,
@@ -148,7 +148,7 @@ Public authority, FRR route choice and NetworkPolicy are unchanged by this step.
 ### Control transit canary
 
 MUBAO now has a separately generated `control-transit-peer` package delivered
-by Flux. Its existing control-pod owner is upgraded first to yield the adopted
+by Cloud SSA. Its existing control-pod owner is upgraded first to yield the adopted
 WG peer, while retaining its route responsibilities. The host agent owns that
 peer's persistent/runtime fields and MTU; local recovery is enabled before
 adoption. Its independent management path is wg-pt-mubao. A1/B1 remain inventory

@@ -71,8 +71,8 @@ daemon-reload` and invoke the maintenance service once; do not restart K3s.
 | --- | --- |
 | `ops-mcp-server-app.py` | Source code synced from the live `ops-mcp-server-code` ConfigMap |
 | `ops-mcp-server-standardization.patch.yaml` | Resource/security baseline and current control-plane endpoint |
-Cluster DNS is owned by the Advanced Fabric HelmRelease. Ops no longer patches
-or admits a K3s-managed DNS Deployment.
+Cluster DNS is owned by the Advanced Fabric Cloud SSA release. Ops does not
+patch or admit a K3s-managed DNS Deployment.
 
 ## Apply Code To Cluster
 

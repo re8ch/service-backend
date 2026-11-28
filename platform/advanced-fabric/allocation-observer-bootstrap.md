@@ -17,6 +17,4 @@ in AdvancedFabric/NPA and peer evidence. Failed reads must remain Unknown.
 
 The public product chart remains the RBAC definition source; this file is its
 reviewable initial bootstrap projection, not another reconciler. Runtime chart
-and network configuration remain owned by `pillars-infra/network-gitops`. This
-file is separate from the historical Helm release in this directory: never
-reconcile that obsolete release or restore a Flux writer to install permissions.
+and network configuration remain owned by `pillars-infra/network-gitops`.

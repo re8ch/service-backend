@@ -162,16 +162,21 @@ def wiki_pages() -> dict[str, str]:
             repository_page.append(f"| `{item['id']}` | `{item['projectType']}` | {item['repository']} | {deps} |")
         repository_page.append("")
     gitops_page = [
-        "# GitOps context",
+        "# Delivery context",
         "",
-        "> Generated view. Runtime authority still requires Flux status and runtime read-back.",
-        "",
-        "| Domain | Repository | Controller namespace |",
+        "| Domain | Desired-state repository | Current writer |",
         "| --- | --- | --- |",
     ]
     for item in sorted(gitops, key=lambda value: value["domain"]):
-        gitops_page.append(f"| `{item['domain']}` | {item['repository']} | `{item['controllerNamespace']}` |")
-    gitops_page.append("")
+        gitops_page.append(
+            f"| `{item['domain']}` | {item['repository']} | bounded Cloud SSA executor |"
+        )
+    gitops_page.extend([
+        "",
+        "Completion requires the accepted artifact, cluster-specific SSA receipt,",
+        "read-back evidence and independent runtime health.",
+        "",
+    ])
     return {
         "Home.md": "\n".join(home),
         "Repository-Context.md": "\n".join(repository_page),

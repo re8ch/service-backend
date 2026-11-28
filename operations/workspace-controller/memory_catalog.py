@@ -56,8 +56,8 @@ def recovery_context(module) -> list[str]:
         "`Grant Active` is authorization intent, not health: verify exact target/RBAC, peer/session or",
         "PublicEdge transport, and a functional probe from the real consumer identity before acceptance.",
         "Never widen RBAC or grants to compensate for endpoint, transport or session failure.",
-        "Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor",
-        "is the only runtime writer after signed PR and CI review.",
+        "The bounded cloud SSA executor is the permanently selected delivery writer after signed",
+        "PR and CI review. All other cluster delivery write paths are forbidden.",
         "Normative contract: `operations/network/docs/multicluster-federation-contract.md`.",
         "",
     ]

@@ -4,11 +4,12 @@ This directory defines a complete Supabase runtime dedicated to the existing
 `re8ch_billing` database. It never targets `re8ch_identity` and does not reuse
 Identity JWT, database, Storage, Realtime, dashboard, or service-role secrets.
 
-The Identity Flux domain owns this runtime's lifecycle because Billing is
-currently administered with User Hub organizations and identity policy. This
-is controller ownership only: Billing keeps its separate database, schema,
-service accounts, JWT signer, Secrets, and public contracts. Agent Flux owns
-Catalog/Bifurcate and must not reconcile Billing objects.
+The Identity delivery domain owns this runtime's platform lifecycle because
+Billing is administered with User Hub organizations and identity policy. GitHub
+Actions and the bounded cloud SSA executor apply that domain's reviewed bundle.
+Billing keeps its separate database, schema, service accounts, JWT signer,
+Secrets and public contracts. The Agent domain owns Catalog/Bifurcate and must
+not include Billing objects.
 
 The manifests are declared in the Identity domain, but rollout remains gated
 on the database and Secret preflight below. Missing preflight material is a
@@ -128,8 +129,9 @@ the narrowly granted `billing_commerce_runtime` projection and
 ## Activation and rollout
 
 After preflight, verify R640 allocatable resources and current requests, then
-allow Identity Flux to roll out the already-declared Billing resources. Flux
-must apply the signed autonomous Identity repository revision.
+submit the already-declared Billing resources through the protected Identity
+Cloud SSA path. Acceptance must bind the signed repository revision, immutable
+bundle, SSA receipt and runtime health from the same cluster.
 
 Run internal component health and auth federation first. Then expose the two
 DNS names and run REST RW/RO denial tests, cross-user Storage denial, private

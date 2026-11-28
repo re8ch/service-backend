@@ -20,7 +20,8 @@ R640 Kubernetes control-plane path available as break-glass access.
 
 Recovery is complete only when all of the following are true:
 
-1. Flux applied the exact reviewed `main` SHA.
+1. Cloud SSA applied the exact accepted immutable bundle derived from reviewed
+   `main`.
 2. Every MCP backend, proxy, vMCP and ToolHive control Pod is Running and Ready
    on A1/B1, with one replica per node for each HA component and none on R640.
 3. A newly issued JWT has the exact resource audience and required `groups`.
@@ -81,9 +82,9 @@ git status --short
 ```
 
 Use an isolated worktree at `origin/main`. Preserve unrelated user changes.
-All desired-state changes require signed commits, successful CI, a GitHub
-pull request, and Flux application. Direct cluster writes are limited to diagnosis,
-reconcile triggers, and exact operational recovery actions.
+All desired-state changes require signed commits, successful CI, a GitHub pull
+request and bounded Cloud SSA application. Direct cluster writes are limited to
+diagnosis and explicitly reviewed recovery actions.
 
 ## Fast triage
 
@@ -104,12 +105,9 @@ been inspected. Never respond to an `invalid_token` by broadening Cedar policy.
 
 ## Procedure
 
-### 1. Establish GitOps and placement truth
+### 1. Establish Cloud SSA and placement truth
 
 ```bash
-ssh r640 'sudo -n k3s kubectl -n flux-system get \
-  gitrepository/service-backend kustomization/service-backend -o wide'
-
 ssh r640 'sudo -n k3s kubectl get pods -A -l toolhive=true \
   -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,NODE:.spec.nodeName,PHASE:.status.phase,READY:.status.containerStatuses[0].ready'
 ```
@@ -117,7 +115,8 @@ ssh r640 'sudo -n k3s kubectl get pods -A -l toolhive=true \
 All MCP compute and ToolHive control Pods must resolve to `a1-wsl-zt` or
 `b1-wsl-zt`; every two-replica component must have one Ready Pod on each node.
 R640 may remain the public transport/control-plane access path, but must not
-host MCP sessions or compute. Repair GitOps declarations instead of adding
+host MCP sessions or compute. Verify the accepted Cloud SSA operation and
+read-back evidence, then repair reviewed declarations instead of adding
 ad-hoc scheduler patches or name-based policies.
 
 ### 2. Verify OAuth discovery independently
@@ -214,11 +213,11 @@ The relevant desired state is split across:
 - `clusters/re8ch/charts/birfucate-metering/values.yaml`
 - `clusters/re8ch/secrets/admin-vmcp-backend-auth-*.sops.yaml`
 
-### 6. Verify SOPS at rest and after Flux
+### 6. Verify SOPS at rest and after Cloud SSA
 
 Each namespace must use a standalone SOPS Secret manifest. Do not put encrypted
-Secrets inside a Kubernetes `kind: List`: the 2026-09-07 incident showed Flux
-applying nested `ENC[...]` values literally even though reconciliation reported
+Secrets inside a Kubernetes `kind: List`: the 2026-09-07 incident showed the
+former delivery path applying nested `ENC[...]` values literally even though it reported
 success.
 
 Validate locally without printing plaintext:
@@ -228,7 +227,7 @@ Validate locally without printing plaintext:
 3. Assert each authorization header equals `Bearer ` plus that token.
 4. Assert the token has the expected non-zero length.
 
-After Flux completes, repeat those assertions against live Secret values. A
+After Cloud SSA completes, repeat those assertions against live Secret values. A
 successful SOPS command proves the file can be decrypted; it does not prove the
 cluster received plaintext.
 
@@ -257,10 +256,10 @@ with a fresh in-memory MCP session.
 
 ### 8. Reconcile reviewed desired state
 
-After CI and merge, fetch `origin/main` and record its full SHA. Trigger the
-GitRepository, root Kustomization, and affected HelmRelease using Flux
-reconcile annotations or the Flux CLI. Wait for completion and require the
-reported source/applied revision to equal that exact SHA.
+After CI and merge, fetch `github/main` and record its full SHA. Submit the
+approved immutable bundle through the protected Cloud SSA workflow. Wait for
+completion and require its accepted artifact, SSA receipt and read-back evidence
+to correspond to that reviewed change.
 
 Do not accept “latest main” without comparing hashes. Do not apply rendered
 business resources directly as the permanent fix.
@@ -290,46 +289,15 @@ Evidence must include only status, tool count, required-argument list,
 `isError`, content-block count, Git SHA, image digest and operation IDs. Do not
 store bearer tokens or complete business responses.
 
-## 2026-09-07 incident findings
-
-The incident was not one OAuth bug. Four independently healthy-looking layers
-combined into a failed user experience:
-
-1. The GitHub connector did not declare the canonical administrator team, so
-   newly issued tokens had no usable admin group.
-2. The ToolHive CRD accepted `bearerToken`, but the deployed vMCP converter
-   rejected it at runtime. Schema validation alone missed this.
-3. Two encrypted Secrets were nested in `kind: List`; Flux reported success but
-   stored literal SOPS ciphertext. Both ends matched the same wrong value,
-   making a naive equality check misleading.
-4. After authentication succeeded, the protected admin tenancy object and
-   bindings were absent, turning the next failure into `403`.
-
-The recovery merged service-backend MRs `!318` through `!322`, established the
-canonical `re8ch:k8s-admins` group, split SOPS resources, used supported header
-injection, declared the protected admin tenant, refreshed all three OAuth
-credentials, and completed real read-only tool calls.
-
-Final observed acceptance counts were:
-
-- admin: 20 tools, including 8 `admin-api-backend` and 12 internal admin tools;
-- tenant: 56 tools;
-- cloud: 66 tools.
-
-Counts are diagnostic snapshots, not permanent contracts. Tool identity and
-successful calls matter more than an exact count.
-
 ## Rollback
 
 Rollback must preserve the single public identity boundary.
 
 1. Revert the offending Git commit through a signed GitHub pull request.
-2. Let Flux apply the revert and verify its exact revision.
+2. Let Cloud SSA apply the accepted revert bundle and verify its exact receipt.
 3. If rotating credentials, update both standalone SOPS Secrets atomically and
    restart both consumers.
-4. Do not restore the former one-shot Dex Job, name-based scheduling policies,
-   duplicate VirtualMCPServer owners, end-user token forwarding, or Authentik.
-5. If public authentication is unsafe, fail the publication closed while
+4. If public authentication is unsafe, fail the publication closed while
    retaining break-glass SSH/control-plane access.
 
 ## Escalation and unresolved external identity cases
@@ -345,13 +313,14 @@ Escalate when:
 
 - the canonical GitHub team cannot be administered;
 - Dex cannot query an approved organization;
-- Flux cannot decrypt standalone Secrets with the configured `sops-age` key;
+- the approved secret path cannot decrypt standalone Secrets with the configured
+  `sops-age` key;
 - the installed ToolHive controller and CRD advertise incompatible auth
   capabilities;
 - a tenant identity maps to zero or multiple active tenants;
 - any MCP workload cannot run on both A1 and B1 under the declared affinity.
 
-Attach sanitized protocol evidence, exact Git/Flux revisions, affected backend
+Attach sanitized protocol evidence, the exact Git revision and Cloud SSA receipt, affected backend
 IDs and relevant controller messages. Never attach credentials or decrypted
 Secret content.
 
@@ -359,7 +328,7 @@ Secret content.
 
 - Test runtime auth conversion, not only CRD schema admission.
 - Reject SOPS-encrypted Kubernetes `List` resources in CI.
-- Test live Secret plaintext shape after Flux without revealing values.
+- Test live Secret plaintext shape after Cloud SSA without revealing values.
 - Restart every environment-variable consumer during credential rotation.
 - Require `initialize`, `tools/list` and a read-only `tools/call` in release
   health gates.

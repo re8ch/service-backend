@@ -337,10 +337,6 @@
   },
   {
     "module": "service-backend",
-    "ref": "flux"
-  },
-  {
-    "module": "service-backend",
     "ref": "re8ch-workspace"
   },
   {

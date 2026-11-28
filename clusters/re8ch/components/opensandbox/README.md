@@ -85,4 +85,4 @@ That capability is for generated-app artifact upload and deployment, not AI Chat
 Do not add the capability string until its create/upload/activate/status/URL/
 destroy API has a real implementation. Do not bypass Teable's license checks;
 configure a legitimate Business/Enterprise license before testing licensed UI
-features. See `docs/teable-free-tier-runtime-boundary-2026-08-03.md`.
+features.

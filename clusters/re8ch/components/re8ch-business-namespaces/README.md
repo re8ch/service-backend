@@ -1,7 +1,8 @@
 # RE8CH business namespace cutover
 
-This directory is the GitHub/Flux desired state for workloads migrated from the
+This directory is reviewed GitHub desired state for workloads migrated from the
 legacy business namespaces `ledger`, `neo4j`, `anysite`, and `dataspace`.
+GitHub Actions and the bounded cloud SSA executor are the only delivery writer.
 
 The destination mapping is fixed:
 
@@ -25,9 +26,9 @@ documented break-glass migration procedure before workloads reconcile:
 
 The existing `ledger-wechat-auth-agent-token-20260727` ConfigMap is also a
 temporary compatibility input. It contains mounted handler source rather than
-credentials, but remains outside Flux until that source is packaged into the
-immutable function image; Flux manages the Deployment reference without
-rewriting the live ConfigMap.
+credentials, but remains outside the managed bundle until that source is
+packaged into the immutable function image. Cloud SSA manages the Deployment
+reference without rewriting the live ConfigMap.
 
 Persistent data was copied only after stopping the corresponding writer. Old
 PVCs and zero-scaled workloads remain in the legacy namespaces for the rollback

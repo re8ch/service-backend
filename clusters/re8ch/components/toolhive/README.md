@@ -57,15 +57,16 @@ complete 2026-09-07 recovery and the mandatory prevention gates.
    The verifier checks the fixed `10.43.65.40` Service IP, desired replicas and
    actual Pod Ready conditions. It requires three genuinely Ready authoritative
    DNS Pods on distinct eligible nodes.
-2. Ensure the ToolHive CRDs are at the pinned version. Flux adopts and manages
-   the existing `toolhive-operator` Helm release from `operator-release.yaml`.
-3. Reconcile ConnecTool and the three private MCPServers through Flux. The
-   signed chart supplies vMCP placement, session, PDB and child-runtime policy.
+2. Ensure the ToolHive CRDs are at the pinned version. The reviewed Helm input
+   is rendered into the immutable Agent bundle and applied by Cloud SSA.
+3. Apply ConnecTool and the three private MCPServers through the bounded cloud
+   SSA executor. The signed chart supplies vMCP placement, session, PDB and
+   child-runtime policy.
 4. Verify R640 placement and public OAuth initialization before retiring a
    previous chart or workload generation.
 5. Create the isolated Registry database/role on the existing MCP Registry
-   PostgreSQL instance. Flux manages its NetworkPolicy and Registry Server
-   release through ConnecTool.
+   PostgreSQL instance. Cloud SSA manages its NetworkPolicy and Registry Server
+   release; ConnecTool remains the product runtime contract.
 6. Use `kubectl auth can-i` and MCP `tools/list` to execute the acceptance
    matrix in `PERMISSIONS.md`.
 
@@ -74,10 +75,10 @@ helm upgrade --install toolhive-crds \
   oci://ghcr.io/stacklok/toolhive/toolhive-operator-crds \
   --version 0.41.0
 
-# The operator itself is reconciled by Flux from operator-release.yaml.
+# The operator is delivered by Cloud SSA from the accepted Agent bundle.
 ```
 
-After Flux source, root Kustomization and ConnecTool HelmRelease reconciliation,
+After Cloud SSA apply/read-back and ConnecTool runtime initialization,
 verify that every ConnecTool vMCP has one Ready replica and every session router
 has two Ready replicas on R640. A Pending replica, Redis dependency, downstream 401,
 or public 503 fails the rollout. Pod readiness alone is insufficient; complete

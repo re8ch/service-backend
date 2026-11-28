@@ -238,9 +238,8 @@ contract:
 ```
 
 Execution is cloud-to-cloud from the provider to the allowlisted GitHub REST
-endpoint. Flux, GitRepository artifacts, local checkouts, SSH proxies, and
-Kubernetes write operations are outside this operation contract and must not
-be used as fallback transports.
+endpoint. Local checkouts, SSH proxies and Kubernetes writes are outside this
+operation contract.
 
 The caller must be an `admin` member in the hidden `admin` organization, the
 `integration.github.enterprise-governance.v1` grant must be Active, and the
@@ -303,7 +302,7 @@ The `tenant-go-release` GitHub workflow validates PRs. On `main`, a GitHub-hoste
 runner publishes one amd64 GHCR image with provenance and SBOM, then attests its
 immutable digest. Its scoped promotion PR updates
 `clusters/re8ch/tenant-mcp-image/image.yaml`; the active observability
-HelmRelease reads that ConfigMap through a required `valuesFrom` reference.
+bundle reads that ConfigMap as a required input.
 Verify the image digest, deployment readiness, tenant ToolHive canary, billing,
 and credential redemption through the runtime before calling the release
 complete. Rollback is a signed PR restoring the previous image digest.

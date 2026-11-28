@@ -97,7 +97,7 @@ Deployment：`ai-operations/re8ch-cloud-platform`，2/2 Ready，`maxSurge=1,maxU
 2. native 可用时查看 Deployment、带 label 的 Pod、对应 Pod events、Service/EndpointSlice；只查所需字段，不 dump Secret、环境或 kubeconfig。
 3. 区分 identity 503、catalog 模块发现失败、Service connection refused、Pod 拉取／调度／启动失败。观察超时不等于后台操作失败。
 4. 若平台诊断路径失效，用户已授权使用 A/B/Mubao 控制面 SSH 排障。先从当前 inventory/SSH 配置确认目标和控制面健康；不猜别名、不导出凭据、不绕过授权去借用其他用户连接。
-5. 配置修复走专用工作树、签名提交、绿色 CI、PR 和 Flux；不因已获 SSH 授权而绕过 GitOps。仅修复有证据支持的故障，不重启整个控制面。
+5. 配置修复走专用工作树、签名提交、绿色 CI、PR 和 bounded Cloud SSA；不因已获 SSH 授权而绕过 GitHub desired state。仅修复有证据支持的故障，不重启整个控制面。
 
 ## 5. 同事如何实现 683 条缺口
 

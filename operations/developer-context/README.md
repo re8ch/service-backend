@@ -9,8 +9,9 @@ and Gists are views or evidence and cannot introduce desired state.
 
 1. `service-backend` owns the catalog, context contract and cross-repository
    graph.
-2. `operations/flux-federation/authority.yaml` supplies autonomous GitOps
-   repositories; it is not duplicated in the context declaration.
+2. `operations/flux-federation/authority.yaml` supplies the Cloud SSA delivery
+   ledger and desired-state repositories; its historical path is not duplicated
+   in the context declaration.
 3. Every `module.yaml` supplies a product system, service, website, PRD,
    research or supporting repository plus its explicit module dependencies.
 4. A repository-root `AGENTS.md` remains authoritative for that repository.

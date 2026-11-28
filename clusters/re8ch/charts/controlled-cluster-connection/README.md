@@ -21,7 +21,7 @@ helm upgrade --install controlled-cluster-connection . \
 
 For another tenant, start from the schema and keep the reviewed values in the
 owner's own repository. Examples describe cross-organisation agreements but
-are not reconciled into external clusters by RE8CH Flux.
+are not applied to external clusters by the RE8CH cloud executor.
 
 ## Verify
 

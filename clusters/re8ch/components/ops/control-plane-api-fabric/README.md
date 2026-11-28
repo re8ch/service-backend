@@ -8,8 +8,8 @@ manual DR target and must not originate or receive VIP traffic before promotion.
 A node may originate the prefix only while its local
 `https://127.0.0.1:6443/readyz` check is healthy.
 
-The checked-in configs are host-managed files, not resources that Flux applies
-automatically. Execute the following gates in order:
+The checked-in configs are host-managed files outside Cloud SSA; no cluster
+controller applies them automatically. Execute the following gates in order:
 
 1. Require A1 Ready, every required private WireGuard/BGP session Established,
    and no continuing etcd raft/snapshot catch-up messages.

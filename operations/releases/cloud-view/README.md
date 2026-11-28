@@ -3,8 +3,8 @@
 The existing five-minute observer runs on GitHub-hosted workers. It reads exact
 accepted-state ConfigMaps and workload identities derived from current executor
 permissions, plus the latest cloud execution results through the Observer App.
-It never reads Flux status, runs a local controller, builds a release or applies
-Kubernetes objects. GitHub has no native combined view of these release records
+It does not build releases or apply Kubernetes objects. GitHub has no native
+combined view of these release records
 and live Kubernetes health; the bounded collector supplies that missing read-only
 projection, without introducing another reconciliation service.
 
@@ -32,10 +32,9 @@ and credentials never enter the public R2 object or Checks. Failed collection
 publishes an unavailable envelope; failed upload leaves the old snapshot to expire.
 Detailed inspection remains behind the existing authenticated platform APIs.
 
-The existing `re8ch/headlamp-flux-static-github-ops` Worker and viewer consume the
-snapshot at `https://flux-status.re8ch.com/`; `/metrics` exposes the same bounded
-cloud aggregates. Legacy schema-1 snapshots are Unknown, never current evidence.
-The historical `scope=flux` dispatch name is retained as an input alias only.
+The Worker and viewer consume the Cloud SSA snapshot at
+`https://flux-status.re8ch.com/`; `/metrics` exposes the same bounded cloud
+aggregates. Schema-1 snapshots are Unknown, never current evidence.
 
 The cluster ConfigMaps remain durable executor records. They are not controllers
 and do not imply that status computation or scheduling runs locally. GitHub

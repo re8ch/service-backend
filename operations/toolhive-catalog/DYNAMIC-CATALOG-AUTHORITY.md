@@ -12,7 +12,7 @@ It applies to every MCP server and tool published through
 | MCP server ownership, tool schema, immutable revision, audience, grant, price and publication state | PostgreSQL Catalog | A database transaction changes the active revision and appends its projection event. A per-tool Git change is forbidden. |
 | Dynamic ToolHive membership | Catalog projector | The projector consumes committed outbox events and converges the named MCP server entry and virtual-server membership idempotently. |
 | Pod, Service, Endpoint and workload health | Kubernetes | Catalog publication is not readiness evidence. ToolHive must retain the last healthy projection when a candidate endpoint fails validation. |
-| Platform deployment, database migrations, network and cluster policy, protected static tools | GitHub reviewed desired state, delivered by the bounded cloud SSA executor | Local Flux writers and tenant-driven mutation of this lane are forbidden. |
+| Platform deployment, database migrations, network and cluster policy, protected static tools | GitHub reviewed desired state, delivered by the bounded cloud SSA executor | Tenant-driven mutation of this lane is forbidden. |
 | Invocation usage and settlement | Metering event store and billing ledger | Every event binds the caller, active organization, owner, tool and immutable revision. |
 
 PG Identity and Catalog may share the approved PostgreSQL platform, but their
