@@ -24,18 +24,6 @@ resources:
 - ../../../../../platform/secretary-system
 - ../../../../../platform/stalwart
 patches:
-  - target: {version: v1, kind: ConfigMap, name: supabase-billing-tenant-runtime-state-v1, namespace: supabase-pg-re8ch}
-    patch: |-
-      apiVersion: v1
-      kind: ConfigMap
-      metadata: {name: supabase-billing-tenant-runtime-state-v1, namespace: supabase-pg-re8ch}
-      $patch: delete
-  - target: {group: batch, version: v1, kind: Job, name: supabase-billing-tenant-runtime-state-v1, namespace: supabase-pg-re8ch}
-    patch: |-
-      apiVersion: batch/v1
-      kind: Job
-      metadata: {name: supabase-billing-tenant-runtime-state-v1, namespace: supabase-pg-re8ch}
-      $patch: delete
   - target: {group: policy, version: v1, kind: PodDisruptionBudget, name: re8ch-auth-gateway, namespace: auth}
     patch: |-
       apiVersion: policy/v1

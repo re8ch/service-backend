@@ -115,6 +115,13 @@ NOLOGIN role `re8ch_billing_migrator`. No second password, copied Secret, or
 hand-built database URI is introduced. Rotation remains owned by the existing
 Supabase credential workflow.
 
+`tenant-runtime-state.sql` is deliberately not wired to a Kubernetes Job or
+ConfigMap. Its adjacent SHA-256 file is the reviewed schema artifact record;
+plan, apply, and readback run through the administrator-only Supabase MCP/pg-meta
+path authorized by pg-identity and OpenOAuth. Pigsty remains responsible for
+database cluster topology, not application-schema execution. Git records the
+SQL, digest, and audit reference but is not the SQL execution control plane.
+
 PostgREST continues to expose only `payment_api,commerce_api`. Org Cluster
 Binding is available through its three `commerce_api` RPCs. The raw
 `bifurcate` schema is intentionally not exposed: Catalog/Bifurcate services use

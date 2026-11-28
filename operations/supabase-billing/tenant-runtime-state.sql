@@ -1,4 +1,4 @@
--- Apply to re8ch_billing through the reviewed postgres_admin_sql workflow only.
+-- Apply to re8ch_billing through the reviewed database-native Supabase MCP workflow only.
 -- Runtime credentials remain server-held; this migration contains no secrets.
 
 begin transaction isolation level serializable;

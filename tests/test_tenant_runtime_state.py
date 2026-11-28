@@ -7,7 +7,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = ROOT / "operations/supabase-billing/tenant-runtime-state-release/tenant-runtime-state.sql"
+MIGRATION = ROOT / "operations/supabase-billing/tenant-runtime-state.sql"
 
 
 @pytest.fixture
