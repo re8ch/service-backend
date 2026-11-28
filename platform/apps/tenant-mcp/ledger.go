@@ -52,7 +52,13 @@ func openLedger(path string) (*sql.DB, error) {
 		CREATE INDEX IF NOT EXISTS mcp_catalog_current ON mcp_catalog_revisions(tenant_ref,service_name,created_at);
 		CREATE TABLE IF NOT EXISTS mcp_catalog_heads (
 			tenant_ref TEXT NOT NULL, service_name TEXT NOT NULL, revision TEXT NOT NULL,
-			PRIMARY KEY(tenant_ref,service_name), FOREIGN KEY(revision) REFERENCES mcp_catalog_revisions(revision));`); err != nil {
+			PRIMARY KEY(tenant_ref,service_name), FOREIGN KEY(revision) REFERENCES mcp_catalog_revisions(revision));
+		CREATE TABLE IF NOT EXISTS mcp_catalog_outbox (
+			sequence INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL UNIQUE,
+			tenant_ref TEXT NOT NULL, service_name TEXT NOT NULL, revision TEXT NOT NULL,
+			event_json TEXT NOT NULL, created_at TEXT NOT NULL);
+		CREATE INDEX IF NOT EXISTS mcp_catalog_outbox_tenant_sequence
+			ON mcp_catalog_outbox(tenant_ref,sequence);`); err != nil {
 		db.Close()
 		return nil, err
 	}
