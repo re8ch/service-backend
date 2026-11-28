@@ -135,7 +135,11 @@ def test_postgresql_provider_has_independent_image_and_narrow_credentials():
     admin_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-admin-credential")
     assert admin_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "resourceNames": ["supabase-pg-re8ch-secrets"], "verbs": ["get"]}]
     broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-credential-broker")
-    assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create", "patch"]}]
+    assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create"]}]
+    catalog_broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-catalog-broker-patch")
+    assert catalog_broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
+                                              "resourceNames": ["postgresql-mcp-catalog-runtime"],
+                                              "verbs": ["get", "patch"]}]
     instance = next(item for item in docs if item.get("kind") == "TenantServiceInstance" and
                     item["metadata"]["name"] == "mcp-catalog-runtime")
     assert instance["spec"]["parameters"] == {"profile": "mcp-catalog-runtime-v1"}
