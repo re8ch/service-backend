@@ -12,6 +12,7 @@ def test_bootstrap_workflow_is_exact_and_does_not_use_flux_or_secret_reads():
     assert 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-toolhive-system' in text
     assert 'toolhive_catalog_bootstrap.py' in text
     assert '--access clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml' in text
+    assert 'tenant-observation-access' in text and '--role-only' in text
     assert 'cosign verify' in text and 'oras blob fetch' in text
     assert "test \"$(jq '.layers | length' \"$manifest\")\" = 1" in text
     assert 'application/vnd.cncf.flux.content.v1.tar+gzip' in text

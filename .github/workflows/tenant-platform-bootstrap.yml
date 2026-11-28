@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         default: tenant-infrastructure
-        options: [tenant-infrastructure, toolhive-catalog]
+        options: [tenant-infrastructure, tenant-observation-access, toolhive-catalog]
       execute: {description: Create or update the reviewed bootstrap inventory, default: false, type: boolean}
 permissions: {contents: read}
 concurrency: {group: tenant-platform-bootstrap, cancel-in-progress: false}
@@ -57,6 +57,7 @@ jobs:
           python operations/releases/tenant_platform_bootstrap.py \
             --bundle "$RUNNER_TEMP/bundle/release.bundle" \
             --access clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml \
+            ${{ inputs.target == 'tenant-observation-access' && '--role-only' || '' }} \
             --output "$RUNNER_TEMP/bootstrap.yaml"
         fi
     - name: Acquire exact GitHub OIDC identity
