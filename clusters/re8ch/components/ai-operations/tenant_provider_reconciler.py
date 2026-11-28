@@ -370,7 +370,11 @@ class GrafanaAdmin:
 
 
 def harbor_client(kube) -> HarborClient:
-    return HarborClient(HARBOR_URL, secret_value(kube, "ai-operations", "cluster-infra-harbor", "username"), secret_value(kube, "ai-operations", "cluster-infra-harbor", "password"))
+    return HarborClient(
+        HARBOR_URL,
+        "admin",
+        secret_value(kube, "harbor-system", "harbor-admin-core", "HARBOR_ADMIN_PASSWORD"),
+    )
 
 
 def grafana_client(kube) -> GrafanaAdmin:

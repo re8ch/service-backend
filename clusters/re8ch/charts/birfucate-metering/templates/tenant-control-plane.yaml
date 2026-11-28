@@ -318,13 +318,24 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata: {name: tenant-provider-harbor-read, namespace: ai-operations}
 rules:
-  - {apiGroups: [""], resources: [secrets], resourceNames: [cluster-infra-harbor], verbs: [get]}
   - {apiGroups: [""], resources: [configmaps], resourceNames: [harbor-tenant-catalog], verbs: [get]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: tenant-provider-harbor-read, namespace: ai-operations}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-harbor-read}
+subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: tenant-provider-harbor-admin-read, namespace: harbor-system}
+rules:
+  - {apiGroups: [""], resources: [secrets], resourceNames: [harbor-admin-core], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: tenant-provider-harbor-admin-read, namespace: harbor-system}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-harbor-admin-read}
 subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

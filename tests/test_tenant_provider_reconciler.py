@@ -453,6 +453,20 @@ def test_tenant_build_robot_needs_no_human_membership_and_is_reused():
     assert len(harbor.robot_items) == 1
 
 
+def test_harbor_client_reads_the_native_admin_secret(monkeypatch):
+    reads = []
+
+    def secret_value(_kube, namespace, name, key):
+        reads.append((namespace, name, key))
+        return "opaque-password"
+
+    monkeypatch.setattr(provider, "secret_value", secret_value)
+    client = provider.harbor_client(object())
+    assert reads == [("harbor-system", "harbor-admin-core", "HARBOR_ADMIN_PASSWORD")]
+    assert client.username == "admin"
+    assert client.password == "opaque-password"
+
+
 def test_tenant_build_robot_probe_failure_does_not_publish_or_replace_credential():
     kube = FakeKube("registry.harbor.v1")
     harbor = FakeHarbor()
