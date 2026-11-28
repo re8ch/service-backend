@@ -136,3 +136,40 @@ spec:
       volumes:
         - name: sql
           configMap: {name: supabase-billing-dynamic-mcp-catalog-v2}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: supabase-billing-tenant-runtime-state-v1
+  namespace: supabase-pg-re8ch
+  labels: {app.kubernetes.io/component: schema-migration, app.kubernetes.io/part-of: supabase-billing}
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      serviceAccountName: supabase-billing-schema-migrator
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: {type: RuntimeDefault}}
+      nodeSelector: {kubernetes.io/hostname: r640}
+      tolerations: [{key: dedicated, operator: Equal, value: pg-re8ch, effect: NoSchedule}]
+      containers:
+        - name: migrate
+          image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          command: [/bin/sh, -ceu]
+          args: ['psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql']
+          env:
+            - {name: PGHOST, value: pg-re8ch-primary.pigsty-external.svc.cluster.local}
+            - {name: PGPORT, value: "5432"}
+            - {name: PGDATABASE, value: re8ch_billing}
+            - name: PGUSER
+              valueFrom: {secretKeyRef: {name: supabase-pg-re8ch-secrets, key: POSTGRES_USER_READ_WRITE}}
+            - name: PGPASSWORD
+              valueFrom: {secretKeyRef: {name: supabase-pg-re8ch-secrets, key: POSTGRES_PASSWORD}}
+          volumeMounts: [{name: sql, mountPath: /sql, readOnly: true}]
+          resources: {requests: {cpu: 10m, memory: 32Mi}, limits: {cpu: 250m, memory: 128Mi}}
+      volumes:
+        - name: sql
+          configMap: {name: supabase-billing-tenant-runtime-state-v1}
