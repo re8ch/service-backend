@@ -47087,6 +47087,7 @@ rules:
   - apps
   resourceNames:
   - admin-api
+  - postgresql-provider
   - tenant-api
   - tenant-control-controller
   - tenant-provider-reconciler
@@ -47135,6 +47136,7 @@ rules:
   - ""
   resourceNames:
   - admin-api
+  - postgresql-provider
   - tenant-api
   - tenant-control-controller
   - tenant-infrastructure
@@ -47149,6 +47151,7 @@ rules:
   - ""
   resourceNames:
   - admin-api
+  - postgresql-provider
   - tenant-api
   - tenant-control-controller
   - tenant-provider-reconciler
@@ -47162,6 +47165,7 @@ rules:
 - apiGroups:
   - cilium.io
   resourceNames:
+  - postgresql-provider-egress
   - tenant-api-gateway
   resources:
   - ciliumnetworkpolicies
@@ -47189,6 +47193,7 @@ rules:
   - networking.k8s.io
   resourceNames:
   - admin-api
+  - postgresql-provider
   - tenant-api
   - tenant-control-controller
   resources:
@@ -47204,6 +47209,17 @@ rules:
   - tenant-control-controller
   resources:
   - poddisruptionbudgets
+  verbs:
+  - get
+  - patch
+  - update
+  - delete
+- apiGroups:
+  - tenancy.re8ch.com
+  resourceNames:
+  - mcp-catalog-runtime
+  resources:
+  - tenantserviceinstances
   verbs:
   - get
   - patch
