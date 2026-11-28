@@ -162,9 +162,29 @@ def credential(kube: control.Kubernetes, tenant: str, uid: str, database: str, r
 
 def catalog_runtime_credential(kube: control.Kubernetes, uid: str, rotation: str) -> tuple[str, str, str]:
     """Prepare Catalog material without publishing it before the database accepts it."""
-    reference, password = credential(kube, "platform", uid, "re8ch_billing", "mcp_catalog_runtime")
-    name = "postgresql-" + reference.rsplit("/", 1)[-1]
-    current = kube.get("secrets", name, "credential-broker", "api/v1")
+    name = "postgresql-mcp-catalog-runtime"
+    reference = "credential://postgresql/platform/mcp-catalog-runtime"
+    try:
+        current = kube.get("secrets", name, "credential-broker", "api/v1")
+        labels = current.get("metadata", {}).get("labels", {})
+        if labels.get("credentials.re8ch.com/tenant") != "platform" or labels.get("credentials.re8ch.com/type") != "catalog-runtime":
+            raise PermissionError("Catalog runtime credential ownership does not match")
+        password = base64.b64decode(current["data"]["password"]).decode()
+    except urllib.error.HTTPError as exc:
+        if exc.code != 404:
+            raise
+        password = secrets.token_urlsafe(36)
+        value = {"apiVersion": "v1", "kind": "Secret", "metadata": {"name": name, "namespace": "credential-broker",
+                 "labels": {"credentials.re8ch.com/provider": "postgresql", "credentials.re8ch.com/tenant": "platform",
+                            "credentials.re8ch.com/database": "re8ch_billing", "credentials.re8ch.com/type": "catalog-runtime"}},
+                 "type": "Opaque", "stringData": {"username": "mcp_catalog_runtime", "password": password,
+                 "database": "re8ch_billing", "host": "pg-re8ch-primary.pigsty-external.svc.cluster.local", "port": "5432"}}
+        try:
+            current = kube.create("secrets", value, "credential-broker", "api/v1")
+        except urllib.error.HTTPError as create_exc:
+            if create_exc.code != 409:
+                raise
+            return catalog_runtime_credential(kube, uid, rotation)
     labels = current.get("metadata", {}).get("labels", {})
     if labels.get("credentials.re8ch.com/rotation") != rotation:
         password = secrets.token_urlsafe(36)
@@ -179,7 +199,7 @@ def catalog_runtime_credential(kube: control.Kubernetes, uid: str, rotation: str
 def project_catalog_runtime_credential(kube: control.Kubernetes, reference: str, password: str,
                                        database_url: str, rotation: str) -> None:
     """Publish the broker credential and its one-key runtime projection after DB commit."""
-    name = "postgresql-" + reference.rsplit("/", 1)[-1]
+    name = "postgresql-mcp-catalog-runtime"
     kube.patch("secrets", name, {"metadata": {"labels": {"credentials.re8ch.com/type": "catalog-runtime",
                                                             "credentials.re8ch.com/rotation": rotation}},
                                  "stringData": {"password": password,

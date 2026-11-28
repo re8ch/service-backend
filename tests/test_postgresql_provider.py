@@ -114,7 +114,7 @@ def test_catalog_runtime_uses_fixed_existing_database_profile_and_broker_url():
     assert kube.status["phase"] == "Ready"
     assert kube.status["access"]["databaseRef"] == "pigsty://pg-re8ch/re8ch_billing"
     assert kube.status["access"]["privilegeProfile"] == provider.CATALOG_RUNTIME_PROFILE
-    secret = next(item for name, item in kube.secrets.items() if name != "mcp-catalog-database")
+    secret = kube.secrets["postgresql-mcp-catalog-runtime"]
     assert secret["metadata"]["labels"]["credentials.re8ch.com/type"] == "catalog-runtime"
     assert secret["metadata"]["labels"]["credentials.re8ch.com/rotation"] == "1"
     assert base64.b64decode(secret["data"]["MCP_CATALOG_DATABASE_URL"]).decode().startswith(
