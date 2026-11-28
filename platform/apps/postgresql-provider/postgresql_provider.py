@@ -86,9 +86,10 @@ class Pigsty:
         with self.connect("postgres") as connection, connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (role,))
             if cursor.fetchone() is None:
-                cursor.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD %s").format(sql.Identifier(role)), (password,))
-            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION")
-                           .format(sql.Identifier(role)), (password,))
+                cursor.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+                    sql.Identifier(role), sql.Literal(password)))
+            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION")
+                           .format(sql.Identifier(role), sql.Literal(password)))
             cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database,))
             if cursor.fetchone() is None:
                 cursor.execute(sql.SQL("CREATE DATABASE {} OWNER {}").format(sql.Identifier(database), sql.Identifier(role)))
@@ -103,10 +104,11 @@ class Pigsty:
         with self.connect("re8ch_billing") as connection, connection.cursor() as cursor:
             cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (role,))
             if cursor.fetchone() is None:
-                cursor.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD %s").format(sql.Identifier(role)), (password,))
-            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB NOCREATEROLE "
+                cursor.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
+                    sql.Identifier(role), sql.Literal(password)))
+            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE "
                                    "NOREPLICATION NOINHERIT CONNECTION LIMIT 20")
-                           .format(sql.Identifier(role)), (password,))
+                           .format(sql.Identifier(role), sql.Literal(password)))
             cursor.execute(sql.SQL("REVOKE ALL ON DATABASE re8ch_billing FROM {} CASCADE").format(sql.Identifier(role)))
             cursor.execute(sql.SQL("REVOKE ALL ON SCHEMA bifurcate, bifurcate_api FROM {} CASCADE").format(sql.Identifier(role)))
             cursor.execute(sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA bifurcate FROM {} CASCADE").format(sql.Identifier(role)))
