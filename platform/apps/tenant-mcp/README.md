@@ -206,6 +206,20 @@ It does not replace GitOps: deterministic cluster resources, database workload
 configuration and other static control-plane changes continue through reviewed
 Git and the bounded Cloud SSA executor.
 
+The standalone pg-re8ch publication is a separate resource server at
+`https://pg-re8ch-mcp.service.re8ch.com/mcp`. It reuses the same verified
+PG Identity bearer and requires active `admin` organization platform-admin
+membership. It never publishes the internal Supabase Studio address or its
+credentials. `pg_re8ch_migration_preview` binds the fixed `pg-re8ch` project,
+migration name and SQL SHA-256 into a plan hash. Only
+`pg_re8ch_migration_apply` accepts that exact plan together with a reviewed
+approval ID and idempotency key; raw `apply_migration` is not published.
+`pg_re8ch_list_migrations`, `pg_re8ch_list_tables`, and
+`pg_re8ch_execute_sql` provide post-apply readback using the upstream schemas,
+but force the same project and reject mutating or multi-statement SQL. SQL and
+credentials remain request/runtime data and never become Catalog or GitOps
+records.
+
 ### Re8ch Admin GitHub Enterprise governance service
 
 GitHub Enterprise governance is exposed as the provider-backed singleton
