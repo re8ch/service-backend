@@ -80,6 +80,37 @@ func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 	}
 }
 
+func TestConsumerCapabilitiesExposeProductBoundariesOnly(t *testing.T) {
+	source := selfServiceCapabilitiesFromState(identity{Tenant: "admin", Role: "admin", PlatformAdmin: true, NativeAccess: true}, map[string]any{}, []map[string]any{
+		{"consumableRef": "infrastructure.ssh-broker.v1", "lifecycle": "Active"},
+	})
+	consumer := consumerSelfServiceCapabilities(source)
+	if consumer["nativeAccess"] != false {
+		t.Fatalf("consumer surface retained native access: %#v", consumer)
+	}
+	if _, ok := consumer["platformClusterBindings"]; ok {
+		t.Fatalf("consumer surface exposed platform bindings: %#v", consumer)
+	}
+	want := map[string]bool{"byoc": false, "claims": false, "services": false}
+	for _, capability := range consumer["capabilities"].([]map[string]any) {
+		id := capability["id"].(string)
+		if _, ok := want[id]; !ok {
+			t.Fatalf("consumer surface exposed infrastructure capability %s", id)
+		}
+		want[id] = true
+		for _, tool := range capability["tools"].([]string) {
+			if strings.Contains(tool, "kubernetes") || strings.HasPrefix(tool, "platform_") || strings.Contains(tool, "ssh") {
+				t.Fatalf("consumer capability %s exposed infrastructure tool %s", id, tool)
+			}
+		}
+	}
+	for id, found := range want {
+		if !found {
+			t.Fatalf("consumer capability %s missing", id)
+		}
+	}
+}
+
 func TestManagedTenantDiscoversHostedToolsWithoutNativeKubernetes(t *testing.T) {
 	grants := []map[string]any{{"consumableRef": "network.tenant.v1", "lifecycle": "Active", "canRequest": true}}
 	namespaces := map[string]any{"items": []any{map[string]any{

@@ -1,6 +1,45 @@
 # Admin direct-cluster and tenant BYOC tool migration
 
-## Decision
+## Consumer product decision
+
+The public `/plugin/mcp` endpoint is a consumer product surface. It publishes
+organizations, BYOC connection lifecycle, managed claims, Catalog service
+instances and service bindings. It does not publish Kubernetes kinds,
+namespaces, Secrets, routes, nodes, SSH commands, direct platform backends or
+control-plane reconciliation as first-level tools. A consumer selects a service
+or connects infrastructure; the provider owns the Kubernetes implementation.
+
+All cluster selection belongs to BYOC connection state. A Ready connection is
+an implementation input to a claim or service provider, not an invitation to
+publish arbitrary `kubectl`. Internal platform maintenance may retain a
+separate authenticated endpoint while compatibility clients migrate, but those
+tools must not appear or be callable through `/plugin/mcp`.
+
+SSH Broker is `infrastructure.ssh-broker.v1`. Its grant, service instance,
+binding, usage attribution, suspension and revocation are controlled through
+Catalog/Bifurcate. Raw target listing, reachability and command execution are
+provider operations behind that binding; they are not top-level consumer
+tools.
+
+Database, observability, registry and other application tools use one contract:
+
+1. Catalog publishes a provider-backed service class.
+2. TenantGrant makes that class requestable.
+3. A Ready service instance records ownership and desired lifecycle.
+4. A Ready binding exposes only instance-scoped tools and an opaque access
+   reference.
+5. Suspension or binding revocation removes new tool authorization without
+   exposing provider credentials.
+
+The 2026-11-24 live Admin check found six desired grants in Git but only
+`integration.github.enterprise-governance.v1` and
+`infrastructure.ssh-broker.v1` in `service_catalog_list`. GitHub Governance,
+Ledger and SSH Broker instances were Ready; PostgreSQL and Grafana were not
+published as Ready consumer instances. Closing the raw platform surface must
+therefore be followed by grant reconciliation and provider-instance acceptance
+before database or observability tools are advertised.
+
+## Internal compatibility decision
 
 The Re8ch plugin has one public MCP resource: `re8ch-tenant`. A verified Re8ch
 Admin organization session operates RE8CH-owned platform clusters through a
@@ -11,20 +50,21 @@ or `platform_tool_call`, and it does not require separate public connections to
 `re8ch-cloud-platform-tool`, `re8ch-cloud-observe`, or
 `re8ch-platform-operate`.
 
-The direct platform-cluster connection and Admin authorization are desired
-state. Runtime credentials remain server-side and are never returned by the
-plugin. External BYOC registration must resolve to its owning organization and
-a Ready AmongCluster connection before its operations are advertised.
+The direct platform-cluster connection and Admin authorization remain internal
+compatibility state during migration. Runtime credentials remain server-side
+and are never returned by the plugin. External BYOC registration must resolve
+to its owning organization and a Ready AmongCluster connection before provider
+operations use it.
 
-The `admin` organization is the Meta tenant. A verified human Admin session is
+The `admin` organization is the Meta tenant on the internal endpoint. A verified human Admin session is
 not constrained by ordinary TenantGrant or Ready-namespace discovery when it
 uses the existing `tenant_kubernetes_get`, `tenant_kubernetes_apply`, and
 `tenant_kubernetes_delete` interfaces: the backend routes those same calls to
 the direct native cluster connection and permits namespaced and cluster-scoped
-resources. The explicit `platform_*` tools remain compatible aliases for
-specialized administration; clients do not need a new interface to gain Meta
-scope. Secret values remain write-only or redacted. Ordinary tenants retain
-their existing Ready-namespace, grant, and kind isolation.
+resources. The explicit `platform_*` tools remain temporary internal
+compatibility aliases for specialized administration and are absent from the
+consumer plugin. Secret values remain write-only or redacted. Ordinary tenants
+retain their existing Ready-namespace, grant, and kind isolation.
 
 ## Capability placement
 

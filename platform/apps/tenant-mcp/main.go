@@ -138,6 +138,30 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	return ms
 }
 
+// consumerMCP is the product surface published to end users. Infrastructure
+// implementation details stay behind BYOC, claims and service instances; raw
+// Kubernetes, node, SSH and platform-administration tools are intentionally
+// absent even when the caller also has Re8ch Admin membership.
+func (s *server) consumerMCP(id identity) *mcp.Server {
+	ms := mcp.NewServer(&mcp.Implementation{Name: "re8ch", Version: "0.4.0"}, &mcp.ServerOptions{Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{ListChanged: true}, Resources: &mcp.ResourceCapabilities{}}})
+	ms.AddReceivingMiddleware(verifiedMCPSessionIdentity, s.diagnostics().middleware, mcpToolTelemetry.middleware)
+	s.registerOrganizationContextTools(ms)
+	if !id.Service && id.Subject != "" && id.Tenant == "" {
+		return ms
+	}
+	s.registerSelfServiceCapabilitiesTool(ms)
+	s.registerClaimTools(ms)
+	s.registerBYOCTools(ms)
+	s.registerServiceTools(ms)
+	s.registerModelGatewayTools(ms)
+	s.registerHarborTools(ms, false)
+	s.registerGrafanaTools(ms)
+	s.registerCollaborationTools(ms)
+	s.registerResources(ms, id)
+	s.registerDynamicSkillTools(ms)
+	return ms
+}
+
 func (s *server) registerSelfServiceCapabilitiesTool(ms *mcp.Server) {
 	tool := &mcp.Tool{Annotations: toolAnnotations("tenant_self_service_capabilities"), Name: "tenant_self_service_capabilities", Description: "Discover the authenticated active organization's resource operations, Ready namespaces, and current grant entitlements. A grant does not prove provider readiness. Start here before planning Workload, Service, Secret, or managed PublicEdge Exposure; search dynamic_skill_search for reviewed internal workflows."}
 	var handler mcp.ToolHandlerFor[struct{}, any]
@@ -147,6 +171,9 @@ func (s *server) registerSelfServiceCapabilitiesTool(ms *mcp.Server) {
 			return nil, nil, err
 		}
 		value, err := selfServiceCapabilities(ctx, caller)
+		if err == nil && pluginPublication(ctx) {
+			value = consumerSelfServiceCapabilities(value)
+		}
 		if err == nil {
 			// Re-registering an existing tool is the SDK-supported way to emit
 			// notifications/tools/list_changed to the session's subscription
@@ -348,7 +375,7 @@ func (s *server) handler() http.Handler {
 			return s.publicSelfServiceMCP(id)
 		}
 		if pluginPublication(req.Context()) {
-			return s.skillMCP(id)
+			return s.consumerMCP(id)
 		}
 		return s.skillMCP(id)
 	}

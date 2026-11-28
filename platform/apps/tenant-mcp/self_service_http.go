@@ -73,6 +73,35 @@ func selfServiceCapabilities(ctx context.Context, id identity) (map[string]any, 
 	return result, nil
 }
 
+// consumerSelfServiceCapabilities removes infrastructure implementation
+// details from the C-end plugin directory. Consumers select a BYOC connection,
+// claim or service class; they never select Kubernetes kinds, namespaces,
+// nodes, SSH targets or platform backends directly.
+func consumerSelfServiceCapabilities(source map[string]any) map[string]any {
+	result := map[string]any{}
+	for _, key := range []string{"tenantRef", "role", "hostingMode", "byocAllowed", "grantedConsumables"} {
+		if value, ok := source[key]; ok {
+			result[key] = value
+		}
+	}
+	result["nativeAccess"] = false
+	result["capabilities"] = []map[string]any{
+		{
+			"id": "byoc", "productBoundary": "authenticated-cluster-connection",
+			"tools": []string{"byoc_cluster_register", "byoc_registration_list", "byoc_connection_list", "byoc_connection_revoke"},
+		},
+		{
+			"id": "claims", "productBoundary": "managed-resource-claim",
+			"tools": []string{"tenant_capabilities_list", "tenant_claim_plan", "tenant_claim_create", "tenant_claim_get", "tenant_claim_list", "tenant_claim_update", "tenant_claim_renew", "tenant_claim_cancel"},
+		},
+		{
+			"id": "services", "productBoundary": "catalog-service-instance-binding",
+			"tools": []string{"service_catalog_list", "service_instance_plan", "service_instance_create", "service_instance_get", "service_instance_list", "service_instance_update", "service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_create", "service_binding_list", "service_binding_revoke"},
+		},
+	}
+	return result
+}
+
 func selfServiceCapabilitiesFromState(id identity, namespaces map[string]any, grants []map[string]any) map[string]any {
 	ready := readyTenantNamespaces(namespaces, id.Tenant)
 	sort.Strings(ready)
