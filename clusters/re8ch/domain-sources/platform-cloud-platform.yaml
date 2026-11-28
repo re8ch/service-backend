@@ -5,13 +5,13 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: delta-pearl
+    delivery.re8ch.com/codename: grove-pearl
     delivery.re8ch.com/attestation: github-native
 spec:
   interval: 1m
   url: oci://registry.re8ch.com/gitops-controlplane/platform-cloud-platform
   ref:
-    digest: sha256:dd5e0afce6c2e06817a42eac5b1dd024c6aa2e37e053d032655c5b7011b479f4
+    digest: sha256:1ac403a655c4ee95367eb284f2090db8c59aff795bb7afee3f6831193854c6a3
   secretRef:
     name: gitops-oci-reader
 ---
@@ -22,7 +22,7 @@ metadata:
   namespace: flux-system
   annotations:
     delivery.re8ch.com/module: platform/cloud-platform
-    delivery.re8ch.com/codename: delta-pearl
+    delivery.re8ch.com/codename: grove-pearl
 spec:
   interval: 1m
   retryInterval: 1m
