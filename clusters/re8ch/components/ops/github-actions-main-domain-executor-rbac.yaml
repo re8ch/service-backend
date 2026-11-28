@@ -601,11 +601,20 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - batch
+  resources:
+  - jobs
+  resourceNames:
+  - supabase-billing-tenant-runtime-state-v1
+  verbs:
+  - get
+- apiGroups:
   - ''
   resources:
   - configmaps
   resourceNames:
   - ssa-state-main-data-storage-supabase-pg-re8ch
+  - supabase-billing-tenant-runtime-state-v1
   verbs:
   - get
 ---

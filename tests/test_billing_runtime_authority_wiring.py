@@ -66,9 +66,10 @@ def test_authority_sql_is_packaged_as_versioned_migrations_not_registration_gito
     assert generators["supabase-billing-dynamic-mcp-catalog-v2"]["files"] == [
         "migration.sql=dynamic-mcp-catalog-authority.sql"
     ]
-    assert generators["supabase-billing-tenant-runtime-state-v1"]["files"] == [
-        "migration.sql=tenant-runtime-state.sql"
-    ]
+    runtime_release = yaml.safe_load((BASE / "tenant-runtime-state-release/kustomization.yaml").read_text())
+    runtime_generator = runtime_release["configMapGenerator"][0]
+    assert runtime_generator["name"] == "supabase-billing-tenant-runtime-state-v1"
+    assert runtime_generator["files"] == ["migration.sql=tenant-runtime-state.sql"]
     readme = (BASE / "README.md").read_text()
     assert "never create a per-registration GitOps object" in readme
 
@@ -80,7 +81,6 @@ def test_migration_jobs_reuse_managed_supabase_admin_credential_without_copying_
         "supabase-billing-tool-publication-authority-v1",
         "supabase-billing-org-cluster-bindings-v1",
         "supabase-billing-dynamic-mcp-catalog-v2",
-        "supabase-billing-tenant-runtime-state-v1",
     }
     for job in jobs:
         pod = job["spec"]["template"]["spec"]
@@ -138,8 +138,10 @@ def test_tool_authority_migration_grants_only_runtime_projection(publication_dat
 
 def test_migrations_switch_only_to_bounded_migrator_role():
     for name in ("tool-publication-authority.sql", "org-cluster-bindings.sql",
-                 "dynamic-mcp-catalog-authority.sql", "tenant-runtime-state.sql"):
+                 "dynamic-mcp-catalog-authority.sql"):
         migration = (BASE / name).read_text().lower()
         assert migration.count("set local role re8ch_billing_migrator") == 1
         assert "set session authorization" not in migration
         assert "reset role" not in migration
+    runtime_migration = (BASE / "tenant-runtime-state-release/tenant-runtime-state.sql").read_text().lower()
+    assert runtime_migration.count("set local role re8ch_billing_migrator") == 1

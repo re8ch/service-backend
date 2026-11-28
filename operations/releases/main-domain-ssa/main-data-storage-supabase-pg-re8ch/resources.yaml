@@ -81,3 +81,163 @@ spec:
         key: dedicated
         operator: Equal
         value: pg-re8ch
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/component: schema-migration
+    app.kubernetes.io/part-of: supabase-billing
+  name: supabase-billing-tenant-runtime-state-v1
+  namespace: supabase-pg-re8ch
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - psql -X -v ON_ERROR_STOP=1 -f /sql/migration.sql
+        command:
+        - /bin/sh
+        - -ceu
+        env:
+        - name: PGHOST
+          value: pg-re8ch-primary.pigsty-external.svc.cluster.local
+        - name: PGPORT
+          value: '5432'
+        - name: PGDATABASE
+          value: re8ch_billing
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_USER_READ_WRITE
+              name: supabase-pg-re8ch-secrets
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: POSTGRES_PASSWORD
+              name: supabase-pg-re8ch-secrets
+        image: docker.io/library/postgres@sha256:7c688148e5e156d0e86df7ba8ae5a05a2386aaec1e2ad8e6d11bdf10504b1fb7
+        name: migrate
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /sql
+          name: sql
+          readOnly: true
+      nodeSelector:
+        kubernetes.io/hostname: r640
+      restartPolicy: Never
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: supabase-billing-schema-migrator
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: pg-re8ch
+      volumes:
+      - configMap:
+          name: supabase-billing-tenant-runtime-state-v1
+        name: sql
+  ttlSecondsAfterFinished: 604800
+---
+apiVersion: v1
+data:
+  migration.sql: "-- Apply to re8ch_billing through the reviewed postgres_admin_sql\
+    \ workflow only.\n-- Runtime credentials remain server-held; this migration contains\
+    \ no secrets.\n\nbegin transaction isolation level serializable;\n\nset local\
+    \ role re8ch_billing_migrator;\n\ncreate schema if not exists tenant_runtime authorization\
+    \ re8ch_billing_owner;\nrevoke all on schema tenant_runtime from public;\n\ncreate\
+    \ table if not exists tenant_runtime.dynamic_skills (\n  ref text primary key,\
+    \ tenant text not null, name text not null, version integer not null,\n  description\
+    \ text not null, workflow text not null,\n  status text not null check (status\
+    \ in ('Pending','Published','Revoked')),\n  subject text not null, reviewer text,\
+    \ created_at text not null, reviewed_at text,\n  owner_subject text not null default\
+    \ '', unique(tenant,name,version));\ncreate index if not exists dynamic_skills_visible\
+    \ on tenant_runtime.dynamic_skills(tenant,status,name,version);\n\ncreate table\
+    \ if not exists tenant_runtime.collaboration_connections (\n  ref text primary\
+    \ key, tenant text not null, subject text not null,\n  request_hash text not null,\
+    \ scopes text not null, state text not null,\n  account_id text not null default\
+    \ '', expires bigint not null default 0,\n  verification_uri text not null default\
+    \ '', user_code text not null default '',\n  next_poll bigint not null default\
+    \ 0, poll_interval bigint not null default 5);\ncreate index if not exists collaboration_owner\
+    \ on tenant_runtime.collaboration_connections(tenant,subject);\ncreate table if\
+    \ not exists tenant_runtime.collaboration_writes (\n  tenant text not null, subject\
+    \ text not null, key text not null,\n  request_hash text not null, state text\
+    \ not null, result text not null default '',\n  primary key(tenant,subject,key));\n\
+    \ncreate table if not exists tenant_runtime.instances (\n  resource_ref text primary\
+    \ key, tenant_ref text not null, name text not null,\n  service_class text not\
+    \ null, state text not null, spec_json text not null,\n  generation bigint not\
+    \ null, created_at text not null, updated_at text not null,\n  deleted_at text,\
+    \ unique(tenant_ref,name));\ncreate table if not exists tenant_runtime.operations\
+    \ (\n  operation_id text primary key, tenant_ref text not null, resource_ref text\
+    \ not null,\n  action text not null, idempotency_key text not null, request_hash\
+    \ text not null,\n  before_json text, after_json text, result_json text not null,\
+    \ created_at text not null,\n  unique(tenant_ref,idempotency_key));\ncreate table\
+    \ if not exists tenant_runtime.bindings (\n  binding_ref text primary key, tenant_ref\
+    \ text not null, resource_ref text not null,\n  binding_type text not null, binding_json\
+    \ text not null, revoked_at text, created_at text not null);\ncreate table if\
+    \ not exists tenant_runtime.received_usage (\n  event_id text primary key, tenant_ref\
+    \ text not null, resource_ref text not null,\n  event_json text not null, received_at\
+    \ text not null);\ncreate index if not exists received_usage_tenant_resource on\
+    \ tenant_runtime.received_usage(tenant_ref,resource_ref);\ncreate index if not\
+    \ exists received_usage_tenant_received on tenant_runtime.received_usage(tenant_ref,received_at);\n\
+    create table if not exists tenant_runtime.usage_outbox (\n  event_id text primary\
+    \ key, tenant_ref text not null, resource_ref text not null,\n  event_json text\
+    \ not null, delivered_at text, created_at text not null);\ncreate index if not\
+    \ exists usage_outbox_tenant_resource on tenant_runtime.usage_outbox(tenant_ref,resource_ref);\n\
+    create table if not exists tenant_runtime.cluster_registrations (\n  registration_ref\
+    \ text primary key, tenant_ref text not null, cluster_uid text not null,\n  region_ref\
+    \ text not null, issuer text not null, public_key_hash text not null,\n  capabilities_json\
+    \ text not null, state text not null, enrollment_ref text not null,\n  created_at\
+    \ text not null, updated_at text not null, unique(tenant_ref,cluster_uid));\n\
+    create table if not exists tenant_runtime.cluster_connections (\n  connection_ref\
+    \ text primary key, registration_ref text not null unique,\n  tenant_ref text\
+    \ not null, state text not null, identity_ref text not null,\n  last_heartbeat\
+    \ text, revoked_at text, created_at text not null);\ncreate table if not exists\
+    \ tenant_runtime.admin_database_operations (\n  organization_ref text not null,\
+    \ idempotency_key text not null, request_hash text not null,\n  state text not\
+    \ null check(state in ('pending','completed')), result_json text,\n  created_at\
+    \ text not null, updated_at text not null,\n  primary key(organization_ref,idempotency_key));\n\
+    \ncreate table if not exists tenant_runtime.mcp_catalog_revisions (\n  revision\
+    \ text primary key, tenant_ref text not null, service_name text not null,\n  definition_json\
+    \ text not null, state text not null check(state in ('active','paused')),\n  previous_revision\
+    \ text, operation_key text not null, actor text not null, created_at text not\
+    \ null,\n  unique(tenant_ref,operation_key));\ncreate index if not exists mcp_catalog_current\
+    \ on tenant_runtime.mcp_catalog_revisions(tenant_ref,service_name,created_at);\n\
+    create table if not exists tenant_runtime.mcp_catalog_heads (\n  tenant_ref text\
+    \ not null, service_name text not null, revision text not null references tenant_runtime.mcp_catalog_revisions(revision),\n\
+    \  primary key(tenant_ref,service_name));\ncreate table if not exists tenant_runtime.mcp_catalog_outbox\
+    \ (\n  sequence bigint generated always as identity primary key, event_id text\
+    \ not null unique,\n  tenant_ref text not null, service_name text not null, revision\
+    \ text not null,\n  event_json text not null, created_at text not null);\ncreate\
+    \ index if not exists mcp_catalog_outbox_tenant_sequence on tenant_runtime.mcp_catalog_outbox(tenant_ref,sequence);\n\
+    \ncreate table if not exists tenant_runtime.credential_redemptions (\n  token_hash\
+    \ text primary key, credential_ref text not null, tenant text not null,\n  expires_at\
+    \ bigint not null, consumed_at bigint);\ncreate table if not exists tenant_runtime.credential_adoptions\
+    \ (\n  token_hash text primary key, tenant text not null, expires_at bigint not\
+    \ null, consumed_at bigint);\n\ngrant usage on schema tenant_runtime to billing_commerce_runtime;\n\
+    grant select,insert,update,delete on all tables in schema tenant_runtime to billing_commerce_runtime;\n\
+    grant usage,select on all sequences in schema tenant_runtime to billing_commerce_runtime;\n\
+    \ncommit;\n"
+kind: ConfigMap
+metadata:
+  name: supabase-billing-tenant-runtime-state-v1
+  namespace: supabase-pg-re8ch
