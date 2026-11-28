@@ -432,6 +432,18 @@ func platformIdentity(ctx context.Context) (identity, error) {
 
 func (s *server) registerPlatformTools(ms *mcp.Server) {
 	s.registerPlatformClusterTools(ms)
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_database_governance_inventory"), Name: "platform_database_governance_inventory", Description: "Return the fixed Admin-protected database governance inventory, allowed databases, operations, write guards, and opaque credential reference. The active organization must be admin; no secret material is returned."},
+		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
+			if _, err := adminDatabaseIdentity(ctx); err != nil {
+				return nil, nil, err
+			}
+			inventory, hash, err := adminDatabaseInventory()
+			if err != nil {
+				return nil, nil, err
+			}
+			inventory["inventoryHash"] = hash
+			return nil, inventory, nil
+		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_litellm_openoauth_credential_project"), Name: "platform_litellm_openoauth_credential_project", Description: "Preview or project one brokered pg-identity OpenOAuth credential to the exact llm-gateway/litellm-gotrue-sso Secret through the bounded cloud SSA executor. Secret material is never returned. Re8ch Admin membership and the exact preview planHash are required.", InputSchema: json.RawMessage(`{"type":"object","properties":{"credentialRef":{"type":"string","pattern":"^credential://open-oauth/re8ch/[0-9a-f-]{36}$"},"apply":{"type":"boolean","default":false},"planHash":{"type":"string","pattern":"^[0-9a-f]{64}$"}},"required":["credentialRef"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
 			if _, err := platformIdentity(ctx); err != nil {
@@ -440,21 +452,10 @@ func (s *server) registerPlatformTools(ms *mcp.Server) {
 			result, err := callNativePlatformTool(ctx, s, "credentials.litellm-openoauth.project", input)
 			return result, nil, err
 		})
-	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_postgres_admin_sql"), Name: "platform_postgres_admin_sql", Description: "Run bounded SQL against the adopted pg-re8ch PostgreSQL authority. Re8ch Admin membership is required. Reads execute directly; writes require approvalId, preview, and the exact planHash. Credential material is never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"database":{"type":"string"},"sql":{"type":"string"},"readOnly":{"type":"boolean","default":true},"transactional":{"type":"boolean","default":true},"approvalId":{"type":"string"},"apply":{"type":"boolean","default":false},"planHash":{"type":"string"},"maxRows":{"type":"integer","minimum":1,"maximum":1000,"default":100},"timeoutSeconds":{"type":"integer","minimum":1,"maximum":120,"default":30}},"required":["database","sql"],"additionalProperties":false}`)},
+	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_postgres_admin_sql"), Name: "platform_postgres_admin_sql", Description: "Run bounded SQL against the adopted pg-re8ch PostgreSQL authority. The active organization must be admin. Read the governance inventory first; writes require its exact inventoryHash, approvalId, preview planHash, and idempotencyKey. Credential material is never returned.", InputSchema: json.RawMessage(`{"type":"object","properties":{"database":{"type":"string"},"sql":{"type":"string"},"readOnly":{"type":"boolean","default":true},"transactional":{"type":"boolean","default":true},"approvalId":{"type":"string"},"inventoryHash":{"type":"string","pattern":"^[0-9a-f]{64}$"},"idempotencyKey":{"type":"string","minLength":8,"maxLength":128},"apply":{"type":"boolean","default":false},"planHash":{"type":"string"},"maxRows":{"type":"integer","minimum":1,"maximum":1000,"default":100},"timeoutSeconds":{"type":"integer","minimum":1,"maximum":120,"default":30}},"required":["database","sql"],"additionalProperties":false}`)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input map[string]any) (*mcp.CallToolResult, any, error) {
-			if _, err := platformIdentity(ctx); err != nil {
-				return nil, nil, err
-			}
-			if err := validatePlatformPostgresInput(input); err != nil {
-				return nil, nil, err
-			}
-			value, err := s.moduleRegistry().call(ctx, "admin", func(session *mcp.ClientSession) (any, error) {
-				return session.CallTool(ctx, &mcp.CallToolParams{Name: "postgres_admin_sql", Arguments: input})
-			})
-			if err != nil {
-				return nil, nil, err
-			}
-			return value.(*mcp.CallToolResult), nil, nil
+			result, err := s.callAdminDatabaseSQL(ctx, input)
+			return result, nil, err
 		})
 	mcp.AddTool(ms, &mcp.Tool{Annotations: toolAnnotations("platform_observability_status"), Name: "platform_observability_status", Description: "Return fixed system Grafana, metrics, logs, traces, alerts and cost health for Re8CH Admin without arbitrary queries, tenant data, or credentials."},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ struct{}) (*mcp.CallToolResult, any, error) {
