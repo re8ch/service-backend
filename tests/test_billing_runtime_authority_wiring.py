@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 import shutil
 import subprocess
@@ -66,10 +67,10 @@ def test_authority_sql_is_packaged_as_versioned_migrations_not_registration_gito
     assert generators["supabase-billing-dynamic-mcp-catalog-v2"]["files"] == [
         "migration.sql=dynamic-mcp-catalog-authority.sql"
     ]
-    runtime_release = yaml.safe_load((BASE / "tenant-runtime-state-release/kustomization.yaml").read_text())
-    runtime_generator = runtime_release["configMapGenerator"][0]
-    assert runtime_generator["name"] == "supabase-billing-tenant-runtime-state-v1"
-    assert runtime_generator["files"] == ["migration.sql=tenant-runtime-state.sql"]
+    runtime_sql = (BASE / "tenant-runtime-state.sql").read_bytes()
+    recorded = (BASE / "tenant-runtime-state.sha256").read_text().split()[0]
+    assert hashlib.sha256(runtime_sql).hexdigest() == recorded
+    assert "tenant-runtime-state" not in str(kustomization)
     readme = (BASE / "README.md").read_text()
     assert "never create a per-registration GitOps object" in readme
 
@@ -143,5 +144,5 @@ def test_migrations_switch_only_to_bounded_migrator_role():
         assert migration.count("set local role re8ch_billing_migrator") == 1
         assert "set session authorization" not in migration
         assert "reset role" not in migration
-    runtime_migration = (BASE / "tenant-runtime-state-release/tenant-runtime-state.sql").read_text().lower()
+    runtime_migration = (BASE / "tenant-runtime-state.sql").read_text().lower()
     assert runtime_migration.count("set local role re8ch_billing_migrator") == 1

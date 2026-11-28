@@ -9,7 +9,6 @@ resources:
 - ../../../secrets/cloud-disk-credentials.sops.yaml
 - retained-observable.yaml
 - ../../../components/supabase-pg-re8ch/supabase-rest-runtime.yaml
-- ../../../../../operations/supabase-billing/tenant-runtime-state-release
 - ../../../components/cloud-disk
 - ../../../components/ops/cloudbeaver.yaml
 configMapGenerator:

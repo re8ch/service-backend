@@ -24,14 +24,11 @@ spec:
     fieldManager: re8ch-release/main-data-storage-supabase-pg-re8ch
     resources:
     - apps/Deployment
-    - batch/Job
-    - core/ConfigMap
     objectNames:
-    - supabase-billing-tenant-runtime-state-v1
     - supabase-rest
     allowClusterScoped: false
   inventory:
-    digest: sha256:4b8aee407e32e8956b5d8478bcdd8edc79a5395373f8b8f7d634bbdf5eab9c1d
+    digest: sha256:099635a0d33cb8472fd78dd4a4195d3fd71a532120e36810a293957a2e313571
   lifecycle:
     prune: true
     healthTimeoutSeconds: 300
@@ -43,5 +40,3 @@ spec:
     - StorageClass
     deletionAllowlist:
     - apps/Deployment/supabase-pg-re8ch/supabase-rest
-    - batch/Job/supabase-pg-re8ch/supabase-billing-tenant-runtime-state-v1
-    - core/ConfigMap/supabase-pg-re8ch/supabase-billing-tenant-runtime-state-v1

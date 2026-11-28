@@ -7,7 +7,6 @@ resources:
   - public-routes.yaml
   - ledger-service-catalog.yaml
   - runtime-authority-migrations.yaml
-  - tenant-runtime-state-release
 generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
