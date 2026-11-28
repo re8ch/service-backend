@@ -16,7 +16,7 @@ import (
 
 var usageID = regexp.MustCompile(`^ue_[a-f0-9]{32}$`)
 
-func openLedger(path string) (*sql.DB, error) {
+func openLedger(path string) (*runtimeDB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func openLedger(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
-	return db, nil
+	return &runtimeDB{db: db, dialect: "sqlite", owner: true}, nil
 }
 
 func parseTime(s string) (time.Time, error) {
@@ -167,12 +167,21 @@ func (s *server) billingUsage(tenant string, start, end time.Time) (map[string]a
 		return nil, errors.New("billing window must be between 0 and 31 days")
 	}
 	lower, upper := start.UTC().Format("2006-01-02T15:04:05.000000Z"), end.UTC().Format("2006-01-02T15:04:05.000000Z")
-	rows, err := s.ledger.Query(`SELECT json_extract(event_json, '$.serviceClass'), resource_ref,
+	query := `SELECT json_extract(event_json, '$.serviceClass'), resource_ref,
 		json_extract(event_json, '$.meter'), json_extract(event_json, '$.unit'),
 		SUM(CAST(json_extract(event_json, '$.quantity') AS REAL)),
 		MIN(json_extract(event_json, '$.periodStart')), MAX(json_extract(event_json, '$.periodEnd')), COUNT(*)
 		FROM received_usage WHERE tenant_ref=? AND received_at>=? AND received_at<?
-		GROUP BY 1,2,3,4 ORDER BY 1,2,3,4`, tenant, lower, upper)
+		GROUP BY 1,2,3,4 ORDER BY 1,2,3,4`
+	if s.ledger.postgres() {
+		query = `SELECT event_json::jsonb->>'serviceClass', resource_ref,
+			event_json::jsonb->>'meter', event_json::jsonb->>'unit',
+			SUM((event_json::jsonb->>'quantity')::double precision),
+			MIN(event_json::jsonb->>'periodStart'), MAX(event_json::jsonb->>'periodEnd'), COUNT(*)
+			FROM received_usage WHERE tenant_ref=? AND received_at>=? AND received_at<?
+			GROUP BY 1,2,3,4 ORDER BY 1,2,3,4`
+	}
+	rows, err := s.ledger.Query(query, tenant, lower, upper)
 	if err != nil {
 		return nil, err
 	}
