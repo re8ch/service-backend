@@ -1,28 +1,14 @@
-# GitOps drift audit
+# Retired Flux drift audit
 
-The audit separates namespace configuration authority before reporting drift:
+This tool is retained for historical report interpretation and compatibility
+tests. Its `gitops` mode reads Flux Kustomization status and therefore cannot
+establish current delivery or drift after controller retirement.
 
-- `gitops`: full Git/Flux policy and reconciliation checks;
-- `tenant-controller`: tenant boundary invariants only; tenant workloads are not
-  compared with Git;
-- `runtime-controller`: controller ownership and health review;
-- `unclassified`: ownership must be assigned before drift can be interpreted.
+Current drift evaluation compares the reviewed Cloud SSA contract and accepted
+inventory with server-side read-back under the exact target and field manager.
+Tenant boundary audits remain read-only but must not be combined with historical
+Flux status to claim convergence.
 
-`audit.py` is read-only. It reads Namespace metadata, the named tenant boundary
-resources, and Flux Kustomization status. It never reads Secrets or mutates the
-cluster. `run-audit.sh` atomically writes the latest report to
-`~/Library/Application Support/RE8CH/gitops-drift/latest.json`.
-
-On the Macmini, install the checked-in LaunchAgents after the corresponding
-commit is present in the canonical anchor:
-
-```sh
-operations/gitops-drift/macos/install-launchagents.sh
-```
-
-The installer copies executable entry points to Application Support because
-macOS launchd does not execute scripts directly from the external A1 volume.
-
-The anchor sync runs every five minutes and refuses a dirty, divergent, or
-wrong-branch checkout. The drift audit runs hourly; tenant boundary checks are
-included while tenant-owned workload content is excluded.
+Do not schedule this tool as a current observer or use its previous reports as
+runtime health. Use the bounded Cloud SSA observer and record `Unknown` when
+fresh read-back is unavailable.

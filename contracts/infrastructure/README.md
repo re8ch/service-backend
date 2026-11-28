@@ -66,7 +66,7 @@ ephemeral private storage.
 5. Run `verify-encrypted`, schema tests, domain bundle compilation, Kustomize
    rendering, and the repository secret scanner before opening the PR.
 
-Only the merged Git revision is eligible for Flux application. Publishing the
+Only the merged Git revision is eligible for a bounded Cloud SSA operation. Publishing the
 Environment secret or SOPS ciphertext does not authorize a host restart or a
 cluster write; the A1 authentication/TLS activation remains a separately
 approved maintenance-window operation with an etcd snapshot and local rollback.

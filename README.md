@@ -1,7 +1,7 @@
 # RE8CH Service Backend
 
 [![Control plane CI](https://github.com/re8ch/service-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/ci.yml?query=branch%3Amain)
-[![Reconcile](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
+[![Cloud replay](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
 [![Security checks](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml?query=branch%3Amain)
 
 GitHub-first collaboration and desired state for the RE8CH platform. GitHub
@@ -41,14 +41,14 @@ and `Timeline`.
 - `clusters/re8ch/`: cluster desired-state composition
 - `platform/`: shared platform applications and capabilities
 - `inventory/`: non-secret infrastructure inventory
-- `operations/`: release, reconciliation and host-bound operations
+- `operations/`: release, Cloud SSA delivery, observation and host-bound operations
 - `runbooks/`: operational procedures and historical investigations
 - `schemas/`: declarative contracts
 - `tests/`: policy and contract verification
 
 Product source remains in its independent repository. The authority ledger is
 [`operations/flux-federation/authority.yaml`](operations/flux-federation/authority.yaml),
-and domain delivery is described in
+and current Cloud SSA domain delivery is described in
 [`operations/releases/DOMAIN-RECONCILIATION.md`](operations/releases/DOMAIN-RECONCILIATION.md).
 
 ## Working here

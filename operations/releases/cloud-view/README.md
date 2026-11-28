@@ -32,10 +32,12 @@ and credentials never enter the public R2 object or Checks. Failed collection
 publishes an unavailable envelope; failed upload leaves the old snapshot to expire.
 Detailed inspection remains behind the existing authenticated platform APIs.
 
-The existing `re8ch/headlamp-flux-static-github-ops` Worker and viewer consume the
-snapshot at `https://flux-status.re8ch.com/`; `/metrics` exposes the same bounded
-cloud aggregates. Legacy schema-1 snapshots are Unknown, never current evidence.
-The historical `scope=flux` dispatch name is retained as an input alias only.
+The Worker, viewer and endpoint retain the compatibility identifiers
+`re8ch/headlamp-flux-static-github-ops` and `https://flux-status.re8ch.com/` while
+consuming only the Cloud SSA snapshot; `/metrics` exposes the same bounded cloud
+aggregates. These names do not identify a Flux data source or writer. Legacy
+schema-1 snapshots are Unknown, never current evidence. The historical
+`scope=flux` dispatch name is retained as an input alias only.
 
 The cluster ConfigMaps remain durable executor records. They are not controllers
 and do not imply that status computation or scheduling runs locally. GitHub

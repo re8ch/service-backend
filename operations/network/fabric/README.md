@@ -3,7 +3,7 @@
 `model.json` contains a pinned restricted reference for the public WireGuard mesh, alongside the A1/B1
 private transit mesh, PodCIDR routing, RouterOS control links, and the AdvFab
 path policy. It compiles to the nine existing operations and cluster inventory
-files, plus the host-network contract published through Flux. Resolve the protected source as described in [topology custody](../../../contracts/network-topology/README.md) before private validation or rendering. Then run:
+files, plus the host-network contract published through Cloud SSA. Resolve the protected source as described in [topology custody](../../../contracts/network-topology/README.md) before private validation or rendering. Then run:
 
 ```sh
 python3 operations/network/fabric/fabric_model.py validate

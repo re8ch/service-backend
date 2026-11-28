@@ -104,7 +104,7 @@ NodeLocal DNS are unchanged.
 ## Bootstrap
 
 For a fresh data-plane install, generate runtime secrets after the GitHub pull
-request is merged and before reconciling Flux:
+request is merged and before submitting the accepted Cloud SSA operation:
 
 ```sh
 clusters/re8ch/components/personal-access/bootstrap-runtime-secrets.sh

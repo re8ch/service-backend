@@ -9,8 +9,9 @@ controllers nor changes the observer or release executor identities.
 Current `.sops.yaml`, infrastructure projections and `activate.py` use the same
 reviewed age recipient. The projections were approved in #2136 on 2026-10-22;
 `contracts/infrastructure/README.md` continues to declare SOPS ciphertext and the
-protected Environment bundle as the source. The live `flux-system/sops-age`
-metadata matches the original trust-chain creation date, with key name
+protected Environment bundle as the source. At the recorded recovery inspection,
+the retained Secret in the historically named `flux-system` namespace had
+metadata matching the original trust-chain creation date, with key name
 `age.agekey`. No revocation was found. Controller retirement does not revoke the
 retained decryption key. No key value was inspected by the agent.
 

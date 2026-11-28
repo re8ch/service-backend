@@ -67,7 +67,8 @@ The restored release is declarative:
 
 - `cube-source.yaml` pins upstream CubeSandbox commit
   `8721dd151971ce3c2966482bbd32904ad98f378e`;
-- `cube-release.yaml` adopts the existing release through Flux Helm Controller;
+- `cube-release.yaml` records the retired Helm adoption input; current changes
+  must enter the reviewed bundle and bounded Cloud SSA path;
 - `cube-trial-secret` remains the credential authority and is consumed through
   `valuesFrom` (the values never enter Git);
 - the existing `cephfs-re8ch` claims are retained;

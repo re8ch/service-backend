@@ -6,6 +6,10 @@ force or rollback input. Its matrix comes from canonical main-domain contracts
 whose execution authority declares a replay profile in
 `static-domain-authority.yaml`. External domain repositories are excluded.
 
+`reconcile` in the retained workflow and Environment names is a compatibility
+label for bounded Cloud SSA replay. It does not mean Flux-style convergence or a
+cluster-local controller.
+
 Publishing remains in the existing approval-protected `main-domain-release`
 workflow. Replay uses separate `release-reconciler-<domain>` environments,
 main-only deployment policies and exact hosted-worker OIDC identities. Those

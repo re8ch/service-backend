@@ -1,5 +1,10 @@
 # Local Flux controller retirement
 
+> **Completed historical record.** The deletion sequence below has already been
+> completed and is not a recovery runbook. Do not recreate, start or delete a
+> controller from these instructions. Current delivery uses GitHub Actions and
+> the bounded cloud SSA executor.
+
 The cloud SSA workflows own delivery and accepted-artifact replay. This change removes the 22 native Flux Deployments, the local release compatibility projector/dispatcher, and their dedicated helm-controller metrics Service from rendered desired state. Historical templates remain readable; final deletion patches in the main, federation and compatibility Kustomizations prevent either standalone component bootstrap or federation regeneration from restoring workloads. The legacy compatibility image promotion workflow is inert and its promotion command fails before any GitHub request. Product/controller implementation and cloud observer compatibility are separate work.
 
 ## Reviewed sources and writers

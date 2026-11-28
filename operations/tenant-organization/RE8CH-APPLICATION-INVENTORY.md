@@ -34,7 +34,7 @@ The product owner approved AnyCam, CompoCV, Farseer, IncidentRelay and Payments 
 
 Move one application's desired state and traffic at a time. Verify the destination is Ready under tenant `re8ch`, provision its non-Git secrets, compare its data authority and rollback path, then switch routes. Preserve the existing namespace and data through the rollback window.
 
-Farseer cutover finding (2026-10-09): its stateless web Deployment and Service are Ready in `re8ch-farseer`. The first route move caused intermittent Envoy 503s. Envoy cluster statistics showed connection failures for both tenant Pod IPs and successful requests to both legacy Pod IPs. The tenant controller's default deny ingress policy blocked the gateway path; a dedicated port 8080 ingress policy resolved it. The root Flux Kustomization has `prune: false`, so removing a route from Git does not delete the old live object. The failed move left both same-hostname routes present until the tenant route was explicitly deleted through the platform tool. After policy repair, the tenant canary passed 10 direct public probes. The production host was then added to that route and the old live route explicitly deleted. The old route declaration is removed in this change. The legacy Deployment stays available for the rollback window.
+Farseer cutover finding (2026-10-09): its stateless web Deployment and Service were Ready in `re8ch-farseer`. The first route move caused intermittent Envoy 503s. Envoy cluster statistics showed connection failures for both tenant Pod IPs and successful requests to both legacy Pod IPs. The tenant controller's default deny ingress policy blocked the gateway path; a dedicated port 8080 ingress policy resolved it. At that time, the root Flux Kustomization had `prune: false`, so removing a route from Git did not delete the old live object. The failed move left both same-hostname routes present until the tenant route was explicitly deleted through the platform tool. After policy repair, the tenant canary passed 10 direct public probes. The production host was then added to that route and the old live route explicitly deleted. The old route declaration was removed in that change. The legacy Deployment remained available for the rollback window. This dated finding is incident evidence, not current delivery guidance.
 
 ## Other product workloads to assess for Re8ch placement
 
@@ -52,7 +52,7 @@ The Re8ch tenant has nine active consumable grants, including database, model ga
 
 ## Keep in Re8ch Admin
 
-Cluster and shared control services stay in Admin: Kubernetes and Flux controllers, Cilium/network routing, Rook/Ceph, Dex and auth control, ToolHive registry, Headlamp, Harbor core, Grafana and observability storage, shared database routing, and platform operators. Their application-facing access should be represented as Re8ch tenant resources when a reviewed contract exists.
+Cluster and shared control services stay in Admin: Kubernetes and the Cloud SSA execution/observation plane, Cilium/network routing, Rook/Ceph, Dex and auth control, ToolHive registry, Headlamp, Harbor core, Grafana and observability storage, shared database routing, and platform operators. Retired Flux controllers are not part of current inventory. Their application-facing access should be represented as Re8ch tenant resources when a reviewed contract exists.
 
 ## Migration order
 

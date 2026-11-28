@@ -10,9 +10,10 @@ ClusterIP carried over authenticated QUIC sessions and is not a public
 AnyTLS/SOCKS listener. Removing the advertise label or its PeerPolicy revokes
 the pilot.
 
-This directory consumes the independently released and signed AmongClusters
-OCI artifacts. Flux must not deploy the legacy vendored charts under
-`clusters/re8ch/charts` for version 0.2 or later.
+This directory consumes the independently released and signed AmongClusters OCI
+artifacts. The bounded cloud SSA executor applies their reviewed bundle. Legacy
+vendored charts under `clusters/re8ch/charts` and former Flux source objects must
+not be restored for version 0.2 or later.
 
 ## Phase 1: Hub and read-only UI
 
@@ -29,7 +30,8 @@ AmongClusters route, and the independent read-only AmongClusters `0.2.0`
 bundle. No runtime Secret or remote Kubernetes operation is exposed to either
 plugin.
 
-After Flux reports the Hub ready and the new `peering.re8ch.com` CRDs exist,
+After Cloud SSA read-back and runtime evidence show the Hub ready and the new
+`peering.re8ch.com` CRDs exist,
 submit a follow-up change setting `migration.replaceCollaborationCRDs=false`.
 
 ## Phase 2: pilot Agent

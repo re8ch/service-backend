@@ -21,7 +21,8 @@ Consumer input patterns do not automatically own unknown files. Only exact
 declared paths or the existing reviewed domain/focused patterns establish ownership.
 Unknown source/manifests/helpers, deleted unregistered tests, common test environment,
 selection policy and fixtures retain full fallback. Changes to the Kustomize helper
-select its three Flux consumers and its own regression tests; native YAML consumers
+select the three historical Flux-compatibility fixtures and its own regression
+tests; native YAML consumers
 also select the parser contract tests. Codename history alone retains full fallback;
 history accompanying a mapped release lock stays incremental.
 

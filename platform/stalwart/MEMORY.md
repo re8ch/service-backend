@@ -15,7 +15,8 @@
 
 - Kubernetes runtime state is authoritative only in the explicitly named
   cluster. Git holds reviewed desired state; it is not runtime evidence.
-- Networking desired-state ownership is `pillars-infra/network-gitops` under
+- Networking desired-state ownership is `pillars-infra/network-gitops`, with
+  Cloud SSA delivery recorded under the historically named
   `operations/flux-federation/authority.yaml`. The local canonical source
   snapshot used by repository validation is
   `clusters/re8ch/components/cilium/gateway-api-canary.yaml`.
@@ -23,7 +24,7 @@
   migration/bootstrap material. Do not use it to infer current listeners or
   delivery state.
 - GitHub Actions and the bounded cloud SSA executor are the only Kubernetes
-  writers. Do not use local Flux reconciliation or direct local writes.
+  delivery writer. Do not restore Flux or use direct local writes.
 
 ## Incident evidence order
 

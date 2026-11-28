@@ -59,8 +59,9 @@ Keep previous versions until the new PR, protected diagnostics and runtime API
 acceptance pass. Never put plaintext or decrypted projections in Git, Actions
 logs/artifacts, Variables, Custom Properties, comments or PR descriptions.
 
-`restricted-topology-context.sops.yaml` is a read-only diagnostic ConfigMap owned
-by the main Flux root, encrypted in Git and decrypted by existing SOPS support.
+`restricted-topology-context.sops.yaml` is a read-only diagnostic ConfigMap in
+the main Cloud SSA bundle, encrypted in Git and decrypted through the approved
+secret path. Its former Flux ownership labels are historical.
 The public-mesh ConfigMap projection is also encrypted, preserving its original
 kind, keys and payload; the autonomous networking owner is unchanged. Kubernetes
 RBAC and the authenticated platform boundary restrict plaintext runtime reads.

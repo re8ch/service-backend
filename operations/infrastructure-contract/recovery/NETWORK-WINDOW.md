@@ -1,15 +1,17 @@
 # Temporary recovery network-policy exception
 
-NetworkPolicy permits are additive. The retained namespace-wide `allow-egress`
-and `allow-scraping` policies in `flux-system` also selected the recovery Pods;
+NetworkPolicy permits are additive. At the recorded recovery inspection, the
+namespace-wide `allow-egress` and `allow-scraping` policies retained in the
+historically named `flux-system` namespace also selected the recovery Pods;
 therefore the task Cilium policy alone did not establish deny-all/API-only access.
 The initial no-key preflight proves tool availability only, not network isolation.
 No age key or recovery ServiceAccount was mounted during that preflight.
 
-The current authoritative source is
+The point-in-time inspected source was
 `clusters/re8ch/flux-system/gotk-components.yaml`. Both live policy specs matched
-that file at inspection. Do not replay this generated file or restart its retired
-controllers. The reviewed temporary exception changes only the two existing
+that file at inspection. It is not current delivery authority: do not replay this
+generated file or restart its retired controllers. The reviewed temporary
+exception changes only the two existing
 `spec.podSelector` fields to exclude these exact app labels:
 
 - `infra-contracts-recovery`

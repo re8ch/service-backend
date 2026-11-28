@@ -1,10 +1,15 @@
-# GitOps context
+# Delivery context
 
-> Generated view. Runtime authority still requires Flux status and runtime read-back.
+> Generated Markdown view. The historical filename is retained for link
+> compatibility. Runtime delivery no longer depends on Flux status.
 
-| Domain | Repository | Controller namespace |
+| Domain | Desired-state repository | Current writer |
 | --- | --- | --- |
-| `agent-runtime` | ssh://git@ssh.github.com:443/8iops/agent-gitops.git | `flux-agent-system` |
-| `identity-access` | ssh://git@ssh.github.com:443/re8ch/identity-gitops.git | `flux-identity-system` |
-| `networking` | https://github.com/pillars-infra/network-gitops | `flux-network-system` |
-| `observability-metering` | ssh://git@ssh.github.com:443/siren-observer/observability-gitops.git | `flux-observability-system` |
+| `agent-runtime` | `8iops/agent-gitops` | bounded Cloud SSA executor |
+| `identity-access` | `re8ch/identity-gitops` | bounded Cloud SSA executor |
+| `networking` | `pillars-infra/network-gitops` | bounded Cloud SSA executor |
+| `observability-metering` | `siren-observer/observability-gitops` | bounded Cloud SSA executor |
+
+The former `flux-*-system` controller namespaces and cutover locks are
+historical evidence only. Current completion requires the accepted artifact,
+cluster-specific SSA receipt, read-back evidence and independent runtime health.

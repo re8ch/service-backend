@@ -1,5 +1,14 @@
 # RE8CH GitHub-first collaboration control plane
 
+> **Historical migration record.** This document preserves a point-in-time
+> transition and is not current operating guidance. Local and autonomous Flux
+> writers are retired; GitHub Actions and the bounded cloud SSA executor are the
+> only platform delivery writer. Do not execute Flux bootstrap, suspend, resume
+> or recovery steps from this document. Use
+> [`operations/releases/DOMAIN-RECONCILIATION.md`](https://github.com/re8ch/service-backend/blob/main/operations/releases/DOMAIN-RECONCILIATION.md)
+> for the current authority and delivery model.
+
+
 Status: execution started, 2026-09-12. The approved organization topology is
 declared in `organization-topology.yaml`.
 
@@ -203,7 +212,7 @@ workflow on protected `production`; ordinary AI jobs can test but cannot deploy.
 4. **Review:** CODEOWNERS, policy checks, schema/render/unit/security tests and
    merge queue decide admission. Human approval is mandatory for high risk.
 5. **Deploy:** A pinned reusable workflow obtains OIDC, builds/signs/SBOMs an
-   artifact, and updates GitOps desired state by PR. Flux deploys only verified
+   artifact, and updates GitOps desired state by PR. At that stage Flux deployed only verified
    `main`; deployment status and evidence flow back to the PR/Issue.
 6. **Observe:** A deployment anomaly reopens the originating Issue or creates a
    linked incident. Raw telemetry remains outside GitHub.
@@ -232,7 +241,7 @@ reverted; otherwise two sources of truth emerge.
 ## Availability and lock-in boundaries
 
 GitHub outage freezes collaboration mutations but must not stop the running
-cluster. Flux retains the last applied state; emergency runtime intervention
+cluster. Flux then retained the last applied state; emergency runtime intervention
 uses a time-boxed, audited break-glass procedure and is immediately reconciled
 back through Git after recovery. Provider APIs sit behind adapters; the canonical
 event, policy, repository and audit models are provider-neutral files. Do not put

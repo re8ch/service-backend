@@ -1,5 +1,14 @@
 # Construction cutover to cloud GitOps
 
+> **Historical migration record.** This document preserves a point-in-time
+> transition and is not current operating guidance. Local and autonomous Flux
+> writers are retired; GitHub Actions and the bounded cloud SSA executor are the
+> only platform delivery writer. Do not execute Flux bootstrap, suspend, resume
+> or recovery steps from this document. Use
+> [`operations/releases/DOMAIN-RECONCILIATION.md`](https://github.com/re8ch/service-backend/blob/main/operations/releases/DOMAIN-RECONCILIATION.md)
+> for the current authority and delivery model.
+
+
 The construction-phase cutover freezes local Flux before all replacement
 contracts are complete. Missing coverage is tracked explicitly by the existing
 release cohorts; it is not a reason to restart local Flux. GitHub Actions and
@@ -42,11 +51,11 @@ it is not an automatic failure handler.
 
 ## Executed cutover
 
-The local controller stop is complete. `runtime-evidence.json` records the merged
-revision and platform audits. All 22 Flux Deployments have desired and ready
-replicas zero; Kubernetes readyz is healthy. The 248 bootstrap permission/state
-objects were read back with no missing or differing permissions and no missing
-state. Workloads and Helm history were retained.
+The local controller stop completed. `runtime-evidence.json` records the merged
+revision and platform audits. At that cutover, all 22 Flux Deployments had desired
+and ready replicas zero and Kubernetes readyz was healthy. The 248 bootstrap
+permission/state objects were read back with no missing or differing permissions
+and no missing state. Workloads and Helm history were retained.
 
 Cloud adoption remains a separate runtime acceptance step. A merged contract or
 successful dry-run does not establish accepted state. Existing releases whose

@@ -45,7 +45,7 @@ user-facing RPC grants.
 
 The reviewed migration requires the existing organization runtime context tables
 and `api.current_user_id()`. Apply it through the normal signed GitOps pull request
-and Flux path, then verify from both the Job and the database. Before exposing a
+and bounded Cloud SSA path, then verify from both the Job and the database. Before exposing a
 public route, exercise public and confidential registration, one-time secret
 semantics, Personal Org ownership, revoked membership, lifecycle transitions, and
 cross-organization denial. Never include returned client secrets in logs or audit

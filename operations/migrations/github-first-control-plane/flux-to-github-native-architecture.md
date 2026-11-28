@@ -1,5 +1,14 @@
 # Flux-to-GitHub-native control-plane architecture
 
+> **Historical migration record.** This document preserves a point-in-time
+> transition and is not current operating guidance. Local and autonomous Flux
+> writers are retired; GitHub Actions and the bounded cloud SSA executor are the
+> only platform delivery writer. Do not execute Flux bootstrap, suspend, resume
+> or recovery steps from this document. Use
+> [`operations/releases/DOMAIN-RECONCILIATION.md`](https://github.com/re8ch/service-backend/blob/main/operations/releases/DOMAIN-RECONCILIATION.md)
+> for the current authority and delivery model.
+
+
 Status: architecture proposal; no implementation authorized  
 Date: 2026-10-22  
 Scope: `service-backend`, its federated GitOps repositories, and GitHub Enterprise collaboration/security capabilities
@@ -119,7 +128,7 @@ following repository history is treated as architectural evidence:
 | --- | --- | --- |
 | PR #1-era commit `b14f3bf2a`, “establish GitHub-first coordination” | GitHub is collaboration authority; Git is durable transition log; Kubernetes remains runtime authority; raw telemetry stays outside Git | retain the existing authority grammar rather than inventing a second control plane |
 | PR #68, “retire GitLab control plane” | validation/release reactions moved to GitHub Actions; GitHub became generated control-plane authority; R640 GitLab runner state was removed | new static work defaults to GitHub-hosted Actions, not another cluster CI stack |
-| PR #1922, “Define product runtime authority boundary” | external high-cadence products move to authenticated publishers; Flux retains platform guardrails | do not force all application delivery back through a central Flux owner |
+| PR #1922, “Define product runtime authority boundary” | external high-cadence products moved to authenticated publishers; Flux then retained platform guardrails | do not force all application delivery back through a central Flux owner |
 | PR #1926 and #1931, Flux federation/autonomy | domain controller stacks and repositories were intentionally isolated; ownership transfer uses freeze, canary, then prune | preserve domain autonomy and single-writer migration phases |
 | PRs #1988, #1992, #1993, #1996, #1997, #2002, #2006, #2009–#2011 | real reconciliation repeatedly required narrowly expanded RBAC for Helm storage, CRD adoption, leases and exact resource kinds | offline policy can reduce errors but cannot discover or safely grant runtime authority automatically |
 | PRs #2080–#2084 | root source reconciliation repeatedly failed on GitHub reachability and proxy protocol/topology | moving compilation to GitHub reduces cluster source traffic, but runtime source acquisition still needs an outage model/cache |
@@ -830,9 +839,10 @@ one full drift/recovery exercise per domain.
 
 ### Phase 6 — optional direct minimal executor
 
-This is optional, not the default target. Replace a Flux apply loop only where
-the workload is a high-cadence product already assigned to an authenticated
-publisher. Shared infrastructure and security guardrails remain Flux-owned.
+This was optional, not the default target at that migration stage. A Flux apply
+loop could be replaced only where the workload was a high-cadence product already
+assigned to an authenticated publisher. Shared infrastructure and security
+guardrails then remained Flux-owned; that ownership model is now retired.
 
 Exit gate: publisher has bounded SSA ownership, health verification, rollback,
 audit, outage behavior and no cluster-scoped or secret-value access.

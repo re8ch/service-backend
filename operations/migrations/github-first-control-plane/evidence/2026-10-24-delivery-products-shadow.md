@@ -1,5 +1,14 @@
 # Delivery-products independent static authority shadow
 
+> **Historical migration record.** This document preserves a point-in-time
+> transition and is not current operating guidance. Local and autonomous Flux
+> writers are retired; GitHub Actions and the bounded cloud SSA executor are the
+> only platform delivery writer. Do not execute Flux bootstrap, suspend, resume
+> or recovery steps from this document. Use
+> [`operations/releases/DOMAIN-RECONCILIATION.md`](https://github.com/re8ch/service-backend/blob/main/operations/releases/DOMAIN-RECONCILIATION.md)
+> for the current authority and delivery model.
+
+
 Observed on 2026-10-24.
 
 - Repository: `re8ch/delivery-products-gitops` (`repository_id=1431915128`, `owner_id=283958313`).

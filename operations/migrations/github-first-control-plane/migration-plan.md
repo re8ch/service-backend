@@ -4,6 +4,8 @@
 > the sole collaboration and GitOps authority, and GitLab is a read-only archive.
 > Nothing in the phase descriptions below authorizes GitLab writes or overrides
 > repository-root `AGENTS.md`.
+> Local Flux writers described below are also retired; current Kubernetes
+> delivery uses GitHub Actions and the bounded Cloud SSA executor.
 
 Before the completed Phase 3 cutover, every phase was independently reversible
 and GitLab remained authoritative until the cutover gate passed. Dual-write was
@@ -24,11 +26,12 @@ Enterprise Owners have approved the three-domain topology in
 - whether Issues/MRs and contribution attribution require a supported importer;
 - data residency, audit retention and break-glass custodians.
 
-Birfucate is currently embedded under
+At the time of this plan, Birfucate was embedded under
 `platform/plugins/headlamp-birfucate-browser`; it must first be extracted with
 history into a standalone repository. The aggregate `service-backend` and
-`cloud-functions` authorities remain in `re8ch` through the provider cutover so
-organizational moves do not also change Flux ownership.
+`cloud-functions` authorities were to remain in `re8ch` through the provider
+cutover so organizational moves did not also change the then-active Flux
+ownership.
 
 **Gate:** signed inventory, dependency graph, data classification, owner for every
 repo, and tested backup. **Rollback:** none required; no authority changed.

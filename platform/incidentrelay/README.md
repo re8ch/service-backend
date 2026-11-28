@@ -8,10 +8,11 @@ scheduling.
 
 ## Supply-chain relationship
 
-Flux reads `OCIRepository/incidentrelay` in `flux-system`, pinned to the
-reviewed upstream IncidentRelay chart `2.2.0` by OCI digest. The matching
-`HelmRelease` installs that chart into the `incidentrelay` namespace. No copy of
-the upstream chart is stored in this repository.
+The reviewed upstream IncidentRelay chart `2.2.0` is pinned by OCI digest and
+rendered into the immutable observability-metering bundle. GitHub Actions and
+the bounded cloud SSA executor apply that bundle to the `incidentrelay`
+namespace. The former OCIRepository and HelmRelease are historical migration
+evidence, not live owners. No copy of the upstream chart is stored here.
 
 The chart uses the SOPS-managed `incidentrelay-config` Secret and the shared
 Pigsty primary Service. Bot tokens and Telegram chat/user IDs are configured in

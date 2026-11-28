@@ -1,124 +1,93 @@
-# Flux domain reconciliation
+# Cloud SSA domain delivery
 
-The cluster root is a bootstrap and coordination boundary, not the owner of
-product workloads. Five business domains still reconcile independently from
-the verified `service-backend` Git source:
+> `DOMAIN-RECONCILIATION.md` is retained as a stable link target. Flux domain
+> reconciliation is retired. GitHub Actions and the bounded cloud SSA executor
+> are the only platform delivery writer; local and autonomous Flux writers must
+> not be restored.
 
-| Domain | Runtime owner |
-| --- | --- |
-| data-storage | `Kustomization/reconcile-data-storage` |
-| commerce-billing | `Kustomization/reconcile-commerce-billing` |
-| operations-ui | `Kustomization/reconcile-operations-ui` |
-| delivery-products | `Kustomization/reconcile-delivery-products` |
-| tenant-runtime | `Kustomization/reconcile-tenant-runtime` |
+GitHub stores reviewed desired state and immutable release evidence. A protected
+GitHub Actions workflow resolves the accepted artifact, exchanges OIDC for the
+exact cluster identity, and invokes the bounded executor. The executor applies
+the approved bundle directly to the named cluster API with a stable SSA field
+manager. Kubernetes remains runtime authority.
 
-`networking`, `identity-access`, `agent-runtime`, and
-`observability-metering` have completed their transfer to independent Flux
-controller stacks and private desired-state repositories. Their repositories,
-controller namespaces, locks, and current `autonomous` state are authoritative
-in `operations/flux-federation/authority.yaml`. Frozen legacy declarations are
-rollback evidence only and must not be resumed while an autonomous owner is
-active.
-
-The reconcilers have no `dependsOn` edge to `Kustomization/service-backend`.
-Once bootstrapped, a render or apply failure in one domain does not prevent a
-signed revision from being attempted by the other domains. Each domain prunes
-only its own inventory. The root remains `prune: false` so it cannot delete an
-object while ownership is transferred.
-
-## Authoring and build boundary
-
-Existing reviewed Kustomize roots remain in place. A domain's
-`source/kustomization.yaml` composes those roots during review. Run:
-
-```sh
-python operations/releases/compile_domain_bundles.py
+```text
+reviewed declaration
+  -> immutable signed bundle
+  -> protected GitHub Environment and OIDC
+  -> bounded cloud SSA executor
+  -> named cluster API
+  -> accepted state and apply receipt
+  -> independent runtime observation
 ```
 
-This writes the domain-local `resources.yaml` consumed by Flux. CI pins the
-Kustomize version and rejects stale bundles. Runtime Flux retains its root-only
-file loader; it does not need permission to traverse the repository. Encrypted
-SOPS resources stay encrypted in the generated bundle and each encrypted
-resource has exactly one declared domain owner.
+## Authority
 
-## Authority boundary
+[`operations/flux-federation/authority.yaml`](../flux-federation/authority.yaml)
+is the machine-readable delivery ledger despite its historical path. Its
+normative current fields are:
 
-GitOps owns deployable code, immutable image digests, routing, policy, Secret
-references, and emergency platform brakes. It does not own ordinary business
-state such as whether a deposit channel is open, a catalog item is active, or
-an account is entitled. Those decisions belong in an authenticated service API
-and its audited database. A platform brake may close a channel during an
-incident, but normal operators must not need a Git commit to reopen it.
+- `deliveryMode: github-actions-ssa`;
+- `objectOwnership: single-active-writer`;
+- each delivery domain has `state: github-actions-ssa`;
+- `controllerVersion: retired`.
 
-That is only the first split. `runtime-authority.yaml` is the reviewed authority
-ledger for workloads themselves. An externally consumed product with a high
-change cadence belongs to a product-owned release publisher, not to Flux. The
-initial migration set is commerce/payment, the user-facing identity runtime,
-and ConnecTool. Flux keeps their slow-moving platform guardrails: namespaces,
-quota, NetworkPolicy, bounded RBAC, Secret material and references, shared edge
-and certificate authority, database routing and an emergency brake.
+Historical `controllerNamespace`, cutover lock, Flux CR, HelmRelease and
+Kustomization records are migration or rollback evidence. They do not identify
+a live writer and must not be used as an execution target.
 
-The three product runtimes are excluded at render time from the domain
-bundles. `reconcile-commerce-billing`, `reconcile-identity-access`, and
-`reconcile-agent-runtime` continue to own their platform guardrails, but their
-inventories do not contain the Commerce or payment-registry Deployments, the
-auth-gateway or User Hub Deployments, or ConnecTool's release objects. During
-the interim `control-plane-direct` phase, reviewed control-plane operations are
-the sole runtime writer. The final state replaces that manual writer with each
-product repository's authenticated publisher; it does not put the runtime
-objects back under the service-backend Flux source.
+## Domain execution
 
-The ledger deliberately distinguishes target authority from current authority.
-It is unsafe to remove an active reconciler without establishing an explicit
-replacement owner and a rollback point. Until the authenticated publisher is
-available, `control-plane-direct` entries use the audited control-plane path.
-This is a migration state, not permission for new product behavior to be added
-back to Flux.
+The delivery domains are `main`, `networking`, `identity-access`,
+`agent-runtime`, `observability-metering`, and `delivery-products`. Each domain
+has its own repository or reviewed source, protected Environment, OIDC audience,
+cluster identity, bounded RBAC, release inventory and durable accepted state.
 
-### Authority selection rule
+Cloud SSA writes directly to the cluster named by the ReleaseContract. The main
+cluster, PublicEdge and AmongCluster never proxy another cluster's Kubernetes
+write. Multi-cluster acceptance follows the
+[`multi-cluster federation contract`](../network/docs/multicluster-federation-contract.md).
 
-| Workload characteristic | Authority |
-| --- | --- |
-| External users and high change cadence | product release publisher |
-| Ordinary business state | authenticated application API and audited database |
-| Shared infrastructure or security guardrail | Flux |
+An accepted artifact is not deployment evidence. Completion requires:
 
-Product publishers use a namespace and resource allowlist, server-side apply
-ownership, immutable signed artifacts and append-only release evidence. They do
-not receive Secret values, cluster-scoped RBAC, Gateway or certificate
-authority, or database administration. A long-lived kubeconfig is not an
-acceptable substitute for the publisher.
+1. the exact reviewed target and executor identity;
+2. signature, contract, digest and inventory verification;
+3. conflict-detecting server-side apply under the approved field manager;
+4. read-back of accepted/applied state from the same cluster;
+5. workload and functional health evidence from an independent observer.
 
-The legacy `domain-*` OCI reconcilers and the three `observability-*`
-reconcilers are retained in a suspended state for rollback visibility. Do not
-resume one while its replacement `reconcile-*` owner is active.
+## Replay and drift repair
 
-## Rollback
+The scheduled workflows with historical `reconcile` names are cloud replay
+clients. They do not run a cluster controller, poll Git from Kubernetes or
+restore Flux. Replay resolves the already accepted immutable digest and submits
+the same bounded operation envelope to the executor.
 
-1. Suspend only the affected `reconcile-<domain>` Kustomization.
-2. Restore or resume that domain's prior reconciler after confirming its source
-   revision and inventory.
-3. Never enable two pruning owners for the same object.
+Observation is read-only and separate from execution. A stale or unavailable
+observation becomes `Unknown`; it never inherits an earlier successful result.
+Runtime evidence may trigger a reviewed replay or new change, but the observer
+is not a writer.
 
-Because the root does not prune, a root failure cannot garbage-collect domain
-workloads. Rollback remains a reviewed, signed Git change.
+## Product runtime boundary
 
-## CNI and node availability rule
+Externally consumed, fast-changing products may use their authenticated product
+release API. Platform guardrails and infrastructure stay in Cloud SSA. Business
+state stays in the owning application API. The reviewed split is recorded in
+[`runtime-authority.yaml`](runtime-authority.yaml).
 
-Network Flux owns the existing `kube-system/cilium` Helm release; it must never
-install a second release. The vendored chart and runtime images are immutable
-and digest locked. Chart reconciliation follows `ChartVersion`, not every Git
-revision, and an unrelated Network GitOps commit must not roll all Cilium
-agents.
+No product publisher may acquire Secret values, unrelated cluster-scoped RBAC,
+shared Gateway ownership, certificate issuance or database administration.
 
-Cilium is node-level infrastructure, so a deliberately offline or failed
-worker is a node-health incident, not a reason to roll back already converged
-cluster-wide CNI resources. Helm upgrades therefore do not wait for every
-DaemonSet pod and do not retry a cluster-wide rollback loop. Per-node readiness
-remains visible through Kubernetes and observability alerts.
+## Historical material
 
-Gateway readiness is not accepted from `Programmed=True` alone. Production
-validation must include a TLS/HTTP probe through both the service VIP and the
-declared public authority path. The October 2026 R640 recovery and its durable
-checks are recorded in
-[`operations/network/docs/r640-cilium-gateway-recovery-2026-10-19.md`](../network/docs/r640-cilium-gateway-recovery-2026-10-19.md).
+The following paths are retained only to explain or verify the completed
+migration:
+
+- `operations/flux-federation/migrations/`;
+- `operations/releases/FLUX-RETIREMENT.md`;
+- `operations/migrations/cloud-gitops-cutover/`;
+- Flux CR templates and retirement inventories referenced by those records.
+
+Do not execute their suspend, resume, bootstrap or controller-recovery steps.
+Restoring a Flux writer would be a new authority transfer and is outside normal
+recovery.

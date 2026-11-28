@@ -1,5 +1,8 @@
 # Native safe YAML parsing
 
+The Flux and HelmRelease suite names below are historical migration benchmarks
+for retained compatibility fixtures. They do not imply a live Flux writer.
+
 Measured hotspots use PyYAML's LibYAML-backed `CSafeLoader` explicitly, with
 `SafeLoader` as the fallback when the extension is unavailable. Constructors stay
 safe; neither `Loader`, `CLoader` nor `UnsafeLoader` is used. There is no global

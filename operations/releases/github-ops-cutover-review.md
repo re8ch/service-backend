@@ -1,5 +1,11 @@
 # Cloud execution and local Flux retirement
 
+> **Completed migration review.** Point-in-time counts, cohorts, dispatch modes
+> and exceptions below describe the 2026-10 cutover. They are not current
+> inventory or operating instructions. Use
+> [`DOMAIN-RECONCILIATION.md`](DOMAIN-RECONCILIATION.md) for current Cloud SSA
+> delivery.
+
 Operator-approved target (2026-10-27): build, publish and reconcile in the cloud,
 reuse the existing SSA executor and accepted immutable artifacts, and retire local
 Flux controllers after their resources have another verified owner. Do not move

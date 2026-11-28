@@ -67,8 +67,9 @@ table displays implementation/deployment, authority, schema provenance and HTTP/
 acceptance independently. Inventory rows never become callable tool definitions
 unless an adapter exists. Conditional Mihomo surfaces and other clusters remain
 outside this 893-operation inventory, as stated in the UI scope.
-`kustomization.yaml` is referenced by the root GitOps configuration, and
-`platform/connectool/release.yaml` mounts the generated catalog into the approved
+`kustomization.yaml` and `platform/connectool/release.yaml` are retained source
+inputs compiled into the reviewed immutable bundle and applied by the bounded
+Cloud SSA executor; the latter mounts the generated catalog into the approved
 registry. `registry-rollout-values.yaml` documents the source configuration.
 This checked-in registry is the protected static lane and recovery snapshot; it
 is not the write path for tenant-created tools. The database authority,

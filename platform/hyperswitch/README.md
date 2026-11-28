@@ -1,10 +1,12 @@
 # RE8CH Hyperswitch payment orchestration
 
-HyperSwitch is retired from the active RE8CH payment path. Flux no longer
-includes `release.yaml`, so removal of the HelmRelease causes helm-controller to
-uninstall Router, Superposition, Control Center, Redis and their chart-owned
-runtime objects. The public HyperSwitch routes and bootstrap workloads are also
-absent from `kustomization.yaml`.
+HyperSwitch is retired from the active RE8CH payment path. During the completed
+retirement, removal of the former HelmRelease caused the former helm-controller
+to uninstall Router, Superposition, Control Center, Redis and their chart-owned
+runtime objects. Those objects, the public HyperSwitch routes and the bootstrap
+workloads are absent from current Cloud SSA delivery inputs. The retained
+`release.yaml` and `kustomization.yaml` names are historical reactivation evidence,
+not instructions to restore Flux or another cluster-local writer.
 
 The external Pigsty database remains intact. The local-key PVC is retired, while
 its `Retain` PV and the R640 host-path data remain as the reactivation record.

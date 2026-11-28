@@ -1,5 +1,14 @@
 # GitHub–Flux cutover runbook
 
+> **Historical migration record.** This document preserves a point-in-time
+> transition and is not current operating guidance. Local and autonomous Flux
+> writers are retired; GitHub Actions and the bounded cloud SSA executor are the
+> only platform delivery writer. Do not execute Flux bootstrap, suspend, resume
+> or recovery steps from this document. Use
+> [`operations/releases/DOMAIN-RECONCILIATION.md`](https://github.com/re8ch/service-backend/blob/main/operations/releases/DOMAIN-RECONCILIATION.md)
+> for the current authority and delivery model.
+
+
 Current operation entry: dispatch `ceph-static-release.yml` from
 `strata-silica/storage-gitops` on `main` with
 `release` and `action` using the existing protected Environments. See
