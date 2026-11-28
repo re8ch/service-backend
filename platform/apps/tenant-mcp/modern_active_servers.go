@@ -64,7 +64,7 @@ func (a *activeMCPServers) handler(next http.Handler, factory func(*http.Request
 	})
 }
 
-func (a *activeMCPServers) refreshCatalog(s *server, tenant string) {
+func (a *activeMCPServers) refreshCatalog(s *server, tenant string) bool {
 	a.mu.Lock()
 	var entries []*activeMCPServer
 	for _, entry := range a.entries {
@@ -78,7 +78,7 @@ func (a *activeMCPServers) refreshCatalog(s *server, tenant string) {
 		next, err := s.registerCatalogProjection(entry.server, entry.identity)
 		if err != nil {
 			entry.projectionMu.Unlock()
-			continue
+			return false
 		}
 		retained := map[string]bool{}
 		for _, name := range next {
@@ -96,4 +96,5 @@ func (a *activeMCPServers) refreshCatalog(s *server, tenant string) {
 		entry.dynamic = next
 		entry.projectionMu.Unlock()
 	}
+	return true
 }

@@ -56,13 +56,13 @@ func TestCatalogProjectionPublishesSchemaAndNotifiesWithdrawal(t *testing.T) {
 		t.Fatal(err)
 	}
 	unavailable.Close()
-	s.catalog = unavailable
+	s.catalogAuthority = unavailable
 	s.catalogServers.refreshCatalog(s, "acme")
 	listed, err = clientSession.ListTools(context.Background(), nil)
 	if err != nil || len(listed.Tools) != 1 || listed.Tools[0].Name != "orders_search" {
 		t.Fatalf("last valid projection was not retained: %#v %v", listed, err)
 	}
-	s.catalog = nil
+	s.catalogAuthority = nil
 	_, err = s.applyMCPCatalog(context.Background(), mcpCatalogCommand{Action: "withdraw", TenantRef: "acme", OperationKey: "withdraw", Revision: applied["revision"].(string)}, "operator")
 	if err != nil {
 		t.Fatal(err)

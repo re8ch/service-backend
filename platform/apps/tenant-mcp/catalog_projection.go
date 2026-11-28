@@ -17,10 +17,16 @@ func containsString(values []string, wanted string) bool {
 }
 
 func (s *server) catalogProjectionNames(id identity) []string {
-	if id.Tenant == "" || s.catalogDB() == nil {
+	if id.Tenant == "" || s.ledger == nil {
 		return nil
 	}
-	entries, _, err := s.mcpCatalog(context.Background(), id.Tenant)
+	var entries []mcpCatalogEntry
+	var err error
+	if s.catalogAuthority != nil {
+		entries, err = s.authoritativeCatalog(context.Background(), id.Tenant)
+	} else {
+		entries, _, err = s.mcpCatalog(context.Background(), id.Tenant)
+	}
 	if err != nil {
 		return nil
 	}
@@ -40,10 +46,16 @@ func (s *server) catalogProjectionNames(id identity) []string {
 // already bound by the reviewed module registry. Catalog selects revisions and
 // schemas; it cannot inject an endpoint or credential into the execution plane.
 func (s *server) registerCatalogProjection(ms *mcp.Server, id identity) ([]string, error) {
-	if id.Tenant == "" || s.catalogDB() == nil {
+	if id.Tenant == "" || s.ledger == nil {
 		return nil, nil
 	}
-	entries, _, err := s.mcpCatalog(context.Background(), id.Tenant)
+	var entries []mcpCatalogEntry
+	var err error
+	if s.catalogAuthority != nil {
+		entries, err = s.authoritativeCatalog(context.Background(), id.Tenant)
+	} else {
+		entries, _, err = s.mcpCatalog(context.Background(), id.Tenant)
+	}
 	if err != nil {
 		return nil, err
 	}

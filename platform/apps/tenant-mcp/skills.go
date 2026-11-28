@@ -53,7 +53,7 @@ type server struct {
 	catalogServers        *activeMCPServers
 	db                    *sql.DB
 	ledger                *sql.DB
-	catalog               *sql.DB
+	catalogAuthority      *sql.DB
 	redemptions           *sql.DB
 	resultsMu             sync.Mutex
 	results               map[string]resultRecord

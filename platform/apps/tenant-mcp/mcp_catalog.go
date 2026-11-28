@@ -147,13 +147,13 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 	if cmd.OperationKey == "" || len(cmd.OperationKey) > 200 {
 		return nil, errors.New("operationKey is required")
 	}
-	tx, err := s.catalogDB().BeginTx(ctx, nil)
+	tx, err := s.ledger.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 	var existing string
-	if err = tx.QueryRowContext(ctx, s.catalogSQL(`SELECT revision FROM mcp_catalog_revisions WHERE tenant_ref=? AND operation_key=?`), cmd.TenantRef, cmd.OperationKey).Scan(&existing); err == nil {
+	if err = tx.QueryRowContext(ctx, `SELECT revision FROM mcp_catalog_revisions WHERE tenant_ref=? AND operation_key=?`, cmd.TenantRef, cmd.OperationKey).Scan(&existing); err == nil {
 		return map[string]any{"revision": existing, "idempotentReplay": true}, nil
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
@@ -178,7 +178,7 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 			return nil, errors.New("revision is required")
 		}
 		var raw string
-		if err = tx.QueryRowContext(ctx, s.catalogSQL(`SELECT definition_json FROM mcp_catalog_revisions WHERE tenant_ref=? AND revision=?`), cmd.TenantRef, cmd.Revision).Scan(&raw); err != nil {
+		if err = tx.QueryRowContext(ctx, `SELECT definition_json FROM mcp_catalog_revisions WHERE tenant_ref=? AND revision=?`, cmd.TenantRef, cmd.Revision).Scan(&raw); err != nil {
 			return nil, errors.New("revision not found")
 		}
 		if err = json.Unmarshal([]byte(raw), &definition); err != nil {
@@ -190,19 +190,19 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 	default:
 		return nil, errors.New("unknown action")
 	}
-	_ = tx.QueryRowContext(ctx, s.catalogSQL(`SELECT revision FROM mcp_catalog_heads WHERE tenant_ref=? AND service_name=?`), cmd.TenantRef, definition.ServiceName).Scan(&previous)
+	_ = tx.QueryRowContext(ctx, `SELECT revision FROM mcp_catalog_heads WHERE tenant_ref=? AND service_name=?`, cmd.TenantRef, definition.ServiceName).Scan(&previous)
 	revision := catalogRevision(cmd.TenantRef, definition, cmd.OperationKey)
 	raw, _ := json.Marshal(definition)
-	if _, err = tx.ExecContext(ctx, s.catalogSQL(`INSERT INTO mcp_catalog_revisions(revision,tenant_ref,service_name,definition_json,state,previous_revision,operation_key,actor,created_at) VALUES(?,?,?,?,?,?,?,?,?)`), revision, cmd.TenantRef, definition.ServiceName, raw, state, previous, cmd.OperationKey, actor, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO mcp_catalog_revisions(revision,tenant_ref,service_name,definition_json,state,previous_revision,operation_key,actor,created_at) VALUES(?,?,?,?,?,?,?,?,?)`, revision, cmd.TenantRef, definition.ServiceName, raw, state, previous, cmd.OperationKey, actor, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 		return nil, err
 	}
-	if _, err = tx.ExecContext(ctx, s.catalogSQL(`INSERT INTO mcp_catalog_heads(tenant_ref,service_name,revision) VALUES(?,?,?) ON CONFLICT(tenant_ref,service_name) DO UPDATE SET revision=excluded.revision`), cmd.TenantRef, definition.ServiceName, revision); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO mcp_catalog_heads(tenant_ref,service_name,revision) VALUES(?,?,?) ON CONFLICT(tenant_ref,service_name) DO UPDATE SET revision=excluded.revision`, cmd.TenantRef, definition.ServiceName, revision); err != nil {
 		return nil, err
 	}
 	eventID := "mcpevt_" + strings.TrimPrefix(revision, "mcp_")
 	event := mcpCatalogEvent{EventID: eventID, TenantRef: cmd.TenantRef, ServiceName: definition.ServiceName, Revision: revision, PreviousRevision: previous.String, State: state, Definition: definition}
 	eventJSON, _ := json.Marshal(event)
-	if _, err = tx.ExecContext(ctx, s.catalogSQL(`INSERT INTO mcp_catalog_outbox(event_id,tenant_ref,service_name,revision,event_json,created_at) VALUES(?,?,?,?,?,?)`), eventID, cmd.TenantRef, definition.ServiceName, revision, eventJSON, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+	if _, err = tx.ExecContext(ctx, `INSERT INTO mcp_catalog_outbox(event_id,tenant_ref,service_name,revision,event_json,created_at) VALUES(?,?,?,?,?,?)`, eventID, cmd.TenantRef, definition.ServiceName, revision, eventJSON, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
 		return nil, err
 	}
 	if err = tx.Commit(); err != nil {
@@ -215,7 +215,7 @@ func (s *server) applyMCPCatalog(ctx context.Context, cmd mcpCatalogCommand, act
 }
 
 func (s *server) mcpCatalog(ctx context.Context, tenant string) ([]mcpCatalogEntry, string, error) {
-	rows, err := s.catalogDB().QueryContext(ctx, s.catalogSQL(`SELECT h.tenant_ref,r.revision,r.state,r.definition_json FROM mcp_catalog_heads h JOIN mcp_catalog_revisions r ON r.revision=h.revision WHERE h.tenant_ref IN ('*',?) ORDER BY r.service_name,h.tenant_ref`), tenant)
+	rows, err := s.ledger.QueryContext(ctx, `SELECT h.tenant_ref,r.revision,r.state,r.definition_json FROM mcp_catalog_heads h JOIN mcp_catalog_revisions r ON r.revision=h.revision WHERE h.tenant_ref IN ('*',?) ORDER BY r.service_name,h.tenant_ref`, tenant)
 	if err != nil {
 		return nil, "", err
 	}
@@ -305,7 +305,7 @@ func (s *server) mcpCatalogEventsHTTP(w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
-		rows, err := s.catalogDB().QueryContext(r.Context(), s.catalogSQL(`SELECT sequence,event_json FROM mcp_catalog_outbox WHERE tenant_ref IN ('*',?) AND sequence>? ORDER BY sequence LIMIT 256`), tenant, after)
+		rows, err := s.ledger.QueryContext(r.Context(), `SELECT sequence,event_json FROM mcp_catalog_outbox WHERE tenant_ref IN ('*',?) AND sequence>? ORDER BY sequence LIMIT 256`, tenant, after)
 		if err != nil {
 			return
 		}

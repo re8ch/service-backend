@@ -726,12 +726,12 @@ func main() {
 	defer s.ledger.Close()
 	if catalogDSN := os.Getenv("MCP_CATALOG_DATABASE_URL"); catalogDSN != "" {
 		catalogContext, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		s.catalog, err = openCatalogPostgreSQL(catalogContext, catalogDSN)
+		s.catalogAuthority, err = openCatalogPostgreSQL(catalogContext, catalogDSN)
 		cancel()
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer s.catalog.Close()
+		defer s.catalogAuthority.Close()
 	}
 	redemptionPath := os.Getenv("DEVICE_REGISTRY_PATH")
 	if redemptionPath == "" {
@@ -760,6 +760,7 @@ func main() {
 	defer s.modules.close()
 	shutdown, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	go s.watchCatalog(shutdown)
 	failures := make(chan error, 2)
 	go func() { failures <- adminServer.ListenAndServe() }()
 	go func() { failures <- httpServer.ListenAndServe() }()

@@ -18,12 +18,12 @@ def test_dynamic_catalog_keeps_one_gitops_owned_toolhive_projection():
 
 
 def test_postgresql_catalog_schema_has_transactional_projection_primitives():
-    schema = (ROOT / "platform/apps/tenant-mcp/catalog-postgresql.sql").read_text()
-    for table in ("mcp_catalog_revisions", "mcp_catalog_heads", "mcp_catalog_outbox"):
-        assert f"CREATE TABLE IF NOT EXISTS {table}" in schema
-    assert "GENERATED ALWAYS AS IDENTITY" in schema
-    assert "UNIQUE (tenant_ref, operation_key)" in schema
-    assert "event_id text NOT NULL UNIQUE" in schema
+    schema = (ROOT / "operations/supabase-billing/dynamic-mcp-catalog-authority.sql").read_text()
+    assert "create table if not exists bifurcate.mcp_server_revisions" in schema
+    assert "create table if not exists bifurcate.mcp_active_revisions" in schema
+    assert "create table if not exists bifurcate.mcp_catalog_outbox" in schema
+    assert "claim_mcp_catalog_projection_events" in schema
+    assert "ack_mcp_catalog_projection_event" in schema
 
 
 def test_authority_contract_forbids_per_tool_crds():

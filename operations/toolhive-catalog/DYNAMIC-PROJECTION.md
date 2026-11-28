@@ -22,7 +22,10 @@ by the bounded Cloud SSA executor. Dynamic tenant tools are data-plane Catalog
 state: registration, revision changes and withdrawal do not create Kubernetes
 objects and do not require a Git commit. A runtime process must never apply a per-tool ToolHive CRD.
 
-The PostgreSQL schema contract is
-`platform/apps/tenant-mcp/catalog-postgresql.sql`. SQLite tables in tenant-mcp
-exist only as the local compatibility/test implementation of the same revision,
-head and outbox semantics; they are not a second production authority.
+The sole PostgreSQL schema contract is
+`operations/supabase-billing/dynamic-mcp-catalog-authority.sql`. The projector
+reads `bifurcate.active_mcp_catalog` and claims/acknowledges the ordered
+`bifurcate.mcp_catalog_outbox` only through bounded `bifurcate_api` functions.
+SQLite tables in tenant-mcp are a legacy compatibility/test implementation and
+are not a second production authority. Protected Admin database and cluster
+tools never enter this projection; their reviewed static lane remains GitOps.
