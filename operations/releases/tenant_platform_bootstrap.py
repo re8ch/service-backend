@@ -8,15 +8,16 @@ NAMESPACE = "tenant-infrastructure"
 ALLOWED = {
     ("apps/v1", "DaemonSet", "tenant-runtime-image-cache"),
     ("apps/v1", "Deployment", "admin-api"),
-    ("apps/v1", "Deployment", "tenant-api"),
-    ("apps/v1", "Deployment", "tenant-control-controller"),
+    ("apps/v1", "Deployment", "postgresql-provider"),
     ("apps/v1", "Deployment", "tenant-provider-reconciler"),
+    ("cilium.io/v2", "CiliumNetworkPolicy", "postgresql-provider-egress"),
     ("cilium.io/v2", "CiliumNetworkPolicy", "tenant-api-gateway"),
     ("v1", "ConfigMap", "tenant-platform-modules"),
-    ("v1", "PersistentVolumeClaim", "tenant-platform-state"),
-    ("v1", "Service", "admin-api"), ("v1", "Service", "tenant-api"),
+    ("v1", "Service", "admin-api"), ("v1", "Service", "postgresql-provider"),
+    ("v1", "Service", "tenant-api"),
     ("v1", "Service", "tenant-control-controller"), ("v1", "Service", "tenant-infrastructure"),
-    ("v1", "ServiceAccount", "admin-api"), ("v1", "ServiceAccount", "tenant-api"),
+    ("v1", "ServiceAccount", "admin-api"), ("v1", "ServiceAccount", "postgresql-provider"),
+    ("v1", "ServiceAccount", "tenant-api"),
     ("v1", "ServiceAccount", "tenant-control-controller"), ("v1", "ServiceAccount", "tenant-provider-reconciler"),
     ("gateway.networking.k8s.io/v1", "HTTPRoute", "tenant-billing-auth-center"),
     ("gateway.networking.k8s.io/v1", "HTTPRoute", "tenant-billing-read"),
@@ -24,9 +25,11 @@ ALLOWED = {
     ("gateway.networking.k8s.io/v1", "HTTPRoute", "tenant-native-mcp"),
     ("gateway.networking.k8s.io/v1", "HTTPRoute", "tenant-self-service-capabilities"),
     ("networking.k8s.io/v1", "NetworkPolicy", "admin-api"),
+    ("networking.k8s.io/v1", "NetworkPolicy", "postgresql-provider"),
     ("networking.k8s.io/v1", "NetworkPolicy", "tenant-api"),
     ("networking.k8s.io/v1", "NetworkPolicy", "tenant-control-controller"),
     ("policy/v1", "PodDisruptionBudget", "tenant-control-controller"),
+    ("tenancy.re8ch.com/v1alpha1", "TenantServiceInstance", "mcp-catalog-runtime"),
 }
 
 def main():

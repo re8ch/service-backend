@@ -1,4 +1,4 @@
-import pathlib, yaml
+import pathlib, runpy, yaml
 
 ROOT=pathlib.Path(__file__).parents[1]
 
@@ -67,3 +67,25 @@ def test_agent_runtime_observation_access_is_namespace_scoped_and_read_only():
                for rule in role['rules'] if not rule.get('resourceNames')}
     assert (('',),('pods','events'),('get','list')) in unbounded
     assert (('apps',),('replicasets',),('get','list')) in unbounded
+
+    exact={(tuple(rule['apiGroups']),tuple(rule['resources'])): set(rule.get('resourceNames',[]))
+           for rule in role['rules'] if rule.get('resourceNames')}
+    assert 'postgresql-provider' in exact[(('apps',),('deployments',))]
+    assert 'postgresql-provider' in exact[(('',),('services',))]
+    assert 'postgresql-provider' in exact[(('',),('serviceaccounts',))]
+    assert 'postgresql-provider-egress' in exact[(('cilium.io',),('ciliumnetworkpolicies',))]
+    assert 'postgresql-provider' in exact[(('networking.k8s.io',),('networkpolicies',))]
+    assert exact[(('tenancy.re8ch.com',),('tenantserviceinstances',))] == {'mcp-catalog-runtime'}
+
+
+def test_tenant_bootstrap_inventory_matches_current_atomic_release():
+    allowed=runpy.run_path(ROOT/'operations/releases/tenant_platform_bootstrap.py')['ALLOWED']
+    assert ('apps/v1','Deployment','postgresql-provider') in allowed
+    assert ('cilium.io/v2','CiliumNetworkPolicy','postgresql-provider-egress') in allowed
+    assert ('v1','Service','postgresql-provider') in allowed
+    assert ('v1','ServiceAccount','postgresql-provider') in allowed
+    assert ('networking.k8s.io/v1','NetworkPolicy','postgresql-provider') in allowed
+    assert ('tenancy.re8ch.com/v1alpha1','TenantServiceInstance','mcp-catalog-runtime') in allowed
+    assert ('apps/v1','Deployment','tenant-api') not in allowed
+    assert ('apps/v1','Deployment','tenant-control-controller') not in allowed
+    assert ('v1','PersistentVolumeClaim','tenant-platform-state') not in allowed
