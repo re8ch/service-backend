@@ -4265,7 +4265,7 @@ data:
       v_id := gen_random_uuid();
       if p_client_type = 'confidential' then
         v_secret := rtrim(translate(encode(public.gen_random_bytes(32), 'base64'), '+/', '-_'), '=');
-        v_hash := public.crypt(v_secret, public.gen_salt('bf', 12));
+        v_hash := rtrim(translate(encode(public.digest(v_secret, 'sha256'), 'base64'), '+/', '-_'), '=');
       else
         v_hash := '';
       end if;
@@ -4277,7 +4277,7 @@ data:
         token_endpoint_auth_method, redirect_uris, grant_types,
         client_name, client_uri
       ) values (
-        v_id, v_hash, 'dynamic', p_client_type,
+        v_id, v_hash, 'dynamic', p_client_type::auth.oauth_client_type,
         case when p_client_type = 'public' then 'none' else 'client_secret_basic' end,
         v_redirects, 'authorization_code,refresh_token', btrim(p_name), p_client_uri
       );
@@ -4353,7 +4353,7 @@ data:
           'idempotentReplay', true, 'clientSecretIssued', false);
       end if;
       v_secret := rtrim(translate(encode(public.gen_random_bytes(32), 'base64'), '+/', '-_'), '=');
-      update auth.oauth_clients set client_secret_hash = public.crypt(v_secret, public.gen_salt('bf', 12)), updated_at = now()
+      update auth.oauth_clients set client_secret_hash = rtrim(translate(encode(public.digest(v_secret, 'sha256'), 'base64'), '+/', '-_'), '='), updated_at = now()
         where id = p_application_id and deleted_at is null;
       insert into core.oauth_application_secret_rotations(application_id, operation_key, requested_by_user_id)
         values (p_application_id, p_operation_key, v_user);

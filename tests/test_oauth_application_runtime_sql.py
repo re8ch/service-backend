@@ -46,10 +46,11 @@ def oauth_db(postgres):
         grant supabase_auth_admin to supabase_admin; create role service_role;
         create role authenticated; create role anon;
         create schema auth; create schema core; create schema api;
+        create type auth.oauth_client_type as enum ('public', 'confidential');
         create table auth.users (id uuid primary key, deleted_at timestamptz);
         create table auth.oauth_clients (
           id uuid primary key, client_secret_hash text not null,
-          registration_type text, client_type text, token_endpoint_auth_method text,
+          registration_type text, client_type auth.oauth_client_type, token_endpoint_auth_method text,
           redirect_uris text, grant_types text, client_name text, client_uri text,
           deleted_at timestamptz, updated_at timestamptz default now());
         alter schema auth owner to supabase_auth_admin;
@@ -105,7 +106,10 @@ def test_confidential_secret_is_hashed_and_returned_only_once(oauth_db):
     sql, _, _ = oauth_db
     secret = call(sql, ALICE, "api.create_oauth_application('Server','[\"https://server.example/cb\"]','req-secret',null,'confidential')->>'clientSecret'")
     assert secret and len(secret) >= 40
-    assert sql(f"select client_secret_hash <> '{secret}' and public.crypt('{secret}',client_secret_hash)=client_secret_hash from auth.oauth_clients") == "t"
+    expected_hash = sql(
+        f"select rtrim(translate(encode(public.digest('{secret}','sha256'),'base64'),'+/','-_'),'=')"
+    )
+    assert sql("select client_secret_hash from auth.oauth_clients") == expected_hash
     replay = call(sql, ALICE, "api.create_oauth_application('Server','[\"https://server.example/cb\"]','req-secret',null,'confidential')")
     assert '"idempotentReplay": true' in replay
     assert "clientSecret\"" not in replay
