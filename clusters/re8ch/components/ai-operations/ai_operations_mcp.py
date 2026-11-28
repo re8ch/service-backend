@@ -965,7 +965,7 @@ TENANT_KUBERNETES_TOOLS = [
     {"name": "tenant_namespace_list", "description": "List namespaces owned by the authenticated tenant.", "inputSchema": schema({})},
     {"name": "tenant_namespace_create", "description": "Request creation of a namespace allowed by the authenticated tenant namespace policy; optional TTL expires a PR environment after at most seven days.", "inputSchema": schema({"namespace": {"type": "string"}, "ttlSeconds": {"type": "integer", "minimum": 300, "maximum": 604800}}, ["namespace"])},
     {"name": "tenant_namespace_delete", "description": "Request deletion of a non-default namespace owned by the authenticated tenant.", "inputSchema": schema({"namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["namespace"])},
-    {"name": "tenant_kubernetes_get", "description": "Read a non-secret Kubernetes object. Ordinary tenants are limited to allowlisted kinds in their Ready namespaces; the verified Admin Meta tenant uses this same interface for any API resource across the directly connected cluster. Secret values are never returned.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
+    {"name": "tenant_kubernetes_get", "description": "Read native Kubernetes status without a separate platform state machine. Read the workload for status.conditions, select its Pods or ReplicaSets with labelSelector, and query Events with fieldSelector (for example involvedObject.name=web) to see progress and failures. Ordinary tenants remain limited to non-secret allowlisted kinds in their Ready namespaces; the verified Admin Meta tenant may read any API resource on the directly connected cluster.", "inputSchema": schema({"kind": {"type": "string"}, "labelSelector": {"type": "string", "maxLength": 1024}, "fieldSelector": {"type": "string", "maxLength": 1024}, "name": {"type": "string"}, "namespace": {"type": "string"}}, ["kind"])},
     {"name": "tenant_kubernetes_apply", "description": "Preview or server-side apply one Kubernetes object. Ordinary tenants remain limited to allowlisted objects in Ready namespaces; the verified Admin Meta tenant uses this same interface for namespaced or cluster-scoped resources. Explicit apply=true is required to persist.", "inputSchema": schema({"object": {"type": "object"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["object"])},
     {"name": "tenant_kubernetes_delete", "description": "Preview or delete one Kubernetes object. Ordinary tenants remain limited to allowlisted objects in Ready namespaces; the verified Admin Meta tenant uses this same interface for namespaced or cluster-scoped resources. Explicit apply=true is required to delete.", "inputSchema": schema({"kind": {"type": "string"}, "name": {"type": "string"}, "namespace": {"type": "string"}, "apply": {"type": "boolean"}}, ["kind", "name"])},
 ]
@@ -1496,6 +1496,14 @@ def call_tenant_kubernetes_tool(name: str, args: dict[str, Any], identity: dict[
         argv = ["kubectl", "--namespace", namespace, "get", kind]
         if args.get("name"):
             argv.append(valid_kubernetes_name(str(args["name"])))
+        label_selector = valid_kubernetes_selector(str(args.get("labelSelector") or ""))
+        field_selector = valid_kubernetes_selector(str(args.get("fieldSelector") or ""))
+        if args.get("name") and (label_selector or field_selector):
+            raise ValueError("selectors cannot be combined with a named resource")
+        if label_selector:
+            argv += ["--selector", label_selector]
+        if field_selector:
+            argv += ["--field-selector", field_selector]
         argv += ["-o", "json"]
         return {"tenantRef": context["tenantRef"], "namespace": namespace, "role": role, **command_result(argv, None, 120)}
     if role not in {"operator", "admin"}:
@@ -1716,6 +1724,13 @@ def artc_identity(identity: dict[str, Any]) -> dict[str, str]:
 def valid_kubernetes_name(value: str) -> str:
     if not re.fullmatch(r"[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?", value) or len(value) > 253:
         raise ValueError("invalid Kubernetes name")
+    return value
+
+
+def valid_kubernetes_selector(value: str) -> str:
+    value = value.strip()
+    if len(value) > 1024 or any(ord(character) < 0x20 or ord(character) == 0x7f for character in value):
+        raise ValueError("invalid Kubernetes selector")
     return value
 
 

@@ -41,6 +41,35 @@ func tenantMutableKind(kind string) bool {
 	return false
 }
 
+func validKubernetesSelector(value string) bool {
+	if len(value) > 1024 {
+		return false
+	}
+	for _, r := range value {
+		if r < 0x20 || r == 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
+func appendKubernetesSelectors(argv []string, args map[string]any, named bool) ([]string, error) {
+	label, field := strings.TrimSpace(asString(args, "labelSelector")), strings.TrimSpace(asString(args, "fieldSelector"))
+	if named && (label != "" || field != "") {
+		return nil, errors.New("selectors cannot be combined with a named resource")
+	}
+	if !validKubernetesSelector(label) || !validKubernetesSelector(field) {
+		return nil, errors.New("invalid Kubernetes selector")
+	}
+	if label != "" {
+		argv = append(argv, "--selector", label)
+	}
+	if field != "" {
+		argv = append(argv, "--field-selector", field)
+	}
+	return argv, nil
+}
+
 func (s *server) registerKubernetesTools(ms *mcp.Server) {
 	definitions, err := legacyDefinitions()
 	if err != nil {
@@ -99,6 +128,11 @@ func (s *server) callMetaKubernetes(ctx context.Context, name string, args map[s
 		} else if namespace == "" {
 			argv = append(argv, "--all-namespaces")
 		}
+		selectedArgv, selectorErr := appendKubernetesSelectors(argv, args, strings.TrimSpace(asString(args, "name")) != "")
+		if selectorErr != nil {
+			return nil, nil, selectorErr
+		}
+		argv = selectedArgv
 		if namespace != "" {
 			argv = append(argv, "--namespace", namespace)
 		}
@@ -469,6 +503,11 @@ func (s *server) callKubernetes(ctx context.Context, id identity, name string, a
 				return nil, errors.New("invalid Kubernetes name")
 			}
 			argv = append(argv, target)
+		}
+		var err error
+		argv, err = appendKubernetesSelectors(argv, args, asString(args, "name") != "")
+		if err != nil {
+			return nil, err
 		}
 		argv = append(argv, "-o", "json")
 		result := commandResult(ctx, argv, nil, 120)

@@ -22,6 +22,26 @@ func TestTenantKubernetesDeleteOnlyAllowsMutableKinds(t *testing.T) {
 	}
 }
 
+func TestKubernetesSelectorsUseNativeKubectlFlags(t *testing.T) {
+	argv, err := appendKubernetesSelectors([]string{"kubectl", "get", "pods"}, map[string]any{
+		"labelSelector": "app.kubernetes.io/name=web",
+		"fieldSelector": "status.phase!=Succeeded",
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"kubectl", "get", "pods", "--selector", "app.kubernetes.io/name=web", "--field-selector", "status.phase!=Succeeded"}
+	if !reflect.DeepEqual(argv, want) {
+		t.Fatalf("selector argv = %v, want %v", argv, want)
+	}
+	if _, err := appendKubernetesSelectors(argv, map[string]any{"fieldSelector": "involvedObject.name=web"}, true); err == nil {
+		t.Fatal("selector accepted with a named resource")
+	}
+	if _, err := appendKubernetesSelectors(argv, map[string]any{"labelSelector": "app=web\n--all-namespaces"}, false); err == nil {
+		t.Fatal("control character accepted in selector")
+	}
+}
+
 func TestReadyNamespaceRequiresMatchingTenantRef(t *testing.T) {
 	control := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/namespaces" {
