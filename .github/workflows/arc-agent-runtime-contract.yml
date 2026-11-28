@@ -7,6 +7,7 @@ on:
     - clusters/re8ch/components/arc-agent-runtime/**
     - clusters/re8ch/domains/agent-runtime/**
     - operations/agent-runtime/**
+    - .github/workflows/centurion-handoff-smoke.yml
   workflow_dispatch: {}
 
 permissions: {contents: read, packages: read}
@@ -35,5 +36,6 @@ jobs:
     - run: git diff --exit-code -- clusters/re8ch/components/arc-agent-runtime/controller-rendered.yaml clusters/re8ch/components/arc-agent-runtime/runner-rendered.yaml
     - run: python operations/agent-runtime/verify_arc_agent_runtime.py
     - run: python operations/agent-runtime/test_verify_arc_agent_runtime.py
+    - run: python -m unittest discover -s operations/agent-runtime -p 'test_centurion.py'
     - run: python operations/releases/compile_domain_bundles.py --check
 

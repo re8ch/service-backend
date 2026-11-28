@@ -1,0 +1,62 @@
+name: Centurion handoff smoke
+
+on:
+  workflow_dispatch: {}
+
+permissions: {contents: read}
+
+jobs:
+  initialize:
+    runs-on:
+      group: RE8CH Self-Hosted
+      labels: re8ch-self-hosted-ephemeral
+    timeout-minutes: 10
+    container:
+      image: python:3.13.9-slim@sha256:cb2566d7bfe504ed605fd9c1653bb1907dc5c54a55de07f7745e60e8219b031e
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with: {persist-credentials: false}
+    - name: Initialize and plan
+      run: |
+        python operations/agent-runtime/centurion.py init /tmp/checkpoint.json \
+          --run-id "${GITHUB_RUN_ID}" --issue 3458 --objective "verify an ephemeral session handoff" \
+          --hours 24 --max-sessions 4 --max-failures 2
+        python operations/agent-runtime/centurion.py transition /tmp/checkpoint.json \
+          --state planning --owner "${RUNNER_NAME}" --lease-minutes 1 \
+          --idempotency-key "${GITHUB_RUN_ID}-initialize-plan" \
+          --next-action "resume on a distinct ARC job"
+        python operations/agent-runtime/centurion.py validate /tmp/checkpoint.json
+    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: centurion-checkpoint-${{ github.run_id }}
+        path: /tmp/checkpoint.json
+        retention-days: 1
+
+  resume:
+    needs: initialize
+    runs-on:
+      group: RE8CH Self-Hosted
+      labels: re8ch-self-hosted-ephemeral
+    timeout-minutes: 10
+    container:
+      image: python:3.13.9-slim@sha256:cb2566d7bfe504ed605fd9c1653bb1907dc5c54a55de07f7745e60e8219b031e
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with: {persist-credentials: false}
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      with:
+        name: centurion-checkpoint-${{ github.run_id }}
+        path: /tmp/centurion
+    - name: Resume after forced handoff
+      run: |
+        sleep 61
+        python operations/agent-runtime/centurion.py transition /tmp/centurion/checkpoint.json \
+          --state working --owner "${RUNNER_NAME}" --lease-minutes 1 \
+          --idempotency-key "${GITHUB_RUN_ID}-resume-work" \
+          --next-action "evaluate the handoff" \
+          --evidence "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        python operations/agent-runtime/centurion.py transition /tmp/centurion/checkpoint.json \
+          --state evaluating --owner "${RUNNER_NAME}" --lease-minutes 1 \
+          --idempotency-key "${GITHUB_RUN_ID}-resume-evaluate" \
+          --next-action "complete smoke evidence"
+        python operations/agent-runtime/centurion.py validate /tmp/centurion/checkpoint.json
