@@ -158,6 +158,7 @@ var platformResourceName = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,252}$`)
 var platformPostgresDatabases = map[string]struct{}{
 	"re8ch_identity": {},
 	"re8ch_billing":  {},
+	"re8ch_commerce": {},
 }
 
 func validatePlatformPostgresInput(input map[string]any) error {

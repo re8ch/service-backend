@@ -89,7 +89,7 @@ func TestPlatformResourceArgvIsBoundedAndSecretSafe(t *testing.T) {
 }
 
 func TestPlatformPostgresSystemAllowlist(t *testing.T) {
-	for _, database := range []string{"re8ch_identity", "re8ch_billing"} {
+	for _, database := range []string{"re8ch_identity", "re8ch_billing", "re8ch_commerce"} {
 		if err := validatePlatformPostgresInput(map[string]any{"database": database, "sql": "select 1"}); err != nil {
 			t.Fatalf("allowed system database %s rejected: %v", database, err)
 		}

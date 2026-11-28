@@ -39,6 +39,12 @@ metadata:
   labels:
     delivery.re8ch.com/rbac-profile: agent-runtime
 rules:
+- apiGroups: ['']
+  resources: [pods, events]
+  verbs: [get, list]
+- apiGroups: [apps]
+  resources: [replicasets]
+  verbs: [get, list]
 - apiGroups: [apps]
   resources: [deployments]
   resourceNames: [admin-api, tenant-api, tenant-control-controller, tenant-provider-reconciler]
