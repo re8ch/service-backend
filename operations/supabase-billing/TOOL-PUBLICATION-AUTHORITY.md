@@ -68,7 +68,9 @@ subject, organization membership, and Bifurcate grant before invoking an RPC.
 The database enforces aggregate ownership and separation of duties: the
 requesting subject cannot approve or publish its own registration. Registration
 transitions are compare-and-set, publication requires a sealed revision, and
-activation requires a published registration.
+activation requires a published registration and the expected current revision.
+Registration stores only the opaque OpenOAuth client reference used for later
+binding; client secrets, grants, tokens, and sessions remain in OpenOAuth.
 
 Every accepted registration transition and activation writes a transactional
 outbox event in the same transaction. A projector may publish pending events

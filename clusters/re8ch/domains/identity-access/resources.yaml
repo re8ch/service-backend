@@ -5184,6 +5184,7 @@ data:
       server_ref text not null,
       revision_ref text not null,
       requested_by_subject bifurcate.identity_subject_ref not null,
+      oauth_client_ref text not null check (oauth_client_ref ~ '^oauthcl_[A-Za-z0-9_-]{16,200}$'),
       operation_key text not null check (length(operation_key) between 1 and 200),
       request_sha256 text not null check (request_sha256 ~ '^[a-f0-9]{64}$'),
       state text not null default 'requested'
@@ -5266,7 +5267,7 @@ data:
     create or replace function bifurcate_api.request_mcp_catalog_registration(
       p_registration_ref text, p_owner_org_ref text, p_server_ref text,
       p_revision_ref text, p_requested_by_subject uuid, p_operation_key text,
-      p_request_sha256 text
+      p_request_sha256 text, p_oauth_client_ref text
     ) returns table(registration_ref text, state text, idempotent_replay boolean)
     language plpgsql security definer
     set search_path = bifurcate, pg_catalog, pg_temp
@@ -5274,9 +5275,9 @@ data:
     declare v_existing bifurcate.mcp_catalog_registrations%rowtype;
     begin
       insert into mcp_catalog_registrations(registration_ref, owner_org_ref, server_ref,
-        revision_ref, requested_by_subject, operation_key, request_sha256)
+        revision_ref, requested_by_subject, operation_key, request_sha256, oauth_client_ref)
       values(p_registration_ref, p_owner_org_ref, p_server_ref, p_revision_ref,
-        p_requested_by_subject, p_operation_key, p_request_sha256)
+        p_requested_by_subject, p_operation_key, p_request_sha256, p_oauth_client_ref)
       on conflict (owner_org_ref, operation_key) do nothing
       returning * into v_existing;
       if found then
@@ -5285,7 +5286,8 @@ data:
         values('registration', p_registration_ref, 'catalog.registration.requested',
           jsonb_build_object('registrationRef', p_registration_ref,
             'ownerOrgRef', p_owner_org_ref, 'serverRef', p_server_ref,
-            'revisionRef', p_revision_ref, 'requestSha256', p_request_sha256),
+            'revisionRef', p_revision_ref, 'requestSha256', p_request_sha256,
+            'oauthClientRef', p_oauth_client_ref),
           'catalog.registration.requested:' || p_registration_ref);
         return query select p_registration_ref, 'requested'::text, false;
         return;
@@ -5296,7 +5298,8 @@ data:
          or v_existing.server_ref is distinct from p_server_ref
          or v_existing.revision_ref is distinct from p_revision_ref
          or v_existing.requested_by_subject is distinct from p_requested_by_subject
-         or v_existing.request_sha256 is distinct from p_request_sha256 then
+         or v_existing.request_sha256 is distinct from p_request_sha256
+         or v_existing.oauth_client_ref is distinct from p_oauth_client_ref then
         raise exception 'operation key already exists with different registration content'
           using errcode = '23505';
       end if;
@@ -5358,13 +5361,14 @@ data:
     $$;
 
     create or replace function bifurcate_api.activate_mcp_catalog_revision(
-      p_registration_ref text, p_actor_subject uuid
+      p_registration_ref text, p_actor_subject uuid, p_expected_active_revision_ref text default null
     ) returns table(server_ref text, revision_ref text, activation_sequence bigint)
     language plpgsql security definer
     set search_path = bifurcate, pg_catalog, pg_temp
     as $$
     declare v_row bifurcate.mcp_catalog_registrations%rowtype;
     declare v_sequence bigint;
+    declare v_active_revision_ref text;
     begin
       select * into strict v_row from mcp_catalog_registrations
        where mcp_catalog_registrations.registration_ref = p_registration_ref for update;
@@ -5372,6 +5376,11 @@ data:
         raise exception 'only a published registration can become active' using errcode = '55000';
       end if;
       perform 1 from mcp_servers s where s.server_ref = v_row.server_ref for update;
+      select a.revision_ref into v_active_revision_ref from mcp_active_revisions a
+        where a.server_ref = v_row.server_ref;
+      if v_active_revision_ref is distinct from p_expected_active_revision_ref then
+        raise exception 'active MCP revision changed' using errcode = '40001';
+      end if;
       select coalesce(max(a.activation_sequence), 0) + 1 into v_sequence
         from mcp_active_revisions a where a.server_ref = v_row.server_ref;
       insert into mcp_active_revisions(server_ref, owner_org_ref, revision_ref,
@@ -5412,11 +5421,11 @@ data:
     grant usage on schema bifurcate to billing_commerce_runtime;
     grant select on bifurcate.active_mcp_catalog to billing_commerce_runtime;
     grant usage on schema bifurcate_api to billing_commerce_runtime;
-    grant execute on function bifurcate_api.request_mcp_catalog_registration(text,text,text,text,uuid,text,text)
+    grant execute on function bifurcate_api.request_mcp_catalog_registration(text,text,text,text,uuid,text,text,text)
       to billing_commerce_runtime;
     grant execute on function bifurcate_api.transition_mcp_catalog_registration(text,text,text,uuid,text)
       to billing_commerce_runtime;
-    grant execute on function bifurcate_api.activate_mcp_catalog_revision(text,uuid)
+    grant execute on function bifurcate_api.activate_mcp_catalog_revision(text,uuid,text)
       to billing_commerce_runtime;
     do $$
     begin

@@ -80,7 +80,7 @@ def request_registration(sql):
     return sql(f"""
       select * from bifurcate_api.request_mcp_catalog_registration(
         '{REGISTRATION}', 'org_one', '{SERVER}', '{REVISION}', '{REQUESTOR}',
-        'create-catalog', '{DIGEST}');
+        'create-catalog', '{DIGEST}', 'oauthcl_abcdefghijklmnop');
     """)[0]
 
 
@@ -93,7 +93,7 @@ def test_registration_is_idempotent_and_outbox_is_transactional(catalog_database
     _, error = sql(f"""
       select * from bifurcate_api.request_mcp_catalog_registration(
         '{REGISTRATION}', 'org_one', '{SERVER}', '{REVISION}', '{REQUESTOR}',
-        'create-catalog', '{'c' * 64}');
+        'create-catalog', '{'c' * 64}', 'oauthcl_abcdefghijklmnop');
     """, succeeds=False)
     assert "different registration content" in error
 
@@ -131,6 +131,9 @@ def test_activation_exposes_one_atomic_revision_and_preserves_history(catalog_da
         f"'approved','published','{REVIEWER}',null)")
     assert sql(f"select * from bifurcate_api.activate_mcp_catalog_revision("
                f"'{REGISTRATION}','{REVIEWER}')")[0] == f"{SERVER}|{REVISION}|1"
+    _, error = sql(f"select * from bifurcate_api.activate_mcp_catalog_revision("
+                   f"'{REGISTRATION}','{REVIEWER}',null)", succeeds=False)
+    assert "active MCP revision changed" in error
     assert sql("select tool_name || '|' || schema_sha256 from bifurcate.active_mcp_catalog")[0] == \
         f"tenant.list|{SCHEMA_DIGEST}"
     assert sql("select count(*) from bifurcate.mcp_catalog_outbox")[0] == "5"
@@ -146,6 +149,6 @@ def test_runtime_role_only_sees_bounded_projection_and_rpcs(catalog_database):
     assert sql("select has_table_privilege('billing_commerce_runtime',"
                "'bifurcate.mcp_catalog_registrations','select')")[0] == "f"
     assert sql("select has_function_privilege('billing_commerce_runtime',"
-               "'bifurcate_api.request_mcp_catalog_registration(text,text,text,text,uuid,text,text)',"
+               "'bifurcate_api.request_mcp_catalog_registration(text,text,text,text,uuid,text,text,text)',"
                "'execute')")[0] == "t"
 
