@@ -18,7 +18,7 @@ func adminDatabaseInventory() (map[string]any, string, error) {
 	inventory := map[string]any{
 		"module":                     "admin.database-governance.v1",
 		"organizationRef":            adminDatabaseOrganization,
-		"databases":                  []string{"re8ch_billing", "re8ch_identity"},
+		"databases":                  []string{"re8ch_billing", "re8ch_commerce", "re8ch_identity"},
 		"operations":                 []string{"inventory", "read", "plan", "apply"},
 		"writeGuards":                []string{"approvalId", "inventoryHash", "planHash", "idempotencyKey"},
 		"credentialRef":              "credential://platform/admin/system-postgresql",
@@ -134,7 +134,7 @@ func (s *server) callAdminDatabaseSQL(ctx context.Context, input map[string]any)
 }
 
 func (s *server) callAdminDatabaseBackend(ctx context.Context, input map[string]any) (*mcp.CallToolResult, error) {
-	value, err := s.moduleRegistry().call(ctx, "admin", func(session *mcp.ClientSession) (any, error) {
+	value, err := s.moduleRegistry().call(ctx, "tenant_admin", func(session *mcp.ClientSession) (any, error) {
 		return session.CallTool(ctx, &mcp.CallToolParams{Name: "postgres_admin_sql", Arguments: input})
 	})
 	if err != nil {

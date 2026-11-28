@@ -136,6 +136,21 @@ def test_postgresql_provider_has_independent_image_and_narrow_credentials():
     assert admin_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "resourceNames": ["supabase-pg-re8ch-secrets"], "verbs": ["get"]}]
     broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-credential-broker")
     assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create"]}]
+    catalog_broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-catalog-broker-patch")
+    assert catalog_broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
+                                              "resourceNames": ["postgresql-mcp-catalog-runtime"],
+                                              "verbs": ["get", "patch"]}]
+    instance = next(item for item in docs if item.get("kind") == "TenantServiceInstance" and
+                    item["metadata"]["name"] == "mcp-catalog-runtime")
+    assert instance["spec"]["parameters"] == {"profile": "mcp-catalog-runtime-v1"}
+    projection = next(item for item in docs if item.get("kind") == "Secret" and item["metadata"]["name"] == "mcp-catalog-database")
+    assert "data" not in projection and "stringData" not in projection
+    projection_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-catalog-projection")
+    assert projection_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
+                                         "resourceNames": ["mcp-catalog-database"], "verbs": ["get", "patch"]}]
+    policy = next(item for item in docs if item.get("kind") == "CiliumNetworkPolicy" and item["metadata"]["name"] == "postgresql-provider")
+    assert policy["spec"]["egress"][1]["toServices"][0]["k8sService"] == {
+        "serviceName": "pg-re8ch-primary", "namespace": "pigsty-external"}
     assert container["ports"] == [{"name": "health", "containerPort": 8080}]
     env_names = {item["name"] for item in container["env"]}
     assert not {"MCP_CATALOG_ADMIN_TOKEN", "MCP_CATALOG_ADMIN_URL"} & env_names
@@ -680,6 +695,26 @@ def test_database_metrics_bindings_limit_provider_reads_to_pinned_re8ch_credenti
     provider = next(item for item in docs if item["kind"] == "Deployment" and item["metadata"]["name"] == "tenant-provider-reconciler")
     env = {item["name"]: item for item in provider["spec"]["template"]["spec"]["containers"][0]["env"]}
     assert json.loads(env["GRAFANA_DATABASE_BINDINGS_JSON"]["value"]) == bindings
+
+
+def test_tenant_provider_reads_the_native_harbor_admin_authority():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as values:
+        json.dump(release["spec"]["values"], values)
+        values.flush()
+        docs = [item for item in yaml.load_all(subprocess.run(
+            ["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name],
+            check=True, capture_output=True, text=True).stdout, Loader=YAML_SAFE_LOADER) if item]
+    role = next(item for item in docs if item.get("kind") == "Role"
+                and item["metadata"]["name"] == "tenant-provider-harbor-admin-read")
+    assert role["metadata"]["namespace"] == "harbor-system"
+    assert role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
+                               "resourceNames": ["harbor-admin-core"], "verbs": ["get"]}]
+    binding = next(item for item in docs if item.get("kind") == "RoleBinding"
+                   and item["metadata"]["name"] == "tenant-provider-harbor-admin-read")
+    assert binding["metadata"]["namespace"] == "harbor-system"
+    assert binding["subjects"] == [{"kind": "ServiceAccount", "name": "tenant-provider-reconciler",
+                                     "namespace": "tenant-infrastructure"}]
 
 
 def test_tenant_module_registry_projection_matches_gateway_defaults():

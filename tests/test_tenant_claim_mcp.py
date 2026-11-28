@@ -140,16 +140,24 @@ def test_database_credential_discovery_returns_only_tenant_metadata(monkeypatch)
     calls = []
     def command(argv, stdin, timeout):
         calls.append(argv)
-        return {"exit_code": 0, "stdout": "pg-ledger-credentials\tuid-123\tledger\tPGDATABASE,DATABASE_URL_RW,\n", "stderr": ""}
+        return {"exit_code": 0, "stdout": "pg-ledger-credentials\tuid-123\tledger\tcomplete\tReady\tPGDATABASE,DATABASE_URL_RW,\n", "stderr": ""}
     monkeypatch.setattr(module, "command_result", command)
     value = module.call_tool("tenant_kubernetes_get", {"kind": "databasecredential"}, {"subject": "agent"})
-    assert value["items"] == [{"database": "ledger", "secretRef": "re8ch-default/pg-ledger-credentials", "secretUID": "uid-123", "keys": ["DATABASE_URL_RW", "PGDATABASE"], "databaseState": "unverified"}]
+    assert value["items"] == [{"database": "ledger", "secretRef": "re8ch-default/pg-ledger-credentials", "secretUID": "uid-123", "keys": ["DATABASE_URL_RW", "PGDATABASE"], "credentialState": "complete", "databaseState": "Ready"}]
     assert "-l" in calls[0] and "re8ch.com/tenant=re8ch-default" in calls[0][calls[0].index("-l") + 1]
     assert ".data" in module.DATABASE_BINDING_TEMPLATE and "{{$value}}" not in module.DATABASE_BINDING_TEMPLATE
     grants.clear()
     with pytest.raises(PermissionError, match="active tenant grant"):
         module.call_tool("tenant_kubernetes_get", {"kind": "databasecredential"}, {"subject": "agent"})
     assert len(calls) == 1
+
+
+def test_database_credential_state_fails_closed_without_complete_verification(monkeypatch):
+    module = load(monkeypatch)
+    for credential_state, database_state in (("partial", "Ready"), ("complete", "Bogus"), ("", "")):
+        output = f"pg-ledger-credentials\tuid-123\tledger\t{credential_state}\t{database_state}\tPGDATABASE,\n"
+        item = module.parse_tenant_database_bindings(output, "re8ch", "re8ch-default")["items"][0]
+        assert item["databaseState"] == "unverified"
 
 
 def test_capability_list_is_approval_free_and_unpriced(monkeypatch):
