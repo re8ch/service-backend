@@ -188,7 +188,7 @@ def main():
         binary = root / "tenant-mcp"
         subprocess.run(["go", "build", "-o", str(binary), "."], check=True, cwd=Path(__file__).parent)
         go_port, admin_port = free_port(), free_port()
-        go_env = {**common_env, "TENANT_SERVICE_DB": str(go_db), "DEVICE_REGISTRY_PATH": str(root / "go-devices.db"), "DYNAMIC_SKILL_DB": str(root / "skills.db"), "DYNAMIC_SKILL_ADMIN_TOKEN": "fixture-admin-token", "LISTEN_HOST": "127.0.0.1", "LISTEN_PORT": str(go_port), "ADMIN_LISTEN_PORT": str(admin_port)}
+        go_env = {**common_env, "TENANT_MCP_HERMETIC_SQLITE": "1", "TENANT_SERVICE_DB": str(go_db), "DEVICE_REGISTRY_PATH": str(root / "go-devices.db"), "DYNAMIC_SKILL_DB": str(root / "skills.db"), "DYNAMIC_SKILL_ADMIN_TOKEN": "fixture-admin-token", "LISTEN_HOST": "127.0.0.1", "LISTEN_PORT": str(go_port), "ADMIN_LISTEN_PORT": str(admin_port)}
         process = subprocess.Popen([str(binary)], env=go_env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         go_url = f"http://127.0.0.1:{go_port}"
         try:
