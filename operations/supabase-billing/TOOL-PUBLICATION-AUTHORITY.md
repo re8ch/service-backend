@@ -52,3 +52,35 @@ usage events.
 The existing tenant-mcp SQLite catalog and its `*` audience are legacy
 compatibility surfaces. They must not be treated as this authority or copied
 into these tables without an explicit organization audience migration.
+
+## Dynamic MCP Catalog revisions
+
+`dynamic-mcp-catalog-authority.sql` adds the server-level aggregate used to
+project many tool definitions into one ToolHive instance. A server owns tools
+and immutable revisions; a sealed revision contains the exact tool definitions,
+input schemas, and SHA-256 values. `active_mcp_catalog` exposes only tools from
+the atomically selected active revision. Catalog refresh consumers therefore
+never combine rows from two revisions.
+
+Subject UUIDs and organization references are canonical pg-identity/Supabase
+references, not copied identity records. The caller must resolve the active
+subject, organization membership, and Bifurcate grant before invoking an RPC.
+The database enforces aggregate ownership and separation of duties: the
+requesting subject cannot approve or publish its own registration. Registration
+transitions are compare-and-set, publication requires a sealed revision, and
+activation requires a published registration and the expected current revision.
+Registration stores only the opaque OpenOAuth client reference used for later
+binding; client secrets, grants, tokens, and sessions remain in OpenOAuth.
+
+Every accepted registration transition and activation writes a transactional
+outbox event in the same transaction. A projector may publish pending events
+and mark them delivered, while replay remains safe through stable
+deduplication keys. The active revision row is the rollback pointer: activate a
+previously published sealed revision rather than mutating or deleting history.
+
+GitOps packages only the versioned database migration, baseline runtime role,
+and platform wiring. Individual servers, tools, revisions, registrations, and
+active-revision selections are database business state and must never become
+per-tool Git objects. Production rollout and outbox delivery are intentionally
+outside this migration; rollback first disables runtime RPC access and restores
+the previous active revision without dropping catalog history.
