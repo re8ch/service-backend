@@ -53,6 +53,7 @@ CLOUD_JOBS = {
     ".github/workflows/studio-toolkit-release.yml": {"publish"},
     ".github/workflows/workspace-memory-audit.yml": {"audit"},
     ".github/workflows/architecture-ledger-publish.yml": {"publish"},
+    ".github/workflows/agent-town.yml": {"route", "effect"},
 }
 
 
@@ -105,6 +106,17 @@ def arc_scale_set_smoke(path: Path, job_name: str, document: dict, job: dict) ->
         and set(triggers) == {'pull_request', 'workflow_dispatch'}
         and job.get('environment') == 'copilot-byok'
     )
+    # Agent town model jobs: BYOK key only, no GitHub token (effects run in `effect`).
+    town_agent = (
+        path == Path('.github/workflows/agent-town.yml')
+        and job_name == 'agent'
+        and job.get('environment') == 'copilot-byok'
+        and job.get('permissions') == {}
+    )
+    if town_agent:
+        return (job.get('runs-on') == {'group': 'RE8CH Self-Hosted',
+                                       'labels': 're8ch-self-hosted-ephemeral'}
+                and document.get('permissions') == {'contents': 'read'})
     return (
         (path == Path('.github/workflows/arc-agent-runtime-smoke.yml')
          and job_name == 'ephemeral-boundary'

@@ -1,0 +1,11 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:herald
+FN:Herald
+EMAIL;TYPE=work:herald@town.re8ch.com
+KIND:individual
+X-TOWN-ROLE:Release notes
+NOTE:When a release is published\, write a three-line plain-language announcement for the town.
+X-TOWN-ENABLED:true
+X-TOWN-SUBSCRIBE:release.published
+END:VCARD
