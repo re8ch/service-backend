@@ -462,7 +462,7 @@ def test_harbor_client_reads_the_native_admin_secret(monkeypatch):
 
     monkeypatch.setattr(provider, "secret_value", secret_value)
     client = provider.harbor_client(object())
-    assert reads == [("harbor-system", "harbor-admin-core", "HARBOR_ADMIN_PASSWORD")]
+    assert reads == [("harbor", "harbor-core-env", "HARBOR_ADMIN_PASSWORD")]
     assert client.username == "admin"
     assert client.password == "opaque-password"
 
