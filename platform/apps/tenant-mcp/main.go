@@ -128,6 +128,7 @@ func (s *server) skillMCP(id identity) *mcp.Server {
 	// authenticated platform administrator and the backend's own authorization.
 	s.registerPlatformTools(ms)
 	s.registerNativeServiceInstanceTools(ms)
+	_, _ = s.registerCatalogProjection(ms, id)
 	if id.PlatformAdmin && id.Tenant == "admin" && !id.Service {
 		s.registerOrganizationTools(ms)
 		s.registerUserTools(ms)
@@ -353,7 +354,9 @@ func (s *server) handler() http.Handler {
 	}
 	mcpHandler := mcp.NewStreamableHTTPHandler(serverFor,
 		&mcp.StreamableHTTPOptions{Stateless: true, JSONResponse: true, MaxRequestBodyBytes: 1 << 20})
-	activeServers := &activeMCPServers{}
+	s.catalogServersOnce.Do(func() { s.catalogServers = &activeMCPServers{} })
+	activeServers := s.catalogServers
+	activeServers.names = s.catalogProjectionNames
 	modernHandler := activeServers.handler(mcpHandler, serverFor)
 	// Initialized clients retain a server session and a standalone SSE or
 	// subscriptions/listen stream. That is the channel used for true dynamic
@@ -721,6 +724,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer s.ledger.Close()
+	if catalogDSN := os.Getenv("MCP_CATALOG_DATABASE_URL"); catalogDSN != "" {
+		catalogContext, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		s.catalogAuthority, err = openCatalogPostgreSQL(catalogContext, catalogDSN)
+		cancel()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer s.catalogAuthority.Close()
+	}
 	redemptionPath := os.Getenv("DEVICE_REGISTRY_PATH")
 	if redemptionPath == "" {
 		redemptionPath = "/var/lib/tenant-platform/tenant-devices.db"
@@ -748,6 +760,7 @@ func main() {
 	defer s.modules.close()
 	shutdown, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
+	go s.watchCatalog(shutdown)
 	failures := make(chan error, 2)
 	go func() { failures <- adminServer.ListenAndServe() }()
 	go func() { failures <- httpServer.ListenAndServe() }()

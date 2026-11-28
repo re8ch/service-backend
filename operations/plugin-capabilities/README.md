@@ -70,6 +70,10 @@ outside this 893-operation inventory, as stated in the UI scope.
 `kustomization.yaml` is referenced by the root GitOps configuration, and
 `platform/connectool/release.yaml` mounts the generated catalog into the approved
 registry. `registry-rollout-values.yaml` documents the source configuration.
+This checked-in registry is the protected static lane and recovery snapshot; it
+is not the write path for tenant-created tools. The database authority,
+transactional publication and ToolHive projection boundary is defined by
+[`../toolhive-catalog/DYNAMIC-CATALOG-AUTHORITY.md`](../toolhive-catalog/DYNAMIC-CATALOG-AUTHORITY.md).
 `deployment-evidence.json` records the 2026-10-04 authenticated registration
 comparison for all 212 tools and representative named reads across eight
 Kubernetes groups plus Mihomo. The native and UI images each had two ready

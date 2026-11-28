@@ -36,6 +36,12 @@ func TestPlatformAdminCapabilitiesUseDirectClusterConnection(t *testing.T) {
 				t.Fatalf("unsafe system capability: %#v", capability)
 			}
 			tools := capability["tools"].([]string)
+			if capability["id"] == "system-postgresql" {
+				module := capability["protectedModule"].(map[string]any)
+				if module["organizationRef"] != "admin" || module["inventoryFirst"] != true || !slices.Contains(tools, "platform_database_governance_inventory") {
+					t.Fatalf("database governance was not Admin protected and inventory-first: %#v", capability)
+				}
+			}
 			if capability["id"] == "system-mail" && !slices.Contains(tools, "platform_stalwart_admin") {
 				t.Fatalf("Stalwart admin adapter was not published: %#v", capability)
 			}

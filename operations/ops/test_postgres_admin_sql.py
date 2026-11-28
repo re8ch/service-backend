@@ -19,7 +19,8 @@ class PostgresAdminSQLTests(unittest.TestCase):
 
     def test_billing_write_sets_migrator_role(self):
         args = {"database": "re8ch_billing", "sql": "select 1", "readOnly": False,
-                "approvalId": "re8ch/cloud-functions#141"}
+                "approvalId": "re8ch/cloud-functions#141", "inventoryHash": "a" * 64,
+                "idempotencyKey": "billing-write-141"}
         planned = OPS.postgres_admin_sql(args)
         args.update({"apply": True, "planHash": planned["planHash"]})
         secret = base64.b64encode(b"not-a-real-password").decode("ascii")
@@ -58,6 +59,8 @@ class PostgresAdminSQLTests(unittest.TestCase):
             "sql": "grant commerce_anon to re8ch_commerce_pgrst",
             "readOnly": False,
             "approvalId": "re8ch/cloud-functions#123",
+            "inventoryHash": "a" * 64,
+            "idempotencyKey": "billing-write-123",
         }
         planned = OPS.postgres_admin_sql(args)
         args.update({"apply": True, "planHash": planned["planHash"]})

@@ -226,8 +226,11 @@ func audienceContains(raw any, expected string) bool {
 	return false
 }
 func hasAudience(raw any) bool {
-	if value, ok := raw.(string); ok { return value != "" }
-	values, ok := raw.([]any); return ok && len(values) == 1 && values[0] != ""
+	if value, ok := raw.(string); ok {
+		return value != ""
+	}
+	values, ok := raw.([]any)
+	return ok && len(values) == 1 && values[0] != ""
 }
 func sameScopes(left, right []string) bool {
 	if len(left) != len(right) {

@@ -56,7 +56,7 @@ def test_flux_consumes_pinned_signed_public_oci_chart():
         "type": "externalAuthConfigRef",
         "externalAuthConfigRef": {"name": "tenant-vmcp-backend-auth"},
     }
-    assert native["operational"]["listChanged"] == {"disabledWorkloads": ["tenant-api-backend"]}
+    assert native["operational"]["listChanged"] == {"disabledWorkloads": []}
     assert native["operational"]["failureHandling"]["circuitBreaker"]["enabled"] is False
     toolhive = release["spec"]["values"]["toolhive"]
     assert toolhive["sessionStorage"] == {"provider": "memory", "sessionAffinity": "ClientIP"}

@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -75,6 +77,70 @@ func TestMCPCatalogPauseKeepsHistory(t *testing.T) {
 	}
 	if paused["state"] != "paused" || len(entries) != 1 || entries[0].State != "paused" {
 		t.Fatalf("pause not visible: %#v %#v", paused, entries)
+	}
+}
+
+func TestMCPCatalogOutboxIsOrderedIdempotentAndRollbackable(t *testing.T) {
+	s := catalogFixture(t)
+	definition := func(tool string) *mcpCatalogDefinition {
+		return &mcpCatalogDefinition{ServiceName: "orders", Class: "integration.mcp.byoc.v1", Endpoint: "https://orders.example/mcp", AuthMode: "binding-reference", AudienceOrgRefs: []string{"acme"}, Meters: map[string]string{"requests": "request"}, Tools: []mcpCatalogTool{{Name: tool}}}
+	}
+	first, err := s.applyMCPCatalog(context.Background(), mcpCatalogCommand{Action: "apply", TenantRef: "acme", OperationKey: "register-1", Definition: definition("orders_search")}, "operator")
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := s.applyMCPCatalog(context.Background(), mcpCatalogCommand{Action: "apply", TenantRef: "acme", OperationKey: "register-1", Definition: definition("orders_search")}, "operator")
+	if err != nil || replayed["idempotentReplay"] != true {
+		t.Fatalf("idempotent replay failed: %#v %v", replayed, err)
+	}
+	second, err := s.applyMCPCatalog(context.Background(), mcpCatalogCommand{Action: "apply", TenantRef: "acme", OperationKey: "change-2", Definition: definition("orders_get")}, "operator")
+	if err != nil {
+		t.Fatal(err)
+	}
+	withdrawn, err := s.applyMCPCatalog(context.Background(), mcpCatalogCommand{Action: "withdraw", TenantRef: "acme", OperationKey: "withdraw-3", Revision: second["revision"].(string)}, "operator")
+	if err != nil || withdrawn["state"] != "paused" {
+		t.Fatalf("withdraw failed: %#v %v", withdrawn, err)
+	}
+	rolled, err := s.applyMCPCatalog(context.Background(), mcpCatalogCommand{Action: "rollback", TenantRef: "acme", OperationKey: "rollback-4", Revision: first["revision"].(string)}, "operator")
+	if err != nil || rolled["state"] != "active" {
+		t.Fatalf("rollback failed: %#v %v", rolled, err)
+	}
+	rows, err := s.ledger.Query(`SELECT sequence,event_id,revision FROM mcp_catalog_outbox ORDER BY sequence`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	var sequences []int64
+	var events, revisions []string
+	for rows.Next() {
+		var seq int64
+		var event, revision string
+		if rows.Scan(&seq, &event, &revision) != nil {
+			t.Fatal("scan")
+		}
+		sequences = append(sequences, seq)
+		events = append(events, event)
+		revisions = append(revisions, revision)
+	}
+	if len(sequences) != 4 || sequences[0] >= sequences[1] || sequences[1] >= sequences[2] || sequences[2] >= sequences[3] {
+		t.Fatalf("outbox order is wrong: %v", sequences)
+	}
+	if events[0] == events[1] || revisions[3] == first["revision"] {
+		t.Fatalf("events or rollback revision were not immutable: %v %v", events, revisions)
+	}
+}
+
+func TestMCPCatalogEventsRejectsInvalidCursor(t *testing.T) {
+	s := catalogFixture(t)
+	req := httptest.NewRequest("GET", "/internal/mcp/catalog/events", nil)
+	req.Header.Set("Authorization", "Bearer internal")
+	req.Header.Set("X-RE8CH-Tenant-Ref", "acme")
+	req.Header.Set("Last-Event-ID", "stale")
+	t.Setenv("MCP_CATALOG_INTERNAL_TOKEN", "internal")
+	response := httptest.NewRecorder()
+	s.mcpCatalogEventsHTTP(response, req)
+	if response.Code != 400 || !strings.Contains(response.Body.String(), "invalid Last-Event-ID") {
+		t.Fatalf("invalid cursor accepted: %d %s", response.Code, response.Body.String())
 	}
 }
 
