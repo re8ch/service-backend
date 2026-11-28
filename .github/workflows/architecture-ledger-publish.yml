@@ -1,0 +1,76 @@
+name: Publish verified architecture ledger
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence_run_id: {description: "Run containing cluster-architecture-evidence", required: true, type: string}
+      expected_source_sha: {description: "Exact deployed 40-character source SHA", required: true, type: string}
+      expected_cluster: {description: "Exact observed cluster identifier", required: true, type: string}
+      release_tag: {description: "Immutable architecture release tag", required: true, type: string}
+      hf_dataset: {description: "Private Hugging Face dataset", required: true, default: "RE8CH/cluster-architecture-ledger", type: string}
+
+permissions:
+  actions: read
+  contents: write
+  deployments: read
+  id-token: write
+  attestations: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: architecture-ledger-publication
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - run: python -m pip install 'jsonschema>=4.23,<5'
+      - name: Download bounded observer evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.evidence_run_id }}
+        run: gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name cluster-architecture-evidence --dir "$RUNNER_TEMP/evidence"
+      - name: Validate record and GitHub Deployment readback
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_source_sha }}
+          EXPECTED_CLUSTER: ${{ inputs.expected_cluster }}
+        run: |
+          set -euo pipefail
+          record="$RUNNER_TEMP/evidence/record.json"
+          python operations/architecture-ledger/ledger.py validate "$record" --repository "$GITHUB_REPOSITORY" --sha "$EXPECTED_SHA" --cluster "$EXPECTED_CLUSTER"
+          deployment_id="$(jq -r .deployment.github_deployment_id "$record")"
+          deployment="$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment_id")"
+          test "$(jq -r .ref <<<"$deployment")" = "$EXPECTED_SHA"
+          test "$(jq -r .environment <<<"$deployment")" = "$(jq -r .deployment.environment "$record")"
+          status="$(gh api "repos/$GITHUB_REPOSITORY/deployments/$deployment_id/statuses?per_page=1" --jq '.[0].state')"
+          test "$status" = success
+          cp "$record" "$RUNNER_TEMP/record.json"
+          previous="$RUNNER_TEMP/evidence/previous.json"
+          args=()
+          test ! -f "$previous" || args=(--previous "$previous")
+          python operations/architecture-ledger/ledger.py project "$record" "${args[@]}" --output "$RUNNER_TEMP/dataset/data/$(jq -r .revision.id "$record").json"
+          cp operations/architecture-ledger/schema.json "$RUNNER_TEMP/dataset/schema.json"
+          printf '%s\n' '---' 'license: other' 'task_categories:' '- other' 'pretty_name: Verified Cluster Architecture Ledger' '---' '' '# Verified Cluster Architecture Ledger' '' 'Redacted architecture and performance revisions backed by exact successful deployment evidence.' > "$RUNNER_TEMP/dataset/README.md"
+      - name: Attest ledger artifacts
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+        with:
+          subject-path: |
+            ${{ runner.temp }}/record.json
+            ${{ runner.temp }}/dataset/data/*.json
+      - name: Publish immutable GitHub Release
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: gh release create "${{ inputs.release_tag }}" "$RUNNER_TEMP/record.json" "$RUNNER_TEMP/dataset/data/"*.json "$RUNNER_TEMP/dataset/schema.json" --repo "$GITHUB_REPOSITORY" --title "Architecture ${{ inputs.release_tag }}" --notes "Verified deployment and redacted optimization dataset projection."
+      - name: Publish private Hugging Face dataset revision
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_DATASET: ${{ inputs.hf_dataset }}
+        run: |
+          python -m pip install 'huggingface_hub==1.1.6'
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          api.create_repo(os.environ["HF_DATASET"], repo_type="dataset", private=True, exist_ok=True)
+          commit = api.upload_folder(repo_id=os.environ["HF_DATASET"], repo_type="dataset", folder_path=os.path.join(os.environ["RUNNER_TEMP"], "dataset"), commit_message="Publish verified architecture " + os.environ["GITHUB_SHA"])
+          print(commit.oid)
+          PY
