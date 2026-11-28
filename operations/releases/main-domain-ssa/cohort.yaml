@@ -12,7 +12,7 @@ sourceDomains:
 - operations-ui
 - tenant-runtime
 releaseCount: 21
-objectCount: 172
+objectCount: 174
 legacyObjectCount: 54
 deferredSSAObjects: []
 remainingCapabilities:
@@ -264,7 +264,7 @@ releases:
   domain: data-storage
   namespace: supabase-pg-re8ch
   scope: namespaced
-  objects: 1
+  objects: 3
 - name: main-data-storage-toolhive-system
   domain: data-storage
   namespace: toolhive-system
