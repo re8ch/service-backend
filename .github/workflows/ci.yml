@@ -239,9 +239,11 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: ./.github/actions/setup-native-yaml
-      - run: python -m pip install 'PyYAML>=6.0.2'
+      - run: python -m pip install 'PyYAML>=6.0.2' 'pytest>=8.3'
       - name: Validate reviewed runner placement
         run: python tests/check_no_github_hosted_runners.py
+      - name: Agent town routing contract
+        run: python -m pytest -q operations/agent-town/test_town.py
       - if: contains(needs.impact.outputs.domains, 'control-plane') || needs.impact.outputs.full == 'true'
         run: |
           python operations/workspace-controller/workspace.py index --write

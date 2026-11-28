@@ -1,0 +1,169 @@
+name: Agent town
+
+# AI town v1: GitHub repository events are the activation source, the vCard
+# contacts in operations/agent-town/contacts are the only agent registry, and
+# GitHub Copilot CLI (BYOK via LiteLLM) runs each agent on the ephemeral ARC
+# pool. The model job holds no GitHub write token; `effect` applies validated
+# actions. Kill switch: repository variable TOWN_ENABLED != 'true'.
+
+on:
+  discussion:
+    types: [created]
+  discussion_comment:
+    types: [created]
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [labeled]
+  workflow_run:
+    workflows: [control-plane-ci]
+    types: [completed]
+    branches: [main]
+  release:
+    types: [published]
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: Contact UID to poke (manual run)
+        required: false
+      note:
+        description: Note for the agent (manual run)
+        required: false
+      message:
+        description: Town handoff envelope (JSON, written by the town itself)
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-town-${{ github.event_name }}-${{ github.event.discussion.number || github.event.issue.number || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  route:
+    if: vars.TOWN_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      matrix: ${{ steps.route.outputs.matrix }}
+      any: ${{ steps.route.outputs.any }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - id: route
+        env:
+          TOWN_ENABLED: ${{ vars.TOWN_ENABLED }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          python3 operations/agent-town/town.py route
+          --event "$GITHUB_EVENT_NAME" --payload "$GITHUB_EVENT_PATH"
+          --contacts operations/agent-town/contacts --out town-plan
+      - if: steps.route.outputs.any == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: town-plan
+          path: town-plan
+          retention-days: 7
+
+  agent:
+    needs: route
+    if: needs.route.outputs.any == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.route.outputs.matrix) }}
+    runs-on:
+      group: RE8CH Self-Hosted
+      labels: re8ch-self-hosted-ephemeral
+    environment: copilot-byok
+    timeout-minutes: 10
+    permissions: {}
+    container:
+      image: node:22-bookworm-slim@sha256:d20a7b8b4184bf74fe77499b5460a3d69e582bc733d50287e40c3fe791764851
+    env:
+      COPILOT_PROVIDER_API_KEY: ${{ secrets.COPILOT_PROVIDER_API_KEY }}
+      COPILOT_PROVIDER_BASE_URL: https://litellm.service.re8ch.com/v1
+      COPILOT_PROVIDER_TYPE: openai
+      COPILOT_PROVIDER_WIRE_API: completions
+      COPILOT_PROVIDER_MODEL_ID: deepseek-v4-flash
+      COPILOT_PROVIDER_WIRE_MODEL: deepseek-v4-flash
+      COPILOT_PROVIDER_MAX_PROMPT_TOKENS: "32000"
+      COPILOT_PROVIDER_MAX_OUTPUT_TOKENS: "2048"
+      COPILOT_MODEL: deepseek-v4-flash
+      COPILOT_OFFLINE: "true"
+      COPILOT_AUTO_UPDATE: "false"
+      SSL_CERT_FILE: /tmp/node-root-certificates.pem
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: town-plan
+          path: town-plan
+      - name: Install pinned Copilot CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'require("fs").writeFileSync(process.env.SSL_CERT_FILE, require("tls").rootCertificates.join("\n"))'
+          npm install --global @github/copilot@1.0.116 --ignore-scripts=false --no-audit --no-fund
+          test "$(copilot --version | head -n1)" = "GitHub Copilot CLI 1.0.116."
+      - name: Run agent ${{ matrix.agent }}
+        shell: bash
+        env:
+          AGENT: ${{ matrix.agent }}
+        run: |
+          set -euo pipefail
+          mkdir -p "town-out/$AGENT"
+          copilot --prompt "$(cat "town-plan/$AGENT.prompt.txt")" \
+            --silent --no-auto-update --no-ask-user \
+            --secret-env-vars=COPILOT_PROVIDER_API_KEY > "town-out/$AGENT/output.txt"
+          wc -c "town-out/$AGENT/output.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: town-out-${{ matrix.agent }}
+          path: town-out
+          retention-days: 7
+
+  effect:
+    needs: [route, agent]
+    if: always() && needs.route.outputs.any == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      discussions: write
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: town-plan
+          path: town-plan
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: town-out-*
+          path: town-out
+          merge-multiple: true
+      - env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TOWN_REPOSITORY_ID: ${{ vars.TOWN_REPOSITORY_ID }}
+          TOWN_CATEGORY_ID: ${{ vars.TOWN_CATEGORY_ID }}
+          TOWN_REF: ${{ github.event.repository.default_branch }}
+        run: >-
+          python3 operations/agent-town/town.py effect
+          --contacts operations/agent-town/contacts --plans town-plan
+          --outputs town-out --repo "$GITHUB_REPOSITORY"

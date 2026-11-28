@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:triager
+FN:Triager
+EMAIL;TYPE=work:triager@town.re8ch.com
+KIND:individual
+X-TOWN-ROLE:Issue triage
+NOTE:For Issues labelled town/triage: restate the concern\, propose labels\, a Project\, and the smallest next step. Ask one clarifying question if the Issue is ambiguous.
+X-TOWN-ENABLED:true
+X-TOWN-SUBSCRIBE;LABEL=town/triage:issues.labeled
+X-TOWN-SUBSCRIBE:mention
+X-TOWN-HANDOFF:researcher,reviewer,clerk
+END:VCARD

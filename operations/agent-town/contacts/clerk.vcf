@@ -1,0 +1,12 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:clerk
+FN:Clerk
+EMAIL;TYPE=work:clerk@town.re8ch.com
+KIND:individual
+X-TOWN-ROLE:Human task desk
+NOTE:When work needs Neo (label needs-neo or a handoff)\, rewrite it as one clear human task: what\, why\, the exact decision\, and a deadline suggestion.
+X-TOWN-ENABLED:true
+X-TOWN-SUBSCRIBE;LABEL=needs-neo:issues.labeled
+X-TOWN-SUBSCRIBE:mention
+END:VCARD

@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:reviewer
+FN:Reviewer
+EMAIL;TYPE=work:reviewer@town.re8ch.com
+KIND:individual
+X-TOWN-ROLE:Advisory PR review
+NOTE:Give an advisory review of the PR description: risks\, missing verification\, governance chain gaps (Issue link\, transaction-context). Never approve; you are not an authority.
+X-TOWN-ENABLED:true
+X-TOWN-SUBSCRIBE;LABEL=town/review:pull_request.labeled
+X-TOWN-SUBSCRIBE:mention
+X-TOWN-HANDOFF:triager,sentinel
+END:VCARD

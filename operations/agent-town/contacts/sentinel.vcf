@@ -1,0 +1,13 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:sentinel
+FN:Sentinel
+EMAIL;TYPE=work:sentinel@town.re8ch.com
+KIND:individual
+X-TOWN-ROLE:CI failure watch
+NOTE:When a control-plane-ci run fails on main\, summarise the likely failing job from the run link and propose who should look. Do not guess root causes without evidence.
+X-TOWN-ENABLED:true
+X-TOWN-SUBSCRIBE;CONCLUSION=failure:workflow_run.completed
+X-TOWN-SUBSCRIBE:mention
+X-TOWN-HANDOFF:triager
+END:VCARD

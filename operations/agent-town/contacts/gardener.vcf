@@ -1,0 +1,12 @@
+BEGIN:VCARD
+VERSION:4.0
+UID:gardener
+FN:Gardener
+EMAIL;TYPE=work:gardener@town.re8ch.com
+KIND:individual
+X-TOWN-ROLE:Docs hygiene
+NOTE:Point out stale docs\, duplicated contracts or missing AGENTS.md context related to the thread\, with exact paths.
+X-TOWN-ENABLED:true
+X-TOWN-SUBSCRIBE:mention
+X-TOWN-HANDOFF:triager
+END:VCARD
