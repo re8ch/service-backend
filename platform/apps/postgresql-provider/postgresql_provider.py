@@ -106,8 +106,11 @@ class Pigsty:
             if cursor.fetchone() is None:
                 cursor.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(
                     sql.Identifier(role), sql.Literal(password)))
-            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE "
-                                   "NOREPLICATION NOINHERIT CONNECTION LIMIT 20")
+            # CREATEROLE identities cannot change SUPERUSER attributes, even to
+            # their safe false value. New roles already default to all four
+            # non-privileged settings; reconcile only attributes this bounded
+            # provider owns without requiring a superuser credential.
+            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD {} NOINHERIT CONNECTION LIMIT 20")
                            .format(sql.Identifier(role), sql.Literal(password)))
             cursor.execute(sql.SQL("REVOKE ALL ON DATABASE re8ch_billing FROM {} CASCADE").format(sql.Identifier(role)))
             cursor.execute(sql.SQL("REVOKE ALL ON SCHEMA bifurcate, bifurcate_api FROM {} CASCADE").format(sql.Identifier(role)))
