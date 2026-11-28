@@ -10,12 +10,16 @@ import (
 
 type activeMCPServerKey struct{}
 type activeMCPServer struct {
-	server   *mcp.Server
-	requests int
+	server       *mcp.Server
+	identity     identity
+	dynamic      []string
+	projectionMu sync.Mutex
+	requests     int
 }
 type activeMCPServers struct {
 	mu      sync.Mutex
 	entries map[string]*activeMCPServer
+	names   func(identity) []string
 }
 
 // Modern subscriptions span HTTP requests. Share their registry only while a
@@ -40,7 +44,10 @@ func (a *activeMCPServers) handler(next http.Handler, factory func(*http.Request
 		}
 		entry := a.entries[key]
 		if entry == nil {
-			entry = &activeMCPServer{server: factory(r)}
+			entry = &activeMCPServer{server: factory(r), identity: id}
+			if a.names != nil {
+				entry.dynamic = a.names(id)
+			}
 			a.entries[key] = entry
 		}
 		entry.requests++
@@ -55,4 +62,38 @@ func (a *activeMCPServers) handler(next http.Handler, factory func(*http.Request
 		}()
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), activeMCPServerKey{}, entry.server)))
 	})
+}
+
+func (a *activeMCPServers) refreshCatalog(s *server, tenant string) {
+	a.mu.Lock()
+	var entries []*activeMCPServer
+	for _, entry := range a.entries {
+		if tenant == "*" || entry.identity.Tenant == tenant {
+			entries = append(entries, entry)
+		}
+	}
+	a.mu.Unlock()
+	for _, entry := range entries {
+		entry.projectionMu.Lock()
+		next, err := s.registerCatalogProjection(entry.server, entry.identity)
+		if err != nil {
+			entry.projectionMu.Unlock()
+			continue
+		}
+		retained := map[string]bool{}
+		for _, name := range next {
+			retained[name] = true
+		}
+		var removed []string
+		for _, name := range entry.dynamic {
+			if !retained[name] {
+				removed = append(removed, name)
+			}
+		}
+		if len(removed) > 0 {
+			entry.server.RemoveTools(removed...)
+		}
+		entry.dynamic = next
+		entry.projectionMu.Unlock()
+	}
 }

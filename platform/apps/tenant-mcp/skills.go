@@ -49,8 +49,11 @@ type server struct {
 	authFlights           singleflight.Group
 	modulesOnce           sync.Once
 	modules               *platformRegistry
+	catalogServersOnce    sync.Once
+	catalogServers        *activeMCPServers
 	db                    *sql.DB
 	ledger                *sql.DB
+	catalog               *sql.DB
 	redemptions           *sql.DB
 	resultsMu             sync.Mutex
 	results               map[string]resultRecord
