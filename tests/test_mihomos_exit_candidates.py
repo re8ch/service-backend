@@ -53,14 +53,34 @@ def test_active_egress_fabric_uses_three_explicit_ordered_exits() -> None:
     workloads = (ROOT / "clusters/re8ch/components/egress-fabric/workloads.yaml").read_text()
     ordered = "proxies: [OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]"
     assert config.count(ordered) == 1
-    assert "DOMAIN-SUFFIX,ghcr.io,stable-egress" in config
-    assert "DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,stable-egress" in config
+    assert "DOMAIN-SUFFIX,ghcr.io,registry-egress" in config
+    assert "DOMAIN-SUFFIX,pkg-containers.githubusercontent.com,registry-egress" in config
     assert "proxy-providers:" not in config
     assert "mihomo-egress-headless.egress-fabric.svc.cluster.local" not in config
     for node in ("overseas-la", "overseas-la-2", "overseas-flk"):
         assert f"server: mihomo-egress-{node}.egress-fabric.svc.cluster.local" in config
         assert f"name: mihomo-egress-{node}" in workloads
         assert f"kubernetes.io/hostname: {node}" in workloads
+
+
+def test_harbor_upstreams_prefer_the_atlantic_cluster_projection() -> None:
+    config = (ROOT / "clusters/re8ch/components/egress-fabric/config.yaml").read_text()
+    assert "server: mihomos-global-exit-atlantic.egress-fabric.svc.cluster.local" in config
+    assert "proxies: [ATLANTIC-REGISTRY, OVERSEAS-LA, OVERSEAS-LA-2, OVERSEAS-FLK]" in config
+    for domain in (
+        "docker.io",
+        "gcr.io",
+        "quay.io",
+        "nvcr.io",
+        "registry.k8s.io",
+        "mcr.microsoft.com",
+        "docker.elastic.co",
+        "container-registry.oracle.com",
+        "ghcr.io",
+        "pkg-containers.githubusercontent.com",
+    ):
+        assert f"DOMAIN-SUFFIX,{domain},registry-egress" in config
+    assert "DOMAIN,production.cloudflare.docker.com,registry-egress" in config
 
 
 def test_mihomos_background_checks_are_bounded_and_geo_specific() -> None:
