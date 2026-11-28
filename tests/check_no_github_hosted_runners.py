@@ -46,6 +46,7 @@ CLOUD_JOBS = {
     ".github/workflows/user-hub-release.yml": {"publish"},
     ".github/workflows/headlamp-runtime-release.yml": {"mirror"},
     ".github/workflows/tenant-provider-contracts.yml": {"tenant-ci"},
+    ".github/workflows/public-edge-authority.yml": {"external-dns-overseas"},
     ".github/workflows/tenant-platform-bootstrap.yml": {"bootstrap"},
     ".github/workflows/cloud-platform-release.yml": {"validate", "release", "finalize"},
     ".github/workflows/tenant-release.yml": {"release", "finalize", "canary"},
