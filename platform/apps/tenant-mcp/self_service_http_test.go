@@ -188,7 +188,7 @@ func TestSelfServiceCapabilitiesAreBoundToSelectedOrganization(t *testing.T) {
 		if capability["id"] == "exposure" && (capability["canWrite"] != true || capability["requiredConsumable"] != "network.tenant.v1") {
 			t.Fatalf("exposure discovery does not match active network grant: %v", capability)
 		}
-		if capability["id"] == "database-credential" && (capability["canRead"] != false || capability["databaseState"] != "unverified") {
+		if capability["id"] == "database-credential" && (capability["canRead"] != false || capability["databaseState"] != "per-binding") {
 			t.Fatalf("database credential discovery overstates ungranted availability: %v", capability)
 		}
 	}

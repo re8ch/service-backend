@@ -11,8 +11,9 @@ import (
 var databaseBindingName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,62}$`)
 
 // databasecredential is a metadata-only view over operator-provisioned Pigsty
-// Secrets. The template never sends Secret data values back to the MCP process.
-const databaseBindingTemplate = `{{range .items}}{{.metadata.name}}{{"\t"}}{{.metadata.uid}}{{"\t"}}{{index .metadata.labels "re8ch.com/database"}}{{"\t"}}{{range $key, $_ := .data}}{{$key}}{{","}}{{end}}{{"\n"}}{{end}}`
+// Secrets. Readiness is accepted only from the operator-owned annotation after
+// its authority probe; the template never sends Secret values to this process.
+const databaseBindingTemplate = `{{range .items}}{{.metadata.name}}{{"\t"}}{{.metadata.uid}}{{"\t"}}{{index .metadata.labels "re8ch.com/database"}}{{"\t"}}{{index .metadata.annotations "re8ch.com/credential-status"}}{{"\t"}}{{index .metadata.annotations "re8ch.com/database-state"}}{{"\t"}}{{range $key, $_ := .data}}{{$key}}{{","}}{{end}}{{"\n"}}{{end}}`
 
 func parseDatabaseBindings(output, tenant, namespace string) (map[string]any, error) {
 	items := []any{}
@@ -20,12 +21,20 @@ func parseDatabaseBindings(output, tenant, namespace string) (map[string]any, er
 		if line == "" {
 			continue
 		}
-		fields := strings.SplitN(line, "\t", 4)
-		if len(fields) != 4 || !validKubernetesName(fields[0]) || !databaseBindingName.MatchString(fields[2]) || fields[1] == "" {
+		fields := strings.SplitN(line, "\t", 6)
+		if len(fields) != 6 || !validKubernetesName(fields[0]) || !databaseBindingName.MatchString(fields[2]) || fields[1] == "" {
 			return nil, errors.New("invalid database credential metadata response")
 		}
+		credentialState := fields[3]
+		if credentialState != "complete" && credentialState != "partial" {
+			credentialState = "unverified"
+		}
+		databaseState := fields[4]
+		if credentialState != "complete" || (databaseState != "Ready" && databaseState != "Unavailable") {
+			databaseState = "unverified"
+		}
 		keys := []string{}
-		for _, key := range strings.Split(strings.TrimSuffix(fields[3], ","), ",") {
+		for _, key := range strings.Split(strings.TrimSuffix(fields[5], ","), ",") {
 			if key != "" {
 				if !secretKey.MatchString(key) {
 					return nil, errors.New("invalid database credential key metadata")
@@ -34,7 +43,7 @@ func parseDatabaseBindings(output, tenant, namespace string) (map[string]any, er
 			}
 		}
 		sort.Strings(keys)
-		items = append(items, map[string]any{"database": fields[2], "secretRef": namespace + "/" + fields[0], "secretUID": fields[1], "keys": keys, "databaseState": "unverified"})
+		items = append(items, map[string]any{"database": fields[2], "secretRef": namespace + "/" + fields[0], "secretUID": fields[1], "keys": keys, "credentialState": credentialState, "databaseState": databaseState})
 	}
 	return map[string]any{"tenantRef": tenant, "namespace": namespace, "kind": "databasecredential", "items": items}, nil
 }
