@@ -24,6 +24,7 @@ var mcpToolTelemetry = newToolTelemetry()
 
 type publicSelfServiceKey struct{}
 type pluginPublicationKey struct{}
+type pgRe8chPublicationKey struct{}
 
 func publicSelfService(ctx context.Context) bool {
 	value, _ := ctx.Value(publicSelfServiceKey{}).(bool)
@@ -32,6 +33,11 @@ func publicSelfService(ctx context.Context) bool {
 
 func pluginPublication(ctx context.Context) bool {
 	value, _ := ctx.Value(pluginPublicationKey{}).(bool)
+	return value
+}
+
+func pgRe8chPublication(ctx context.Context) bool {
+	value, _ := ctx.Value(pgRe8chPublicationKey{}).(bool)
 	return value
 }
 
@@ -347,6 +353,9 @@ func (s *server) handler() http.Handler {
 		if publicSelfService(req.Context()) {
 			return s.publicSelfServiceMCP(id)
 		}
+		if pgRe8chPublication(req.Context()) {
+			return s.pgRe8chAdminMCP()
+		}
 		if pluginPublication(req.Context()) {
 			return s.skillMCP(id)
 		}
@@ -396,6 +405,12 @@ func (s *server) handler() http.Handler {
 		if strings.HasSuffix(r.URL.Path, "/tenant-self-service/mcp") {
 			origin = "https://tools.service.re8ch.com/tenant-self-service/mcp"
 		}
+		if strings.HasSuffix(r.URL.Path, "/pg-re8ch/mcp") {
+			origin = os.Getenv("PG_RE8CH_PUBLIC_MCP_URL")
+			if origin == "" {
+				origin = "https://pg-re8ch-mcp.service.re8ch.com/mcp"
+			}
+		}
 		writeJSON(w, 200, map[string]any{"resource": origin, "authorization_servers": []string{supabaseIssuer}, "bearer_methods_supported": []string{"header"}, "scopes_supported": []string{"openid", "profile", "email", "offline_access"}})
 	}
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource", metadataHandler)
@@ -443,6 +458,9 @@ func (s *server) handler() http.Handler {
 		if r.URL.Path == "/plugin/mcp" {
 			r = r.WithContext(context.WithValue(r.Context(), pluginPublicationKey{}, true))
 		}
+		if r.URL.Path == "/pg-re8ch/mcp" {
+			r = r.WithContext(context.WithValue(r.Context(), pgRe8chPublicationKey{}, true))
+		}
 		header := r.Header.Get("Authorization")
 		challenge := func() {
 			metadata := os.Getenv("PUBLIC_RESOURCE_METADATA_URL")
@@ -451,6 +469,12 @@ func (s *server) handler() http.Handler {
 			}
 			if isPublic {
 				metadata = "https://tools.service.re8ch.com/.well-known/oauth-protected-resource/tenant-self-service/mcp"
+			}
+			if pgRe8chPublication(r.Context()) {
+				metadata = os.Getenv("PG_RE8CH_RESOURCE_METADATA_URL")
+				if metadata == "" {
+					metadata = "https://pg-re8ch-mcp.service.re8ch.com/.well-known/oauth-protected-resource/mcp"
+				}
 			}
 			w.Header().Set("WWW-Authenticate", `Bearer realm="`+supabaseIssuer+`", resource_metadata="`+metadata+`"`)
 		}
@@ -499,6 +523,7 @@ func (s *server) handler() http.Handler {
 	mux.Handle("/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
 	mux.Handle("/plugin/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
 	mux.Handle("/self-service/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
+	mux.Handle("/pg-re8ch/mcp", s.diagnostics().http(http.HandlerFunc(mcpEndpoint)))
 	return mux
 }
 

@@ -20,7 +20,7 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		"grafana_query", "grafana_analyze", "grafana_indicators", "grafana_correlate",
 		"monitoring_catalog", "monitoring_query", "monitoring_analyze", "tenant_kubernetes_get", "artc_kubernetes_read",
 		"platform_cluster_bindings_list", "platform_kubernetes_resource_read", "platform_nodes_list", "platform_nodes_get", "platform_nodes_reachability", "ssh_broker_targets_list",
-		"platform_database_governance_inventory", "platform_observability_status", "platform_stalwart_status":
+		"platform_database_governance_inventory", "platform_observability_status", "platform_stalwart_status", "pg_re8ch_migration_preview":
 		readOnly = true
 	case "tenant_secret_metadata_list", "tenant_exposure_list", "tenant_exposure_get":
 		readOnly = true
@@ -54,6 +54,9 @@ func toolAnnotations(name string) *mcp.ToolAnnotations {
 		destructive = true
 	case "platform_litellm_openoauth_credential_project":
 		// Replaces only the fixed LiteLLM Secret from an approved broker reference.
+		destructive = true
+	case "pg_re8ch_migration_apply":
+		// Applies reviewed SQL to one fixed Supabase project through an exact preview.
 		destructive = true
 	case "tenant_claim_renew", "tenant_claim_cancel", "tenant_namespace_delete", "byoc_connection_revoke",
 		"service_instance_suspend", "service_instance_resume", "service_instance_delete", "service_binding_revoke",
