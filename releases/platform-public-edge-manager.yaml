@@ -1,10 +1,10 @@
 apiVersion: delivery.re8ch.com/v1alpha1
 kind: DomainRelease
 module: platform/public-edge-manager
-codename: zephyr-garnet
+codename: bora-beryl
 bundle:
   url: oci://registry.re8ch.com/gitops-controlplane/platform-public-edge-manager
-  digest: sha256:537952bc04e58d1cd852312cb97ca8f91d5dc5cdb4ee00cb1e309cd0cff1b565
+  digest: sha256:b45dba8d351baf5727a4531c02036be41f328950db9129e5b41a1c8b2db6ede2
   signature: github-attestation
   identity: https://github.com/re8ch/service-backend/.github/workflows/domain-oci-release.yml@refs/heads/main
   issuer: https://token.actions.githubusercontent.com
