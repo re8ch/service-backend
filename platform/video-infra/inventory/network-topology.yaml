@@ -1,4 +1,4 @@
-snapshot_date: "2026-07-30"
+snapshot_date: "2026-11-14"
 timezone: Asia/Shanghai
 
 subnets:
@@ -9,17 +9,17 @@ subnets:
   huawei_management:
     cidr: 192.168.90.0/24
     known_macmini_address: 192.168.90.100
-  a8_management:
+  telecom_gateway_management:
     cidr: 192.168.1.0/24
     gateway: 192.168.1.1
     router_address: 192.168.1.2
-    note: A8-C LAN/management segment; not the China Telecom Voice VLAN.
+    note: Telecom gateway LAN/management segment; not the China Telecom Voice VLAN.
   china_telecom_voice:
-    a8_address: 172.224.95.127/21
+    historical_a8_address: 172.224.95.127/21
     gateway: 172.224.88.1
     primary_outbound_proxy: 172.226.0.17:5060/udp
     backup_outbound_proxy: 172.227.0.17:5060/udp
-    note: Carrier-managed Voice_R_43 interface inside A8-C.
+    note: Historical A8-C Voice_R_43 snapshot; current MSG2600E carrier addressing is not inventoried here.
 
 nodes:
   mikrotik:
@@ -28,7 +28,7 @@ nodes:
     routeros: 7.23.2
     links:
       ether6:
-        peer: a8_c_lan1
+        peer: telecom_gateway_lan
         local_address: 192.168.1.2/24
       ether10:
         peer: gxw4108_lan
@@ -42,19 +42,35 @@ nodes:
     interface: eno2np1
     sip_ports:
       kamailio_poc: 5060/udp
-      direct_gxw_test: 5160/udp
-  a8_c:
+      freeswitch_gxw_profile: 5160/udp
+  telecom_gateway:
+    model: MSG2600E-XES-8E8V-WS3
     management_address: 192.168.1.1
-    proxied_web_url: http://192.168.88.1:18081/
-    lan_port: LAN1
-    voice_interface: Voice_R_43
     analog_ports: 8x FXS
+    line_numbers:
+      line01: "+867384643457"
+      line02: "+867384613840"
+      line03: "+867384425237"
+      line04: "+867384496412"
+      line05: "+867384613432"
+      line06: "+867384452535"
+      line07: "+867384213504"
+      line08: "+867384211561"
   gxw4108:
     address: 192.168.88.249
     mac: "00:0B:82:3F:63:03"
     web_url: http://192.168.88.249/
-    sip_port: 5060/udp
+    sip_ports:
+      line01: 5060/udp
+      line02: 5062/udp
+      line03: 5064/udp
+      line04: 5066/udp
+      line05: 5068/udp
+      line06: 5070/udp
+      line07: 5072/udp
+      line08: 5074/udp
     analog_ports: 8x FXO
+    scheduling: "rr:1;rr:2;rr:3;rr:4;rr:5;rr:6;rr:7;rr:8;"
 
 physical_paths:
   management_and_sip:
@@ -67,6 +83,6 @@ physical_paths:
     - MikroTik switched LAN
     - GXW4108 FXO
     - RJ11 analog pair
-    - A8-C FXS
-    - A8-C Voice_R_43
+    - MSG2600E FXS
+    - China Telecom managed voice interface
     - China Telecom IMS
