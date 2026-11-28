@@ -233,7 +233,11 @@ func (s *server) applyCalendarResponse(ctx context.Context, id identity, client 
 		return nil, errors.New("exact plan, expected state and 8-128 character idempotency key required")
 	}
 	requestHash, _ := canonicalHash(in)
-	result, err := s.db.ExecContext(ctx, `INSERT OR IGNORE INTO collaboration_writes(tenant,subject,key,request_hash,state) VALUES(?,?,?,?,'InProgress')`, id.Tenant, id.Subject, in.IdempotencyKey, requestHash)
+	insert := `INSERT OR IGNORE INTO collaboration_writes(tenant,subject,key,request_hash,state) VALUES(?,?,?,?,'InProgress')`
+	if s.db.postgres() {
+		insert = `INSERT INTO collaboration_writes(tenant,subject,key,request_hash,state) VALUES(?,?,?,?,'InProgress') ON CONFLICT DO NOTHING`
+	}
+	result, err := s.db.ExecContext(ctx, insert, id.Tenant, id.Subject, in.IdempotencyKey, requestHash)
 	if err != nil {
 		return nil, err
 	}

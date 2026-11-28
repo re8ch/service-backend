@@ -697,13 +697,20 @@ func (s *server) skillAdminHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	path := os.Getenv("DYNAMIC_SKILL_DB")
-	if path == "" {
-		path = "/var/lib/tenant-platform/dynamic-skills.db"
+	catalogDSN := os.Getenv("MCP_CATALOG_DATABASE_URL")
+	if strings.TrimSpace(catalogDSN) == "" {
+		log.Fatal("MCP_CATALOG_DATABASE_URL is required; PostgreSQL is the runtime state authority")
 	}
-	s, err := open(path)
+	catalogContext, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	catalogDB, err := openCatalogPostgreSQL(catalogContext, catalogDSN)
+	cancel()
 	if err != nil {
 		log.Fatal(err)
+	}
+	s := &server{
+		db: runtimePostgres(catalogDB), ledger: runtimePostgres(catalogDB),
+		redemptions: runtimePostgres(catalogDB), catalogAuthority: catalogDB,
+		results: map[string]resultRecord{},
 	}
 	defer s.db.Close()
 	s.toolDiagnostics, err = configuredToolDiagnostics()
@@ -715,32 +722,8 @@ func main() {
 		defer s.toolDiagnostics.client.Flush(5 * time.Second)
 	}
 	log.Printf("tool diagnostics Sentry enabled=%t", s.toolDiagnostics.client != nil)
-	ledgerPath := os.Getenv("TENANT_SERVICE_DB")
-	if ledgerPath == "" {
-		ledgerPath = "/var/lib/tenant-platform/tenant-services.db"
-	}
-	s.ledger, err = openLedger(ledgerPath)
-	if err != nil {
-		log.Fatal(err)
-	}
 	defer s.ledger.Close()
-	if catalogDSN := os.Getenv("MCP_CATALOG_DATABASE_URL"); catalogDSN != "" {
-		catalogContext, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		s.catalogAuthority, err = openCatalogPostgreSQL(catalogContext, catalogDSN)
-		cancel()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer s.catalogAuthority.Close()
-	}
-	redemptionPath := os.Getenv("DEVICE_REGISTRY_PATH")
-	if redemptionPath == "" {
-		redemptionPath = "/var/lib/tenant-platform/tenant-devices.db"
-	}
-	s.redemptions, err = openRedemptions(redemptionPath)
-	if err != nil {
-		log.Fatal(err)
-	}
+	defer s.catalogAuthority.Close()
 	defer s.redemptions.Close()
 	host := os.Getenv("LISTEN_HOST")
 	if host == "" {
