@@ -18,3 +18,7 @@ configMapGenerator:
     namespace: supabase-pg-re8ch
     files:
       - migration.sql=org-cluster-bindings.sql
+  - name: supabase-billing-dynamic-mcp-catalog-v2
+    namespace: supabase-pg-re8ch
+    files:
+      - migration.sql=dynamic-mcp-catalog-authority.sql
