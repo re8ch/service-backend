@@ -1,7 +1,8 @@
 # PublicEdge DNS authority operations
 
-The Flux HelmRelease in `release.yaml` is the active GitOps declaration. It
-contains service catalog and model parameters only. The controller derives
+`release.yaml` is the reviewed Helm input compiled into the immutable Network
+bundle and applied by the bounded cloud SSA executor. The declaration contains
+service catalog and model parameters only. The controller derives
 eligible edge and authority nodes from all live Kubernetes Nodes. It uses
 uplink and region facts projected from `inventory/nodes.yaml` when available,
 then Node capacity annotations and topology labels for unlisted nodes. A

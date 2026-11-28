@@ -1,29 +1,28 @@
 # RE8CH production observability
 
-This tree replaces the hand-maintained scrape section in the legacy panel
-observability manifest with VictoriaMetrics Operator resources.
-It contains no custom metric collector: each platform component exports its
+This tree defines the VictoriaMetrics Operator resources. It contains no custom
+metric collector: each platform component exports its
 native metrics, and each application owns its metric semantics, SLO, dashboard,
 recording rules and runbook.
 
-## Staged rollout
+## Delivery authority
 
-1. `bootstrap/` installs VictoriaMetrics Operator, OpenTelemetry Operator and
-   kube-state-metrics under Flux ownership.
-2. `production/` creates metrics, logs, traces, OTEL, scrape, alerting, rule and dashboard
-   resources. The Flux Kustomization is intentionally suspended initially.
-3. Production may be unsuspended only when all gates below pass:
-   - `ceph status --format json` reports neither `HEALTH_ERR`, unfound objects,
-     nor damaged/recovery-unfound PGs;
-   - the `rbd-r640` StorageClass provisions and mounts a disposable canary PVC;
-   - every A1/B1/R640 control-plane member is Ready;
-   - the old panel VictoriaMetrics has a verified snapshot/rollback path;
-   - Cilium metrics values have been rolled out independently and all Cilium
-     Pods are Ready.
+GitHub Actions and the bounded cloud SSA executor deliver both `bootstrap/` and
+`production/`. Activation is determined from accepted state, read-back evidence
+and runtime health.
 
-The production stage runs beside the old panel stack. Cutover of Grafana data
-sources and retirement of the old local-path stores is a separate, reversible
-change after fourteen days of observe-only alert evaluation.
+The storage and rollout safety gates remain applicable to any replacement or
+capacity migration:
+
+- Ceph must report no `HEALTH_ERR`, unfound object or damaged/recovery-unfound
+  PG;
+- `rbd-r640` must provision and mount a disposable canary PVC;
+- the required control-plane members must be Ready;
+- the current metrics stores must have a verified snapshot and rollback path;
+- Cilium metric configuration and Pods must pass their independent acceptance.
+
+Datasource health must be proven through the tenant provider binding and real
+queries against the active stores.
 
 Current Ceph evidence and the recovery boundary are recorded in
 `runbooks/observability/ceph-storage-gate-2026-08-25.md`.
@@ -60,8 +59,9 @@ evidence remains unknown. See `policies/README.md` for the namespace contract.
 
 ## Shared Grafana
 
-`production/grafana.yaml` is the sole GitOps definition of the shared Grafana
-runtime. It runs one recoverable replica in `observability-system`, retains
+`production/grafana.yaml` is the reviewed desired-state definition of the shared
+Grafana runtime applied by Cloud SSA. It runs one recoverable replica in
+`observability-system`, retains
 `https://grafana.service.re8ch.com/grafana/`, uses a dedicated PostgreSQL role/database
 from `re8ch-grafana-database`, uses a Dex public PKCE client, and references a
 separate renderer-token Secret. `production/grafana-secrets.sops.yaml` is the

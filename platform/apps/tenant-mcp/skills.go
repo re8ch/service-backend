@@ -51,10 +51,10 @@ type server struct {
 	modules               *platformRegistry
 	catalogServersOnce    sync.Once
 	catalogServers        *activeMCPServers
-	db                    *sql.DB
-	ledger                *sql.DB
+	db                    *runtimeDB
+	ledger                *runtimeDB
 	catalogAuthority      *sql.DB
-	redemptions           *sql.DB
+	redemptions           *runtimeDB
 	resultsMu             sync.Mutex
 	results               map[string]resultRecord
 	platformAdminMu       sync.Mutex
@@ -111,7 +111,7 @@ func open(path string) (*server, error) {
 		db.Close()
 		return nil, err
 	}
-	return &server{db: db, results: map[string]resultRecord{}}, nil
+	return &server{db: &runtimeDB{db: db, dialect: "sqlite", owner: true}, results: map[string]resultRecord{}}, nil
 }
 
 func (s *server) submit(r request, direct bool) (any, error) {

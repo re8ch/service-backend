@@ -4,7 +4,7 @@
 exact inventories: the reviewed `tenant-infrastructure` workload inventory and
 the ToolHive approved-catalog takeover inventory. It consumes the same
 immutable, signed agent-runtime OCI bundles used by the ordinary publisher. It
-does not read Secrets, impersonate users, or invoke Flux. The ToolHive target
+does not read Secrets or impersonate users. The ToolHive target
 may update only `Role/agent-runtime-domain-toolhive-system` and create or update
 only `ConfigMap/re8ch-approved-tool-catalog`; this is the minimum handoff needed
 before the ordinary `requireExisting` publisher can take over.
@@ -12,8 +12,8 @@ before the ordinary `requireExisting` publisher can take over.
 The platform access seed is
 `operations/releases/tenant-platform-bootstrap-access.yaml`. A platform
 administrator must install that seed and the reviewed AuthenticationConfiguration
-change before the first run. This is intentionally not part of a Flux root and
-cannot bootstrap its own authority. The admission policy restricts CREATE and
+change before the first run. It cannot bootstrap its own authority. The
+admission policy restricts CREATE and
 UPDATE to the exact namespaces and object names; Kubernetes RBAC alone cannot
 restrict CREATE by `resourceNames`. ToolHive Role escalation is restricted by
 RBAC to the existing executor Role and by admission to that exact name.

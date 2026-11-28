@@ -18,7 +18,7 @@ mandatory for every PR.
 | metering | metering only |
 | catalogs, indexes, workspace | control-plane only |
 | docs or a domain-specific workflow only | governance baseline; no Kustomize render |
-| shared CI/schema/root Flux changes or unknown manifests | fail closed to every test and root |
+| shared CI/schema/Cloud SSA authority changes or unknown manifests | fail closed to every test and root |
 
 Deleted paths and both sides of a rename participate in impact calculation.
 Local resource/component/base and generator-file references are followed across
@@ -45,11 +45,10 @@ Module render reuse is documented in [RENDER-EVIDENCE.md](RENDER-EVIDENCE.md).
 ## OCI cutover boundary
 
 The release schema is `schemas/domain-release.schema.json`; human-facing image
-tags use module-local themed codenames, while Flux pins immutable digests.
-Existing deployments have **not** been switched to unpublished OCI sources.
-Before cutover, each root needs a signed bundle, registry access, a digest-lock
-PR and successful render/health evidence. This avoids creating two reconcilers
-that own the same resources or dropping the current inventory.
+tags use module-local themed codenames, while accepted release operations pin
+immutable digests. The bounded cloud SSA executor is the only platform writer.
+Each root needs a signed bundle, registry access, a digest-lock PR and successful
+render/apply/read-back/health evidence.
 `operations/releases/publishers.yaml` is a separate reviewed signer allowlist;
 it starts empty and is never populated from an untrusted release payload.
 

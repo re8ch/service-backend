@@ -51,8 +51,7 @@ Chart inputs are pinned to the official ARC `0.15.1` release:
 - controller image index: `sha256:4b51a20db717b194e2f3fa96cfe2ddcb21602811f79053c75fd1a383517b9f90`
 - runner image index: `sha256:e275409999c37162649aa050ca573f03eab2eabcb3a1e7fcc47548de6b4f9690`
 
-Runtime delivery must use the reviewed cloud SSA executor. Do not install these
-charts from a workstation or introduce a local Flux writer. Before activation,
+Runtime delivery must use the reviewed cloud SSA executor. Before activation,
 render both charts, verify the digests above, inject only the Secret reference,
 and read back the controller, listener, `AutoscalingRunnerSet`, ephemeral runner
 Pod, and GitHub runner registration from their respective authorities.

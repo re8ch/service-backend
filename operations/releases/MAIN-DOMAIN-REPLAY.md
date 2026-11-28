@@ -10,7 +10,7 @@ Publishing remains in the existing approval-protected `main-domain-release`
 workflow. Replay uses separate `release-reconciler-<domain>` environments,
 main-only deployment policies and exact hosted-worker OIDC identities. Those
 identities retain the existing object-scoped executor groups; they do not need
-Secrets, pod logs, token creation, impersonation or Flux resource permissions.
+Secrets, pod logs, token creation or impersonation permissions.
 The environment retains only the API CA secret name `KUBE_API_CA_PEM`.
 
 The executor requires healthy accepted state, the same immutable OCI reference,

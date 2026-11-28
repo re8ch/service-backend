@@ -3,9 +3,9 @@
 This repository is the GitHub-first collaboration and desired-state control
 plane for catalogs, locked revisions, GitOps declarations, infrastructure
 inventory, PluginDefinitions and Agent context. Kubernetes is runtime authority;
-GitHub Actions and the bounded cloud SSA executor own delivery reconciliation.
-The bounded cloud SSA executor is the permanently selected write path; local
-Flux writers are forbidden.
+GitHub Actions and the bounded cloud SSA executor own delivery execution.
+The bounded cloud SSA executor is the permanently selected write path. All
+other cluster delivery write paths are forbidden.
 
 ## Start work
 

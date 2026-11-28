@@ -49,8 +49,8 @@ GITHUB_PRIVATE_KEY_FILE=/secure/path/app.pem \
 `access-controller` refreshes collaborators every 60 seconds using ETags. It
 uses the last successful snapshot during an outage, revokes removed members'
 devices and runtime users, and fails closed everywhere after the snapshot is 24
-hours old. Runtime membership, device and usage ConfigMaps are intentionally
-not Flux-owned because their writes use Kubernetes `resourceVersion` CAS.
+hours old. Runtime membership, device and usage ConfigMaps use Kubernetes
+`resourceVersion` CAS.
 
 The Store exposes these authenticated interfaces:
 
@@ -104,7 +104,7 @@ NodeLocal DNS are unchanged.
 ## Bootstrap
 
 For a fresh data-plane install, generate runtime secrets after the GitHub pull
-request is merged and before reconciling Flux:
+request is merged and before submitting the accepted Cloud SSA operation:
 
 ```sh
 clusters/re8ch/components/personal-access/bootstrap-runtime-secrets.sh

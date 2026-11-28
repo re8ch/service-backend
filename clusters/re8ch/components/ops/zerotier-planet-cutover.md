@@ -26,7 +26,8 @@ the service stays down until ICP returns; do not move it to another node.
    bind-mounted data.
 2. Archive the four data directories while stopped and verify the archive can
    be listed. Keep the archive outside Git.
-3. Merge the activation change and allow Flux to start the pinned Deployment.
+3. Merge the activation change and allow the bounded cloud SSA executor to apply
+   the pinned Deployment.
    Verify its Pod is Ready on ICP,
    that TCP 3443 returns HTTP 200, and that TCP/UDP 9994 are listening. Check a
    ZeroTier client can still reach the existing planet identity and network.

@@ -9,7 +9,7 @@
 - Metadata policy: `in-repository`
 - Project type: `gitops-control-plane`; lifecycle: `active`
 - Knowledge: `README.md`, `runbooks/`, `clusters/`, `operations/`, `operations/workspace-controller/GITOPS-WORKTREE-POLICY.md`
-- Tools: `gh`, `git-worktree`, `flux`, `re8ch-workspace`, `kubectl`, `helm`
+- Tools: `gh`, `git-worktree`, `re8ch-workspace`, `kubectl`, `helm`
 - Deployments: `github.com/re8ch/service-backend`, `k3s/re8ch`
 - Dependencies: none
 
@@ -19,7 +19,7 @@ Read the repository-root AGENTS.md first when present, then README and declared 
 
 The current `Re8ch` plugin is the single tenant self-service entry. Discover `tenant_self_service_capabilities`, use the specific published operation, and verify its real result. Check the active organization before provider-backed work. Tenant Kubernetes tools are restricted to allowlisted kinds and Ready namespaces owned by that organization. Older Cloud Platform connections and the retired generic platform catalog/call bridge are not tenant self-service prerequisites or health checks. Use only an explicitly published administrator tool for an authorized platform task. For Pigsty schema changes, discover the current authorized plan/apply operation, keep credentials inside the cluster, follow GitOps review, and retain migration evidence.
 
-Re8ch Admin GitHub governance is an Admin-only singleton service capability, not a separate plugin tool. For GitHub Rulesets, Actions Variables, and allowlisted organization settings, use `service://admin/github-enterprise-governance` through `service_instance_update` only after confirming the authenticated `admin` tenant and role, Active `integration.github.enterprise-governance.v1` grant, Ready instance, and the current catalog `operationContract`. Supported resources are `repository_ruleset`, `organization_ruleset`, `repository_variable`, `organization_variable`, and `organization`. Reads execute directly; create, update, and delete require preview, the exact returned `planHash`, `apply: true`, and an effective-state readback. The provider keeps its GitHub App private key and short-lived installation tokens opaque. Never infer Secrets, arbitrary API, bypass, or cross-organization authority from this capability. See the root README and `platform/apps/tenant-mcp/README.md` for the exact contract and acceptance baseline.
+Re8ch Admin GitHub governance is an Admin-only singleton service capability, not a separate plugin tool. For GitHub Rulesets, Actions Variables, and allowlisted organization settings, use `service://admin/github-enterprise-governance` through `service_instance_update` only after confirming the authenticated `admin` tenant and role, Active `integration.github.enterprise-governance.v1` grant, Ready instance, and the current catalog `operationContract`. Supported resources are `repository_ruleset`, `organization_ruleset`, `repository_variable`, `organization_variable`, `organization_custom_property_schema`, `repository_custom_property_values`, and `organization`. Reads execute directly; create and update require preview, the exact returned `planHash`, `apply: true`, and an effective-state readback. The provider keeps its GitHub App private key and short-lived installation tokens opaque. Never infer Secrets, arbitrary API, bypass, or cross-organization authority from this capability. See the root README and `platform/apps/tenant-mcp/README.md` for the exact contract and acceptance baseline.
 
 ## Catalog and platform context
 
@@ -45,8 +45,8 @@ Application federation requires an explicit versioned API, event, replication or
 `Grant Active` is authorization intent, not health: verify exact target/RBAC, peer/session or
 PublicEdge transport, and a functional probe from the real consumer identity before acceptance.
 Never widen RBAC or grants to compensate for endpoint, transport or session failure.
-Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor
-is the only runtime writer after signed PR and CI review.
+The bounded cloud SSA executor is the permanently selected delivery writer after signed
+PR and CI review. All other cluster delivery write paths are forbidden.
 Normative contract: `operations/network/docs/multicluster-federation-contract.md`.
 
 ## R640 public network authority

@@ -49,15 +49,15 @@ only; it does not carry arbitrary terminal IP traffic.
 ## Identity and GitOps egress
 
 `identity-egress` is a three-replica, ClusterIP-only proxy used by bounded
-Identity and Flux source-controller callers. Replicas run on the Pod network;
+Identity runtime callers. Replicas run on the Pod network;
 they must not use `hostNetwork` or `hostPort` because 17893/19091 are
 replica-local ports and may need to coexist on R640 while overseas nodes are
 unavailable. Scheduler anti-affinity is a strong preference, so healthy edge
 nodes receive one replica each when possible without turning a reduced node
 set into a complete outage.
 
-The Pod NetworkPolicy remains the security boundary: only declared Identity,
-Flux and conformance callers may reach 17893, and proxy egress is limited to
+The Pod NetworkPolicy remains the security boundary: only declared Identity and
+conformance callers may reach 17893, and proxy egress is limited to
 public TCP/443 plus cluster DNS. `identity-egress-gitops` uses cluster-wide
 endpoint selection. `identity-egress-control-plane` deliberately keeps local
 R640 selection and its stable ClusterIP for bootstrap callers. None of these

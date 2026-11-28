@@ -174,6 +174,7 @@ def test_workflows_separate_main_evidence_from_pr_and_force_daily_runs():
     daily = (ROOT / '.github/workflows/full-regression.yml').read_text()
     assert 'branches: [main]' in workflow and 'pull_request' not in workflow
     assert 'actions: read' in workflow and 'actions: write' not in workflow
+    assert '-r operations/cloud-platform/requirements-observability.txt' in workflow
     assert 'unit_baseline --full' in daily
     assert 'name: unit-success-evidence' in workflow and 'retention-days: 14' in workflow
     assert 'unit_baseline' not in (ROOT / '.github/workflows/ci.yml').read_text()

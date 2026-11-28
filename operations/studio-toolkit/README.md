@@ -104,7 +104,7 @@ and render frames are ephemeral. Keep the production client credential outside
 Git and use the dedicated `STUDIO_ACCEPTANCE_TOKEN` repository secret for the
 product's `Studio external acceptance` workflow.
 
-After Flux reconciles the activation commit, verify the migration job completed,
+After Cloud SSA applies the accepted activation bundle, verify the migration job completed,
 PostgREST is ready, all HTTPRoutes are accepted, and the worker claims jobs from
 `cn-r640`. Dispatch the external acceptance workflow in the product repository.
 It records the hosted runner's egress country, submits through the public HTTPS

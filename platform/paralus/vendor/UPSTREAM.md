@@ -9,8 +9,7 @@
 
 The chart is carried in the signed GitOps source because upstream `0.3.1`
 renders a duplicate `app.kubernetes.io/component` key in
-`templates/configmap-kratos-hooks.yaml`. Flux's strict post-renderer rejects
-that YAML before install. The local `0.3.1-re8ch.4` patch removes the duplicate
+`templates/configmap-kratos-hooks.yaml`. The local `0.3.1-re8ch.4` patch removes the duplicate
 label and replaces the chart's published fixed database password with a
 release-owned, generated Secret that is reused across upgrades. It also emits
 the external HTTPS console URL for Kratos when the chart-owned Contour and

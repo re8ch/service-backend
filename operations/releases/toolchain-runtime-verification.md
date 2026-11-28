@@ -15,7 +15,7 @@ Historical observations expire; read current runtime state before changing it.
   a successful self-cluster operation do not establish remote access.
 - Product source belongs in its own repository. Desired-state changes use signed
   PRs, successful checks, and the repository's existing bounded GitHub Actions SSA
-  release contract. Local Flux writers remain retired. Keep the main anchor clean.
+  release contract. Keep the main anchor clean.
 - Remote PublicEdge/AF candidates are service contracts, not local Nodes. Do not
   use remote names as local node selectors, restore authority-health scheduling,
   reuse an invalid release bundle, or invent a public route. Resolve network

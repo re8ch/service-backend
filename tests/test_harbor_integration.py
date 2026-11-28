@@ -140,6 +140,18 @@ def test_robot_templates_reject_unknown_permissions():
         client.create_robot("qwen", "bad", "system-admin", 30)
 
 
+def test_robot_templates_allow_repository_listing_for_real_consumer_probe():
+    calls = []
+    def opener(request, timeout):
+        calls.append(json.loads(request.data))
+        return Response({"id": 7, "name": "robot$qwen+ci", "secret": "write-only"})
+    client = harbor.HarborClient("https://registry.example", "admin", "pw", opener)
+    client.create_robot("qwen", "ci", "pull", 30)
+    assert {tuple(item.values()) for item in calls[0]["permissions"][0]["access"]} == {
+        ("repository", "list"), ("repository", "pull")
+    }
+
+
 def test_native_supply_chain_endpoints_are_project_scoped():
     calls = []
     def opener(request, timeout):

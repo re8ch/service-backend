@@ -328,13 +328,13 @@ subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: t
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
-metadata: {name: tenant-provider-harbor-admin-read, namespace: harbor-system}
+metadata: {name: tenant-provider-harbor-admin-read, namespace: harbor}
 rules:
-  - {apiGroups: [""], resources: [secrets], resourceNames: [harbor-admin-core], verbs: [get]}
+  - {apiGroups: [""], resources: [secrets], resourceNames: [harbor-core-env], verbs: [get]}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
-metadata: {name: tenant-provider-harbor-admin-read, namespace: harbor-system}
+metadata: {name: tenant-provider-harbor-admin-read, namespace: harbor}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: tenant-provider-harbor-admin-read}
 subjects: [{kind: ServiceAccount, name: tenant-provider-reconciler, namespace: tenant-infrastructure}]
 ---

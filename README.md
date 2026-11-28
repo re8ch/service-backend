@@ -1,7 +1,7 @@
 # RE8CH Service Backend
 
 [![Control plane CI](https://github.com/re8ch/service-backend/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/ci.yml?query=branch%3Amain)
-[![Reconcile](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
+[![Cloud replay](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/main-domain-reconcile.yml?query=branch%3Amain)
 [![Security checks](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml/badge.svg?branch=main)](https://github.com/re8ch/service-backend/actions/workflows/github-security-checks.yml?query=branch%3Amain)
 
 GitHub-first collaboration and desired state for the RE8CH platform. GitHub
@@ -9,8 +9,8 @@ stores reviewed intent and delivery evidence; Kubernetes owns runtime state;
 GitHub Actions and the bounded cloud SSA executor apply accepted immutable
 artifacts; Headlamp and observability systems expose live state.
 
-The permanently selected write path is the bounded cloud SSA executor; local
-Flux writers are forbidden.
+The bounded cloud SSA executor is the permanently selected write path. All
+other cluster delivery write paths are forbidden.
 
 ## Collaboration model
 
@@ -41,15 +41,15 @@ and `Timeline`.
 - `clusters/re8ch/`: cluster desired-state composition
 - `platform/`: shared platform applications and capabilities
 - `inventory/`: non-secret infrastructure inventory
-- `operations/`: release, reconciliation and host-bound operations
+- `operations/`: release, Cloud SSA delivery, observation and host-bound operations
 - `runbooks/`: operational procedures and historical investigations
 - `schemas/`: declarative contracts
 - `tests/`: policy and contract verification
 
 Product source remains in its independent repository. The authority ledger is
 [`operations/flux-federation/authority.yaml`](operations/flux-federation/authority.yaml),
-and domain delivery is described in
-[`operations/releases/DOMAIN-RECONCILIATION.md`](operations/releases/DOMAIN-RECONCILIATION.md).
+and Cloud SSA delivery is described in
+[`operations/releases/CLOUD-SSA-DELIVERY.md`](operations/releases/CLOUD-SSA-DELIVERY.md).
 
 ## Working here
 
@@ -68,7 +68,7 @@ approved secret systems contain values.
 
 - External project delivery: [`runbooks/external-project-deployment.md`](runbooks/external-project-deployment.md)
 - Service public-path network investigation: [`runbooks/service-public-path-network-investigation.md`](runbooks/service-public-path-network-investigation.md)
-- GitHub-native publishers: [`operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md`](operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md)
+- Cloud SSA delivery: [`operations/releases/CLOUD-SSA-DELIVERY.md`](operations/releases/CLOUD-SSA-DELIVERY.md)
 - Static public sites: [`operations/public-sites/README.md`](operations/public-sites/README.md)
 - Tenant self-service: [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md)
 - Restricted topology access: [`contracts/network-topology/README.md`](contracts/network-topology/README.md)

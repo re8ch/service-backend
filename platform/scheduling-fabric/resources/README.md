@@ -143,7 +143,7 @@ the Hub and Agent run on a stable worker.
 
 The current live scheduler trial is evidence, not authoritative desired state.
 Its configuration must be exported without generated metadata and reviewed
-before this directory is added to Flux.
+before this directory is admitted to a Cloud SSA release contract.
 
 ## Core anchor recovery
 

@@ -24,7 +24,7 @@ import (
 
 var credentialRef = regexp.MustCompile(`^credential://(harbor|grafana|litellm)/([a-z0-9][a-z0-9._-]*)/([a-f0-9]{32})$`)
 
-func openRedemptions(path string) (*sql.DB, error) {
+func openRedemptions(path string) (*runtimeDB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func openRedemptions(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
-	return db, nil
+	return &runtimeDB{db: db, dialect: "sqlite", owner: true}, nil
 }
 
 func tokenDigest(token string) string {
