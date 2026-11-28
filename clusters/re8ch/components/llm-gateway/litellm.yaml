@@ -23,6 +23,11 @@ data:
           api_key: os.environ/KIMI_API_KEY
           api_base: https://api.moonshot.cn/v1
           timeout: 120
+      - model_name: fast-inference
+        litellm_params:
+          model: groq/openai/gpt-oss-20b
+          api_key: os.environ/GROQ_API_KEY
+          timeout: 120
     router_settings:
       routing_strategy: simple-shuffle
       num_retries: 2
@@ -82,7 +87,7 @@ spec:
         app.kubernetes.io/name: litellm-postgresql
     spec:
       nodeSelector:
-        kubernetes.io/hostname: r640
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -166,7 +171,7 @@ spec:
         app.kubernetes.io/name: litellm
     spec:
       nodeSelector:
-        kubernetes.io/hostname: r640
+        kubernetes.io/hostname: restricted-node-6dc3f140f9
       tolerations:
         - key: dedicated
           operator: Equal
@@ -200,6 +205,11 @@ spec:
                 secretKeyRef:
                   name: litellm-provider-credentials
                   key: KIMI_API_KEY
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: litellm-provider-credentials
+                  key: GROQ_API_KEY
             - name: UI_USERNAME
               valueFrom:
                 secretKeyRef:
