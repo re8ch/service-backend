@@ -143,6 +143,22 @@ spec:
                 - network
                 - host
                 type: object
+              lifecycle:
+                properties:
+                  reconcileImpact:
+                    enum:
+                    - platform
+                    - consumer
+                    type: string
+                  tenure:
+                    enum:
+                    - permanent
+                    - term
+                    type: string
+                required:
+                - tenure
+                - reconcileImpact
+                type: object
               nodeName:
                 minLength: 1
                 type: string
@@ -205,6 +221,7 @@ spec:
             required:
             - nodeName
             - reservationProfile
+            - lifecycle
             - background
             - failureDomains
             - reliability
@@ -709,11 +726,14 @@ spec:
     network: a1-local-uplink
     power: a1-workstation
     site: cn-hunan-a1
+  lifecycle:
+    reconcileImpact: platform
+    tenure: permanent
   nodeName: a1-wsl-zt
   reliability:
     class: variable
     disruptionRisk: 45
-  reservationProfile: control-small
+  reservationProfile: wsl-balanced
   sources:
   - kind: InfrastructureTarget
     ref: service-backend/inventory/nodes.yaml
@@ -746,6 +766,9 @@ spec:
     network: amd-local-uplink
     power: amd-workstation
     site: cn-hubei-amd
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: amdwsl-zt
   reliability:
     class: opportunistic
@@ -781,17 +804,21 @@ spec:
     - stable-secondary
     servicePlane: core
     storage:
+    - ceph-control
     - ceph-client
   failureDomains:
     host: b1-windows
     network: b1-local-uplink
     power: b1-workstation
     site: cn-hunan-b1
+  lifecycle:
+    reconcileImpact: platform
+    tenure: permanent
   nodeName: b1-wsl-zt
   reliability:
     class: variable
     disruptionRisk: 45
-  reservationProfile: control-small
+  reservationProfile: wsl-balanced
   sources:
   - kind: InfrastructureTarget
     ref: service-backend/inventory/nodes.yaml
@@ -823,6 +850,9 @@ spec:
     network: tencent-domain-ex-uplink
     power: tencent-domain-ex
     site: tencent-domain-ex
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: domain-ex
   reliability:
     class: stable
@@ -862,6 +892,9 @@ spec:
     network: aliyun-ecs-uplink
     power: aliyun-ecs
     site: aliyun-ecs
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: muaya-ecs
   reliability:
     class: stable
@@ -900,6 +933,9 @@ spec:
     network: aliyun-lightweight-uplink
     power: aliyun-lightweight
     site: aliyun-lightweight
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: muaya-lightweight
   reliability:
     class: stable
@@ -934,6 +970,9 @@ spec:
     network: mubao-local-uplink
     power: mubao-workstation
     site: cn-hunan-mubao
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: mubao-wsl
   reliability:
     class: variable
@@ -976,6 +1015,9 @@ spec:
     network: overseas-edge-50-uplink
     power: overseas-edge-50
     site: overseas-edge-50
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: overseas-edge-50
   reliability:
     class: variable
@@ -1014,6 +1056,9 @@ spec:
     network: overseas-flk-uplink
     power: overseas-flk
     site: de-fsn
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: overseas-flk
   reliability:
     class: variable
@@ -1055,6 +1100,9 @@ spec:
     network: overseas-kl-uplink
     power: overseas-kl
     site: my-kl
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: overseas-kl
   reliability:
     class: variable
@@ -1094,6 +1142,9 @@ spec:
     network: overseas-la-uplink
     power: overseas-la
     site: us-la
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: overseas-la
   reliability:
     class: variable
@@ -1133,6 +1184,9 @@ spec:
     network: overseas-la-2-uplink
     power: overseas-la-2
     site: us-la
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: overseas-la-2
   reliability:
     class: variable
@@ -1182,6 +1236,9 @@ spec:
     network: r640-dedicated-line
     power: r640-mains
     site: cn-hunan-r640
+  lifecycle:
+    reconcileImpact: platform
+    tenure: permanent
   nodeName: r640
   reliability:
     class: anchor
@@ -1221,6 +1278,9 @@ spec:
     network: tencent-suxunji-uplink
     power: tencent-suxunji
     site: tencent-suxunji
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: suxunji
   reliability:
     class: stable
@@ -1253,6 +1313,9 @@ spec:
     network: tencent-vm-20-12-uplink
     power: tencent-vm-20-12
     site: tencent-vm-20-12
+  lifecycle:
+    reconcileImpact: platform
+    tenure: permanent
   nodeName: vm-20-12-ubuntu
   reliability:
     class: variable
@@ -1292,6 +1355,9 @@ spec:
     network: tencent-zan-uplink
     power: tencent-zan
     site: tencent-zan
+  lifecycle:
+    reconcileImpact: consumer
+    tenure: term
   nodeName: zan
   reliability:
     class: stable
@@ -1551,7 +1617,7 @@ spec:
   minEligibleNodes: 1
   minFailureDomains: 1
   nodeSelector:
-    scheduling.re8ch.com/ceph-serving: 'true'
+    scheduling.re8ch.com/ceph-client-serving: 'true'
     scheduling.re8ch.com/placement-general-reliable: 'true'
   nodeTaintsPolicy: Honor
   requiredCapabilities:

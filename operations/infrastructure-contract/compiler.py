@@ -30,6 +30,8 @@ AI_JSON_PATH = OUTPUT_ROOT / "ai-nodes.json"
 AI_CONFIG_PATH = OUTPUT_ROOT / "ai-operations-inventory.yaml"
 SSH_CONFIG_PATH = OUTPUT_ROOT / "ssh-config"
 SCHEMA_VERSION = "operations.re8ch.com/v1alpha1"
+NODE_PROFILES_PATH = Path(os.environ.get(
+    "NODE_PROFILES_PATH", ROOT / "platform/scheduling-fabric/resources/node-profiles.yaml"))
 
 
 class LiteralDumper(yaml.SafeDumper):
@@ -296,18 +298,43 @@ def write_or_check(check: bool) -> None:
         raise SystemExit("stale generated infrastructure projections: " + ", ".join(stale))
 
 
+def node_reconcile_impacts() -> dict[str, str]:
+    """Return the reviewed blast radius for each Kubernetes node.
+
+    NodeContract records membership and exact host state. NodeProfile owns the
+    scheduling/reliability meaning of that membership, so a term consumer is
+    never allowed to turn local drift into a platform reconciliation error.
+    """
+    impacts: dict[str, str] = {}
+    for document in yaml.safe_load_all(NODE_PROFILES_PATH.read_text(encoding="utf-8")):
+        if not document or document.get("kind") != "NodeProfile":
+            continue
+        spec = document.get("spec", {})
+        impacts[spec.get("nodeName", "")] = spec.get("lifecycle", {}).get("reconcileImpact", "platform")
+    return impacts
+
+
 def observe_diff(observed_path: str) -> int:
     cluster, nodes, _ = validate_contracts()
     raw = sys.stdin.read() if observed_path == "-" else Path(observed_path).read_text(encoding="utf-8")
     observed = json.loads(raw)
     actual = {item["metadata"]["name"]: item for item in observed["items"]}
     expected = {item["spec"]["kubernetesName"]: item for item in nodes}
+    impacts = node_reconcile_impacts()
     drift: list[dict[str, Any]] = []
+
+    def add(name: str, severity: str, drift_type: str, contract_ref: str, **fields: str) -> None:
+        # Undeclared nodes fail closed. Only an explicitly reviewed consumer is
+        # allowed to downgrade its local drift to Warning.
+        impact = impacts.get(name, "platform")
+        drift.append({"severity": severity, "reconcileClass": "error" if impact == "platform" else "warning",
+                      "impact": impact, "type": drift_type, "contractRef": contract_ref, **fields})
+
     for name in sorted(set(expected) - set(actual)):
-        drift.append({"severity": "immediate", "type": "missing-node", "contractRef": expected[name]["metadata"]["uid"]})
+        add(name, "immediate", "missing-node", expected[name]["metadata"]["uid"])
     for name in sorted(set(actual) - set(expected)):
         opaque = hashlib.sha256((cluster["metadata"]["uid"] + ":" + name).encode()).hexdigest()[:16]
-        drift.append({"severity": "immediate", "type": "unexpected-node", "contractRef": "unmanaged-" + opaque})
+        add(name, "immediate", "unexpected-node", "unmanaged-" + opaque)
     facts = []
     for name in sorted(set(expected) & set(actual)):
         contract = expected[name]
@@ -316,23 +343,23 @@ def observe_diff(observed_path: str) -> int:
         contract_ref = contract["metadata"]["uid"]
         addresses = {item["type"]: item["address"] for item in live.get("status", {}).get("addresses", [])}
         if live["metadata"].get("uid") != spec["observation"]["nodeUID"]:
-            drift.append({"severity": "immediate", "type": "node-uid", "contractRef": contract_ref})
+            add(name, "immediate", "node-uid", contract_ref)
         if addresses.get("InternalIP") != spec["network"]["kubeletInternalIP"]:
-            drift.append({"severity": "persistent", "type": "internal-ip", "contractRef": contract_ref})
+            add(name, "persistent", "internal-ip", contract_ref)
         labels = live["metadata"].get("labels", {})
         for key, value in spec["kubernetes"]["gitOpsOwnedLabels"].items():
             if labels.get(key) != value:
-                drift.append({"severity": "persistent", "type": "label", "contractRef": contract_ref, "fieldRef": hashlib.sha256(key.encode()).hexdigest()[:12]})
+                add(name, "persistent", "label", contract_ref, fieldRef=hashlib.sha256(key.encode()).hexdigest()[:12])
         expected_taints = sorted(spec["kubernetes"]["taints"], key=lambda value: (value["key"], value.get("effect", ""), value.get("value", "")))
         actual_taints = sorted(live.get("spec", {}).get("taints", []), key=lambda value: (value["key"], value.get("effect", ""), value.get("value", "")))
         actual_taints = [{key: value[key] for key in ("key", "value", "effect") if key in value} for value in actual_taints]
         if expected_taints != actual_taints:
-            drift.append({"severity": "immediate", "type": "taints", "contractRef": contract_ref})
+            add(name, "immediate", "taints", contract_ref)
         conditions = {item["type"]: item["status"] for item in live.get("status", {}).get("conditions", [])}
         facts.append({"contractRef": contract_ref, "ready": conditions.get("Ready"), "conditions": conditions})
     result = {"schemaVersion": "v1alpha1", "clusterRef": cluster["metadata"]["uid"], "expectedNodeCount": cluster["spec"]["expectedNodeCount"], "observedNodeCount": len(actual), "drift": drift, "statusFacts": facts}
     print(json.dumps(result, indent=2, sort_keys=True))
-    return 2 if drift else 0
+    return 2 if any(item["reconcileClass"] == "error" for item in drift) else 0
 
 
 def verify_encrypted() -> None:

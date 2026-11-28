@@ -114,6 +114,20 @@ def test_compiler_is_deterministic_and_evidence_is_redacted(tmp_path):
     assert "ffffffff-ffff-4fff-8fff-ffffffffffff" not in result.stdout
     assert '"contractRef": "20000000-0000-4000-8000-000000000001"' in result.stdout
 
+    profiles = tmp_path / "node-profiles.yaml"
+    profiles.write_text(yaml.safe_dump({
+        "apiVersion": "scheduling.re8ch.com/v1alpha1", "kind": "NodeProfile",
+        "metadata": {"name": "synthetic-node"},
+        "spec": {"nodeName": "synthetic-node", "lifecycle": {"tenure": "term", "reconcileImpact": "consumer"}},
+    }))
+    warning = subprocess.run(
+        ["python", str(COMPILER), "observe-diff", str(observed_path)],
+        env={**os.environ, "INFRASTRUCTURE_CONTRACT_DIR": str(contracts), "NODE_PROFILES_PATH": str(profiles)},
+        text=True, capture_output=True,
+    )
+    assert warning.returncode == 0
+    assert '"reconcileClass": "warning"' in warning.stdout
+
 
 def test_repository_only_contains_sops_encrypted_node_projections():
     subprocess.run(["python", str(COMPILER), "verify-encrypted"], cwd=ROOT, check=True)
@@ -151,7 +165,8 @@ def test_observer_job_is_the_only_oidc_job_and_uses_environment_secrets():
     assert "secrets.INFRASTRUCTURE_CONTRACT_BUNDLE_GZ_B64" in text
     assert "secrets.KUBE_API_CA_PEM" in text
     assert "vars.INFRASTRUCTURE" not in text
-    assert 'contract["spec"]["expectedNodeCount"]' in text
+    assert 'item.get("reconcileClass") == "warning"' in text
+    assert 'Consumer node drift observed; platform providers remain reconcilable.' in text
     assert "api['publicFQDN'], api['publicPort']" in text
     assert '--token="$oidc_token"' not in text
     assert 'operations/infrastructure-contract/bundle.py' in text

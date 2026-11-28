@@ -108,6 +108,9 @@ def profile_labels(spec, target):
               "scheduling.re8ch.com/reliability-class": spec.get("reliability", {}).get("class", "unknown"),
               "scheduling.re8ch.com/node-profile": spec.get("reservationProfile", "worker-small"),
               "scheduling.re8ch.com/failure-domain": spec.get("failureDomains", {}).get("host", target)}
+    lifecycle = spec.get("lifecycle", {})
+    labels["scheduling.re8ch.com/tenure"] = lifecycle.get("tenure", "term")
+    labels["scheduling.re8ch.com/reconcile-impact"] = lifecycle.get("reconcileImpact", "consumer")
     service_plane = spec.get("capabilities", {}).get("servicePlane")
     if service_plane:
         labels["scheduling.re8ch.com/service-plane"] = service_plane
@@ -138,6 +141,7 @@ SERVING_LABELS = (
     "scheduling.re8ch.com/workload-eligible",
     "scheduling.re8ch.com/network-serving",
     "scheduling.re8ch.com/ceph-serving",
+    "scheduling.re8ch.com/ceph-client-serving",
     "scheduling.re8ch.com/gpu-serving",
     "scheduling.re8ch.com/egress-serving",
     "scheduling.re8ch.com/public-edge-serving",
@@ -145,14 +149,15 @@ SERVING_LABELS = (
 )
 
 def serving_labels(spec, reliability):
-    """Project current capacity separately from durable node capabilities."""
+    """Project provider health separately from consumer availability."""
     capabilities = spec.get("capabilities", {})
     eligible = bool(reliability.get("eligible"))
     storage = capabilities.get("storage", [])
     values = {
         "scheduling.re8ch.com/workload-eligible": eligible,
         "scheduling.re8ch.com/network-serving": eligible,
-        "scheduling.re8ch.com/ceph-serving": eligible and "ceph-client" in storage,
+        "scheduling.re8ch.com/ceph-serving": eligible and bool({"ceph-control", "ceph-osd"} & set(storage)),
+        "scheduling.re8ch.com/ceph-client-serving": eligible and "ceph-client" in storage,
         "scheduling.re8ch.com/gpu-serving": eligible and bool(capabilities.get("gpu")),
         "scheduling.re8ch.com/egress-serving": eligible and bool(capabilities.get("egress")),
         "scheduling.re8ch.com/public-edge-serving": eligible and bool(capabilities.get("publicEdge")),

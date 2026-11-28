@@ -46,7 +46,7 @@ if ($PSCmdlet.ShouldProcess($NodeName, 'install RE8CH control-plane host recover
         '[wsl2]'
         ('memory={0}' -f $node[0].wsl.memory)
         ('swap={0}' -f $node[0].wsl.swap)
-        'pageReporting=true'
+        ('pageReporting={0}' -f $node[0].wsl.pageReporting.ToString().ToLowerInvariant())
         ''
         '[experimental]'
         ('autoMemoryReclaim={0}' -f $node[0].wsl.autoMemoryReclaim)

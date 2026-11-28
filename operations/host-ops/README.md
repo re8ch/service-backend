@@ -23,6 +23,10 @@ unreachable. Check the declared Windows address, WSL management address,
 Kubernetes node lease and local API readiness independently before selecting a
 recovery action.
 
+The reviewed A1/B1 WSL capacity envelope and the 2026-11-18 B1 high-water
+experiment are recorded in
+[`windows/WSL-MEMORY-CAPACITY-POLICY.md`](windows/WSL-MEMORY-CAPACITY-POLICY.md).
+
 Installation is deliberately two-step and does not happen as a side effect of
 applying Kubernetes manifests:
 

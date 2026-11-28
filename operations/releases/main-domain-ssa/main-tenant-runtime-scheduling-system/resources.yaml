@@ -66,7 +66,7 @@ spec:
         whenUnsatisfiable: ScheduleAnyway
       volumes:
       - configMap:
-          name: penrose-controller-source-5f7tbkh9db
+          name: penrose-controller-source-42f74bhf6c
         name: source
 ---
 apiVersion: v1
@@ -83,6 +83,10 @@ data:
     \ 500m, memory: 768Mi, ephemeral-storage: 2Gi, pid: \"1024\"}\n  systemReserved:\
     \ {cpu: 500m, memory: 768Mi, ephemeral-storage: 2Gi, pid: \"1024\"}\n  enforceNodeAllocatable:\
     \ [pods]\n  evictionHard: {memory.available: 1Gi, nodefs.available: 10%, imagefs.available:\
+    \ 15%, pid.available: 10%}\nwsl-balanced:\n  maxPods: 128\n  kubeReserved: {cpu:\
+    \ 500m, memory: 512Mi, ephemeral-storage: 1Gi, pid: \"1024\"}\n  systemReserved:\
+    \ {cpu: 500m, memory: 512Mi, ephemeral-storage: 1Gi, pid: \"1024\"}\n  enforceNodeAllocatable:\
+    \ [pods]\n  evictionHard: {memory.available: 512Mi, nodefs.available: 10%, imagefs.available:\
     \ 15%, pid.available: 10%}\nworker-large:\n  maxPods: 256\n  kubeReserved: {cpu:\
     \ \"2\", memory: 4Gi, ephemeral-storage: 10Gi, pid: \"4096\"}\n  systemReserved:\
     \ {cpu: \"2\", memory: 4Gi, ephemeral-storage: 10Gi, pid: \"4096\"}\n  enforceNodeAllocatable:\
@@ -186,8 +190,11 @@ data:
     : spec.get(\"reliability\", {}).get(\"class\", \"unknown\"),\n              \"\
     scheduling.re8ch.com/node-profile\": spec.get(\"reservationProfile\", \"worker-small\"\
     ),\n              \"scheduling.re8ch.com/failure-domain\": spec.get(\"failureDomains\"\
-    , {}).get(\"host\", target)}\n    service_plane = spec.get(\"capabilities\", {}).get(\"\
-    servicePlane\")\n    if service_plane:\n        labels[\"scheduling.re8ch.com/service-plane\"\
+    , {}).get(\"host\", target)}\n    lifecycle = spec.get(\"lifecycle\", {})\n  \
+    \  labels[\"scheduling.re8ch.com/tenure\"] = lifecycle.get(\"tenure\", \"term\"\
+    )\n    labels[\"scheduling.re8ch.com/reconcile-impact\"] = lifecycle.get(\"reconcileImpact\"\
+    , \"consumer\")\n    service_plane = spec.get(\"capabilities\", {}).get(\"servicePlane\"\
+    )\n    if service_plane:\n        labels[\"scheduling.re8ch.com/service-plane\"\
     ] = service_plane\n    background = spec.get(\"background\", {})\n    labels[\"\
     scheduling.re8ch.com/cost-class\"] = background.get(\"costClass\", \"unknown\"\
     )\n    capabilities = spec.get(\"capabilities\", {})\n    for storage in capabilities.get(\"\
@@ -210,18 +217,19 @@ data:
     ] = \"true\" if capabilities.get(\"scheduling\") else \"false\"\n    return labels\n\
     \nSERVING_LABELS = (\n    \"scheduling.re8ch.com/workload-eligible\",\n    \"\
     scheduling.re8ch.com/network-serving\",\n    \"scheduling.re8ch.com/ceph-serving\"\
-    ,\n    \"scheduling.re8ch.com/gpu-serving\",\n    \"scheduling.re8ch.com/egress-serving\"\
-    ,\n    \"scheduling.re8ch.com/public-edge-serving\",\n    \"scheduling.re8ch.com/function-serving\"\
-    ,\n)\n\ndef serving_labels(spec, reliability):\n    \"\"\"Project current capacity\
-    \ separately from durable node capabilities.\"\"\"\n    capabilities = spec.get(\"\
-    capabilities\", {})\n    eligible = bool(reliability.get(\"eligible\"))\n    storage\
-    \ = capabilities.get(\"storage\", [])\n    values = {\n        \"scheduling.re8ch.com/workload-eligible\"\
-    : eligible,\n        \"scheduling.re8ch.com/network-serving\": eligible,\n   \
-    \     \"scheduling.re8ch.com/ceph-serving\": eligible and \"ceph-client\" in storage,\n\
-    \        \"scheduling.re8ch.com/gpu-serving\": eligible and bool(capabilities.get(\"\
-    gpu\")),\n        \"scheduling.re8ch.com/egress-serving\": eligible and bool(capabilities.get(\"\
-    egress\")),\n        \"scheduling.re8ch.com/public-edge-serving\": eligible and\
-    \ bool(capabilities.get(\"publicEdge\")),\n        \"scheduling.re8ch.com/function-serving\"\
+    ,\n    \"scheduling.re8ch.com/ceph-client-serving\",\n    \"scheduling.re8ch.com/gpu-serving\"\
+    ,\n    \"scheduling.re8ch.com/egress-serving\",\n    \"scheduling.re8ch.com/public-edge-serving\"\
+    ,\n    \"scheduling.re8ch.com/function-serving\",\n)\n\ndef serving_labels(spec,\
+    \ reliability):\n    \"\"\"Project provider health separately from consumer availability.\"\
+    \"\"\n    capabilities = spec.get(\"capabilities\", {})\n    eligible = bool(reliability.get(\"\
+    eligible\"))\n    storage = capabilities.get(\"storage\", [])\n    values = {\n\
+    \        \"scheduling.re8ch.com/workload-eligible\": eligible,\n        \"scheduling.re8ch.com/network-serving\"\
+    : eligible,\n        \"scheduling.re8ch.com/ceph-serving\": eligible and bool({\"\
+    ceph-control\", \"ceph-osd\"} & set(storage)),\n        \"scheduling.re8ch.com/ceph-client-serving\"\
+    : eligible and \"ceph-client\" in storage,\n        \"scheduling.re8ch.com/gpu-serving\"\
+    : eligible and bool(capabilities.get(\"gpu\")),\n        \"scheduling.re8ch.com/egress-serving\"\
+    : eligible and bool(capabilities.get(\"egress\")),\n        \"scheduling.re8ch.com/public-edge-serving\"\
+    : eligible and bool(capabilities.get(\"publicEdge\")),\n        \"scheduling.re8ch.com/function-serving\"\
     : eligible and bool(capabilities.get(\"functionExecution\")),\n    }\n    return\
     \ {key: \"true\" if value else \"false\" for key, value in values.items()}\n\n\
     def placement_node_rejection(placement, node):\n    spec = placement.get(\"spec\"\
@@ -646,7 +654,7 @@ data:
     , \"60\")))\n\nif __name__ == \"__main__\": run()\n"
 kind: ConfigMap
 metadata:
-  name: penrose-controller-source-5f7tbkh9db
+  name: penrose-controller-source-42f74bhf6c
   namespace: scheduling-system
 ---
 apiVersion: v1
