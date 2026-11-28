@@ -30,7 +30,7 @@ ALLOWED = {
 }
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--bundle",type=Path,required=True); ap.add_argument("--output",type=Path,required=True)
+    ap=argparse.ArgumentParser(); ap.add_argument("--bundle",type=Path,required=True); ap.add_argument("--access",type=Path,required=True); ap.add_argument("--output",type=Path,required=True)
     a=ap.parse_args()
     with tarfile.open(a.bundle,"r:gz") as tf:
         manifest=json.load(tf.extractfile("manifest.json")); objects=json.load(tf.extractfile("objects.json"))
@@ -42,6 +42,11 @@ def main():
         if obj.get("kind") == "Secret": raise SystemExit("Secret is forbidden")
         seen.add(ident)
     if seen != ALLOWED: raise SystemExit(f"bootstrap inventory mismatch: missing={sorted(ALLOWED-seen)} extra={sorted(seen-ALLOWED)}")
+    access=[item for item in yaml.safe_load_all(a.access.read_text()) if item]
+    role=next(item for item in access if item.get("kind") == "Role"
+              and item.get("metadata",{}).get("namespace") == NAMESPACE
+              and item["metadata"].get("name") == "agent-runtime-domain-tenant-infrastructure")
+    objects.append(role)
     a.output.write_text(yaml.safe_dump_all(objects,sort_keys=False,explicit_start=True))
 
 if __name__ == "__main__": main()
