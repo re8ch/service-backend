@@ -48,11 +48,13 @@ def test_every_domain_dispatch_inherits_the_cutover_safety_gates():
         assert required <= set(item["gates"]), item["id"]
 
 
-def test_dispatch_references_and_handoff_exist():
+def test_dispatch_references_and_proven_baseline_exist():
     document = load_dispatch()
     for path in document["references"].values():
         assert (ROOT / path).is_file(), path
-    handoff = (DISPATCH.parent / "static-release-domain-handoff.md").read_text()
-    assert "rook-ceph-9cd3f4260b72b501" in handoff
-    assert "40026749978" in handoff
-    assert "c691ff19e5d368008556c4274c749ab2f3510843551b8b7a3b31becc7954eda9" in handoff
+    baseline = document["provenBaseline"]
+    assert baseline["reconcileOperation"] == "rook-ceph-9cd3f4260b72b501"
+    assert baseline["reconcileWorkflowRun"] == 40026749978
+    assert baseline["controllerImage"].endswith(
+        "@sha256:c691ff19e5d368008556c4274c749ab2f3510843551b8b7a3b31becc7954eda9"
+    )

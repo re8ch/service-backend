@@ -108,8 +108,6 @@ spec:
       targetAuthority: contracts/releases
     - id: workload-identity
       status: designed
-      currentAuthorities:
-        - operations/migrations/github-first-control-plane/credential-contract-architecture.md
       targetAuthority: contracts/credentials
       gate: schema, compiler and Broker shadow projections
     - id: runtime-observation

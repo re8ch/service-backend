@@ -124,4 +124,3 @@ spec:
     - repository: pillars-infra/network-gitops
       pullRequest: 42
       runner: r640-enterprise-02
-    protectedEnvironments: operations/migrations/github-first-control-plane/evidence/2026-10-24-nine-domain-protected-environments.md

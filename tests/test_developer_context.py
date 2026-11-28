@@ -33,6 +33,14 @@ def test_developer_context_wiki_projection_is_current():
     assert result.returncode == 0, result.stderr
 
 
+def test_architecture_history_wiki_is_link_only_navigation():
+    page = (ROOT / "operations/developer-context/wiki/Architecture-History-Index.md").read_text()
+    assert "discussions/3465" in page
+    assert "issues/3461" in page
+    assert "Git `main` defines current contracts" in page
+    assert "Do not copy its bodies" in page
+
+
 def test_collaboration_surfaces_are_not_authorities():
     declaration = yaml.safe_load((ROOT / "workspace/developer-context.yaml").read_text())
     surfaces = declaration["spec"]["surfaces"]
