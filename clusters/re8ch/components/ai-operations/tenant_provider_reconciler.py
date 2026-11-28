@@ -373,7 +373,7 @@ def harbor_client(kube) -> HarborClient:
     return HarborClient(
         HARBOR_URL,
         "admin",
-        secret_value(kube, "harbor-system", "harbor-admin-core", "HARBOR_ADMIN_PASSWORD"),
+        secret_value(kube, "harbor", "harbor-core-env", "HARBOR_ADMIN_PASSWORD"),
     )
 
 

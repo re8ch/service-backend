@@ -707,12 +707,12 @@ def test_tenant_provider_reads_the_native_harbor_admin_authority():
             check=True, capture_output=True, text=True).stdout, Loader=YAML_SAFE_LOADER) if item]
     role = next(item for item in docs if item.get("kind") == "Role"
                 and item["metadata"]["name"] == "tenant-provider-harbor-admin-read")
-    assert role["metadata"]["namespace"] == "harbor-system"
+    assert role["metadata"]["namespace"] == "harbor"
     assert role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
-                               "resourceNames": ["harbor-admin-core"], "verbs": ["get"]}]
+                               "resourceNames": ["harbor-core-env"], "verbs": ["get"]}]
     binding = next(item for item in docs if item.get("kind") == "RoleBinding"
                    and item["metadata"]["name"] == "tenant-provider-harbor-admin-read")
-    assert binding["metadata"]["namespace"] == "harbor-system"
+    assert binding["metadata"]["namespace"] == "harbor"
     assert binding["subjects"] == [{"kind": "ServiceAccount", "name": "tenant-provider-reconciler",
                                      "namespace": "tenant-infrastructure"}]
 
