@@ -393,7 +393,8 @@ class FakeHarbor:
 
     def create_robot(self, project, name, permission, duration_days, description=None):
         assert project == "acme" and permission in {"pull", "build-push"}
-        access = [{"resource": "repository", "action": "pull"}]
+        access = [{"resource": "repository", "action": "list"},
+                  {"resource": "repository", "action": "pull"}]
         if permission == "build-push":
             access += [{"resource": "repository", "action": "push"},
                        {"resource": "artifact", "action": "read"},

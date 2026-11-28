@@ -653,8 +653,8 @@ def reconcile_harbor_robot(kube, instance: dict[str, Any], client: HarborClient)
             robot = client.robot(old_id)
         except Exception:
             robot = None
-        expected_access = ({("repository", "pull")} if plan == "pull" else
-                           {("repository", "pull"), ("repository", "push"),
+        expected_access = ({("repository", "list"), ("repository", "pull")} if plan == "pull" else
+                           {("repository", "list"), ("repository", "pull"), ("repository", "push"),
                             ("artifact", "read"), ("artifact", "create"), ("scan", "create")})
         permissions = (robot.get("permissions") or []) if robot else []
         actual_access = {(entry.get("resource"), entry.get("action"))

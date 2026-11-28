@@ -200,9 +200,9 @@ class HarborClient:
     def create_robot(self, project: str, name: str, permission: str, duration_days: int,
                      description: str | None = None) -> tuple[dict[str, Any], str]:
         templates = {
-            "pull": [("repository", "pull")],
-            "build-push": [("repository", "pull"), ("repository", "push"), ("artifact", "read"), ("artifact", "create"), ("scan", "create")],
-            "project-admin": [("repository", "pull"), ("repository", "push"), ("repository", "delete"), ("artifact", "read"), ("artifact", "create"), ("artifact", "delete"), ("scan", "create")],
+            "pull": [("repository", "list"), ("repository", "pull")],
+            "build-push": [("repository", "list"), ("repository", "pull"), ("repository", "push"), ("artifact", "read"), ("artifact", "create"), ("scan", "create")],
+            "project-admin": [("repository", "list"), ("repository", "pull"), ("repository", "push"), ("repository", "delete"), ("artifact", "read"), ("artifact", "create"), ("artifact", "delete"), ("scan", "create")],
         }
         if permission not in templates:
             raise ValueError("unknown robot permission template")
