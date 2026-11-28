@@ -1,0 +1,3978 @@
+{
+  "apiVersion": "catalog.re8ch.com/v1alpha1",
+  "kind": "RuntimeServiceCatalog",
+  "metadata": {
+    "name": "re8ch-cluster-runtime",
+    "source": "inventory/platform/live/services.yaml",
+    "authority": "kubernetes"
+  },
+  "summary": {
+    "workloads": 309,
+    "ready": 221,
+    "degraded": 36,
+    "scaledToZero": 52
+  },
+  "items": [
+    {
+      "ref": "kubernetes/agent-collab/deployment/teable",
+      "namespace": "agent-collab",
+      "name": "teable",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          3000
+        ]
+      },
+      "hosts": [
+        "teable.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/agent-collab/deployment/teable-edge-relay",
+      "namespace": "agent-collab",
+      "name": "teable-edge-relay",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/agent-collab/deployment/teable-redis",
+      "namespace": "agent-collab",
+      "name": "teable-redis",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          6379
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/agent-collab/deployment/wechat-content-orchestrator",
+      "namespace": "agent-collab",
+      "name": "wechat-content-orchestrator",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-gateway/deployment/re8ch-ai-gateway",
+      "namespace": "ai-gateway",
+      "name": "re8ch-ai-gateway",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/agent-orchestra-collab",
+      "namespace": "ai-operations",
+      "name": "agent-orchestra-collab",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/browser-runtime-pool-poc",
+      "namespace": "ai-operations",
+      "name": "browser-runtime-pool-poc",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/cloud-platform-tool",
+      "namespace": "ai-operations",
+      "name": "cloud-platform-tool",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/cluster-infra-tool",
+      "namespace": "ai-operations",
+      "name": "cluster-infra-tool",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/oauth2-proxy-steel",
+      "namespace": "ai-operations",
+      "name": "oauth2-proxy-steel",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/re8ch-cloud-platform",
+      "namespace": "ai-operations",
+      "name": "re8ch-cloud-platform",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          19443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/steel-browser",
+      "namespace": "ai-operations",
+      "name": "steel-browser",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000,
+          8977,
+          9223
+        ]
+      },
+      "hosts": [
+        "browser.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/steel-browser-artus",
+      "namespace": "ai-operations",
+      "name": "steel-browser-artus",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000,
+          8977,
+          9223
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/steel-browser-gateway",
+      "namespace": "ai-operations",
+      "name": "steel-browser-gateway",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/steel-browser-stealth-canary",
+      "namespace": "ai-operations",
+      "name": "steel-browser-stealth-canary",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000,
+          9223
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/steel-browser-ui",
+      "namespace": "ai-operations",
+      "name": "steel-browser-ui",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ai-operations/deployment/steel-browser-ui-artus",
+      "namespace": "ai-operations",
+      "name": "steel-browser-ui-artus",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/among-clusters/deployment/among-clusters-agent",
+      "namespace": "among-clusters",
+      "name": "among-clusters-agent",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/among-clusters/deployment/among-clusters-gateway",
+      "namespace": "among-clusters",
+      "name": "among-clusters-gateway",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8443,
+          22240,
+          23768
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/among-clusters/deployment/among-clusters-hub",
+      "namespace": "among-clusters",
+      "name": "among-clusters-hub",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/anycam/deployment/nuclio-anycam-model-gateway",
+      "namespace": "anycam",
+      "name": "nuclio-anycam-model-gateway",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/anysite/deployment/anysite-postgrest",
+      "namespace": "anysite",
+      "name": "anysite-postgrest",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/anysite/deployment/scale-api",
+      "namespace": "anysite",
+      "name": "scale-api",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "api-guangzhou24.re8ch.com",
+        "api-shanghai217.re8ch.com",
+        "api.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/anysite/deployment/scale-worker",
+      "namespace": "anysite",
+      "name": "scale-worker",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/auth/deployment/authentik-redis",
+      "namespace": "auth",
+      "name": "authentik-redis",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          6379
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/auth/deployment/authentik-server",
+      "namespace": "auth",
+      "name": "authentik-server",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80,
+          443
+        ]
+      },
+      "hosts": [
+        "auth.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/auth/deployment/authentik-worker",
+      "namespace": "auth",
+      "name": "authentik-worker",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/auth/deployment/nuclio-re8ch-auth-gateway",
+      "namespace": "auth",
+      "name": "nuclio-re8ch-auth-gateway",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/auth/deployment/re8ch-auth-gateway",
+      "namespace": "auth",
+      "name": "re8ch-auth-gateway",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      },
+      "hosts": [
+        "api-guangzhou24.re8ch.com",
+        "api-shanghai217.re8ch.com",
+        "api-shanghai77.re8ch.com",
+        "api.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/cert-manager/deployment/cert-manager",
+      "namespace": "cert-manager",
+      "name": "cert-manager",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9402
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cert-manager/deployment/cert-manager-cainjector",
+      "namespace": "cert-manager",
+      "name": "cert-manager-cainjector",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9402
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cert-manager/deployment/cert-manager-webhook",
+      "namespace": "cert-manager",
+      "name": "cert-manager-webhook",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          443,
+          9402
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/codex-app-server/deployment/codex-app-server",
+      "namespace": "codex-app-server",
+      "name": "codex-app-server",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4500
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/codex-platform/deployment/codex-app-server-console",
+      "namespace": "codex-platform",
+      "name": "codex-app-server-console",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      },
+      "hosts": [
+        "api-shanghai217.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/codex-platform/deployment/codex-session-controller",
+      "namespace": "codex-platform",
+      "name": "codex-session-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/codex-platform/deployment/codex-session-web",
+      "namespace": "codex-platform",
+      "name": "codex-session-web",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      },
+      "hosts": [
+        "codex.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/comfy-agent/deployment/comfyui-agent-r640",
+      "namespace": "comfy-agent",
+      "name": "comfyui-agent-r640",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/comfy-agent/deployment/comfyui-amd",
+      "namespace": "comfy-agent",
+      "name": "comfyui-amd",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8188
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/compocv/deployment/compocv",
+      "namespace": "compocv",
+      "name": "compocv",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "api-guangzhou24.re8ch.com",
+        "api-shanghai217.re8ch.com",
+        "api-shanghai77.re8ch.com",
+        "api.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/compocv/deployment/compocv-api-relay",
+      "namespace": "compocv",
+      "name": "compocv-api-relay",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          18080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/compocv/deployment/nuclio-compocv-api",
+      "namespace": "compocv",
+      "name": "nuclio-compocv-api",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cosyvoice/deployment/cosyvoice",
+      "namespace": "cosyvoice",
+      "name": "cosyvoice",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          50000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/credential-broker/deployment/among-clusters-credential-broker",
+      "namespace": "credential-broker",
+      "name": "among-clusters-credential-broker",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/credential-broker/deployment/harbor-credential-broker",
+      "namespace": "credential-broker",
+      "name": "harbor-credential-broker",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/daemonset/cube-trial-node",
+      "namespace": "cube-trial",
+      "name": "cube-trial-node",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/cube-trial/daemonset/cube-trial-node-bootstrap",
+      "namespace": "cube-trial",
+      "name": "cube-trial-node-bootstrap",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/cube-trial/daemonset/cube-trial-node-installer",
+      "namespace": "cube-trial",
+      "name": "cube-trial-node-installer",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-api",
+      "namespace": "cube-trial",
+      "name": "cube-trial-api",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-cubemastercli",
+      "namespace": "cube-trial",
+      "name": "cube-trial-cubemastercli",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-lifecycle-manager",
+      "namespace": "cube-trial",
+      "name": "cube-trial-lifecycle-manager",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8083
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-master",
+      "namespace": "cube-trial",
+      "name": "cube-trial-master",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8089
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-ops",
+      "namespace": "cube-trial",
+      "name": "cube-trial-ops",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3010
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-proxy",
+      "namespace": "cube-trial",
+      "name": "cube-trial-proxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80,
+          443,
+          8082
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/cube-trial-webui",
+      "namespace": "cube-trial",
+      "name": "cube-trial-webui",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          12088
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/deployment/oauth2-proxy-cube",
+      "namespace": "cube-trial",
+      "name": "oauth2-proxy-cube",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/statefulset/cube-trial-mysql",
+      "namespace": "cube-trial",
+      "name": "cube-trial-mysql",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3306
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/cube-trial/statefulset/cube-trial-redis",
+      "namespace": "cube-trial",
+      "name": "cube-trial-redis",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          6379
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/dataspace/deployment/dataspace-gateway",
+      "namespace": "dataspace",
+      "name": "dataspace-gateway",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/default/deployment/mobile-egress-mobile-egress-control",
+      "namespace": "default",
+      "name": "mobile-egress-mobile-egress-control",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/dex/deployment/dex",
+      "namespace": "dex",
+      "name": "dex",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/edge-devices/daemonset/r640-usb-dra",
+      "namespace": "edge-devices",
+      "name": "r640-usb-dra",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/edge-devices/deployment/device-fabric-controller",
+      "namespace": "edge-devices",
+      "name": "device-fabric-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-anytls-public-edge",
+      "namespace": "egress-fabric",
+      "name": "mihomos-anytls-public-edge",
+      "kind": "DaemonSet",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          24443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-cn-exit",
+      "namespace": "egress-fabric",
+      "name": "mihomos-cn-exit",
+      "kind": "DaemonSet",
+      "desired": 7,
+      "ready": 7,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          1080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-global-exit",
+      "namespace": "egress-fabric",
+      "name": "mihomos-global-exit",
+      "kind": "DaemonSet",
+      "desired": 2,
+      "ready": 1,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          1080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-mobile-publication",
+      "namespace": "egress-fabric",
+      "name": "mihomos-mobile-publication",
+      "kind": "DaemonSet",
+      "desired": 2,
+      "ready": 1,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-node-cn",
+      "namespace": "egress-fabric",
+      "name": "mihomos-node-cn",
+      "kind": "DaemonSet",
+      "desired": 10,
+      "ready": 10,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-node-global",
+      "namespace": "egress-fabric",
+      "name": "mihomos-node-global",
+      "kind": "DaemonSet",
+      "desired": 3,
+      "ready": 2,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/daemonset/mihomos-status-agent",
+      "namespace": "egress-fabric",
+      "name": "mihomos-status-agent",
+      "kind": "DaemonSet",
+      "desired": 13,
+      "ready": 12,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/access-adguard",
+      "namespace": "egress-fabric",
+      "name": "access-adguard",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/access-controller",
+      "namespace": "egress-fabric",
+      "name": "access-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/access-rule-sync",
+      "namespace": "egress-fabric",
+      "name": "access-rule-sync",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/access-subscription",
+      "namespace": "egress-fabric",
+      "name": "access-subscription",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/mihomo-egress-kl",
+      "namespace": "egress-fabric",
+      "name": "mihomo-egress-kl",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/mihomo-egress-la",
+      "namespace": "egress-fabric",
+      "name": "mihomo-egress-la",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/mobile-egress-mobile-egress-control",
+      "namespace": "egress-fabric",
+      "name": "mobile-egress-mobile-egress-control",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/mosdns",
+      "namespace": "egress-fabric",
+      "name": "mosdns",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          5353
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/network-decomplexer-policy-api",
+      "namespace": "egress-fabric",
+      "name": "network-decomplexer-policy-api",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/oauth2-proxy-access-dns",
+      "namespace": "egress-fabric",
+      "name": "oauth2-proxy-access-dns",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/oauth2-proxy-access-subscription",
+      "namespace": "egress-fabric",
+      "name": "oauth2-proxy-access-subscription",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/path-controller",
+      "namespace": "egress-fabric",
+      "name": "path-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/personal-access-cn-loudi",
+      "namespace": "egress-fabric",
+      "name": "personal-access-cn-loudi",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/personal-access-my-kul",
+      "namespace": "egress-fabric",
+      "name": "personal-access-my-kul",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          24443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/personal-access-us-ca",
+      "namespace": "egress-fabric",
+      "name": "personal-access-us-ca",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          24443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/egress-fabric/deployment/personal-access-us-la",
+      "namespace": "egress-fabric",
+      "name": "personal-access-us-la",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          24443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/fleet/deployment/fleet",
+      "namespace": "fleet",
+      "name": "fleet",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      },
+      "hosts": [
+        "fleet.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/fleet/deployment/fleet-egress-proxy",
+      "namespace": "fleet",
+      "name": "fleet-egress-proxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3128
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/fleet/deployment/fleet-redis",
+      "namespace": "fleet",
+      "name": "fleet-redis",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          6379
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/fleet/statefulset/fleet-mysql",
+      "namespace": "fleet",
+      "name": "fleet-mysql",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3306
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/flux-system/deployment/helm-controller",
+      "namespace": "flux-system",
+      "name": "helm-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/flux-system/deployment/image-automation-controller",
+      "namespace": "flux-system",
+      "name": "image-automation-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/flux-system/deployment/image-reflector-controller",
+      "namespace": "flux-system",
+      "name": "image-reflector-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/flux-system/deployment/kustomize-controller",
+      "namespace": "flux-system",
+      "name": "kustomize-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/flux-system/deployment/notification-controller",
+      "namespace": "flux-system",
+      "name": "notification-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/flux-system/deployment/source-controller",
+      "namespace": "flux-system",
+      "name": "source-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/function-routing/daemonset/function-gateway-edge",
+      "namespace": "function-routing",
+      "name": "function-gateway-edge",
+      "kind": "DaemonSet",
+      "desired": 2,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/function-routing/deployment/function-gateway-anchor",
+      "namespace": "function-routing",
+      "name": "function-gateway-anchor",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/function-routing/deployment/function-placement-controller",
+      "namespace": "function-routing",
+      "name": "function-placement-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/git-workspaces/deployment/git-workspace-controller",
+      "namespace": "git-workspaces",
+      "name": "git-workspace-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-core",
+      "namespace": "harbor",
+      "name": "harbor-core",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-jobservice",
+      "namespace": "harbor",
+      "name": "harbor-jobservice",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-log",
+      "namespace": "harbor",
+      "name": "harbor-log",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-portal",
+      "namespace": "harbor",
+      "name": "harbor-portal",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-postgresql",
+      "namespace": "harbor",
+      "name": "harbor-postgresql",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-proxy",
+      "namespace": "harbor",
+      "name": "harbor-proxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-redis",
+      "namespace": "harbor",
+      "name": "harbor-redis",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-registry",
+      "namespace": "harbor",
+      "name": "harbor-registry",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80,
+          443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/harbor-registryctl",
+      "namespace": "harbor",
+      "name": "harbor-registryctl",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/harbor/deployment/trivy-adapter",
+      "namespace": "harbor",
+      "name": "trivy-adapter",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/headlamp/deployment/controlled-cluster-relay",
+      "namespace": "headlamp",
+      "name": "controlled-cluster-relay",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          16443,
+          26443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/headlamp/deployment/headlamp",
+      "namespace": "headlamp",
+      "name": "headlamp",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "LoadBalancer",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/headlamp/deployment/headlamp-active-elector",
+      "namespace": "headlamp",
+      "name": "headlamp-active-elector",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/image/deployment/nuclio-registry-image-control-api",
+      "namespace": "image",
+      "name": "nuclio-registry-image-control-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/image/deployment/nuclio-registry-image-metering-worker",
+      "namespace": "image",
+      "name": "nuclio-registry-image-metering-worker",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/cilium",
+      "namespace": "kube-system",
+      "name": "cilium",
+      "kind": "DaemonSet",
+      "desired": 13,
+      "ready": 12,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/podcidr-fabric-reconciler",
+      "namespace": "kube-system",
+      "name": "podcidr-fabric-reconciler",
+      "kind": "DaemonSet",
+      "desired": 13,
+      "ready": 12,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/re8ch-advanced-fabric-agent",
+      "namespace": "kube-system",
+      "name": "re8ch-advanced-fabric-agent",
+      "kind": "DaemonSet",
+      "desired": 13,
+      "ready": 12,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/re8ch-advanced-fabric-pod-conformance",
+      "namespace": "kube-system",
+      "name": "re8ch-advanced-fabric-pod-conformance",
+      "kind": "DaemonSet",
+      "desired": 13,
+      "ready": 12,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/re8ch-node-external-ip-agent",
+      "namespace": "kube-system",
+      "name": "re8ch-node-external-ip-agent",
+      "kind": "DaemonSet",
+      "desired": 10,
+      "ready": 9,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/regional-origin-dnat",
+      "namespace": "kube-system",
+      "name": "regional-origin-dnat",
+      "kind": "DaemonSet",
+      "desired": 3,
+      "ready": 3,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/traefik",
+      "namespace": "kube-system",
+      "name": "traefik",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80,
+          443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/traefik-public-edge",
+      "namespace": "kube-system",
+      "name": "traefik-public-edge",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/daemonset/traefik-r640",
+      "namespace": "kube-system",
+      "name": "traefik-r640",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/advanced-fabric-doh",
+      "namespace": "kube-system",
+      "name": "advanced-fabric-doh",
+      "kind": "Deployment",
+      "desired": 3,
+      "ready": 3,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/cilium-operator",
+      "namespace": "kube-system",
+      "name": "cilium-operator",
+      "kind": "Deployment",
+      "desired": 3,
+      "ready": 3,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/hubble-relay",
+      "namespace": "kube-system",
+      "name": "hubble-relay",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/hubble-ui",
+      "namespace": "kube-system",
+      "name": "hubble-ui",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/kube-state-metrics",
+      "namespace": "kube-system",
+      "name": "kube-state-metrics",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080,
+          8081
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/local-path-provisioner",
+      "namespace": "kube-system",
+      "name": "local-path-provisioner",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/metrics-server",
+      "namespace": "kube-system",
+      "name": "metrics-server",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/metrics-server-ha",
+      "namespace": "kube-system",
+      "name": "metrics-server-ha",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/re8ch-advanced-fabric-controller",
+      "namespace": "kube-system",
+      "name": "re8ch-advanced-fabric-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/kube-system/deployment/routeros-node-controller",
+      "namespace": "kube-system",
+      "name": "routeros-node-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-api-gateway",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-api-gateway",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-api-gateway-shanghai217",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-api-gateway-shanghai217",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-api-gateway-shanghai77",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-api-gateway-shanghai77",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-gnucash-report-runner",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-gnucash-report-runner",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-gnucash-report-runner-shanghai217",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-gnucash-report-runner-shanghai217",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-gnucash-report-runner-shanghai77",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-gnucash-report-runner-shanghai77",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-wechat-auth",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-wechat-auth",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-wechat-auth-shanghai217",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-wechat-auth-shanghai217",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ledger/deployment/nuclio-ledger-wechat-auth-shanghai77",
+      "namespace": "ledger",
+      "name": "nuclio-ledger-wechat-auth-shanghai77",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/llm-gateway/deployment/litellm",
+      "namespace": "llm-gateway",
+      "name": "litellm",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          4000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/llm-gateway/deployment/litellm-postgresql",
+      "namespace": "llm-gateway",
+      "name": "litellm-postgresql",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          5432
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/mail-system/statefulset/stalwart",
+      "namespace": "mail-system",
+      "name": "stalwart",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          25,
+          80,
+          110,
+          143,
+          443,
+          465,
+          587,
+          993,
+          995,
+          4190,
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/mcp-registry/deployment/mcp-registry",
+      "namespace": "mcp-registry",
+      "name": "mcp-registry",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/mcp-registry/deployment/mcp-registry-postgresql",
+      "namespace": "mcp-registry",
+      "name": "mcp-registry-postgresql",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/mitos-trial/daemonset/mitos-forkd",
+      "namespace": "mitos-trial",
+      "name": "mitos-forkd",
+      "kind": "DaemonSet",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/mitos-trial/daemonset/mitos-kernel-stage",
+      "namespace": "mitos-trial",
+      "name": "mitos-kernel-stage",
+      "kind": "DaemonSet",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/mitos-trial/daemonset/mitos-kvm-device-plugin",
+      "namespace": "mitos-trial",
+      "name": "mitos-kvm-device-plugin",
+      "kind": "DaemonSet",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/mitos-trial/deployment/mitos-controller",
+      "namespace": "mitos-trial",
+      "name": "mitos-controller",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/neo4j/statefulset/ledger-casegraph",
+      "namespace": "neo4j",
+      "name": "ledger-casegraph",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          7474,
+          7687
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/neo4j/statefulset/ledger-economicsgraph",
+      "namespace": "neo4j",
+      "name": "ledger-economicsgraph",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          7474,
+          7687
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/neo4j/statefulset/neo4j",
+      "namespace": "neo4j",
+      "name": "neo4j",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          7474,
+          7687
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-dashboard",
+      "namespace": "netbird-access",
+      "name": "netbird-dashboard",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-egress-probe",
+      "namespace": "netbird-access",
+      "name": "netbird-egress-probe",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-relay-gz-1",
+      "namespace": "netbird-access",
+      "name": "netbird-relay-gz-1",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-relay-hz-1",
+      "namespace": "netbird-access",
+      "name": "netbird-relay-hz-1",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-router-cn",
+      "namespace": "netbird-access",
+      "name": "netbird-router-cn",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-router-la",
+      "namespace": "netbird-access",
+      "name": "netbird-router-la",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/netbird-access/deployment/netbird-server",
+      "namespace": "netbird-access",
+      "name": "netbird-server",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80,
+          9000,
+          9090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/nuclio/daemonset/ledger-accounting-agent-edge-proxy",
+      "namespace": "nuclio",
+      "name": "ledger-accounting-agent-edge-proxy",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/ledger-accounting-agent",
+      "namespace": "nuclio",
+      "name": "ledger-accounting-agent",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "api-guangzhou24.re8ch.com",
+        "api-shanghai217.re8ch.com",
+        "api-shanghai77.re8ch.com",
+        "api.re8ch.com",
+        "neo4j.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/ledger-accounting-agent-reverse-tunnel",
+      "namespace": "nuclio",
+      "name": "ledger-accounting-agent-reverse-tunnel",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/ledger-decision-analysis",
+      "namespace": "nuclio",
+      "name": "ledger-decision-analysis",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "decision.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/ledger-decisions-static",
+      "namespace": "nuclio",
+      "name": "ledger-decisions-static",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "ledger-decisions.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/nuclio-anycam-model-gateway",
+      "namespace": "nuclio",
+      "name": "nuclio-anycam-model-gateway",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/nuclio-bench-hello",
+      "namespace": "nuclio",
+      "name": "nuclio-bench-hello",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/nuclio-bench-pg-read",
+      "namespace": "nuclio",
+      "name": "nuclio-bench-pg-read",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/nuclio-bench-pg-write",
+      "namespace": "nuclio",
+      "name": "nuclio-bench-pg-write",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/nuclio-controller",
+      "namespace": "nuclio",
+      "name": "nuclio-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/nuclio/deployment/nuclio-dashboard",
+      "namespace": "nuclio",
+      "name": "nuclio-dashboard",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8070
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observability-ai/deployment/birfucate-metering",
+      "namespace": "observability-ai",
+      "name": "birfucate-metering",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9791
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observability-ai/deployment/robusta-forwarder",
+      "namespace": "observability-ai",
+      "name": "robusta-forwarder",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observability-ai/deployment/robusta-runner",
+      "namespace": "observability-ai",
+      "name": "robusta-runner",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observability-ai/deployment/trial-gateway-collector",
+      "namespace": "observability-ai",
+      "name": "trial-gateway-collector",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4317,
+          4318
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observability-system/deployment/re8ch-kube-state-metrics",
+      "namespace": "observability-system",
+      "name": "re8ch-kube-state-metrics",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observability-system/deployment/victoria-metrics-operator",
+      "namespace": "observability-system",
+      "name": "victoria-metrics-operator",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080,
+          9443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/observable/deployment/observable-postgrest",
+      "namespace": "observable",
+      "name": "observable-postgrest",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/opencost/deployment/opencost",
+      "namespace": "opencost",
+      "name": "opencost",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8081,
+          9003,
+          9090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/opensandbox-system/deployment/opensandbox-controller-manager",
+      "namespace": "opensandbox-system",
+      "name": "opensandbox-controller-manager",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/opensandbox-system/deployment/opensandbox-orchestra-proxy",
+      "namespace": "opensandbox-system",
+      "name": "opensandbox-orchestra-proxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/opensandbox-system/deployment/opensandbox-server",
+      "namespace": "opensandbox-system",
+      "name": "opensandbox-server",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "opensandbox.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/opensandbox-system/deployment/teable-infra-compat",
+      "namespace": "opensandbox-system",
+      "name": "teable-infra-compat",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/opensandbox-system/deployment/teable-infra-git",
+      "namespace": "opensandbox-system",
+      "name": "teable-infra-git",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/opensandbox-system/deployment/teable-infra-minio",
+      "namespace": "opensandbox-system",
+      "name": "teable-infra-minio",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/opentelemetry-operator/deployment/otel-operator-opentelemetry-operator",
+      "namespace": "opentelemetry-operator",
+      "name": "otel-operator-opentelemetry-operator",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8443
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ops/deployment/cloudbeaver",
+      "namespace": "ops",
+      "name": "cloudbeaver",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8978
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ops/deployment/mikrotik-rule-publisher",
+      "namespace": "ops",
+      "name": "mikrotik-rule-publisher",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ops/deployment/ops-mcp-server",
+      "namespace": "ops",
+      "name": "ops-mcp-server",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8088
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/ops/deployment/vpn-identity-controller",
+      "namespace": "ops",
+      "name": "vpn-identity-controller",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/daemonset/alloy-nuclio-logs",
+      "namespace": "qianwen-ops",
+      "name": "alloy-nuclio-logs",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/daemonset/panel-harbor-node-vmagent",
+      "namespace": "qianwen-ops",
+      "name": "panel-harbor-node-vmagent",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/daemonset/panel-node-exporter",
+      "namespace": "qianwen-ops",
+      "name": "panel-node-exporter",
+      "kind": "DaemonSet",
+      "desired": 13,
+      "ready": 12,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9100
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/daemonset/panel-qwen-functions-vmagent",
+      "namespace": "qianwen-ops",
+      "name": "panel-qwen-functions-vmagent",
+      "kind": "DaemonSet",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/daemonset/panel-vlagent",
+      "namespace": "qianwen-ops",
+      "name": "panel-vlagent",
+      "kind": "DaemonSet",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9429
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/aliyun-esa-api-origin-controller",
+      "namespace": "qianwen-ops",
+      "name": "aliyun-esa-api-origin-controller",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero"
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/external-dns-cloudflare",
+      "namespace": "qianwen-ops",
+      "name": "external-dns-cloudflare",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/hyperglass",
+      "namespace": "qianwen-ops",
+      "name": "hyperglass",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8001
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/hyperglass-redis",
+      "namespace": "qianwen-ops",
+      "name": "hyperglass-redis",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          6379
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/loki-lite",
+      "namespace": "qianwen-ops",
+      "name": "loki-lite",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          3100
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/oauth2-proxy-hubble",
+      "namespace": "qianwen-ops",
+      "name": "oauth2-proxy-hubble",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/oauth2-proxy-hyperglass",
+      "namespace": "qianwen-ops",
+      "name": "oauth2-proxy-hyperglass",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/oauth2-proxy-opencost",
+      "namespace": "qianwen-ops",
+      "name": "oauth2-proxy-opencost",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          4180
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-blackbox-exporter",
+      "namespace": "qianwen-ops",
+      "name": "panel-blackbox-exporter",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9115
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-grafana",
+      "namespace": "qianwen-ops",
+      "name": "panel-grafana",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "LoadBalancer",
+        "ports": [
+          3000
+        ]
+      },
+      "hosts": [
+        "grafana.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-grafana-renderer",
+      "namespace": "qianwen-ops",
+      "name": "panel-grafana-renderer",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8081
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-pg-re8ch-primary-vmagent",
+      "namespace": "qianwen-ops",
+      "name": "panel-pg-re8ch-primary-vmagent",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-pigsty-vmalert",
+      "namespace": "qianwen-ops",
+      "name": "panel-pigsty-vmalert",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8880
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-re8ch-vmalert",
+      "namespace": "qianwen-ops",
+      "name": "panel-re8ch-vmalert",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8880
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-tenant-logs-proxy",
+      "namespace": "qianwen-ops",
+      "name": "panel-tenant-logs-proxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          39092
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-tenant-metrics-proxy",
+      "namespace": "qianwen-ops",
+      "name": "panel-tenant-metrics-proxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          39091
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-victoria-logs",
+      "namespace": "qianwen-ops",
+      "name": "panel-victoria-logs",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9428
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/panel-victoria-metrics",
+      "namespace": "qianwen-ops",
+      "name": "panel-victoria-metrics",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8428
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/re8ch-grafana-cloud-vmagent",
+      "namespace": "qianwen-ops",
+      "name": "re8ch-grafana-cloud-vmagent",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8429
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qianwen-ops/deployment/re8ch-routing-advisor",
+      "namespace": "qianwen-ops",
+      "name": "re8ch-routing-advisor",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9790
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/aliyun-esa-api-origin-controller",
+      "namespace": "qwen",
+      "name": "aliyun-esa-api-origin-controller",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-agent-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-agent-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-mcp-gateway",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-mcp-gateway",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-analytics",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-analytics",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-api-core",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-api-core",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-assets-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-assets-api",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-feishu-agent",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-feishu-agent",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "NodePort",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-image-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-image-api",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-image-worker",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-image-worker",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-integrations-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-integrations-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080,
+          8090
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-oss-sts",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-oss-sts",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-reverse-image-prompt",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-reverse-image-prompt",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-script-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-script-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-storyboard-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-storyboard-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-tasks",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-tasks",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-text-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-text-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-video-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-video-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-video-meta",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-video-meta",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/nuclio-qianwen-prod-workflow-api",
+      "namespace": "qwen",
+      "name": "nuclio-qianwen-prod-workflow-api",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/qianwen-region-metadata",
+      "namespace": "qwen",
+      "name": "qianwen-region-metadata",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/qwen/deployment/qwen-edge-redirects",
+      "namespace": "qwen",
+      "name": "qwen-edge-redirects",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/regional-routing/daemonset/public-edge-manager",
+      "namespace": "regional-routing",
+      "name": "public-edge-manager",
+      "kind": "DaemonSet",
+      "desired": 4,
+      "ready": 3,
+      "health": "degraded",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/regional-routing/daemonset/regional-edge-tls-proxy",
+      "namespace": "regional-routing",
+      "name": "regional-edge-tls-proxy",
+      "kind": "DaemonSet",
+      "desired": 3,
+      "ready": 2,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/daemonset/rook-ceph.cephfs.csi.ceph.com-nodeplugin",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph.cephfs.csi.ceph.com-nodeplugin",
+      "kind": "DaemonSet",
+      "desired": 12,
+      "ready": 12,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/daemonset/rook-ceph.rbd.csi.ceph.com-nodeplugin",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph.rbd.csi.ceph.com-nodeplugin",
+      "kind": "DaemonSet",
+      "desired": 12,
+      "ready": 12,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/ceph-csi-controller-manager",
+      "namespace": "rook-ceph",
+      "name": "ceph-csi-controller-manager",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-crashcollector-a1-wsl-zt",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-a1-wsl-zt",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-crashcollector-b1-wsl-zt",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-b1-wsl-zt",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-crashcollector-r640",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-crashcollector-r640",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-exporter-a1-wsl-zt",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-a1-wsl-zt",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-exporter-b1-wsl-zt",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-b1-wsl-zt",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-exporter-r640",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-exporter-r640",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mds-re8ch-files-a",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mds-re8ch-files-a",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mds-re8ch-files-b",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mds-re8ch-files-b",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mgr-a",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mgr-a",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mgr-b",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mgr-b",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mon-a",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mon-a",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mon-b",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mon-b",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-mon-c",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-mon-c",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-operator",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-operator",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-osd-0",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-osd-0",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-osd-1",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-osd-1",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-osd-2",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-osd-2",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph-tools",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph-tools",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph.cephfs.csi.ceph.com-ctrlplugin",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph.cephfs.csi.ceph.com-ctrlplugin",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/rook-ceph/deployment/rook-ceph.rbd.csi.ceph.com-ctrlplugin",
+      "namespace": "rook-ceph",
+      "name": "rook-ceph.rbd.csi.ceph.com-ctrlplugin",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/runtime-poc/deployment/spin-http-poc",
+      "namespace": "runtime-poc",
+      "name": "spin-http-poc",
+      "kind": "Deployment",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/scheduler-system/deployment/scheduler-plugins",
+      "namespace": "scheduler-system",
+      "name": "scheduler-plugins",
+      "kind": "Deployment",
+      "desired": 3,
+      "ready": 3,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/scheduler-system/deployment/trimaran-vmalert",
+      "namespace": "scheduler-system",
+      "name": "trimaran-vmalert",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/scheduling-system/deployment/penrose-controller",
+      "namespace": "scheduling-system",
+      "name": "penrose-controller",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/storage-fabric/daemonset/csi-rclone-node",
+      "namespace": "storage-fabric",
+      "name": "csi-rclone-node",
+      "kind": "DaemonSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/storage-fabric/deployment/csi-rclone-controller",
+      "namespace": "storage-fabric",
+      "name": "csi-rclone-controller",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-auth",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-auth",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          9999
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-imgproxy",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-imgproxy",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          5001
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-kong",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-kong",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-meta",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-meta",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-realtime",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-realtime",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-rest",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-rest",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-storage",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-storage",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          5000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/supabase-pg-re8ch/deployment/supabase-studio",
+      "namespace": "supabase-pg-re8ch",
+      "name": "supabase-studio",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          3000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/symphony-trial/deployment/symphony",
+      "namespace": "symphony-trial",
+      "name": "symphony",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          4000
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/synthetic-monitoring/deployment/re8ch-k3s-apac-sm-agent",
+      "namespace": "synthetic-monitoring",
+      "name": "re8ch-k3s-apac-sm-agent",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/cluster-infra-plugins-runtime",
+      "namespace": "toolhive-system",
+      "name": "cluster-infra-plugins-runtime",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-admin-external",
+      "namespace": "toolhive-system",
+      "name": "ops-admin-external",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-admin-managed",
+      "namespace": "toolhive-system",
+      "name": "ops-admin-managed",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-admin-vmcp-internal",
+      "namespace": "toolhive-system",
+      "name": "ops-admin-vmcp-internal",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-observe-external",
+      "namespace": "toolhive-system",
+      "name": "ops-observe-external",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-observe-managed",
+      "namespace": "toolhive-system",
+      "name": "ops-observe-managed",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-observe-vmcp-internal",
+      "namespace": "toolhive-system",
+      "name": "ops-observe-vmcp-internal",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-operate-external",
+      "namespace": "toolhive-system",
+      "name": "ops-operate-external",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-operate-managed",
+      "namespace": "toolhive-system",
+      "name": "ops-operate-managed",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/ops-operate-vmcp-internal",
+      "namespace": "toolhive-system",
+      "name": "ops-operate-vmcp-internal",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 0,
+      "health": "degraded"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/qwen-tenant-runtime",
+      "namespace": "toolhive-system",
+      "name": "qwen-tenant-runtime",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/qwen-tenant-vmcp",
+      "namespace": "toolhive-system",
+      "name": "qwen-tenant-vmcp",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/re8ch-admin-vmcp",
+      "namespace": "toolhive-system",
+      "name": "re8ch-admin-vmcp",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/re8ch-plugin-runtime",
+      "namespace": "toolhive-system",
+      "name": "re8ch-plugin-runtime",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8088
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/re8ch-tools-vmcp",
+      "namespace": "toolhive-system",
+      "name": "re8ch-tools-vmcp",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/toolhive-cloud-ui",
+      "namespace": "toolhive-system",
+      "name": "toolhive-cloud-ui",
+      "kind": "Deployment",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          80
+        ]
+      },
+      "hosts": [
+        "tools.re8ch.com"
+      ]
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/toolhive-operator",
+      "namespace": "toolhive-system",
+      "name": "toolhive-operator",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/deployment/toolhive-registry-server",
+      "namespace": "toolhive-system",
+      "name": "toolhive-registry-server",
+      "kind": "Deployment",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          8080
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/cluster-infra-plugins-runtime",
+      "namespace": "toolhive-system",
+      "name": "cluster-infra-plugins-runtime",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-admin-external",
+      "namespace": "toolhive-system",
+      "name": "ops-admin-external",
+      "kind": "StatefulSet",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-admin-managed",
+      "namespace": "toolhive-system",
+      "name": "ops-admin-managed",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-admin-vmcp-internal",
+      "namespace": "toolhive-system",
+      "name": "ops-admin-vmcp-internal",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-observe-external",
+      "namespace": "toolhive-system",
+      "name": "ops-observe-external",
+      "kind": "StatefulSet",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-observe-managed",
+      "namespace": "toolhive-system",
+      "name": "ops-observe-managed",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-observe-vmcp-internal",
+      "namespace": "toolhive-system",
+      "name": "ops-observe-vmcp-internal",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-operate-external",
+      "namespace": "toolhive-system",
+      "name": "ops-operate-external",
+      "kind": "StatefulSet",
+      "desired": 2,
+      "ready": 2,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-operate-managed",
+      "namespace": "toolhive-system",
+      "name": "ops-operate-managed",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/ops-operate-vmcp-internal",
+      "namespace": "toolhive-system",
+      "name": "ops-operate-vmcp-internal",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/qwen-tenant-runtime",
+      "namespace": "toolhive-system",
+      "name": "qwen-tenant-runtime",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/toolhive-auth-redis",
+      "namespace": "toolhive-system",
+      "name": "toolhive-auth-redis",
+      "kind": "StatefulSet",
+      "desired": 0,
+      "ready": 0,
+      "health": "scaled-to-zero",
+      "service": {
+        "type": "ClusterIP",
+        "ports": [
+          6379
+        ]
+      }
+    },
+    {
+      "ref": "kubernetes/toolhive-system/statefulset/toolhive-auth-redis-ab",
+      "namespace": "toolhive-system",
+      "name": "toolhive-auth-redis-ab",
+      "kind": "StatefulSet",
+      "desired": 1,
+      "ready": 1,
+      "health": "ready"
+    }
+  ]
+}
