@@ -191,11 +191,20 @@ platform-admin membership is still subject to the current plugin tool list
 and backend permissions. Empty tenant consumables or service classes do not
 restrict this administrator authority. The internal `admin` backend publishes
 `postgres_admin_sql` for reviewed Pigsty SQL:
-read-only queries execute through the fixed Supabase database identity; writes
-require an approval ID, first return a plan hash, and execute only with
-`apply=true` and that hash.
+read-only queries execute through the fixed Supabase database identity. The
+gateway publishes this adapter as the protected `admin.database-governance.v1`
+module only while the active organization is `admin`; membership in `re8ch`
+does not cross that organization boundary. Call
+`platform_database_governance_inventory` first. Writes bind that exact
+inventory hash, a reviewed approval ID and an idempotency key into the preview
+plan, and execute only with `apply=true` and that exact plan hash. Completed
+identical retries replay the stored result; an interrupted pending operation
+fails closed for audit inspection instead of executing again.
 Neither callers nor tool results receive the database password. This path
 avoids requiring a fresh Supabase Studio login for every migration.
+It does not replace GitOps: deterministic cluster resources, database workload
+configuration and other static control-plane changes continue through reviewed
+Git and the bounded Cloud SSA executor.
 
 ### Re8ch Admin GitHub Enterprise governance service
 
