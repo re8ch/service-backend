@@ -77,6 +77,8 @@
         "organization_ruleset",
         "repository_variable",
         "organization_variable",
+        "organization_custom_property_schema",
+        "repository_custom_property_values",
         "organization",
         "workflow",
         "workflow_run"
