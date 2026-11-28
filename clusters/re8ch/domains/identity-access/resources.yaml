@@ -5405,13 +5405,42 @@ data:
     create or replace view bifurcate.active_mcp_catalog as
     select s.server_ref, s.owner_org_ref, s.slug, s.display_name, s.service_instance_ref,
            a.revision_ref, a.activation_sequence, r.definition_sha256,
-           t.tool_ref, t.tool_name, rt.schema_sha256, rt.input_schema, rt.tool_definition
+           t.tool_ref, t.tool_name, rt.schema_sha256, rt.input_schema, rt.tool_definition,
+           r.definition as revision_definition
     from bifurcate.mcp_active_revisions a
     join bifurcate.mcp_servers s using (server_ref, owner_org_ref)
     join bifurcate.mcp_server_revisions r using (revision_ref, server_ref, owner_org_ref)
     join bifurcate.mcp_revision_tools rt using (revision_ref, server_ref, owner_org_ref)
     join bifurcate.mcp_tools t using (tool_ref, server_ref, owner_org_ref)
     where s.lifecycle = 'active' and r.state = 'sealed' and t.lifecycle = 'active';
+
+    create or replace function bifurcate_api.claim_mcp_catalog_projection_events(p_limit integer default 100)
+    returns table(event_id bigint, event_type text, payload jsonb)
+    language sql security definer
+    set search_path = bifurcate, pg_catalog, pg_temp
+    as $$
+      with claimed as (
+        select o.event_id from mcp_catalog_outbox o
+        where o.published_at is null
+        order by o.event_id
+        limit greatest(1, least(p_limit, 256))
+        for update skip locked
+      ), updated as (
+        update mcp_catalog_outbox o set publish_attempts = publish_attempts + 1
+        from claimed c where o.event_id = c.event_id
+        returning o.event_id, o.event_type, o.payload
+      ) select * from updated order by event_id;
+    $$;
+
+    create or replace function bifurcate_api.ack_mcp_catalog_projection_event(p_event_id bigint)
+    returns boolean language sql security definer
+    set search_path = bifurcate, pg_catalog, pg_temp
+    as $$
+      with updated as (
+        update mcp_catalog_outbox set published_at = coalesce(published_at, now()), last_error = null
+        where event_id = p_event_id returning 1
+      ) select exists(select 1 from updated);
+    $$;
 
     revoke all on schema bifurcate from public;
     revoke all on all tables in schema bifurcate from public;
@@ -5426,6 +5455,10 @@ data:
     grant execute on function bifurcate_api.transition_mcp_catalog_registration(text,text,text,uuid,text)
       to billing_commerce_runtime;
     grant execute on function bifurcate_api.activate_mcp_catalog_revision(text,uuid,text)
+      to billing_commerce_runtime;
+    grant execute on function bifurcate_api.claim_mcp_catalog_projection_events(integer)
+      to billing_commerce_runtime;
+    grant execute on function bifurcate_api.ack_mcp_catalog_projection_event(bigint)
       to billing_commerce_runtime;
     do $$
     begin
