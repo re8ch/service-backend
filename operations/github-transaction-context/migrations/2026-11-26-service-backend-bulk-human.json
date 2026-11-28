@@ -1,0 +1,476 @@
+{
+  "apiVersion": "governance.re8ch.com/v1alpha1",
+  "kind": "PullRequestFactorBackfillRecord",
+  "metadata": {
+    "capturedAt": "2026-11-26T08:06:59.069444+00:00",
+    "parentIssue": "re8ch/service-backend#3128",
+    "source": "bulk_service_backfill.py"
+  },
+  "batch": {
+    "repository": "re8ch/service-backend",
+    "cohort": "detached-human-open-prs",
+    "pullRequestCount": 48
+  },
+  "pullRequests": [
+    {
+      "number": 350,
+      "url": "https://github.com/re8ch/service-backend/pull/350",
+      "primaryFactor": "re8ch/service-backend#3262",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 356,
+      "url": "https://github.com/re8ch/service-backend/pull/356",
+      "primaryFactor": "re8ch/service-backend#3261",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 426,
+      "url": "https://github.com/re8ch/service-backend/pull/426",
+      "primaryFactor": "re8ch/service-backend#3260",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 495,
+      "url": "https://github.com/re8ch/service-backend/pull/495",
+      "primaryFactor": "re8ch/service-backend#3259",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 497,
+      "url": "https://github.com/re8ch/service-backend/pull/497",
+      "primaryFactor": "re8ch/service-backend#3258",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 538,
+      "url": "https://github.com/re8ch/service-backend/pull/538",
+      "primaryFactor": "re8ch/service-backend#3256",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 539,
+      "url": "https://github.com/re8ch/service-backend/pull/539",
+      "primaryFactor": "re8ch/service-backend#3257",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 580,
+      "url": "https://github.com/re8ch/service-backend/pull/580",
+      "primaryFactor": "re8ch/service-backend#3255",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 606,
+      "url": "https://github.com/re8ch/service-backend/pull/606",
+      "primaryFactor": "re8ch/service-backend#3253",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 631,
+      "url": "https://github.com/re8ch/service-backend/pull/631",
+      "primaryFactor": "re8ch/service-backend#3252",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 720,
+      "url": "https://github.com/re8ch/service-backend/pull/720",
+      "primaryFactor": "re8ch/service-backend#3251",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 721,
+      "url": "https://github.com/re8ch/service-backend/pull/721",
+      "primaryFactor": "re8ch/service-backend#3250",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 728,
+      "url": "https://github.com/re8ch/service-backend/pull/728",
+      "primaryFactor": "re8ch/service-backend#3249",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 730,
+      "url": "https://github.com/re8ch/service-backend/pull/730",
+      "primaryFactor": "re8ch/service-backend#3248",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 968,
+      "url": "https://github.com/re8ch/service-backend/pull/968",
+      "primaryFactor": "re8ch/service-backend#3247",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 993,
+      "url": "https://github.com/re8ch/service-backend/pull/993",
+      "primaryFactor": "re8ch/service-backend#3246",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1045,
+      "url": "https://github.com/re8ch/service-backend/pull/1045",
+      "primaryFactor": "re8ch/service-backend#3245",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1082,
+      "url": "https://github.com/re8ch/service-backend/pull/1082",
+      "primaryFactor": "re8ch/service-backend#3244",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1122,
+      "url": "https://github.com/re8ch/service-backend/pull/1122",
+      "primaryFactor": "re8ch/service-backend#3243",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1558,
+      "url": "https://github.com/re8ch/service-backend/pull/1558",
+      "primaryFactor": "re8ch/service-backend#3242",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1638,
+      "url": "https://github.com/re8ch/service-backend/pull/1638",
+      "primaryFactor": "re8ch/service-backend#3241",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1763,
+      "url": "https://github.com/re8ch/service-backend/pull/1763",
+      "primaryFactor": "re8ch/service-backend#3240",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 1920,
+      "url": "https://github.com/re8ch/service-backend/pull/1920",
+      "primaryFactor": "re8ch/service-backend#3238",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2025,
+      "url": "https://github.com/re8ch/service-backend/pull/2025",
+      "primaryFactor": "re8ch/service-backend#3239",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2052,
+      "url": "https://github.com/re8ch/service-backend/pull/2052",
+      "primaryFactor": "re8ch/service-backend#3237",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2063,
+      "url": "https://github.com/re8ch/service-backend/pull/2063",
+      "primaryFactor": "re8ch/service-backend#3236",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2350,
+      "url": "https://github.com/re8ch/service-backend/pull/2350",
+      "primaryFactor": "re8ch/service-backend#3235",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2411,
+      "url": "https://github.com/re8ch/service-backend/pull/2411",
+      "primaryFactor": "re8ch/service-backend#3234",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2536,
+      "url": "https://github.com/re8ch/service-backend/pull/2536",
+      "primaryFactor": "re8ch/service-backend#3233",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2585,
+      "url": "https://github.com/re8ch/service-backend/pull/2585",
+      "primaryFactor": "re8ch/service-backend#3232",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2655,
+      "url": "https://github.com/re8ch/service-backend/pull/2655",
+      "primaryFactor": "re8ch/service-backend#3231",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2657,
+      "url": "https://github.com/re8ch/service-backend/pull/2657",
+      "primaryFactor": "re8ch/service-backend#3230",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2663,
+      "url": "https://github.com/re8ch/service-backend/pull/2663",
+      "primaryFactor": "re8ch/service-backend#3229",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2681,
+      "url": "https://github.com/re8ch/service-backend/pull/2681",
+      "primaryFactor": "re8ch/service-backend#3227",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2699,
+      "url": "https://github.com/re8ch/service-backend/pull/2699",
+      "primaryFactor": "re8ch/service-backend#3226",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2816,
+      "url": "https://github.com/re8ch/service-backend/pull/2816",
+      "primaryFactor": "re8ch/service-backend#3225",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2842,
+      "url": "https://github.com/re8ch/service-backend/pull/2842",
+      "primaryFactor": "re8ch/service-backend#3223",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2849,
+      "url": "https://github.com/re8ch/service-backend/pull/2849",
+      "primaryFactor": "re8ch/service-backend#3224",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2851,
+      "url": "https://github.com/re8ch/service-backend/pull/2851",
+      "primaryFactor": "re8ch/service-backend#3228",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2871,
+      "url": "https://github.com/re8ch/service-backend/pull/2871",
+      "primaryFactor": "re8ch/service-backend#3221",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2894,
+      "url": "https://github.com/re8ch/service-backend/pull/2894",
+      "primaryFactor": "re8ch/service-backend#3219",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2895,
+      "url": "https://github.com/re8ch/service-backend/pull/2895",
+      "primaryFactor": "re8ch/service-backend#3217",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2935,
+      "url": "https://github.com/re8ch/service-backend/pull/2935",
+      "primaryFactor": "re8ch/service-backend#3216",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 2944,
+      "url": "https://github.com/re8ch/service-backend/pull/2944",
+      "primaryFactor": "re8ch/service-backend#3214",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 3001,
+      "url": "https://github.com/re8ch/service-backend/pull/3001",
+      "primaryFactor": "re8ch/service-backend#3220",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 3065,
+      "url": "https://github.com/re8ch/service-backend/pull/3065",
+      "primaryFactor": "re8ch/service-backend#3213",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 3066,
+      "url": "https://github.com/re8ch/service-backend/pull/3066",
+      "primaryFactor": "re8ch/service-backend#3215",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    },
+    {
+      "number": 3067,
+      "url": "https://github.com/re8ch/service-backend/pull/3067",
+      "primaryFactor": "re8ch/service-backend#3218",
+      "stateBefore": "OPEN",
+      "stateAfter": "OPEN",
+      "nativeClosingReferenceReadback": true,
+      "result": "complete"
+    }
+  ],
+  "initialAttempt": {
+    "attempted": 48,
+    "verified": 38,
+    "projectEnrollmentRaces": 10
+  },
+  "delegatedAutomationStreams": {
+    "dependency-update:re8ch/service-backend:npm_and_yarn": 5,
+    "domain-oci-promotion:re8ch/service-backend": 4
+  },
+  "safety": {
+    "pullRequestsClosed": 0,
+    "pullRequestsMerged": 0,
+    "existingBodyPreserved": true,
+    "credentialMaterialRecorded": false
+  },
+  "result": {
+    "attempted": 48,
+    "verified": 48,
+    "failed": 0,
+    "skippedAutomation": 9
+  },
+  "independentReadback": {
+    "openPullRequests": 124,
+    "detached": 0,
+    "humanDetached": 0,
+    "factorContextIncomplete": 0,
+    "historicalBranchIdentityMissing": 123
+  }
+}
