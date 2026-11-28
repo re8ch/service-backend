@@ -151,7 +151,7 @@ func tenantSystemAccess(ctx context.Context, tenant string) ([]map[string]any, e
 
 func appendAdminSystemCapabilities(result map[string]any, access []map[string]any) {
 	tools := map[string][]string{
-		"system-postgresql":    {"platform_postgres_admin_sql"},
+		"system-postgresql":    {"platform_database_governance_inventory", "platform_postgres_admin_sql"},
 		"system-observability": {"platform_observability_status"},
 		"system-mail":          {"platform_stalwart_status", "platform_stalwart_admin"},
 	}
@@ -165,6 +165,8 @@ func appendAdminSystemCapabilities(result map[string]any, access []map[string]an
 			"id": id, "ownership": "platform", "scope": "system", "grantIndependent": true, "role": "admin",
 			"resources": entry["resourceRefs"], "operations": entry["operations"], "tools": published,
 			"canRead": true, "canWrite": true, "secretValuesReadable": false,
+			"protectedModule": map[string]any{"organizationRef": "admin", "inventoryFirst": true,
+				"writeGuards": []string{"approvalId", "inventoryHash", "planHash", "idempotencyKey"}},
 		})
 	}
 }
