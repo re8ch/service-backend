@@ -50,3 +50,14 @@ def test_authentication_configuration_binds_only_exact_workflow():
     assert "claims.workflow_ref == 're8ch/service-backend/.github/workflows/tenant-platform-bootstrap.yml@refs/heads/main'" in text
     assert "claims.environment == 'platform-bootstrap-tenant-infrastructure'" in text
     assert "['re8ch:platform-bootstrap:tenant-infrastructure']" in text
+
+
+def test_agent_runtime_observation_access_is_namespace_scoped_and_read_only():
+    items=docs('clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml')
+    role=next(d for d in items if d['kind']=='Role'
+              and d['metadata']['name']=='agent-runtime-domain-tenant-infrastructure')
+    assert role['metadata']['namespace']=='tenant-infrastructure'
+    unbounded={(tuple(rule['apiGroups']),tuple(rule['resources']),tuple(rule['verbs']))
+               for rule in role['rules'] if not rule.get('resourceNames')}
+    assert (('',),('pods','events'),('get','list')) in unbounded
+    assert (('apps',),('replicasets',),('get','list')) in unbounded
