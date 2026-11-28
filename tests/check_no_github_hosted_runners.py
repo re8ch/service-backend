@@ -52,6 +52,7 @@ CLOUD_JOBS = {
     ".github/workflows/payment-registry-release.yml": {"finalize"},
     ".github/workflows/studio-toolkit-release.yml": {"publish"},
     ".github/workflows/workspace-memory-audit.yml": {"audit"},
+    ".github/workflows/architecture-ledger-publish.yml": {"publish"},
     ".github/workflows/agent-town.yml": {"route", "effect"},
 }
 

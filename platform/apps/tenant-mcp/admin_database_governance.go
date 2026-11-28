@@ -18,7 +18,7 @@ func adminDatabaseInventory() (map[string]any, string, error) {
 	inventory := map[string]any{
 		"module":                     "admin.database-governance.v1",
 		"organizationRef":            adminDatabaseOrganization,
-		"databases":                  []string{"re8ch_billing", "re8ch_identity"},
+		"databases":                  []string{"re8ch_billing", "re8ch_commerce", "re8ch_identity"},
 		"operations":                 []string{"inventory", "read", "plan", "apply"},
 		"writeGuards":                []string{"approvalId", "inventoryHash", "planHash", "idempotencyKey"},
 		"credentialRef":              "credential://platform/admin/system-postgresql",

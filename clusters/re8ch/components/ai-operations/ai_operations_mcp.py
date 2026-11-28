@@ -980,20 +980,24 @@ TENANT_KUBERNETES_KINDS = {
 TENANT_KUBERNETES_READ_KINDS = {kind.lower(): (api_version, kind) for api_version, kind in TENANT_KUBERNETES_KINDS}
 TENANT_KUBERNETES_READ_KINDS.update({kind: ("v1", kind) for kind in ("pod", "pods", "event", "events", "endpoint", "endpoints")})
 TENANT_KUBERNETES_READ_KINDS.update({kind: ("apps/v1", kind) for kind in ("replicaset", "replicasets")})
-DATABASE_BINDING_TEMPLATE = '{{range .items}}{{.metadata.name}}{{"\\t"}}{{.metadata.uid}}{{"\\t"}}{{index .metadata.labels "re8ch.com/database"}}{{"\\t"}}{{range $key, $_ := .data}}{{$key}}{{","}}{{end}}{{"\\n"}}{{end}}'
+DATABASE_BINDING_TEMPLATE = '{{range .items}}{{.metadata.name}}{{"\\t"}}{{.metadata.uid}}{{"\\t"}}{{index .metadata.labels "re8ch.com/database"}}{{"\\t"}}{{index .metadata.annotations "re8ch.com/credential-status"}}{{"\\t"}}{{index .metadata.annotations "re8ch.com/database-state"}}{{"\\t"}}{{range $key, $_ := .data}}{{$key}}{{","}}{{end}}{{"\\n"}}{{end}}'
 
 
 def parse_tenant_database_bindings(output: str, tenant: str, namespace: str) -> dict[str, Any]:
     items = []
     for line in output.strip().splitlines():
-        fields = line.split("\t", 3)
-        if (len(fields) != 4 or not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", fields[0])
+        fields = line.split("\t", 5)
+        if (len(fields) != 6 or not re.fullmatch(r"[a-z0-9]([-a-z0-9]*[a-z0-9])?", fields[0])
                 or not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", fields[2]) or not fields[1]):
             raise PermissionError("invalid database credential metadata response")
-        keys = sorted(key for key in fields[3].rstrip(",").split(",") if key)
+        credential_state = fields[3] if fields[3] in {"complete", "partial"} else "unverified"
+        database_state = fields[4]
+        if credential_state != "complete" or database_state not in {"Ready", "Unavailable"}:
+            database_state = "unverified"
+        keys = sorted(key for key in fields[5].rstrip(",").split(",") if key)
         if any(not re.fullmatch(r"[A-Za-z0-9._-]+", key) for key in keys):
             raise PermissionError("invalid database credential key metadata")
-        items.append({"database": fields[2], "secretRef": namespace + "/" + fields[0], "secretUID": fields[1], "keys": keys, "databaseState": "unverified"})
+        items.append({"database": fields[2], "secretRef": namespace + "/" + fields[0], "secretUID": fields[1], "keys": keys, "credentialState": credential_state, "databaseState": database_state})
     return {"tenantRef": tenant, "namespace": namespace, "kind": "databasecredential", "items": items}
 TENANT_BYOC_TOOLS = [
     {"name": "byoc_cluster_register", "description": "Register an outbound-only BYOC cluster identity for admin approval.", "inputSchema": schema({"cluster_uid": {"type": "string"}, "region_ref": {"type": "string"}, "issuer": {"type": "string"}, "public_key": {"type": "string"}, "capabilities": {"type": "array", "items": {"type": "string"}}}, ["cluster_uid", "region_ref", "issuer", "public_key"])},

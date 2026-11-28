@@ -38,6 +38,26 @@ func TestGitHubGovernanceRequestAllowlist(t *testing.T) {
 	if err != nil || method != http.MethodPost || path != "/repos/strata-silica/storage-gitops/actions/runs/43699449394/rerun-failed-jobs" {
 		t.Fatalf("unexpected workflow rerun request: %s %s %v", method, path, err)
 	}
+	method, path, body, err = githubGovernanceRequest(githubGovernanceInput{Resource: "organization_custom_property_schema", Operation: "update", Owner: "re8ch", Body: map[string]any{"properties": []any{map[string]any{"property_name": "ops.repository-role", "value_type": "single_select", "required": true, "allowed_values": []any{"product", "gitops", "control-plane"}}}}})
+	if err != nil || method != http.MethodPatch || path != "/orgs/re8ch/properties/schema" || !strings.Contains(string(body), "ops.repository-role") {
+		t.Fatalf("unexpected custom property schema request: %s %s %s %v", method, path, body, err)
+	}
+	method, path, body, err = githubGovernanceRequest(githubGovernanceInput{Resource: "repository_custom_property_values", Operation: "update", Owner: "re8ch", Repo: "service-backend", Body: map[string]any{"properties": []any{map[string]any{"property_name": "ops.repository-role", "value": "control-plane"}}}})
+	if err != nil || method != http.MethodPatch || path != "/repos/re8ch/service-backend/properties/values" || !strings.Contains(string(body), "control-plane") {
+		t.Fatalf("unexpected repository custom property request: %s %s %s %v", method, path, body, err)
+	}
+}
+
+func TestGitHubGovernanceRejectsUnsafeCustomProperties(t *testing.T) {
+	for _, input := range []githubGovernanceInput{
+		{Resource: "organization_custom_property_schema", Operation: "update", Owner: "re8ch", Body: map[string]any{"properties": []any{map[string]any{"property_name": "risk", "value_type": "secret"}}}},
+		{Resource: "organization_custom_property_schema", Operation: "update", Owner: "re8ch", Body: map[string]any{"properties": []any{map[string]any{"property_name": "risk", "value_type": "string", "private_key": "x"}}}},
+		{Resource: "repository_custom_property_values", Operation: "update", Owner: "re8ch", Repo: "service-backend", Body: map[string]any{"properties": []any{map[string]any{"property_name": "risk"}}}},
+	} {
+		if _, _, _, err := githubGovernanceRequest(input); err == nil {
+			t.Fatalf("unsafe custom property input accepted: %#v", input)
+		}
+	}
 }
 
 func TestGitHubGovernanceOrganizationUpdateFields(t *testing.T) {
@@ -70,7 +90,7 @@ func TestGitHubGovernanceCredentialFailsClosed(t *testing.T) {
 }
 
 func TestGitHubGovernanceRejectsEveryDeleteOperation(t *testing.T) {
-	for resource := range map[string]bool{"repository_ruleset": true, "organization_ruleset": true, "repository_variable": true, "organization_variable": true, "organization": true, "workflow": true, "workflow_run": true} {
+	for resource := range map[string]bool{"repository_ruleset": true, "organization_ruleset": true, "repository_variable": true, "organization_variable": true, "organization_custom_property_schema": true, "repository_custom_property_values": true, "organization": true, "workflow": true, "workflow_run": true} {
 		if _, _, _, err := githubGovernanceRequest(githubGovernanceInput{Resource: resource, Operation: "delete", Owner: "re8ch", Repo: "service-backend", Name: "X", ID: 1}); err == nil || !strings.Contains(err.Error(), "not available") {
 			t.Fatalf("delete accepted for %s: %v", resource, err)
 		}
