@@ -292,7 +292,8 @@ class ToolProfileTests(unittest.TestCase):
         module = load_profile("admin")
         sql = "CREATE TABLE billing_probe (id bigint)"
         args = {"database": "re8ch_billing", "sql": sql, "readOnly": False,
-                "approvalId": "re8ch/service-backend#1670"}
+                "approvalId": "re8ch/service-backend#1670", "inventoryHash": "a" * 64,
+                "idempotencyKey": "service-backend-1670"}
         requests = []
         module.kube_request = lambda *request: requests.append(request) or {"data": {
             "POSTGRES_PASSWORD": base64.b64encode(b"test-only-password").decode(),

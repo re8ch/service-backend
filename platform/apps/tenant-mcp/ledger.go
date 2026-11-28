@@ -36,6 +36,14 @@ func openLedger(path string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS admin_database_operations (
+		organization_ref TEXT NOT NULL, idempotency_key TEXT NOT NULL, request_hash TEXT NOT NULL,
+		state TEXT NOT NULL CHECK(state IN ('pending','completed')), result_json TEXT,
+		created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+		PRIMARY KEY(organization_ref,idempotency_key));`); err != nil {
+		db.Close()
+		return nil, err
+	}
 	if _, err = db.Exec(`CREATE TABLE IF NOT EXISTS mcp_catalog_revisions (
 		revision TEXT PRIMARY KEY, tenant_ref TEXT NOT NULL, service_name TEXT NOT NULL,
 		definition_json TEXT NOT NULL, state TEXT NOT NULL CHECK(state IN ('active','paused')),
