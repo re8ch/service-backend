@@ -49,6 +49,45 @@ var githubGovernanceCapabilities = map[string]string{
 
 var githubGovernanceName = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}$`)
 
+func validateGitHubCustomProperties(body map[string]any, schema bool) error {
+	properties, ok := body["properties"].([]any)
+	if !ok || len(properties) == 0 || len(properties) > 32 || len(body) != 1 {
+		return errors.New("custom properties require one non-empty properties array with at most 32 entries")
+	}
+	for _, raw := range properties {
+		property, ok := raw.(map[string]any)
+		if !ok {
+			return errors.New("custom property must be an object")
+		}
+		name, _ := property["property_name"].(string)
+		if !githubGovernanceName.MatchString(name) {
+			return errors.New("invalid custom property name")
+		}
+		if schema {
+			allowed := map[string]bool{"property_name": true, "value_type": true, "required": true, "default_value": true, "description": true, "allowed_values": true}
+			for field := range property {
+				if !allowed[field] {
+					return fmt.Errorf("custom property schema field %q is not allowlisted", field)
+				}
+			}
+			valueType, _ := property["value_type"].(string)
+			if !map[string]bool{"string": true, "single_select": true, "multi_select": true, "true_false": true}[valueType] {
+				return errors.New("unsupported custom property value_type")
+			}
+		} else {
+			for field := range property {
+				if field != "property_name" && field != "value" {
+					return fmt.Errorf("repository custom property field %q is not allowlisted", field)
+				}
+			}
+			if _, exists := property["value"]; !exists {
+				return errors.New("repository custom property value is required")
+			}
+		}
+	}
+	return nil
+}
+
 func githubGovernanceJWT(capability string) (string, error) {
 	if capability == "" {
 		capability = "governance"
@@ -183,6 +222,14 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 		method, path = http.MethodPost, "/orgs/"+owner+"/actions/variables"
 	case "organization_variable:update":
 		method, path = http.MethodPatch, "/orgs/"+owner+"/actions/variables/"+url.PathEscape(in.Name)
+	case "organization_custom_property_schema:list":
+		method, path = http.MethodGet, "/orgs/"+owner+"/properties/schema"
+	case "organization_custom_property_schema:update":
+		method, path = http.MethodPatch, "/orgs/"+owner+"/properties/schema"
+	case "repository_custom_property_values:list":
+		method, path = http.MethodGet, "/repos/"+owner+"/"+in.Repo+"/properties/values"
+	case "repository_custom_property_values:update":
+		method, path = http.MethodPatch, "/repos/"+owner+"/"+in.Repo+"/properties/values"
 	case "organization:get":
 		method, path = http.MethodGet, "/orgs/"+owner
 	case "organization:update":
@@ -208,6 +255,16 @@ func githubGovernanceRequest(in githubGovernanceInput) (string, string, []byte, 
 	}
 	if strings.Contains(in.Resource, "repository") && in.Repo == "" {
 		return "", "", nil, errors.New("repository is required")
+	}
+	if in.Resource == "organization_custom_property_schema" && in.Operation == "update" {
+		if err := validateGitHubCustomProperties(in.Body, true); err != nil {
+			return "", "", nil, err
+		}
+	}
+	if in.Resource == "repository_custom_property_values" && in.Operation == "update" {
+		if err := validateGitHubCustomProperties(in.Body, false); err != nil {
+			return "", "", nil, err
+		}
 	}
 	if (in.Resource == "workflow" || in.Resource == "workflow_run") && in.Repo == "" {
 		return "", "", nil, errors.New("repository is required")
