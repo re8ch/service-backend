@@ -8,7 +8,7 @@ spec:
   projectType: gitops-control-plane
   writePolicy: github-pr
   knowledge: [README.md, runbooks/, clusters/, operations/, operations/workspace-controller/GITOPS-WORKTREE-POLICY.md]
-  tools: [gh, git-worktree, flux, re8ch-workspace, kubectl, helm]
+  tools: [gh, git-worktree, re8ch-workspace, kubectl, helm]
   deployments: [github.com/re8ch/service-backend, k3s/re8ch]
   source:
     kind: root
