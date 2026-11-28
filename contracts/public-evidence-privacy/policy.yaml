@@ -1,0 +1,61 @@
+apiVersion: governance.re8ch.com/v1alpha1
+kind: PublicEvidencePolicy
+metadata:
+  name: autonomous-gitops-public-evidence
+spec:
+  publicSurfaces:
+    - repository
+    - issue
+    - discussion
+    - wiki
+    - pages
+    - actions-summary
+    - actions-artifact
+  envelopeSchema: schemas/public-evidence.schema.json
+  subjectHandle:
+    algorithm: hmac-sha256
+    maximumEpochDays: 31
+  commitment:
+    construction: randomized-merkle-v1
+    digest: sha256
+    minimumNonceBytes: 32
+  aggregation:
+    minimumCohortSize: 5
+    minimumTimeBucket: day
+    minimumPublicationDelayHours: 24
+  attestation:
+    format: dsse
+    identity: github-oidc
+  forbiddenKeys:
+    - tenant
+    - tenantId
+    - resource_ref
+    - resourceRef
+    - namespace
+    - host
+    - port
+    - ip
+    - email
+    - traceId
+    - operationId
+    - eventId
+    - receiptId
+    - log
+    - message
+  forbiddenValueClasses:
+    - email
+    - ipv4
+    - uuid
+    - precise-timestamp
+  privateWitness:
+    includes:
+      - identity-mapping
+      - topology
+      - raw-metrics
+      - logs
+      - traces
+      - exact-event-time
+      - commitment-leaves
+      - commitment-nonces
+    allowedMetadataStore: private-project-draft
+    rawEvidenceStore: approved-restricted-system

@@ -72,3 +72,4 @@ approved secret systems contain values.
 - Static public sites: [`operations/public-sites/README.md`](operations/public-sites/README.md)
 - Tenant self-service: [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md)
 - Restricted topology access: [`contracts/network-topology/README.md`](contracts/network-topology/README.md)
+- Public evidence privacy: [`contracts/public-evidence-privacy/README.md`](contracts/public-evidence-privacy/README.md)

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://re8ch.com/schemas/public-evidence.schema.json",
+  "title": "Public evidence envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "claimType",
+    "subjectHandle",
+    "sourceRevision",
+    "policyDigest",
+    "timeBucket",
+    "publishAfter",
+    "result",
+    "cohortBand",
+    "metricBand",
+    "commitmentRoot",
+    "evidenceClass"
+  ],
+  "properties": {
+    "version": {"const": 1},
+    "claimType": {"enum": ["delivery", "health", "policy", "slo"]},
+    "subjectHandle": {"type": "string", "pattern": "^hmac-sha256:[0-9a-f]{64}$"},
+    "sourceRevision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "policyDigest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "timeBucket": {"type": "string", "format": "date"},
+    "publishAfter": {"type": "string", "format": "date"},
+    "result": {"enum": ["healthy", "degraded", "unknown", "passed", "failed"]},
+    "cohortBand": {"enum": ["suppressed", "5-9", "10-49", "50-249", "250+"]},
+    "metricBand": {"enum": ["suppressed", "zero", "low", "medium", "high"]},
+    "commitmentRoot": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "evidenceClass": {"const": "public-aggregate"}
+  }
+}
