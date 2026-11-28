@@ -9,8 +9,8 @@ stores reviewed intent and delivery evidence; Kubernetes owns runtime state;
 GitHub Actions and the bounded cloud SSA executor apply accepted immutable
 artifacts; Headlamp and observability systems expose live state.
 
-The permanently selected write path is the bounded cloud SSA executor; local
-Flux writers are forbidden.
+The bounded cloud SSA executor is the permanently selected write path. All
+other cluster delivery write paths are forbidden.
 
 ## Collaboration model
 
@@ -48,8 +48,8 @@ and `Timeline`.
 
 Product source remains in its independent repository. The authority ledger is
 [`operations/flux-federation/authority.yaml`](operations/flux-federation/authority.yaml),
-and current Cloud SSA domain delivery is described in
-[`operations/releases/DOMAIN-RECONCILIATION.md`](operations/releases/DOMAIN-RECONCILIATION.md).
+and Cloud SSA delivery is described in
+[`operations/releases/CLOUD-SSA-DELIVERY.md`](operations/releases/CLOUD-SSA-DELIVERY.md).
 
 ## Working here
 
@@ -68,7 +68,7 @@ approved secret systems contain values.
 
 - External project delivery: [`runbooks/external-project-deployment.md`](runbooks/external-project-deployment.md)
 - Service public-path network investigation: [`runbooks/service-public-path-network-investigation.md`](runbooks/service-public-path-network-investigation.md)
-- GitHub-native publishers: [`operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md`](operations/migrations/github-first-control-plane/github-native-agent-publisher-runbook.md)
+- Cloud SSA delivery: [`operations/releases/CLOUD-SSA-DELIVERY.md`](operations/releases/CLOUD-SSA-DELIVERY.md)
 - Static public sites: [`operations/public-sites/README.md`](operations/public-sites/README.md)
 - Tenant self-service: [`platform/apps/tenant-mcp/README.md`](platform/apps/tenant-mcp/README.md)
 - Restricted topology access: [`contracts/network-topology/README.md`](contracts/network-topology/README.md)

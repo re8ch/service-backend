@@ -2,8 +2,8 @@
 
 `pg-identity` is the authority for OAuth client identity, exact redirect URIs,
 secret hashes, lifecycle, and the owning organization membership. An application
-registration is a runtime database write through authenticated RPCs. It does not
-create a Git branch, manifest, Flux object, or other per-application GitOps state.
+registration is a runtime database write through authenticated RPCs, not a Git
+or Kubernetes delivery change.
 
 `open.service.re8ch.com` publishes only the four authenticated application-management
 RPCs under `/oauth-applications/v1`; it does not expose the complete PostgREST

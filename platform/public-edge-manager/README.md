@@ -1,8 +1,7 @@
 # PublicEdge DNS authority operations
 
 `release.yaml` is the reviewed Helm input compiled into the immutable Network
-bundle and applied by the bounded cloud SSA executor. The former HelmRelease is
-historical migration evidence, not a live owner. The declaration contains
+bundle and applied by the bounded cloud SSA executor. The declaration contains
 service catalog and model parameters only. The controller derives
 eligible edge and authority nodes from all live Kubernetes Nodes. It uses
 uplink and region facts projected from `inventory/nodes.yaml` when available,

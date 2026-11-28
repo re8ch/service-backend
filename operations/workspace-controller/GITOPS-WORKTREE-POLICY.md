@@ -1,8 +1,7 @@
 # GitOps worktree and main-anchor policy
 
 This policy applies before using `git`, `gh`, `kubectl`, `helm`, the Cloud SSA
-toolchain, or the Cloud Platform tool for a desired-state change. Retired Flux
-commands are never a current write path.
+toolchain, or the Cloud Platform tool for a desired-state change.
 
 ## Invariants
 

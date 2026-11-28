@@ -45,7 +45,7 @@ federation、AmongCluster 私有服务 federation，还是应用 federation；�
   会话、服务流或应用可用。必须从真实消费者身份验证正确集群、精确权限、实际通路
   和端到端功能；禁止用扩大 RBAC、通配 grant 或错误集群入口补偿网络/会话故障。
 - GitHub PR、签名制品和 bounded Cloud SSA 是正式写入路径。Kubernetes 是运行态
-  权威；本地 Flux writer 已退役，保留的 Flux 声明仅作历史或迁移输入。
+  权威。
 - 网络控制面参考 advanced-fabric、AmongCluster、PublicEdge 与 mihomos-cluster；
   插件/MCP 分发参考 codex-admin-plugins、tool-distribution 与 mcp-registry。
 

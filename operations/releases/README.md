@@ -2,13 +2,12 @@
 
 ## Current authority
 
-GitHub Actions and the bounded cloud SSA executor are the only platform delivery
-writer. Local and autonomous Flux controllers are retired and forbidden.
-Kubernetes is runtime authority; an independent read-only observer supplies
-health evidence after apply.
+GitHub Actions and the bounded cloud SSA executor are the platform delivery
+writer. Kubernetes is runtime authority; an independent read-only observer
+supplies health evidence after apply.
 
 The complete ownership model is documented in
-[`DOMAIN-RECONCILIATION.md`](DOMAIN-RECONCILIATION.md). Multi-cluster execution
+[`CLOUD-SSA-DELIVERY.md`](CLOUD-SSA-DELIVERY.md). Multi-cluster execution
 follows the
 [`multi-cluster federation contract`](../network/docs/multicluster-federation-contract.md).
 
@@ -83,10 +82,6 @@ module's release record. Names and digests are append-only. Registry publication
 is not deployment: only a reviewed accepted operation may advance the digest
 applied by Cloud SSA.
 
-The historical `flux_oci.py` generator remains for compatibility validation and
-migration evidence. Its OCIRepository/Kustomization output is not a live owner
-and must not be applied.
-
 ## Verification boundary
 
 CI covers bundle schemas, allowed resources, digest pins, signer identity,
@@ -100,14 +95,3 @@ source isolation and bounded SSA operations. Live completion requires:
 A successful apply is not proof that every workload is healthy. A stale or
 failed observation becomes `Unknown` rather than inheriting an earlier green
 result.
-
-## Historical activation evidence
-
-The September 2026 bootstrap runs, signed cutover PRs, private Flux sources,
-Kustomizations and production-observability suspension state describe a
-superseded delivery generation. They remain available in Git history and the
-migration evidence directories; they are not current operating instructions.
-
-Do not restore a Flux source/controller, use a former controller namespace as a
-target, or infer current runtime state from a historical Ready condition. Repair
-missing delivery coverage through the reviewed Cloud SSA path.

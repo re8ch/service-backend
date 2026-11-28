@@ -3,8 +3,7 @@
 Status: proposed; this document and unit tests do not prove runtime activation.
 
 The existing `registry-authority/k3s-registry-authority-installer` owns this
-node configuration. Its historical service-backend Flux labels are not an
-authorization to restore a Flux writer. The component's reviewed source remains
+node configuration. The component's reviewed source remains
 `clusters/re8ch/components/registry-authority/node-installer.yaml`; no current
 network-gitops release contract contains these objects.
 

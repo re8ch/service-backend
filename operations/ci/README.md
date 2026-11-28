@@ -48,8 +48,7 @@ The release schema is `schemas/domain-release.schema.json`; human-facing image
 tags use module-local themed codenames, while accepted release operations pin
 immutable digests. The bounded cloud SSA executor is the only platform writer.
 Each root needs a signed bundle, registry access, a digest-lock PR and successful
-render/apply/read-back/health evidence. Retired Flux source templates remain
-compatibility fixtures only.
+render/apply/read-back/health evidence.
 `operations/releases/publishers.yaml` is a separate reviewed signer allowlist;
 it starts empty and is never populated from an untrusted release payload.
 

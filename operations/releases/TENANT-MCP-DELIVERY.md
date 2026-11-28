@@ -2,13 +2,8 @@
 
 Tenant MCP is published through the reviewed tenant runtime and Agent domain
 contracts. GitHub Actions and the bounded cloud SSA executor are the only
-platform delivery writer. Provider and ToolHive runtimes may perform their
-explicit product operations, but they do not restore a Flux owner.
-
-The 2026-10-25 Harbor, HelmRelease, ConfigMap watch-label and autonomous
-observability handoff is historical evidence. Its controller namespaces, Flux
-Ready conditions and source-notification procedures must not be used for current
-delivery or recovery.
+platform delivery writer. Provider and ToolHive runtimes perform only their
+explicit product operations.
 
 Current completion requires:
 
@@ -20,5 +15,4 @@ Current completion requires:
 
 A pushed image, active grant, populated tool catalog or successful apply is not
 sufficient on its own. Missing coverage is repaired through the current Cloud
-SSA contract. Historical handoff details remain available in Git history and may
-be moved to the restricted operations Wiki.
+SSA contract.

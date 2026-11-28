@@ -30,8 +30,7 @@ restate or weaken that contract in a component runbook.
 Network runtime desired state is reviewed in `pillars-infra/network-gitops` and
 applied by its bounded Cloud SSA executor. This repository retains the public
 authority inventory, controller lifecycle, bounded cluster RBAC, and
-cross-domain policy boundary. Retained Flux objects are migration inputs, not
-authorization to restore a local writer or create a second Cilium owner.
+cross-domain policy boundary.
 
 Files under `operations/network/manifests/cilium` are retained bootstrap and
 migration material, not current Gateway runtime authority. Do not diagnose

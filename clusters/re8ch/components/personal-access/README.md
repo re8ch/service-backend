@@ -49,8 +49,8 @@ GITHUB_PRIVATE_KEY_FILE=/secure/path/app.pem \
 `access-controller` refreshes collaborators every 60 seconds using ETags. It
 uses the last successful snapshot during an outage, revokes removed members'
 devices and runtime users, and fails closed everywhere after the snapshot is 24
-hours old. Runtime membership, device and usage ConfigMaps are intentionally
-not Flux-owned because their writes use Kubernetes `resourceVersion` CAS.
+hours old. Runtime membership, device and usage ConfigMaps use Kubernetes
+`resourceVersion` CAS.
 
 The Store exposes these authenticated interfaces:
 

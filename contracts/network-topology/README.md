@@ -61,7 +61,7 @@ logs/artifacts, Variables, Custom Properties, comments or PR descriptions.
 
 `restricted-topology-context.sops.yaml` is a read-only diagnostic ConfigMap in
 the main Cloud SSA bundle, encrypted in Git and decrypted through the approved
-secret path. Its former Flux ownership labels are historical.
+secret path.
 The public-mesh ConfigMap projection is also encrypted, preserving its original
 kind, keys and payload; the autonomous networking owner is unchanged. Kubernetes
 RBAC and the authenticated platform boundary restrict plaintext runtime reads.
@@ -84,4 +84,3 @@ The repository stays public. Historical commits, artifacts and logs are untouche
 
 References:
 - https://docs.github.com/en/actions/reference/security/secrets
-- https://fluxcd.io/flux/components/kustomize/kustomizations/#decryption

@@ -11,9 +11,7 @@ AnyTLS/SOCKS listener. Removing the advertise label or its PeerPolicy revokes
 the pilot.
 
 This directory consumes the independently released and signed AmongClusters OCI
-artifacts. The bounded cloud SSA executor applies their reviewed bundle. Legacy
-vendored charts under `clusters/re8ch/charts` and former Flux source objects must
-not be restored for version 0.2 or later.
+artifacts. The bounded cloud SSA executor applies their reviewed bundle.
 
 ## Phase 1: Hub and read-only UI
 
@@ -36,8 +34,8 @@ submit a follow-up change setting `migration.replaceCollaborationCRDs=false`.
 
 ## Phase 2: pilot Agent
 
-Do not restore the Agent HelmRelease until the Hub has issued a tenant-bound,
-single-use invitation and the local trust domain has been approved. The Agent
+Do not activate the Agent until the Hub has issued a tenant-bound, single-use
+invitation and the local trust domain has been approved. The Agent
 must use the released OCI chart and image digests, keep its QUIC listener off by
 default, and must not receive cluster-admin permissions.
 

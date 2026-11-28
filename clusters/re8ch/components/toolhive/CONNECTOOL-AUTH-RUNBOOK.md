@@ -289,35 +289,6 @@ Evidence must include only status, tool count, required-argument list,
 `isError`, content-block count, Git SHA, image digest and operation IDs. Do not
 store bearer tokens or complete business responses.
 
-## 2026-09-07 incident findings
-
-The incident was not one OAuth bug. Four independently healthy-looking layers
-combined into a failed user experience:
-
-1. The GitHub connector did not declare the canonical administrator team, so
-   newly issued tokens had no usable admin group.
-2. The ToolHive CRD accepted `bearerToken`, but the deployed vMCP converter
-   rejected it at runtime. Schema validation alone missed this.
-3. Two encrypted Secrets were nested in `kind: List`; Flux reported success but
-   stored literal SOPS ciphertext. Both ends matched the same wrong value,
-   making a naive equality check misleading.
-4. After authentication succeeded, the protected admin tenancy object and
-   bindings were absent, turning the next failure into `403`.
-
-The recovery merged service-backend MRs `!318` through `!322`, established the
-canonical `re8ch:k8s-admins` group, split SOPS resources, used supported header
-injection, declared the protected admin tenant, refreshed all three OAuth
-credentials, and completed real read-only tool calls.
-
-Final observed acceptance counts were:
-
-- admin: 20 tools, including 8 `admin-api-backend` and 12 internal admin tools;
-- tenant: 56 tools;
-- cloud: 66 tools.
-
-Counts are diagnostic snapshots, not permanent contracts. Tool identity and
-successful calls matter more than an exact count.
-
 ## Rollback
 
 Rollback must preserve the single public identity boundary.
@@ -326,9 +297,7 @@ Rollback must preserve the single public identity boundary.
 2. Let Cloud SSA apply the accepted revert bundle and verify its exact receipt.
 3. If rotating credentials, update both standalone SOPS Secrets atomically and
    restart both consumers.
-4. Do not restore the former one-shot Dex Job, name-based scheduling policies,
-   duplicate VirtualMCPServer owners, end-user token forwarding, or Authentik.
-5. If public authentication is unsafe, fail the publication closed while
+4. If public authentication is unsafe, fail the publication closed while
    retaining break-glass SSH/control-plane access.
 
 ## Escalation and unresolved external identity cases

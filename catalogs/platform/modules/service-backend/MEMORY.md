@@ -9,7 +9,7 @@
 - Metadata policy: `in-repository`
 - Project type: `gitops-control-plane`; lifecycle: `active`
 - Knowledge: `README.md`, `runbooks/`, `clusters/`, `operations/`, `operations/workspace-controller/GITOPS-WORKTREE-POLICY.md`
-- Tools: `gh`, `git-worktree`, `flux`, `re8ch-workspace`, `kubectl`, `helm`
+- Tools: `gh`, `git-worktree`, `re8ch-workspace`, `kubectl`, `helm`
 - Deployments: `github.com/re8ch/service-backend`, `k3s/re8ch`
 - Dependencies: none
 
@@ -45,8 +45,9 @@ Application federation requires an explicit versioned API, event, replication or
 `Grant Active` is authorization intent, not health: verify exact target/RBAC, peer/session or
 PublicEdge transport, and a functional probe from the real consumer identity before acceptance.
 Never widen RBAC or grants to compensate for endpoint, transport or session failure.
-Local Flux writers are permanently retired and forbidden; the bounded cloud SSA executor
-is the only runtime writer after signed PR and CI review.
+The bounded cloud SSA executor is the permanently selected delivery writer
+after signed PR and CI review. All other cluster delivery write paths are
+forbidden.
 Normative contract: `operations/network/docs/multicluster-federation-contract.md`.
 
 ## R640 public network authority

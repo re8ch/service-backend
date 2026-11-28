@@ -1,18 +1,15 @@
 # RE8CH production observability
 
-This tree replaces the hand-maintained scrape section in the legacy panel
-observability manifest with VictoriaMetrics Operator resources.
-It contains no custom metric collector: each platform component exports its
+This tree defines the VictoriaMetrics Operator resources. It contains no custom
+metric collector: each platform component exports its
 native metrics, and each application owns its metric semantics, SLO, dashboard,
 recording rules and runbook.
 
 ## Delivery authority
 
-GitHub Actions and the bounded cloud SSA executor own delivery for both
-`bootstrap/` and `production/`. The retained Flux source and Kustomization
-records describe the completed rollout and are not live writers or suspension
-controls. Current activation is determined from Cloud SSA accepted state,
-read-back evidence and runtime health, not a historical Flux condition.
+GitHub Actions and the bounded cloud SSA executor deliver both `bootstrap/` and
+`production/`. Activation is determined from accepted state, read-back evidence
+and runtime health.
 
 The storage and rollout safety gates remain applicable to any replacement or
 capacity migration:
@@ -24,9 +21,7 @@ capacity migration:
 - the current metrics stores must have a verified snapshot and rollback path;
 - Cilium metric configuration and Pods must pass their independent acceptance.
 
-The old panel stack and its local-path stores are historical migration context.
-Do not restore them as a second writer or datasource authority. Current
-datasource health must be proven through the tenant provider binding and real
+Datasource health must be proven through the tenant provider binding and real
 queries against the active stores.
 
 Current Ceph evidence and the recovery boundary are recorded in
