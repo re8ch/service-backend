@@ -697,6 +697,26 @@ def test_database_metrics_bindings_limit_provider_reads_to_pinned_re8ch_credenti
     assert json.loads(env["GRAFANA_DATABASE_BINDINGS_JSON"]["value"]) == bindings
 
 
+def test_tenant_provider_reads_the_native_harbor_admin_authority():
+    release = documents(ROOT / "platform/birfucate-metering/release.yaml")[0]
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json") as values:
+        json.dump(release["spec"]["values"], values)
+        values.flush()
+        docs = [item for item in yaml.load_all(subprocess.run(
+            ["helm", "template", "birfucate", str(ROOT / "clusters/re8ch/charts/birfucate-metering"), "-f", values.name],
+            check=True, capture_output=True, text=True).stdout, Loader=YAML_SAFE_LOADER) if item]
+    role = next(item for item in docs if item.get("kind") == "Role"
+                and item["metadata"]["name"] == "tenant-provider-harbor-admin-read")
+    assert role["metadata"]["namespace"] == "harbor-system"
+    assert role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
+                               "resourceNames": ["harbor-admin-core"], "verbs": ["get"]}]
+    binding = next(item for item in docs if item.get("kind") == "RoleBinding"
+                   and item["metadata"]["name"] == "tenant-provider-harbor-admin-read")
+    assert binding["metadata"]["namespace"] == "harbor-system"
+    assert binding["subjects"] == [{"kind": "ServiceAccount", "name": "tenant-provider-reconciler",
+                                     "namespace": "tenant-infrastructure"}]
+
+
 def test_tenant_module_registry_projection_matches_gateway_defaults():
     import json
 
