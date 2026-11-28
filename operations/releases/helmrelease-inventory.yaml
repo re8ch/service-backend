@@ -326,7 +326,7 @@ releases:
     namespace: null
   values:
     inlinePresent: true
-    inlineSha256: sha256:30abff8e255838adfe4bebd4c60f8dfc109fb4c664f9abecedfb60e9a0b409eb
+    inlineSha256: sha256:092291e18de59b7c6cc35efd4d16c48df26bea1ec9ffc65586b7f6be797194d6
     references: []
   lifecycle:
     install:
@@ -346,7 +346,7 @@ releases:
     dependsOn: []
   maxHistory: null
   serviceAccountName: null
-  declarationSha256: sha256:dda1ecf244b8ced8f5d805945f7bee6da2e281e81c27743830e56d07604ca596
+  declarationSha256: sha256:b13ad200771a2d51456189155350f0bed36cdf464577ef65ff3ca38eea30385f
   occurrences:
   - file: platform/connectool/release.yaml
     document: 2
