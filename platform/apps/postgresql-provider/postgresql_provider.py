@@ -12,6 +12,7 @@ import secrets
 import threading
 import time
 import urllib.error
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -19,6 +20,7 @@ import tenant_control_controller as control
 
 LOG = logging.getLogger("postgresql-provider")
 SERVICE_CLASS = "database.postgresql.shared.v1"
+CATALOG_RUNTIME_PROFILE = "mcp-catalog-runtime-v1"
 PROTECTED_AUTHORITIES = ("pg-identity", "pg-billing", "pg-re8ch")
 NAME_RE = re.compile(r"^[a-z][a-z0-9-]{0,62}$")
 EXTENSIONS = {"citext", "pg_trgm", "pgcrypto", "uuid-ossp", "vector"}
@@ -94,6 +96,28 @@ class Pigsty:
             with self.connect(database) as connection, connection.cursor() as cursor:
                 cursor.execute(sql.SQL("CREATE EXTENSION IF NOT EXISTS {}").format(sql.Identifier(extension)))
 
+    def ensure_catalog_runtime(self, role: str, password: str) -> None:
+        """Create the one bounded login used by the dynamic Catalog projector."""
+        from psycopg import sql
+        with self.connect("re8ch_billing") as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (role,))
+            if cursor.fetchone() is None:
+                cursor.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD %s").format(sql.Identifier(role)), (password,))
+            cursor.execute(sql.SQL("ALTER ROLE {} LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB NOCREATEROLE "
+                                   "NOREPLICATION NOINHERIT CONNECTION LIMIT 20")
+                           .format(sql.Identifier(role)), (password,))
+            cursor.execute(sql.SQL("REVOKE ALL ON DATABASE re8ch_billing FROM {} CASCADE").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("REVOKE ALL ON SCHEMA bifurcate, bifurcate_api FROM {} CASCADE").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA bifurcate FROM {} CASCADE").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA bifurcate_api FROM {} CASCADE").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("GRANT CONNECT ON DATABASE re8ch_billing TO {}").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("GRANT USAGE ON SCHEMA bifurcate, bifurcate_api TO {}").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("GRANT SELECT ON bifurcate.active_mcp_catalog TO {}").format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("GRANT EXECUTE ON FUNCTION bifurcate_api.claim_mcp_catalog_projection_events(integer) TO {}")
+                           .format(sql.Identifier(role)))
+            cursor.execute(sql.SQL("GRANT EXECUTE ON FUNCTION bifurcate_api.ack_mcp_catalog_projection_event(bigint) TO {}")
+                           .format(sql.Identifier(role)))
+
     def login(self, role: str, enabled: bool) -> None:
         from psycopg import sql
         with self.connect("postgres") as connection, connection.cursor() as cursor:
@@ -136,6 +160,39 @@ def credential(kube: control.Kubernetes, tenant: str, uid: str, database: str, r
     return reference, password
 
 
+def catalog_runtime_credential(kube: control.Kubernetes, uid: str, rotation: str) -> tuple[str, str, str]:
+    """Prepare Catalog material without publishing it before the database accepts it."""
+    reference, password = credential(kube, "platform", uid, "re8ch_billing", "mcp_catalog_runtime")
+    name = "postgresql-" + reference.rsplit("/", 1)[-1]
+    current = kube.get("secrets", name, "credential-broker", "api/v1")
+    labels = current.get("metadata", {}).get("labels", {})
+    if labels.get("credentials.re8ch.com/rotation") != rotation:
+        password = secrets.token_urlsafe(36)
+    # Consumers assemble or project this broker-held URL server-side; it is never returned by MCP/status.
+    database_url = (
+        "postgresql://mcp_catalog_runtime:" + urllib.parse.quote(password, safe="") +
+        "@pg-re8ch-primary.pigsty-external.svc.cluster.local:5432/re8ch_billing"
+    )
+    return reference, password, database_url
+
+
+def project_catalog_runtime_credential(kube: control.Kubernetes, reference: str, password: str,
+                                       database_url: str, rotation: str) -> None:
+    """Publish the broker credential and its one-key runtime projection after DB commit."""
+    name = "postgresql-" + reference.rsplit("/", 1)[-1]
+    kube.patch("secrets", name, {"metadata": {"labels": {"credentials.re8ch.com/type": "catalog-runtime",
+                                                            "credentials.re8ch.com/rotation": rotation}},
+                                 "stringData": {"password": password,
+                                                "MCP_CATALOG_DATABASE_URL": database_url}},
+               "credential-broker", "api/v1")
+    kube.patch("secrets", "mcp-catalog-database",
+               {"metadata": {"labels": {"credentials.re8ch.com/provider": "postgresql",
+                                          "credentials.re8ch.com/type": "catalog-runtime-projection",
+                                          "credentials.re8ch.com/rotation": rotation}},
+                "stringData": {"MCP_CATALOG_DATABASE_URL": database_url}},
+               "tenant-infrastructure", "api/v1")
+
+
 def status(kube: control.Kubernetes, instance: dict[str, Any], phase: str, reason: str, access: dict[str, Any] | None) -> None:
     meta = instance["metadata"]
     kube.patch_status("tenantserviceinstances", meta["name"], {
@@ -152,6 +209,27 @@ def reconcile(kube: control.Kubernetes, instance: dict[str, Any], pigsty_factory
     if meta.get("labels", {}).get("tenancy.re8ch.com/tenant") != tenant:
         raise PermissionError("service instance tenant label does not match")
     lifecycle = spec.get("lifecycle")
+    if tenant == "platform" and name == "mcp-catalog-runtime":
+        if spec.get("parameters") != {"profile": CATALOG_RUNTIME_PROFILE}:
+            raise PermissionError("Catalog runtime profile is fixed and accepts no privilege input")
+        rotation = meta.get("annotations", {}).get("credentials.re8ch.com/rotation")
+        if not rotation or len(rotation) > 64:
+            raise PermissionError("Catalog runtime requires a bounded reviewed rotation identifier")
+        access_ref, password, database_url = catalog_runtime_credential(kube, meta["uid"], rotation)
+        pigsty = pigsty_factory(kube)
+        access = {"accessRef": access_ref, "databaseRef": "pigsty://pg-re8ch/re8ch_billing",
+                  "bindingType": "access:broker-reference", "credentialMaterialReturned": False,
+                  "privilegeProfile": CATALOG_RUNTIME_PROFILE}
+        if lifecycle == "Requested":
+            pigsty.ensure_catalog_runtime("mcp_catalog_runtime", password)
+            project_catalog_runtime_credential(kube, access_ref, password, database_url, rotation)
+            status(kube, instance, "Ready", "CatalogRuntimeCredentialReady", access)
+        elif lifecycle == "Suspended":
+            pigsty.login("mcp_catalog_runtime", False)
+            status(kube, instance, "Suspended", "CatalogRuntimeLoginRevoked", access)
+        else:
+            raise PermissionError("Catalog runtime credential may be requested or suspended, not deleted")
+        return
     if tenant == "admin" and name == "postgresql-shared":
         if spec.get("parameters"):
             raise PermissionError("Admin PostgreSQL authority adoption is parameterless")

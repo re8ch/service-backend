@@ -1,5 +1,6 @@
 import base64
 import importlib.util
+import inspect
 import json
 import sys
 import types
@@ -21,7 +22,7 @@ provider_spec.loader.exec_module(provider)
 
 class FakeKube:
     def __init__(self):
-        self.secrets = {}
+        self.secrets = {"mcp-catalog-database": {"metadata": {"labels": {}}, "data": {}}}
         self.status = None
 
     def get(self, plural, name, namespace=None, api=None):
@@ -37,6 +38,14 @@ class FakeKube:
         self.secrets[value["metadata"]["name"]] = {"metadata": value["metadata"], "data": encoded}
         return self.secrets[value["metadata"]["name"]]
 
+    def patch(self, plural, name, value, namespace=None, api=None):
+        assert plural == "secrets" and namespace in {"credential-broker", "tenant-infrastructure"}
+        secret = self.secrets[name]
+        secret["metadata"]["labels"].update(value["metadata"]["labels"])
+        for key, item in value.get("stringData", {}).items():
+            secret["data"][key] = base64.b64encode(item.encode()).decode()
+        return secret
+
     def patch_status(self, plural, name, value, namespace=None):
         self.status = value
 
@@ -50,6 +59,9 @@ class FakePigsty:
     def ensure(self, database, role, password, extensions):
         self.calls.append(("ensure", database, role, bool(password), tuple(extensions)))
 
+    def ensure_catalog_runtime(self, role, password):
+        self.calls.append(("ensure_catalog_runtime", role, bool(password)))
+
     def login(self, role, enabled):
         self.calls.append(("login", role, enabled))
 
@@ -61,6 +73,7 @@ def instance(tenant="acme", name="orders", lifecycle="Requested", parameters=Non
     if parameters is None:
         parameters = {"storageGiB": 20}
     return {"metadata": {"name": name, "namespace": tenant, "uid": "uid-123", "generation": 1,
+                         "annotations": {"credentials.re8ch.com/rotation": "1"},
                          "labels": {"tenancy.re8ch.com/tenant": tenant}},
             "spec": {"tenantRef": tenant, "serviceClass": provider.SERVICE_CLASS, "plan": "standard",
                      "lifecycle": lifecycle, "parameters": parameters}}
@@ -94,6 +107,46 @@ def test_admin_authority_is_adopted_but_not_provisioned():
     assert FakePigsty.calls == []
 
 
+def test_catalog_runtime_uses_fixed_existing_database_profile_and_broker_url():
+    kube = FakeKube(); FakePigsty.calls = []
+    value = instance("platform", "mcp-catalog-runtime", parameters={"profile": provider.CATALOG_RUNTIME_PROFILE})
+    provider.reconcile(kube, value, FakePigsty)
+    assert kube.status["phase"] == "Ready"
+    assert kube.status["access"]["databaseRef"] == "pigsty://pg-re8ch/re8ch_billing"
+    assert kube.status["access"]["privilegeProfile"] == provider.CATALOG_RUNTIME_PROFILE
+    secret = next(item for name, item in kube.secrets.items() if name != "mcp-catalog-database")
+    assert secret["metadata"]["labels"]["credentials.re8ch.com/type"] == "catalog-runtime"
+    assert secret["metadata"]["labels"]["credentials.re8ch.com/rotation"] == "1"
+    assert base64.b64decode(secret["data"]["MCP_CATALOG_DATABASE_URL"]).decode().startswith(
+        "postgresql://mcp_catalog_runtime:")
+    assert "MCP_CATALOG_DATABASE_URL" not in json.dumps(kube.status)
+    projection = kube.secrets["mcp-catalog-database"]
+    assert set(projection["data"]) == {"MCP_CATALOG_DATABASE_URL"}
+    assert FakePigsty.calls == [("ensure_catalog_runtime", "mcp_catalog_runtime", True)]
+
+
+def test_catalog_runtime_rejects_privilege_parameters_and_deletion():
+    kube = FakeKube()
+    for parameters in ({"profile": provider.CATALOG_RUNTIME_PROFILE, "schema": "public"}, {}):
+        try:
+            provider.reconcile(kube, instance("platform", "mcp-catalog-runtime", parameters=parameters), FakePigsty)
+        except PermissionError:
+            pass
+        else:
+            raise AssertionError("Catalog runtime accepted privilege input")
+
+
+def test_catalog_runtime_sql_profile_cannot_mutate_catalog_authority():
+    source = inspect.getsource(provider.Pigsty.ensure_catalog_runtime)
+    assert "active_mcp_catalog" in source
+    assert "claim_mcp_catalog_projection_events" in source
+    assert "ack_mcp_catalog_projection_event" in source
+    assert "request_mcp_catalog_registration" not in source
+    assert "transition_mcp_catalog_registration" not in source
+    assert "activate_mcp_catalog_revision" not in source
+    assert "NOINHERIT" in source and "CONNECTION LIMIT 20" in source
+
+
 def test_parameter_and_identity_guards():
     assert provider.validate_parameters({"storageGiB": 20, "extensions": ["pgcrypto"]})["backupClass"] == "pigsty-pitr"
     for value in ({"storageGiB": 0}, {"storageGiB": 20, "extensions": ["file_fdw"]}, {"storageGiB": 20, "password": "x"}):
@@ -110,6 +163,5 @@ def test_parameter_and_identity_guards():
 def test_provider_is_not_an_mcp_server_or_catalog_registrant():
     source = MODULE.read_text()
     assert "postgresql_provider_status" not in source
-    assert "MCP_CATALOG" not in source
     assert "def register(" not in source
     assert 'self.path in {"/livez", "/readyz"}' in source
