@@ -90,3 +90,16 @@ AmongCluster is only a bounded private service path and never a Kubernetes
 control proxy. `Grant Active` is authorization intent, never completion
 evidence; exact target/RBAC, transport/session and real-consumer functional
 probes are all required before declaring recovery.
+
+## Agent presence (all runtimes)
+
+Before editing any shared resource (Issue, pull request, branch, path or
+cluster object), follow the
+[agent presence protocol](https://github.com/re8ch/service-backend/blob/main/contracts/agent-presence/README.md):
+list active `agent-claim` Issues on `re8ch/service-backend`, do not touch
+anything another agent holds, claim what you will touch with a TTL, heartbeat
+before every push or apply, and release with the outcome when done. This holds
+for Claude, ChatGPT/Codex, Cursor, Gemini and in-cluster agents alike. With a
+shell and token use
+`python3 operations/agent-presence/presence.py` from `re8ch/service-backend`;
+with GitHub tools only, use the Issue procedure in the protocol.
