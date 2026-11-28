@@ -6,4 +6,5 @@ This view covers 62 catalog repositories and 4 autonomous GitOps repositories.
 
 - [Repository context](Repository-Context)
 - [GitOps context](GitOps-Context)
+- [Architecture history](Architecture-History-Index)
 - Source: `workspace/developer-context.yaml`
