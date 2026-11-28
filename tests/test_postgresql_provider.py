@@ -145,6 +145,8 @@ def test_catalog_runtime_sql_profile_cannot_mutate_catalog_authority():
     assert "transition_mcp_catalog_registration" not in source
     assert "activate_mcp_catalog_revision" not in source
     assert "NOINHERIT" in source and "CONNECTION LIMIT 20" in source
+    assert "PASSWORD %s" not in source
+    assert "sql.Literal(password)" in source
 
 
 def test_pigsty_connection_uses_stable_application_name(monkeypatch):
