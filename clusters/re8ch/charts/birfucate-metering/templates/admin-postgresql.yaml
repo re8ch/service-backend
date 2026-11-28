@@ -34,3 +34,23 @@ metadata:
   annotations: {tenancy.re8ch.com/idempotency-key: admin-pg-billing-native-mcp-v1}
 spec: {tenantRef: admin, serviceClass: database.postgresql.shared.v1, plan: standard, lifecycle: Requested, parameters: {}}
 {{- end }}
+---
+{{- if .Values.tenantPlatform.postgresqlProvider.enabled }}
+apiVersion: tenancy.re8ch.com/v1alpha1
+kind: TenantServiceInstance
+metadata:
+  name: mcp-catalog-runtime
+  namespace: tenant-infrastructure
+  labels:
+    app.kubernetes.io/part-of: birfucate-metering
+    tenancy.re8ch.com/tenant: platform
+  annotations:
+    tenancy.re8ch.com/idempotency-key: platform-mcp-catalog-runtime-v1
+    credentials.re8ch.com/rotation: "1"
+spec:
+  tenantRef: platform
+  serviceClass: database.postgresql.shared.v1
+  plan: standard
+  lifecycle: Requested
+  parameters: {profile: mcp-catalog-runtime-v1}
+{{- end }}

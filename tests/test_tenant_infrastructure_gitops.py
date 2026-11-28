@@ -135,7 +135,18 @@ def test_postgresql_provider_has_independent_image_and_narrow_credentials():
     admin_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-admin-credential")
     assert admin_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "resourceNames": ["supabase-pg-re8ch-secrets"], "verbs": ["get"]}]
     broker_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-credential-broker")
-    assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create"]}]
+    assert broker_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"], "verbs": ["get", "create", "patch"]}]
+    instance = next(item for item in docs if item.get("kind") == "TenantServiceInstance" and
+                    item["metadata"]["name"] == "mcp-catalog-runtime")
+    assert instance["spec"]["parameters"] == {"profile": "mcp-catalog-runtime-v1"}
+    projection = next(item for item in docs if item.get("kind") == "Secret" and item["metadata"]["name"] == "mcp-catalog-database")
+    assert "data" not in projection and "stringData" not in projection
+    projection_role = next(item for item in docs if item.get("kind") == "Role" and item["metadata"]["name"] == "postgresql-provider-catalog-projection")
+    assert projection_role["rules"] == [{"apiGroups": [""], "resources": ["secrets"],
+                                         "resourceNames": ["mcp-catalog-database"], "verbs": ["get", "patch"]}]
+    policy = next(item for item in docs if item.get("kind") == "CiliumNetworkPolicy" and item["metadata"]["name"] == "postgresql-provider")
+    assert policy["spec"]["egress"][1]["toServices"][0]["k8sService"] == {
+        "serviceName": "pg-re8ch-primary", "namespace": "pigsty-external"}
     assert container["ports"] == [{"name": "health", "containerPort": 8080}]
     env_names = {item["name"] for item in container["env"]}
     assert not {"MCP_CATALOG_ADMIN_TOKEN", "MCP_CATALOG_ADMIN_URL"} & env_names
