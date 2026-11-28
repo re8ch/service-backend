@@ -30,7 +30,7 @@ ALLOWED = {
 }
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument("--bundle",type=Path,required=True); ap.add_argument("--access",type=Path,required=True); ap.add_argument("--output",type=Path,required=True)
+    ap=argparse.ArgumentParser(); ap.add_argument("--bundle",type=Path,required=True); ap.add_argument("--access",type=Path,required=True); ap.add_argument("--role-only",action="store_true"); ap.add_argument("--output",type=Path,required=True)
     a=ap.parse_args()
     with tarfile.open(a.bundle,"r:gz") as tf:
         manifest=json.load(tf.extractfile("manifest.json")); objects=json.load(tf.extractfile("objects.json"))
@@ -46,7 +46,7 @@ def main():
     role=next(item for item in access if item.get("kind") == "Role"
               and item.get("metadata",{}).get("namespace") == NAMESPACE
               and item["metadata"].get("name") == "agent-runtime-domain-tenant-infrastructure")
-    objects.append(role)
+    objects=[role] if a.role_only else objects+[role]
     a.output.write_text(yaml.safe_dump_all(objects,sort_keys=False,explicit_start=True))
 
 if __name__ == "__main__": main()
