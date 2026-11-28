@@ -1,5 +1,16 @@
 # API conformance system
 
+For the reviewed pattern that publishes hundreds of OpenAPI operations through
+Scalar without committing credentials or eagerly loading every operation into
+an agent context, see [Scalar MCP integration](SCALAR-MCP-INTEGRATION.md). The
+client-side TOML shape is kept in
+[`scalar-mcp.example.toml`](scalar-mcp.example.toml); it is a template, not a
+live installation declaration.
+
+The broader internal capability review, including the live cluster surface,
+catalog repositories, model gaps and staged adoption plan, is recorded in
+[Internal API capability review](INTERNAL-API-CAPABILITY-REVIEW-2026-11-25.md).
+
 This controller runs bounded Schemathesis checks from reviewed
 `APIConformanceTarget` declarations. Discovery never authorizes execution. A
 target must pin its OpenAPI SHA-256, allowlisted hosts, operation IDs, canary
