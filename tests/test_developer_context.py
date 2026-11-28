@@ -39,6 +39,8 @@ def test_architecture_history_wiki_is_link_only_navigation():
     assert "issues/3461" in page
     assert "Git `main` defines current contracts" in page
     assert "Do not copy its bodies" in page
+    home = (ROOT / "operations/developer-context/wiki/Home.md").read_text()
+    assert "GitOps-Reconcile-Journal-YYYY-MM" in home
 
 
 def test_collaboration_surfaces_are_not_authorities():
