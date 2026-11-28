@@ -11,6 +11,7 @@ def test_bootstrap_workflow_is_exact_and_does_not_use_flux_or_secret_reads():
     assert 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-tenant-infrastructure' in text
     assert 'ghcr.io/8iops/agent-gitops-release/agent-runtime-domain-toolhive-system' in text
     assert 'toolhive_catalog_bootstrap.py' in text
+    assert '--access clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml' in text
     assert 'cosign verify' in text and 'oras blob fetch' in text
     assert "test \"$(jq '.layers | length' \"$manifest\")\" = 1" in text
     assert 'application/vnd.cncf.flux.content.v1.tar+gzip' in text
@@ -36,6 +37,10 @@ def test_bootstrap_access_has_exact_admission_and_escalation_guards():
     assert escalation == [{'apiGroups':['rbac.authorization.k8s.io'],'resources':['roles'],
                            'resourceNames':['agent-runtime-domain-toolhive-system'],
                            'verbs':['get','patch','update','escalate']}]
+    tenant_escalation=[rule for rule in roles['github-tenant-platform-bootstrap']['rules'] if 'escalate' in rule['verbs']]
+    assert tenant_escalation == [{'apiGroups':['rbac.authorization.k8s.io'],'resources':['roles'],
+                                  'resourceNames':['agent-runtime-domain-tenant-infrastructure'],
+                                  'verbs':['get','patch','update','escalate']}]
     policy=next(d for d in items if d['kind']=='ValidatingAdmissionPolicy')
     expression=policy['spec']['validations'][0]['expression']
     assert "object.metadata.namespace == 'tenant-infrastructure'" in expression

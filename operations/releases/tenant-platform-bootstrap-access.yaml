@@ -19,7 +19,7 @@ spec:
       'tenant-runtime-image-cache','admin-api','tenant-api','tenant-control-controller','tenant-provider-reconciler',
       'tenant-api-gateway','tenant-platform-modules','tenant-platform-state','tenant-infrastructure',
       'tenant-billing-auth-center','tenant-billing-read','tenant-credential-redemption','tenant-native-mcp',
-      'tenant-self-service-capabilities']) ||
+      'tenant-self-service-capabilities','agent-runtime-domain-tenant-infrastructure']) ||
       (object.metadata.namespace == 'toolhive-system' && object.metadata.name in [
       'agent-runtime-domain-toolhive-system','re8ch-approved-tool-catalog'])
     message: platform bootstrap may write only the reviewed exact inventory
@@ -57,9 +57,13 @@ rules:
   resources: [ciliumnetworkpolicies]
   verbs: [get, create, patch, update]
 - apiGroups: [rbac.authorization.k8s.io]
-  resources: [roles, rolebindings]
+  resources: [rolebindings]
   resourceNames: [agent-runtime-domain-tenant-infrastructure]
   verbs: [get]
+- apiGroups: [rbac.authorization.k8s.io]
+  resources: [roles]
+  resourceNames: [agent-runtime-domain-tenant-infrastructure]
+  verbs: [get, patch, update, escalate]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

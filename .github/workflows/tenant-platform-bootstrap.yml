@@ -55,7 +55,9 @@ jobs:
             --output "$RUNNER_TEMP/bootstrap.yaml"
         else
           python operations/releases/tenant_platform_bootstrap.py \
-            --bundle "$RUNNER_TEMP/bundle/release.bundle" --output "$RUNNER_TEMP/bootstrap.yaml"
+            --bundle "$RUNNER_TEMP/bundle/release.bundle" \
+            --access clusters/re8ch/components/ops/github-actions-agent-runtime-executor-rbac.yaml \
+            --output "$RUNNER_TEMP/bootstrap.yaml"
         fi
     - name: Acquire exact GitHub OIDC identity
       env: {KUBE_API_CA: '${{ secrets.KUBE_API_CA_PEM }}'}
@@ -92,6 +94,7 @@ jobs:
           ns=tenant-infrastructure
           test "$(kubectl auth can-i create deployments -n "$ns")" = yes
           test "$(kubectl auth can-i get role/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
+          test "$(kubectl auth can-i update role/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
           test "$(kubectl auth can-i get rolebinding/agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
           test "$(kubectl auth can-i get configmap/ssa-state-agent-runtime-domain-tenant-infrastructure -n "$ns")" = yes
         fi
