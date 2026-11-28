@@ -22,3 +22,7 @@ configMapGenerator:
     namespace: supabase-pg-re8ch
     files:
       - migration.sql=dynamic-mcp-catalog-authority.sql
+  - name: supabase-billing-tenant-runtime-state-v1
+    namespace: supabase-pg-re8ch
+    files:
+      - migration.sql=tenant-runtime-state.sql
